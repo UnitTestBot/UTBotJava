@@ -80,11 +80,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Check cache
-        run: |
-          set -x
-          ls -lha ~/.gradle/caches || echo "directory doesn't exist"
-          du -sh ~/.gradle/* || echo "directory doesn't exist"
 
       - name: Run monitoring
         run: |
@@ -95,12 +90,6 @@ jobs:
       - name: Run tests
         run: |
           gradle --build-cache --no-daemon :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
-
-      - name: Post check cache
-        run: |
-          set -x
-          ls -lha ~/.gradle/caches || echo "directory doesn't exist"
-          du -sh ~/.gradle/* || echo "directory doesn't exist"
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
@@ -162,11 +151,6 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
-    - name: Check cache
-      run: |
-        set -x
-        ls -lha ~/.gradle/caches || echo "directory doesn't exist"
-        du -sh ~/.gradle/* || echo "directory doesn't exist"
 
     - name: Run monitoring
       run: |
@@ -185,12 +169,6 @@ jobs:
       run: |
         cd ${{ matrix.projects.second }}
         gradle build --build-cache --no-daemon
-
-    - name: Post check cache
-      run: |
-        set -x
-        ls -lha ~/.gradle/caches || echo "directory doesn't exist"
-        du -sh ~/.gradle/* || echo "directory doesn't exist"
 
     - name: Upload test report if tests have failed
       if: ${{ failure() }}
@@ -242,11 +220,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Check cache
-        run: |
-          set -x
-          ls -lha ~/.gradle/caches || echo "directory doesn't exist"
-          du -sh ~/.gradle/* || echo "directory doesn't exist"
 
       - name: Run monitoring
         run: |
@@ -258,12 +231,6 @@ jobs:
         run: |
           cd ${{ matrix.project }}
           gradle build --build-cache --no-daemon
-
-      - name: Post check cache
-        run: |
-          set -x
-          ls -lha ~/.gradle/caches || echo "directory doesn't exist"
-          du -sh ~/.gradle/* || echo "directory doesn't exist"
 
       - name: Upload test report if tests have failed
         if: ${{ failure() }}

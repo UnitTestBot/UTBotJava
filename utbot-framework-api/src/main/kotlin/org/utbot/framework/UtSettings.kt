@@ -307,7 +307,7 @@ object UtSettings : AbstractSettings(
      *
      * False by default.
      */
-    var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
+    var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(true)
 
     /**
      * Enable it to process states with unknown solver status

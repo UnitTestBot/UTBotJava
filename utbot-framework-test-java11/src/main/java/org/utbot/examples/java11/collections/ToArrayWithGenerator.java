@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+@SuppressWarnings("Since15")
 public class ToArrayWithGenerator<T> {
     @SuppressWarnings("MismatchedReadAndWriteOfArray")
     public boolean checkSetSize(int size) {

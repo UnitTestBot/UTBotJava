@@ -1,5 +1,11 @@
 package org.utbot.instrumentation.instrumentation.instrumenter
 
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
+import org.objectweb.asm.tree.ClassNode
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.MethodToProbesVisitor
@@ -9,6 +15,7 @@ import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.IIns
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.InstanceFieldInitializer
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.InstructionVisitorAdapter
 import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.StaticFieldInitializer
+import org.utbot.instrumentation.process.HandlerClassesLoader
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -17,12 +24,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassVisitor
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.tree.ClassNode
 
 
 // TODO: handle with flags EXPAND_FRAMES, etc.
@@ -155,7 +156,7 @@ private class TunedClassWriter(
     flags: Int
 ) : ClassWriter(reader, flags) {
     override fun getClassLoader(): ClassLoader {
-        return UtContext.currentContext()?.classLoader ?: this::class.java.classLoader
+        return HandlerClassesLoader
     }
     override fun getCommonSuperClass(type1: String, type2: String): String {
         try {
@@ -278,8 +279,9 @@ private class TunedClassWriter(
      */
     @Throws(IOException::class)
     private fun typeInfo(type: String): ClassReader {
-        val `is`: InputStream = classLoader.getResourceAsStream("$type.class")
-            ?: error("Can't find resource for class: $type.class")
+        val `is`: InputStream = requireNotNull(classLoader.getResourceAsStream("$type.class")) {
+            "Can't find resource for class: $type.class"
+        }
         return `is`.use { ClassReader(it) }
     }
 }

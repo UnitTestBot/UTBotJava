@@ -62,6 +62,11 @@ tasks {
     runIde {
         jvmArgs("-Xmx2048m")
     }
+
+    patchPluginXml {
+        sinceBuild.set("212")
+        untilBuild.set("221.*")
+    }
 }
 
 dependencies {

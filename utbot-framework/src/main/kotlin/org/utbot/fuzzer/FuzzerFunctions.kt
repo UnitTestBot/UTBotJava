@@ -1,6 +1,7 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
@@ -48,6 +49,7 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
+import java.lang.reflect.GenericArrayType
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.TypeVariable
@@ -304,6 +306,16 @@ fun toFuzzerType(type: Type): FuzzedType {
         is WildcardType -> type.upperBounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(objectClassId)
         is TypeVariable<*> -> type.bounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(objectClassId)
         is ParameterizedType -> FuzzedType((type.rawType as Class<*>).id, type.actualTypeArguments.map { toFuzzerType(it) })
+        is GenericArrayType -> {
+            val genericComponentType = type.genericComponentType
+            val fuzzerType = toFuzzerType(genericComponentType)
+            val classId = if (genericComponentType !is GenericArrayType) {
+                ClassId("[L${fuzzerType.classId.name};", fuzzerType.classId)
+            } else {
+                ClassId("[" + fuzzerType.classId.name, fuzzerType.classId)
+            }
+            FuzzedType(classId)
+        }
         is Class<*> -> FuzzedType(type.id)
         else -> error("Unknown type: $type")
     }

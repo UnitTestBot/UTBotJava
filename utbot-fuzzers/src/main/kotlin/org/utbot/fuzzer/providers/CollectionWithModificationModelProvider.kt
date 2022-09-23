@@ -19,6 +19,10 @@ class CollectionWithModificationModelProvider(
     private var defaultModificationCount: IntArray = intArrayOf(0, 1, 3)
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
 
+    init {
+        totalLimit = 100_000
+    }
+
     // List of available implementations with modification method to insert values
     // Should be listed from more specific interface to more general,
     // because suitable info is searched by the list.

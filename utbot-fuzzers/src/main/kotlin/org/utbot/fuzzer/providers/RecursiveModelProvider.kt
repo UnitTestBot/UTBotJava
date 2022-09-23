@@ -24,7 +24,9 @@ data class ModelConstructor(
     val neededTypes: List<FuzzedType>,
     val repeat: Int = 1,
     val createModel: (subModels: List<FuzzedValue>) -> FuzzedValue,
-)
+) {
+    var limit: Int = Int.MAX_VALUE
+}
 
 /**
  * Abstraction for providers that may call other providers recursively inside them. [generate] will firstly get possible
@@ -80,7 +82,7 @@ abstract class RecursiveModelProvider(
                     yieldAllValues(listOf(index), creator.recursiveCall(description))
                 }
         }
-    }
+    }.take(totalLimit)
 
     private fun ModelConstructor.recursiveCall(baseMethodDescription: FuzzedMethodDescription): Sequence<FuzzedValue> {
         // when no parameters are needed just call model creator once,
@@ -101,7 +103,7 @@ abstract class RecursiveModelProvider(
         }
         return fuzz(syntheticMethodDescription, nextModelProvider())
             .map { createModel(it) }
-            .take(totalLimit)
+            .take(limit)
     }
 
     private fun nextModelProvider(): ModelProvider =

@@ -49,9 +49,6 @@ class FuzzedMethodDescription(
      *
      * Fuzzer doesn't care about interconnection between these types, therefore it waits
      * that function already has all necessary information to bound this values.
-     *
-     * If `K <: Number` and `V <: K` for map this method can return values like:
-     * `K contains {Number, Integer} and V contains only {Integer}`.
      */
     var fuzzerType: (Int) -> FuzzedType? = { null }
 

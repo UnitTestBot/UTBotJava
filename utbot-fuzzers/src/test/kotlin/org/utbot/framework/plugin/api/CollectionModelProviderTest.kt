@@ -50,9 +50,7 @@ class CollectionModelProviderTest {
                 CollectionWithModificationModelProvider(
                     TestIdentityPreservingIdGenerator,
                     defaultModificationCount = modifications
-                ).apply {
-                    totalLimit = 1
-                },
+                ),
                 parameters = listOf(Collection::class.id),
             ) {
                 fuzzerType = { FuzzedType(Collection::class.id, listOf(FuzzedType(objectClassId))) }

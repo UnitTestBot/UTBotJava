@@ -164,7 +164,7 @@ fun <T> Sequence<List<FuzzedValue>>.withMutations(statistics: FuzzerStatistics<T
 fun fuzzNumbers(concreteValues: Collection<FuzzedConcreteValue>, vararg defaultValues: Int, filter: (Number) -> Boolean = { true }): Sequence<Int> {
     val description = FuzzedMethodDescription("helper: number fuzzing", voidClassId, listOf(intClassId), concreteValues)
     val fuzzedValues = fuzz(description, ConstantsModelProvider)
-        .mapNotNull { ((it[0].model as? UtPrimitiveModel)?.value as? Number) }
+        .mapNotNull { ((it.single().model as? UtPrimitiveModel)?.value as? Number) }
         .filter(filter)
         .map { it.toInt() }
     return (defaultValues.asSequence() + fuzzedValues).distinct()

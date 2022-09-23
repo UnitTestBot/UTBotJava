@@ -29,6 +29,8 @@ class ArrayModelProvider(
         lengths.forEach { length ->
             yield(ModelConstructor(listOf(FuzzedType(classId.elementClassId!!)), repeat = length) { values ->
                 createFuzzedArrayModel(classId, length, values.map { it.model } )
+            }.apply {
+                limit = totalLimit / branchingLimit
             })
         }
     }

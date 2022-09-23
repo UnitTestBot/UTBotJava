@@ -7,6 +7,14 @@
     {
       "FIRST": "utbot-instrumentation",
       "SECOND": "utbot-instrumentation-tests"
+    },
+    {
+      "FIRST": "utbot-summary",
+      "SECOND": "utbot-summary-tests"
+    },
+    {
+      "FIRST": "utbot-api",
+      "SECOND": "utbot-framework-api"
     }
   ]
 }

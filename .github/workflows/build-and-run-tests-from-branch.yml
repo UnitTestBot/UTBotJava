@@ -213,7 +213,7 @@ jobs:
         with:
           path: |
             /root/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles('*.gradle*', format('{}{}', matrix.project, '/*.gradle*')) }}
+          key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles('*.gradle*', format('{0}{1}', matrix.project, '/*.gradle*')) }}
           restore-keys: |
             ${{ runner.os }}-gradle-${{ matrix.project }}-
 

@@ -45,7 +45,7 @@ import org.utbot.instrumentation.rd.generated.ComputeStaticFieldResult
  * We use this ClassLoader to separate user's classes and our dependency classes.
  * Our classes won't be instrumented.
  */
-private object HandlerClassesLoader : URLClassLoader(emptyArray()) {
+internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     fun addUrls(urls: Iterable<String>) {
         urls.forEach { super.addURL(File(it).toURI().toURL()) }
     }

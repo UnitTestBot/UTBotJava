@@ -3,6 +3,14 @@
     {
     "PART_NAME": "examples-lists",
     "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart1Test\" --tests \"org.utbot.examples.collections.ListsPart2Test\" --tests \"org.utbot.examples.collections.ListsPart3Test\""
+    },
+    {
+      "PART_NAME": "examples-maps-part1",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapsPart1Test\""
+    },
+    {
+      "PART_NAME": "examples-maps-part2",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapsPart2Test\""
     }
   ]
 }

@@ -193,7 +193,7 @@ jobs:
       fail-fast: false
       matrix:
         # project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
-        project: [utbot-core]
+        project: [utbot-core, utbot-fuzzers]
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:

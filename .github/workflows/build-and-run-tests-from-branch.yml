@@ -73,21 +73,18 @@ jobs:
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            /root/.gradle/caches
-          # key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
-          key: ${{ runner.os }}-gradle-framework-${{ hashFiles('*.gradle*', 'utbot-framework*/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-framework
-
       - name: Run monitoring
         run: |
           echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
           ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
 
+      - uses: actions/cache@v3
+        with:
+          path: /root/.gradle/caches
+          # key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
+          key: ${{ runner.os }}-gradle-framework-${{ hashFiles('*.gradle*', 'utbot-framework*/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-framework
       - name: Run tests
         run: |
           gradle --build-cache --no-daemon :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
@@ -128,57 +125,54 @@ jobs:
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
-    - name: Print environment variables
-      run: printenv
+      - name: Print environment variables
+        run: printenv
 
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Check out ${{ github.event.inputs.commit_sha }} commit
-      if: github.event.inputs.commit_sha != ''
-      run: |
-        git config --global --add safe.directory ${GITHUB_WORKSPACE}
-        git fetch
-        git checkout ${{ github.event.inputs.commit_sha }}
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+        if: github.event.inputs.commit_sha != ''
+        run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          git fetch
+          git checkout ${{ github.event.inputs.commit_sha }}
 
-    - uses: actions/cache@v3
-      with:
-        path: |
-          /root/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ matrix.projects.first }}-${{ hashFiles('*.gradle*', format('{0}{1}', matrix.projects.first, '/*.gradle*')) }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-${{ matrix.projects.first }}-
+      - name: Run monitoring
+        run: |
+          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
+          chmod +x ./scripts/project/monitoring.sh
+          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
 
-    - name: Run monitoring
-      run: |
-        echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
-        chmod +x ./scripts/project/monitoring.sh
-        ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+      - uses: actions/cache@v3
+        with:
+          path: /root/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ matrix.projects.first }}-${{ hashFiles('*.gradle*', format('{0}{1}', matrix.projects.first, '/*.gradle*')) }}
+          restore-keys: ${{ runner.os }}-gradle-${{ matrix.projects.first }}-
+      - name: Build project ${{ matrix.projects.first }}
+        id: first-project
+        run: |
+          cd ${{ matrix.projects.first }}
+          gradle build --build-cache --no-daemon
 
-    - name: Build project ${{ matrix.projects.first }}
-      id: first-project
-      run: |
-        cd ${{ matrix.projects.first }}
-        gradle build --build-cache --no-daemon
+      - name: Build project ${{ matrix.projects.second }}
+        if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
+        run: |
+          cd ${{ matrix.projects.second }}
+          gradle build --build-cache --no-daemon
 
-    - name: Build project ${{ matrix.projects.second }}
-      if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
-      run: |
-        cd ${{ matrix.projects.second }}
-        gradle build --build-cache --no-daemon
+      - name: Upload test report if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_report ${{ matrix.projects.first }}
+          path: ${{ matrix.projects.first }}/build/reports/tests/test/*
 
-    - name: Upload test report if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: test_report ${{ matrix.projects.first }}
-        path: ${{ matrix.projects.first }}/build/reports/tests/test/*
-
-    - name: Upload test report if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: test_report ${{ matrix.projects.second }}
-        path: ${{ matrix.projects.second }}/build/reports/tests/test/*
+      - name: Upload test report if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_report ${{ matrix.projects.second }}
+          path: ${{ matrix.projects.second }}/build/reports/tests/test/*
         
 
   single-project:
@@ -209,20 +203,17 @@ jobs:
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            /root/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles('*.gradle*', format('{0}{1}', matrix.project, '/*.gradle*')) }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-${{ matrix.project }}-
-
       - name: Run monitoring
         run: |
           echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
           ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
 
+      - uses: actions/cache@v3
+        with:
+          path: /root/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles('*.gradle*', format('{0}{1}', matrix.project, '/*.gradle*')) }}
+          restore-keys: ${{ runner.os }}-gradle-${{ matrix.project }}-
       - name: Run tests
         run: |
           cd ${{ matrix.project }}

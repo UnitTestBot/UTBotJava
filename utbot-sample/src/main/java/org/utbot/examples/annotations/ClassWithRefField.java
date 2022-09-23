@@ -21,7 +21,7 @@ public class ClassWithRefField {
     }
 
     @SuppressWarnings("NullableProblems")
-    public Integer getBoxedInt() {
+    public @NotNull Integer getBoxedInt() {
         return boxedInt;
     }
 }

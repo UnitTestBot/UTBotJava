@@ -15,9 +15,10 @@ import org.utbot.framework.plugin.api.util.voidClassId
  */
 // TODO: change parameter from packageName: String to context: CgContext in ClassId.isAccessibleFrom and ExecutableId.isAccessibleFrom ?
 internal infix fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
-    if (!isStatic && context.codegenLanguage == CodegenLanguage.KOTLIN) {
+    if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
         // Here we call field accessible iff its getter is accessible, checks for setter are made in FieldId.canBeSetIn
-        return declaringClass.allMethods.contains(getter) && getter.isAccessibleFrom(context.testClassPackageName)
+        if (!isStatic && declaringClass.allMethods.contains(getter) && getter.isAccessibleFrom(context.testClassPackageName))
+            return true
     }
     val packageName = context.testClassPackageName
     val isClassAccessible = declaringClass.isAccessibleFrom(packageName)
@@ -31,10 +32,17 @@ internal infix fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
  * Whether or not a field can be set without reflection
  */
 internal fun FieldId.canBeSetIn(context: CgContext): Boolean {
-    if (!isStatic && context.codegenLanguage == CodegenLanguage.KOTLIN) {
-        return declaringClass.allMethods.contains(setter) && setter.isAccessibleFrom(context.testClassPackageName)
+    if (!isAccessibleFrom(context)) {
+        return false
     }
-    return isAccessibleFrom(context) && !isFinal
+
+    if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
+        if (!isStatic && declaringClass.allMethods.contains(setter) && setter.isAccessibleFrom(context.testClassPackageName)) {
+            return true
+        }
+    }
+
+    return !isFinal
 }
 
 /**

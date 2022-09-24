@@ -14,12 +14,12 @@ import org.utbot.framework.plugin.api.util.voidClassId
  * @param context context in which code is generated (it is needed because the method needs to know package and language)
  */
 // TODO: change parameter from packageName: String to context: CgContext in ClassId.isAccessibleFrom and ExecutableId.isAccessibleFrom ?
-internal infix fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
-    if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
+private fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
+    /*if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
         // Here we call field accessible iff its getter is accessible, checks for setter are made in FieldId.canBeSetIn
-        if (!isStatic && declaringClass.allMethods.contains(getter) && getter.isAccessibleFrom(context.testClassPackageName))
+        if (!isStatic && isAccessibleViaGetterFrom(context))
             return true
-    }
+    }*/
     val packageName = context.testClassPackageName
     val isClassAccessible = declaringClass.isAccessibleFrom(packageName)
     val isAccessibleByVisibility = isPublic || (declaringClass.packageName == packageName && (isPackagePrivate || isProtected))
@@ -28,21 +28,34 @@ internal infix fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
     return isClassAccessible && isAccessibleFromPackageByModifiers
 }
 
+private fun FieldId.canBeReadViaGetterFrom(context: CgContext): Boolean =
+    declaringClass.allMethods.contains(getter) && getter.isAccessibleFrom(context.testClassPackageName)
+
+internal infix fun FieldId.canBeReadFrom(context: CgContext): Boolean {
+    if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
+        if (!isStatic && canBeReadViaGetterFrom(context))
+            return true
+    }
+
+    return isAccessibleFrom(context)
+}
+
+private fun FieldId.canBeSetViaSetterFrom(context: CgContext): Boolean =
+    declaringClass.allMethods.contains(setter) && setter.isAccessibleFrom(context.testClassPackageName)
+
 /**
  * Whether or not a field can be set without reflection
  */
-internal fun FieldId.canBeSetIn(context: CgContext): Boolean {
-    if (!isAccessibleFrom(context)) {
-        return false
-    }
-
+internal fun FieldId.canBeSetFrom(context: CgContext): Boolean {
     if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
-        if (!isStatic && declaringClass.allMethods.contains(setter) && setter.isAccessibleFrom(context.testClassPackageName)) {
+        // Kotlin will allow direct write access if both getter and setter is defined (even if the field is final)
+        // TODO: add comment about final public and final private fields
+        if (!isAccessibleFrom(context) && !isStatic && canBeReadViaGetterFrom(context) && canBeSetViaSetterFrom(context)) {
             return true
         }
     }
 
-    return !isFinal
+    return isAccessibleFrom(context) && !isFinal
 }
 
 /**

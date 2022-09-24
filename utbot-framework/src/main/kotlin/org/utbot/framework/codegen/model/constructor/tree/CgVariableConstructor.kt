@@ -28,7 +28,7 @@ import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
-import org.utbot.framework.codegen.model.util.canBeSetIn
+import org.utbot.framework.codegen.model.util.canBeSetFrom
 import org.utbot.framework.codegen.model.util.fieldThisIsGetterFor
 import org.utbot.framework.codegen.model.util.fieldThisIsSetterFor
 import org.utbot.framework.codegen.model.util.inc
@@ -193,7 +193,7 @@ internal class CgVariableConstructor(val context: CgContext) :
             // byteBuffer is field of type ByteBuffer and upper line is incorrect
             val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
                 fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
-            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetIn(context)) {
+            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context)) {
                 // TODO: check if it is correct to use declaringClass of a field here
                 val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
                 fieldAccess `=` variableForField

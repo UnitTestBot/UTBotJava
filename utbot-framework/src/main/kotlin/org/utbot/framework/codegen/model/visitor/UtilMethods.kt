@@ -343,7 +343,7 @@ private fun createInstance(visibility: Visibility, language: CodegenLanguage): S
         }
         CodegenLanguage.KOTLIN -> {
             """
-            ${visibility by language}fun createInstance(className: String): kotlin.Any? {
+            ${visibility by language}fun createInstance(className: String): kotlin.Any {
                 val clazz: Class<*> = Class.forName(className)
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class::class.java)
                     .invoke(getUnsafeInstance(), clazz)

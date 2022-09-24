@@ -202,7 +202,8 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun renderAccess(caller: CgExpression) {
-        print("?.")
+        if (caller.type.isNullable) print("?")
+        print(".")
     }
 
     override fun visit(element: CgParameterDeclaration) {

@@ -65,9 +65,6 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.symbolic.HardConstraint
-import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.emptyAssumption
 import org.utbot.engine.symbolic.emptyHardConstraint
 import org.utbot.engine.symbolic.emptySoftConstraint
@@ -768,6 +765,57 @@ class Traverser(
     }
 
     /**
+     * Check for [ArrayStoreException] when an array element is assigned
+     *
+     * @param arrayInstance Symbolic value corresponding to the array being updated
+     * @param value Symbolic value corresponding to the right side of the assignment
+     */
+    private fun TraversalContext.arrayStoreExceptionCheck(arrayInstance: SymbolicValue, value: SymbolicValue) {
+        require(arrayInstance is ArrayValue)
+        val valueType = value.type
+        val valueBaseType = valueType.baseType
+        val arrayElementType = arrayInstance.type.elementType
+
+        // We should check for [ArrayStoreException] only for reference types.
+        // * For arrays of primitive types, incorrect assignment is prevented as compile time.
+        // * When assigning primitive literals (e.g., `1`) to arrays of corresponding boxed classes (`Integer`),
+        //   the conversion to the reference type is automatic.
+        // * [System.arraycopy] and similar functions that can throw [ArrayStoreException] accept [Object] arrays
+        //   as arguments, so array elements are references.
+
+        if (valueBaseType is RefType) {
+            val arrayElementTypeStorage = typeResolver.constructTypeStorage(arrayElementType, useConcreteType = false)
+
+            // Generate ASE only if [value] is not a subtype of the type of array elements
+            val isExpression = typeRegistry.typeConstraint(value.addr, arrayElementTypeStorage).isConstraint()
+            val notIsExpression = mkNot(isExpression)
+
+            // `null` is compatible with any reference type, so we should not throw ASE when `null` is assigned
+            val nullEqualityConstraint = addrEq(value.addr, nullObjectAddr)
+            val notNull = mkNot(nullEqualityConstraint)
+
+            // Currently the negation of [UtIsExpression] seems to work incorrectly for [java.lang.Object]:
+            // https://github.com/UnitTestBot/UTBotJava/issues/1007
+
+            // It is related to [org.utbot.engine.pc.Z3TranslatorVisitor.filterInappropriateTypes] that removes
+            // internal engine classes for [java.lang.Object] type storage, and this logic is not fully
+            // consistent with the negation.
+
+            // Here we have a specific test for [java.lang.Object] as the type of array elements:
+            // any reference type may be assigned to elements of an Object array, so we should not generate
+            // [ArrayStoreException] in these cases.
+
+            // TODO: remove enclosing `if` when [UtIfExpression] negation is fixed
+            if (!arrayElementType.isJavaLangObject()) {
+                implicitlyThrowException(ArrayStoreException(), setOf(notIsExpression, notNull))
+            }
+
+            // If ASE is not thrown, we know that either the value is null, or it has a compatible type
+            queuedSymbolicStateUpdates += mkOr(isExpression, nullEqualityConstraint).asHardConstraint()
+        }
+    }
+
+    /**
      * Traverses left part of assignment i.e. where to store resolved value.
      */
     private fun TraversalContext.traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate = when (left) {
@@ -782,12 +830,11 @@ class Traverser(
 
             queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length
 
-            // TODO array store exception
+            arrayStoreExceptionCheck(arrayInstance, value)
 
             // add constraint for possible array type
             val valueType = value.type
             val valueBaseType = valueType.baseType
-
             if (valueBaseType is RefType) {
                 val valueTypeAncestors = typeResolver.findOrConstructAncestorsIncludingTypes(valueBaseType)
                 val valuePossibleBaseTypes = value.typeStorage.possibleConcreteTypes.map { it.baseType }

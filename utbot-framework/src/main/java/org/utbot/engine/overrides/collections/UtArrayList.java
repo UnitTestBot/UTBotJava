@@ -179,7 +179,7 @@ public class UtArrayList<E> extends AbstractList<E>
         if (size > 1) {
             for (int i = 1; i < size; i++) {
                 builder.append(", ");
-                builder.append(get(i).toString());
+                builder.append(get(i));
             }
         }
         builder.append("]");

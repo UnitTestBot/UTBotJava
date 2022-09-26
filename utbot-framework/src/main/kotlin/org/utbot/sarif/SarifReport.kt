@@ -4,6 +4,7 @@ import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -208,10 +209,14 @@ class SarifReport(
         val methodCallLocation: SarifPhysicalLocation? =
             findMethodCallInTestBody(utExecution.testMethodName, method.name)
         if (methodCallLocation != null) {
+            val testFileName = sourceFinding.testsRelativePath.toPath().fileName
+            val testClassName = testFileName.nameWithoutExtension
+            val testMethodName = utExecution.testMethodName
+            val methodCallLineNumber = methodCallLocation.region.startLine
             val methodCallLocationWrapper = SarifFlowLocationWrapper(
                 SarifFlowLocation(
                     message = Message(
-                        text = "${sourceFinding.testsRelativePath.toPath().fileName}:${methodCallLocation.region.startLine}"
+                        text = "$testClassName.$testMethodName($testFileName:$methodCallLineNumber)"
                     ),
                     physicalLocation = methodCallLocation
                 )

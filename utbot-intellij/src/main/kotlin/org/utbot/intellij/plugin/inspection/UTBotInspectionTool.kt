@@ -7,6 +7,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import org.utbot.sarif.Sarif
 import org.utbot.sarif.SarifRegion
+import org.utbot.sarif.SarifResult
 import java.nio.file.Path
 
 /**
@@ -46,12 +47,16 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
             ?: return // no results for this file
 
         for (sarifResult in sarifReport.getAllResults()) {
-            val srcFileLocation = sarifResult.locations.firstOrNull() ?: continue
+            val srcFileLocation = sarifResult.locations.firstOrNull()
+                ?: continue
+
             val errorRegion = srcFileLocation.physicalLocation.region
             val errorTextRange = getTextRange(problemsHolder.project, psiFile, errorRegion)
 
             // see `org.utbot.sarif.SarifReport.processUncheckedException` for the message template
-            val errorMessage = sarifResult.message.text.split('\n').take(2).joinToString(" ")
+            val (exceptionMessage, testCaseMessage) =
+                sarifResult.message.text.split('\n').take(2)
+            val sarifResultMessage = "$exceptionMessage $testCaseMessage"
 
             val testFileLocation = sarifResult.relatedLocations.firstOrNull()?.physicalLocation
             val viewGeneratedTestFix = testFileLocation?.let {
@@ -62,13 +67,17 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
                 )
             }
 
+            val stackTraceLines = sarifResult.extractStackTraceLines()
+            val analyzeStackTraceFix = AnalyzeStackTraceFix(exceptionMessage, stackTraceLines)
+
             val problemDescriptor = problemsHolder.manager.createProblemDescriptor(
                 psiFile,
                 errorTextRange,
-                errorMessage,
+                sarifResultMessage,
                 ProblemHighlightType.ERROR,
                 /* onTheFly = */ true,
-                viewGeneratedTestFix
+                viewGeneratedTestFix,
+                analyzeStackTraceFix
             )
             problemDescriptionsProcessor.addProblemElement(
                 globalContext.refManager.getReference(psiFile),
@@ -94,5 +103,13 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
         val lineEndOffset = document.getLineEndOffset(lineNumber)
         return TextRange(lineStartOffset, lineEndOffset)
     }
-}
 
+    private fun SarifResult.extractStackTraceLines(): List<String> =
+        this.codeFlows.flatMap { sarifCodeFlow ->
+            sarifCodeFlow.threadFlows.flatMap { sarifThreadFlow ->
+                sarifThreadFlow.locations.map { sarifFlowLocationWrapper ->
+                    sarifFlowLocationWrapper.location.message.text
+                }
+            }
+        }.reversed()
+}

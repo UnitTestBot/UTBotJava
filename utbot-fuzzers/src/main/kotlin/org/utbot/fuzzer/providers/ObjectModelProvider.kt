@@ -48,8 +48,11 @@ class ObjectModelProvider(
         parameterIndex: Int,
         classId: ClassId,
     ): Sequence<ModelConstructor> = sequence {
-        if (unwantedConstructorsClasses.contains(classId) ||
-            classId.isPrimitiveWrapper || classId.isEnum || classId.isAbstract
+        if (unwantedConstructorsClasses.contains(classId)
+            || classId.isPrimitiveWrapper
+            || classId.isEnum
+            || classId.isAbstract
+            || (classId.isInner && !classId.isStatic)
         ) return@sequence
 
         val constructors = collectConstructors(classId) { javaConstructor ->

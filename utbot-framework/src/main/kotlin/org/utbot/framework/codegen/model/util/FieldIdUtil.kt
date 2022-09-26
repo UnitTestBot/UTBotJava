@@ -15,11 +15,6 @@ import org.utbot.framework.plugin.api.util.voidClassId
  */
 // TODO: change parameter from packageName: String to context: CgContext in ClassId.isAccessibleFrom and ExecutableId.isAccessibleFrom ?
 private fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
-    /*if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
-        // Here we call field accessible iff its getter is accessible, checks for setter are made in FieldId.canBeSetIn
-        if (!isStatic && isAccessibleViaGetterFrom(context))
-            return true
-    }*/
     val packageName = context.testClassPackageName
     val isClassAccessible = declaringClass.isAccessibleFrom(packageName)
     val isAccessibleByVisibility = isPublic || (declaringClass.packageName == packageName && (isPackagePrivate || isProtected))
@@ -31,8 +26,12 @@ private fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
 private fun FieldId.canBeReadViaGetterFrom(context: CgContext): Boolean =
     declaringClass.allMethods.contains(getter) && getter.isAccessibleFrom(context.testClassPackageName)
 
+/**
+ * Returns whether you can read field's value without reflection
+ */
 internal infix fun FieldId.canBeReadFrom(context: CgContext): Boolean {
     if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
+        // Kotlin will allow direct field access for non-static fields with accessible getter
         if (!isStatic && canBeReadViaGetterFrom(context))
             return true
     }
@@ -48,8 +47,8 @@ private fun FieldId.canBeSetViaSetterFrom(context: CgContext): Boolean =
  */
 internal fun FieldId.canBeSetFrom(context: CgContext): Boolean {
     if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
-        // Kotlin will allow direct write access if both getter and setter is defined (even if the field is final)
-        // TODO: add comment about final public and final private fields
+        // Kotlin will allow direct write access if both getter and setter is defined
+        // !isAccessibleFrom(context) is important here because above rule applies to final fields only if they are not accessible in Java terms
         if (!isAccessibleFrom(context) && !isStatic && canBeReadViaGetterFrom(context) && canBeSetViaSetterFrom(context)) {
             return true
         }

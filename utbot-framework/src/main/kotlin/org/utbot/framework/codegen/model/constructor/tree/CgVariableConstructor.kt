@@ -218,11 +218,11 @@ internal class CgVariableConstructor(val context: CgContext) :
                 }
                 is UtExecutableCallModel -> {
                     val call = createCgExecutableCallFromUtExecutableCall(statementModel)
-                    val callOrAccess = replaceCgExecutableCallWithFieldAccessIfNeeded(call)
+                    val callOrAccess: CgStatement = replaceCgExecutableCallWithFieldAccessIfNeeded(call)
                     if (callOrAccess is CgExecutableCall)
-                        +callOrAccess
+                        +callOrAccess   // smart-cast => CgExecutableCall.unaryPlus()
                     else
-                        +callOrAccess
+                        +callOrAccess   // CgStatement.unaryPlus()
                 }
             }
         }

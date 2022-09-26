@@ -146,7 +146,7 @@ class SettingsWindow(val project: Project) {
                 )
                 .constraints(CCFlags.growX)
                 .component.castSafelyTo<JSlider>()?.apply {
-                    toolTipText = "Choose the time allocated for each method within tests generation timeout per class"
+                    toolTipText = "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout</body></html>"
                     addChangeListener {
                         fuzzLabel.text = "Fuzzing " + "%.0f %%".format(100.0 * (granularity - value) / granularity)
                         symLabel.text = "%.0f %%".format(100.0 * value / granularity) + " Symbolic execution"

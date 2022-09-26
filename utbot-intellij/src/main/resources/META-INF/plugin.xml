@@ -10,7 +10,6 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
-
     <!--Optional dependency on org.jetbrains.android-->
     <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
 

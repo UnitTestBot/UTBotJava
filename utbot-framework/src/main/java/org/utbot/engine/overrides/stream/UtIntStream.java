@@ -91,7 +91,12 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
         assume(elementData.end >= 0);
         // we can create a stream for an array using Stream.of
-        assume(elementData.end <= HARD_MAX_ARRAY_SIZE);
+        assumeOrExecuteConcretely(elementData.end <= HARD_MAX_ARRAY_SIZE);
+
+        // As real primitive streams contain primitives, we cannot accept nulls.
+        for (int i = 0; i < elementData.end; i++) {
+            assume(elementData.get(i) != null);
+        }
 
         visit(this);
     }
@@ -291,16 +296,12 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
         }
 
         int curSize = elementData.end;
-        if (n > curSize) {
+        if (n >= curSize) {
             return new UtIntStream();
         }
 
-        // n is 1...Integer.MAX_VALUE here
+        // n is 0...(Integer.MAX_VALUE - 1) here
         int newSize = (int) (curSize - n);
-
-        if (newSize == 0) {
-            return new UtIntStream();
-        }
 
         Integer[] newData = elementData.toCastedArray((int) n, newSize);
 
@@ -355,17 +356,13 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             return OptionalInt.empty();
         }
 
-        Integer result = null;
-        for (int i = 0; i < size; i++) {
+        int result = elementData.get(0);
+        for (int i = 1; i < size; i++) {
             int element = elementData.get(i);
-            if (result == null) {
-                result = element;
-            } else {
-                result = op.applyAsInt(result, element);
-            }
+            result = op.applyAsInt(result, element);
         }
 
-        return result == null ? OptionalInt.empty() : OptionalInt.of(result);
+        return OptionalInt.of(result);
     }
 
     @Override

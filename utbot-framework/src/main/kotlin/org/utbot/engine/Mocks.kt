@@ -277,7 +277,7 @@ class UtMockWrapper(
     val type: RefType,
     private val mockInfo: UtMockInfo
 ) : WrapperInterface {
-    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> =
         emptyMap()
 
     override fun isWrappedMethod(method: SootMethod): Boolean = true

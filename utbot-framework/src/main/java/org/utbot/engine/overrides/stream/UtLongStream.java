@@ -91,7 +91,12 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
         assume(elementData.end >= 0);
         // we can create a stream for an array using Stream.of
-        assume(elementData.end <= HARD_MAX_ARRAY_SIZE);
+        assumeOrExecuteConcretely(elementData.end <= HARD_MAX_ARRAY_SIZE);
+
+        // As real primitive streams contain primitives, we cannot accept nulls.
+        for (int i = 0; i < elementData.end; i++) {
+            assume(elementData.get(i) != null);
+        }
 
         visit(this);
     }
@@ -291,16 +296,12 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
         }
 
         int curSize = elementData.end;
-        if (n > curSize) {
+        if (n >= curSize) {
             return new UtLongStream();
         }
 
-        // n is 1...Integer.MAX_VALUE here
+        // n is 0...(Integer.MAX_VALUE - 1) here
         int newSize = (int) (curSize - n);
-
-        if (newSize == 0) {
-            return new UtLongStream();
-        }
 
         Long[] elements = elementData.toCastedArray((int) n, newSize);
 
@@ -354,17 +355,13 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             return OptionalLong.empty();
         }
 
-        Long result = null;
-        for (int i = 0; i < size; i++) {
+        long result = elementData.get(0);
+        for (int i = 1; i < size; i++) {
             long element = elementData.get(i);
-            if (result == null) {
-                result = element;
-            } else {
-                result = op.applyAsLong(result, element);
-            }
+            result = op.applyAsLong(result, element);
         }
 
-        return result == null ? OptionalLong.empty() : OptionalLong.of(result);
+        return OptionalLong.of(result);
     }
 
     @Override

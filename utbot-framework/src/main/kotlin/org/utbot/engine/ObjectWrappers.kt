@@ -219,10 +219,18 @@ private fun wrap(kClass: KClass<*>, implementation: (RefType, UtAddrExpression) 
 internal fun wrapper(type: RefType, addr: UtAddrExpression): ObjectValue? =
     wrappers[type.id]?.invoke(type, addr)
 
+typealias MethodSymbolicImplementation = (Traverser, ObjectValue, SootMethod, List<SymbolicValue>) -> List<MethodResult>
+
 interface WrapperInterface {
+    /**
+     * Checks is there a symbolic implementation for [method].
+     */
     fun isWrappedMethod(method: SootMethod): Boolean = method.name in wrappedMethods
 
-    val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>>
+    /**
+     * Mapping from a method signature to its symbolic implementation (if present).
+     */
+    val wrappedMethods: Map<String, MethodSymbolicImplementation>
 
     /**
      * Returns list of invocation results
@@ -243,7 +251,7 @@ interface WrapperInterface {
 
 // TODO: perhaps we have to have wrapper around concrete value here
 data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
-    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> = emptyMap()
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> = emptyMap()
 
     override fun isWrappedMethod(method: SootMethod): Boolean = true
 

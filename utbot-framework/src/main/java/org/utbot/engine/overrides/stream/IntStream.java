@@ -37,6 +37,10 @@ public interface IntStream extends BaseStream<Integer, java.util.stream.IntStrea
     }
 
     static java.util.stream.IntStream range(int startInclusive, int endExclusive) {
+        if (startInclusive >= endExclusive) {
+            return new UtIntStream();
+        }
+
         int size = endExclusive - startInclusive;
         Integer[] data = new Integer[size];
         for (int i = startInclusive; i < endExclusive; i++) {
@@ -48,7 +52,18 @@ public interface IntStream extends BaseStream<Integer, java.util.stream.IntStrea
 
     @SuppressWarnings("unused")
     static java.util.stream.IntStream rangeClosed(int startInclusive, int endInclusive) {
-        return range(startInclusive, endInclusive + 1);
+        if (startInclusive > endInclusive) {
+            return new UtIntStream();
+        }
+
+        // Do not use `range` above to prevent overflow
+        int size = endInclusive - startInclusive + 1;
+        Integer[] data = new Integer[size];
+        for (int i = startInclusive; i <= endInclusive; i++) {
+            data[i - startInclusive] = i;
+        }
+
+        return new UtIntStream(data, size);
     }
 
     @SuppressWarnings("unused")

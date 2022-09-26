@@ -25,7 +25,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.getIdOrThrow
-import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -34,7 +33,6 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
-import kotlin.reflect.KFunction4
 
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
@@ -267,11 +265,11 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
             )
         }
 
-    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> =
         mapOf(
             "<init>" to ::initMethodWrapper,
             "insert" to ::insertMethodWrapper,
-            "insertRange" to ::insertMethodWrapper,
+            "insertRange" to ::insertRangeMethodWrapper,
             "remove" to ::removeMethodWrapper,
             "removeRange" to ::removeRangeMethodWrapper,
             "set" to ::setMethodWrapper,
@@ -442,8 +440,8 @@ class AssociativeArrayWrapper : WrapperInterface {
             )
         }
 
-    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> = mapOf(
-        "init>" to ::initMethodWrapper,
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> = mapOf(
+        "<init>" to ::initMethodWrapper,
         "select" to ::selectMethodWrapper,
         "store" to ::storeMethodWrapper,
     )

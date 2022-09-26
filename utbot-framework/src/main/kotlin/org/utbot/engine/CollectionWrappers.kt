@@ -106,7 +106,7 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
 
     override fun isWrappedMethod(method: SootMethod): Boolean = true
 
-    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> =
         emptyMap()
 }
 

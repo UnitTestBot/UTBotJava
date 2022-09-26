@@ -1,7 +1,6 @@
 package org.utbot.engine
 
 import com.github.curiousoddman.rgxgen.RgxGen
-import org.utbot.common.unreachableBranch
 import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
@@ -365,7 +364,7 @@ class UtNativeStringWrapper : WrapperInterface {
             )
         }
 
-    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> =
         mapOf(
             "void <init>()" to ::defaultInitMethodWrapper,
             "void <init>(int)" to ::initFromIntMethodWrapper,

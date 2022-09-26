@@ -39,6 +39,10 @@ public interface LongStream extends BaseStream<Long, java.util.stream.LongStream
     }
 
     static java.util.stream.LongStream range(long startInclusive, long endExclusive) {
+        if (startInclusive >= endExclusive) {
+            return new UtLongStream();
+        }
+
         int start = (int) startInclusive;
         int end = (int) endExclusive;
 
@@ -58,7 +62,26 @@ public interface LongStream extends BaseStream<Long, java.util.stream.LongStream
 
     @SuppressWarnings("unused")
     static java.util.stream.LongStream rangeClosed(long startInclusive, long endInclusive) {
-        return range(startInclusive, endInclusive + 1);
+        if (startInclusive > endInclusive) {
+            return new UtLongStream();
+        }
+
+        // Do not use `range` above to prevent overflow
+        int start = (int) startInclusive;
+        int end = (int) endInclusive;
+
+        // check that borders fit in int range
+        UtMock.assumeOrExecuteConcretely(start == startInclusive);
+        UtMock.assumeOrExecuteConcretely(end == endInclusive);
+
+        int size = end - start + 1;
+
+        Long[] data = new Long[size];
+        for (int i = start; i <= end; i++) {
+            data[i - start] = (long) i;
+        }
+
+        return new UtLongStream(data, size);
     }
 
     @SuppressWarnings("unused")

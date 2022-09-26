@@ -2885,6 +2885,8 @@ class Traverser(
         }
 
         instanceAsWrapperOrNull?.run {
+            // For methods with concrete implementation (for example, RangeModifiableUnlimitedArray.toCastedArray)
+            // we should not return successful override result.
             if (!isWrappedMethod(invocation.method)) {
                 return OverrideResult(success = false)
             }

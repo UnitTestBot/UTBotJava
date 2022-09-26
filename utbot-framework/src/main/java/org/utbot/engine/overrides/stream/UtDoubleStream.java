@@ -90,7 +90,12 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
         assume(elementData.end >= 0);
         // we can create a stream for an array using Stream.of
-        assume(elementData.end <= HARD_MAX_ARRAY_SIZE);
+        assumeOrExecuteConcretely(elementData.end <= HARD_MAX_ARRAY_SIZE);
+
+        // As real primitive streams contain primitives, we cannot accept nulls.
+        for (int i = 0; i < elementData.end; i++) {
+            assume(elementData.get(i) != null);
+        }
 
         visit(this);
     }
@@ -290,16 +295,12 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         }
 
         int curSize = elementData.end;
-        if (n > curSize) {
+        if (n >= curSize) {
             return new UtDoubleStream();
         }
 
-        // n is 1...Integer.MAX_VALUE here
+        // n is 0...(Integer.MAX_VALUE - 1) here
         int newSize = (int) (curSize - n);
-
-        if (newSize == 0) {
-            return new UtDoubleStream();
-        }
 
         Double[] elements = elementData.toCastedArray((int) n, newSize);
 
@@ -353,17 +354,13 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             return OptionalDouble.empty();
         }
 
-        Double result = null;
-        for (int i = 0; i < size; i++) {
+        double result = elementData.get(0);
+        for (int i = 1; i < size; i++) {
             double element = elementData.get(i);
-            if (result == null) {
-                result = element;
-            } else {
-                result = op.applyAsDouble(result, element);
-            }
+            result = op.applyAsDouble(result, element);
         }
 
-        return result == null ? OptionalDouble.empty() : OptionalDouble.of(result);
+        return OptionalDouble.of(result);
     }
 
     @Override
@@ -391,16 +388,38 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         }
 
         double sum = 0;
+        boolean anyNaN = false;
+        boolean anyPositiveInfinity = false;
+        boolean anyNegativeInfinity = false;
 
         for (int i = 0; i < size; i++) {
             double element = elementData.get(i);
             sum += element;
+
+            anyNaN |= Double.isNaN(element);
+            anyPositiveInfinity |= element == Double.POSITIVE_INFINITY;
+            anyNegativeInfinity |= element == Double.NEGATIVE_INFINITY;
+        }
+
+        if (anyNaN) {
+            return Double.NaN;
+        }
+
+        if (anyPositiveInfinity && anyNegativeInfinity) {
+            return Double.NaN;
+        }
+
+        if (anyPositiveInfinity && sum == Double.NEGATIVE_INFINITY) {
+            return Double.NaN;
+        }
+
+        if (anyNegativeInfinity && sum == Double.POSITIVE_INFINITY) {
+            return Double.NaN;
         }
 
         return sum;
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalDouble min() {
         preconditionCheckWithClosingStream();
@@ -413,13 +432,12 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         double min = elementData.get(0);
         for (int i = 1; i < size; i++) {
             final double element = elementData.get(i);
-            min = (element < min) ? element : min;
+            min = Math.min(element, min);
         }
 
         return OptionalDouble.of(min);
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalDouble max() {
         preconditionCheckWithClosingStream();
@@ -432,7 +450,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         double max = elementData.get(0);
         for (int i = 1; i < size; i++) {
             final double element = elementData.get(i);
-            max = (element > max) ? element : max;
+            max = Math.max(element, max);
         }
 
         return OptionalDouble.of(max);
@@ -629,7 +647,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             closeHandlers.get(i).run();
         }
 
-        // clear handlers
+        // clear handlers (we do not need to manually clear all elements)
         closeHandlers.end = 0;
     }
 

@@ -134,7 +134,7 @@ abstract class PrimitiveStreamWrapper(
     }
 
     /**
-     * Transforms model for array of wrappers (Integer, Long, etc) to array of corresponding primitives.
+     * Transforms a model for an array of wrappers (Integer, Long, etc) to an array of corresponding primitives.
      */
     override fun UtArrayModel.transformElementsModel(): UtArrayModel {
         return copy(
@@ -144,19 +144,23 @@ abstract class PrimitiveStreamWrapper(
         )
     }
 
+    /**
+     * Transforms [this] to [UtPrimitiveModel] if it is an [UtAssembleModel] for the corresponding wrapper
+     * (int to Integer, etc.), and throws an error otherwise.
+     */
     private fun UtModel.wrapperModelToPrimitiveModel(): UtModel {
-        if (this is UtNullModel) {
-            return elementsClassId.elementClassId!!.defaultValueModel()
+        require(this !is UtNullModel) {
+            "Unexpected null value in wrapper for primitive stream ${this@PrimitiveStreamWrapper.streamClassId}"
         }
 
-        if (!classId.isPrimitiveWrapper || this !is UtAssembleModel) {
-            return this
+        require(classId.isPrimitiveWrapper && this is UtAssembleModel) {
+            "Unexpected not wrapper assemble model $this for value in wrapper " +
+                    "for primitive stream ${this@PrimitiveStreamWrapper.streamClassId}"
         }
 
-        val firstChainStatement = allStatementsChain.firstOrNull() ?: return this
-        val constructorCall = (firstChainStatement as? UtExecutableCallModel) ?: return this
-
-        return (constructorCall.params.firstOrNull() as? UtPrimitiveModel) ?: this
+        return (instantiationCall.params.firstOrNull() as? UtPrimitiveModel)
+            ?: error("No primitive value parameter for wrapper constructor $instantiationCall in model $this " +
+                    "in wrapper for primitive stream ${this@PrimitiveStreamWrapper.streamClassId}")
     }
 }
 

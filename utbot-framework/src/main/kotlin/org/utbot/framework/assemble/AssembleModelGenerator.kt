@@ -1,5 +1,7 @@
 package org.utbot.framework.assemble
 
+import java.lang.reflect.Constructor
+import java.util.IdentityHashMap
 import org.utbot.common.isPrivate
 import org.utbot.common.isPublic
 import org.utbot.engine.ResolvedExecution
@@ -36,11 +38,8 @@ import org.utbot.framework.plugin.api.hasDefaultValue
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
-import java.lang.reflect.Constructor
-import java.util.IdentityHashMap
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
@@ -173,7 +172,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
         val collectedCallChain = callChain.toMutableList()
 
         // We cannot create an assemble model for an anonymous class instance
-        if (utModel.classId.isAnonymous) {
+        if (utModel !is UtLambdaModel && utModel.classId.isAnonymous) {
             return utModel
         }
 

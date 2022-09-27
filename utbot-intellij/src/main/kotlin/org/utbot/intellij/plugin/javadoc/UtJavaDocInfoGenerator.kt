@@ -76,8 +76,7 @@ class UtJavaDocInfoGenerator {
                         this.append(", $BR_TAG")
                     }
                 }
-            }
-                .forEach { builder.append(it) }
+            }.forEach { builder.append(it) }
 
             builder.append(DocumentationMarkup.SECTION_END)
         }

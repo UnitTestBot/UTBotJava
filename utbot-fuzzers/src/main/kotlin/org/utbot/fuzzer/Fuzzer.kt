@@ -1,14 +1,19 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.mutators.NumberRandomMutator
 import org.utbot.fuzzer.mutators.RegexStringModelMutator
 import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.ArrayModelProvider
 import org.utbot.fuzzer.providers.CharToStringModelProvider
-import org.utbot.fuzzer.providers.CollectionModelProvider
+import org.utbot.fuzzer.providers.CollectionWithEmptyStatesModelProvider
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.EnumModelProvider
+import org.utbot.fuzzer.providers.CollectionWithModificationModelProvider
+import org.utbot.fuzzer.providers.NumberClassModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
@@ -19,6 +24,8 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 import org.utbot.fuzzer.providers.DateConstantModelProvider
+import org.utbot.fuzzer.providers.PrimitiveRandomModelProvider
+import org.utbot.fuzzer.providers.RecursiveModelProvider
 
 private val logger by lazy { KotlinLogging.logger {} }
 
@@ -147,22 +154,33 @@ fun <T> Sequence<List<FuzzedValue>>.withMutations(statistics: FuzzerStatistics<T
 }
 
 /**
+ * Create a sequence that contains all [defaultValues] plus any value which is found as fuzzing with concrete values.
+ *
+ * Method is useful for generating some bound values,
+ * for example, when for code `array.length > 4` there are 2 values in concrete value: 4 and 5.
+ *
+ * All values after filtering are cast to [Int].
+ */
+fun fuzzNumbers(concreteValues: Collection<FuzzedConcreteValue>, vararg defaultValues: Int, filter: (Number) -> Boolean = { true }): Sequence<Int> {
+    val description = FuzzedMethodDescription("helper: number fuzzing", voidClassId, listOf(intClassId), concreteValues)
+    val fuzzedValues = fuzz(description, ConstantsModelProvider)
+        .mapNotNull { ((it.single().model as? UtPrimitiveModel)?.value as? Number) }
+        .filter(filter)
+        .map { it.toInt() }
+    return (defaultValues.asSequence() + fuzzedValues).distinct()
+}
+
+/**
  * Creates a model provider from a list of default providers.
  */
 fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
-    return ModelProvider.of(
-        ObjectModelProvider(idGenerator),
-        CollectionModelProvider(idGenerator),
-        ArrayModelProvider(idGenerator),
-        EnumModelProvider(idGenerator),
-        DateConstantModelProvider(idGenerator),
-        ConstantsModelProvider,
-        StringConstantModelProvider,
-        RegexModelProvider,
-        CharToStringModelProvider,
-        PrimitivesModelProvider,
-        PrimitiveWrapperModelProvider,
-    )
+    return modelProviderForRecursiveCalls(idGenerator, recursionDepth = -1)
+        .with(ObjectModelProvider(idGenerator))
+        .with(ArrayModelProvider(idGenerator))
+        .with(CollectionWithModificationModelProvider(idGenerator))
+        .exceptIsInstance<PrimitiveRandomModelProvider>()
+        .except(PrimitiveDefaultsModelProvider)
+        .with(PrimitivesModelProvider)
 }
 
 /**
@@ -170,22 +188,27 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
  */
 internal fun modelProviderForRecursiveCalls(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int): ModelProvider {
     val nonRecursiveProviders = ModelProvider.of(
-        CollectionModelProvider(idGenerator),
+        CollectionWithEmptyStatesModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
         DateConstantModelProvider(idGenerator),
+        RegexModelProvider,
         StringConstantModelProvider,
         CharToStringModelProvider,
         ConstantsModelProvider,
+        PrimitiveRandomModelProvider(Random(0)),
         PrimitiveDefaultsModelProvider,
         PrimitiveWrapperModelProvider,
+        NumberClassModelProvider(idGenerator, Random(0)),
     )
 
-    return if (recursionDepth >= 0)
+    return if (recursionDepth >= 0) {
         nonRecursiveProviders
             .with(ObjectModelProvider(idGenerator, recursionDepth))
             .with(ArrayModelProvider(idGenerator, recursionDepth))
-    else
+            .with(CollectionWithModificationModelProvider(idGenerator, recursionDepth))
+    } else {
         nonRecursiveProviders
+    }
 }
 
 

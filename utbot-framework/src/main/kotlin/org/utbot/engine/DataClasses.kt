@@ -1,5 +1,7 @@
 package org.utbot.engine
 
+import org.utbot.common.WorkaroundReason
+import org.utbot.common.workaround
 import org.utbot.engine.TypeRegistry.Companion.objectTypeStorage
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
@@ -11,6 +13,7 @@ import org.utbot.engine.pc.mkOr
 import org.utbot.engine.symbolic.*
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtInstrumentation
+import soot.RefType
 import java.util.Objects
 import soot.Scene
 import soot.SootMethod

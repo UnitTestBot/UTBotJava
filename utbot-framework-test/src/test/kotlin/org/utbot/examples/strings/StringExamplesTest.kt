@@ -251,6 +251,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("Flaky on GitHub: https://github.com/UnitTestBot/UTBotJava/issues/1004")
     fun testIsValidUuid() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         check(

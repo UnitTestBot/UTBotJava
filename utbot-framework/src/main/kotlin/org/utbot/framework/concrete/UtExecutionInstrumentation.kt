@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -161,6 +162,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                         Coverage()
                     )
                 }
+
                 throw e
             }
             val staticFields = constructor
@@ -249,9 +251,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         if (exception is TimeoutException) {
             return UtTimeoutException(exception)
         }
-        if (exception is AccessControlException) {
+        if (exception is AccessControlException ||
+            exception is ExceptionInInitializerError && exception.exception is AccessControlException) {
             return UtSandboxFailure(exception)
         }
+        // there also can be other cases, when we need to wrap internal exception... I suggest adding them on demand
+
         val instrs = traceHandler.computeInstructionList()
         val isNested = if (instrs.isEmpty()) {
             false

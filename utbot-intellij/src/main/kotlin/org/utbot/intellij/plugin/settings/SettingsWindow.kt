@@ -4,6 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.layout.CCFlags
 import com.intellij.ui.layout.LayoutBuilder
 import com.intellij.ui.layout.PropertyBinding
@@ -11,10 +12,11 @@ import com.intellij.ui.layout.labelTable
 import com.intellij.ui.layout.panel
 import com.intellij.ui.layout.slider
 import com.intellij.ui.layout.withValueBinding
+import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.components.BorderLayoutPanel
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
-import javax.swing.JLabel
 import javax.swing.JPanel
 import kotlin.reflect.KClass
 import org.utbot.framework.UtSettings
@@ -26,6 +28,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
+import javax.swing.JSlider
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -127,13 +130,14 @@ class SettingsWindow(val project: Project) {
 
         }
 
-        row("Code analysis:") {
+        val fuzzLabel = JBLabel("Fuzzing")
+        val symLabel = JBLabel("Symbolic execution")
+        row("Test generation method:") {
             enabled = UtSettings.useFuzzing
-            val granularity = 60
+            val granularity = 20
             slider(0, granularity, 1, granularity / 4)
                 .labelTable {
-                    put(0, JLabel("Simpler"))
-                    put(granularity, JLabel("Deeper"))
+                    // clear all labels
                 }.withValueBinding(
                     PropertyBinding(
                         get = { ((1 - settings.fuzzingValue) * granularity).toInt() },
@@ -141,6 +145,19 @@ class SettingsWindow(val project: Project) {
                     )
                 )
                 .constraints(CCFlags.growX)
+                .component.castSafelyTo<JSlider>()?.apply {
+                    toolTipText = "<html><body>While fuzzer \"guesses\" the values to enter as much execution paths as possible, symbolic executor tries to \"deduce\" them. Choose the proportion of generation time allocated for each of these methods within Test generation timeout</body></html>"
+                    addChangeListener {
+                        fuzzLabel.text = "Fuzzing " + "%.0f %%".format(100.0 * (granularity - value) / granularity)
+                        symLabel.text = "%.0f %%".format(100.0 * value / granularity) + " Symbolic execution"
+                    }
+                }
+        }
+        row("") {
+            BorderLayoutPanel().apply {
+                addToLeft(fuzzLabel)
+                addToRight(symLabel)
+            }().constraints(CCFlags.growX)
         }
     }
 

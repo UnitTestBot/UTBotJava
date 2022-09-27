@@ -1,13 +1,9 @@
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
-//noinspection GroovyAssignabilityCheck
 repositories {
     flatDir {
         dirs 'dist'
     }
 }
 
-//noinspection GroovyAssignabilityCheck
 configurations {
     z3native
 }
@@ -22,15 +18,15 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 
-    implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
+    implementation "com.github.UnitTestBot:soot:${sootCommitHash}"
 
-    implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
-    implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmt_solver_z3_version
-    implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgen_version
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2_version
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
-    implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
-    implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
+    implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
+    implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
+    implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
+    implementation group: 'org.apache.commons', name: 'commons-text', version: apacheCommonsTextVersion
     // we need this for construction mocks from composite models
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
 
@@ -39,9 +35,9 @@ dependencies {
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
 
-    z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3_version, ext: 'zip'
-    z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3_version, ext: 'zip'
-    z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3_version, ext: 'zip'
+    z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3Version, ext: 'zip'
+    z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3Version, ext: 'zip'
+    z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3Version, ext: 'zip'
 }
 
 processResources {

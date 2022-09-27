@@ -1,12 +1,21 @@
 package org.utbot.examples.lambda
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.isException
-import org.utbot.testcheckers.eq
 
-class SimpleLambdaExamplesTest : UtValueTestCaseChecker(testClass = SimpleLambdaExamples::class) {
+// TODO failed Kotlin compilation (generics) SAT-1332
+class SimpleLambdaExamplesTest : UtValueTestCaseChecker(
+    testClass = SimpleLambdaExamples::class,
+    languagePipelines = listOf(
+        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration),
+    )
+) {
     @Test
     fun testBiFunctionLambdaExample() {
         checkWithException(
@@ -18,14 +27,13 @@ class SimpleLambdaExamplesTest : UtValueTestCaseChecker(testClass = SimpleLambda
     }
 
     @Test
-    @Disabled("TODO 0 executions https://github.com/UnitTestBot/UTBotJava/issues/192")
     fun testChoosePredicate() {
         check(
             SimpleLambdaExamples::choosePredicate,
             eq(2),
             { b, r -> b && !r!!.test(null) && r.test(0) },
             { b, r -> !b && r!!.test(null) && !r.test(0) },
-            // TODO coverage calculation fails https://github.com/UnitTestBot/UTBotJava/issues/192
+            coverage = DoNotCalculate // coverage could not be calculated since method result is lambda
         )
     }
 }

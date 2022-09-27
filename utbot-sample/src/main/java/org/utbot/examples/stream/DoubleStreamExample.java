@@ -37,6 +37,18 @@ public class DoubleStreamExample {
         return s;
     }
 
+    int useParameterStream(DoubleStream s) {
+        UtMock.assume(s != null);
+
+        final double[] values = s.toArray();
+
+        if (values.length == 0) {
+            return 0;
+        } else {
+            return values.length;
+        }
+    }
+
     boolean filterExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
 

@@ -300,7 +300,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             return new UtLongStream();
         }
 
-        // n is 0...(Integer.MAX_VALUE - 1) here
+        // n is 1...(Integer.MAX_VALUE - 1) here
         int newSize = (int) (curSize - n);
 
         Long[] elements = elementData.toCastedArray((int) n, newSize);

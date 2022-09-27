@@ -149,7 +149,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Integer[] data = new Integer[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsInt(elementData.get(i));
+            data[i] = mapper.applyAsInt(elementData.getWithoutClassCastExceptionCheck(i));
         }
 
         return new UtIntStream(data, size);
@@ -162,7 +162,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Long[] data = new Long[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsLong(elementData.get(i));
+            data[i] = mapper.applyAsLong(elementData.getWithoutClassCastExceptionCheck(i));
         }
 
         return new UtLongStream(data, size);
@@ -175,7 +175,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Double[] data = new Double[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsDouble(elementData.get(i));
+            data[i] = mapper.applyAsDouble(elementData.getWithoutClassCastExceptionCheck(i));
         }
 
         return new UtDoubleStream(data, size);

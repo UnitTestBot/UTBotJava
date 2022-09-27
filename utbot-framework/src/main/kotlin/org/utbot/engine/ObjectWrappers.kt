@@ -223,7 +223,7 @@ typealias MethodSymbolicImplementation = (Traverser, ObjectValue, SootMethod, Li
 
 interface WrapperInterface {
     /**
-     * Checks is there a symbolic implementation for [method].
+     * Checks whether a symbolic implementation exists for the [method].
      */
     fun isWrappedMethod(method: SootMethod): Boolean = method.name in wrappedMethods
 

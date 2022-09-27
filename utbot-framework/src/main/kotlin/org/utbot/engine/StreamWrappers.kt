@@ -137,16 +137,23 @@ abstract class PrimitiveStreamWrapper(
      * Transforms a model for an array of wrappers (Integer, Long, etc) to an array of corresponding primitives.
      */
     override fun UtArrayModel.transformElementsModel(): UtArrayModel {
+        val primitiveConstModel = if (constModel is UtNullModel) {
+            // UtNullModel is not allowed for primitive arrays
+            elementsClassId.elementClassId!!.defaultValueModel()
+        } else {
+            constModel.wrapperModelToPrimitiveModel()
+        }
+
         return copy(
             classId = elementsClassId,
-            constModel = constModel.wrapperModelToPrimitiveModel(),
+            constModel = primitiveConstModel,
             stores = stores.mapValuesTo(mutableMapOf()) { it.value.wrapperModelToPrimitiveModel() }
         )
     }
 
     /**
      * Transforms [this] to [UtPrimitiveModel] if it is an [UtAssembleModel] for the corresponding wrapper
-     * (int to Integer, etc.), and throws an error otherwise.
+     * (primitive int and wrapper Integer, etc.), and throws an error otherwise.
      */
     private fun UtModel.wrapperModelToPrimitiveModel(): UtModel {
         require(this !is UtNullModel) {

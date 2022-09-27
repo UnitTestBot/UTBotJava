@@ -300,7 +300,7 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             return new UtIntStream();
         }
 
-        // n is 0...(Integer.MAX_VALUE - 1) here
+        // n is 1...(Integer.MAX_VALUE - 1) here
         int newSize = (int) (curSize - n);
 
         Integer[] newData = elementData.toCastedArray((int) n, newSize);

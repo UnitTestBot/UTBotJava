@@ -151,4 +151,17 @@ public class RangeModifiableUnlimitedArray<E> {
     public E get(int i) {
         return null;
     }
+
+    /**
+     * Returns the element of this array on specified index without check for ClassCastException.
+     *
+     * @param i - index in list with element, that needs to be returned
+     */
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
+    public E getWithoutClassCastExceptionCheck(int i) {
+        final Object object = get(i);
+        UtMock.disableClassCastExceptionCheck(object);
+
+        return (E) object;
+    }
 }

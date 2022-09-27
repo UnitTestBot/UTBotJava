@@ -61,9 +61,9 @@ sealed class CustomJavaDocTag(
                 DocRegularStmt("@$name $value\n")
             }
             is List<*> -> value.takeIf { it.isNotEmpty() }?.let {
-                val valueToString = value.joinToString(separator = ",\n", postfix = "\n")
+                val valueToString = value.joinToString(separator = "\n", postfix = "\n") {"@$name $it"}
 
-                DocRegularStmt("@$name $valueToString")
+                DocRegularStmt(valueToString)
             }
             else -> null
         }

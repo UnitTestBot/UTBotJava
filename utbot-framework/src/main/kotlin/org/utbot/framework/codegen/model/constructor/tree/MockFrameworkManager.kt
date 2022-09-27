@@ -13,7 +13,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.anyLong
 import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
 import org.utbot.framework.codegen.model.constructor.builtin.anyShort
 import org.utbot.framework.codegen.model.constructor.builtin.argumentMatchersClassId
-import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.mockMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.mockedConstructionContextClassId
 import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
@@ -24,7 +23,6 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.hasAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgAssignment
@@ -33,7 +31,6 @@ import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
@@ -63,7 +60,6 @@ import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId

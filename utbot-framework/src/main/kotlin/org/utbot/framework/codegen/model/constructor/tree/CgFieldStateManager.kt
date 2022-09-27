@@ -18,6 +18,7 @@ import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
+import org.utbot.framework.codegen.model.util.canBeReadFrom
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
@@ -182,7 +183,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         for ((index, fieldPathElement) in path.withIndex()) {
             when (fieldPathElement) {
                 is FieldAccess -> {
-                    if (!fieldPathElement.field.isAccessibleFrom(testClassPackageName)) {
+                    if (!fieldPathElement.field.canBeReadFrom(context)) {
                         lastAccessibleIndex = index - 1
                         break
                     }
@@ -246,7 +247,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
 
     private fun variableForStaticFieldState(owner: ClassId, fieldPath: FieldPath, customName: String?): CgVariable {
         val firstField = (fieldPath.elements.first() as FieldAccess).field
-        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.isAccessibleFrom(testClassPackageName)) {
+        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.canBeReadFrom(context)) {
             owner[firstField]
         } else {
             // TODO: there is a function getClassOf() for these purposes, but it is not accessible from here for now

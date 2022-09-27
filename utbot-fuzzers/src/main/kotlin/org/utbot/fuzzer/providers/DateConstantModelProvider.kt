@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.ModelProvider
@@ -56,7 +57,7 @@ class DateConstantModelProvider(
                         constructor.parameters.all { it == intClassId || it == longClassId }
             }.map { constructorId ->
                 with(constructorId) {
-                    ModelConstructor(parameters) { assembleModel(idGenerator.createId(), constructorId, it) }
+                    ModelConstructor(parameters.map(::FuzzedType)) { assembleModel(idGenerator.createId(), constructorId, it) }
                 }
             }.sortedBy { it.neededTypes.size }
 
@@ -64,7 +65,7 @@ class DateConstantModelProvider(
             constructorsFromNumbers.forEach { constructor ->
                 yieldAll(
                     fuzzValues(
-                        constructor.neededTypes,
+                        constructor.neededTypes.map(FuzzedType::classId),
                         baseMethodDescription,
                         defaultModelProviders(idGenerator)
                     ).map(constructor.createModel)

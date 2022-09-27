@@ -32,6 +32,7 @@ import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.defaultModelProviders
@@ -40,6 +41,7 @@ import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
 class ModelProviderTest {
@@ -431,19 +433,22 @@ class ModelProviderTest {
                 parameters = listOf(Outer::class.java.id)
             )
             assertEquals(1, result.size)
-            assertEquals(1, result[0]!!.size)
-            val outerModel = result[0]!![0] as UtAssembleModel
-            outerModel.instantiationCall.let {
-                val constructorParameters = it.params
-                assertEquals(1, constructorParameters.size)
-                val innerModel = (constructorParameters[0] as UtAssembleModel)
-                assertEquals(Inner::class.java.id, innerModel.classId)
-                val innerConstructorParameters = innerModel.instantiationCall
-                assertEquals(2, innerConstructorParameters.params.size)
-                assertTrue(innerConstructorParameters.params.all { param -> param is UtPrimitiveModel })
-                assertEquals(intClassId, innerConstructorParameters.params[0].classId)
-                assertEquals(doubleClassId, innerConstructorParameters.params[1].classId)
+            var callCount = 0
+            result[0]!!.filterIsInstance<UtAssembleModel>().forEach { outerModel ->
+                callCount++
+                outerModel.instantiationCall.let {
+                    val constructorParameters = it.params
+                    assertEquals(1, constructorParameters.size)
+                    val innerModel = (constructorParameters[0] as UtAssembleModel)
+                    assertEquals(Inner::class.java.id, innerModel.classId)
+                    val innerConstructorParameters = innerModel.instantiationCall
+                    assertEquals(2, innerConstructorParameters.params.size)
+                    assertTrue(innerConstructorParameters.params.all { param -> param is UtPrimitiveModel })
+                    assertEquals(intClassId, innerConstructorParameters.params[0].classId)
+                    assertEquals(doubleClassId, innerConstructorParameters.params[1].classId)
+                }
             }
+            assertEquals(callCount, result[0]!!.size)
         }
     }
 
@@ -556,22 +561,29 @@ class ModelProviderTest {
         }
     }
 
-    private fun collect(
-        modelProvider: ModelProvider,
-        name: String = "testMethod",
-        returnType: ClassId = voidClassId,
-        parameters: List<ClassId>,
-        constants: List<FuzzedConcreteValue> = emptyList(),
-        block: FuzzedMethodDescription.() -> Unit = {}
-    ): Map<Int, List<UtModel>> {
-        return mutableMapOf<Int, MutableList<UtModel>>().apply {
-            modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants).apply(block)).forEach { (i, m) ->
-                computeIfAbsent(i) { mutableListOf() }.add(m.model)
-            }
-        }
-    }
-
     private enum class OneTwoThree {
         ONE, TWO, THREE
     }
+}
+
+internal fun collect(
+    modelProvider: ModelProvider,
+    name: String = "testMethod",
+    returnType: ClassId = voidClassId,
+    parameters: List<ClassId>,
+    constants: List<FuzzedConcreteValue> = emptyList(),
+    block: FuzzedMethodDescription.() -> Unit = {}
+): Map<Int, List<UtModel>> {
+    return mutableMapOf<Int, MutableList<UtModel>>().apply {
+        modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants).apply(block)).forEach { (i, m) ->
+            computeIfAbsent(i) { mutableListOf() }.add(m.model)
+        }
+    }
+}
+
+internal object TestIdentityPreservingIdGenerator : IdentityPreservingIdGenerator<Int> {
+    private val cache = mutableMapOf<Any, Int>()
+    private val gen = AtomicInteger()
+    override fun getOrCreateIdForValue(value: Any): Int = cache.computeIfAbsent(value) { createId() }
+    override fun createId(): Int = gen.incrementAndGet()
 }

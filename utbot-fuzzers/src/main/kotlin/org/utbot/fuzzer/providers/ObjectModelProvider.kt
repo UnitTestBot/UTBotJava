@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.objects.assembleModel
@@ -35,21 +36,21 @@ class ObjectModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
     recursionDepthLeft: Int = 1,
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
-    override fun createNewInstance(parentProvider: RecursiveModelProvider, newTotalLimit: Int): RecursiveModelProvider =
-        ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
-            .copySettingsFrom(parentProvider)
-            .apply {
-                totalLimit = newTotalLimit
-                branchingLimit = 1     // When called recursively, we will use only simplest constructor
-            }
+    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider {
+        val newInstance = ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
+        newInstance.copySettings(parentProvider)
+        newInstance.branchingLimit = 1
+        return newInstance
+    }
 
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,
-        classId: ClassId
-    ): List<ModelConstructor> {
+        parameterIndex: Int,
+        classId: ClassId,
+    ): Sequence<ModelConstructor> = sequence {
         if (unwantedConstructorsClasses.contains(classId) ||
             classId.isPrimitiveWrapper || classId.isEnum || classId.isAbstract
-        ) return listOf()
+        ) return@sequence
 
         val constructors = collectConstructors(classId) { javaConstructor ->
             isAccessible(javaConstructor, description.packageName)
@@ -57,23 +58,18 @@ class ObjectModelProvider(
             primitiveParameterizedConstructorsFirstAndThenByParameterCount
         )
 
-        return buildList {
-
-            constructors.forEach { constructorId ->
-                with(constructorId) {
-                    add(
-                        ModelConstructor(parameters) { assembleModel(idGenerator.createId(), constructorId, it) }
-                    )
-                    if (parameters.isEmpty()) {
-                        val fields = findSuitableFields(this.classId, description)
-                        if (fields.isNotEmpty()) {
-                            add(
-                                ModelConstructor(fields.map { it.classId }) {
-                                    generateModelsWithFieldsInitialization(this, fields, it)
-                                }
-                            )
+        constructors.forEach { constructorId ->
+            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId) }) {
+                assembleModel(idGenerator.createId(), constructorId, it)
+            })
+            if (constructorId.parameters.isEmpty()) {
+                val fields = findSuitableFields(constructorId.classId, description)
+                if (fields.isNotEmpty()) {
+                    yield(
+                        ModelConstructor(fields.map { FuzzedType(it.classId) }) {
+                            generateModelsWithFieldsInitialization(constructorId, fields, it)
                         }
-                    }
+                    )
                 }
             }
         }

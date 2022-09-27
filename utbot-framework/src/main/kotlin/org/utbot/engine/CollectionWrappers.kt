@@ -23,7 +23,6 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.getIdOrThrow
 import org.utbot.framework.util.graph
@@ -40,7 +39,6 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
-import kotlin.reflect.KFunction4
 
 abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) : WrapperInterface {
     val overriddenClass: SootClass = Scene.v().getSootClass(overriddenClassName)
@@ -176,6 +174,15 @@ abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: Strin
                     SymbolicSuccess(voidValue),
                     equalGenericTypeConstraint
                 )
+
+                listOf(methodResult)
+            }
+            UT_GENERIC_STORAGE_SET_GENERIC_TYPE_TO_TYPE_OF_VALUE_SIGNATURE -> {
+                val valueTypeStorage = parameters[1].typeStorage
+
+                typeRegistry.saveObjectParameterTypeStorages(parameters[0].addr, listOf(valueTypeStorage))
+
+                val methodResult = MethodResult(SymbolicSuccess(voidValue))
 
                 listOf(methodResult)
             }
@@ -397,6 +404,9 @@ private val UT_GENERIC_STORAGE_CLASS
 
 internal val UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE =
     UT_GENERIC_STORAGE_CLASS.getMethodByName(UtGenericStorage<*>::setEqualGenericType.name).signature
+
+internal val UT_GENERIC_STORAGE_SET_GENERIC_TYPE_TO_TYPE_OF_VALUE_SIGNATURE =
+    UT_GENERIC_STORAGE_CLASS.getMethodByName(UtGenericStorage<*>::setGenericTypeToTypeOfValue.name).signature
 
 private val UT_GENERIC_ASSOCIATIVE_CLASS
     get() = Scene.v().getSootClass(UtGenericAssociative::class.java.canonicalName)

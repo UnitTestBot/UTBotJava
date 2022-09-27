@@ -40,6 +40,18 @@ public class IntStreamExample {
         return s;
     }
 
+    int useParameterStream(IntStream s) {
+        UtMock.assume(s != null);
+
+        final int[] values = s.toArray();
+
+        if (values.length == 0) {
+            return 0;
+        } else {
+            return values.length;
+        }
+    }
+
     boolean filterExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
 

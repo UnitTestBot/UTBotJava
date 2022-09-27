@@ -47,6 +47,19 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testUseParameterStream() {
+        check(
+            LongStreamExample::useParameterStream,
+            eq(2),
+            { s, r -> s.toArray().isEmpty() && r == 0 },
+            { s, r -> s.toArray().let {
+                it.isNotEmpty() && r == it.size }
+            },
+            coverage = AtLeast(94)
+        )
+    }
+
+    @Test
     fun testFilterExample() {
         check(
             LongStreamExample::filterExample,

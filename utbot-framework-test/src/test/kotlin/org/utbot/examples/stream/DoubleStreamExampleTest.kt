@@ -47,16 +47,15 @@ class DoubleStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testUseParameterStream() {
-        withoutConcrete {
-            check(
-                DoubleStreamExample::useParameterStream,
-                eq(2),
-                { s, r -> s.toArray().isEmpty() && r == 0 },
-                { s, r -> s.toArray().let {
-                    it.isNotEmpty() && r == it.size }
-                },
-            )
-        }
+        check(
+            DoubleStreamExample::useParameterStream,
+            eq(2),
+            { s, r -> s.toArray().isEmpty() && r == 0 },
+            { s, r -> s.toArray().let {
+                it.isNotEmpty() && r == it.size }
+            },
+            coverage = AtLeast(94)
+        )
     }
 
     @Test

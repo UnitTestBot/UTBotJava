@@ -73,12 +73,12 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
      * <li> elementData is marked as parameter </li>
      * <li> elementData.storage and it's elements are marked as parameters </li>
      */
-    @SuppressWarnings("DuplicatedCode")
+    @SuppressWarnings({"DuplicatedCode"})
     void preconditionCheck() {
         if (alreadyVisited(this)) {
             return;
         }
-        setEqualGenericType(elementData);
+        setGenericTypeToTypeOfValue(elementData, 0.0);
 
         assume(elementData != null);
         assume(elementData.storage != null);
@@ -96,6 +96,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         for (int i = 0; i < elementData.end; i++) {
             assume(elementData.get(i) != null);
         }
+
+        // Do not assume that firstly used stream may be already closed to prevent garbage branches
+        isClosed = false;
 
         visit(this);
     }

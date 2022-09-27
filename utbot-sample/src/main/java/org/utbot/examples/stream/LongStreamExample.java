@@ -39,6 +39,18 @@ public class LongStreamExample {
         return s;
     }
 
+    int useParameterStream(LongStream s) {
+        UtMock.assume(s != null);
+
+        final long[] values = s.toArray();
+
+        if (values.length == 0) {
+            return 0;
+        } else {
+            return values.length;
+        }
+    }
+
     boolean filterExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
 

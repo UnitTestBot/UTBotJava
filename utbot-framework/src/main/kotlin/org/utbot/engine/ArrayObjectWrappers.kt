@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import soot.ArrayType
+import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootField
@@ -196,7 +197,23 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         with(traverser) {
             val value = getStorageArrayExpression(wrapper).select((parameters[0] as PrimitiveValue).expr)
             val addr = UtAddrExpression(value)
-            val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
+
+            // Try to retrieve manually set type if present
+            val valueType = typeRegistry
+                .getTypeStoragesForObjectTypeParameters(wrapper.addr)
+                ?.singleOrNull()
+                ?.leastCommonType
+                ?: OBJECT_TYPE
+
+            val resultObject = if (valueType is RefType) {
+                createObject(addr, valueType, useConcreteType = false)
+            } else {
+                require(valueType is ArrayType) {
+                    "Unexpected Primitive Type $valueType in generic parameter for RangeModifiableUnlimitedArray $wrapper"
+                }
+
+                createArray(addr, valueType, useConcreteType = false)
+            }
 
             listOf(
                 MethodResult(

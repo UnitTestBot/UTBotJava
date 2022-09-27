@@ -79,7 +79,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
         if (alreadyVisited(this)) {
             return;
         }
-        setEqualGenericType(elementData);
+        setGenericTypeToTypeOfValue(elementData, 0L);
 
         assume(elementData != null);
         assume(elementData.storage != null);
@@ -97,6 +97,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
         for (int i = 0; i < elementData.end; i++) {
             assume(elementData.get(i) != null);
         }
+
+        // Do not assume that firstly used stream may be already closed to prevent garbage branches
+        isClosed = false;
 
         visit(this);
     }

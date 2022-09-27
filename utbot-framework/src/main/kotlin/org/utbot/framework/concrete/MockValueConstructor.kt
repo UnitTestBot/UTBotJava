@@ -199,7 +199,7 @@ class MockValueConstructor : Closeable {
         return classInstance
     }
 
-    private fun generateMockitoAnswer(methodToValues: Map<out ExecutableId, List<UtModel>>): Answer<*> {
+    private fun generateMockitoAnswer(methodToValues: Map<ExecutableId, List<UtModel>>): Answer<*> {
         val concreteValues = methodToValues.mapValues { (_, models) ->
             models.map { model ->
                 val mockId = MockId("mock${++mockCounter}")
@@ -215,15 +215,15 @@ class MockValueConstructor : Closeable {
         return Mockito.mock(clazz, generateMockitoAnswer(mocks))
     }
 
-    private fun <T : ExecutableId> computeConcreteValuesForMethods(
-        methodToValues: Map<T, List<UtModel>>,
-    ): Map<T, List<Any?>> = methodToValues.mapValues { (_, models) ->
+    private fun computeConcreteValuesForMethods(
+        methodToValues: Map<ExecutableId, List<UtModel>>,
+    ): Map<ExecutableId, List<Any?>> = methodToValues.mapValues { (_, models) ->
         models.map { mockAndGet(it) }
     }
 
-    private fun <T : ExecutableId> groupByClass(
-        methodToModels: Map<T, List<UtModel>>
-    ): Map<ClassId, Map<T, List<UtModel>>> =
+    private fun groupByClass(
+        methodToModels: Map<ExecutableId, List<UtModel>>
+    ): Map<ClassId, Map<ExecutableId, List<UtModel>>> =
         methodToModels
             .asIterable()
             .groupBy { it.key.classId }
@@ -237,10 +237,10 @@ class MockValueConstructor : Closeable {
     fun mockStaticMethods(
         instrumentations: List<UtStaticMethodInstrumentation>,
     ) {
-        val methodToModels = instrumentations.associate { it.methodId to it.values }
+        val methodToModels = instrumentations.associate { (it.methodId as ExecutableId) to it.values }
         val methodToModelsGroupedByClass = groupByClass(methodToModels)
-        controllers += methodToModelsGroupedByClass.map { (classId, m2m) ->
-            val methodToValues = computeConcreteValuesForMethods(m2m)
+        controllers += methodToModelsGroupedByClass.map { (classId, method2modelValues) ->
+            val methodToValues = computeConcreteValuesForMethods(method2modelValues)
             StaticMethodMockController(classId.jClass, methodToValues)
         }
     }

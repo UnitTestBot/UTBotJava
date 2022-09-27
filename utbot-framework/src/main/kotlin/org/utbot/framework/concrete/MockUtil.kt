@@ -12,7 +12,7 @@ fun buildAnswer(
     methodToValues: Map<out ExecutableId, List<Any?>>
 ) : Answer<Any?> {
     val pointers = methodToValues.mapValues { (_, _) -> 0 }.toMutableMap()
-    return Answer { invocation ->
+    val answer = Answer { invocation ->
         with(invocation.method) {
             pointers[executableId].let { pointer ->
                 methodToValues[executableId].let { values ->
@@ -28,4 +28,5 @@ fun buildAnswer(
             }
         }
     }
+    return answer
 }

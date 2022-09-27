@@ -15,7 +15,7 @@ import org.utbot.framework.plugin.api.ExecutableId
  */
 class StaticMethodMockController(
     private val clazz: Class<*>,
-    private val methodToValues: Map<out ExecutableId, List<Any?>>
+    private val methodToValues: Map<ExecutableId, List<Any?>>
 ) : MockController {
 
     override fun init() {

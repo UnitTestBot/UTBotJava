@@ -34,6 +34,6 @@ fun isBlank(cs: CharSequence): Boolean {
     return true
 }
 
-fun length(cs: CharSequence?): Int {
-    return cs?.length ?: 0
+fun length(cs: CharSequence): Int {
+    return cs.length
 }

@@ -11,7 +11,10 @@ import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 
-internal class ImageIOUsageTest : UtValueTestCaseChecker(testClass = ImageIOUsage::class) {
+internal class ImageIOUsageTest : UtValueTestCaseChecker(
+    testClass = ImageIOUsage::class,
+    testCodeGeneration = false
+) {
 
     @Test
     fun testIsAlphaPremultiplied() {

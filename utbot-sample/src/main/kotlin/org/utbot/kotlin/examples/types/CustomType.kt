@@ -1,4 +1,4 @@
-package org.utbot.kotlin.examples.strings
+package org.utbot.kotlin.examples.types
 
 class PositivesContainer(
     private var first: Long,

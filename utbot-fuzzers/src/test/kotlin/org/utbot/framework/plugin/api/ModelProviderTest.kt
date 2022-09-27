@@ -26,6 +26,7 @@ import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
 import org.utbot.framework.plugin.api.samples.SampleEnum
+import org.utbot.framework.plugin.api.samples.WithInnerClass
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
@@ -558,6 +559,29 @@ class ModelProviderTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    fun `no models are created for inner non-static class`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                ObjectModelProvider(TestIdentityPreservingIdGenerator),
+                parameters = listOf(WithInnerClass.NonStatic::class.id)
+            )
+            assertEquals(0, result.size)
+        }
+    }
+
+    @Test
+    fun `some models are created for inner static class`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                ObjectModelProvider(TestIdentityPreservingIdGenerator),
+                parameters = listOf(WithInnerClass.Static::class.id)
+            )
+            assertEquals(1, result.size)
+            assertTrue(result[0]!!.isNotEmpty())
         }
     }
 

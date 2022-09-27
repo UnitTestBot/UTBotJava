@@ -19,7 +19,7 @@ import org.utbot.engine.overrides.UtOverrideMock
 import org.utbot.engine.overrides.collections.AbstractCollection
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.Collection
-import org.utbot.engine.overrides.collections.List
+import org.utbot.engine.overrides.collections.List as UtList
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtArrayList
 import org.utbot.engine.overrides.collections.UtGenericAssociative
@@ -56,40 +56,40 @@ object SootUtils {
      *
      * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
      * code.
-     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to the class buildDir.
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDirs] equals to the class buildDir.
      */
     fun runSoot(clazz: java.lang.Class<*>, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
         val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
         val buildDirPath = buildDir.toPath()
 
-        runSoot(buildDirPath, null, forceReload, jdkInfo)
+        runSoot(listOf(buildDirPath), null, forceReload, jdkInfo)
     }
 
 
     /**
      * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
      * code.
-     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to [buildDirPath] and
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDirs] equals to [buildDirPaths] and
      * [previousClassPath] equals to [classPath].
      */
-    fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
+    fun runSoot(buildDirPaths: List<Path>, classPath: String?, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
         synchronized(this) {
-            if (buildDirPath != previousBuildDir || classPath != previousClassPath || forceReload) {
-                initSoot(buildDirPath, classPath, jdkInfo)
-                previousBuildDir = buildDirPath
+            if (buildDirPaths != previousBuildDirs || classPath != previousClassPath || forceReload) {
+                initSoot(buildDirPaths, classPath, jdkInfo)
+                previousBuildDirs = buildDirPaths
                 previousClassPath = classPath
             }
         }
     }
 
-    private var previousBuildDir: Path? = null
+    private var previousBuildDirs: List<Path>? = null
     private var previousClassPath: String? = null
 }
 
 /**
  * Convert code to Jimple
  */
-private fun initSoot(buildDir: Path, classpath: String?, jdkInfo: JdkInfo) {
+private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo) {
     G.reset()
     val options = Options.v()
 
@@ -105,7 +105,7 @@ private fun initSoot(buildDir: Path, classpath: String?, jdkInfo: JdkInfo) {
                     + if (!classpath.isNullOrEmpty()) File.pathSeparator + "$classpath" else ""
         )
         set_src_prec(Options.src_prec_only_class)
-        set_process_dir(listOf("$buildDir"))
+        set_process_dir(buildDirs.map { "$it" })
         set_keep_line_number(true)
         set_ignore_classpath_errors(true) // gradle/build/resources/main does not exists, but it's not a problem
         set_output_format(Options.output_format_jimple)
@@ -194,7 +194,7 @@ private val classesToLoad = arrayOf(
     Stream::class,
     Arrays::class,
     Collection::class,
-    List::class,
+    UtList::class,
     UtStream::class,
     UtIntStream::class,
     UtLongStream::class,

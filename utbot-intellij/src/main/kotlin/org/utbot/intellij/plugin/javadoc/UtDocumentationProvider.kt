@@ -27,10 +27,14 @@ class UtDocumentationProvider : JavaDocumentationProvider() {
 
         // add UTBot sections with custom tags.
         val utJavaDocInfoGenerator = UtJavaDocInfoGenerator()
-        val javaDocInfoWithUtSections =
-            utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(baseJavaDocInfo, docComment)
 
-        return JavaDocExternalFilter.filterInternalDocInfo(javaDocInfoWithUtSections)
+        if (baseJavaDocInfo.isNullOrEmpty()) {
+            val javaDocInfoWithUtSections =
+                utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(baseJavaDocInfo, docComment)
+            return JavaDocExternalFilter.filterInternalDocInfo(javaDocInfoWithUtSections)
+        }
+
+        return JavaDocExternalFilter.filterInternalDocInfo(baseJavaDocInfo)
     }
 
     /**

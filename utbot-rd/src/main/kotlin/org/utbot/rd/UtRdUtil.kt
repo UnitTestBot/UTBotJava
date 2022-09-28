@@ -8,6 +8,7 @@ import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import com.jetbrains.rd.util.reactive.IScheduler
 import com.jetbrains.rd.util.reactive.ISource
+import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 
@@ -80,6 +81,8 @@ suspend fun startUtProcessWithRdServer(
     val port = NetUtils.findFreePort(0)
 
     return factory(port).withRdServer(lifetime) {
+        val name = "Server$port"
+        val rdServerProtocolScheduler = SingleThreadScheduler(it, "Scheduler for $name")
         Protocol(
             "Server",
             Serializers(),

@@ -61,12 +61,12 @@ class EngineProcess(val lifetime:Lifetime) {
 <Configuration>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <ThresholdFilter level="TRACE"  onMatch="NEUTRAL"   onMismatch="DENY"/>
+            <ThresholdFilter level="DEBUG"  onMatch="NEUTRAL"   onMismatch="DENY"/>
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="trace">
+        <Root level="debug">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>
@@ -93,7 +93,7 @@ class EngineProcess(val lifetime:Lifetime) {
         }
 
         addInstantiator(Collections.synchronizedCollection(mutableListOf<SootMethod>()).javaClass) {
-            Collections.synchronizedCollection(mutableListOf<soot.SootMethod>())
+            Collections.synchronizedCollection(mutableListOf<SootMethod>())
         }
         addInstantiator(Collections.synchronizedCollection(mutableListOf<Any>()).javaClass) {
             Collections.synchronizedCollection(mutableListOf<Any>())

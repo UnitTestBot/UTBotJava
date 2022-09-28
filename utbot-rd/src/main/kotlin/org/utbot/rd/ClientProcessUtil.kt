@@ -1,12 +1,16 @@
 package org.utbot.rd
 
 import com.jetbrains.rd.framework.*
-import com.jetbrains.rd.framework.base.withId
 import com.jetbrains.rd.framework.impl.RdCall
-import com.jetbrains.rd.framework.impl.RdSignal
 import com.jetbrains.rd.framework.util.launch
-import com.jetbrains.rd.util.*
-import com.jetbrains.rd.util.lifetime.*
+import com.jetbrains.rd.util.getLogger
+import com.jetbrains.rd.util.info
+import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition
+import com.jetbrains.rd.util.lifetime.isAlive
+import com.jetbrains.rd.util.lifetime.plusAssign
+import com.jetbrains.rd.util.threading.SingleThreadScheduler
+import com.jetbrains.rd.util.trace
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -19,8 +23,6 @@ const val rdProcessDirName = "rdProcessSync"
 val processSyncDirectory = File(utBotTempDirectory.toFile(), rdProcessDirName)
 const val rdPortProcessArgumentTag = "rdPort"
 internal const val fileWaitTimeoutMillis = 10L
-val rdClientProtocolScheduler = UtSingleThreadScheduler("RdServerProtocolScheduler")
-val rdServerProtocolScheduler = UtSingleThreadScheduler("RdClientProtocolScheduler")
 private val logger = getLogger<ClientProtocolBuilder>()
 
 internal fun childCreatedFileName(port: Int): String {
@@ -124,6 +126,7 @@ class ClientProtocolBuilder {
 
         try {
             val name = "Client$port"
+            val rdClientProtocolScheduler = SingleThreadScheduler(ldef, "Scheduler for $name")
             val clientProtocol = Protocol(
                 name,
                 Serializers(),

@@ -13,6 +13,10 @@ import com.microsoft.z3.enumerations.Z3_decl_kind.Z3_OP_CONST_ARRAY
 import com.microsoft.z3.enumerations.Z3_decl_kind.Z3_OP_STORE
 import com.microsoft.z3.enumerations.Z3_decl_kind.Z3_OP_UNINTERPRETED
 import com.microsoft.z3.eval
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentSetOf
 
 /**
  * Represents current Status of UTSolver.

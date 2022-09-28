@@ -6,6 +6,7 @@ import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
+import org.utbot.engine.SymbolicEngineTarget
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
@@ -19,6 +20,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
 
@@ -70,14 +72,20 @@ class TestSpecificTestCaseGenerator(
             runBlockingWithCancellationPredicate(isCanceled) {
                 val controller = EngineController()
                 controller.job = launch {
-                    super
-                        .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
-                        .collect {
-                            when (it) {
-                                is UtExecution -> executions += it
-                                is UtError -> errors.merge(it.description, 1, Int::plus)
-                            }
+                    super.generateAsync(
+                        controller,
+                        SymbolicEngineTarget.from(method),
+                        mockStrategy,
+                        mockAlwaysDefaults,
+                        defaultTimeEstimator,
+                        UtSettings.enableSynthesis,
+                        EmptyPostCondition
+                    ).collect {
+                        when (it) {
+                            is UtExecution -> executions += it
+                            is UtError -> errors.merge(it.description, 1, Int::plus)
                         }
+                    }
                 }
             }
         }
@@ -85,7 +93,7 @@ class TestSpecificTestCaseGenerator(
         forceMockListener?.detach(this, forceMockListener)
         forceStaticMockListener?.detach(this, forceStaticMockListener)
 
-        val minimizedExecutions = super.minimizeExecutions(executions)
+        val minimizedExecutions = super.minimizeExecutions(executions.toAssemble(method))
         return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)
     }
 }

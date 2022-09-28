@@ -267,6 +267,7 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
+val setClassId = java.util.Set::class.id
 
 val dateClassId = java.util.Date::class.id
 
@@ -356,6 +357,9 @@ val ClassId.isIterable: Boolean
 
 val ClassId.isMap: Boolean
     get() = isSubtypeOf(mapClassId)
+
+val ClassId.isSet: Boolean
+    get() = isSubtypeOf(setClassId)
 
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap

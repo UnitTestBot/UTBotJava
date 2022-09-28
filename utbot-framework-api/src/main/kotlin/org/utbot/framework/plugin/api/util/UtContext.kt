@@ -51,7 +51,7 @@ class UtContext(val classLoader: ClassLoader) : ThreadContextElement<UtContext?>
         fun currentContext(): UtContext? = threadLocalContextHolder.get()
         fun setUtContext(context: UtContext): AutoCloseable = Cookie(context)
 
-        private fun restore(contextToRestore : UtContext?) {
+        private fun restore(contextToRestore: UtContext?) {
             if (contextToRestore != null) {
                 threadLocalContextHolder.set(contextToRestore)
             } else {

@@ -60,14 +60,14 @@ abstract class BasePathSelector(
     /**
      * @return true if [utSolver] constraints are satisfiable
      */
-    private fun checkUnsat(utSolver: UtSolver): Boolean =
-        utSolver.assertions.isNotEmpty() && utSolver.check(respectSoft = false).statusKind != SAT
+    protected fun checkUnsat(state: ExecutionState): Boolean =
+        state.solver.assertions.isNotEmpty() && state.solver.check(respectSoft = false).statusKind != SAT
 
     /**
      * check fast unsat on forks
      */
     private fun checkUnsatIfFork(state: ExecutionState) =
-        state.path.isNotEmpty() && choosingStrategy.graph.isFork(state.path.last()) && checkUnsat(state.solver)
+        state.path.isNotEmpty() && choosingStrategy.graph.isFork(state.path.last()) && checkUnsat(state)
 
     override fun poll(): ExecutionState? {
         if (stoppingStrategy.shouldStop()) {

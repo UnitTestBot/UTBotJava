@@ -60,6 +60,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
+import org.utbot.engine.SymbolicEngineTarget
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -306,7 +307,7 @@ fun runGeneration(
 
                         }
 
-                        testCaseGenerator.generateAsync(controller, method, mockStrategyApi)
+                        testCaseGenerator.generateAsync(controller, SymbolicEngineTarget.Companion.from(method), mockStrategyApi)
                             .collect { result ->
                                 when (result) {
                                     is UtExecution -> {

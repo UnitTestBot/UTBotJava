@@ -222,7 +222,9 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
 
     protected fun saveToFile(snippet: String, outputPath: String?) =
         outputPath?.let {
-            Files.write(it.toPath(), listOf(snippet))
+            val path = it.toPath()
+            path.toFile().parentFile?.mkdirs()
+            Files.write(path, listOf(snippet))
         }
 
     protected fun now(): LocalDateTime = LocalDateTime.now()

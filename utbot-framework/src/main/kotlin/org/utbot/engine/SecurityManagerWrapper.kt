@@ -10,6 +10,7 @@ import org.utbot.framework.util.nextModelName
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
+import soot.Type
 
 class SecurityManagerWrapper : BaseOverriddenWrapper(utSecurityManagerClass.name) {
     private val baseModelName: String = "securityManager"
@@ -36,6 +37,9 @@ class SecurityManagerWrapper : BaseOverriddenWrapper(utSecurityManagerClass.name
 
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(type)
 
     companion object {
         val utSecurityManagerClass: SootClass

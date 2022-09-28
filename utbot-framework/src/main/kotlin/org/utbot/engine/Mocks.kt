@@ -1,11 +1,15 @@
 package org.utbot.engine
 
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.KFunction2
+import kotlin.reflect.KFunction5
+import kotlinx.collections.immutable.persistentListOf
 import org.utbot.api.mock.UtMock
-import org.utbot.common.packageName
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
 import org.utbot.engine.pc.UtAddrExpression
+import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
@@ -14,17 +18,13 @@ import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.util.executableId
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction5
-import kotlinx.collections.immutable.persistentListOf
-import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
+import soot.Type
 
 /**
  * Generates mock with address provided.
@@ -306,6 +306,9 @@ class UtMockWrapper(
 
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel =
         TODO("value on mock called: $this")
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(this.type)
 
     override fun toString() = "UtMock(type=$type, target=$mockInfo)"
 }

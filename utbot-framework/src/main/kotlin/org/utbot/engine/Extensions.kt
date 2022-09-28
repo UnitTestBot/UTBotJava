@@ -1,6 +1,14 @@
 package org.utbot.engine
 
 import com.google.common.collect.BiMap
+import java.lang.reflect.ParameterizedType
+import java.util.ArrayDeque
+import java.util.Deque
+import java.util.LinkedList
+import java.util.Queue
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.utbot.api.mock.UtMock
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtArraySort
@@ -33,8 +41,11 @@ import org.utbot.engine.pc.mkString
 import org.utbot.engine.pc.toSort
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isPrimitive
 import soot.ArrayType
 import soot.PrimType
 import soot.RefLikeType
@@ -60,14 +71,6 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.tagkit.ArtificialEntityTag
-import java.lang.reflect.ParameterizedType
-import java.util.ArrayDeque
-import java.util.Deque
-import java.util.LinkedList
-import java.util.Queue
-import java.util.concurrent.ConcurrentHashMap
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -424,3 +427,10 @@ val SootMethod.isUtMockAssumeOrExecuteConcretely
  */
 val SootMethod.isPreconditionCheckMethod
     get() = declaringClass.isOverridden && name == "preconditionCheck"
+
+val ClassId.sootType: Type
+    get() = when {
+        isPrimitive -> Scene.v().getType(name)
+        isArray -> elementClassId!!.sootType.arrayType
+        else -> Scene.v().getSootClass(canonicalName).type
+    }

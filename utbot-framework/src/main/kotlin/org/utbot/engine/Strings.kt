@@ -1,6 +1,9 @@
 package org.utbot.engine
 
 import com.github.curiousoddman.rgxgen.RgxGen
+import kotlin.math.max
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.common.unreachableBranch
 import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.overrides.strings.UtString
@@ -43,15 +46,13 @@ import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.util.nextModelName
-import kotlin.math.max
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
 import soot.CharType
 import soot.IntType
 import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import soot.Type
 
 val utStringClass: SootClass
     get() = Scene.v().getSootClass(UtString::class.qualifiedName)
@@ -186,6 +187,9 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         )
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(STRING_TYPE)
 }
 
 internal val utNativeStringClass = Scene.v().getSootClass(UtNativeString::class.qualifiedName)
@@ -281,6 +285,9 @@ class UtNativeStringWrapper : WrapperInterface {
         }
 
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel = UtNullModel(STRING_TYPE.classId)
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(STRING_TYPE)
 }
 
 sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenWrapper(className) {
@@ -336,6 +343,9 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
         )
         return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationCall)
     }
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(type)
 
     private val SootClass.valueField: SootField
         get() = getField("value", CharType.v().arrayType)

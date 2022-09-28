@@ -16,7 +16,6 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.defaultValueModel
@@ -27,6 +26,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.util.nextModelName
 import soot.Scene
 import soot.SootMethod
+import soot.Type
 
 /**
  * Auxiliary enum class for specifying an implementation for [OptionalWrapper], that it will use.
@@ -93,6 +93,9 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         val instantiationCall = instantiationFactoryCallModel(classId, wrapper)
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(type)
 
     private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtExecutableCallModel {
         val valueField = FieldId(overriddenClass.id, "value")

@@ -1,5 +1,6 @@
 package org.utbot.engine
 
+import java.util.Objects
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.isConcrete
@@ -12,7 +13,6 @@ import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.toConcrete
-import java.util.Objects
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -179,7 +179,10 @@ fun SymbolicValue.toConcrete(): Any = when (this) {
 
 // TODO: one more constructor?
 fun objectValue(type: RefType, addr: UtAddrExpression, implementation: WrapperInterface) =
-    ObjectValue(TypeStorage(type), addr, Concrete(implementation))
+    ObjectValue(
+        TypeStorage(type, implementation.getPossibleConcreteTypes(type)),
+        addr, Concrete(implementation)
+    )
 
 val voidValue
     get() = PrimitiveValue(VoidType.v(), nullObjectAddr)

@@ -25,7 +25,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.getIdOrThrow
-import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -34,6 +33,7 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import soot.Type
 
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
@@ -264,6 +264,13 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         return resultModel
     }
 
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> {
+        val possibleObjectTypes = Scene.v().classes.map { it.type }
+        return possibleObjectTypes.mapTo(mutableSetOf()) {
+            it.arrayType
+        }
+    }
+
     companion object {
         internal val rangeModifiableArrayClass: SootClass
             get() = Scene.v().getSootClass(rangeModifiableArrayId.name)
@@ -414,6 +421,9 @@ class AssociativeArrayWrapper : WrapperInterface {
         model.fields[storageField.fieldId] = storageValues
         return model
     }
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(associativeArrayClass.type)
 
     private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, storageField)

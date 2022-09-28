@@ -1,14 +1,14 @@
 package org.utbot.examples.casts
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.DoNotCalculate
+import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 
 // TODO failed Kotlin compilation SAT-1332
 internal class InstanceOfExampleTest : UtValueTestCaseChecker(
@@ -404,6 +404,65 @@ internal class InstanceOfExampleTest : UtValueTestCaseChecker(
         )
     }
 
+    @Test
+    fun testStringInstanceOf() {
+        check(
+            InstanceOfExample::charSequenceInstanceOf,
+            eq(2),
+            { _, r -> r == null },
+            { _, r -> r!!::class == String::class }
+        )
+    }
+
+    @Test
+    fun testListInstanceOf() {
+        check(
+            InstanceOfExample::listInstanceOf,
+            eq(2),
+            { _, r -> r == null },
+            { _, r -> r!!::class == java.util.ArrayList::class }
+        )
+    }
+
+    @Test
+    fun testDequeInstanceOf() {
+        check(
+            InstanceOfExample::dequeInstanceOf,
+            eq(2),
+            { _, r -> r == null },
+            { _, r -> r!!::class == java.util.LinkedList::class }
+        )
+    }
+
+    @Test
+    fun testAbstractSeqListInstanceOf() {
+        check(
+            InstanceOfExample::abstractSequentialListInstanceOf,
+            eq(2),
+            { _, r -> r == null },
+            { _, r -> r!!::class == java.util.LinkedList::class }
+        )
+    }
+
+    @Test
+    fun testSetInstanceOf() {
+        check(
+            InstanceOfExample::setInstanceOf,
+            eq(2),
+            { _, r -> r == null },
+            { _, r -> r!!::class == java.util.LinkedHashSet::class }
+        )
+    }
+
+    @Test
+    fun testMapInstanceOf() {
+        check(
+            InstanceOfExample::mapInstanceOf,
+            eq(2),
+            { _, r -> r == null },
+            { _, r -> r!!::class == java.util.LinkedHashMap::class }
+        )
+    }
 
     private inline fun <reified T : Any> Any?.isInstanceOfArray() =
         (this as? Array<*>)?.run { T::class.java.isAssignableFrom(this::class.java.componentType) } == true

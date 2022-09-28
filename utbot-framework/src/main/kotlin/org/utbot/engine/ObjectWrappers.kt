@@ -1,5 +1,11 @@
 package org.utbot.engine
 
+import java.util.Optional
+import java.util.OptionalDouble
+import java.util.OptionalInt
+import java.util.OptionalLong
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.reflect.KClass
 import org.utbot.common.WorkaroundReason.MAKE_SYMBOLIC
 import org.utbot.common.workaround
 import org.utbot.engine.UtListClass.UT_ARRAY_LIST
@@ -34,12 +40,7 @@ import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
-import java.util.Optional
-import java.util.OptionalDouble
-import java.util.OptionalInt
-import java.util.OptionalLong
-import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.reflect.KClass
+import soot.Type
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -151,15 +152,15 @@ private val wrappers = mapOf(
     },
 
     // list wrappers
-    wrap(java.util.List::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
-    wrap(java.util.AbstractList::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
-    wrap(java.util.ArrayList::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
+    wrap(java.util.List::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_ARRAY_LIST)) },
+    wrap(java.util.AbstractList::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_ARRAY_LIST)) },
+    wrap(java.util.ArrayList::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_ARRAY_LIST)) },
 
 
     wrap(CopyOnWriteArrayList::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_ARRAY_LIST)) },
 
-    wrap(java.util.LinkedList::class) { _, addr -> objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST)) },
-    wrap(java.util.AbstractSequentialList::class) { _, addr -> objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST)) },
+    wrap(java.util.LinkedList::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_LINKED_LIST)) },
+    wrap(java.util.AbstractSequentialList::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_LINKED_LIST)) },
 
     // queue, deque wrappers
     wrap(java.util.ArrayDeque::class) { type, addr ->
@@ -179,17 +180,17 @@ private val wrappers = mapOf(
     },
 
     // set wrappers
-    wrap(java.util.Set::class) { _, addr -> objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper()) },
-    wrap(java.util.AbstractSet::class) { _, addr -> objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper()) },
-    wrap(java.util.HashSet::class) { _, addr -> objectValue(HASH_SET_TYPE, addr, SetWrapper()) },
-    wrap(java.util.LinkedHashSet::class) { _, addr -> objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper()) },
+    wrap(java.util.Set::class) { type, addr -> objectValue(type, addr, SetWrapper()) },
+    wrap(java.util.AbstractSet::class) { type, addr -> objectValue(type, addr, SetWrapper()) },
+    wrap(java.util.HashSet::class) { type, addr -> objectValue(type, addr, SetWrapper()) },
+    wrap(java.util.LinkedHashSet::class) { type, addr -> objectValue(type, addr, SetWrapper()) },
 
     // map wrappers
-    wrap(java.util.Map::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
-    wrap(java.util.AbstractMap::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
-    wrap(java.util.LinkedHashMap::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
-    wrap(java.util.HashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
-    wrap(java.util.concurrent.ConcurrentHashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
+    wrap(java.util.Map::class) { type, addr -> objectValue(type, addr, MapWrapper()) },
+    wrap(java.util.AbstractMap::class) { type, addr -> objectValue(type, addr, MapWrapper()) },
+    wrap(java.util.LinkedHashMap::class) { type, addr -> objectValue(type, addr, MapWrapper()) },
+    wrap(java.util.HashMap::class) { type, addr -> objectValue(type, addr, MapWrapper()) },
+    wrap(java.util.concurrent.ConcurrentHashMap::class) { type, addr -> objectValue(type, addr, MapWrapper()) },
 
     // stream wrappers
     wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
@@ -222,6 +223,14 @@ interface WrapperInterface {
     ): List<InvokeResult>
 
     fun value(resolver: Resolver, wrapper: ObjectValue): UtModel
+
+    /**
+     * Returns list of possible concrete types that can be produced by [value] method.
+     * Used for wrapper initialization.
+     *
+     * @param type target type to wrap
+     */
+    fun getPossibleConcreteTypes(type: Type): Set<Type>
 }
 
 // TODO: perhaps we have to have wrapper around concrete value here
@@ -252,4 +261,7 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
 
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
+
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(throwable.javaClass.id.sootType)
 }

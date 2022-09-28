@@ -38,13 +38,12 @@ import java.util.*
 import kotlin.io.path.pathString
 import kotlin.random.Random
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.full.memberProperties
 
-private val logger = KotlinLogging.logger{}
+private val logger = KotlinLogging.logger {}
 private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs")
 
-class EngineProcess(val lifetime:Lifetime) {
+class EngineProcess(val lifetime: Lifetime) {
     private val id = Random.nextLong()
     private var count = 0
 
@@ -57,7 +56,9 @@ class EngineProcess(val lifetime:Lifetime) {
                     realPath = configPath
                     if (realPath == null) {
                         utBotTempDirectory.toFile().mkdirs()
-                        configPath = Files.writeString(utBotTempDirectory.toFile().resolve("EngineProcess_log4j2.xml").toPath(), """<?xml version="1.0" encoding="UTF-8"?>
+                        configPath = utBotTempDirectory.toFile().resolve("EngineProcess_log4j2.xml").apply {
+                            writeText(
+                                """<?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
@@ -70,7 +71,9 @@ class EngineProcess(val lifetime:Lifetime) {
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>
-</Configuration>""")
+</Configuration>"""
+                            )
+                        }.toPath()
                         realPath = configPath
                     }
                 }
@@ -81,7 +84,8 @@ class EngineProcess(val lifetime:Lifetime) {
     // because we cannot load idea bundled lifetime or it will break everything
 
     private fun debugArgument(): String {
-        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf{ Settings.runIdeaProcessWithDebug} ?: ""
+        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf { Settings.runIdeaProcessWithDebug }
+            ?: ""
     }
 
     private val kryoHelper = KryoHelper(lifetime).apply {
@@ -153,12 +157,14 @@ class EngineProcess(val lifetime:Lifetime) {
                 }.initModels {
                     engineProcessModel
                     settingsModel.settingFor.set { params ->
-                        SettingForResult(AbstractSettings.allSettings[params.key]?.let {settings: AbstractSettings ->
-                            val members: Collection<KProperty1<AbstractSettings, *>> = settings.javaClass.kotlin.memberProperties
-                            val names: List<KProperty1<AbstractSettings, *>> = members.filter { it.name == params.propertyName }
+                        SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
+                            val members: Collection<KProperty1<AbstractSettings, *>> =
+                                settings.javaClass.kotlin.memberProperties
+                            val names: List<KProperty1<AbstractSettings, *>> =
+                                members.filter { it.name == params.propertyName }
                             val sing: KProperty1<AbstractSettings, *> = names.single()
                             val result = sing.get(settings)
-                            logger.trace {"request for settings ${params.key}:${params.propertyName} - $result"}
+                            logger.trace { "request for settings ${params.key}:${params.propertyName} - $result" }
                             result.toString()
                         })
                     }
@@ -179,9 +185,18 @@ class EngineProcess(val lifetime:Lifetime) {
 
     // suppose that only 1 simultaneous test generator process can be executed in idea
     // so every time test generator is created - we just overwrite previous
-    fun createTestGenerator(buildDir: String, classPath: String?, dependencyPaths: String, jdkInfo: JdkInfo,isCancelled: (Unit) -> Boolean) = runBlocking {
+    fun createTestGenerator(
+        buildDir: String,
+        classPath: String?,
+        dependencyPaths: String,
+        jdkInfo: JdkInfo,
+        isCancelled: (Unit) -> Boolean
+    ) = runBlocking {
         engineModel().isCancelled.set(handler = isCancelled)
-        engineModel().createTestGenerator.startSuspending(lifetime, TestGeneratorParams(buildDir, classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version)))
+        engineModel().createTestGenerator.startSuspending(
+            lifetime,
+            TestGeneratorParams(buildDir, classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
+        )
     }
 
     fun generate(
@@ -197,7 +212,7 @@ class EngineProcess(val lifetime:Lifetime) {
         isFuzzingEnabled: Boolean,
         fuzzingValue: Double,
         searchDirectory: String
-        ): List<UtMethodTestSet> = runBlocking {
+    ): List<UtMethodTestSet> = runBlocking {
         val result = engineModel().generate.startSuspending(
             lifetime,
             GenerateParams(

@@ -1,0 +1,54 @@
+{
+    "version": 1,
+    "targets": [
+        {
+            "id": "guava",
+            "version": "0",
+            "parameters": [
+                {
+                    "class_timeout_sec": 20,
+                    "run_timeout_min": 20
+                }
+            ],
+            "metrics": [
+                {
+                    "duration_ms": 571690,
+                    "classes_for_generation": 20,
+                    "testcases_generated": 1780,
+                    "classes_without_problems": 12,
+                    "classes_canceled_by_timeout": 4,
+                    "total_methods_for_generation": 629,
+                    "methods_with_at_least_one_testcase_generated": 462,
+                    "methods_with_exceptions": 52,
+                    "suspicious_methods": 131,
+                    "test_classes_failed_to_compile": 7,
+                    "covered_instructions": 5515,
+                    "covered_instructions_by_fuzzing": 4602,
+                    "covered_instructions_by_concolic": 1464,
+                    "total_instructions": 10007,
+                    "avg_coverage": 63.6453855594069
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "source": {
+            "type": "github-action",
+            "id": "3140053992-2"
+        },
+        "commit_hash": "0d2c65b445030c60f93f00f43a0c04aaf82cdf18",
+        "branch": "main",
+        "build_number": "2022.9",
+        "timestamp": 1664327607,
+        "date": "2022-09-28T01:13:27",
+        "environment": {
+            "host": "a8198ae73f7f",
+            "OS": "Linux version #25~20.04.1-Ubuntu SMP Thu Sep 1 19:20:56 UTC 2022",
+            "java_version": "openjdk version \"11.0.15\" 2022-04-19 LTS\nOpenJDK Runtime Environment Zulu11.56+19-CA (build 11.0.15+10-LTS)\nOpenJDK 64-Bit Server VM Zulu11.56+19-CA (build 11.0.15+10-LTS, mixed mode)\n",
+            "gradle_version": "Gradle 7.4.2",
+            "JAVA_HOME": "/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64",
+            "KOTLIN_HOME": "/opt/kotlin/kotlinc",
+            "PATH": "/__t/Python/3.9.14/x64/bin:/__t/Python/3.9.14/x64:/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64/bin:/opt/gradle/gradle-7.4.2/bin:/opt/kotlin/kotlinc/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        }
+    }
+}

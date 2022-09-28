@@ -10,4 +10,10 @@ public interface UtGenericStorage<E> {
     @SuppressWarnings("unused")
     default void setEqualGenericType(RangeModifiableUnlimitedArray<E> elements) {}
 
+    /**
+     * Auxiliary method that tells engine to add constraint, that binds type parameter of this storage
+     * to the type of the specified object value.
+     */
+    @SuppressWarnings("unused")
+    default void setGenericTypeToTypeOfValue(RangeModifiableUnlimitedArray<E> array, E value) {}
 }

@@ -2672,12 +2672,23 @@ class Traverser(
             declaringClass == utOverrideMockClass -> utOverrideMockInvoke(target, parameters)
             declaringClass == utLogicMockClass -> utLogicMockInvoke(target, parameters)
             declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
+            isUtMockForbidClassCastException -> isUtMockDisableClassCastExceptionCheckInvoke(parameters)
             else -> {
                 val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
                 pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
                 emptyList()
             }
         }
+    }
+
+    private fun isUtMockDisableClassCastExceptionCheckInvoke(
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> {
+        val param = parameters.single() as ReferenceValue
+        val paramAddr = param.addr
+        typeRegistry.disableCastClassExceptionCheck(paramAddr)
+
+        return listOf(MethodResult(voidValue))
     }
 
     private fun TraversalContext.utOverrideMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
@@ -2894,6 +2905,12 @@ class Traverser(
         }
 
         instanceAsWrapperOrNull?.run {
+            // For methods with concrete implementation (for example, RangeModifiableUnlimitedArray.toCastedArray)
+            // we should not return successful override result.
+            if (!isWrappedMethod(invocation.method)) {
+                return OverrideResult(success = false)
+            }
+
             val results = invoke(instance as ObjectValue, invocation.method, invocation.parameters)
             if (results.isEmpty()) {
                 // Drop the branch and switch to concrete execution

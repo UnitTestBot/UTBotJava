@@ -121,3 +121,13 @@ inline fun <reified T> withoutSandbox(block: () -> T): T {
         UtSettings.useSandbox = prev
     }
 }
+
+inline fun <reified T> withPathSelectorStepsLimit(stepsLimit: Int, block: () -> T): T {
+    val prev = UtSettings.pathSelectorStepsLimit
+    UtSettings.pathSelectorStepsLimit = stepsLimit
+    try {
+        return block()
+    } finally {
+        UtSettings.pathSelectorStepsLimit = prev
+    }
+}

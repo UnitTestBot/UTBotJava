@@ -717,7 +717,9 @@ class Resolver(
      * There are three options here:
      * * it successfully constructs a type suitable with defaultType and returns it;
      * * it constructs a type that cannot be assigned in a variable with the [defaultType] and we `touched`
-     * the [addr] during the analysis. In such case the method returns [defaultType] as a result;
+     * the [addr] during the analysis. In such case the method returns [defaultType] as a result
+     * if the constructed type is not an array, and in case of array it returns the [defaultType] if it has the same
+     * dimensions as the constructed type and its ancestors includes the constructed type, or null otherwise;
      * * it constructs a type that cannot be assigned in a variable with the [defaultType] and we did **not** `touched`
      * the [addr] during the analysis. It means we can create [UtNullModel] to represent such element. In such case
      * the method returns null as the result.
@@ -811,6 +813,14 @@ class Resolver(
         // If we return defaultType, it will mean that it might try to put model with an inappropriate type
         // as const or store model.
         if (defaultBaseType is PrimType) return null
+
+        require(!defaultType.isJavaLangObject()) {
+            "Object type $defaultType is unexpected in fallback to default type"
+        }
+
+        if (defaultType.numDimensions == 0) {
+            return defaultType
+        }
 
         val actualBaseType = actualType.baseType
 

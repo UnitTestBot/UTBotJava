@@ -141,7 +141,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
         get() = utilClassId.utilMethodId(
             name = "streamsDeepEquals",
             returnType = booleanClassId,
-            arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
+            arguments = arrayOf(java.util.stream.BaseStream::class.id, java.util.stream.BaseStream::class.id)
         )
 
     val mapsDeepEqualsMethodId: MethodId

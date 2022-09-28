@@ -13,6 +13,9 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -55,12 +58,85 @@ public class BaseStreamExample {
         }
     }
 
-    // TODO mapToInt, etc https://github.com/UnitTestBot/UTBotJava/issues/146
+    int[] mapToIntExample(List<Short> list) {
+        UtMock.assume(list != null && !list.isEmpty());
+
+        if (list.contains(null)) {
+            return list.stream().mapToInt(Short::intValue).toArray();
+        } else {
+            return list.stream().mapToInt(Short::intValue).toArray();
+        }
+    }
+
+    long[] mapToLongExample(List<Short> list) {
+        UtMock.assume(list != null && !list.isEmpty());
+
+        if (list.contains(null)) {
+            return list.stream().mapToLong(Short::longValue).toArray();
+        } else {
+            return list.stream().mapToLong(Short::longValue).toArray();
+        }
+    }
+
+    double[] mapToDoubleExample(List<Short> list) {
+        UtMock.assume(list != null && !list.isEmpty());
+
+        if (list.contains(null)) {
+            return list.stream().mapToDouble(Short::doubleValue).toArray();
+        } else {
+            return list.stream().mapToDouble(Short::doubleValue).toArray();
+        }
+    }
 
     Object[] flatMapExample(List<Integer> list) {
         UtMock.assume(list != null && !list.isEmpty());
 
         return list.stream().flatMap(value -> Arrays.stream(new Object[]{value, value})).toArray(Object[]::new);
+    }
+
+    int[] flatMapToIntExample(List<Short> list) {
+        UtMock.assume(list != null && !list.isEmpty());
+        final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
+
+        return list
+                .stream()
+                .flatMapToInt(value ->
+                        Arrays.stream(new int[]{
+                                shortToIntFunction.applyAsInt(value),
+                                shortToIntFunction.applyAsInt(value)}
+                        )
+                )
+                .toArray();
+    }
+
+    long[] flatMapToLongExample(List<Short> list) {
+        UtMock.assume(list != null && !list.isEmpty());
+        final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
+
+        return list
+                .stream()
+                .flatMapToLong(value ->
+                        Arrays.stream(new long[]{
+                                shortToLongFunction.applyAsLong(value),
+                                shortToLongFunction.applyAsLong(value)}
+                        )
+                )
+                .toArray();
+    }
+
+    double[] flatMapToDoubleExample(List<Short> list) {
+        UtMock.assume(list != null && !list.isEmpty());
+        final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
+
+        return list
+                .stream()
+                .flatMapToDouble(value ->
+                        Arrays.stream(new double[]{
+                                shortToDoubleFunction.applyAsDouble(value),
+                                shortToDoubleFunction.applyAsDouble(value)}
+                        )
+                )
+                .toArray();
     }
 
     boolean distinctExample(List<Integer> list) {
@@ -97,11 +173,17 @@ public class BaseStreamExample {
         int beforeStaticValue = x;
 
         final Consumer<Integer> action = value -> x += value;
+        final Stream<Integer> stream = list.stream();
+
+        Stream<Integer> afterPeek;
         if (list.contains(null)) {
-            list.stream().peek(action);
+            afterPeek = stream.peek(action);
         } else {
-            list.stream().peek(action);
+            afterPeek = stream.peek(action);
         }
+
+        // use terminal operation to force peek action
+        afterPeek.count();
 
         return beforeStaticValue;
     }
@@ -368,14 +450,16 @@ public class BaseStreamExample {
         }
     }
 
+    @SuppressWarnings("DuplicatedCode")
     Integer iteratorSumExample(List<Integer> list) {
-        UtMock.assume(list != null && !list.isEmpty());
+        UtMock.assume(list != null);
 
         int sum = 0;
         Iterator<Integer> streamIterator = list.stream().iterator();
 
         if (list.isEmpty()) {
             while (streamIterator.hasNext()) {
+                // unreachable
                 Integer value = streamIterator.next();
                 sum += value;
             }
@@ -519,7 +603,7 @@ public class BaseStreamExample {
         @SuppressWarnings({"ManualArrayCopy", "unchecked"})
         @NotNull
         @Override
-        public Object[] toArray() {
+        public Object @NotNull [] toArray() {
             final int size = size();
             E[] arr = (E[]) new Object[size];
             for (int i = 0; i < size; i++) {
@@ -529,9 +613,9 @@ public class BaseStreamExample {
             return arr;
         }
 
-        @NotNull
+        @SuppressWarnings({"SuspiciousToArrayCall"})
         @Override
-        public <T> T[] toArray(@NotNull T[] a) {
+        public <T> T[] toArray(T @NotNull [] a) {
             return Arrays.asList(data).toArray(a);
         }
 
@@ -555,6 +639,7 @@ public class BaseStreamExample {
             return removed;
         }
 
+        @SuppressWarnings("SlowListContainsAll")
         @Override
         public boolean containsAll(@NotNull Collection<?> c) {
             return Arrays.asList(data).containsAll(c);

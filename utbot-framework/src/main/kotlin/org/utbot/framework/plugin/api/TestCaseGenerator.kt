@@ -77,7 +77,7 @@ open class TestCaseGenerator(
         if (!isCanceled()) {
             checkFrameworkDependencies(dependencyPaths)
 
-            logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDirs, classpath = $classpath")
+            logger.trace("Initializing ${this.javaClass.name} with buildDirs = ${buildDirs.joinToString(File.pathSeparator)}, classpath = $classpath")
 
 
             if (disableCoroutinesDebug) {

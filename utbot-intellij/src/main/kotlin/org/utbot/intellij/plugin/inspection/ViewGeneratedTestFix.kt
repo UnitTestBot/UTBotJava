@@ -22,6 +22,9 @@ class ViewGeneratedTestFix(
     val columnNumber: Int
 ) : LocalQuickFix {
 
+    /**
+     * Navigates the user to the [lineNumber] line of the [testFileRelativePath] file.
+     */
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val testFileAbsolutePath = project.basePath?.toPath()?.resolve(testFileRelativePath) ?: return
         val virtualFile = VfsUtil.findFile(testFileAbsolutePath, /* refreshIfNeeded = */ true) ?: return
@@ -34,6 +37,9 @@ class ViewGeneratedTestFix(
         selectionModel.selectLineAtCaret()
     }
 
+    /**
+     * This text is displayed on the quick fix button.
+     */
     override fun getName() = "View generated test"
 
     override fun getFamilyName() = name

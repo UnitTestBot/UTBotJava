@@ -7,6 +7,12 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.unscramble.AnalyzeStacktraceUtil
 
+/**
+ * Button that launches the built-in "Analyze Stack Trace" action. Displayed as a quick fix.
+ *
+ * @param exceptionMessage short description of the detected exception.
+ * @param stackTraceLines list of strings of the form "className.methodName(fileName:lineNumber)".
+ */
 class AnalyzeStackTraceFix(
     private val exceptionMessage: String,
     private val stackTraceLines: List<String>
@@ -30,6 +36,9 @@ class AnalyzeStackTraceFix(
         }
     }
 
+    /**
+     * This text is displayed on the quick fix button.
+     */
     override fun getName() = "Analyze stack trace"
 
     override fun getFamilyName() = name

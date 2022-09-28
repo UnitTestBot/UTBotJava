@@ -5,7 +5,7 @@ import com.intellij.codeInspection.ex.InspectionToolWrapper
 import com.intellij.codeInspection.ui.DefaultInspectionToolPresentation
 
 /**
- * Overrides [resolveProblem] to avoid suppressing the button [ViewGeneratedTestFix].
+ * Overrides [resolveProblem] to avoid suppressing quick fix buttons.
  */
 class UTBotInspectionToolPresentation(
     toolWrapper: InspectionToolWrapper<*, *>,

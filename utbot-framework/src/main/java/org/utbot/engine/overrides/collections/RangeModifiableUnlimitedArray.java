@@ -1,5 +1,7 @@
 package org.utbot.engine.overrides.collections;
 
+import org.utbot.api.mock.UtMock;
+
 /**
  * Interface shows API for UtExpressions of infinite modifiable array.
  * <p>
@@ -115,6 +117,14 @@ public class RangeModifiableUnlimitedArray<E> {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    public <T> T[] toCastedArray(int offset, int length) {
+        final Object[] toArray = toArray(offset, length);
+        UtMock.disableClassCastExceptionCheck(toArray);
+
+        return (T[]) toArray;
+    }
+
     /**
      * set specified value to the element with specified index in array.
      * <p>
@@ -140,5 +150,18 @@ public class RangeModifiableUnlimitedArray<E> {
     @SuppressWarnings("unused")
     public E get(int i) {
         return null;
+    }
+
+    /**
+     * Returns the element of this array on specified index without check for ClassCastException.
+     *
+     * @param i - index in list with element, that needs to be returned
+     */
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
+    public E getWithoutClassCastExceptionCheck(int i) {
+        final Object object = get(i);
+        UtMock.disableClassCastExceptionCheck(object);
+
+        return (E) object;
     }
 }

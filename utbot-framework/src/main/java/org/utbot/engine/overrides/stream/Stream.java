@@ -13,10 +13,10 @@ import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 public interface Stream<E> extends BaseStream<E, Stream<E>> {
     @SuppressWarnings("unchecked")
     static <E> java.util.stream.Stream<E> of(E element) {
-        Object[] data = new Object[1];
+        E[] data = (E[]) new Object[1];
         data[0] = element;
 
-        return new UtStream<>((E[]) data, 1);
+        return new UtStream<>(data, 1);
     }
 
     @SuppressWarnings("unchecked")

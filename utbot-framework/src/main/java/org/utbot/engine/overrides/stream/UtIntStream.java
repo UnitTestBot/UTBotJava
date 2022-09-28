@@ -147,6 +147,8 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     @SuppressWarnings("unchecked")
     @Override
     public <U> Stream<U> mapToObj(IntFunction<? extends U> mapper) {
+        // Here we assume that this mapping does not produce infinite streams
+        // - otherwise it should always be executed concretely.
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;

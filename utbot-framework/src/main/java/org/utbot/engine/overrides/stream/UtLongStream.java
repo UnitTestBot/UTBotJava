@@ -147,6 +147,8 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     @SuppressWarnings("unchecked")
     @Override
     public <U> Stream<U> mapToObj(LongFunction<? extends U> mapper) {
+        // Here we assume that this mapping does not produce infinite streams
+        // - otherwise it should always be executed concretely.
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;

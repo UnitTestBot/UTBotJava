@@ -73,7 +73,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
      * <li> elementData is marked as parameter </li>
      * <li> elementData.storage and it's elements are marked as parameters </li>
      */
-    @SuppressWarnings({"DuplicatedCode"})
+    @SuppressWarnings("DuplicatedCode")
     void preconditionCheck() {
         if (alreadyVisited(this)) {
             return;
@@ -146,6 +146,8 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     @SuppressWarnings("unchecked")
     @Override
     public <U> Stream<U> mapToObj(DoubleFunction<? extends U> mapper) {
+        // Here we assume that this mapping does not produce infinite streams
+        // - otherwise it should always be executed concretely.
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;

@@ -813,7 +813,11 @@ class Resolver(
         // as const or store model.
         if (defaultBaseType is PrimType) return null
 
-        if (actualType.numDimensions == 0) {
+        require(!defaultType.isJavaLangObject()) {
+            "Object type $defaultType is unexpected in fallback to default type"
+        }
+
+        if (defaultType.numDimensions == 0) {
             return defaultType
         }
 

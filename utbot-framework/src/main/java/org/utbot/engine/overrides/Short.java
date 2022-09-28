@@ -1,8 +1,6 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.engine.overrides.strings.UtNativeString;
-import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -52,11 +50,32 @@ public class Short {
         // and reduce time of solving queries with bv2int expressions
         assumeOrExecuteConcretely(s <= 10000);
         assumeOrExecuteConcretely(s >= -10000);
-        // prefix = condition ? "-" : ""
-        String prefix = ite(condition, "-", "");
-        UtStringBuilder sb = new UtStringBuilder(prefix);
-        // value = condition ? -i : i
-        int value = ite(condition, (short)-s, s);
-        return sb.append(new UtString(new UtNativeString(value)).toStringImpl()).toString();
+
+        if (s == -32768) {
+            return "-32768";
+        } else {
+            // prefix = condition ? "-" : ""
+            String prefix = ite(condition, "-", "");
+            int value = ite(condition, (short) -s, s);
+            char[] reversed = new char[5];
+            int offset = 0;
+            while (value > 0) {
+                reversed[offset] = (char) ('0' + value % 10);
+                value = value / 10;
+                offset++;
+            }
+
+            if (offset > 0) {
+                char[] repr = new char[offset];
+                int i = 0;
+                while (offset > 0) {
+                    offset--;
+                    repr[i++] = reversed[offset];
+                }
+                return prefix + new String(repr);
+            } else {
+                return "0";
+            }
+        }
     }
 }

@@ -1,9 +1,9 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.engine.overrides.strings.UtNativeString;
-import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
+
+import java.util.Arrays;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
@@ -54,11 +54,31 @@ public class Byte {
         // and reduce time of solving queries with bv2int expressions
         assume(b < 128);
         assume(b >= -128);
-        // prefix = condition ? "-" : ""
-        String prefix = ite(condition, "-", "");
-        UtStringBuilder sb = new UtStringBuilder(prefix);
-        // value = condition ? -i : i
-        int value = ite(condition, (byte) -b, b);
-        return sb.append(new UtString(new UtNativeString(value)).toStringImpl()).toString();
+
+        if (b == -128) {
+            return "-128";
+        } else {
+            String prefix = ite(condition, "-", "");
+            int value = ite(condition, (byte) -b, b);
+            char[] reversed = new char[3];
+            int offset = 0;
+            while (value > 0) {
+                reversed[offset] = (char) ('0' + value % 10);
+                value = value / 10;
+                offset++;
+            }
+
+            if (offset > 0) {
+                char[] buffer = new char[offset];
+                int counter = 0;
+                while (offset > 0) {
+                    offset--;
+                    buffer[counter++] = reversed[offset];
+                }
+                return prefix + new String(buffer);
+            } else {
+                return "0";
+            }
+        }
     }
 }

@@ -26,17 +26,13 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     )
 ) {
     @Test
-    @Disabled("Flaky test: https://github.com/UnitTestBot/UTBotJava/issues/131 (will be enabled in new strings PR)")
     fun testByteToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::byteToString,
-                eq(2),
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::byteToString,
+            eq(2),
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
     @Test
@@ -53,43 +49,34 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
 
     @Test
     fun testShortToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::shortToString,
-                eq(2),
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::shortToString,
+            ignoreExecutionsNumber,
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
 
     @Test
     fun testIntToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::intToString,
-                ignoreExecutionsNumber,
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::intToString,
+            ignoreExecutionsNumber,
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
 
     @Test
     fun testLongToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::longToString,
-                ignoreExecutionsNumber,
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::longToString,
+            ignoreExecutionsNumber,
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
     @Test
@@ -247,6 +234,15 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
             { _, i, r -> i < 0 && r.isException<NullPointerException>() },
             { buffer, i, r -> i >= 0 && r.getOrNull() == "${buffer}Positive" },
             { buffer, i, r -> i < 0 && r.getOrNull() == "${buffer}Negative" },
+        )
+    }
+
+    @Test
+    fun testIsStringBuilderEmpty() {
+        check(
+            StringExamples::isStringBuilderEmpty,
+            eq(2),
+            { stringBuilder, result -> result == stringBuilder.isEmpty() }
         )
     }
 
@@ -585,7 +581,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         withPushingStateFromPathSelectorForConcrete {
             check(
                 StringExamples::equalsIgnoreCase,
-                eq(2),
+                ignoreExecutionsNumber,
                 { s, r -> "SUCCESS".equals(s, ignoreCase = true) && r == "success" },
                 { s, r -> !"SUCCESS".equals(s, ignoreCase = true) && r == "failure" },
             )

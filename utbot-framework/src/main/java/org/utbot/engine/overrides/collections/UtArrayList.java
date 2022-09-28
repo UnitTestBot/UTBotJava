@@ -168,6 +168,25 @@ public class UtArrayList<E> extends AbstractList<E>
     }
 
     @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+        int size = size();
+        if (size > 0) {
+            builder.append(get(0));
+        }
+
+        if (size > 1) {
+            for (int i = 1; i < size; i++) {
+                builder.append(", ");
+                builder.append(get(i));
+            }
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    @Override
     public boolean add(E e) {
         preconditionCheck();
         elementData.set(elementData.end++, e);

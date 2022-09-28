@@ -20,24 +20,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     private static final long serialVersionUID = -6849794470754667710L;
 
-    public UtString(UtNativeString str) {
-        visit(this);
-        length = str.length();
-        value = str.toCharArray(0);
-    }
-
-    public static UtNativeString toUtNativeString(String s, int offset) {
-        char[] value = s.toCharArray();
-        int length = value.length;
-        UtNativeString nativeString = new UtNativeString();
-        assume(nativeString.length() == length - offset);
-        assume(nativeString.length() <= 2);
-        for (int i = offset; i < length; i++) {
-            assume(nativeString.charAt(i - offset) == value[i]);
-        }
-        return nativeString;
-    }
-
     public UtString() {
         visit(this);
         value = new char[0];
@@ -344,8 +326,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     }
 
     private boolean contentEquals(char[] otherValue, int toffset, int ooffset, int n) {
-        //TODO: remove assume
-        assume(n <= 25);
         for (int j = 0; j < n; j++) {
             int i1 = toffset + j;
             int i2 = ooffset + j;
@@ -358,8 +338,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     // for simpler analysis instead of contentEquals(otherValue, 0, 0, int n)
     private boolean contentEqualsZeroOffset(char[] otherValue, int n) {
-        //TODO: remove assume
-        assume(n <= 25);
         for (int i = 0; i < n; i++) {
             if (value[i] != otherValue[i]) {
                 return false;
@@ -433,8 +411,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         if (n != cs.length()) {
             return false;
         }
-        // TODO: remove assume
-        assume(n <= 25);
         for (int i = 0; i < n; i++) {
             if (v1[i] != cs.charAt(i)) {
                 return false;
@@ -455,8 +431,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
             return false;
         }
         char[] otherValue = anotherString.toCharArray();
-        // TODO remove assume
-        assume(n <= 25);
         for (int j = 0; j < n; j++) {
             if (java.lang.Character.toLowerCase(value[j]) != java.lang.Character.toLowerCase(otherValue[j])) {
                 return false;
@@ -553,8 +527,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         char[] pa = other.toCharArray();
 
         if (ignoreCase) {
-            // TODO remove assume
-            assume(len <= 25);
             for (int j = 0; j < len; j++) {
                 if (java.lang.Character.toLowerCase(value[j + toffset]) != java.lang.Character.toLowerCase(pa[j + ooffset])) {
                     return false;
@@ -613,8 +585,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         if (ch < java.lang.Character.MIN_SUPPLEMENTARY_CODE_POINT) {
             // handle most cases here (ch is a BMP code point or a
             // negative value (invalid code point))
-            // TODO remove assume
-            assume(max - fromIndex <= 10);
             for (int i = fromIndex; i < max; i++) {
                 if (value[i] == ch) {
                     return i;
@@ -631,8 +601,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
             final char hi = java.lang.Character.highSurrogate(ch);
             final char lo = java.lang.Character.lowSurrogate(ch);
             final int max = length - 1;
-            // TODO remove assume
-            assume(max - fromIndex <= 10);
             for (int i = fromIndex; i < max; i++) {
                 if (value[i] == hi && value[i + 1] == lo) {
                     return i;
@@ -692,8 +660,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         }
         char[] v2 = str.toCharArray();
         char ch = v2[0];
-        // TODO remove assume
-        assume(max - fromIndex <= 10);
         for (int i = fromIndex; i < max; i++) {
             if (value[i] == ch && contentEquals(v2, i + 1, 1, strLength - 1)) {
                 return i;
@@ -721,8 +687,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         }
         char[] v2 = str.toCharArray();
         char ch = v2[0];
-        // TODO remove assume
-        assume(fromIndex <= 10);
         for (int i = fromIndex; i >= 0; i--) {
             if (value[i] == ch && contentEquals(v2, i + 1, 1, strLength - 1)) {
                 return i;
@@ -830,8 +794,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         if (replacement == null) {
             throw new NullPointerException();
         }
-        assume(regex.length() < 10);
-        assume(replacement.length() < 10);
         executeConcretely();
         return toString().replaceFirst(regex, replacement);
     }
@@ -845,8 +807,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         if (replacement == null) {
             throw new NullPointerException();
         }
-        assume(regex.length() < 10);
-        assume(replacement.length() < 10);
         executeConcretely();
         return toString().replaceAll(regex, replacement);
     }
@@ -860,12 +820,20 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         if (replacement == null) {
             throw new NullPointerException();
         }
-        assume(target.length() < 10);
-        assume(replacement.length() < 10);
         executeConcretely();
         return toString().replace(target, replacement);
     }
 
+    public String[] splitWithLimitImpl(String regex, int limit) {
+        return toString().split(regex, limit);
+    }
+
+    public String[] split(String regex, int limit) {
+        preconditionCheck();
+        return splitWithLimitImpl(regex, limit);
+    }
+
+    /*
     public String[] split(String regex, int limit) {
         preconditionCheck();
         if (regex == null) {
@@ -878,18 +846,26 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
             int size = limit == 0 ? length + 1 : min(limit, length + 1);
             String[] strings = new String[size];
             strings[size] = substring(size - 1);
-            // TODO remove assume
-            assume(size < 10);
             for (int i = 0; i < size - 1; i++) {
                 strings[i] = Character.toString(value[i]);
             }
             return strings;
         }
-        assume(regex.length() < 10);
         executeConcretely();
         return toStringImpl().split(regex, limit);
     }
+     */
 
+    public String[] splitImpl(String regex) {
+        return toString().split(regex);
+    }
+
+    public String[] split(String regex) {
+        preconditionCheck();
+        return splitImpl(regex);
+    }
+
+    /*
     public String[] split(String regex) {
         preconditionCheck();
         if (regex == null) {
@@ -898,8 +874,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         if (regex.length() == 0) {
             String[] strings = new String[length + 1];
             strings[length] = "";
-            // TODO remove assume
-            assume(length <= 25);
             for (int i = 0; i < length; i++) {
                 strings[i] = Character.toString(value[i]);
             }
@@ -908,6 +882,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         executeConcretely();
         return toStringImpl().split(regex);
     }
+     */
 
     public String toLowerCase(Locale locale) {
         preconditionCheck();

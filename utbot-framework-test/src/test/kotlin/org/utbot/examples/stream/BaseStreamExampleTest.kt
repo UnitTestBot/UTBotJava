@@ -78,6 +78,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Tag("slow")
     fun testMapToIntExample() {
         checkWithException(
             BaseStreamExample::mapToIntExample,
@@ -89,6 +90,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Tag("slow")
     fun testMapToLongExample() {
         checkWithException(
             BaseStreamExample::mapToLongExample,
@@ -100,6 +102,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Tag("slow")
     fun testMapToDoubleExample() {
         checkWithException(
             BaseStreamExample::mapToDoubleExample,

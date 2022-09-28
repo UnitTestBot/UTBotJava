@@ -192,7 +192,7 @@ internal class UtBotFieldModificatorsTest {
 
     //We use sorting here to make comparing with sorted in advance expected collections easier
     private fun runFieldModificatorsSearch(analysisMode: AnalysisMode) =
-        fieldsModificatorsSearcher.findModificators(analysisMode, PrimitiveModifications::class.java.packageName)
+        fieldsModificatorsSearcher.findModificators(analysisMode)
             .map { (key, value) ->
                 val modificatorNames = value.filterNot { it.name.startsWith("direct_set_") }.map { it.name }
                 key.name to modificatorNames.toSortedSet()

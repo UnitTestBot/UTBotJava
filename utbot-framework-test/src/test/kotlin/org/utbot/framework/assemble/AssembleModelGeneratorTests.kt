@@ -35,7 +35,7 @@ import org.utbot.examples.assemble.defaults.DefaultField
 import org.utbot.examples.assemble.defaults.DefaultFieldModifiedInConstructor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithDirectAccessor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithSetter
-import org.utbot.examples.assemble.defaults.DefaultPackagePrivateField
+import org.utbot.examples.assemble.DefaultPackagePrivateField
 import org.utbot.examples.assemble.statics.StaticField
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -58,7 +58,6 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
 import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
-import org.utbot.examples.assemble.*
 import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 
 /**
@@ -150,8 +149,7 @@ class AssembleModelGeneratorTests {
             fields(testClassId, "a" to 5, "b" to 3)
         )
 
-        val methodFromAnotherPackage =
-            MethodUnderTest::class.functions.first()
+        val methodFromAnotherPackage = MethodUnderTest::class.functions.first()
 
         createModelAndAssert(compositeModel, null, methodFromAnotherPackage.executableId)
     }
@@ -413,7 +411,7 @@ class AssembleModelGeneratorTests {
         val baseClassId = PrimitiveFields::class.id
 
         val thisFields = fields(inheritedFieldClassId, "i" to 5, "d" to 3.0)
-        val baseFields = fields(baseClassId, "a" to 2, "b" to 4)
+        val baseFields = fields(baseClassId, "b" to 4)
 
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
@@ -425,7 +423,6 @@ class AssembleModelGeneratorTests {
         val v1 = statementsChain.addExpectedVariableDecl<InheritedField>()
         statementsChain.add("$v1." + ("i" `=` 5))
         statementsChain.add("$v1." + ("d" `=` 3.0))
-        statementsChain.add("$v1." + addExpectedSetter("a", 2))
         statementsChain.add("$v1." + ("b" `=` 4))
 
         val expectedRepresentation = printExpectedModel(inheritedFieldClassId.simpleName, v1, statementsChain)
@@ -1448,9 +1445,9 @@ class AssembleModelGeneratorTests {
     private fun createModelsAndAssert(
         models: List<UtModel>,
         expectedModelRepresentations: List<String?>,
-        assembleTestUtils: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
+        assembleTestDummyMethod: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) {
-        val modelsMap = AssembleModelGenerator(assembleTestUtils.classId.packageName).createAssembleModels(models)
+        val modelsMap = AssembleModelGenerator(assembleTestDummyMethod.classId.packageName).createAssembleModels(models)
         //we sort values to fix order of models somehow (IdentityHashMap does not guarantee the order)
         val assembleModels = modelsMap.values
             .filterIsInstance<UtAssembleModel>()

@@ -253,6 +253,7 @@ data class MethodInvocationTarget(
 val libraryTargets: Map<String, List<String>> = mapOf(
     Iterable::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
     Collection::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
+    AbstractCollection::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
     List::class.java.name to listOf(ArrayList::class.java.name),
     Set::class.java.name to listOf(HashSet::class.java.name),
     Map::class.java.name to listOf(HashMap::class.java.name),

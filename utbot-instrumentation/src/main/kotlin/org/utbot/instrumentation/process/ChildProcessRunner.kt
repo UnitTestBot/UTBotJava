@@ -75,7 +75,7 @@ class ChildProcessRunner {
         private const val ERRORS_FILE_PREFIX = "utbot-childprocess-errors"
         private const val INSTRUMENTATION_LIB = "lib"
 
-        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005"
+        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,quiet=y,address=5005"
 
         private val UT_BOT_TEMP_DIR: File = File(utBotTempDirectory.toFile(), ERRORS_FILE_PREFIX)
 

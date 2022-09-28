@@ -1,6 +1,5 @@
 package org.utbot.examples.java11.collections
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.between
@@ -31,7 +30,6 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("TODO: we can't yet model throwing ArrayStoreException")
     fun testCheckSetSizeArrayStoreException() {
         checkWithException(
             ToArrayWithGenerator<Int>::checkSetSizeArrayStoreException,
@@ -73,7 +71,6 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("TODO: we can't yet model throwing ArrayStoreException")
     fun testGetMapEntrySetArrayStoreException() {
         checkWithException(
             ToArrayWithGenerator<Int>::getMapEntrySetArrayStoreException,
@@ -120,7 +117,6 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("TODO: this test takes too long and results in non-instantiable concrete type substitutions")
     fun testGetAbstractCollectionArgumentSize() {
         check(
             ToArrayWithGenerator<Int>::getAbstractCollectionArgumentSize,
@@ -130,7 +126,6 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("TODO: translate of UtArrayApplyForAll expression (#630)")
     fun testGetGenericCollectionArgumentSize() {
         check(
             ToArrayWithGenerator<Int>::getGenericCollectionArgumentSize,

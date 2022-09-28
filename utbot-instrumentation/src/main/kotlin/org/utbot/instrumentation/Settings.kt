@@ -28,7 +28,7 @@ object Settings {
      *
      * @see [org.utbot.instrumentation.process.ChildProcessRunner.cmds]
      */
-    const val runChildProcessWithDebug = false
+    const val runChildProcessWithDebug = true
 
     var defaultConcreteExecutorPoolSize = 10
 }

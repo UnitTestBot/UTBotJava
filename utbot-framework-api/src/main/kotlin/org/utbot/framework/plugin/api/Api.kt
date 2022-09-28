@@ -33,19 +33,7 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
-import soot.ArrayType
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.LongType
-import soot.RefType
-import soot.ShortType
-import soot.SootClass
-import soot.Type
-import soot.VoidType
+import soot.*
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
@@ -131,8 +119,8 @@ class UtSymbolicExecution(
     stateAfter: EnvironmentModels,
     result: UtExecutionResult,
     val instrumentation: List<UtInstrumentation>,
-    val path: MutableList<Step>,
-    val fullPath: List<Step>,
+    var path: MutableList<Step>,
+    var fullPath: List<Step>,
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,

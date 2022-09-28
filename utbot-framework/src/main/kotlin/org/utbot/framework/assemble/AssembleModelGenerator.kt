@@ -2,6 +2,7 @@ package org.utbot.framework.assemble
 
 import org.utbot.common.isPrivate
 import org.utbot.common.isPublic
+import org.utbot.common.nameOfPackage
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
@@ -400,7 +401,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
         get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(methodPackageName)
 
     private val Constructor<*>.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(methodPackageName)
+        get() = this.isPublic || !this.isPrivate && this.declaringClass.nameOfPackage.startsWith(methodPackageName)
 
     /**
      * Creates setter or direct setter call to set a field.

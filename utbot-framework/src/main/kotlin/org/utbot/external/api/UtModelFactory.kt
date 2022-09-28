@@ -1,5 +1,6 @@
 package org.utbot.external.api
 
+import org.utbot.common.nameOfPackage
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -48,7 +49,7 @@ class UtModelFactory(
         classUnderTest: Class<*>,
         models: List<UtModel>
     ): IdentityHashMap<UtModel, UtModel> =
-        AssembleModelGenerator(classUnderTest.packageName)
+        AssembleModelGenerator(classUnderTest.nameOfPackage)
             .createAssembleModels(models)
 
     @JvmOverloads

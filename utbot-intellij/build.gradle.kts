@@ -5,6 +5,8 @@ val jacksonVersion: String? by rootProject
 val ideType: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
+val sootCommitHash: String? by rootProject
+val kryoVersion: String? by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
@@ -70,6 +72,10 @@ tasks {
 }
 
 dependencies {
+    implementation("com.github.UnitTestBot:soot:${sootCommitHash}")
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
+    implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
     implementation("org.apache.httpcomponents.client5:httpclient5:5.1")

@@ -39,6 +39,7 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
 import com.siyeh.ig.psiutils.ImportUtils
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.core.ShortenReferences
@@ -61,7 +62,6 @@ import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.CodeGeneratorResult
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
@@ -74,6 +74,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
@@ -111,12 +112,18 @@ object CodeGenerationController {
     fun generateTests(
         model: GenerateTestsModel,
         testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>,
-        psi2KClass: Map<PsiClass, KClass<*>>
+        psi2KClass: Map<PsiClass, KClass<*>>,
+        proc: EngineProcess
     ) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
         val latch = CountDownLatch(testSetsByClass.size)
+        run(THREAD_POOL) {
+            waitForCountDown(latch) {
+                proc.forceTermination()
+            }
+        }
 
         val reports = mutableListOf<TestsGenerationReport>()
         val testFilesPointers = mutableListOf<SmartPsiElementPointer<PsiFile>>()
@@ -131,7 +138,7 @@ object CodeGenerationController {
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(srcClass, cut, testClass, testFilePointer, testSets, model, latch, reports, utilClassListener)
+                        generateCodeAndReport(proc, srcClass, cut, testClass, testFilePointer, testSets, model, latch, reports, utilClassListener)
                         testFilesPointers.add(testFilePointer)
                     } catch (e: IncorrectOperationException) {
                         logger.error { e }
@@ -566,6 +573,7 @@ object CodeGenerationController {
     }
 
     private fun generateCodeAndReport(
+        proc: EngineProcess,
         srcClass: PsiClass,
         classUnderTest: KClass<*>,
         testClass: PsiClass,
@@ -580,28 +588,37 @@ object CodeGenerationController {
         val paramNames = DumbService.getInstance(model.project)
             .runReadActionInSmartMode(Computable { findMethodParamNames(classUnderTest, classMethods) })
 
-        val codeGenerator = CodeGenerator(
-            classUnderTest = classUnderTest.id,
-            generateUtilClassFile = true,
-            paramNames = paramNames.toMutableMap(),
-            testFramework = model.testFramework,
-            mockFramework = model.mockFramework,
-            codegenLanguage = model.codegenLanguage,
-            parameterizedTestSource = model.parametrizedTestSource,
-            staticsMocking = model.staticsMocking,
-            forceStaticMocking = model.forceStaticMocking,
-            generateWarningsForStaticMocking = model.generateWarningsForStaticMocking,
-            runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
-            hangingTestsTimeout = model.hangingTestsTimeout,
-            enableTestsTimeout = true,
-            testClassPackageName = testClass.packageName
-        )
-
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
-            val codeGenerationResult = codeGenerator.generateAsStringWithTestReport(testSets)
+            val codeGenerationResult: CodeGeneratorResult = runBlocking {
+                try {
+                    proc.render(
+                        classUnderTest.id,
+                        paramNames.toMutableMap(),
+                        generateUtilClassFile = true,
+                        model.testFramework,
+                        model.mockFramework,
+                        model.staticsMocking,
+                        model.forceStaticMocking,
+                        model.generateWarningsForStaticMocking,
+                        model.codegenLanguage,
+                        model.parametrizedTestSource,
+                        model.runtimeExceptionTestsBehaviour,
+                        model.hangingTestsTimeout,
+                        enableTestsTimeout = true,
+                        testClass.packageName,
+                        testSets
+                    )
+                } catch (e: Throwable) {
+                    logger.error(e) {
+                        "errur during render"
+                    }
+                    throw e
+                }
+            }
+//                codeGenerator.generateAsStringWithTestReport(testSets)
             utilClassListener.onTestClassGenerated(codeGenerationResult)
             val generatedTestsCode = codeGenerationResult.generatedCode
             run(EDT_LATER) {
@@ -633,7 +650,7 @@ object CodeGenerationController {
                                 codeGenerationResult.copy(generatedCode = file?.text?: generatedTestsCode)
 
                             // creating and saving reports
-                            reports += codeGenerationResultFormatted.testsGenerationReport
+                            codeGenerationResultFormatted.testsGenerationReport?.let { reports += it }
 
                             run(WRITE_ACTION) {
                                 saveSarifReport(

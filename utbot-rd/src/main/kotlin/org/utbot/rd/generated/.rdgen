@@ -1,0 +1,11 @@
+file: C:\\Users\\kWX1183156\\.gradle\\caches\\modules-2\\files-2.1\\com.jetbrains.rd\\rd-gen\\2022.3.1\\fedfcd615a15464656b5e07b251207f62135f62a\\rd-gen-2022.3.1.jar=2022-08-09_15:21:58.253
+file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\kotlin\\org\\utbot\\rd\\generated\\SynchronizationModel.Generated.kt=2022-09-28_09:18:29.936
+file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\kotlin\\org\\utbot\\rd\\generated\\SynchronizationModelRoot.Generated.kt=2022-09-28_09:18:29.939
+file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\rdgen\\org\\utbot\\rd\\models\\ChildProcessModel.kt=2022-09-27_12:22:15.727
+file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\rdgen\\org\\utbot\\rd\\models\\EngineProcessModel.kt=2022-09-27_12:22:15.648
+file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\rdgen\\org\\utbot\\rd\\models\\SettingsModel.kt=2022-09-27_12:22:15.649
+file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\rdgen\\org\\utbot\\rd\\models\\SynchronizationModel.kt=2022-09-28_09:18:18.569
+noLineNumbersInComments=false
+outputFolders=C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\kotlin\\org\\utbot\\rd\\generated
+packages=org.utbot.rd.models
+version=1.10

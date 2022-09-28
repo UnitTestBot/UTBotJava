@@ -1,7 +1,6 @@
 package org.utbot.engine
 
 import org.utbot.api.mock.UtMock
-import org.utbot.common.packageName
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock

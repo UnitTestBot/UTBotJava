@@ -83,32 +83,27 @@ suspend fun main(args: Array<String>) = runBlocking {
 
     Logger.set(Lifetime.Eternal, UtRdConsoleLoggerFactory(defaultLogLevel, System.err))
     val port = findRdPort(args)
-    val ldef = LifetimeDefinition()
-    val kryoHelper = KryoHelper(ldef)
-    logger.info { "kryo created" }
-
-
-    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(ldef, port) {
-        logger.info { "setup started" }
-        childProcessModel.setup(kryoHelper, it) {
-            ldef.terminate()
-        }
-        logger.info { "setup ended" }
-    }
-    logger.info { "client started" }
 
     try {
-        ldef.awaitTermination()
+        ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(port) {
+            val kryoHelper = KryoHelper(lifetime)
+            logger.info { "setup started" }
+            childProcessModel.setup(kryoHelper, it)
+            logger.info { "setup ended" }
+        }
     } catch (e: Throwable) {
         logger.error { "Terminating process because exception occurred: ${e.stackTraceToString()}" }
     }
+    logger.info { "runBlocking ending" }
+}.also {
+    logger.info { "runBlocking ended" }
 }
 
 private lateinit var pathsToUserClasses: Set<String>
 private lateinit var pathsToDependencyClasses: Set<String>
 private lateinit var instrumentation: Instrumentation<*>
 
-private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsSynchronizer, onStop: () -> Unit) {
+private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsSynchronizer) {
     synchronizer.measureExecutionForTermination(warmup) {
         logger.debug { "received warmup request" }
         val time = measureTimeMillis {
@@ -152,7 +147,7 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
         UtContext.setUtContext(UtContext(HandlerClassesLoader))
     }
     synchronizer.measureExecutionForTermination(stopProcess) {  logger.debug { "stop request" }
-        onStop()
+        synchronizer.stopProtocol()
     }
     synchronizer.measureExecutionForTermination(collectCoverage) { params ->
         logger.debug { "collect coverage request" }

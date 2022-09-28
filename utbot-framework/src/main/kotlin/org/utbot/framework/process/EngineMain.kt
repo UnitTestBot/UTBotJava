@@ -1,6 +1,7 @@
 package org.utbot.framework.process
 
 import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.info
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
@@ -36,46 +37,44 @@ import kotlin.time.Duration.Companion.seconds
 private val messageFromMainTimeoutMillis = 120.seconds
 private val logger = KotlinLogging.logger {}
 
+private fun KryoHelper.setup(): KryoHelper = this.apply {
+    addInstantiator(soot.util.HashChain::class.java) {
+        HashChain<Any>()
+    }
+    addInstantiator(soot.UnitPatchingChain::class.java) {
+        UnitPatchingChain(HashChain())
+    }
+    addInstantiator(Collections.synchronizedCollection(mutableListOf<SootMethod>()).javaClass) {
+        Collections.synchronizedCollection(mutableListOf<SootMethod>())
+    }
+    addInstantiator(Collections.synchronizedCollection(mutableListOf<Any>()).javaClass) {
+        Collections.synchronizedCollection(mutableListOf<Any>())
+    }
+}
+
 // use log4j2.configurationFile property to set log4j configuration
 suspend fun main(args: Array<String>) = runBlocking {
     // 0 - auto port for server, should not be used here
     val port = findRdPort(args)
-    val ldef = LifetimeDefinition()
-    val kryoHelper = KryoHelper(ldef)
-
-    kryoHelper.addInstantiator(soot.util.HashChain::class.java) {
-        HashChain<Any>()
-    }
-    kryoHelper.addInstantiator(soot.UnitPatchingChain::class.java) {
-        UnitPatchingChain(HashChain())
-    }
-    kryoHelper.addInstantiator(Collections.synchronizedCollection(mutableListOf<SootMethod>()).javaClass) {
-        Collections.synchronizedCollection(mutableListOf<SootMethod>())
-    }
-    kryoHelper.addInstantiator(Collections.synchronizedCollection(mutableListOf<Any>()).javaClass) {
-        Collections.synchronizedCollection(mutableListOf<Any>())
-    }
 
     Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
 
-    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(ldef, port) {
+    ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
         settingsModel
         AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol))
-        engineProcessModel.setup(ldef, kryoHelper, it) {
-            ldef.terminate()
-        }
+        val kryoHelper = KryoHelper(lifetime).setup()
+
+        engineProcessModel.setup(kryoHelper, it)
     }
-
-    ldef.awaitTermination()
+    logger.info { "runBlocking ending" }
+}.also {
+    logger.info { "runBlocking ended" }
 }
-
 private lateinit var testGenerator: TestCaseGenerator
 
 private fun EngineProcessModel.setup(
-    lifetime: Lifetime,
     kryoHelper: KryoHelper,
-    synchronizer: CallsSynchronizer,
-    onStop: () -> Unit
+    synchronizer: CallsSynchronizer
 ) {
     val model = this
     synchronizer.measureExecutionForTermination(setupUtContext) { params ->
@@ -91,7 +90,7 @@ private fun EngineProcessModel.setup(
             jdkInfo = JdkInfo(Paths.get(params.jdkInfo.path), params.jdkInfo.version),
             isCanceled = {
                 runBlocking {
-                    model.isCancelled.startSuspending(lifetime, Unit)
+                    model.isCancelled.startSuspending(Unit)
                 }
             })
     }
@@ -162,5 +161,5 @@ private fun EngineProcessModel.setup(
             )
         )
     }
-    synchronizer.measureExecutionForTermination(stopProcess) { onStop() }
+    synchronizer.measureExecutionForTermination(stopProcess) { synchronizer.stopProtocol() }
 }

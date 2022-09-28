@@ -55,19 +55,19 @@ fun findRdPort(args: Array<String>): Int {
         ?: throw IllegalArgumentException("No port provided")
 }
 
-class CallsSynchronizer(val timeout: Duration) {
+class CallsSynchronizer(private val ldef: LifetimeDefinition, val timeout: Duration) {
     private enum class State {
         STARTED,
         ENDED
     }
+
     private val synchronizer: Channel<State> = Channel(1)
 
     fun <T> measureExecutionForTermination(block: () -> T): T = runBlocking {
         try {
             synchronizer.send(State.STARTED)
             return@runBlocking block()
-        }
-        finally {
+        } finally {
             synchronizer.send(State.ENDED)
         }
     }
@@ -82,7 +82,7 @@ class CallsSynchronizer(val timeout: Duration) {
         }
     }
 
-    suspend fun setupTimeout(ldef: LifetimeDefinition) {
+    suspend fun setupTimeout() {
         ldef.launch {
             var lastState = State.ENDED
             while (ldef.isAlive) {
@@ -93,8 +93,8 @@ class CallsSynchronizer(val timeout: Duration) {
                 if (current == null) {
                     if (lastState == State.ENDED) {
                         // process is waiting for command more than expected, better die
-                        logger.info { "terminating lifetime" }
-                        ldef.terminate()
+                        logger.info { "terminating lifetime by timeout" }
+                        stopProtocol()
                         break
                     }
                 } else {
@@ -103,28 +103,31 @@ class CallsSynchronizer(val timeout: Duration) {
             }
         }
     }
+
+    fun stopProtocol() {
+        ldef.terminate()
+    }
 }
 
 class ClientProtocolBuilder {
     private var timeout = Duration.INFINITE
 
-    suspend fun start(parent: Lifetime, port: Int, bindables: Protocol.(CallsSynchronizer) -> Unit) {
+    suspend fun start(port: Int, parent: Lifetime? = null, bindables: Protocol.(CallsSynchronizer) -> Unit) {
         val pid = currentProcessPid.toInt()
-        val ldef = parent.createNested()
+        val ldef = parent?.createNested() ?: LifetimeDefinition()
+        ldef.terminateOnException { _ ->
+            ldef += { logger.info { "lifetime terminated" } }
+            ldef += {
+                val syncFile = File(processSyncDirectory, childCreatedFileName(port))
 
-        ldef += { logger.info { "lifetime terminated" } }
-        ldef += {
-            val syncFile = File(processSyncDirectory, childCreatedFileName(port))
-
-            if (syncFile.exists()) {
-                logger.info { "sync file existed" }
-                syncFile.delete()
+                if (syncFile.exists()) {
+                    logger.info { "sync file existed" }
+                    syncFile.delete()
+                }
             }
-        }
-        logger.info { "pid - $pid, port - $port" }
-        logger.info { "isJvm8 - $isJvm8, isJvm9Plus - $isJvm9Plus, isWindows - $isWindows" }
+            logger.info { "pid - $pid, port - $port" }
+            logger.info { "isJvm8 - $isJvm8, isJvm9Plus - $isJvm9Plus, isWindows - $isWindows" }
 
-        try {
             val name = "Client$port"
             val rdClientProtocolScheduler = SingleThreadScheduler(ldef, "Scheduler for $name")
             val clientProtocol = Protocol(
@@ -135,9 +138,9 @@ class ClientProtocolBuilder {
                 SocketWire.Client(ldef, rdClientProtocolScheduler, port),
                 ldef
             )
-            val synchronizer = CallsSynchronizer(timeout)
+            val synchronizer = CallsSynchronizer(ldef, timeout)
 
-            synchronizer.setupTimeout(ldef)
+            synchronizer.setupTimeout()
             rdClientProtocolScheduler.pump(ldef) {
                 clientProtocol.synchronizationModel
                 clientProtocol.bindables(synchronizer)
@@ -159,8 +162,7 @@ class ClientProtocolBuilder {
                 }
                 answerFromMainProcess.await()
             }
-        } catch (e: Exception) {
-            ldef.terminate()
+            ldef.awaitTermination()
         }
     }
 

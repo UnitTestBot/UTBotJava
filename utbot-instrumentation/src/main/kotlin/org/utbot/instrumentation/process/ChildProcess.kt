@@ -58,7 +58,7 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
  * Command-line option to disable the sandbox
  */
 const val DISABLE_SANDBOX_OPTION = "--disable-sandbox"
-private val defaultLogLevel = LogLevel.Info
+private val defaultLogLevel = LogLevel.Debug
 private val logger = getLogger("ChildProcess")
 private val messageFromMainTimeout: Duration = 120.seconds
 

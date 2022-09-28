@@ -55,6 +55,9 @@ allprojects {
             minHeapSize = "128m"
             maxHeapSize = "3072m"
 
+            testLogging.showStandardStreams = true
+            testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+
             jvmArgs = listOf("-XX:MaxHeapSize=3072m")
 
             useJUnitPlatform {
@@ -63,9 +66,14 @@ allprojects {
 
             addTestListener(object : TestListener {
                 override fun beforeSuite(suite: TestDescriptor) {}
-                override fun beforeTest(testDescriptor: TestDescriptor) {}
+                override fun beforeTest(testDescriptor: TestDescriptor) {
+                    println("----------------------------[${testDescriptor.className}] [${testDescriptor.displayName}]--------------------------------------")
+                }
                 override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {
-                    println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType")
+                    println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType, length - ${(result.endTime - result.startTime) / 1000.0} sec")
+                    if (result.resultType == TestResult.ResultType.FAILURE) {
+                        println("${result.exception?.stackTraceToString()}")
+                    }
                 }
 
                 override fun afterSuite(testDescriptor: TestDescriptor, result: TestResult) {

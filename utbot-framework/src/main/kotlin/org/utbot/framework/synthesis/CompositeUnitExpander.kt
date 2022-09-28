@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.util.isStatic
 
 class CompositeUnitExpander(
     private val statementsStorage: StatementsStorage

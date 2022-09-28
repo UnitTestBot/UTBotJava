@@ -5,10 +5,8 @@ import mu.KotlinLogging
 import org.utbot.engine.*
 import org.utbot.engine.pc.UtSolverStatus
 import org.utbot.engine.pc.UtSolverStatusSAT
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.objectClassId
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
 import kotlin.math.abs
@@ -158,6 +156,7 @@ class ModelSynthesisScoringStrategy(
                 }
                 res
             }
+
             else -> INF_SCORE
         }
 
@@ -167,6 +166,7 @@ class ModelSynthesisScoringStrategy(
             other as UtPrimitiveModel
             maxScore - maxScore / (maxScore + (this - other).abs().toDouble() + EPS)
         }
+
         this is UtCompositeModel -> {
             other as UtCompositeModel
             var score = 0.0
@@ -179,6 +179,7 @@ class ModelSynthesisScoringStrategy(
             }
             score
         }
+
         else -> MAX_SCORE.also {
             logger.error { "Unknown ut model" }
         }

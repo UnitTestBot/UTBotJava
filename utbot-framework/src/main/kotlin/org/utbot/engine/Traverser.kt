@@ -204,7 +204,7 @@ import kotlin.reflect.jvm.javaType
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: SymbolicEngineTarget<*>,
+    private val methodUnderTest: SymbolicEngineTarget,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
@@ -965,17 +965,17 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val utMethod = when (methodUnderTest) {
-            is UtMethodTarget<*> -> methodUnderTest.utMethod
+        val executableId = when (methodUnderTest) {
+            is ExecutableIdTarget -> methodUnderTest.executableId
             else -> return
         }
-        val callable = utMethod.executable
+        val callable = executableId.executable
         val kCallable = ::updateGenericTypeInfo
         val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
-            if (utMethod.isConstructor) {
-                utMethod.javaConstructor?.annotatedReturnType?.type
+            if (executableId.isConstructor) {
+                callable.annotatedReturnType?.type
             } else {
                 callable.declaringClass // same as it was, but it isn't parametrized type
                     ?: error("No instanceParameter for ${callable} found")

@@ -7,6 +7,7 @@ import org.utbot.engine.*
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtSolverStatus
 import org.utbot.engine.pc.UtSolverStatusSAT
+import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.util.abs
 import org.utbot.engine.util.compareTo
 import org.utbot.engine.util.minus
@@ -97,7 +98,11 @@ class ConstraintScoringStrategy(
         if (!traverser.isInitialized) return MIN_SCORE
         val solver = executionState.solver
         val postCondition = postCondition.constructSoftPostCondition(traverser)
-        val newSolver = solver.add(postCondition.hardConstraints, postCondition.softConstraints)
+        val newSolver = solver.add(
+            postCondition.hardConstraints,
+            postCondition.softConstraints,
+            Assumption()
+        )
         val holder = stateModels.getOrPut(executionState) {
             newSolver.check(respectSoft = true)
         } as? UtSolverStatusSAT ?: return INF_SCORE

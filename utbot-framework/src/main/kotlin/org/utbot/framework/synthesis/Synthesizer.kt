@@ -15,19 +15,19 @@ internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPr
 
 private object SynthesisCache {
     private val successfulInitializers =
-        mutableMapOf<UtMethod<*>, MutableMap<List<Int>, MutableList<SynthesisUnitContext>>>()
+        mutableMapOf<ExecutableId, MutableMap<List<Int>, MutableList<SynthesisUnitContext>>>()
 
-    operator fun get(utMethod: UtMethod<*>, parameters: List<Int>): List<SynthesisUnitContext> =
+    operator fun get(utMethod: ExecutableId, parameters: List<Int>): List<SynthesisUnitContext> =
         successfulInitializers.getOrPut(utMethod, ::mutableMapOf).getOrPut(parameters, ::mutableListOf)
 
-    operator fun set(utMethod: UtMethod<*>, parameters: List<Int>, synthesisUnitContext: SynthesisUnitContext) =
+    operator fun set(utMethod: ExecutableId, parameters: List<Int>, synthesisUnitContext: SynthesisUnitContext) =
         successfulInitializers.getOrPut(utMethod, ::mutableMapOf).getOrPut(parameters, ::mutableListOf)
             .add(synthesisUnitContext)
 }
 
 class Synthesizer(
     val testCaseGenerator: TestCaseGenerator,
-    val method: UtMethod<*>,
+    val method: ExecutableId,
     val parameters: List<UtModel>,
     val depth: Int = synthesisMaxDepth
 ) {

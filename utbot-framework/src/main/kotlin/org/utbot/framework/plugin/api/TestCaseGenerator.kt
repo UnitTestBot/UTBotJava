@@ -15,9 +15,8 @@ import org.utbot.common.bracket
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
-import org.utbot.engine.EngineController
-import org.utbot.engine.Mocker
-import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.*
+import org.utbot.engine.executeConcretely
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -40,6 +39,7 @@ import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import org.utbot.framework.util.SootUtils
+import org.utbot.framework.util.executableId
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
@@ -124,7 +124,7 @@ open class TestCaseGenerator(
     @Throws(CancellationException::class)
     fun generateAsync(
         controller: EngineController,
-        method: SymbolicEngineTarget<*>,
+        method: SymbolicEngineTarget,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
@@ -271,7 +271,7 @@ open class TestCaseGenerator(
 
     private fun createSymbolicEngine(
         controller: EngineController,
-        method: SymbolicEngineTarget<*>,
+        method: SymbolicEngineTarget,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator,
@@ -385,7 +385,7 @@ open class TestCaseGenerator(
         return minimizedExecutions
     }
 
-    protected fun List<UtExecution>.toAssemble(method: UtMethod<*>): List<UtExecution> =
+    protected fun List<UtExecution>.toAssemble(method: ExecutableId): List<UtExecution> =
         map { execution ->
             val symbolicExecution = (execution as? UtSymbolicExecution)
                 ?: return@map execution
@@ -404,7 +404,7 @@ open class TestCaseGenerator(
         }
 
     private fun mapEnvironmentModels(
-        method: UtMethod<*>,
+        method: ExecutableId,
         symbolicExecution: UtSymbolicExecution,
         models: EnvironmentModels,
         selector: (ConstrainedExecution) -> List<UtModel>
@@ -425,7 +425,7 @@ open class TestCaseGenerator(
         )
     }
 
-    private fun getConcreteAfterState(method: UtMethod<*>, stateBefore: EnvironmentModels): EnvironmentModels? = try {
+    private fun getConcreteAfterState(method: ExecutableId, stateBefore: EnvironmentModels): EnvironmentModels? = try {
         val concreteExecutor = ConcreteExecutor(
             UtExecutionInstrumentation,
             this.classpath ?: "",

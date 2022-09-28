@@ -32,17 +32,7 @@ import org.utbot.framework.codegen.model.util.lessThan
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.jField
-import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
-import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
-import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.framework.plugin.api.util.*
 
 /**
  * Constructs CgValue or CgVariable given a UtModel

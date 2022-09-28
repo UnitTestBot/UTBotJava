@@ -19,7 +19,6 @@ import org.utbot.engine.pc.mkInt
 import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
 import org.utbot.engine.selectors.strategies.GraphViz
-import org.utbot.engine.selectors.strategies.defaultScoringStrategy
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.util.mockListeners.MockListener
@@ -30,27 +29,11 @@ import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.enableFeatureProcess
 import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
-import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtFailedExecution
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.description
@@ -61,7 +44,6 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
-import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -99,6 +81,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.Step
+import org.utbot.framework.util.sootMethod
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -166,37 +151,37 @@ private fun pathSelector(
     }
 }
 
-sealed class SymbolicEngineTarget<R> {
+sealed class SymbolicEngineTarget {
     abstract val graph: ExceptionalUnitGraph
-    abstract val klass: ClassId
+    abstract val classId: ClassId
     abstract val sootMethod: SootMethod
 
-    val methodPackageName: String get() = sootMethod.declaringClass.packageName
+    val packageName: String get() = sootMethod.declaringClass.packageName
 
     companion object {
-        fun <R> from(utMethod: UtMethod<R>) = UtMethodTarget(utMethod)
+        fun from(utMethod: ExecutableId) = ExecutableIdTarget(utMethod)
         fun from(sootMethod: SootMethod) = SootMethodTarget(sootMethod)
     }
 }
 
-data class UtMethodTarget<R>(
-    val utMethod: UtMethod<R>
-) : SymbolicEngineTarget<R>() {
-    override val graph: ExceptionalUnitGraph = jimpleBody(utMethod).graph()
-    override val klass: ClassId = utMethod.clazz.id
+data class ExecutableIdTarget(
+    val executableId: ExecutableId
+) : SymbolicEngineTarget() {
+    override val graph: ExceptionalUnitGraph = executableId.sootMethod.jimpleBody().graph()
+    override val classId: ClassId = executableId.classId
     override val sootMethod: SootMethod = graph.body.method
 }
 
 data class SootMethodTarget(
     override val sootMethod: SootMethod
-) : SymbolicEngineTarget<Any>() {
+) : SymbolicEngineTarget() {
     override val graph: ExceptionalUnitGraph = sootMethod.jimpleBody().graph()
-    override val klass: ClassId = sootMethod.declaringClass.id
+    override val classId: ClassId = sootMethod.declaringClass.id
 }
 
 class UtBotSymbolicEngine(
     private val controller: EngineController,
-    private val methodUnderTest: SymbolicEngineTarget<*>,
+    private val methodUnderTest: SymbolicEngineTarget,
     classpath: String,
     dependencyPaths: String,
     mockStrategy: MockStrategy = NO_MOCKS,
@@ -206,8 +191,8 @@ class UtBotSymbolicEngine(
     private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
     private val pathSelectorType: PathSelectorType = UtSettings.pathSelectorType
 ) : UtContextInitializer() {
-
     private val graph get() = methodUnderTest.graph
+
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
@@ -217,7 +202,7 @@ class UtBotSymbolicEngine(
     // TODO HACK violation of encapsulation
     internal val typeResolver: TypeResolver = TypeResolver(typeRegistry, hierarchy)
 
-    private val classUnderTest: ClassId = methodUnderTest.klass
+    private val classUnderTest: ClassId = methodUnderTest.classId
 
     private val mocker: Mocker = Mocker(
         mockStrategy,
@@ -341,22 +326,20 @@ class UtBotSymbolicEngine(
                             typeRegistry,
                             typeResolver,
                             state.solver.lastStatus as UtSolverStatusSAT,
-                            methodUnderTest.methodPackageName,
+                            methodUnderTest.packageName,
                             softMaxArraySize
                         )
 
                         val resolvedParameters = state.methodUnderTestParameters
                         val (modelsBefore, _, instrumentation) = resolver.resolveModels(resolvedParameters)
-                        val stateBefore = modelsBefore.constructStateForMethod(methodUnderTest.sootMethod)
 
-                        if (methodUnderTest is UtMethodTarget<*>) {
+                        if (methodUnderTest is ExecutableIdTarget) {
+                            val executableId = methodUnderTest.executableId
+                            val stateBefore = modelsBefore.constructStateForMethod(executableId)
+
                             try {
                                 val concreteExecutionResult =
-                                    concreteExecutor.executeConcretely(
-                                        methodUnderTest.utMethod,
-                                        stateBefore,
-                                        instrumentation
-                                    )
+                                    concreteExecutor.executeConcretely(executableId, stateBefore, instrumentation)
 
                                 val concreteUtExecution = UtSymbolicExecution(
                                     stateBefore,
@@ -437,16 +420,10 @@ class UtBotSymbolicEngine(
      * @param modelProvider provides model values for a method
      */
     fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
-        val utMethod = when (methodUnderTest) {
-            is UtMethodTarget<*> -> methodUnderTest.utMethod
+        val executableId = when (methodUnderTest) {
+            is ExecutableIdTarget -> methodUnderTest.executableId
             else -> return@flow
         }
-        val executableId = if (utMethod.isConstructor) {
-            utMethod.javaConstructor!!.executableId
-        } else {
-            utMethod.javaMethod!!.executableId
-        }
-
         val isFuzzable = executableId.parameters.all { classId ->
             classId != Method::class.java.id && // causes the child process crash at invocation
                     classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
@@ -466,16 +443,15 @@ class UtBotSymbolicEngine(
 
         val random = Random(0)
         val thisInstance = when {
-            utMethod.isStatic -> null
-            utMethod.isConstructor -> if (
-                utMethod.clazz.isAbstract ||  // can't instantiate abstract class
-                utMethod.clazz.java.isEnum    // can't reflectively create enum objects
+            executableId.isStatic -> null
+            executableId.isConstructor -> if (
+                classUnderTest.isAbstract ||  // can't instantiate abstract class
+                classUnderTest.isEnum    // can't reflectively create enum objects
             ) {
                 return@flow
             } else {
                 null
             }
-
 
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
@@ -489,9 +465,9 @@ class UtBotSymbolicEngine(
         }
 
         val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
-            compilableName = if (utMethod.isMethod) executableId.name else null
-            className = executableId.classId.simpleName
-            packageName = executableId.classId.packageName
+            compilableName = if (!executableId.isConstructor) executableId.name else null
+            className = classUnderTest.simpleName
+            packageName = classUnderTest.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
@@ -499,7 +475,7 @@ class UtBotSymbolicEngine(
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
-        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
+        val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {
@@ -508,7 +484,9 @@ class UtBotSymbolicEngine(
                 totalLimit = 500
             })
         }.withMutations(
-            TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()
+            TrieBasedFuzzerStatistics(coveredInstructionValues),
+            methodUnderTestDescription,
+            *defaultModelMutators().toTypedArray()
         )
         fuzzedValues.forEach { values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
@@ -524,7 +502,7 @@ class UtBotSymbolicEngine(
             }
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
-                concreteExecutor.executeConcretely(utMethod, initialEnvironmentModels, listOf())
+                concreteExecutor.executeConcretely(executableId, initialEnvironmentModels, listOf())
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
             } catch (e: ConcreteExecutionFailureException) {
@@ -603,7 +581,7 @@ class UtBotSymbolicEngine(
             typeRegistry,
             typeResolver,
             holder,
-            methodUnderTest.methodPackageName,
+            methodUnderTest.packageName,
             softMaxArraySize
         )
 
@@ -653,13 +631,13 @@ class UtBotSymbolicEngine(
         //It's possible that symbolic and concrete stateAfter/results are diverged.
         //So we trust concrete results more.
         when (methodUnderTest) {
-            is UtMethodTarget<*> -> {
+            is ExecutableIdTarget -> {
                 try {
                     logger.debug().bracket("processResult<$methodUnderTest>: concrete execution") {
 
                         //this can throw CancellationException
                         val concreteExecutionResult = concreteExecutor.executeConcretely(
-                            methodUnderTest.utMethod,
+                            methodUnderTest.executableId,
                             stateBefore,
                             instrumentation
                         )

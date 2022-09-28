@@ -65,7 +65,7 @@ allprojects {
                 override fun beforeSuite(suite: TestDescriptor) {}
                 override fun beforeTest(testDescriptor: TestDescriptor) {}
                 override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {
-                    println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType")
+                    println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType, length - ${(result.endTime - result.startTime) / 1000.0} sec")
                 }
 
                 override fun afterSuite(testDescriptor: TestDescriptor, result: TestResult) {

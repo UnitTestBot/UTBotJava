@@ -1,7 +1,6 @@
 package org.utbot.engine
 
 import org.utbot.api.mock.UtMock
-import org.utbot.common.packageName
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
@@ -18,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
 import kotlinx.collections.immutable.persistentListOf
+import org.utbot.common.nameOfPackage
 import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.util.isInaccessibleViaReflection
 import soot.BooleanType
@@ -361,7 +361,7 @@ val assumeOrExecuteConcretelyBytecodeSignature: String
 val disableClassCastExceptionCheckBytecodeSignature: String
     get() = disableClassCastExceptionCheckMethod.executableId.signature
 
-internal val UTBOT_OVERRIDE_PACKAGE_NAME = UtOverrideMock::class.java.packageName
+internal val UTBOT_OVERRIDE_PACKAGE_NAME = UtOverrideMock::class.java.nameOfPackage
 
 private val arraycopyMethod : KFunction5<Array<out Any>, Int, Array<out Any>, Int, Int, Unit> = UtArrayMock::arraycopy
 internal val utArrayMockArraycopyMethodName = arraycopyMethod.name

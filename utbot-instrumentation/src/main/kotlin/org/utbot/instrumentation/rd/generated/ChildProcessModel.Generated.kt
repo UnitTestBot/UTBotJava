@@ -15,9 +15,9 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:7]
+ * #### Generated from [ChildProcessModel.kt:7]
  */
-class ProtocolModel private constructor(
+class ChildProcessModel private constructor(
     private val _addPaths: RdCall<AddPathsParams, Unit>,
     private val _warmup: RdCall<Unit, Unit>,
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
@@ -45,28 +45,28 @@ class ProtocolModel private constructor(
         @JvmStatic
         @JvmName("internalCreateModel")
         @Deprecated("Use create instead", ReplaceWith("create(lifetime, protocol)"))
-        internal fun createModel(lifetime: Lifetime, protocol: IProtocol): ProtocolModel  {
+        internal fun createModel(lifetime: Lifetime, protocol: IProtocol): ChildProcessModel  {
             @Suppress("DEPRECATION")
             return create(lifetime, protocol)
         }
         
         @JvmStatic
-        @Deprecated("Use protocol.protocolModel or revise the extension scope instead", ReplaceWith("protocol.protocolModel"))
-        fun create(lifetime: Lifetime, protocol: IProtocol): ProtocolModel  {
-            ProtocolRoot.register(protocol.serializers)
+        @Deprecated("Use protocol.childProcessModel or revise the extension scope instead", ReplaceWith("protocol.childProcessModel"))
+        fun create(lifetime: Lifetime, protocol: IProtocol): ChildProcessModel  {
+            ChildProcessProtocolRoot.register(protocol.serializers)
             
-            return ProtocolModel().apply {
-                identify(protocol.identity, RdId.Null.mix("ProtocolModel"))
-                bind(lifetime, protocol, "ProtocolModel")
+            return ChildProcessModel().apply {
+                identify(protocol.identity, RdId.Null.mix("ChildProcessModel"))
+                bind(lifetime, protocol, "ChildProcessModel")
             }
         }
         
         
-        const val serializationHash = -3299689793276292923L
+        const val serializationHash = 3283744426733090208L
         
     }
-    override val serializersOwner: ISerializersOwner get() = ProtocolModel
-    override val serializationHash: Long get() = ProtocolModel.serializationHash
+    override val serializersOwner: ISerializersOwner get() = ChildProcessModel
+    override val serializationHash: Long get() = ChildProcessModel.serializationHash
     
     //fields
     
@@ -146,7 +146,7 @@ class ProtocolModel private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("ProtocolModel (")
+        printer.println("ChildProcessModel (")
         printer.indent {
             print("addPaths = "); _addPaths.print(printer); println()
             print("warmup = "); _warmup.print(printer); println()
@@ -159,8 +159,8 @@ class ProtocolModel private constructor(
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): ProtocolModel   {
-        return ProtocolModel(
+    override fun deepClone(): ChildProcessModel   {
+        return ChildProcessModel(
             _addPaths.deepClonePolymorphic(),
             _warmup.deepClonePolymorphic(),
             _setInstrumentation.deepClonePolymorphic(),
@@ -172,12 +172,12 @@ class ProtocolModel private constructor(
     }
     //contexts
 }
-val IProtocol.protocolModel get() = getOrCreateExtension(ProtocolModel::class) { @Suppress("DEPRECATION") ProtocolModel.create(lifetime, this) }
+val IProtocol.childProcessModel get() = getOrCreateExtension(ChildProcessModel::class) { @Suppress("DEPRECATION") ChildProcessModel.create(lifetime, this) }
 
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:8]
+ * #### Generated from [ChildProcessModel.kt:8]
  */
 data class AddPathsParams (
     val pathsToUserClasses: String,
@@ -240,7 +240,7 @@ data class AddPathsParams (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:28]
+ * #### Generated from [ChildProcessModel.kt:28]
  */
 data class CollectCoverageParams (
     val clazz: ByteArray
@@ -297,7 +297,7 @@ data class CollectCoverageParams (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:32]
+ * #### Generated from [ChildProcessModel.kt:32]
  */
 data class CollectCoverageResult (
     val coverageInfo: ByteArray
@@ -354,7 +354,7 @@ data class CollectCoverageResult (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:36]
+ * #### Generated from [ChildProcessModel.kt:36]
  */
 data class ComputeStaticFieldParams (
     val fieldId: ByteArray
@@ -411,7 +411,7 @@ data class ComputeStaticFieldParams (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:40]
+ * #### Generated from [ChildProcessModel.kt:40]
  */
 data class ComputeStaticFieldResult (
     val result: ByteArray
@@ -468,7 +468,7 @@ data class ComputeStaticFieldResult (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:17]
+ * #### Generated from [ChildProcessModel.kt:17]
  */
 data class InvokeMethodCommandParams (
     val classname: String,
@@ -543,7 +543,7 @@ data class InvokeMethodCommandParams (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:24]
+ * #### Generated from [ChildProcessModel.kt:24]
  */
 data class InvokeMethodCommandResult (
     val result: ByteArray
@@ -600,7 +600,7 @@ data class InvokeMethodCommandResult (
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:13]
+ * #### Generated from [ChildProcessModel.kt:13]
  */
 data class SetInstrumentationParams (
     val instrumentation: ByteArray

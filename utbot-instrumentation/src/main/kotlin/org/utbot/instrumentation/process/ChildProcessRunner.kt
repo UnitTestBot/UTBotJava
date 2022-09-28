@@ -9,11 +9,11 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
+import org.utbot.rd.rdPortArgument
 import java.io.File
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
-const val serverPortProcessArgumentTag = "serverPort"
 
 class ChildProcessRunner {
     private val id = Random.nextLong()
@@ -38,7 +38,7 @@ class ChildProcessRunner {
     var errorLogFile: File = NULL_FILE
 
     fun start(port: Int): Process {
-        val portArgument = "$serverPortProcessArgumentTag=$port"
+        val portArgument = rdPortArgument(port)
 
         logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
         processSeqN++
@@ -114,7 +114,7 @@ class ChildProcessRunner {
                 } ?: run {
                     logger.debug("Failed to find jar in the resources. Trying to find it in the classpath.")
                     ChildProcessRunner::class.java.classLoader
-                        .scanForResourcesContaining(DynamicClassTransformer::class.java.packageName)
+                        .scanForResourcesContaining(DynamicClassTransformer::class.java.nameOfPackage)
                         .firstOrNull {
                             it.absolutePath.contains(UTBOT_INSTRUMENTATION) && it.extension == "jar"
                         }

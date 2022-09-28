@@ -13,7 +13,7 @@ import java.util.stream.IntStream
 import kotlin.streams.toList
 
 // TODO failed Kotlin compilation (generics) JIRA:1332
-//@Tag("slow") // we do not really need to always use this test in CI because it is almost the same as BaseStreamExampleTest
+@Tag("slow") // we do not really need to always use this test in CI because it is almost the same as BaseStreamExampleTest
 class IntStreamExampleTest : UtValueTestCaseChecker(
     testClass = IntStreamExample::class,
     testCodeGeneration = true,

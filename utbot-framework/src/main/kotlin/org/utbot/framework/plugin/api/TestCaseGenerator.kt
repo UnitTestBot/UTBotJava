@@ -148,7 +148,7 @@ open class TestCaseGenerator(
             engineActions.clear()
             return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
         } catch (e: Exception) {
-            logger.error(e) {"Generate async failed"}
+            logger.error(e) { "Generate async failed" }
             throw e
         }
     }

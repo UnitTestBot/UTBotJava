@@ -456,6 +456,7 @@ class UtBotSymbolicEngine(
             } else {
                 null
             }
+
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
                     syntheticMethodForFuzzingThisInstanceDescription

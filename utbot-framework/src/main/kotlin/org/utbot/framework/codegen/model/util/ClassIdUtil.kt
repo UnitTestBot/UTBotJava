@@ -14,8 +14,7 @@ import org.utbot.framework.plugin.api.util.isArray
  * @param packageName name of the package we check accessibility from
  */
 infix fun ClassId.isAccessibleFrom(packageName: String): Boolean {
-
-    if (this.isLocal || this.isSynthetic) {
+    if (this.isLocal || this.isAnonymous || this.isSynthetic) {
         return false
     }
 

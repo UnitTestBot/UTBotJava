@@ -1,20 +1,28 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.codegen.MockitoStaticMocking
+import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.builtinConstructorId
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import sun.misc.Unsafe
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
+import java.lang.reflect.Method
 
 /**
  * Set of ids of all possible util methods for a given class.
@@ -39,7 +47,15 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
             streamsDeepEqualsMethodId,
             mapsDeepEqualsMethodId,
             hasCustomEqualsMethodId,
-            getArrayLengthMethodId
+            getArrayLengthMethodId,
+            buildStaticLambdaMethodId,
+            buildLambdaMethodId,
+            getLookupInMethodId,
+            getLambdaCapturedArgumentTypesMethodId,
+            getLambdaCapturedArgumentValuesMethodId,
+            getInstantiatedMethodTypeMethodId,
+            getLambdaMethodMethodId,
+            getSingleAbstractMethodMethodId
         )
 
     val getUnsafeInstanceMethodId: MethodId
@@ -69,7 +85,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
         get() = utilClassId.utilMethodId(
             name = "setField",
             returnType = voidClassId,
-            arguments = arrayOf(objectClassId, stringClassId, objectClassId)
+            arguments = arrayOf(objectClassId, stringClassId, stringClassId, objectClassId)
         )
 
     val setStaticFieldMethodId: MethodId
@@ -83,7 +99,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
         get() = utilClassId.utilMethodId(
             name = "getFieldValue",
             returnType = objectClassId,
-            arguments = arrayOf(objectClassId, stringClassId)
+            arguments = arrayOf(objectClassId, stringClassId, stringClassId)
         )
 
     val getStaticFieldValueMethodId: MethodId
@@ -148,6 +164,83 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
             returnType = intClassId,
             arguments = arrayOf(objectClassId)
         )
+
+    val buildStaticLambdaMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "buildStaticLambda",
+            returnType = objectClassId,
+            arguments = arrayOf(
+                classClassId,
+                classClassId,
+                stringClassId,
+                arrayTypeOf(capturedArgumentClassId)
+            )
+        )
+
+    val buildLambdaMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "buildLambda",
+            returnType = objectClassId,
+            arguments = arrayOf(
+                classClassId,
+                classClassId,
+                stringClassId,
+                objectClassId,
+                arrayTypeOf(capturedArgumentClassId)
+            )
+        )
+
+    val getLookupInMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getLookupIn",
+            returnType = MethodHandles.Lookup::class.id,
+            arguments = arrayOf(classClassId)
+        )
+
+    val getLambdaCapturedArgumentTypesMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getLambdaCapturedArgumentTypes",
+            returnType = arrayTypeOf(classClassId),
+            arguments = arrayOf(arrayTypeOf(capturedArgumentClassId))
+        )
+
+    val getLambdaCapturedArgumentValuesMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getLambdaCapturedArgumentValues",
+            returnType = objectArrayClassId,
+            arguments = arrayOf(arrayTypeOf(capturedArgumentClassId))
+        )
+
+    val getInstantiatedMethodTypeMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getInstantiatedMethodType",
+            returnType = MethodType::class.id,
+            arguments = arrayOf(Method::class.id, arrayTypeOf(classClassId))
+        )
+
+    val getLambdaMethodMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getLambdaMethod",
+            returnType = Method::class.id,
+            arguments = arrayOf(classClassId, stringClassId)
+        )
+
+    val getSingleAbstractMethodMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getSingleAbstractMethod",
+            returnType = java.lang.reflect.Method::class.id,
+            arguments = arrayOf(classClassId)
+        )
+
+    val capturedArgumentClassId: BuiltinClassId
+        get() = BuiltinClassId(
+            name = "${utilClassId.name}\$CapturedArgument",
+            canonicalName = "${utilClassId.name}.CapturedArgument",
+            simpleName = "CapturedArgument"
+        )
+
+    val capturedArgumentConstructorId: BuiltinConstructorId
+        get() = builtinConstructorId(capturedArgumentClassId, classClassId, objectClassId)
 }
 
 /**

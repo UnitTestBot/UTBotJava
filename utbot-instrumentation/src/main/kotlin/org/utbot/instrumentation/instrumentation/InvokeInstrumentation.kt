@@ -7,6 +7,9 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.security.ProtectionDomain
+import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.util.jField
 
 typealias ArgumentList = List<Any?>
 
@@ -89,6 +92,19 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
+    /**
+     * Get field by reflection and return raw value.
+     */
+    override fun getStaticField(fieldId: FieldId): Result<Any?> =
+        if (!fieldId.isStatic) {
+            Result.failure(IllegalArgumentException("Field must be static!"))
+        } else {
+            val field = fieldId.jField
+            val value = field.withAccessibility {
+                field.get(null)
+            }
+            Result.success(value)
+        }
 
     /**
      * Does not change bytecode.

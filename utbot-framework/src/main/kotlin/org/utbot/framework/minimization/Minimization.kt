@@ -207,6 +207,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
         is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel, is UtConstraintModel -> 1
         is UtAssembleModel -> 1 + allStatementsChain.sumOf { it.calculateSize(used) }
         is UtCompositeModel -> 1 + fields.values.sumOf { it.calculateSize(used) }
+        is UtLambdaModel -> 1 + capturedValues.sumOf { it.calculateSize(used) }
     }
 }
 

@@ -12,13 +12,14 @@ import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
@@ -33,11 +34,19 @@ class TestSpecificTestCaseGenerator(
     dependencyPaths: String,
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
-) : TestCaseGenerator(buildDir, classpath, dependencyPaths, engineActions, isCanceled, forceSootReload = false) {
+): TestCaseGenerator(
+    buildDir,
+    classpath,
+    dependencyPaths,
+    JdkInfoDefaultProvider().info,
+    engineActions,
+    isCanceled,
+    forceSootReload = false
+) {
 
     private val logger = KotlinLogging.logger {}
 
-    fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtMethodTestSet {
+    fun generate(method: ExecutableId, mockStrategy: MockStrategyApi): UtMethodTestSet {
         if (isCanceled()) {
             return UtMethodTestSet(method)
         }

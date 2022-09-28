@@ -18,23 +18,27 @@ class ModelBasedNameSuggester(
         PrimitiveModelNameSuggester,
         ArrayModelNameSuggester,
     )
-): NameSuggester {
+) : NameSuggester {
 
     var maxNumberOfParametersWhenNameIsSuggested = 3
         set(value) {
             field = maxOf(0, value)
         }
 
-    override fun suggest(description: FuzzedMethodDescription, values: List<FuzzedValue>, result: UtExecutionResult?): Sequence<TestSuggestedInfo> {
+    override fun suggest(
+        description: FuzzedMethodDescription,
+        values: List<FuzzedValue>,
+        result: UtExecutionResult?
+    ): Sequence<TestSuggestedInfo> {
         if (description.parameters.size > maxNumberOfParametersWhenNameIsSuggested) {
             return emptySequence()
         }
 
         return sequenceOf(
             TestSuggestedInfo(
-            testName = createTestName(description, values, result),
-            displayName = createDisplayName(description, values, result)
-        )
+                testName = createTestName(description, values, result),
+                displayName = createDisplayName(description, values, result)
+            )
         )
     }
 
@@ -48,20 +52,27 @@ class ModelBasedNameSuggester(
      * 3. *With return value*: `testMethodReturnZeroWithNonEmptyString`
      * 4. *When throws an exception*: `testMethodThrowsNPEWithEmptyString`
      */
-    private fun createTestName(description: FuzzedMethodDescription, values: List<FuzzedValue>, result: UtExecutionResult?): String {
+    private fun createTestName(
+        description: FuzzedMethodDescription,
+        values: List<FuzzedValue>,
+        result: UtExecutionResult?
+    ): String {
         val returnString = when (result) {
             is UtExecutionSuccess -> (result.model as? UtPrimitiveModel)?.value?.let { v ->
                 when (v) {
                     is Number -> prettifyNumber(v)
                     is Boolean -> v.toString()
                         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
                     else -> null
                 }?.let { "Returns$it" }
             }
+
             is UtExplicitlyThrownException, is UtImplicitlyThrownException -> result.exceptionOrNull()?.let { t ->
                 prettifyException(t).let { "Throws$it" }
             }
-            else -> null
+
+            else -> null // TODO: handle other types of the UtExecutionResult
         } ?: ""
 
         val parameters = values.asSequence()
@@ -96,7 +107,11 @@ class ModelBasedNameSuggester(
      * 1. **Full name**: `firstArg = 12, secondArg < 100.0, thirdArg = empty string -> throw IllegalArgumentException`
      * 2. **Name without appropriate information**: `arg_0 = 0 and others -> return 0`
      */
-    private fun createDisplayName(description: FuzzedMethodDescription, values: List<FuzzedValue>, result: UtExecutionResult?): String {
+    private fun createDisplayName(
+        description: FuzzedMethodDescription,
+        values: List<FuzzedValue>,
+        result: UtExecutionResult?
+    ): String {
         val summaries = values.asSequence()
             .mapIndexed { index, value ->
                 value.summary?.replace("%var%", description.parameterNameMap(index) ?: "arg_$index")
@@ -111,7 +126,7 @@ class ModelBasedNameSuggester(
         }
         val parameters = summaries.joinToString(postfix = postfix)
 
-        val returnValue = when(result) {
+        val returnValue = when (result) {
             is UtExecutionSuccess -> result.model.let { m ->
                 when {
                     m is UtPrimitiveModel && m.classId != voidClassId -> "-> return " + m.value
@@ -119,6 +134,7 @@ class ModelBasedNameSuggester(
                     else -> null
                 }
             }
+
             is UtExplicitlyThrownException, is UtImplicitlyThrownException -> "-> throw ${(result as UtExecutionFailure).exception::class.java.simpleName}"
             else -> null
         }
@@ -136,6 +152,7 @@ class ModelBasedNameSuggester(
                     value.isInfinite() -> "Infinity"
                     else -> null
                 }
+
                 (value is Byte || value is Short || value is Int || value is Long) && value.toLong() in 0..99999 -> value.toString()
                 else -> null
             }

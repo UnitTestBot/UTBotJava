@@ -1,5 +1,14 @@
 package org.utbot.fuzzer.providers
 
+import java.lang.reflect.Constructor
+import java.lang.reflect.Field
+import java.lang.reflect.Member
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier.isFinal
+import java.lang.reflect.Modifier.isPrivate
+import java.lang.reflect.Modifier.isProtected
+import java.lang.reflect.Modifier.isPublic
+import java.lang.reflect.Modifier.isStatic
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -7,21 +16,17 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.util.dateClassId
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier.*
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.objects.assembleModel
 
 /**
  * Creates [UtAssembleModel] for objects which have public constructors
@@ -42,8 +47,9 @@ class ObjectModelProvider(
         description: FuzzedMethodDescription,
         classId: ClassId
     ): List<ModelConstructor> {
-        if (classId == stringClassId || classId.isPrimitiveWrapper)
-            return listOf()
+        if (unwantedConstructorsClasses.contains(classId) ||
+            classId.isPrimitiveWrapper || classId.isEnum || classId.isAbstract
+        ) return listOf()
 
         val constructors = collectConstructors(classId) { javaConstructor ->
             isAccessible(javaConstructor, description.packageName)
@@ -108,6 +114,11 @@ class ObjectModelProvider(
     }
 
     companion object {
+
+        private val unwantedConstructorsClasses = listOf(
+            stringClassId, dateClassId
+        )
+
         private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorId> {
             return classId.jClass.declaredConstructors.asSequence()
                 .filter(predicate)
@@ -126,21 +137,6 @@ class ObjectModelProvider(
                     || isProtected(modifiers)
                     || isProtected(modifiers)
             return !hasAnyAccessModifier
-        }
-
-        private fun assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
-            val instantiationChain = mutableListOf<UtStatementModel>()
-            return UtAssembleModel(
-                id,
-                constructorId.classId,
-                "${constructorId.classId.name}${constructorId.parameters}#" + id.toString(16),
-                instantiationChain = instantiationChain,
-                modificationsChain = mutableListOf()
-            ).apply {
-                instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model }, this)
-            }.fuzzed {
-                summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
-            }
         }
 
         private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {

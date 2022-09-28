@@ -14,15 +14,18 @@ you have to install
 
 - JDK 11;
 
-- Kotlin 1.7.0 or later;
+- Kotlin 1.7.0 or later.
 
-you also have to check if
+Please check your development environment:
 
-- ```JAVA_HOME``` environment variable contains the path to JDK 11 installation directory;
+- ```JAVA_HOME``` environment variable should contain the path to JDK 11 installation directory;
 
-- ```PATH``` environment variable contains the path to the ```bin``` folder of JDK 11 installation directory;
+- ```PATH``` environment variable should contain the path to the ```bin``` folder of JDK 11 installation directory;
 
-- ```KOTLIN_HOME``` environment variable contains the path to the ```kotlinc``` folder of Kotlin (1.7.0 or later) installation 
-  directory.
+- ```KOTLIN_HOME``` environment variable should contain the path to the ```kotlinc``` folder of Kotlin (1.7.0 or later) installation 
+  directory;
+- Project SDK  (1) and Gradle SDK (2) should be set to JDK 11:
+    <br>(1) **IntelliJ IDEA → File → Project Structure → Project Settings → Project → SDK**,
+    <br>(2) **IntelliJ IDEA → File → Settings → Build, Execution, Deployment → Build Tools →  Gradle**.
 
 Please note: if the environment variables lead to unsupported JDK or Kotlin versions, you won't be able to build the UnitTestBot project.

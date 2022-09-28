@@ -14,6 +14,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.sarif.GenerateTestsAndSarifReportFacade
 import org.utbot.framework.plugin.sarif.TargetClassWrapper
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.maven.plugin.extension.SarifMavenConfigurationProvider
 import org.utbot.maven.plugin.wrappers.MavenProjectWrapper
 import org.utbot.maven.plugin.wrappers.SourceFindingStrategyMaven
@@ -139,7 +140,8 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     lateinit var rootMavenProjectWrapper: MavenProjectWrapper
 
     private val dependencyPaths by lazy {
-        val thisClassLoader = this::class.java.classLoader as URLClassLoader
+        val thisClassLoader = this::class.java.classLoader as? URLClassLoader
+            ?: return@lazy System.getProperty("java.class.path")
         thisClassLoader.urLs.joinToString(File.pathSeparator) { it.path }
     }
 
@@ -174,7 +176,12 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
         logger.debug().bracket("Generating tests for the '${mavenProjectWrapper.mavenProject.name}' source set") {
             withUtContext(UtContext(mavenProjectWrapper.classLoader)) {
                 val testCaseGenerator =
-                    TestCaseGenerator(mavenProjectWrapper.workingDirectory, mavenProjectWrapper.runtimeClasspath, dependencyPaths)
+                    TestCaseGenerator(
+                        mavenProjectWrapper.workingDirectory,
+                        mavenProjectWrapper.runtimeClasspath,
+                        dependencyPaths,
+                        JdkInfoService.provide()
+                    )
                 mavenProjectWrapper.targetClasses.forEach { targetClass ->
                     generateForClass(mavenProjectWrapper, targetClass, testCaseGenerator)
                 }

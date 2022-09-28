@@ -9,7 +9,6 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
-import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -69,6 +68,9 @@ import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.Assumption
+import org.utbot.engine.symbolic.emptyAssumption
+import org.utbot.engine.symbolic.emptyHardConstraint
+import org.utbot.engine.symbolic.emptySoftConstraint
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
@@ -86,15 +88,16 @@ import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.signature
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
@@ -106,9 +109,6 @@ import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -198,6 +198,8 @@ import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -967,23 +969,25 @@ class Traverser(
             is UtMethodTarget<*> -> methodUnderTest.utMethod
             else -> return
         }
-        val callable = utMethod.callable
+        val callable = utMethod.executable
+        val kCallable = ::updateGenericTypeInfo
+        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (utMethod.isConstructor) {
                 utMethod.javaConstructor?.annotatedReturnType?.type
             } else {
-                callable.instanceParameter?.type?.javaType
-                    ?: error("No instanceParameter for ${callable.signature} found")
+                callable.declaringClass // same as it was, but it isn't parametrized type
+                    ?: error("No instanceParameter for ${callable} found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
                 val index = (identityRef as ParameterRef).index
-                val valueParameters = callable.valueParameters
+                val valueParameters = callable.genericParameterTypes
 
                 if (index > valueParameters.lastIndex) return
-                valueParameters[index].type.javaType
+                valueParameters[index]
             }
         }
 
@@ -1084,8 +1088,8 @@ class Traverser(
         }
 
         // Depending on existance of assumeExpr we have to add corresponding hardConstraints and assumptions
-        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else HardConstraint()
-        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else Assumption()
+        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else emptyHardConstraint()
+        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else emptyAssumption()
 
         val negativeCaseState = environment.state.updateQueued(
             negativeCaseEdge,
@@ -2976,8 +2980,9 @@ class Traverser(
         return when (expr) {
             is UtInstanceOfExpression -> { // for now only this type of expression produces deferred updates
                 val onlyMemoryUpdates = expr.symbolicStateUpdate.copy(
-                    hardConstraints = HardConstraint(),
-                    softConstraints = SoftConstraint()
+                    hardConstraints = emptyHardConstraint(),
+                    softConstraints = emptySoftConstraint(),
+                    assumptions = emptyAssumption()
                 )
                 SymbolicStateUpdateForResolvedCondition(onlyMemoryUpdates)
             }
@@ -3422,13 +3427,6 @@ class Traverser(
         val returnValue = (symbolicResult as? SymbolicSuccess)?.value as? ObjectValue
         if (returnValue != null) {
             queuedSymbolicStateUpdates += constructConstraintForType(returnValue, returnValue.possibleConcreteTypes).asSoftConstraint()
-
-            workaround(REMOVE_ANONYMOUS_CLASSES) {
-                val sootClass = returnValue.type.sootClass
-                if (!environment.state.isInNestedMethod() && (sootClass.isAnonymous || sootClass.isArtificialEntity)) {
-                    return
-                }
-            }
         }
 
         //fill arrays with default 0/null and other stuff

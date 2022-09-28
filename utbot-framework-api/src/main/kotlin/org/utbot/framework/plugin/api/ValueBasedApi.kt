@@ -10,7 +10,7 @@ import org.apache.commons.lang3.builder.RecursiveToStringStyle
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder
 
 data class UtMethodValueTestSet<R>(
-    val method: UtMethod<out R>,
+    val method: ExecutableId,
     val executions: List<UtValueExecution<out R>> = emptyList(),
     val errors: Map<String, Int> = emptyMap(),
 )

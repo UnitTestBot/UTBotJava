@@ -68,7 +68,7 @@ public class BaseStreamExample {
 
         int prevSize = list.size();
 
-        int newSize = list.stream().distinct().toArray().length;
+        int newSize = (int) list.stream().distinct().count();
 
         return prevSize != newSize;
     }

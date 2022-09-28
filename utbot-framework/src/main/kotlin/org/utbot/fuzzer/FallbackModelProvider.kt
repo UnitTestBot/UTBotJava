@@ -1,6 +1,6 @@
 package org.utbot.fuzzer
 
-import org.utbot.engine.isPublic
+import org.utbot.common.isPublic
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel

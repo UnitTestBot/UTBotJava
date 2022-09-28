@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
 
 internal class UtBotFieldModificatorsTest {
@@ -169,7 +170,11 @@ internal class UtBotFieldModificatorsTest {
     }
 
     private fun initAnalysis() {
-        SootUtils.runSoot(PrimitiveModifications::class, forceReload = false)
+        SootUtils.runSoot(
+            PrimitiveModifications::class.java,
+            forceReload = false,
+            jdkInfo = JdkInfoDefaultProvider().info
+        )
         fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher()
     }
 

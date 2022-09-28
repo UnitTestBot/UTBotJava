@@ -1,26 +1,11 @@
 package org.utbot.engine
 
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
-import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.bracket
 import org.utbot.common.debug
-import org.utbot.common.workaround
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.constraints.ConstraintResolver
 import org.utbot.engine.pc.UtArraySelectExpression
@@ -51,29 +36,32 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.util.graph
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.description
-import org.utbot.framework.util.jimpleBody
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isConstructor
+import org.utbot.framework.plugin.api.util.isEnum
+import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
+import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -82,13 +70,13 @@ import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.Trie
 import org.utbot.fuzzer.TrieBasedFuzzerStatistics
 import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.fuzzer.withMutations
 import org.utbot.fuzzer.collectConstantsForFuzzer
-import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.defaultModelMutators
+import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.flipCoin
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ObjectModelProvider
+import org.utbot.fuzzer.withMutations
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.summary.jimpleBody
 import soot.SootMethod
@@ -98,6 +86,19 @@ import soot.toolkits.graph.ExceptionalUnitGraph
 import java.lang.reflect.Method
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
+import kotlinx.coroutines.yield
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -241,6 +242,7 @@ class UtBotSymbolicEngine(
         mocker,
         postConditionConstructor
     )
+
     private val pathSelector: PathSelector = pathSelector(
         globalGraph,
         traverser,
@@ -456,6 +458,12 @@ class UtBotSymbolicEngine(
         val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
+        val syntheticMethodForFuzzingThisInstanceDescription =
+            FuzzedMethodDescription("thisInstance", voidClassId, listOf(classUnderTest), constantValues).apply {
+                className = classUnderTest.simpleName
+                packageName = classUnderTest.packageName
+            }
+
         val random = Random(0)
         val thisInstance = when {
             utMethod.isStatic -> null
@@ -471,7 +479,7 @@ class UtBotSymbolicEngine(
 
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
-                    FuzzedMethodDescription("thisInstance", voidClassId, listOf(utMethod.clazz.id), constantValues)
+                    syntheticMethodForFuzzingThisInstanceDescription
                 ).take(10).shuffled(random).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
@@ -491,21 +499,12 @@ class UtBotSymbolicEngine(
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
-        val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
+        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {
             // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
-            val thisMethodDescription = FuzzedMethodDescription(
-                "thisInstance",
-                voidClassId,
-                listOf(utMethod.clazz.id),
-                constantValues
-            ).apply {
-                className = executableId.classId.simpleName
-                packageName = executableId.classId.packageName
-            }
-            fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
+            fuzz(syntheticMethodForFuzzingThisInstanceDescription, ObjectModelProvider(defaultIdGenerator).apply {
                 totalLimit = 500
             })
         }.withMutations(
@@ -536,15 +535,6 @@ class UtBotSymbolicEngine(
 
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@forEach
-
-            workaround(REMOVE_ANONYMOUS_CLASSES) {
-                concreteExecutionResult.result.onSuccess {
-                    if (it.classId.isAnonymous) {
-                        logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                        return@flow
-                    }
-                }
-            }
 
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             if (coveredInstructions.isNotEmpty()) {
@@ -674,16 +664,6 @@ class UtBotSymbolicEngine(
                             instrumentation
                         )
 
-                        workaround(REMOVE_ANONYMOUS_CLASSES) {
-                            concreteExecutionResult.result.onSuccess {
-                                if (it.classId.isAnonymous) {
-                                    logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                                    emit(symbolicUtExecution)
-                                    return
-                                }
-                            }
-                        }
-
                         val concolicUtExecution = symbolicUtExecution.copy(
                             stateBefore = symbolicUtExecution.stateBefore,
                             stateAfter = concreteExecutionResult.stateAfter,
@@ -727,7 +707,7 @@ class UtBotSymbolicEngine(
     }
 }
 
-private fun ResolvedModels.constructStateForMethod(methodUnderTest: UtMethod<*>): EnvironmentModels {
+private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId): EnvironmentModels {
     val (thisInstanceBefore, paramsBefore) = when {
         methodUnderTest.isStatic -> null to parameters
         methodUnderTest.isConstructor -> null to parameters.drop(1)
@@ -746,14 +726,15 @@ private fun ResolvedModels.constructStateForMethod(method: SootMethod): Environm
 }
 
 internal suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
-    methodUnderTest: UtMethod<*>,
+    methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>
 ): UtConcreteExecutionResult = executeAsync(
-    methodUnderTest.callable,
+    methodUnderTest.classId.name,
+    methodUnderTest.signature,
     arrayOf(),
     parameters = UtConcreteExecutionData(stateBefore, instrumentation)
-).convertToAssemble(methodUnderTest.clazz.java.packageName)
+).convertToAssemble(methodUnderTest.classId.packageName)
 
 /**
  * Before pushing our states for concrete execution, we have to be sure that every state is consistent.

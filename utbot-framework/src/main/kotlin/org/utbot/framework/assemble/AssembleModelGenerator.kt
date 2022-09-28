@@ -1,10 +1,10 @@
 package org.utbot.framework.assemble
 
+import org.utbot.common.isPrivate
+import org.utbot.common.isPublic
 import org.utbot.common.packageName
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
-import org.utbot.engine.isPrivate
-import org.utbot.engine.isPublic
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
@@ -149,6 +149,11 @@ class AssembleModelGenerator(private val methodPackageName: String) {
     private fun assembleModel(utModel: UtModel): UtModel {
         val collectedCallChain = callChain.toMutableList()
 
+        // we cannot create an assemble model for an anonymous class instance
+        if (utModel.classId.isAnonymous) {
+            return utModel
+        }
+
         val assembledModel = withCleanState {
             try {
                 when (utModel) {
@@ -157,7 +162,8 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                     is UtClassRefModel,
                     is UtVoidModel,
                     is UtEnumConstantModel,
-                    is UtConstraintModel -> utModel
+                    is UtConstraintModel,
+                    is UtLambdaModel -> utModel
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)

@@ -16,11 +16,11 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
@@ -29,17 +29,13 @@ import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
-import java.lang.reflect.Method
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
 import kotlin.reflect.jvm.kotlinFunction
-
-fun toUtMethod(method: Method, kClass: KClass<*>) = UtMethod(method.kotlinFunction as KCallable<*>, kClass)
 
 object UtBotJavaApi {
 
@@ -116,14 +112,11 @@ object UtBotJavaApi {
         val testSets: MutableList<UtMethodTestSet> = mutableListOf()
 
         testSets.addAll(withUtContext(utContext) {
-            val buildPath = FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath)
+            val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
+            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
-                        toUtMethod(
-                            it.methodToBeTestedFromUserInput,
-                            classUnderTest.kotlin
-                        )
+                        it.methodToBeTestedFromUserInput.executableId
                     },
                     mockStrategyApi,
                     chosenClassesToMockAlways = emptySet(),
@@ -179,14 +172,11 @@ object UtBotJavaApi {
         }
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
-            val buildPath = FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath)
+            val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
+            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
-                        toUtMethod(
-                            it.methodToBeTestedFromUserInput,
-                            classUnderTest.kotlin
-                        )
+                        it.methodToBeTestedFromUserInput.executableId
                     },
                     mockStrategyApi,
                     chosenClassesToMockAlways = emptySet(),
@@ -247,10 +237,8 @@ object UtBotJavaApi {
             fullPath = listOf()
         )
 
-        val utMethod = UtMethod(methodCallable, containingClass.kotlin)
-
         UtMethodTestSet(
-            utMethod,
+            methodCallable.executableId,
             listOf(utExecution)
         )
     }.toList()

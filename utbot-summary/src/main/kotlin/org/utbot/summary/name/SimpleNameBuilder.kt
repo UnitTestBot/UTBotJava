@@ -434,7 +434,7 @@ class SimpleNameBuilder(
 
         if (recursion != null) {
             val name = when (stmt) {
-                is JAssignStmt -> "Recursion" + (stmt.rightBox.value as JVirtualInvokeExpr).method.name //todo through .convertNodeToString
+                is JAssignStmt -> "Recursion" + (stmt.rightOp as JVirtualInvokeExpr).method.name //todo through .convertNodeToString
                 is JInvokeStmt -> "Recursion" + stmt.invokeExpr.method.name //todo through .convertNodeToString
                 else -> ""
             }

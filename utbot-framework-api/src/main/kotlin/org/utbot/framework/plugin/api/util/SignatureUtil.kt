@@ -103,9 +103,3 @@ fun Class<*>.singleExecutableIdOrNull(signature: String) = if (isConstructorSign
 }
 
 private fun isConstructorSignature(signature: String): Boolean = signature.startsWith("<init>")
-
-private val Constructor<*>.isPrivate: Boolean
-    get() = Modifier.isPrivate(modifiers)
-
-private val Constructor<*>.isProtected: Boolean
-    get() = Modifier.isProtected(modifiers)

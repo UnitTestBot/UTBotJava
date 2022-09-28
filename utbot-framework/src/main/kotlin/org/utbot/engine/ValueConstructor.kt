@@ -2,6 +2,9 @@ package org.utbot.engine
 
 import org.utbot.common.invokeCatching
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.engine.util.lambda.CapturedArgument
+import org.utbot.engine.util.lambda.constructLambda
+import org.utbot.engine.util.lambda.constructStaticLambda
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
@@ -24,6 +27,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtMockValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -35,6 +39,7 @@ import org.utbot.framework.plugin.api.UtValueExecutionState
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
@@ -188,6 +193,7 @@ class ValueConstructor {
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
+            is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
             else -> error("Unexpected ut model: $model")
         }
@@ -334,6 +340,32 @@ class ValueConstructor {
 
         return resultsCache[assembleModel]
             ?: error("Can't assemble model: $assembleModel")
+    }
+
+    private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
+        // A class representing a functional interface.
+        val samType: Class<*> = lambdaModel.samType.jClass
+        // A class where the lambda is declared.
+        val declaringClass: Class<*> = lambdaModel.declaringClass.jClass
+        // A name of the synthetic method that represents a lambda.
+        val lambdaName = lambdaModel.lambdaName
+
+        return if (lambdaModel.lambdaMethodId.isStatic) {
+            val capturedArguments = lambdaModel.capturedValues
+                .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
+                .toTypedArray()
+            constructStaticLambda(samType, declaringClass, lambdaName, *capturedArguments)
+        } else {
+            val capturedReceiverModel = lambdaModel.capturedValues.firstOrNull()
+                ?: error("Non-static lambda must capture `this` instance, so there must be at least one captured value")
+
+            // Values that the given lambda has captured.
+            val capturedReceiver = value(capturedReceiverModel) ?: error("Captured receiver of lambda must not be null")
+            val capturedArguments = lambdaModel.capturedValues.subList(1, lambdaModel.capturedValues.size)
+                .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
+                .toTypedArray()
+            constructLambda(samType, declaringClass, lambdaName, capturedReceiver, *capturedArguments)
+        }
     }
 
     /**

@@ -8,6 +8,7 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.codegen.model.visitor.CgVisitor
+import org.utbot.framework.codegen.model.visitor.auxiliaryClassTextById
 import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
@@ -45,6 +46,7 @@ interface CgElement {
             is CgSimpleRegion<*> -> visit(element)
             is CgTestMethodCluster -> visit(element)
             is CgExecutableUnderTestCluster -> visit(element)
+            is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
@@ -244,6 +246,30 @@ data class CgExecutableUnderTestCluster(
 ) : CgRegion<CgRegion<CgMethod>>()
 
 /**
+ * Util entity is either an instance of [CgAuxiliaryClass] or [CgUtilMethod].
+ * Util methods are the helper methods that we use in our generated tests,
+ * and auxiliary classes are the classes that util methods use.
+ */
+sealed class CgUtilEntity : CgElement {
+    internal abstract fun getText(rendererContext: CgRendererContext): String
+}
+
+/**
+ * This class represents classes that are required by our util methods.
+ * For example, class `CapturedArgument` that is used by util methods that construct lambda values.
+ *
+ * **Note** that we call such classes **auxiliary** instead of **util** in order to avoid confusion
+ * with class `org.utbot.runtime.utils.UtUtils`, which is generally called an **util class**.
+ * `UtUtils` is a class that contains all our util methods and **auxiliary classes**.
+ */
+data class CgAuxiliaryClass(val id: ClassId) : CgUtilEntity() {
+    override fun getText(rendererContext: CgRendererContext): String {
+        return rendererContext.utilMethodProvider
+            .auxiliaryClassTextById(id, rendererContext.codegenLanguage)
+    }
+}
+
+/**
  * This class does not inherit from [CgMethod], because it only needs an [id],
  * and it does not need to have info about all the other properties of [CgMethod].
  * This is because util methods are hardcoded. On the rendering stage their text
@@ -251,15 +277,11 @@ data class CgExecutableUnderTestCluster(
  *
  * @property id identifier of the util method.
  */
-data class CgUtilMethod(val id: MethodId) : CgElement {
-    internal fun getText(rendererContext: CgRendererContext): String {
-        // we should not throw an exception on failure here,
-        // because this function is used during rendering and
-        // exceptions can crash rendering, so we use an empty string if the text is not found
+data class CgUtilMethod(val id: MethodId) : CgUtilEntity() {
+    override fun getText(rendererContext: CgRendererContext): String {
         return with(rendererContext) {
             rendererContext.utilMethodProvider
                 .utilMethodTextById(id, mockFrameworkUsed, mockFramework, codegenLanguage)
-                .getOrDefault("")
         }
     }
 }
@@ -677,11 +699,10 @@ open class CgVariable(
 }
 
 /**
- * A variable with explicit not null annotation if this is required in language.
+ * If expression is a variable, then this is a variable
+ * with explicit not null annotation if this is required in language.
  *
- * Note:
- * - in Java it is an equivalent of [CgVariable]
- * - in Kotlin the difference is in addition of "!!" to the name
+ * In Kotlin the difference is in addition of "!!" to the expression
  */
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId

@@ -5,20 +5,6 @@ import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import mu.KotlinLogging
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.signature
-import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.process.ChildProcessRunner
-import org.utbot.instrumentation.rd.UtInstrumentationProcess
-import org.utbot.rd.UtRdLoggerFactory
-import org.utbot.instrumentation.rd.generated.InvokeMethodCommandParams
-import org.utbot.instrumentation.util.ChildProcessError
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
@@ -29,6 +15,22 @@ import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 import kotlin.streams.toList
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import mu.KotlinLogging
+import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.signature
+import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.process.ChildProcessRunner
+import org.utbot.instrumentation.rd.UtInstrumentationProcess
+import org.utbot.instrumentation.rd.generated.ComputeStaticFieldParams
+import org.utbot.instrumentation.rd.generated.InvokeMethodCommandParams
+import org.utbot.instrumentation.util.ChildProcessError
+import org.utbot.rd.UtRdKLoggerFactory
 
 private val logger = KotlinLogging.logger {}
 
@@ -123,7 +125,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         var defaultPathsToDependencyClasses = ""
 
         init {
-            Logger.set(Lifetime.Eternal, UtRdLoggerFactory)
+            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory)
             Runtime.getRuntime().addShutdownHook(thread(start = false) { defaultPool.close() })
         }
 
@@ -231,6 +233,25 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         }
     }
 
+    suspend fun executeAsync(
+        className: String,
+        signature: String,
+        arguments: Array<Any?>,
+        parameters: Any?
+    ): TIResult = try {
+        withProcess {
+            val argumentsByteArray = kryoHelper.writeObject(arguments.asList())
+            val parametersByteArray = kryoHelper.writeObject(parameters)
+            val params = InvokeMethodCommandParams(className, signature, argumentsByteArray, parametersByteArray)
+
+            val ba = protocolModel.invokeMethodCommand.startSuspending(lifetime, params).result
+            kryoHelper.readObject(ba)
+        }
+    } catch (e: Throwable) {
+        logger.trace { "executeAsync, response(ERROR): $e" }
+        throw e
+    }
+
     /**
      * Executes [kCallable] in the child process with the supplied [arguments] and [parameters], e.g. static environment.
      *
@@ -241,28 +262,16 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         arguments: Array<Any?>,
         parameters: Any?
     ): TIResult {
-        val (clazz, signature) = when (kCallable) {
-            is KFunction<*> -> kCallable.javaMethod?.run { declaringClass to signature }
-                ?: kCallable.javaConstructor?.run { declaringClass to signature }
+        val (className, signature) = when (kCallable) {
+            is KFunction<*> -> kCallable.javaMethod?.run { declaringClass.name to signature }
+                ?: kCallable.javaConstructor?.run { declaringClass.name to signature }
                 ?: error("Not a constructor or a method")
-            is KProperty<*> -> kCallable.javaGetter?.run { declaringClass to signature }
+            is KProperty<*> -> kCallable.javaGetter?.run { declaringClass.name to signature }
                 ?: error("Not a getter")
             else -> error("Unknown KCallable: $kCallable")
         } // actually executableId implements the same logic, but it requires UtContext
 
-        try {
-            return withProcess {
-                val argumentsByteArray = kryoHelper.writeObject(arguments.asList())
-                val parametersByteArray = kryoHelper.writeObject(parameters)
-                val params = InvokeMethodCommandParams(clazz.name, signature, argumentsByteArray, parametersByteArray)
-
-                val ba = protocolModel.invokeMethodCommand.startSuspending(lifetime, params).result
-                kryoHelper.readObject(ba)
-            }
-        } catch (e: Throwable) {
-            logger.trace { "executeAsync, response(ERROR): $e" }
-            throw e
-        }
+        return executeAsync(className, signature, arguments, parameters)
     }
 
     override fun close() {
@@ -290,5 +299,19 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 fun ConcreteExecutor<*,*>.warmup() = runBlocking {
     withProcess {
         protocolModel.warmup.start(lifetime, Unit)
+    }
+}
+
+/**
+ * Extension function for the [ConcreteExecutor], which allows to collect static field value of [fieldId].
+ */
+fun <T> ConcreteExecutor<*, *>.computeStaticField(fieldId: FieldId): Result<T> = runBlocking {
+    withProcess {
+        val fieldIdSerialized = kryoHelper.writeObject(fieldId)
+        val params = ComputeStaticFieldParams(fieldIdSerialized)
+
+        val result = protocolModel.computeStaticField.startSuspending(lifetime, params)
+
+        kryoHelper.readObject(result.result)
     }
 }

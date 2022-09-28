@@ -1,6 +1,7 @@
 package org.utbot.instrumentation
 
 import org.utbot.framework.plugin.api.ExecutableId
+import java.lang.reflect.Method
 import kotlin.reflect.KCallable
 import kotlinx.coroutines.runBlocking
 
@@ -28,6 +29,3 @@ fun <TResult> Executor<TResult>.execute(
     arguments: Array<Any?>,
     parameters: Any? = null
 ) = runBlocking { executeAsync(kCallable, arguments, parameters) }
-
-
-

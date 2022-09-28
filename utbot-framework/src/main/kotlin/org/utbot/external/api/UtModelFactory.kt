@@ -1,10 +1,5 @@
 package org.utbot.external.api
 
-import java.lang.reflect.Field
-import java.lang.reflect.Method
-import java.util.IdentityHashMap
-import java.util.concurrent.atomic.AtomicInteger
-import org.utbot.common.packageName
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -14,6 +9,10 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
+import java.lang.reflect.Field
+import java.lang.reflect.Method
+import java.util.IdentityHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 
 class UtModelFactory(
@@ -49,7 +48,8 @@ class UtModelFactory(
         classUnderTest: Class<*>,
         models: List<UtModel>
     ): IdentityHashMap<UtModel, UtModel> =
-        AssembleModelGenerator(methodUnderTest.declaringClass.packageName).createAssembleModels(models)
+        AssembleModelGenerator(classUnderTest.packageName)
+            .createAssembleModels(models)
 
     @JvmOverloads
     fun produceArrayModel(

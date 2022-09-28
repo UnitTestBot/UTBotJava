@@ -15,9 +15,11 @@ import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
 
@@ -27,7 +29,7 @@ data class GenerateTestsModel(
     val potentialTestModules: List<Module>,
     var srcClasses: Set<PsiClass>,
     val extractMembersFromSrcClasses: Boolean,
-    var selectedMembers: Set<MemberInfo>?, // TODO: maybe we should make it not nullable?
+    var selectedMembers: Set<MemberInfo>,
     var timeout: Long,
     var generateWarningsForStaticMocking: Boolean = false,
     var fuzzingValue: Double = 0.05
@@ -41,7 +43,15 @@ data class GenerateTestsModel(
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)
         testSourceRoot = newTestSourceRoot
-        testModule = ModuleUtil.findModuleForFile(newTestSourceRoot, project)
+        var target = newTestSourceRoot
+        while(target != null && target is FakeVirtualFile) {
+            target = target.parent
+        }
+        if (target == null) {
+            error("Could not find module for $newTestSourceRoot")
+        }
+
+        testModule = ModuleUtil.findModuleForFile(target, project)
             ?: error("Could not find module for $newTestSourceRoot")
     }
 
@@ -56,6 +66,7 @@ data class GenerateTestsModel(
     lateinit var hangingTestsTimeout: HangingTestsTimeout
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
+    lateinit var commentStyle: JavaDocCommentStyle
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 

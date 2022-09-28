@@ -31,7 +31,6 @@ import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.framework.plugin.api.util.UtContext
@@ -54,6 +53,9 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.PathSelectorType
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.settings.Settings
@@ -71,9 +73,9 @@ object UtTestsDialogProcessor {
         project: Project,
         srcClasses: Set<PsiClass>,
         extractMembersFromSrcClasses: Boolean,
-        focusedMethod: MemberInfo?,
+        focusedMethods: Set<MemberInfo>,
     ) {
-        createDialog(project, srcClasses, extractMembersFromSrcClasses, focusedMethod)?.let {
+        createDialog(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)?.let {
             if (it.showAndGet()) createTests(project, it.model)
         }
     }
@@ -82,7 +84,7 @@ object UtTestsDialogProcessor {
         project: Project,
         srcClasses: Set<PsiClass>,
         extractMembersFromSrcClasses: Boolean,
-        focusedMethod: MemberInfo?,
+        focusedMethods: Set<MemberInfo>,
     ): GenerateTestsDialogWindow? {
         val srcModule = findSrcModule(srcClasses)
         val testModules = srcModule.testModules(project)
@@ -107,7 +109,7 @@ object UtTestsDialogProcessor {
                 testModules,
                 srcClasses,
                 extractMembersFromSrcClasses,
-                if (focusedMethod != null) setOf(focusedMethod) else null,
+                focusedMethods,
                 UtSettings.utBotGenerationTimeoutInMillis,
             )
         )
@@ -157,18 +159,18 @@ object UtTestsDialogProcessor {
                                 Paths.get(buildDir),
                                 classpath,
                                 pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                isCanceled = { indicator.isCanceled }
-                            )
+                                JdkInfoService.provide(),
+                                isCanceled = { indicator.isCanceled })
 
                             for (srcClass in model.srcClasses) {
-                                val methods = ReadAction.nonBlocking<List<UtMethod<*>>> {
+                                val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
                                     val canonicalName = srcClass.canonicalName
                                     val clazz = classLoader.loadClass(canonicalName).kotlin
                                     psi2KClass[srcClass] = clazz
 
                                     val srcMethods = if (model.extractMembersFromSrcClasses) {
-                                        val chosenMethods = model.selectedMembers?.filter { it.member is PsiMethod } ?: listOf()
-                                        val chosenNestedClasses = model.selectedMembers?.mapNotNull { it.member as? PsiClass } ?: listOf()
+                                        val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
+                                        val chosenNestedClasses = model.selectedMembers.mapNotNull { it.member as? PsiClass }
                                         chosenMethods + chosenNestedClasses.flatMap {
                                             it.extractClassMethodsIncludingNested(false)
                                         }
@@ -179,10 +181,9 @@ object UtTestsDialogProcessor {
                                         clazz.allNestedClasses.flatMap {
                                             findMethodsInClassMatchingSelected(it, srcMethods)
                                         }
-                                    })
+                                    }) to srcClass.name
                                 }.executeSynchronously()
 
-                                val className = srcClass.name
                                 if (methods.isEmpty()) {
                                     logger.error { "No methods matching selected found in class $className." }
                                     continue
@@ -196,6 +197,8 @@ object UtTestsDialogProcessor {
 
                                 // set timeout for concrete execution and for generated tests
                                 UtSettings.concreteExecutionTimeoutInChildProcess = model.hangingTestsTimeout.timeoutMs
+
+                                UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
 
                                 val searchDirectory = ReadAction
                                     .nonBlocking<Path> {
@@ -347,12 +350,12 @@ object UtTestsDialogProcessor {
     private fun findMethodsInClassMatchingSelected(
         clazz: KClass<*>,
         selectedMethods: List<MemberInfo>
-    ): List<UtMethod<*>> {
+    ): List<ExecutableId> {
         val selectedSignatures = selectedMethods.map { it.signature() }
         return clazz.functions
             .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
             .filter { it.signature().normalized() in selectedSignatures }
-            .map { UtMethod(it, clazz) }
+            .map { it.executableId }
     }
 
     private fun urlClassLoader(classpath: List<String>) =

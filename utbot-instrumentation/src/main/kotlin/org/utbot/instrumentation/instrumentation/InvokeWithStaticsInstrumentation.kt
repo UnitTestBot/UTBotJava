@@ -6,6 +6,7 @@ import org.utbot.instrumentation.util.StaticEnvironment
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.security.ProtectionDomain
+import org.utbot.framework.plugin.api.FieldId
 
 /**
  * This instrumentation allows supplying [StaticEnvironment] and saving static fields. This makes call pure.
@@ -42,6 +43,9 @@ class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
 
         return invokeResult
     }
+
+    override fun getStaticField(fieldId: FieldId): Result<*> =
+        invokeInstrumentation.getStaticField(fieldId)
 
     private fun setStaticFields(staticEnvironment: StaticEnvironment?) {
         staticEnvironment?.run {

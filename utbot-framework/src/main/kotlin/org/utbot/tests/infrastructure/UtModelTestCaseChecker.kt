@@ -2,6 +2,7 @@
 
 package org.utbot.tests.infrastructure
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.ClassLocation
 import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
@@ -9,8 +10,10 @@ import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.workaround
 import org.utbot.engine.prettify
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
+import org.utbot.framework.UtSettings.useFuzzing
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
@@ -19,15 +22,18 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.getOrThrow
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.declaringClazz
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.Conflict
+import org.utbot.testcheckers.ExecutionsNumberMatcher
 import java.nio.file.Path
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -35,10 +41,6 @@ import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.utbot.framework.UtSettings.useFuzzing
-import org.utbot.framework.util.Conflict
-import org.utbot.testcheckers.ExecutionsNumberMatcher
 
 abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
@@ -101,10 +103,10 @@ abstract class UtModelTestCaseChecker(
             checkSolverTimeoutMillis = 0
             useFuzzing = false
         }
-        val utMethod = UtMethod.from(method)
+        val executableId = method.executableId
 
-        withUtContext(UtContext(utMethod.clazz.java.classLoader)) {
-            val testSet = executions(utMethod, mockStrategy)
+        withUtContext(UtContext(method.declaringClazz.classLoader)) {
+            val testSet = executions(executableId, mockStrategy)
 
             assertTrue(testSet.errors.isEmpty()) {
                 "We have errors: ${testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
@@ -147,10 +149,10 @@ abstract class UtModelTestCaseChecker(
     }
 
     private fun executions(
-        method: UtMethod<*>,
+        method: ExecutableId,
         mockStrategy: MockStrategyApi
     ): UtMethodTestSet {
-        val classLocation = locateClass(method.clazz)
+        val classLocation = locateClass(method.classId.jClass)
         if (classLocation != previousClassLocation) {
             buildDir = findPathToClassFiles(classLocation)
             previousClassLocation = classLocation

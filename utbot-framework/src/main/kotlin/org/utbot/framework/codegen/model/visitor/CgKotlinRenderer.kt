@@ -13,6 +13,7 @@ import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgComparison
 import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgDeclaration
@@ -32,6 +33,7 @@ import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgRegularClass
+import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSpread
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
@@ -120,8 +122,32 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         }
         // render static declaration regions inside a companion object
         println()
+
+        // In Kotlin, we put static declarations in a companion object of the class,
+        // but that **does not** apply to nested classes.
+        // They must be located in the class itself, not its companion object.
+        // That is why here we extract all the auxiliary classes from static regions
+        // to form a separate region specifically for them.
+        // See the docs on CgAuxiliaryClass for details on what they represent.
+        val auxiliaryClassesRegion = element.staticDeclarationRegions
+            .flatMap { it.content }
+            .filterIsInstance<CgAuxiliaryClass>()
+            .let { classes -> CgSimpleRegion("Util classes", classes) }
+
+        if (auxiliaryClassesRegion.content.isNotEmpty()) {
+            auxiliaryClassesRegion.accept(this)
+            println()
+        }
+
+        // Here we update the static regions by removing all the auxiliary classes from them.
+        // The remaining content of regions will be rendered inside a companion object.
+        val updatedStaticRegions = element.staticDeclarationRegions.map { region ->
+            val updatedContent = region.content.filterNot { it is CgAuxiliaryClass }
+            CgStaticsRegion(region.header, updatedContent)
+        }
+
         renderCompanionObject {
-            for ((i, staticsRegion) in element.staticDeclarationRegions.withIndex()) {
+            for ((i, staticsRegion) in updatedStaticRegions.withIndex()) {
                 if (i != 0) println()
 
                 staticsRegion.accept(this)
@@ -226,29 +252,49 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         element.right.accept(this)
     }
 
-    override fun visit(element: CgTypeCast) {
-        element.expression.accept(this)
+    /**
+     * Sometimes we can omit rendering type cast and simply render its [CgTypeCast.expression] instead.
+     * This method checks if the type cast can be omitted.
+     *
+     * For example, type cast can be omitted when a primitive wrapper is cast to its corresponding primitive (or vice versa),
+     * because in Kotlin there are no primitive types as opposed to Java.
+     *
+     * Also, sometimes we can omit type cast when the [CgTypeCast.targetType] is the same as the type of [CgTypeCast.expression].
+     */
+    private fun isCastNeeded(element: CgTypeCast): Boolean {
+        val targetType = element.targetType
+        val expressionType = element.expression.type
+
+        val isPrimitiveToWrapperCast = targetType.isPrimitiveWrapper && expressionType.isPrimitive
+        val isWrapperToPrimitiveCast = targetType.isPrimitive && expressionType.isPrimitiveWrapper
+        val isNullLiteral = element.expression == nullLiteral()
+
+        if (!isNullLiteral && element.isSafetyCast && (isPrimitiveToWrapperCast || isWrapperToPrimitiveCast)) {
+            return false
+        }
+
         // perform type cast only if target type is not equal to expression type
         // but cast from nullable to not nullable should be performed
         // TODO SAT-1445 actually this safetyCast check looks like hack workaround and possibly does not work
         //  so it should be carefully tested one day
-        if (!element.isSafetyCast || element.expression.type != element.targetType) {
-            // except for the case when a wrapper is cast to its primitive or vice versa
+        return !element.isSafetyCast || expressionType != targetType
+    }
 
-            val isCastFromPrimitiveToWrapper = element.targetType.isPrimitiveWrapper &&
-                    element.expression.type.isPrimitive
-            val isCastFromWrapperToPrimitive = element.targetType.isPrimitive &&
-                    element.expression.type.isPrimitiveWrapper
-            val isNullLiteral = element.expression == nullLiteral()
-            if (!isNullLiteral && element.isSafetyCast && (isCastFromPrimitiveToWrapper || isCastFromWrapperToPrimitive)) {
-                return
-            }
+    override fun visit(element: CgTypeCast) {
+        if (!isCastNeeded(element)) {
+            element.expression.accept(this)
+        } else {
+            print("(")
+
+            element.expression.accept(this)
 
             if (element.isSafetyCast) print(" as? ") else print(" as ")
             print(getKotlinClassString(element.targetType))
             renderTypeParameters(element.targetType.typeParameters)
             val initNullable = element.type.isNullable
             if (element.targetType.isNullable || initNullable) print("?")
+
+            print(")")
         }
     }
 
@@ -521,7 +567,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
                 else -> {
                     // we cannot access kClass for BuiltinClassId
                     // we cannot use simple name here because this class can be not imported
-                    if (id is BuiltinClassId) id.name else id.kClass.id.asString()
+                    if (id is BuiltinClassId) id.canonicalName else id.kClass.id.asString()
                 }
             }
         }

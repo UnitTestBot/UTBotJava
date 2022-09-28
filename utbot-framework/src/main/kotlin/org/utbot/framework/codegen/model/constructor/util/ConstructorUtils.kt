@@ -47,8 +47,10 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.arrayLikeName
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
+import org.utbot.framework.plugin.api.util.denotableType
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -255,18 +257,24 @@ internal fun CgContextOwner.importIfNeeded(method: MethodId) {
 /**
  * Casts [expression] to [targetType].
  *
+ * This method uses [denotableType] of the given [targetType] to ensure
+ * that we are using a denotable type in the type cast.
+ *
+ * Specifically, if we attempt to do a type cast to an anonymous class,
+ * then we will actually perform a type cast to its supertype.
+ *
+ * @see denotableType
+ *
  * @param isSafetyCast shows if we should render "as?" instead of "as" in Kotlin
  */
 internal fun CgContextOwner.typeCast(
     targetType: ClassId,
     expression: CgExpression,
     isSafetyCast: Boolean = false
-): CgTypeCast {
-    if (targetType.simpleName.isEmpty()) {
-        error("Cannot cast an expression to the anonymous type $targetType")
-    }
-    importIfNeeded(targetType)
-    return CgTypeCast(targetType, expression, isSafetyCast)
+): CgExpression {
+    val denotableTargetType = targetType.denotableType
+    importIfNeeded(denotableTargetType)
+    return CgTypeCast(denotableTargetType, expression, isSafetyCast)
 }
 
 /**
@@ -304,13 +312,14 @@ internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: 
  * @param elementType the element type of the returned array class id
  * @param isNullable a flag whether returned array is nullable or not
  */
-internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
+fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
     val arrayIdName = "[${elementType.arrayLikeName}"
     return when (elementType) {
         is BuiltinClassId -> BuiltinClassId(
             name = arrayIdName,
             canonicalName = "${elementType.canonicalName}[]",
             simpleName = "${elementType.simpleName}[]",
+            elementClassId = elementType,
             isNullable = isNullable
         )
         else -> ClassId(
@@ -319,12 +328,6 @@ internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): Cla
             isNullable = isNullable
         )
     }
-}
-
-@Suppress("unused")
-internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
-    importIfNeeded(classId)
-    return CgGetJavaClass(classId)
 }
 
 internal fun Class<*>.overridesEquals(): Boolean =

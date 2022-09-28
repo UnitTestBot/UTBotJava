@@ -25,6 +25,7 @@ import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
@@ -53,7 +54,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var fuzzingValue: Double = 0.05,
-        var runGeneratedTestsWithCoverage : Boolean = false,
+        var runGeneratedTestsWithCoverage: Boolean = false,
+        var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,
@@ -67,7 +69,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             parametrizedTestSource = model.parametrizedTestSource,
             classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
             fuzzingValue = model.fuzzingValue,
-            runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage
+            runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
+            commentStyle = model.commentStyle
         )
 
         override fun equals(other: Any?): Boolean {
@@ -137,6 +140,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val classesToMockAlways: Set<String> get() = state.classesToMockAlways.toSet()
 
+    val javaDocCommentStyle: JavaDocCommentStyle get() = state.commentStyle
+
     var fuzzingValue: Double
         get() = state.fuzzingValue
         set(value) {
@@ -182,6 +187,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
                 state.treatOverflowAsError = provider as TreatOverflowAsError
                 UtSettings.treatOverflowAsError = provider == TreatOverflowAsError.AS_ERROR
             }
+            JavaDocCommentStyle::class -> state.commentStyle = provider as JavaDocCommentStyle
             // TODO: add error processing
             else -> error("Unknown class [$loader] to map value [$provider]")
         }
@@ -196,6 +202,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             RuntimeExceptionTestsBehaviour::class -> runtimeExceptionTestsBehaviour
             ForceStaticMocking::class -> forceStaticMocking
             TreatOverflowAsError::class -> treatOverflowAsError
+            JavaDocCommentStyle::class -> javaDocCommentStyle
             // TODO: add error processing
             else -> error("Unknown service loader: $loader")
         }

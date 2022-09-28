@@ -274,9 +274,11 @@ object CodeGenerationController {
             reformat(model, SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(utUtilsFile), utUtilsClass)
         })
 
-        val utUtilsDocument = PsiDocumentManager
-            .getInstance(model.project)
-            .getDocument(utUtilsFile) ?: error("Failed to get a Document for UtUtils file")
+        val utUtilsDocument = runReadAction {
+            PsiDocumentManager
+                .getInstance(model.project)
+                .getDocument(utUtilsFile) ?: error("Failed to get a Document for UtUtils file")
+        }
 
         unblockDocument(model.project, utUtilsDocument)
     }
@@ -286,10 +288,12 @@ object CodeGenerationController {
         utilClassKind: UtilClassKind,
         model: GenerateTestsModel
     ): PsiFile {
-        val utilsClassDocument = PsiDocumentManager
-            .getInstance(model.project)
-            .getDocument(existingUtilClass)
-            ?: error("Failed to get Document for UtUtils class PsiFile: ${existingUtilClass.name}")
+        val utilsClassDocument = runReadAction {
+            PsiDocumentManager
+                .getInstance(model.project)
+                .getDocument(existingUtilClass)
+                ?: error("Failed to get Document for UtUtils class PsiFile: ${existingUtilClass.name}")
+        }
 
         val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
 

@@ -88,9 +88,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         val clustersToReturn = mutableListOf<UtExecutionCluster>()
 
         clustersToReturn += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
-
         clustersToReturn += generateSummariesForTestsProducedByFuzzer(testSet)
-
         clustersToReturn += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
 
         return if (clustersToReturn.size > 0)

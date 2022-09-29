@@ -28,11 +28,11 @@ class Resolver(
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =
-            when (val method = unit.method) {
-                is ConstructorId -> resolveConstructorInvoke(unit, method)
-                is MethodId -> resolveVirtualInvoke(unit, method)
-                else -> error("Unexpected method unit in resolver: $unit")
-            }
+        when (val method = unit.method) {
+            is ConstructorId -> resolveConstructorInvoke(unit, method)
+            is MethodId -> resolveVirtualInvoke(unit, method)
+            else -> error("Unexpected method unit in resolver: $unit")
+        }
 
     private fun resolveVirtualInvoke(unit: MethodUnit, method: MethodId): UtModel {
         val resolvedModels = unit.params.map { resolve(it) }
@@ -57,22 +57,12 @@ class Resolver(
     private fun resolveConstructorInvoke(unit: MethodUnit, method: ConstructorId): UtModel {
         val resolvedModels = unit.params.map { resolve(it) }
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
-
-        val model = UtAssembleModel(
+        return UtAssembleModel(
             defaultIdGenerator.createId(),
             unit.classId,
             nextModelName("refModel_${unit.classId.simpleName}"),
-            instantiationChain,
-            modificationChain
+            UtExecutableCallModel(null, unit.method, resolvedModels),
         )
-
-        instantiationChain.add(
-            UtExecutableCallModel(model, unit.method, resolvedModels, model)
-        )
-
-        return model
     }
 
     private fun resolveCollection(
@@ -82,30 +72,18 @@ class Resolver(
     ): UtModel {
         val elements = unit.elements.map { resolve(synthesisUnitContext[it.second]) }
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
-
-        val model = UtAssembleModel(
+        return UtAssembleModel(
             defaultIdGenerator.createId(),
             unit.classId,
             nextModelName("refModel_${unit.classId.simpleName}"),
-            instantiationChain,
-            modificationChain
-        )
-
-        instantiationChain.add(
-            UtExecutableCallModel(model, constructorId, listOf(), model)
-        )
-
-        for (value in elements) {
-            modificationChain.add(
+            UtExecutableCallModel(null, constructorId, listOf())
+        ) {
+            elements.map { value ->
                 UtExecutableCallModel(
-                    model, modificationId, listOf(value),
+                    this, modificationId, listOf(value),
                 )
-            )
+            }
         }
-
-        return model
     }
 
     private fun resolveList(unit: ListUnit): UtModel = resolveCollection(unit, unit.constructorId, unit.addId)
@@ -117,27 +95,17 @@ class Resolver(
             resolve(synthesisUnitContext[it.first]) to resolve(synthesisUnitContext[it.second])
         }
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
-
         val model = UtAssembleModel(
             defaultIdGenerator.createId(),
             unit.classId,
             nextModelName("refModel_${unit.classId.simpleName}"),
-            instantiationChain,
-            modificationChain
-        )
-
-        instantiationChain.add(
-            UtExecutableCallModel(model, unit.constructorId, listOf(), model)
-        )
-
-        for ((key, value) in elements) {
-            modificationChain.add(
+            UtExecutableCallModel(null, unit.constructorId, listOf()),
+        ) {
+            elements.map { (key, value) ->
                 UtExecutableCallModel(
-                    model, unit.putId, listOf(key, value),
+                    this, unit.putId, listOf(key, value),
                 )
-            )
+            }
         }
 
         return model

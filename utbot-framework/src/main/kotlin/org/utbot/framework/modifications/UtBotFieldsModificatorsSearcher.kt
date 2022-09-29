@@ -26,8 +26,12 @@ class UtBotFieldsModificatorsSearcher {
 
         val filteredModifications = mutableMapOf<FieldId, Set<StatementId>>()
         for ((fieldId, statements) in modificators) {
-            val filteredStmts = statements.filter { it.classId.packageName.startsWith(packageName) }.toSet()
-            filteredModifications[fieldId] = filteredStmts
+            val filteredStmts = statements.filter {
+                if (fieldId.isPublic) true
+                if (packageName == "") it.classId.packageName == ""
+                else it.classId.packageName.startsWith(packageName)
+            }
+            filteredModifications[fieldId] = filteredStmts.toSet()
         }
 
         return filteredModifications

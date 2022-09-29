@@ -535,7 +535,7 @@ class TypeRegistry {
 
         if (sootClass.type.isJavaLangObject()) finalCost += -32
 
-        if (sootClass.isAnonymous) finalCost -= 128
+        if (sootClass.isAnonymous) finalCost += -128
 
         if (sootClass.name.contains("$")) finalCost += -4096
 

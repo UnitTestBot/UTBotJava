@@ -418,6 +418,9 @@ val SootMethod.isUtMockAssume
 val SootMethod.isUtMockAssumeOrExecuteConcretely
     get() = signature == assumeOrExecuteConcretelyMethod.signature
 
+val SootMethod.isUtMockForbidClassCastException
+    get() = signature == disableClassCastExceptionCheckMethod.signature
+
 /**
  * Returns true is the [SootMethod] is defined in a class from
  * [UTBOT_OVERRIDE_PACKAGE_NAME] package and its name is `preconditionCheck`.

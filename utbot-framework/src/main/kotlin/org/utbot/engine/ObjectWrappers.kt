@@ -9,6 +9,9 @@ import org.utbot.engine.UtOptionalClass.UT_OPTIONAL
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_DOUBLE
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_INT
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_LONG
+import org.utbot.engine.UtStreamClass.UT_DOUBLE_STREAM
+import org.utbot.engine.UtStreamClass.UT_INT_STREAM
+import org.utbot.engine.UtStreamClass.UT_LONG_STREAM
 import org.utbot.engine.UtStreamClass.UT_STREAM
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
@@ -40,6 +43,7 @@ import java.util.OptionalInt
 import java.util.OptionalLong
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction4
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -92,7 +96,9 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
 
         putSootClass(java.util.stream.BaseStream::class, UT_STREAM.className)
         putSootClass(java.util.stream.Stream::class, UT_STREAM.className)
-        // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
+        putSootClass(java.util.stream.IntStream::class, UT_INT_STREAM.className)
+        putSootClass(java.util.stream.LongStream::class, UT_LONG_STREAM.className)
+        putSootClass(java.util.stream.DoubleStream::class, UT_DOUBLE_STREAM.className)
 
         putSootClass(java.lang.SecurityManager::class, UtSecurityManager::class)
     }
@@ -194,7 +200,9 @@ private val wrappers = mapOf(
     // stream wrappers
     wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
     wrap(java.util.stream.Stream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
-    // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
+    wrap(java.util.stream.IntStream::class) { _, addr -> objectValue(INT_STREAM_TYPE, addr, IntStreamWrapper()) },
+    wrap(java.util.stream.LongStream::class) { _, addr -> objectValue(LONG_STREAM_TYPE, addr, LongStreamWrapper()) },
+    wrap(java.util.stream.DoubleStream::class) { _, addr -> objectValue(DOUBLE_STREAM_TYPE, addr, DoubleStreamWrapper()) },
 
     // Security-related wrappers
     wrap(SecurityManager::class) { type, addr -> objectValue(type, addr, SecurityManagerWrapper()) },
@@ -211,7 +219,19 @@ private fun wrap(kClass: KClass<*>, implementation: (RefType, UtAddrExpression) 
 internal fun wrapper(type: RefType, addr: UtAddrExpression): ObjectValue? =
     wrappers[type.id]?.invoke(type, addr)
 
+typealias MethodSymbolicImplementation = (Traverser, ObjectValue, SootMethod, List<SymbolicValue>) -> List<MethodResult>
+
 interface WrapperInterface {
+    /**
+     * Checks whether a symbolic implementation exists for the [method].
+     */
+    fun isWrappedMethod(method: SootMethod): Boolean = method.name in wrappedMethods
+
+    /**
+     * Mapping from a method signature to its symbolic implementation (if present).
+     */
+    val wrappedMethods: Map<String, MethodSymbolicImplementation>
+
     /**
      * Returns list of invocation results
      */
@@ -219,13 +239,22 @@ interface WrapperInterface {
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
-    ): List<InvokeResult>
+    ): List<InvokeResult> {
+        val wrappedMethodResult = wrappedMethods[method.name]
+            ?: error("unknown wrapped method ${method.name} for ${this@WrapperInterface::class}")
+
+        return wrappedMethodResult(this, wrapper, method, parameters)
+    }
 
     fun value(resolver: Resolver, wrapper: ObjectValue): UtModel
 }
 
 // TODO: perhaps we have to have wrapper around concrete value here
 data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
+    override val wrappedMethods: Map<String, MethodSymbolicImplementation> = emptyMap()
+
+    override fun isWrappedMethod(method: SootMethod): Boolean = true
+
     override fun Traverser.invoke(wrapper: ObjectValue, method: SootMethod, parameters: List<SymbolicValue>) =
         workaround(MAKE_SYMBOLIC) {
             listOf(

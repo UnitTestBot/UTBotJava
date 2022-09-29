@@ -41,17 +41,14 @@ private val logger = KotlinLogging.logger {}
  * so delete it after updating and use basic [com.intellij.codeInsight.javadoc.JavaDocInfoGenerator].
  */
 class UtJavaDocInfoGenerator {
-    fun addUtBotSpecificSectionsToJavaDoc(javadoc: String?, comment: PsiDocComment): String {
-        val builder = if (javadoc == null) {
-            StringBuilder()
-        } else {
-            StringBuilder(javadoc)
-        }
+    fun addUtBotSpecificSectionsToJavaDoc(comment: PsiDocComment): String {
+        val builder = StringBuilder()
 
         val docTagProvider = UtCustomJavaDocTagProvider()
         docTagProvider.supportedTags.forEach {
             generateUtTagSection(builder, comment, it)
         }
+
         return builder.toString()
     }
 

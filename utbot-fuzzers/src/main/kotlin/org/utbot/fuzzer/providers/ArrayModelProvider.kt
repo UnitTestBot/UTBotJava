@@ -12,7 +12,7 @@ import org.utbot.fuzzer.fuzzNumbers
 
 class ArrayModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
-    recursionDepthLeft: Int = 1
+    recursionDepthLeft: Int = 2
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
 
     override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider =
@@ -25,10 +25,12 @@ class ArrayModelProvider(
         classId: ClassId,
     ): Sequence<ModelConstructor> = sequence {
         if (!classId.isArray) return@sequence
-        val lengths = fuzzNumbers(description.concreteValues, 0, 3) { it in 1..10 }
+        val lengths = fuzzNumbers(description.concreteValues, 0, 3) { it in 1..10 }.toList()
         lengths.forEach { length ->
             yield(ModelConstructor(listOf(FuzzedType(classId.elementClassId!!)), repeat = length) { values ->
                 createFuzzedArrayModel(classId, length, values.map { it.model } )
+            }.apply {
+                limit = (totalLimit / lengths.size).coerceAtLeast(1)
             })
         }
     }

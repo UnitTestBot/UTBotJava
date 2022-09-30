@@ -15,7 +15,7 @@ import org.utbot.fuzzer.objects.create
 
 class CollectionWithModificationModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
-    recursionDepthLeft: Int = 1,
+    recursionDepthLeft: Int = 2,
     private var defaultModificationCount: IntArray = intArrayOf(0, 1, 3)
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
 

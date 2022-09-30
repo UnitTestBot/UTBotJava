@@ -90,7 +90,7 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
             withUtContext(UtContext(sourceSet.classLoader)) {
                 val testCaseGenerator =
                     TestCaseGenerator(
-                        sourceSet.workingDirectory,
+                        listOf(sourceSet.workingDirectory),
                         sourceSet.runtimeClasspath,
                         dependencyPaths,
                         JdkInfoDefaultProvider().info

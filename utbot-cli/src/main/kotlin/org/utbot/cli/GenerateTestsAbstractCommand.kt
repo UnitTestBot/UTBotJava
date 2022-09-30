@@ -197,7 +197,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
 
         return TestCaseGenerator(
-            workingDirectory,
+            listOf(workingDirectory),
             classPathNormalized,
             System.getProperty("java.class.path"),
             JdkInfoDefaultProvider().info

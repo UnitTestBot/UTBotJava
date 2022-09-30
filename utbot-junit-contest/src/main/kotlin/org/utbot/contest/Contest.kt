@@ -187,7 +187,7 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath, JdkInfoService.provide())
+            TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
@@ -228,7 +228,7 @@ fun runGeneration(
 
         val testCaseGenerator =
             logger.info().bracket("2nd optional soot initialization") {
-                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath, JdkInfoService.provide())
+                TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
             }
 
 

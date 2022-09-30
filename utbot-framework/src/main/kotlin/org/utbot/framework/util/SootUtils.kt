@@ -1,41 +1,7 @@
 package org.utbot.framework.util
 
-import org.utbot.api.mock.UtMock
 import org.utbot.common.FileUtil
-import org.utbot.engine.UtNativeStringWrapper
 import org.utbot.engine.jimpleBody
-import org.utbot.engine.overrides.Boolean
-import org.utbot.engine.overrides.Byte
-import org.utbot.engine.overrides.Character
-import org.utbot.engine.overrides.Class
-import org.utbot.engine.overrides.Integer
-import org.utbot.engine.overrides.Long
-import org.utbot.engine.overrides.PrintStream
-import org.utbot.engine.overrides.Short
-import org.utbot.engine.overrides.System
-import org.utbot.engine.overrides.UtArrayMock
-import org.utbot.engine.overrides.UtLogicMock
-import org.utbot.engine.overrides.UtOverrideMock
-import org.utbot.engine.overrides.collections.AbstractCollection
-import org.utbot.engine.overrides.collections.AssociativeArray
-import org.utbot.engine.overrides.collections.Collection
-import org.utbot.engine.overrides.collections.List
-import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
-import org.utbot.engine.overrides.collections.UtArrayList
-import org.utbot.engine.overrides.collections.UtGenericAssociative
-import org.utbot.engine.overrides.collections.UtGenericStorage
-import org.utbot.engine.overrides.collections.UtHashMap
-import org.utbot.engine.overrides.collections.UtHashSet
-import org.utbot.engine.overrides.collections.UtLinkedList
-import org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck
-import org.utbot.engine.overrides.collections.UtOptional
-import org.utbot.engine.overrides.collections.UtOptionalDouble
-import org.utbot.engine.overrides.collections.UtOptionalInt
-import org.utbot.engine.overrides.collections.UtOptionalLong
-import org.utbot.engine.overrides.stream.*
-import org.utbot.engine.overrides.strings.UtString
-import org.utbot.engine.overrides.strings.UtStringBuffer
-import org.utbot.engine.overrides.strings.UtStringBuilder
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.services.JdkInfo
@@ -56,40 +22,40 @@ object SootUtils {
      *
      * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
      * code.
-     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to the class buildDir.
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDirs] equals to the class buildDir.
      */
-    fun runSoot(clazz: java.lang.Class<*>, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
+    fun runSoot(clazz: Class<*>, forceReload: Boolean, jdkInfo: JdkInfo) {
         val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
         val buildDirPath = buildDir.toPath()
 
-        runSoot(buildDirPath, null, forceReload, jdkInfo)
+        runSoot(listOf(buildDirPath), null, forceReload, jdkInfo)
     }
 
 
     /**
      * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
      * code.
-     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to [buildDirPath] and
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDirs] equals to [buildDirPaths] and
      * [previousClassPath] equals to [classPath].
      */
-    fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
+    fun runSoot(buildDirPaths: List<Path>, classPath: String?, forceReload: Boolean, jdkInfo: JdkInfo) {
         synchronized(this) {
-            if (buildDirPath != previousBuildDir || classPath != previousClassPath || forceReload) {
-                initSoot(buildDirPath, classPath, jdkInfo)
-                previousBuildDir = buildDirPath
+            if (buildDirPaths != previousBuildDirs || classPath != previousClassPath || forceReload) {
+                initSoot(buildDirPaths, classPath, jdkInfo)
+                previousBuildDirs = buildDirPaths
                 previousClassPath = classPath
             }
         }
     }
 
-    private var previousBuildDir: Path? = null
+    private var previousBuildDirs: List<Path>? = null
     private var previousClassPath: String? = null
 }
 
 /**
  * Convert code to Jimple
  */
-private fun initSoot(buildDir: Path, classpath: String?, jdkInfo: JdkInfo) {
+private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo) {
     G.reset()
     val options = Options.v()
 
@@ -105,7 +71,7 @@ private fun initSoot(buildDir: Path, classpath: String?, jdkInfo: JdkInfo) {
                     + if (!classpath.isNullOrEmpty()) File.pathSeparator + "$classpath" else ""
         )
         set_src_prec(Options.src_prec_only_class)
-        set_process_dir(listOf("$buildDir"))
+        set_process_dir(buildDirs.map { it.toString() })
         set_keep_line_number(true)
         set_ignore_classpath_errors(true) // gradle/build/resources/main does not exists, but it's not a problem
         set_output_format(Options.output_format_jimple)
@@ -141,69 +107,69 @@ fun jimpleBody(method: ExecutableId): JimpleBody =
     method.sootMethod.jimpleBody()
 
 
-private fun addBasicClasses(vararg classes: java.lang.Class<*>) {
+private fun addBasicClasses(vararg classes: Class<*>) {
     classes.forEach {
         Scene.v().addBasicClass(it.name, SootClass.BODIES)
     }
 }
 
 private val classesToLoad = arrayOf(
-    AbstractCollection::class,
-    UtMock::class,
-    UtOverrideMock::class,
-    UtLogicMock::class,
-    UtArrayMock::class,
-    Boolean::class,
-    Byte::class,
-    Character::class,
-    Class::class,
-    Integer::class,
-    Long::class,
-    Short::class,
-    System::class,
-    UtOptional::class,
-    UtOptionalInt::class,
-    UtOptionalLong::class,
-    UtOptionalDouble::class,
-    UtArrayList::class,
-    UtArrayList.UtArrayListIterator::class,
-    UtLinkedList::class,
-    UtLinkedListWithNullableCheck::class,
-    UtLinkedList.UtLinkedListIterator::class,
-    UtLinkedList.ReverseIteratorWrapper::class,
-    UtHashSet::class,
-    UtHashSet.UtHashSetIterator::class,
-    UtHashMap::class,
-    UtHashMap.Entry::class,
-    UtHashMap.LinkedEntryIterator::class,
-    UtHashMap.LinkedEntrySet::class,
-    UtHashMap.LinkedHashIterator::class,
-    UtHashMap.LinkedKeyIterator::class,
-    UtHashMap.LinkedKeySet::class,
-    UtHashMap.LinkedValueIterator::class,
-    UtHashMap.LinkedValues::class,
-    RangeModifiableUnlimitedArray::class,
-    AssociativeArray::class,
-    UtGenericStorage::class,
-    UtGenericAssociative::class,
-    PrintStream::class,
-    UtNativeStringWrapper::class,
-    UtString::class,
-    UtStringBuilder::class,
-    UtStringBuffer::class,
-    Stream::class,
-    Arrays::class,
-    Collection::class,
-    List::class,
-    UtStream::class,
-    UtIntStream::class,
-    UtLongStream::class,
-    UtDoubleStream::class,
-    UtStream.UtStreamIterator::class,
-    UtIntStream.UtIntStreamIterator::class,
-    UtLongStream.UtLongStreamIterator::class,
-    UtDoubleStream.UtDoubleStreamIterator::class,
-    IntStream::class,
-    LongStream::class,
-    DoubleStream::class,
+    org.utbot.engine.overrides.collections.AbstractCollection::class,
+    org.utbot.api.mock.UtMock::class,
+    org.utbot.engine.overrides.UtOverrideMock::class,
+    org.utbot.engine.overrides.UtLogicMock::class,
+    org.utbot.engine.overrides.UtArrayMock::class,
+    org.utbot.engine.overrides.Boolean::class,
+    org.utbot.engine.overrides.Byte::class,
+    org.utbot.engine.overrides.Character::class,
+    org.utbot.engine.overrides.Class::class,
+    org.utbot.engine.overrides.Integer::class,
+    org.utbot.engine.overrides.Long::class,
+    org.utbot.engine.overrides.Short::class,
+    org.utbot.engine.overrides.System::class,
+    org.utbot.engine.overrides.collections.UtOptional::class,
+    org.utbot.engine.overrides.collections.UtOptionalInt::class,
+    org.utbot.engine.overrides.collections.UtOptionalLong::class,
+    org.utbot.engine.overrides.collections.UtOptionalDouble::class,
+    org.utbot.engine.overrides.collections.UtArrayList::class,
+    org.utbot.engine.overrides.collections.UtArrayList.UtArrayListIterator::class,
+    org.utbot.engine.overrides.collections.UtLinkedList::class,
+    org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck::class,
+    org.utbot.engine.overrides.collections.UtLinkedList.UtLinkedListIterator::class,
+    org.utbot.engine.overrides.collections.UtLinkedList.ReverseIteratorWrapper::class,
+    org.utbot.engine.overrides.collections.UtHashSet::class,
+    org.utbot.engine.overrides.collections.UtHashSet.UtHashSetIterator::class,
+    org.utbot.engine.overrides.collections.UtHashMap::class,
+    org.utbot.engine.overrides.collections.UtHashMap.Entry::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedEntryIterator::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedEntrySet::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedHashIterator::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedKeyIterator::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedKeySet::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedValueIterator::class,
+    org.utbot.engine.overrides.collections.UtHashMap.LinkedValues::class,
+    org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray::class,
+    org.utbot.engine.overrides.collections.AssociativeArray::class,
+    org.utbot.engine.overrides.collections.UtGenericStorage::class,
+    org.utbot.engine.overrides.collections.UtGenericAssociative::class,
+    org.utbot.engine.overrides.PrintStream::class,
+    org.utbot.engine.UtNativeStringWrapper::class,
+    org.utbot.engine.overrides.strings.UtString::class,
+    org.utbot.engine.overrides.strings.UtStringBuilder::class,
+    org.utbot.engine.overrides.strings.UtStringBuffer::class,
+    org.utbot.engine.overrides.stream.Stream::class,
+    org.utbot.engine.overrides.stream.Arrays::class,
+    org.utbot.engine.overrides.collections.Collection::class,
+    org.utbot.engine.overrides.collections.List::class,
+    org.utbot.engine.overrides.stream.UtStream::class,
+    org.utbot.engine.overrides.stream.UtIntStream::class,
+    org.utbot.engine.overrides.stream.UtLongStream::class,
+    org.utbot.engine.overrides.stream.UtDoubleStream::class,
+    org.utbot.engine.overrides.stream.UtStream.UtStreamIterator::class,
+    org.utbot.engine.overrides.stream.UtIntStream.UtIntStreamIterator::class,
+    org.utbot.engine.overrides.stream.UtLongStream.UtLongStreamIterator::class,
+    org.utbot.engine.overrides.stream.UtDoubleStream.UtDoubleStreamIterator::class,
+    org.utbot.engine.overrides.stream.IntStream::class,
+    org.utbot.engine.overrides.stream.LongStream::class,
+    org.utbot.engine.overrides.stream.DoubleStream::class,
 ).map { it.java }.toTypedArray()

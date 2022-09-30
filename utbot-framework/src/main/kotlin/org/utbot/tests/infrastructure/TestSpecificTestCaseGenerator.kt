@@ -36,7 +36,7 @@ class TestSpecificTestCaseGenerator(
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
 ): TestCaseGenerator(
-    buildDir,
+    listOf(buildDir),
     classpath,
     dependencyPaths,
     JdkInfoDefaultProvider().info,

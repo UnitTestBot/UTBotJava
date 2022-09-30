@@ -59,14 +59,14 @@ import kotlin.system.measureTimeMillis
  * Generates test cases: one by one or a whole set for the method under test.
  *
  * Note: the instantiating of [TestCaseGenerator] may take some time,
- * because it requires initializing Soot for the current [buildDir] and [classpath].
+ * because it requires initializing Soot for the current [buildDirs] and [classpath].
  *
  * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's code.
- * @param forceSootReload forces to reinitialize Soot even if the previous buildDir equals to [buildDir] and previous
+ * @param forceSootReload forces to reinitialize Soot even if the previous buildDirs equals to [buildDirs] and previous
  * classpath equals to [classpath]. This is the case for plugin scenario, as the source code may be modified.
  */
 open class TestCaseGenerator(
-    private val buildDir: Path,
+    private val buildDirs: List<Path>,
     private val classpath: String?,
     private val dependencyPaths: String,
     private val jdkInfo: JdkInfo,
@@ -79,13 +79,13 @@ open class TestCaseGenerator(
     protected var synthesizerController = SynthesizerController(UtSettings.synthesisTimeoutInMillis)
 
     private val classpathForEngine: String
-        get() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
+        get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
 
     init {
         if (!isCanceled()) {
             checkFrameworkDependencies(dependencyPaths)
 
-            logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
+            logger.trace("Initializing ${this.javaClass.name} with buildDirs = ${buildDirs.joinToString(File.pathSeparator)}, classpath = $classpath")
 
 
             if (disableCoroutinesDebug) {
@@ -93,7 +93,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                SootUtils.runSoot(buildDir, classpath, forceSootReload, jdkInfo)
+                SootUtils.runSoot(buildDirs, classpath, forceSootReload, jdkInfo)
             }
 
             //warmup

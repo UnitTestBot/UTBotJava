@@ -77,8 +77,6 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
     private val jimpleBodyAnalysis = ExecutionStructureAnalysis()
 
     fun fillSummaries(testSet: UtMethodTestSet): List<UtExecutionCluster> {
-        val namesCounter = mutableMapOf<String, Int>()
-
         if (testSet.executions.isEmpty()) {
             logger.info {
                 "No execution traces found in test case " +
@@ -87,97 +85,28 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
             return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
         }
 
-        // init
-        val sootToAST = sootToAST(testSet)
-        val jimpleBody = testSet.jimpleBody
-        val updatedExecutions = mutableListOf<UtSymbolicExecution>()
         val clustersToReturn = mutableListOf<UtExecutionCluster>()
 
-        // handles tests produced by fuzzing
-        val executionsProducedByFuzzer = testSet.executions.filterIsInstance<UtFuzzedExecution>()
-        val successfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
-        val unsuccessfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
+        clustersToReturn += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
+        clustersToReturn += generateSummariesForTestsProducedByFuzzer(testSet)
+        clustersToReturn += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
 
-        if (executionsProducedByFuzzer.isNotEmpty()) {
-            executionsProducedByFuzzer.forEach { utExecution ->
+        return if (clustersToReturn.size > 0)
+            clustersToReturn
+        else
+            listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
+    }
 
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                val testMethodName = try {
-                    nameSuggester.flatMap {
-                        it.suggest(
-                            utExecution.fuzzedMethodDescription as FuzzedMethodDescription,
-                            utExecution.fuzzingValues as List<FuzzedValue>,
-                            utExecution.result
-                        )
-                    }.firstOrNull()
-                } catch (t: Throwable) {
-                    logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behavoiur
-                    null
-                }
-
-                utExecution.testMethodName = testMethodName?.testName
-                utExecution.displayName = testMethodName?.displayName
-
-                when (utExecution.result) {
-                    is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtExplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtImplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtOverflowFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtSandboxFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtTimeoutException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtExecutionSuccess -> successfulFuzzerExecutions.add(utExecution)
-                }
-            }
-
-            if (successfulFuzzerExecutions.isNotEmpty()) {
-                val clusterHeader = buildFuzzerClusterHeaderForSuccessfulExecutions(testSet)
-
-                clustersToReturn.add(
-                    UtExecutionCluster(
-                        UtClusterInfo(clusterHeader, null),
-                        successfulFuzzerExecutions
-                    )
-                )
-            }
-
-            if (unsuccessfulFuzzerExecutions.isNotEmpty()) {
-                val clusterHeader = buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet)
-
-                clustersToReturn.add(
-                    UtExecutionCluster(
-                        UtClusterInfo(clusterHeader, null),
-                        unsuccessfulFuzzerExecutions
-                    )
-                )
-            }
-        }
-
-        // handles tests produced by symbolic engine, but with empty paths
-        val testSetWithEmptyPaths = prepareTestSetWithEmptyPaths(testSet)
-
-        val executionsWithEmptyPaths = testSetWithEmptyPaths.executions
-
-        if (executionsWithEmptyPaths.isNotEmpty()) {
-            executionsWithEmptyPaths.forEach {
-                logger.info {
-                    "The path for test ${it.testMethodName} " +
-                            "for method ${testSet.method.classId.name} is empty and summaries could not be generated."
-                }
-            }
-
-            val clusteredExecutions = groupExecutionsWithEmptyPaths(testSetWithEmptyPaths)
-
-            clusteredExecutions.forEach {
-                clustersToReturn.add(
-                    UtExecutionCluster(
-                        UtClusterInfo(it.header),
-                        it.executions
-                    )
-                )
-            }
-        }
-
+    private fun generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(
+        testSet: UtMethodTestSet
+    ): List<UtExecutionCluster> {
+        val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
         val testSetWithNonEmptyPaths = prepareTestSetForByteCodeAnalysis(testSet)
+
+        val sootToAST = sootToAST(testSetWithNonEmptyPaths)
+        val jimpleBody = testSet.jimpleBody
+        val updatedExecutions = mutableListOf<UtSymbolicExecution>()
+        val namesCounter = mutableMapOf<String, Int>()
 
         // analyze
         if (jimpleBody != null && sootToAST != null) {
@@ -253,6 +182,101 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
         // if there is no Jimple body or no AST, return one cluster with empty summary and all executions
         return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
+    }
+
+    private fun generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(
+        testSet: UtMethodTestSet,
+    ): List<UtExecutionCluster> {
+        val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
+        val testSetWithEmptyPaths = prepareTestSetWithEmptyPaths(testSet)
+
+        val executionsWithEmptyPaths = testSetWithEmptyPaths.executions
+
+        if (executionsWithEmptyPaths.isNotEmpty()) {
+            executionsWithEmptyPaths.forEach {
+                logger.info {
+                    "The path for test ${it.testMethodName} " +
+                            "for method ${testSet.method.classId.name} is empty and summaries could not be generated."
+                }
+            }
+
+            val clusteredExecutions = groupExecutionsWithEmptyPaths(testSetWithEmptyPaths)
+
+            clusteredExecutions.forEach {
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(it.header),
+                        it.executions
+                    )
+                )
+            }
+        }
+        return clustersToReturn.toList()
+    }
+
+    private fun generateSummariesForTestsProducedByFuzzer(
+        testSet: UtMethodTestSet
+    ): List<UtExecutionCluster> {
+        val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
+        val executionsProducedByFuzzer = testSet.executions.filterIsInstance<UtFuzzedExecution>()
+        val successfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
+        val unsuccessfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
+
+        if (executionsProducedByFuzzer.isNotEmpty()) {
+            executionsProducedByFuzzer.forEach { utExecution ->
+
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap {
+                        it.suggest(
+                            utExecution.fuzzedMethodDescription as FuzzedMethodDescription,
+                            utExecution.fuzzingValues as List<FuzzedValue>,
+                            utExecution.result
+                        )
+                    }.firstOrNull()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behavoiur
+                    null
+                }
+
+                utExecution.testMethodName = testMethodName?.testName
+                utExecution.displayName = testMethodName?.displayName
+
+                when (utExecution.result) {
+                    is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtExplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtImplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtOverflowFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtSandboxFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtTimeoutException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtExecutionSuccess -> successfulFuzzerExecutions.add(utExecution)
+                }
+            }
+
+            if (successfulFuzzerExecutions.isNotEmpty()) {
+                val clusterHeader = buildFuzzerClusterHeaderForSuccessfulExecutions(testSet)
+
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(clusterHeader, null),
+                        successfulFuzzerExecutions
+                    )
+                )
+            }
+
+            if (unsuccessfulFuzzerExecutions.isNotEmpty()) {
+                val clusterHeader = buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet)
+
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(clusterHeader, null),
+                        unsuccessfulFuzzerExecutions
+                    )
+                )
+            }
+        }
+
+        return clustersToReturn.toList()
     }
 
     private fun buildFuzzerClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {

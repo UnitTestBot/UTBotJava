@@ -2,9 +2,13 @@ name: "UTBot Java: build and run tests"
 
 on:  
   push:
-    branches: [main]
+    branches:
+      - 'main'
+      - 'unit-test-bot/r**'
   pull_request:
-    branches: [main]
+    branches:
+      - 'main'
+      - 'unit-test-bot/r**'
 
 env:
   REGISTRY: ghcr.io

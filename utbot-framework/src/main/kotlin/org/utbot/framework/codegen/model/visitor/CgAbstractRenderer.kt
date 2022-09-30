@@ -834,7 +834,8 @@ internal abstract class CgAbstractRenderer(
     }
 
     protected open fun isAccessibleBySimpleNameImpl(classId: ClassId): Boolean =
-        classId in context.importedClasses || classId.packageName == context.classPackageName
+        classId in context.importedClasses ||
+                classId.simpleName !in context.importedClasses.map { it.simpleName } && classId.packageName == context.classPackageName
 
     protected abstract fun escapeNamePossibleKeywordImpl(s: String): String
 

@@ -1,7 +1,9 @@
 name: "Plugin and CLI: publish as archives"
 on:
   push:
-    branches: [main]
+    branches:
+      - 'main'
+      - 'unit-test-bot/r**'
 
 jobs:
     publish_plugin_and_cli:

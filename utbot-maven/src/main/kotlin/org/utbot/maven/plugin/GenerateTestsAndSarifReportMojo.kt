@@ -177,7 +177,7 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
             withUtContext(UtContext(mavenProjectWrapper.classLoader)) {
                 val testCaseGenerator =
                     TestCaseGenerator(
-                        mavenProjectWrapper.workingDirectory,
+                        listOf(mavenProjectWrapper.workingDirectory),
                         mavenProjectWrapper.runtimeClasspath,
                         dependencyPaths,
                         JdkInfoService.provide()

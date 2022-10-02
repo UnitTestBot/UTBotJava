@@ -130,7 +130,7 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
         val summary7 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): False}\n" +
-                "@utbot.invokes {@code {@link java.lang.Math#min(long,long)}}\n" +
+                "@utbot.invokes {@link java.lang.Math#min(long,long)}\n" +
                 "@utbot.throwsException {@link java.lang.ArrayIndexOutOfBoundsException} in: minStack[size] = Math.min(minStack[size - 1], value);"
         val summary8 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
@@ -138,7 +138,7 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
         val summary9 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): False}\n" +
-                "@utbot.invokes {@code {@link java.lang.Math#min(long,long)}}\n"
+                "@utbot.invokes {@link java.lang.Math#min(long,long)}\n"
 
         val methodName1 = "testAddValue_ThrowArrayIndexOutOfBoundsException"
         val methodName2 = "testAddValue_ThrowNullPointerException"

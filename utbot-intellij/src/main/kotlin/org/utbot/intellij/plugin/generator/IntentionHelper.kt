@@ -15,8 +15,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import mu.KotlinLogging
-import org.utbot.intellij.plugin.util.IntelliJApiHelper
-import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
+import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 private val logger = KotlinLogging.logger {}
 
@@ -52,28 +51,28 @@ class IntentionHelper(val project: Project, private val editor: Editor, private 
                 actions
             })
         actions.forEach {
-            if (it.value.isApplicable()) {
+            if (runReadAction {
+                    it.value.isApplicable() && it.key.isAvailable(
+                        project,
+                        editor,
+                        testFile.containingFile
+                    )
+                }) {
                 if (it.key.startInWriteAction()) {
                     WriteCommandAction.runWriteCommandAction(project) {
-                        try {
-                            it.key.invoke(project, editor, testFile.containingFile)
-                        } catch (e: Exception) {
-                            logger.error { e }
-                        }
+                        invokeIntentionAction(it)
                     }
                 } else {
-                    run(IntelliJApiHelper.Target.EDT_LATER) {
-                        run(IntelliJApiHelper.Target.READ_ACTION) {
-                            try {
-                                it.key.invoke(project, editor, testFile.containingFile)
-                            } catch (e: Exception) {
-                                logger.error { e }
-                            }
-                        }
+                    runReadAction {
+                        invokeIntentionAction(it)
                     }
                 }
             }
         }
+    }
+
+    private fun invokeIntentionAction(it: Map.Entry<IntentionAction, String>) {
+        it.key.invoke(project, editor, testFile.containingFile)
     }
 
     private fun String.isApplicable(): Boolean {

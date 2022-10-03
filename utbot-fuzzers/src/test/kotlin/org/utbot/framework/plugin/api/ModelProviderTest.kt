@@ -389,7 +389,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
-                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0), recursionDepthLeft = 1),
                 parameters = listOf(MyA::class.java.id)
             )
             assertEquals(1, result.size)
@@ -478,14 +478,14 @@ class ModelProviderTest {
         )
 
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
+            val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0), recursionDepthLeft = 1).apply {
                 modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(FieldSetterClass::class.java.id))
             assertEquals(1, result.size)
             assertEquals(2, result[0]!!.size)
-            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            assertEquals(0, (result[0]!![1] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
             val expectedModificationSize = 3
-            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val modificationsChain = (result[0]!![0] as UtAssembleModel).modificationsChain
             val actualModificationSize = modificationsChain.size
             assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
 
@@ -513,10 +513,10 @@ class ModelProviderTest {
             }
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
-            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
-            assertEquals(0, (result[0]!![2] as UtAssembleModel).modificationsChain.size) { "Modification by constructor doesn't change fields" }
+            assertEquals(0, (result[0]!![2] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            assertEquals(0, (result[0]!![1] as UtAssembleModel).modificationsChain.size) { "Modification by constructor doesn't change fields" }
             val expectedModificationSize = 1
-            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val modificationsChain = (result[0]!![0] as UtAssembleModel).modificationsChain
             val actualModificationSize = modificationsChain.size
             assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
 

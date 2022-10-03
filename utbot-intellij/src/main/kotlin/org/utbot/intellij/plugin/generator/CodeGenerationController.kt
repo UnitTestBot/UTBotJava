@@ -13,6 +13,7 @@ import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
@@ -116,35 +117,24 @@ object CodeGenerationController {
             }
         }
 
-
-        run(EDT_LATER) {
-            waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
-                val requiredUtilClassKind = utilClassListener.requiredUtilClassKind
-                    ?: return@waitForCountDown // no util class needed
-
-                val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
-                val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind)
-                if (utilClassKind != null) {
-                    createOrUpdateUtilClass(
-                        testDirectory = baseTestDirectory,
-                        utilClassKind = utilClassKind,
-                        existingUtilClass = existingUtilClass,
-                        model = model
-                    )
-                }
-            }
-        }
-
-        run(READ_ACTION) {
-            val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
-            run(THREAD_POOL) {
-                waitForCountDown(latch) {
-                    proceedTestReport(proc, model)
-                    mergeSarifReports(model, sarifReportsPath)
-                    if (model.runGeneratedTestsWithCoverage) {
-                        RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
+        run(THREAD_POOL) {
+            waitForCountDown(latch) {
+                run(EDT_LATER) {
+                    run(WRITE_ACTION) {
+                        createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory)
+                        run(EDT_LATER) {
+                            proceedTestReport(proc, model)
+                            run(THREAD_POOL) {
+                                val sarifReportsPath =
+                                    model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+                                mergeSarifReports(model, sarifReportsPath)
+                                if (model.runGeneratedTestsWithCoverage) {
+                                    RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
+                                }
+                                proc.forceTermination()
+                            }
+                        }
                     }
-                    proc.forceTermination()
                 }
             }
         }
@@ -162,6 +152,25 @@ object CodeGenerationController {
                 model.project,
                 message = "Cannot save tests generation report: error occurred '${e.message}'",
                 title = "Failed to save tests report"
+            )
+        }
+    }
+    private fun createUtilityClassIfNeed(
+        utilClassListener: UtilClassListener,
+        model: GenerateTestsModel,
+        baseTestDirectory: PsiDirectory
+    ) {
+        val requiredUtilClassKind = utilClassListener.requiredUtilClassKind
+            ?: return // no util class needed
+
+        val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
+        val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind)
+        if (utilClassKind != null) {
+            createOrUpdateUtilClass(
+                testDirectory = baseTestDirectory,
+                utilClassKind = utilClassKind,
+                existingUtilClass = existingUtilClass,
+                model = model
             )
         }
     }
@@ -251,9 +260,9 @@ object CodeGenerationController {
         })
 
         val utUtilsDocument = runReadAction {
-            PsiDocumentManager
-                .getInstance(model.project)
-                .getDocument(utUtilsFile) ?: error("Failed to get a Document for UtUtils file")
+            FileDocumentManager
+                .getInstance()
+                .getDocument(utUtilsFile.viewProvider.virtualFile) ?: error("Failed to get a Document for UtUtils file")
         }
 
         unblockDocument(model.project, utUtilsDocument)
@@ -553,7 +562,6 @@ object CodeGenerationController {
         utilClassListener: UtilClassListener
     ) {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
-        // rd
         val paramNames = DumbService.getInstance(model.project)
             .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
         val testPackageName = testClass.packageName
@@ -595,9 +603,9 @@ object CodeGenerationController {
                     // reformatting before creating reports due to
                     // SarifReport requires the final version of the generated tests code
                     run(THREAD_POOL) {
-                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
+//                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
                         run(EDT_LATER) {
-                            runWriteCommandAction(testClassUpdated.project, "UtBot tests reformatting", null, {
+                            runWriteCommandAction(filePointer.project, "UtBot tests reformatting", null, {
                                 reformat(model, filePointer, testClassUpdated)
                             })
                             unblockDocument(testClassUpdated.project, editor.document)
@@ -627,16 +635,18 @@ object CodeGenerationController {
         val project = model.project
         val codeStyleManager = CodeStyleManager.getInstance(project)
         val file = smartPointer.containingFile?: return
-        codeStyleManager.reformat(file)
-        when (model.codegenLanguage) {
-            CodegenLanguage.JAVA -> {
-                val range = file.textRange
-                val startOffset = range.startOffset
-                val endOffset = range.endOffset
-                val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
-                JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
+        DumbService.getInstance(model.project).runWhenSmart {
+            codeStyleManager.reformat(file)
+            when (model.codegenLanguage) {
+                CodegenLanguage.JAVA -> {
+                    val range = file.textRange
+                    val startOffset = range.startOffset
+                    val endOffset = range.endOffset
+                    val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
+                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
+                }
+                CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
             }
-            CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
         }
     }
 

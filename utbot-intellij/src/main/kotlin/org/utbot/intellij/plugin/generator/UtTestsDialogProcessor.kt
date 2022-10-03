@@ -1,13 +1,9 @@
 package org.utbot.intellij.plugin.generator
 
-import com.intellij.compiler.impl.CompositeScope
-import com.intellij.compiler.impl.OneProjectItemCompileScope
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.compiler.CompileContext
-import com.intellij.openapi.compiler.CompilerManager
 import com.intellij.openapi.compiler.CompilerPaths
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -22,7 +18,10 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.task.ProjectTaskManager
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.intellij.util.containers.nullize
+import com.intellij.util.io.exists
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
@@ -105,16 +104,12 @@ object UtTestsDialogProcessor {
     }
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
-        CompilerManager.getInstance(project)
-            .make(
-                // Compile only chosen classes and their dependencies before generation.
-                CompositeScope(
-                    model.srcClasses.map { OneProjectItemCompileScope(project, it.containingFile.virtualFile) }
-                        .toTypedArray()
-                )
-            ) { aborted: Boolean, errors: Int, _: Int, _: CompileContext ->
-                if (!aborted && errors == 0) {
-                    (object : Task.Backgroundable(project, "Generate tests") {
+        val promise = ProjectTaskManager.getInstance(project).compile(
+            // Compile only chosen classes and their dependencies before generation.
+            *model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
+        )
+        promise.onSuccess {
+            (object : Task.Backgroundable(project, "Generate tests") {
 
                         override fun run(indicator: ProgressIndicator) {
                             val ldef = LifetimeDefinition()
@@ -137,19 +132,18 @@ object UtTestsDialogProcessor {
                                     .executeSynchronously()
                                     ?: return
 
-                                val (buildDir, classpath, classpathList, pluginJarsPath) = buildPaths
+                                val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
                                 val testSetsByClass = mutableMapOf<PsiClass, RdGTestenerationResult>()
                                 val psi2KClass = mutableMapOf<PsiClass, ClassId>()
                                 var processedClasses = 0
                                 val totalClasses = model.srcClasses.size
 
-                                AnalyticsConfigureUtil.configureML()
                                 val proc = EngineProcess(lifetime)
 
-                                proc.setupUtContext(listOf(buildDir) + classpathList)
+                                proc.setupUtContext(buildDirs + classpathList)
                                 proc.createTestGenerator(
-                                    buildDir,
+                                    buildDirs,
                                     classpath,
                                     pluginJarsPath.joinToString(separator = File.pathSeparator),
                                     JdkInfoService.provide()
@@ -302,7 +296,12 @@ object UtTestsDialogProcessor {
 
     private fun findPaths(srcClasses: Set<PsiClass>): BuildPaths? {
         val srcModule = findSrcModule(srcClasses)
-        val buildDir = CompilerPaths.getModuleOutputPath(srcModule, false) ?: return null
+
+        val buildDirs = CompilerPaths.getOutputPaths(arrayOf(srcModule))
+            .toList()
+            .filter { Paths.get(it).exists() }
+            .nullize() ?: return null
+
         val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
 
         val (classpath, classpathList) = if (IntelliJApiHelper.isAndroidStudio()) {
@@ -320,11 +319,11 @@ object UtTestsDialogProcessor {
         }
         val pluginJarsPath = Paths.get(PathManager.getPluginsPath(), "utbot-intellij", "lib").toFile().listFiles()
             ?: error("Can't find plugin folder.")
-        return BuildPaths(buildDir, classpath, classpathList, pluginJarsPath.map { it.path })
+        return BuildPaths(buildDirs, classpath, classpathList, pluginJarsPath.map { it.path })
     }
 
     data class BuildPaths(
-        val buildDir: String,
+        val buildDirs: List<String>,
         val classpath: String,
         val classpathList: List<String>,
         val pluginJarsPath: List<String>

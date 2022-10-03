@@ -15,7 +15,7 @@ import org.utbot.fuzzer.objects.create
 
 class CollectionWithModificationModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
-    recursionDepthLeft: Int = 1,
+    recursionDepthLeft: Int = 2,
     private var defaultModificationCount: IntArray = intArrayOf(0, 1, 3)
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
 
@@ -55,7 +55,7 @@ class CollectionWithModificationModelProvider(
     )
     private var modificationCount = 7
 
-    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider {
+    override fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider {
         val newInstance = CollectionWithModificationModelProvider(
             parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1
         )

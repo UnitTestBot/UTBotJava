@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.arrays;
+package org.utbot.examples.assemble;
 
 /**
  * A test class with fake method under test.

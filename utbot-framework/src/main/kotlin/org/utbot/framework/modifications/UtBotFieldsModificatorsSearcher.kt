@@ -1,10 +1,8 @@
 package org.utbot.framework.modifications
 
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.StatementId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
 
 class UtBotFieldsModificatorsSearcher {
 
@@ -14,6 +12,11 @@ class UtBotFieldsModificatorsSearcher {
 
     fun delete(classIds: Set<ClassId>) = statementsStorage.delete(classIds)
 
+    /**
+     * Finds field modificators.
+     *
+     * @param analysisMode represents which type of modificators (e.g. setters) are considered.
+     */
     fun findModificators(analysisMode: AnalysisMode): Map<FieldId, Set<StatementId>> {
         statementsStorage.updateCaches()
         return findModificatorsInCache(analysisMode)

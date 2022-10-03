@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.arrays;
+package org.utbot.examples.assemble;
 
 /**
  * A class with array of objects that are arrays of complex fields themselves.

@@ -399,7 +399,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
     }
 
     private val ClassId.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(basePackageName)
+        get() = this.isPublic || !this.isPrivate && this.packageName == basePackageName
 
     private val Constructor<*>.isVisible : Boolean
         get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(basePackageName)

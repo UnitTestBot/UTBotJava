@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.defaults;
+package org.utbot.examples.assemble;
 
 public class DefaultFieldModifiedInConstructor {
     public int z;

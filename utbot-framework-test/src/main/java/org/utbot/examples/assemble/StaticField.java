@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.statics;
+package org.utbot.examples.assemble;
 
 /**
  * A class with primitive constructor and static field

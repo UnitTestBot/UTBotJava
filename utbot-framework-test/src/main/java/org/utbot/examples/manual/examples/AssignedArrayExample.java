@@ -1,6 +1,6 @@
 package org.utbot.examples.manual.examples;
 
-import org.utbot.examples.assemble.arrays.AssignedArray;
+import org.utbot.examples.assemble.AssignedArray;
 
 public class AssignedArrayExample {
     public void foo(AssignedArray aa) {

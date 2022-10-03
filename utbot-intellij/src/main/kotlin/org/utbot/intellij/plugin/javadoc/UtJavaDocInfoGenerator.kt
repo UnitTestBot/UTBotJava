@@ -6,7 +6,11 @@ import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.psi.*
+import com.intellij.psi.JavaDocTokenType
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiJavaToken
+import com.intellij.psi.PsiRecursiveElementWalkingVisitor
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.javadoc.PsiDocComment
 import com.intellij.psi.javadoc.PsiDocTag
 import com.intellij.psi.javadoc.PsiDocToken
@@ -22,6 +26,7 @@ private const val MESSAGE_SEPARATOR = ":"
 private const val PARAGRAPH_TAG = "<p>"
 private const val CODE_TAG_START = "<code>"
 private const val CODE_TAG_END = "</code>"
+private const val BR_TAG = "<br>"
 
 private val logger = KotlinLogging.logger {}
 
@@ -36,37 +41,42 @@ private val logger = KotlinLogging.logger {}
  * so delete it after updating and use basic [com.intellij.codeInsight.javadoc.JavaDocInfoGenerator].
  */
 class UtJavaDocInfoGenerator {
-    fun addUtBotSpecificSectionsToJavaDoc(javadoc: String?, comment: PsiDocComment): String {
-        val builder = if (javadoc == null) {
-            StringBuilder()
-        } else {
-            StringBuilder(javadoc)
-        }
+    fun addUtBotSpecificSectionsToJavaDoc(comment: PsiDocComment): String {
+        val builder = StringBuilder()
 
         val docTagProvider = UtCustomJavaDocTagProvider()
         docTagProvider.supportedTags.forEach {
             generateUtTagSection(builder, comment, it)
         }
+
         return builder.toString()
     }
 
     /**
-     * Searches for UtBot tag in the comment and generates a related section for it.
+     * Searches for UtBot tags in the comment and generates a related section for it.
      */
     private fun generateUtTagSection(
         builder: StringBuilder,
         comment: PsiDocComment,
         utTag: UtCustomJavaDocTagProvider.UtCustomTagInfo
     ) {
-        val tag = comment.findTagByName(utTag.name) ?: return
-        startHeaderSection(builder, utTag.getMessage()).append(PARAGRAPH_TAG)
-        val sectionContent = buildString {
-            generateValue(this, tag.dataElements)
-            trim()
-        }
+        val tags = comment.findTagsByName(utTag.name)
 
-        builder.append(sectionContent)
-        builder.append(DocumentationMarkup.SECTION_END)
+        if (tags.isNotEmpty()) {
+            startHeaderSection(builder, utTag.getMessage()).append(PARAGRAPH_TAG)
+
+            tags.mapIndexed { index, it ->
+                buildString {
+                    generateValue(this, it.dataElements)
+
+                    if (index < tags.size - 1) {
+                        this.append(", $BR_TAG")
+                    }
+                }
+            }.forEach { builder.append(it) }
+
+            builder.append(DocumentationMarkup.SECTION_END)
+        }
     }
 
     private fun startHeaderSection(builder: StringBuilder, message: String): StringBuilder =

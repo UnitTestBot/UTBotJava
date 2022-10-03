@@ -26,6 +26,7 @@ import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
 import org.utbot.framework.plugin.api.samples.SampleEnum
+import org.utbot.framework.plugin.api.samples.WithInnerClass
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
@@ -388,7 +389,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
-                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0), recursionDepthLeft = 1),
                 parameters = listOf(MyA::class.java.id)
             )
             assertEquals(1, result.size)
@@ -477,14 +478,14 @@ class ModelProviderTest {
         )
 
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
+            val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0), recursionDepthLeft = 1).apply {
                 modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(FieldSetterClass::class.java.id))
             assertEquals(1, result.size)
             assertEquals(2, result[0]!!.size)
-            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            assertEquals(0, (result[0]!![1] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
             val expectedModificationSize = 3
-            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val modificationsChain = (result[0]!![0] as UtAssembleModel).modificationsChain
             val actualModificationSize = modificationsChain.size
             assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
 
@@ -512,10 +513,10 @@ class ModelProviderTest {
             }
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
-            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
-            assertEquals(0, (result[0]!![2] as UtAssembleModel).modificationsChain.size) { "Modification by constructor doesn't change fields" }
+            assertEquals(0, (result[0]!![2] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            assertEquals(0, (result[0]!![1] as UtAssembleModel).modificationsChain.size) { "Modification by constructor doesn't change fields" }
             val expectedModificationSize = 1
-            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val modificationsChain = (result[0]!![0] as UtAssembleModel).modificationsChain
             val actualModificationSize = modificationsChain.size
             assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
 
@@ -558,6 +559,29 @@ class ModelProviderTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    fun `no models are created for inner non-static class`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                ObjectModelProvider(TestIdentityPreservingIdGenerator),
+                parameters = listOf(WithInnerClass.NonStatic::class.id)
+            )
+            assertEquals(0, result.size)
+        }
+    }
+
+    @Test
+    fun `some models are created for inner static class`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                ObjectModelProvider(TestIdentityPreservingIdGenerator),
+                parameters = listOf(WithInnerClass.Static::class.id)
+            )
+            assertEquals(1, result.size)
+            assertTrue(result[0]!!.isNotEmpty())
         }
     }
 

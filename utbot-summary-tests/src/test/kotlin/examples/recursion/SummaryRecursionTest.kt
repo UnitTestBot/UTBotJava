@@ -16,8 +16,8 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
     fun testFib() {
         val summary1 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#fib(int)}\n" +
-                "@utbot.executesCondition {@code (n == 0): False},\n" +
-                "{@code (n == 1): True}\n" +
+                "@utbot.executesCondition {@code (n == 0): False}\n" +
+                "@utbot.executesCondition {@code (n == 1): True}\n" +
                 "@utbot.returnsFrom {@code return 1;}"
         val summary2 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#fib(int)}\n" +

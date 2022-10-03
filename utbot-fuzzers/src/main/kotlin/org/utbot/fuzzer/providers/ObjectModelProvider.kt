@@ -34,9 +34,9 @@ import org.utbot.fuzzer.objects.assembleModel
  */
 class ObjectModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
-    recursionDepthLeft: Int = 1,
+    recursionDepthLeft: Int = 2,
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
-    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider {
+    override fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider {
         val newInstance = ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
         newInstance.copySettings(parentProvider)
         newInstance.branchingLimit = 1
@@ -48,8 +48,11 @@ class ObjectModelProvider(
         parameterIndex: Int,
         classId: ClassId,
     ): Sequence<ModelConstructor> = sequence {
-        if (unwantedConstructorsClasses.contains(classId) ||
-            classId.isPrimitiveWrapper || classId.isEnum || classId.isAbstract
+        if (unwantedConstructorsClasses.contains(classId)
+            || classId.isPrimitiveWrapper
+            || classId.isEnum
+            || classId.isAbstract
+            || (classId.isInner && !classId.isStatic)
         ) return@sequence
 
         val constructors = collectConstructors(classId) { javaConstructor ->
@@ -59,9 +62,9 @@ class ObjectModelProvider(
         )
 
         constructors.forEach { constructorId ->
-            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId) }) {
-                assembleModel(idGenerator.createId(), constructorId, it)
-            })
+            // When branching limit = 1 this block tries to create new values
+            // and mutate some fields. Only if there's no option next block
+            // with empty constructor should be used.
             if (constructorId.parameters.isEmpty()) {
                 val fields = findSuitableFields(constructorId.classId, description)
                 if (fields.isNotEmpty()) {
@@ -72,6 +75,9 @@ class ObjectModelProvider(
                     )
                 }
             }
+            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId) }) {
+                assembleModel(idGenerator.createId(), constructorId, it)
+            })
         }
     }
 

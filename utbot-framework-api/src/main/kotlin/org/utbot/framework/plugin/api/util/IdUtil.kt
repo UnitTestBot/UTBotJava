@@ -387,6 +387,12 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
     else -> UtNullModel(this)
 }
 
+val ClassId.allDeclaredFieldIds: Sequence<FieldId>
+    get() =
+        generateSequence(this.jClass) { it.superclass }
+            .flatMap { it.declaredFields.asSequence() }
+            .map { it.fieldId }
+
 // FieldId utils
 val FieldId.safeJField: Field?
     get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }

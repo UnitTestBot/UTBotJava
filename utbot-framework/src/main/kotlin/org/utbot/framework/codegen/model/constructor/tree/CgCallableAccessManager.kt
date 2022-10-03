@@ -33,6 +33,7 @@ import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
+import org.utbot.framework.codegen.model.util.canBeReadFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.BuiltinConstructorId
@@ -293,7 +294,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private fun FieldId.accessSuitability(accessor: CgExpression?): FieldAccessorSuitability {
         // Check field accessibility.
-        if (!isAccessibleFrom(testClassPackageName)) {
+        if (!canBeReadFrom(context)) {
             return ReflectionOnly
         }
 

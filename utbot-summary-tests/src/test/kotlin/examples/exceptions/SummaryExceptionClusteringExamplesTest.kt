@@ -21,20 +21,20 @@ class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
 
         val summary2 = "@utbot.classUnderTest {@link ExceptionClusteringExamples}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionClusteringExamples#differentExceptions(int)}\n" +
-                "@utbot.executesCondition {@code (i == 0): False},\n" +
-                "{@code (i == 1): True}\n" +
+                "@utbot.executesCondition {@code (i == 0): False}\n" +
+                "@utbot.executesCondition {@code (i == 1): True}\n" +
                 "@utbot.throwsException {@link org.utbot.examples.exceptions.MyCheckedException} after condition: i == 1"
         val summary3 = "@utbot.classUnderTest {@link ExceptionClusteringExamples}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionClusteringExamples#differentExceptions(int)}\n" +
-                "@utbot.executesCondition {@code (i == 0): False},\n" +
-                "{@code (i == 1): False},\n" +
-                "{@code (i == 2): True}\n" +
+                "@utbot.executesCondition {@code (i == 0): False}\n" +
+                "@utbot.executesCondition {@code (i == 1): False}\n" +
+                "@utbot.executesCondition {@code (i == 2): True}\n" +
                 "@utbot.throwsException {@link java.lang.IllegalArgumentException} after condition: i == 2"
         val summary4 = "@utbot.classUnderTest {@link ExceptionClusteringExamples}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.exceptions.ExceptionClusteringExamples#differentExceptions(int)}\n" +
-                "@utbot.executesCondition {@code (i == 0): False},\n" +
-                "{@code (i == 1): False},\n" +
-                "{@code (i == 2): False}\n" +
+                "@utbot.executesCondition {@code (i == 0): False}\n" +
+                "@utbot.executesCondition {@code (i == 1): False}\n" +
+                "@utbot.executesCondition {@code (i == 2): False}\n" +
                 "@utbot.returnsFrom {@code return i * 2;}\n"
 
         val methodName1 = "testDifferentExceptions_IEqualsZero"

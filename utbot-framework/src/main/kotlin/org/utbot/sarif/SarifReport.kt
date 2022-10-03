@@ -6,15 +6,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.*
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -74,10 +66,10 @@ class SarifReport(
         for (testSet in testSets) {
             for (execution in testSet.executions) {
                 if (shouldProcessExecutionResult(execution.result)) {
-                    val (sarifResult, sarifRule) = processUncheckedException(
+                    val (sarifResult, sarifRule) = processExecutionFailure(
                         method = testSet.method,
                         utExecution = execution,
-                        uncheckedException = execution.result as UtExecutionFailure
+                        executionFailure = execution.result as UtExecutionFailure
                     )
                     sarifResults += sarifResult
                     sarifRules += sarifRule
@@ -127,14 +119,14 @@ class SarifReport(
         return minimizedResults
     }
 
-    private fun processUncheckedException(
+    private fun processExecutionFailure(
         method: ExecutableId,
         utExecution: UtExecution,
-        uncheckedException: UtExecutionFailure
+        executionFailure: UtExecutionFailure
     ): Pair<SarifResult, SarifRule> {
 
-        val exceptionName = uncheckedException.exception::class.java.simpleName
-        val ruleId = "utbot.unchecked.$exceptionName"
+        val exceptionName = executionFailure.exception::class.java.simpleName
+        val ruleId = "utbot.exception.$exceptionName"
 
         val methodName = method.name
         val classFqn = method.classId.name
@@ -146,20 +138,20 @@ class SarifReport(
             Level.Error,
             Message(
                 text = """
-                    Unchecked exception: ${uncheckedException.exception}.
+                    Unexpected exception: ${executionFailure.exception}.
                     Test case: `$methodName($methodArguments)`
                     [Generated test for this case]($relatedLocationId)
                 """.trimIndent()
             ),
             getLocations(utExecution, classFqn),
             getRelatedLocations(utExecution),
-            getCodeFlows(method, utExecution, uncheckedException)
+            getCodeFlows(method, utExecution, executionFailure)
         )
         val sarifRule = SarifRule(
             ruleId,
             exceptionName,
             SarifRule.Description(
-                text = "Unchecked $exceptionName detected."
+                text = "Unexpected $exceptionName detected."
             ),
             SarifRule.Description(
                 text = "Seems like an exception $exceptionName might be thrown."
@@ -205,7 +197,7 @@ class SarifReport(
     private fun getCodeFlows(
         method: ExecutableId,
         utExecution: UtExecution,
-        uncheckedException: UtExecutionFailure
+        executionFailure: UtExecutionFailure
     ): List<SarifCodeFlow> {
         /* Example of a typical stack trace:
             - java.lang.Math.multiplyExact(Math.java:867)
@@ -215,7 +207,7 @@ class SarifReport(
             - sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
             - ...
          */
-        val stackTrace = uncheckedException.exception.stackTrace
+        val stackTrace = executionFailure.exception.stackTrace
 
         val lastMethodCallIndex = stackTrace.indexOfLast {
             it.className == method.classId.name && it.methodName == method.name
@@ -362,6 +354,7 @@ class SarifReport(
     private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
         val implicitlyThrown = result is UtImplicitlyThrownException
         val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
-        return implicitlyThrown || overflowFailure
+        val assertionError = result is UtExplicitlyThrownException && result.exception is AssertionError
+        return implicitlyThrown || overflowFailure || assertionError
     }
 }

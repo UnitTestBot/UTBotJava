@@ -20,7 +20,7 @@ import org.utbot.examples.assemble.ArrayOfComplexArrays
 import org.utbot.examples.assemble.ArrayOfPrimitiveArrays
 import org.utbot.examples.assemble.AssignedArray
 import org.utbot.examples.assemble.ComplexArray
-import org.utbot.examples.assemble.MethodUnderTest
+import org.utbot.examples.assemble.another.MethodUnderTest
 import org.utbot.examples.assemble.PrimitiveArray
 import org.utbot.examples.assemble.ComplexConstructor
 import org.utbot.examples.assemble.ComplexConstructorWithSetter

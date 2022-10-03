@@ -27,7 +27,8 @@ class EngineProcessModel private constructor(
     private val _obtainClassId: RdCall<String, ByteArray>,
     private val _findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>,
     private val _findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>,
-    private val _writeSarifReport: RdCall<WriteSarifReportArguments, Unit>
+    private val _writeSarifReport: RdCall<WriteSarifReportArguments, Unit>,
+    private val _generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult>
 ) : RdExtBase() {
     //companion
     
@@ -47,6 +48,8 @@ class EngineProcessModel private constructor(
             serializers.register(FindMethodParamNamesArguments)
             serializers.register(FindMethodParamNamesResult)
             serializers.register(WriteSarifReportArguments)
+            serializers.register(GenerateTestReportArgs)
+            serializers.register(GenerateTestReportResult)
         }
         
         
@@ -70,7 +73,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = -2050409839969810873L
+        const val serializationHash = -4621310507632233825L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -87,6 +90,7 @@ class EngineProcessModel private constructor(
     val findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult> get() = _findMethodsInClassMatchingSelected
     val findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult> get() = _findMethodParamNames
     val writeSarifReport: RdCall<WriteSarifReportArguments, Unit> get() = _writeSarifReport
+    val generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult> get() = _generateTestReport
     //methods
     //initializer
     init {
@@ -100,6 +104,7 @@ class EngineProcessModel private constructor(
         _findMethodsInClassMatchingSelected.async = true
         _findMethodParamNames.async = true
         _writeSarifReport.async = true
+        _generateTestReport.async = true
     }
     
     init {
@@ -113,6 +118,7 @@ class EngineProcessModel private constructor(
         bindableChildren.add("findMethodsInClassMatchingSelected" to _findMethodsInClassMatchingSelected)
         bindableChildren.add("findMethodParamNames" to _findMethodParamNames)
         bindableChildren.add("writeSarifReport" to _writeSarifReport)
+        bindableChildren.add("generateTestReport" to _generateTestReport)
     }
     
     //secondary constructor
@@ -127,7 +133,8 @@ class EngineProcessModel private constructor(
         RdCall<String, ByteArray>(FrameworkMarshallers.String, FrameworkMarshallers.ByteArray),
         RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>(FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult),
         RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>(FindMethodParamNamesArguments, FindMethodParamNamesResult),
-        RdCall<WriteSarifReportArguments, Unit>(WriteSarifReportArguments, FrameworkMarshallers.Void)
+        RdCall<WriteSarifReportArguments, Unit>(WriteSarifReportArguments, FrameworkMarshallers.Void),
+        RdCall<GenerateTestReportArgs, GenerateTestReportResult>(GenerateTestReportArgs, GenerateTestReportResult)
     )
     
     //equals trait
@@ -146,6 +153,7 @@ class EngineProcessModel private constructor(
             print("findMethodsInClassMatchingSelected = "); _findMethodsInClassMatchingSelected.print(printer); println()
             print("findMethodParamNames = "); _findMethodParamNames.print(printer); println()
             print("writeSarifReport = "); _writeSarifReport.print(printer); println()
+            print("generateTestReport = "); _generateTestReport.print(printer); println()
         }
         printer.print(")")
     }
@@ -161,7 +169,8 @@ class EngineProcessModel private constructor(
             _obtainClassId.deepClonePolymorphic(),
             _findMethodsInClassMatchingSelected.deepClonePolymorphic(),
             _findMethodParamNames.deepClonePolymorphic(),
-            _writeSarifReport.deepClonePolymorphic()
+            _writeSarifReport.deepClonePolymorphic(),
+            _generateTestReport.deepClonePolymorphic()
         )
     }
     //contexts
@@ -171,7 +180,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:87]
+ * #### Generated from [EngineProcessModel.kt:89]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -234,7 +243,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:91]
+ * #### Generated from [EngineProcessModel.kt:93]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -291,7 +300,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:80]
+ * #### Generated from [EngineProcessModel.kt:82]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -354,7 +363,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:84]
+ * #### Generated from [EngineProcessModel.kt:86]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -537,7 +546,8 @@ data class GenerateParams (
  * #### Generated from [EngineProcessModel.kt:50]
  */
 data class GenerateResult (
-    val notEmptyCases: ByteArray
+    val notEmptyCases: Int,
+    val testSetsId: Long
 ) : IPrintable {
     //companion
     
@@ -546,12 +556,14 @@ data class GenerateResult (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GenerateResult  {
-            val notEmptyCases = buffer.readByteArray()
-            return GenerateResult(notEmptyCases)
+            val notEmptyCases = buffer.readInt()
+            val testSetsId = buffer.readLong()
+            return GenerateResult(notEmptyCases, testSetsId)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateResult)  {
-            buffer.writeByteArray(value.notEmptyCases)
+            buffer.writeInt(value.notEmptyCases)
+            buffer.writeLong(value.testSetsId)
         }
         
         
@@ -567,14 +579,16 @@ data class GenerateResult (
         
         other as GenerateResult
         
-        if (!(notEmptyCases contentEquals other.notEmptyCases)) return false
+        if (notEmptyCases != other.notEmptyCases) return false
+        if (testSetsId != other.testSetsId) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + notEmptyCases.contentHashCode()
+        __r = __r*31 + notEmptyCases.hashCode()
+        __r = __r*31 + testSetsId.hashCode()
         return __r
     }
     //pretty print
@@ -582,6 +596,169 @@ data class GenerateResult (
         printer.println("GenerateResult (")
         printer.indent {
             print("notEmptyCases = "); notEmptyCases.print(printer); println()
+            print("testSetsId = "); testSetsId.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:101]
+ */
+data class GenerateTestReportArgs (
+    val eventLogMessage: String?,
+    val testPackageName: String?,
+    val isMultiPackage: Boolean,
+    val forceMockWarning: String?,
+    val forceStaticMockWarnings: String?,
+    val testFrameworkWarning: String?,
+    val hasInitialWarnings: Boolean
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GenerateTestReportArgs> {
+        override val _type: KClass<GenerateTestReportArgs> = GenerateTestReportArgs::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GenerateTestReportArgs  {
+            val eventLogMessage = buffer.readNullable { buffer.readString() }
+            val testPackageName = buffer.readNullable { buffer.readString() }
+            val isMultiPackage = buffer.readBool()
+            val forceMockWarning = buffer.readNullable { buffer.readString() }
+            val forceStaticMockWarnings = buffer.readNullable { buffer.readString() }
+            val testFrameworkWarning = buffer.readNullable { buffer.readString() }
+            val hasInitialWarnings = buffer.readBool()
+            return GenerateTestReportArgs(eventLogMessage, testPackageName, isMultiPackage, forceMockWarning, forceStaticMockWarnings, testFrameworkWarning, hasInitialWarnings)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateTestReportArgs)  {
+            buffer.writeNullable(value.eventLogMessage) { buffer.writeString(it) }
+            buffer.writeNullable(value.testPackageName) { buffer.writeString(it) }
+            buffer.writeBool(value.isMultiPackage)
+            buffer.writeNullable(value.forceMockWarning) { buffer.writeString(it) }
+            buffer.writeNullable(value.forceStaticMockWarnings) { buffer.writeString(it) }
+            buffer.writeNullable(value.testFrameworkWarning) { buffer.writeString(it) }
+            buffer.writeBool(value.hasInitialWarnings)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GenerateTestReportArgs
+        
+        if (eventLogMessage != other.eventLogMessage) return false
+        if (testPackageName != other.testPackageName) return false
+        if (isMultiPackage != other.isMultiPackage) return false
+        if (forceMockWarning != other.forceMockWarning) return false
+        if (forceStaticMockWarnings != other.forceStaticMockWarnings) return false
+        if (testFrameworkWarning != other.testFrameworkWarning) return false
+        if (hasInitialWarnings != other.hasInitialWarnings) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + if (eventLogMessage != null) eventLogMessage.hashCode() else 0
+        __r = __r*31 + if (testPackageName != null) testPackageName.hashCode() else 0
+        __r = __r*31 + isMultiPackage.hashCode()
+        __r = __r*31 + if (forceMockWarning != null) forceMockWarning.hashCode() else 0
+        __r = __r*31 + if (forceStaticMockWarnings != null) forceStaticMockWarnings.hashCode() else 0
+        __r = __r*31 + if (testFrameworkWarning != null) testFrameworkWarning.hashCode() else 0
+        __r = __r*31 + hasInitialWarnings.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GenerateTestReportArgs (")
+        printer.indent {
+            print("eventLogMessage = "); eventLogMessage.print(printer); println()
+            print("testPackageName = "); testPackageName.print(printer); println()
+            print("isMultiPackage = "); isMultiPackage.print(printer); println()
+            print("forceMockWarning = "); forceMockWarning.print(printer); println()
+            print("forceStaticMockWarnings = "); forceStaticMockWarnings.print(printer); println()
+            print("testFrameworkWarning = "); testFrameworkWarning.print(printer); println()
+            print("hasInitialWarnings = "); hasInitialWarnings.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:110]
+ */
+data class GenerateTestReportResult (
+    val notifyMessage: String,
+    val statistics: String?,
+    val hasWarnings: Boolean
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<GenerateTestReportResult> {
+        override val _type: KClass<GenerateTestReportResult> = GenerateTestReportResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GenerateTestReportResult  {
+            val notifyMessage = buffer.readString()
+            val statistics = buffer.readNullable { buffer.readString() }
+            val hasWarnings = buffer.readBool()
+            return GenerateTestReportResult(notifyMessage, statistics, hasWarnings)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateTestReportResult)  {
+            buffer.writeString(value.notifyMessage)
+            buffer.writeNullable(value.statistics) { buffer.writeString(it) }
+            buffer.writeBool(value.hasWarnings)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as GenerateTestReportResult
+        
+        if (notifyMessage != other.notifyMessage) return false
+        if (statistics != other.statistics) return false
+        if (hasWarnings != other.hasWarnings) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + notifyMessage.hashCode()
+        __r = __r*31 + if (statistics != null) statistics.hashCode() else 0
+        __r = __r*31 + hasWarnings.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("GenerateTestReportResult (")
+        printer.indent {
+            print("notifyMessage = "); notifyMessage.print(printer); println()
+            print("statistics = "); statistics.print(printer); println()
+            print("hasWarnings = "); hasWarnings.print(printer); println()
         }
         printer.print(")")
     }
@@ -654,9 +831,10 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:53]
+ * #### Generated from [EngineProcessModel.kt:54]
  */
 data class RenderParams (
+    val testSetsId: Long,
     val classUnderTest: ByteArray,
     val paramNames: ByteArray,
     val generateUtilClassFile: Boolean,
@@ -670,8 +848,7 @@ data class RenderParams (
     val runtimeExceptionTestsBehaviour: String,
     val hangingTestsTimeout: Long,
     val enableTestsTimeout: Boolean,
-    val testClassPackageName: String,
-    val testSets: ByteArray
+    val testClassPackageName: String
 ) : IPrintable {
     //companion
     
@@ -680,6 +857,7 @@ data class RenderParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): RenderParams  {
+            val testSetsId = buffer.readLong()
             val classUnderTest = buffer.readByteArray()
             val paramNames = buffer.readByteArray()
             val generateUtilClassFile = buffer.readBool()
@@ -694,11 +872,11 @@ data class RenderParams (
             val hangingTestsTimeout = buffer.readLong()
             val enableTestsTimeout = buffer.readBool()
             val testClassPackageName = buffer.readString()
-            val testSets = buffer.readByteArray()
-            return RenderParams(classUnderTest, paramNames, generateUtilClassFile, testFramework, mockFramework, codegenLanguage, parameterizedTestSource, staticsMocking, forceStaticMocking, generateWarningsForStaticMocking, runtimeExceptionTestsBehaviour, hangingTestsTimeout, enableTestsTimeout, testClassPackageName, testSets)
+            return RenderParams(testSetsId, classUnderTest, paramNames, generateUtilClassFile, testFramework, mockFramework, codegenLanguage, parameterizedTestSource, staticsMocking, forceStaticMocking, generateWarningsForStaticMocking, runtimeExceptionTestsBehaviour, hangingTestsTimeout, enableTestsTimeout, testClassPackageName)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: RenderParams)  {
+            buffer.writeLong(value.testSetsId)
             buffer.writeByteArray(value.classUnderTest)
             buffer.writeByteArray(value.paramNames)
             buffer.writeBool(value.generateUtilClassFile)
@@ -713,7 +891,6 @@ data class RenderParams (
             buffer.writeLong(value.hangingTestsTimeout)
             buffer.writeBool(value.enableTestsTimeout)
             buffer.writeString(value.testClassPackageName)
-            buffer.writeByteArray(value.testSets)
         }
         
         
@@ -729,6 +906,7 @@ data class RenderParams (
         
         other as RenderParams
         
+        if (testSetsId != other.testSetsId) return false
         if (!(classUnderTest contentEquals other.classUnderTest)) return false
         if (!(paramNames contentEquals other.paramNames)) return false
         if (generateUtilClassFile != other.generateUtilClassFile) return false
@@ -743,13 +921,13 @@ data class RenderParams (
         if (hangingTestsTimeout != other.hangingTestsTimeout) return false
         if (enableTestsTimeout != other.enableTestsTimeout) return false
         if (testClassPackageName != other.testClassPackageName) return false
-        if (!(testSets contentEquals other.testSets)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
+        __r = __r*31 + testSetsId.hashCode()
         __r = __r*31 + classUnderTest.contentHashCode()
         __r = __r*31 + paramNames.contentHashCode()
         __r = __r*31 + generateUtilClassFile.hashCode()
@@ -764,13 +942,13 @@ data class RenderParams (
         __r = __r*31 + hangingTestsTimeout.hashCode()
         __r = __r*31 + enableTestsTimeout.hashCode()
         __r = __r*31 + testClassPackageName.hashCode()
-        __r = __r*31 + testSets.contentHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("RenderParams (")
         printer.indent {
+            print("testSetsId = "); testSetsId.print(printer); println()
             print("classUnderTest = "); classUnderTest.print(printer); println()
             print("paramNames = "); paramNames.print(printer); println()
             print("generateUtilClassFile = "); generateUtilClassFile.print(printer); println()
@@ -785,7 +963,6 @@ data class RenderParams (
             print("hangingTestsTimeout = "); hangingTestsTimeout.print(printer); println()
             print("enableTestsTimeout = "); enableTestsTimeout.print(printer); println()
             print("testClassPackageName = "); testClassPackageName.print(printer); println()
-            print("testSets = "); testSets.print(printer); println()
         }
         printer.print(")")
     }
@@ -795,10 +972,11 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:70]
+ * #### Generated from [EngineProcessModel.kt:71]
  */
 data class RenderResult (
-    val codeGenerationResult: ByteArray
+    val generatedCode: String,
+    val utilClassKind: ByteArray
 ) : IPrintable {
     //companion
     
@@ -807,12 +985,14 @@ data class RenderResult (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): RenderResult  {
-            val codeGenerationResult = buffer.readByteArray()
-            return RenderResult(codeGenerationResult)
+            val generatedCode = buffer.readString()
+            val utilClassKind = buffer.readByteArray()
+            return RenderResult(generatedCode, utilClassKind)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: RenderResult)  {
-            buffer.writeByteArray(value.codeGenerationResult)
+            buffer.writeString(value.generatedCode)
+            buffer.writeByteArray(value.utilClassKind)
         }
         
         
@@ -828,21 +1008,24 @@ data class RenderResult (
         
         other as RenderResult
         
-        if (!(codeGenerationResult contentEquals other.codeGenerationResult)) return false
+        if (generatedCode != other.generatedCode) return false
+        if (!(utilClassKind contentEquals other.utilClassKind)) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + codeGenerationResult.contentHashCode()
+        __r = __r*31 + generatedCode.hashCode()
+        __r = __r*31 + utilClassKind.contentHashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("RenderResult (")
         printer.indent {
-            print("codeGenerationResult = "); codeGenerationResult.print(printer); println()
+            print("generatedCode = "); generatedCode.print(printer); println()
+            print("utilClassKind = "); utilClassKind.print(printer); println()
         }
         printer.print(")")
     }
@@ -852,7 +1035,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:73]
+ * #### Generated from [EngineProcessModel.kt:75]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -909,7 +1092,7 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:76]
+ * #### Generated from [EngineProcessModel.kt:78]
  */
 data class Signature (
     val name: String,
@@ -1047,9 +1230,10 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:94]
+ * #### Generated from [EngineProcessModel.kt:96]
  */
 data class WriteSarifReportArguments (
+    val testSetsId: Long,
     val reportFilePath: String,
     val generatedTestsCode: String
 ) : IPrintable {
@@ -1060,12 +1244,14 @@ data class WriteSarifReportArguments (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): WriteSarifReportArguments  {
+            val testSetsId = buffer.readLong()
             val reportFilePath = buffer.readString()
             val generatedTestsCode = buffer.readString()
-            return WriteSarifReportArguments(reportFilePath, generatedTestsCode)
+            return WriteSarifReportArguments(testSetsId, reportFilePath, generatedTestsCode)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: WriteSarifReportArguments)  {
+            buffer.writeLong(value.testSetsId)
             buffer.writeString(value.reportFilePath)
             buffer.writeString(value.generatedTestsCode)
         }
@@ -1083,6 +1269,7 @@ data class WriteSarifReportArguments (
         
         other as WriteSarifReportArguments
         
+        if (testSetsId != other.testSetsId) return false
         if (reportFilePath != other.reportFilePath) return false
         if (generatedTestsCode != other.generatedTestsCode) return false
         
@@ -1091,6 +1278,7 @@ data class WriteSarifReportArguments (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
+        __r = __r*31 + testSetsId.hashCode()
         __r = __r*31 + reportFilePath.hashCode()
         __r = __r*31 + generatedTestsCode.hashCode()
         return __r
@@ -1099,6 +1287,7 @@ data class WriteSarifReportArguments (
     override fun print(printer: PrettyPrinter)  {
         printer.println("WriteSarifReportArguments (")
         printer.indent {
+            print("testSetsId = "); testSetsId.print(printer); println()
             print("reportFilePath = "); reportFilePath.print(printer); println()
             print("generatedTestsCode = "); generatedTestsCode.print(printer); println()
         }

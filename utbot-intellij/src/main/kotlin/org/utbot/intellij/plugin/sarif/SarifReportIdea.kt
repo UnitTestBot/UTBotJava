@@ -4,6 +4,7 @@ import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import com.intellij.openapi.vfs.VfsUtil
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
 
@@ -15,20 +16,21 @@ object SarifReportIdea {
      */
     fun createAndSave(
         proc: EngineProcess,
+        testSetsId: Long,
+        classId: ClassId,
         model: GenerateTestsModel,
-        testSets: List<UtMethodTestSet>,
         generatedTestsCode: String,
         sourceFinding: SourceFindingStrategyIdea
     ) {
         // building the path to the report file
-        val classFqn = testSets.firstOrNull()?.method?.classId?.name ?: return
+        val classFqn = classId.name
         val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
         // creating report related directory
         VfsUtil.createDirectoryIfMissing(reportFilePath.parent.toString())
 
-        proc.writeSarif(reportFilePath, testSets, generatedTestsCode, sourceFinding)
+        proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
     }
 }
 

@@ -122,7 +122,7 @@ data class CodeGeneratorResult(
     // null if no util class needed, e.g. when we are generating utils directly into test class
     val utilClassKind: UtilClassKind?,
     // in idea process this property is null
-    val testsGenerationReport: TestsGenerationReport?,
+    val testsGenerationReport: TestsGenerationReport
 )
 
 /**

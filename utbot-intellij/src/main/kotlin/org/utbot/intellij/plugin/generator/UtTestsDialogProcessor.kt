@@ -27,22 +27,18 @@ import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.analytics.AnalyticsConfigureUtil
-import org.utbot.common.allNestedClasses
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
+import org.utbot.intellij.plugin.process.RdGTestenerationResult
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -143,7 +139,7 @@ object UtTestsDialogProcessor {
 
                                 val (buildDir, classpath, classpathList, pluginJarsPath) = buildPaths
 
-                                val testSetsByClass = mutableMapOf<PsiClass, List<UtMethodTestSet>>()
+                                val testSetsByClass = mutableMapOf<PsiClass, RdGTestenerationResult>()
                                 val psi2KClass = mutableMapOf<PsiClass, ClassId>()
                                 var processedClasses = 0
                                 val totalClasses = model.srcClasses.size
@@ -164,7 +160,6 @@ object UtTestsDialogProcessor {
                                 }
 
                                 for (srcClass in model.srcClasses) {
-                                    // rd
                                     val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
                                         val canonicalName = srcClass.canonicalName
                                         val classId = proc.obtainClassId(canonicalName)
@@ -213,10 +208,7 @@ object UtTestsDialogProcessor {
                                     withStaticsSubstitutionRequired(true) {
                                         val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
-                                        val notEmptyCases = runCatching {
-                                            try {
-                                                // останови че есть и сгенерь
-                                                proc.generate(
+                                        val rdGenerateResult = proc.generate(
                                                     mockFrameworkInstalled,
                                                     model.staticsMocking.isConfigured,
                                                     model.conflictTriggers,
@@ -228,17 +220,9 @@ object UtTestsDialogProcessor {
                                                     true,
                                                     UtSettings.useFuzzing,
                                                     project.service<Settings>().fuzzingValue,
-                                                    searchDirectory.pathString
-                                                )
-                                            } catch (e: Throwable) {
-                                                logger.error(e) {
-                                                    "error during deserialization"
-                                                }
-                                                throw e
-                                            }
-                                        }.getOrDefault(listOf())
+                                                    searchDirectory.pathString)
 
-                                        if (notEmptyCases.isEmpty()) {
+                                        if (rdGenerateResult.notEmptyCases == 0) {
                                             if (model.srcClasses.size > 1) {
                                                 logger.error { "Failed to generate any tests cases for class $className" }
                                             } else {
@@ -249,7 +233,7 @@ object UtTestsDialogProcessor {
                                                 )
                                             }
                                         } else {
-                                            testSetsByClass[srcClass] = notEmptyCases
+                                            testSetsByClass[srcClass] = rdGenerateResult
                                         }
 
                                         timerHandler.cancel(true)

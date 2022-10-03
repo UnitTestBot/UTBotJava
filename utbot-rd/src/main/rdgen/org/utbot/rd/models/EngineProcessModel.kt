@@ -48,9 +48,11 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
         field("searchDirectory", PredefinedType.string)
     }
     val generateResult = structdef {
-        field("notEmptyCases", array(PredefinedType.byte))
+        field("notEmptyCases", PredefinedType.int)
+        field("testSetsId", PredefinedType.long)
     }
     val renderParams = structdef {
+        field("testSetsId", PredefinedType.long)
         field("classUnderTest", array(PredefinedType.byte))
         field("paramNames", array(PredefinedType.byte))
         field("generateUtilClassFile", PredefinedType.bool)
@@ -65,10 +67,10 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
         field("hangingTestsTimeout", PredefinedType.long)
         field("enableTestsTimeout", PredefinedType.bool)
         field("testClassPackageName", PredefinedType.string)
-        field("testSets", array(PredefinedType.byte))
     }
     val renderResult = structdef {
-        field("codeGenerationResult", array(PredefinedType.byte))
+        field("generatedCode", PredefinedType.string)
+        field("utilClassKind", array(PredefinedType.byte))
     }
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
@@ -92,10 +94,24 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
         field("paramNames", array(PredefinedType.byte))
     }
     val writeSarifReportArguments = structdef {
+        field("testSetsId", PredefinedType.long)
         field("reportFilePath", PredefinedType.string)
         field("generatedTestsCode", PredefinedType.string)
     }
-
+    val generateTestReportArgs = structdef {
+        field("eventLogMessage", PredefinedType.string.nullable)
+        field("testPackageName", PredefinedType.string.nullable)
+        field("isMultiPackage", PredefinedType.bool)
+        field("forceMockWarning", PredefinedType.string.nullable)
+        field("forceStaticMockWarnings", PredefinedType.string.nullable)
+        field("testFrameworkWarning", PredefinedType.string.nullable)
+        field("hasInitialWarnings", PredefinedType.bool)
+    }
+    val generateTestReportResult = structdef {
+        field("notifyMessage", PredefinedType.string)
+        field("statistics", PredefinedType.string.nullable)
+        field("hasWarnings", PredefinedType.bool)
+    }
     init {
         call("setupUtContext", setupContextParams, PredefinedType.void).async
         call("createTestGenerator", testGeneratorParams, PredefinedType.void).async
@@ -107,5 +123,6 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
         call("findMethodsInClassMatchingSelected", findMethodsInClassMatchingSelectedArguments, findMethodsInClassMatchingSelectedResult).async
         call("findMethodParamNames", findMethodParamNamesArguments, findMethodParamNamesResult).async
         call("writeSarifReport", writeSarifReportArguments, PredefinedType.void).async
+        call("generateTestReport", generateTestReportArgs, generateTestReportResult).async
     }
 }

@@ -2,7 +2,6 @@ package org.utbot.intellij.plugin.process
 
 import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.readAction
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.lifetime.Lifetime
@@ -12,12 +11,14 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
+import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.AbstractSettings
 import org.utbot.common.getPid
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.*
-import org.utbot.framework.codegen.model.CodeGeneratorResult
+import org.utbot.framework.codegen.model.UtilClassKind
+import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
@@ -25,9 +26,12 @@ import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.Signature
+import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.util.KryoHelper
+import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.rdPortArgument
@@ -45,6 +49,8 @@ import kotlin.reflect.full.memberProperties
 
 private val logger = KotlinLogging.logger {}
 private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs")
+
+data class RdGTestenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
 class EngineProcess(val lifetime: Lifetime) {
     private val id = Random.nextLong()
@@ -250,7 +256,7 @@ class EngineProcess(val lifetime: Lifetime) {
         isFuzzingEnabled: Boolean,
         fuzzingValue: Double,
         searchDirectory: String
-    ): List<UtMethodTestSet> = runBlocking {
+    ): RdGTestenerationResult = runBlocking {
         val result = engineModel().generate.startSuspending(
             lifetime,
             GenerateParams(
@@ -269,10 +275,11 @@ class EngineProcess(val lifetime: Lifetime) {
             )
         )
 
-        return@runBlocking kryoHelper.readObject<List<UtMethodTestSet>>(result.notEmptyCases)
+        return@runBlocking RdGTestenerationResult(result.notEmptyCases, result.testSetsId)
     }
 
     fun render(
+        testSetsId: Long,
         classUnderTest: ClassId,
         paramNames: MutableMap<ExecutableId, List<String>>,
         generateUtilClassFile: Boolean,
@@ -286,12 +293,11 @@ class EngineProcess(val lifetime: Lifetime) {
         runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour,
         hangingTestSource: HangingTestsTimeout,
         enableTestsTimeout: Boolean,
-        testClassPackageName: String,
-        testSets: List<UtMethodTestSet>
-    ): CodeGeneratorResult = runBlocking {
-        return@runBlocking kryoHelper.readObject(
-            engineModel().render.startSuspending(
+        testClassPackageName: String
+    ): Pair<String, UtilClassKind?> = runBlocking {
+        val result = engineModel().render.startSuspending(
                 lifetime, RenderParams(
+                    testSetsId,
                     kryoHelper.writeObject(classUnderTest),
                     kryoHelper.writeObject(paramNames),
                     generateUtilClassFile,
@@ -305,11 +311,10 @@ class EngineProcess(val lifetime: Lifetime) {
                     runtimeExceptionTestsBehaviour.name,
                     hangingTestSource.timeoutMs,
                     enableTestsTimeout,
-                    testClassPackageName,
-                    kryoHelper.writeObject(testSets)
+                    testClassPackageName
                 )
-            ).codeGenerationResult
-        )
+            )
+        result.generatedCode to kryoHelper.readObject(result.utilClassKind)
     }
 
     fun forceTermination() = runBlocking {
@@ -319,8 +324,7 @@ class EngineProcess(val lifetime: Lifetime) {
     }
 
     fun writeSarif(reportFilePath: Path,
-                   // argument unused for optimization, same value is cached in child proc
-                   testSets: List<UtMethodTestSet>,
+                   testSetsId: Long,
                    generatedTestsCode: String,
                    sourceFindingStrategy: SourceFindingStrategy
     ) = runBlocking {
@@ -347,7 +351,44 @@ class EngineProcess(val lifetime: Lifetime) {
                 }
             }
         }
-        engineModel().writeSarifReport.startSuspending(WriteSarifReportArguments(reportFilePath.pathString, generatedTestsCode))
+        engineModel().writeSarifReport.startSuspending(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
+    }
+
+    fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> = runBlocking {
+        val forceMockWarning = if (model.conflictTriggers[Conflict.ForceMockHappened] == true) {
+            """
+                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
+                """.trimIndent()
+        } else null
+        val forceStaticMockWarnings = if (model.conflictTriggers[Conflict.ForceStaticMockHappened] == true) {
+            """
+                    <b>Warning</b>: Some test cases were ignored, because mockito-inline is not installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoInlineSuffix}">configuring mockito-inline</a>.
+                """.trimIndent()
+        } else null
+        val testFrameworkWarnings = if (model.conflictTriggers[Conflict.TestFrameworkConflict] == true) {
+            """
+                    <b>Warning</b>: There are several test frameworks in the project. 
+                    To select run configuration, please refer to the documentation depending on the project build system:
+                     <a href=" https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests">Gradle</a>, 
+                     <a href=" https://maven.apache.org/surefire/maven-surefire-plugin/examples/providers.html">Maven</a> 
+                     or <a href=" https://www.jetbrains.com/help/idea/run-debug-configuration.html#compound-configs">Idea</a>.
+                """.trimIndent()
+        } else null
+        val result = engineModel().generateTestReport.startSuspending(
+            GenerateTestReportArgs(
+                eventLogMessage,
+                model.testPackageName,
+                model.isMultiPackage,
+                forceMockWarning,
+                forceStaticMockWarnings,
+                testFrameworkWarnings,
+                model.conflictTriggers.triggered
+            )
+        )
+
+        return@runBlocking Triple(result.notifyMessage, result.statistics, result.hasWarnings)
     }
 
     init {

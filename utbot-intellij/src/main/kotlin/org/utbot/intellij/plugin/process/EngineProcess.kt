@@ -2,9 +2,10 @@ package org.utbot.intellij.plugin.process
 
 import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.externalSystem.service.execution.DefaultExternalSystemJdkProvider
+import com.intellij.openapi.application.readAction
+import com.intellij.psi.PsiMethod
+import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.lifetime.Lifetime
-import com.jetbrains.rd.util.lifetime.isNotAlive
 import com.jetbrains.rd.util.lifetime.onTermination
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import kotlinx.coroutines.runBlocking
@@ -23,16 +24,18 @@ import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.generated.*
+import org.utbot.framework.process.generated.Signature
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.util.KryoHelper
+import org.utbot.intellij.plugin.util.signature
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
+import org.utbot.sarif.SourceFindingStrategy
 import soot.SootMethod
 import soot.util.HashChain
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import kotlin.io.path.pathString
@@ -62,12 +65,12 @@ class EngineProcess(val lifetime: Lifetime) {
 <Configuration>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <ThresholdFilter level="DEBUG"  onMatch="NEUTRAL"   onMismatch="DENY"/>
+            <ThresholdFilter level="ERROR"  onMatch="DENY"   onMismatch="DENY"/>
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="debug">
+        <Root level="error">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>
@@ -156,6 +159,7 @@ class EngineProcess(val lifetime: Lifetime) {
                     }
                 }.initModels {
                     engineProcessModel
+                    rdSourceFindingStrategy
                     settingsModel.settingFor.set { params ->
                         SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
                             val members: Collection<KProperty1<AbstractSettings, *>> =
@@ -198,6 +202,40 @@ class EngineProcess(val lifetime: Lifetime) {
             TestGeneratorParams(buildDir, classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
         )
     }
+
+    fun obtainClassId(canonicalName: String): ClassId = runBlocking {
+        kryoHelper.readObject(engineModel().obtainClassId.startSuspending(canonicalName))
+    }
+
+    fun findMethodsInClassMatchingSelected(clazzId: ClassId, srcMethods: List<MemberInfo>): List<ExecutableId> =
+        runBlocking {
+            val srcSignatures = srcMethods.map { it.signature() }
+            val rdSignatures = srcSignatures.map {
+                Signature(it.name, it.parameterTypes)
+            }
+            kryoHelper.readObject(
+                engineModel().findMethodsInClassMatchingSelected.startSuspending(
+                    FindMethodsInClassMatchingSelectedArguments(kryoHelper.writeObject(clazzId), rdSignatures)
+                ).executableIds
+            )
+        }
+
+    fun findMethodParamNames(classId: ClassId, methods: List<MemberInfo>): Map<ExecutableId, List<String>> =
+        runBlocking {
+            val bySignature = methods.associate { it.signature() to it.paramNames() }
+            kryoHelper.readObject(
+                engineModel().findMethodParamNames.startSuspending(
+                    FindMethodParamNamesArguments(
+                        kryoHelper.writeObject(
+                            classId
+                        ), kryoHelper.writeObject(bySignature)
+                    )
+                ).paramNames
+            )
+        }
+
+    private fun MemberInfo.paramNames(): List<String> =
+        (this.member as PsiMethod).parameterList.parameters.map { it.name }
 
     fun generate(
         mockInstalled: Boolean,
@@ -277,6 +315,39 @@ class EngineProcess(val lifetime: Lifetime) {
     fun forceTermination() = runBlocking {
         engineModel().stopProcess.start(Unit)
         current?.terminate()
+        engineModel().writeSarifReport
+    }
+
+    fun writeSarif(reportFilePath: Path,
+                   // argument unused for optimization, same value is cached in child proc
+                   testSets: List<UtMethodTestSet>,
+                   generatedTestsCode: String,
+                   sourceFindingStrategy: SourceFindingStrategy
+    ) = runBlocking {
+        current!!.protocol.rdSourceFindingStrategy.let {
+            it.getSourceFile.set { params ->
+                ApplicationManager.getApplication().runReadAction<String?> {
+                    sourceFindingStrategy.getSourceFile(
+                        params.classFqn,
+                        params.extension
+                    )?.canonicalPath
+                }
+            }
+            it.getSourceRelativePath.set { params ->
+                ApplicationManager.getApplication().runReadAction<String> {
+                    sourceFindingStrategy.getSourceRelativePath(
+                        params.classFqn,
+                        params.extension
+                    )
+                }
+            }
+            it.testsRelativePath.set { _ ->
+                ApplicationManager.getApplication().runReadAction<String> {
+                    sourceFindingStrategy.testsRelativePath
+                }
+            }
+        }
+        engineModel().writeSarifReport.startSuspending(WriteSarifReportArguments(reportFilePath.pathString, generatedTestsCode))
     }
 
     init {

@@ -3,9 +3,9 @@ package org.utbot.intellij.plugin.sarif
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
-import org.utbot.sarif.SarifReport
 import com.intellij.openapi.vfs.VfsUtil
 import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.process.EngineProcess
 
 object SarifReportIdea {
 
@@ -14,6 +14,7 @@ object SarifReportIdea {
      * saves it to test resources directory and notifies the user about the creation.
      */
     fun createAndSave(
+        proc: EngineProcess,
         model: GenerateTestsModel,
         testSets: List<UtMethodTestSet>,
         generatedTestsCode: String,
@@ -27,10 +28,7 @@ object SarifReportIdea {
         // creating report related directory
         VfsUtil.createDirectoryIfMissing(reportFilePath.parent.toString())
 
-        // creating & saving sarif report
-        reportFilePath
-            .toFile()
-            .writeText(SarifReport(testSets, generatedTestsCode, sourceFinding).createReport())
+        proc.writeSarif(reportFilePath, testSets, generatedTestsCode, sourceFinding)
     }
 }
 

@@ -46,6 +46,7 @@ const val SYMBOLIC_NULL_ADDR: Int = 0
 data class UtMethodTestSet(
     val method: ExecutableId,
     val executions: List<UtExecution> = emptyList(),
+    // in idea process this property is null
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)

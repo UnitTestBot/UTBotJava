@@ -19,27 +19,15 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.psi.JavaDirectoryService
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiClassOwner
-import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.SmartPointerManager
-import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
-import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
 import com.siyeh.ig.psiutils.ImportUtils
 import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.core.ShortenReferences
@@ -56,7 +44,6 @@ import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
-import org.utbot.common.allNestedClasses
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -66,37 +53,27 @@ import org.utbot.framework.codegen.model.CodeGeneratorResult
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
-import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
-import org.utbot.intellij.plugin.ui.SarifReportNotifier
-import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
-import org.utbot.intellij.plugin.ui.TestsReportNotifier
-import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
+import org.utbot.intellij.plugin.ui.*
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
-import org.utbot.intellij.plugin.util.signature
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlin.reflect.KClass
-import kotlin.reflect.full.functions
-import mu.KotlinLogging
-import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
-import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -112,7 +89,7 @@ object CodeGenerationController {
     fun generateTests(
         model: GenerateTestsModel,
         testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>,
-        psi2KClass: Map<PsiClass, KClass<*>>,
+        psi2KClass: Map<PsiClass, ClassId>,
         proc: EngineProcess
     ) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
@@ -174,26 +151,32 @@ object CodeGenerationController {
             val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
             run(THREAD_POOL) {
                 waitForCountDown(latch) {
-                    try {
-                        // Parametrized tests are not supported in tests report yet
-                        // TODO JIRA:1507
-                        if (model.parametrizedTestSource != ParametrizedTestSource.PARAMETRIZE) {
-                            showTestsReport(reports, model)
-                        }
-                    } catch (e: Exception) {
-                        showErrorDialogLater(
-                            model.project,
-                            message = "Cannot save tests generation report: error occurred '${e.message}'",
-                            title = "Failed to save tests report"
-                        )
-                    }
-
+                    // proceedTestReport(reports, model)
                     mergeSarifReports(model, sarifReportsPath)
                     if (model.runGeneratedTestsWithCoverage) {
                         RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                     }
                 }
             }
+        }
+    }
+
+    // currently due to moving engine out of idea process we cannot show test generation report
+    // because it contains CgElements, which kryo cannot deserialize because they use complex collections
+    // potentially it is possible to implement a lot of additional kryo serializers for that collections
+    private fun proceedTestReport(reports: List<TestsGenerationReport>, model: GenerateTestsModel) {
+        try {
+            // Parametrized tests are not supported in tests report yet
+            // TODO JIRA:1507
+            if (model.parametrizedTestSource != ParametrizedTestSource.PARAMETRIZE) {
+                showTestsReport(reports, model)
+            }
+        } catch (e: Exception) {
+            showErrorDialogLater(
+                model.project,
+                message = "Cannot save tests generation report: error occurred '${e.message}'",
+                title = "Failed to save tests report"
+            )
         }
     }
 
@@ -575,7 +558,7 @@ object CodeGenerationController {
     private fun generateCodeAndReport(
         proc: EngineProcess,
         srcClass: PsiClass,
-        classUnderTest: KClass<*>,
+        classUnderTest: ClassId,
         testClass: PsiClass,
         filePointer: SmartPsiElementPointer<PsiFile>,
         testSets: List<UtMethodTestSet>,
@@ -585,8 +568,9 @@ object CodeGenerationController {
         utilClassListener: UtilClassListener
     ) {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
+        // rd
         val paramNames = DumbService.getInstance(model.project)
-            .runReadActionInSmartMode(Computable { findMethodParamNames(classUnderTest, classMethods) })
+            .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
 
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
@@ -595,7 +579,7 @@ object CodeGenerationController {
             val codeGenerationResult: CodeGeneratorResult = runBlocking {
                 try {
                     proc.render(
-                        classUnderTest.id,
+                        classUnderTest,
                         paramNames.toMutableMap(),
                         generateUtilClassFile = true,
                         model.testFramework,
@@ -618,7 +602,6 @@ object CodeGenerationController {
                     throw e
                 }
             }
-//                codeGenerator.generateAsStringWithTestReport(testSets)
             utilClassListener.onTestClassGenerated(codeGenerationResult)
             val generatedTestsCode = codeGenerationResult.generatedCode
             run(EDT_LATER) {
@@ -652,14 +635,13 @@ object CodeGenerationController {
                             // creating and saving reports
                             codeGenerationResultFormatted.testsGenerationReport?.let { reports += it }
 
-                            run(WRITE_ACTION) {
-                                saveSarifReport(
-                                    testClassUpdated,
-                                    testSets,
-                                    model,
-                                    codeGenerationResultFormatted,
-                                )
-                            }
+                            saveSarifReport(
+                                proc,
+                                testClassUpdated,
+                                testSets,
+                                model,
+                                codeGenerationResultFormatted,
+                            )
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             reportsCountDown.countDown()
@@ -687,17 +669,8 @@ object CodeGenerationController {
         }
     }
 
-    private fun findMethodParamNames(clazz: KClass<*>, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
-        val bySignature = methods.associate { it.signature() to it.paramNames() }
-        return clazz.allNestedClasses.flatMap { it.functions }
-            .mapNotNull { method -> bySignature[method.signature()]?.let { params -> method.executableId to params } }
-            .toMap()
-    }
-
-    private fun MemberInfo.paramNames(): List<String> =
-        (this.member as PsiMethod).parameterList.parameters.map { it.name }
-
     private fun saveSarifReport(
+        proc: EngineProcess,
         testClass: PsiClass,
         testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
@@ -710,7 +683,7 @@ object CodeGenerationController {
             // saving sarif report
             val sourceFinding = SourceFindingStrategyIdea(testClass)
             executeCommand(testClass.project, "Saving Sarif report") {
-                SarifReportIdea.createAndSave(model, testSets, generatedTestsCode, sourceFinding)
+                SarifReportIdea.createAndSave(proc, model, testSets, generatedTestsCode, sourceFinding)
             }
         } catch (e: Exception) {
             logger.error { e }

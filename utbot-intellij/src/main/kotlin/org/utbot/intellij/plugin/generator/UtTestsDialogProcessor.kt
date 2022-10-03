@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.idea.util.module
 import org.utbot.analytics.AnalyticsConfigureUtil
 import org.utbot.common.allNestedClasses
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -56,8 +57,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
-import kotlin.reflect.KClass
-import kotlin.reflect.full.functions
 
 object UtTestsDialogProcessor {
 
@@ -143,11 +142,9 @@ object UtTestsDialogProcessor {
                                     ?: return
 
                                 val (buildDir, classpath, classpathList, pluginJarsPath) = buildPaths
-                                val classLoader = urlClassLoader(listOf(buildDir) + classpathList)
-                                val context = UtContext(classLoader)
 
                                 val testSetsByClass = mutableMapOf<PsiClass, List<UtMethodTestSet>>()
-                                val psi2KClass = mutableMapOf<PsiClass, KClass<*>>()
+                                val psi2KClass = mutableMapOf<PsiClass, ClassId>()
                                 var processedClasses = 0
                                 val totalClasses = model.srcClasses.size
 
@@ -167,11 +164,11 @@ object UtTestsDialogProcessor {
                                 }
 
                                 for (srcClass in model.srcClasses) {
+                                    // rd
                                     val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
                                         val canonicalName = srcClass.canonicalName
-                                        // todo how bad is it?
-                                        val clazz = classLoader.loadClass(canonicalName).kotlin
-                                        psi2KClass[srcClass] = clazz
+                                        val classId = proc.obtainClassId(canonicalName)
+                                        psi2KClass[srcClass] = classId
 
                                         val srcMethods = if (model.extractMembersFromSrcClasses) {
                                             val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
@@ -184,9 +181,7 @@ object UtTestsDialogProcessor {
                                             srcClass.extractClassMethodsIncludingNested(false)
                                         }
                                         DumbService.getInstance(project).runReadActionInSmartMode(Computable {
-                                            clazz.allNestedClasses.flatMap {
-                                                findMethodsInClassMatchingSelected(it, srcMethods)
-                                            }
+                                            proc.findMethodsInClassMatchingSelected(classId, srcMethods)
                                         }) to srcClass.name
                                     }.executeSynchronously()
 
@@ -220,6 +215,7 @@ object UtTestsDialogProcessor {
 
                                         val notEmptyCases = runCatching {
                                             try {
+                                                // останови че есть и сгенерь
                                                 proc.generate(
                                                     mockFrameworkInstalled,
                                                     model.staticsMocking.isConfigured,
@@ -240,7 +236,6 @@ object UtTestsDialogProcessor {
                                                 }
                                                 throw e
                                             }
-//                                        }
                                         }.getOrDefault(listOf())
 
                                         if (notEmptyCases.isEmpty()) {
@@ -279,9 +274,7 @@ object UtTestsDialogProcessor {
                                 // indicator.checkCanceled()
 
                                 invokeLater {
-                                withUtContext(context) {
-                                        generateTests(model, testSetsByClass, psi2KClass, proc)
-                                    }
+                                    generateTests(model, testSetsByClass, psi2KClass, proc)
                                 }
                             }
                         }
@@ -310,16 +303,6 @@ object UtTestsDialogProcessor {
         appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
 
-    private fun findMethodsInClassMatchingSelected(
-        clazz: KClass<*>,
-        selectedMethods: List<MemberInfo>
-    ): List<ExecutableId> {
-        val selectedSignatures = selectedMethods.map { it.signature() }
-        return clazz.functions
-            .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
-            .filter { it.signature().normalized() in selectedSignatures }
-            .map { it.executableId }
-    }
 
     private fun urlClassLoader(classpath: List<String>) =
         URLClassLoader(classpath.map { File(it).toURI().toURL() }.toTypedArray())

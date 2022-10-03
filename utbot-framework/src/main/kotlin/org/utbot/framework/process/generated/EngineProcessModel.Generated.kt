@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:7]
+ * #### Generated from [EngineProcessModel.kt:20]
  */
 class EngineProcessModel private constructor(
     private val _setupUtContext: RdCall<SetupContextParams, Unit>,
@@ -23,7 +23,11 @@ class EngineProcessModel private constructor(
     private val _isCancelled: RdCall<Unit, Boolean>,
     private val _generate: RdCall<GenerateParams, GenerateResult>,
     private val _render: RdCall<RenderParams, RenderResult>,
-    private val _stopProcess: RdCall<Unit, Unit>
+    private val _stopProcess: RdCall<Unit, Unit>,
+    private val _obtainClassId: RdCall<String, ByteArray>,
+    private val _findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>,
+    private val _findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>,
+    private val _writeSarifReport: RdCall<WriteSarifReportArguments, Unit>
 ) : RdExtBase() {
     //companion
     
@@ -37,6 +41,12 @@ class EngineProcessModel private constructor(
             serializers.register(RenderParams)
             serializers.register(RenderResult)
             serializers.register(SetupContextParams)
+            serializers.register(Signature)
+            serializers.register(FindMethodsInClassMatchingSelectedArguments)
+            serializers.register(FindMethodsInClassMatchingSelectedResult)
+            serializers.register(FindMethodParamNamesArguments)
+            serializers.register(FindMethodParamNamesResult)
+            serializers.register(WriteSarifReportArguments)
         }
         
         
@@ -60,7 +70,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = -8547308447186748954L
+        const val serializationHash = -2050409839969810873L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -73,6 +83,10 @@ class EngineProcessModel private constructor(
     val generate: RdCall<GenerateParams, GenerateResult> get() = _generate
     val render: RdCall<RenderParams, RenderResult> get() = _render
     val stopProcess: RdCall<Unit, Unit> get() = _stopProcess
+    val obtainClassId: RdCall<String, ByteArray> get() = _obtainClassId
+    val findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult> get() = _findMethodsInClassMatchingSelected
+    val findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult> get() = _findMethodParamNames
+    val writeSarifReport: RdCall<WriteSarifReportArguments, Unit> get() = _writeSarifReport
     //methods
     //initializer
     init {
@@ -82,6 +96,10 @@ class EngineProcessModel private constructor(
         _generate.async = true
         _render.async = true
         _stopProcess.async = true
+        _obtainClassId.async = true
+        _findMethodsInClassMatchingSelected.async = true
+        _findMethodParamNames.async = true
+        _writeSarifReport.async = true
     }
     
     init {
@@ -91,6 +109,10 @@ class EngineProcessModel private constructor(
         bindableChildren.add("generate" to _generate)
         bindableChildren.add("render" to _render)
         bindableChildren.add("stopProcess" to _stopProcess)
+        bindableChildren.add("obtainClassId" to _obtainClassId)
+        bindableChildren.add("findMethodsInClassMatchingSelected" to _findMethodsInClassMatchingSelected)
+        bindableChildren.add("findMethodParamNames" to _findMethodParamNames)
+        bindableChildren.add("writeSarifReport" to _writeSarifReport)
     }
     
     //secondary constructor
@@ -101,7 +123,11 @@ class EngineProcessModel private constructor(
         RdCall<Unit, Boolean>(FrameworkMarshallers.Void, FrameworkMarshallers.Bool),
         RdCall<GenerateParams, GenerateResult>(GenerateParams, GenerateResult),
         RdCall<RenderParams, RenderResult>(RenderParams, RenderResult),
-        RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void)
+        RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
+        RdCall<String, ByteArray>(FrameworkMarshallers.String, FrameworkMarshallers.ByteArray),
+        RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>(FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult),
+        RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>(FindMethodParamNamesArguments, FindMethodParamNamesResult),
+        RdCall<WriteSarifReportArguments, Unit>(WriteSarifReportArguments, FrameworkMarshallers.Void)
     )
     
     //equals trait
@@ -116,6 +142,10 @@ class EngineProcessModel private constructor(
             print("generate = "); _generate.print(printer); println()
             print("render = "); _render.print(printer); println()
             print("stopProcess = "); _stopProcess.print(printer); println()
+            print("obtainClassId = "); _obtainClassId.print(printer); println()
+            print("findMethodsInClassMatchingSelected = "); _findMethodsInClassMatchingSelected.print(printer); println()
+            print("findMethodParamNames = "); _findMethodParamNames.print(printer); println()
+            print("writeSarifReport = "); _writeSarifReport.print(printer); println()
         }
         printer.print(")")
     }
@@ -127,7 +157,11 @@ class EngineProcessModel private constructor(
             _isCancelled.deepClonePolymorphic(),
             _generate.deepClonePolymorphic(),
             _render.deepClonePolymorphic(),
-            _stopProcess.deepClonePolymorphic()
+            _stopProcess.deepClonePolymorphic(),
+            _obtainClassId.deepClonePolymorphic(),
+            _findMethodsInClassMatchingSelected.deepClonePolymorphic(),
+            _findMethodParamNames.deepClonePolymorphic(),
+            _writeSarifReport.deepClonePolymorphic()
         )
     }
     //contexts
@@ -137,7 +171,247 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:19]
+ * #### Generated from [EngineProcessModel.kt:87]
+ */
+data class FindMethodParamNamesArguments (
+    val classId: ByteArray,
+    val bySignature: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<FindMethodParamNamesArguments> {
+        override val _type: KClass<FindMethodParamNamesArguments> = FindMethodParamNamesArguments::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodParamNamesArguments  {
+            val classId = buffer.readByteArray()
+            val bySignature = buffer.readByteArray()
+            return FindMethodParamNamesArguments(classId, bySignature)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: FindMethodParamNamesArguments)  {
+            buffer.writeByteArray(value.classId)
+            buffer.writeByteArray(value.bySignature)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as FindMethodParamNamesArguments
+        
+        if (!(classId contentEquals other.classId)) return false
+        if (!(bySignature contentEquals other.bySignature)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + classId.contentHashCode()
+        __r = __r*31 + bySignature.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("FindMethodParamNamesArguments (")
+        printer.indent {
+            print("classId = "); classId.print(printer); println()
+            print("bySignature = "); bySignature.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:91]
+ */
+data class FindMethodParamNamesResult (
+    val paramNames: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<FindMethodParamNamesResult> {
+        override val _type: KClass<FindMethodParamNamesResult> = FindMethodParamNamesResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodParamNamesResult  {
+            val paramNames = buffer.readByteArray()
+            return FindMethodParamNamesResult(paramNames)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: FindMethodParamNamesResult)  {
+            buffer.writeByteArray(value.paramNames)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as FindMethodParamNamesResult
+        
+        if (!(paramNames contentEquals other.paramNames)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + paramNames.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("FindMethodParamNamesResult (")
+        printer.indent {
+            print("paramNames = "); paramNames.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:80]
+ */
+data class FindMethodsInClassMatchingSelectedArguments (
+    val classId: ByteArray,
+    val signatures: List<Signature>
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<FindMethodsInClassMatchingSelectedArguments> {
+        override val _type: KClass<FindMethodsInClassMatchingSelectedArguments> = FindMethodsInClassMatchingSelectedArguments::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodsInClassMatchingSelectedArguments  {
+            val classId = buffer.readByteArray()
+            val signatures = buffer.readList { Signature.read(ctx, buffer) }
+            return FindMethodsInClassMatchingSelectedArguments(classId, signatures)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: FindMethodsInClassMatchingSelectedArguments)  {
+            buffer.writeByteArray(value.classId)
+            buffer.writeList(value.signatures) { v -> Signature.write(ctx, buffer, v) }
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as FindMethodsInClassMatchingSelectedArguments
+        
+        if (!(classId contentEquals other.classId)) return false
+        if (signatures != other.signatures) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + classId.contentHashCode()
+        __r = __r*31 + signatures.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("FindMethodsInClassMatchingSelectedArguments (")
+        printer.indent {
+            print("classId = "); classId.print(printer); println()
+            print("signatures = "); signatures.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:84]
+ */
+data class FindMethodsInClassMatchingSelectedResult (
+    val executableIds: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<FindMethodsInClassMatchingSelectedResult> {
+        override val _type: KClass<FindMethodsInClassMatchingSelectedResult> = FindMethodsInClassMatchingSelectedResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodsInClassMatchingSelectedResult  {
+            val executableIds = buffer.readByteArray()
+            return FindMethodsInClassMatchingSelectedResult(executableIds)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: FindMethodsInClassMatchingSelectedResult)  {
+            buffer.writeByteArray(value.executableIds)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as FindMethodsInClassMatchingSelectedResult
+        
+        if (!(executableIds contentEquals other.executableIds)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + executableIds.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("FindMethodsInClassMatchingSelectedResult (")
+        printer.indent {
+            print("executableIds = "); executableIds.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:32]
  */
 data class GenerateParams (
     val mockInstalled: Boolean,
@@ -260,7 +534,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:37]
+ * #### Generated from [EngineProcessModel.kt:50]
  */
 data class GenerateResult (
     val notEmptyCases: ByteArray
@@ -317,7 +591,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:8]
+ * #### Generated from [EngineProcessModel.kt:21]
  */
 data class JdkInfo (
     val path: String,
@@ -380,7 +654,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:40]
+ * #### Generated from [EngineProcessModel.kt:53]
  */
 data class RenderParams (
     val classUnderTest: ByteArray,
@@ -521,7 +795,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:57]
+ * #### Generated from [EngineProcessModel.kt:70]
  */
 data class RenderResult (
     val codeGenerationResult: ByteArray
@@ -578,7 +852,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:60]
+ * #### Generated from [EngineProcessModel.kt:73]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -635,7 +909,70 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:13]
+ * #### Generated from [EngineProcessModel.kt:76]
+ */
+data class Signature (
+    val name: String,
+    val parametersTypes: List<String?>
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<Signature> {
+        override val _type: KClass<Signature> = Signature::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): Signature  {
+            val name = buffer.readString()
+            val parametersTypes = buffer.readList { buffer.readNullable { buffer.readString() } }
+            return Signature(name, parametersTypes)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: Signature)  {
+            buffer.writeString(value.name)
+            buffer.writeList(value.parametersTypes) { v -> buffer.writeNullable(v) { buffer.writeString(it) } }
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as Signature
+        
+        if (name != other.name) return false
+        if (parametersTypes != other.parametersTypes) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + name.hashCode()
+        __r = __r*31 + parametersTypes.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("Signature (")
+        printer.indent {
+            print("name = "); name.print(printer); println()
+            print("parametersTypes = "); parametersTypes.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:26]
  */
 data class TestGeneratorParams (
     val buildDir: String,
@@ -701,6 +1038,69 @@ data class TestGeneratorParams (
             print("classpath = "); classpath.print(printer); println()
             print("dependencyPaths = "); dependencyPaths.print(printer); println()
             print("jdkInfo = "); jdkInfo.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [EngineProcessModel.kt:94]
+ */
+data class WriteSarifReportArguments (
+    val reportFilePath: String,
+    val generatedTestsCode: String
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<WriteSarifReportArguments> {
+        override val _type: KClass<WriteSarifReportArguments> = WriteSarifReportArguments::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): WriteSarifReportArguments  {
+            val reportFilePath = buffer.readString()
+            val generatedTestsCode = buffer.readString()
+            return WriteSarifReportArguments(reportFilePath, generatedTestsCode)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: WriteSarifReportArguments)  {
+            buffer.writeString(value.reportFilePath)
+            buffer.writeString(value.generatedTestsCode)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as WriteSarifReportArguments
+        
+        if (reportFilePath != other.reportFilePath) return false
+        if (generatedTestsCode != other.generatedTestsCode) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + reportFilePath.hashCode()
+        __r = __r*31 + generatedTestsCode.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("WriteSarifReportArguments (")
+        printer.indent {
+            print("reportFilePath = "); reportFilePath.print(printer); println()
+            print("generatedTestsCode = "); generatedTestsCode.print(printer); println()
         }
         printer.print(")")
     }

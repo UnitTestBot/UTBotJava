@@ -4,6 +4,19 @@ import com.jetbrains.rd.generator.nova.*
 
 object EngineProcessProtocolRoot : Root()
 
+object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
+    val sourceStrategeMethodArgs = structdef {
+        field("classFqn", PredefinedType.string)
+        field("extension", PredefinedType.string.nullable)
+    }
+
+    init {
+        call("testsRelativePath", PredefinedType.void, PredefinedType.string).async
+        call("getSourceRelativePath", sourceStrategeMethodArgs, PredefinedType.string).async
+        call("getSourceFile", sourceStrategeMethodArgs, PredefinedType.string.nullable).async
+    }
+}
+
 object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
     val jdkInfo = structdef {
         field("path", PredefinedType.string)
@@ -60,6 +73,28 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
+    val signature = structdef {
+        field("name", PredefinedType.string)
+        field("parametersTypes", immutableList(PredefinedType.string.nullable))
+    }
+    val findMethodsInClassMatchingSelectedArguments = structdef {
+        field("classId", array(PredefinedType.byte))
+        field("signatures", immutableList(signature))
+    }
+    val findMethodsInClassMatchingSelectedResult = structdef {
+        field("executableIds", array(PredefinedType.byte))
+    }
+    val findMethodParamNamesArguments = structdef {
+        field("classId", array(PredefinedType.byte))
+        field("bySignature", array(PredefinedType.byte))
+    }
+    val findMethodParamNamesResult = structdef {
+        field("paramNames", array(PredefinedType.byte))
+    }
+    val writeSarifReportArguments = structdef {
+        field("reportFilePath", PredefinedType.string)
+        field("generatedTestsCode", PredefinedType.string)
+    }
 
     init {
         call("setupUtContext", setupContextParams, PredefinedType.void).async
@@ -68,5 +103,9 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
         call("generate", generateParams, generateResult).async
         call("render", renderParams, renderResult).async
         call("stopProcess", PredefinedType.void, PredefinedType.void).async
+        call("obtainClassId", PredefinedType.string, array(PredefinedType.byte)).async
+        call("findMethodsInClassMatchingSelected", findMethodsInClassMatchingSelectedArguments, findMethodsInClassMatchingSelectedResult).async
+        call("findMethodParamNames", findMethodParamNamesArguments, findMethodParamNamesResult).async
+        call("writeSarifReport", writeSarifReportArguments, PredefinedType.void).async
     }
 }

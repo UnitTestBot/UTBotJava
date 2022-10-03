@@ -1,9 +1,0 @@
-file: C:\\Users\\kWX1183156\\.gradle\\caches\\modules-2\\files-2.1\\com.jetbrains.rd\\rd-gen\\2022.3.1\\fedfcd615a15464656b5e07b251207f62135f62a\\rd-gen-2022.3.1.jar=2022-08-09_15:21:58.253
-file: C:\\wrk\\UTBotJava\\utbot-instrumentation\\src\\main\\kotlin\\org\\utbot\\instrumentation\\rd\\generated\\ChildProcessModel.Generated.kt=2022-09-21_17:27:09.348
-file: C:\\wrk\\UTBotJava\\utbot-instrumentation\\src\\main\\kotlin\\org\\utbot\\instrumentation\\rd\\generated\\ChildProcessProtocolRoot.Generated.kt=2022-09-21_17:27:09.349
-file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\rdgen\\org\\utbot\\rd\\models\\ChildProcessModel.kt=2022-09-21_13:31:25.650
-file: C:\\wrk\\UTBotJava\\utbot-rd\\src\\main\\rdgen\\org\\utbot\\rd\\models\\EngineProcessModel.kt=2022-09-21_13:31:25.585
-noLineNumbersInComments=false
-outputFolders=C:\\wrk\\UTBotJava\\utbot-instrumentation\\src\\main\\kotlin\\org\\utbot\\instrumentation\\rd\\generated
-packages=org.utbot.rd.models
-version=1.10

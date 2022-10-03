@@ -402,7 +402,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
         get() = this.isPublic || !this.isPrivate && this.packageName == basePackageName
 
     private val Constructor<*>.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(basePackageName)
+        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName == basePackageName
 
     /**
      * Creates setter or direct setter call to set a field.

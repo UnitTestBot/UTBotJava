@@ -18,6 +18,7 @@ on:
           default: no-postfix
           options:
           - no-postfix
+          - no-postfix-prod
           - alpha
           - beta
 
@@ -42,7 +43,12 @@ jobs:
           # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
           echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
           echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
-          
+
+      - name: Set production version
+        if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
+        run: |
+          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+
       - name: Create version with postfix
         if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
         run:

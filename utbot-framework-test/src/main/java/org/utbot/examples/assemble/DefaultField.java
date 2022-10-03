@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.defaults;
+package org.utbot.examples.assemble;
 
 /**
  * A class with a field with default value that is not a default value of type.

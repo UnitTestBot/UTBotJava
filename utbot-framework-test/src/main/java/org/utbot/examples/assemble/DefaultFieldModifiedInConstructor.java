@@ -1,7 +1,7 @@
-package org.utbot.examples.assemble.defaults;
+package org.utbot.examples.assemble;
 
 public class DefaultFieldModifiedInConstructor {
-    int z;
+    public int z;
 
     @SuppressWarnings("Unused")
     DefaultFieldModifiedInConstructor(int z_) {

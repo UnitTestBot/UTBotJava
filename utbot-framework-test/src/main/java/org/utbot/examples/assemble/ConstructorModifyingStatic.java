@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.constructors;
+package org.utbot.examples.assemble;
 
 public class ConstructorModifyingStatic {
 

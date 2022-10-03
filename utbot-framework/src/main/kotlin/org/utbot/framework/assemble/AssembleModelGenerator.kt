@@ -13,6 +13,7 @@ import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor
@@ -20,13 +21,13 @@ import java.util.IdentityHashMap
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
- * during generation test for [methodUnderTest].
+ * during generation test for [basePackageName].
  *
  * Needs utContext be set and Soot be initialized.
  *
  * Note: Caches class related information, can be reused if classes don't change.
  */
-class AssembleModelGenerator(private val methodPackageName: String) {
+class AssembleModelGenerator(private val basePackageName: String) {
 
     //Instantiated models are stored to avoid cyclic references during reference graph analysis
     private val instantiatedModels: IdentityHashMap<UtModel, UtReferenceModel> =
@@ -148,7 +149,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
     private fun assembleModel(utModel: UtModel): UtModel {
         val collectedCallChain = callChain.toMutableList()
 
-        // we cannot create an assemble model for an anonymous class instance
+        // We cannot create an assemble model for an anonymous class instance
         if (utModel.classId.isAnonymous) {
             return utModel
         }
@@ -234,7 +235,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                     if (fieldId.isFinal) {
                         throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
                     }
-                    if (!fieldId.type.isAccessibleFrom(methodPackageName)) {
+                    if (!fieldId.type.isAccessibleFrom(basePackageName)) {
                         throw AssembleException(
                             "Field $fieldId can't be set in an object of the class $classId because its type is inaccessible"
                         )
@@ -243,7 +244,8 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                     if (fieldId in constructorInfo.affectedFields ||
                             (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
                     ) {
-                        val modifierCall = modifierCall(this, fieldId, assembleModel(fieldModel))
+                        val assembledModel = assembleModel(fieldModel)
+                        val modifierCall = modifierCall(this, fieldId, assembledModel)
                         callChain.add(modifierCall)
                     }
                 }
@@ -375,10 +377,10 @@ class AssembleModelGenerator(private val methodPackageName: String) {
     }
 
     private val ClassId.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(methodPackageName)
+        get() = this.isPublic || !this.isPrivate && this.packageName == basePackageName
 
     private val Constructor<*>.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(methodPackageName)
+        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName == basePackageName
 
     /**
      * Creates setter or direct setter call to set a field.
@@ -392,7 +394,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
     ): UtStatementModel {
         val declaringClassId = fieldId.declaringClass
 
-        val modifiers = getOrFindSettersAndDirectAccessors(declaringClassId)
+        val modifiers = getOrFindSettersAndDirectAccessors(instance.classId)
         val modifier = modifiers[fieldId]
             ?: throw AssembleException("No setter for field ${fieldId.name} of class ${declaringClassId.name}")
 
@@ -417,9 +419,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
      * Finds setters and direct accessors for fields of particular class.
      */
     private fun findSettersAndDirectAccessors(classId: ClassId): Map<FieldId, StatementId> {
-        val allModificatorsOfClass =  modificatorsSearcher
-            .findModificators(SettersAndDirectAccessors, methodPackageName)
-            .map { it.key to it.value.filter { st -> st.classId == classId } }
+        val allModificatorsOfClass =  modificatorsSearcher.findModificators(SettersAndDirectAccessors)
 
         return allModificatorsOfClass
             .mapNotNull { (fieldId, possibleModificators) ->
@@ -435,9 +435,12 @@ class AssembleModelGenerator(private val methodPackageName: String) {
      */
     private fun chooseModificator(
         fieldId: FieldId,
-        settersAndDirectAccessors: List<StatementId>
+        settersAndDirectAccessors: Set<StatementId>,
     ): StatementId? {
-        val directAccessors = settersAndDirectAccessors.filterIsInstance<DirectFieldAccessId>()
+        val directAccessors = settersAndDirectAccessors
+            .filterIsInstance<DirectFieldAccessId>()
+            .filter {it.fieldId.isAccessibleFrom(basePackageName) }
+
         if (directAccessors.any()) {
             return directAccessors.singleOrNull()
                 ?: throw AssembleException(
@@ -446,7 +449,9 @@ class AssembleModelGenerator(private val methodPackageName: String) {
         }
 
         if (settersAndDirectAccessors.any()) {
-            return settersAndDirectAccessors.singleOrNull()
+            return settersAndDirectAccessors
+                .filterIsInstance<ExecutableId>()
+                .singleOrNull { it.isAccessibleFrom(basePackageName) }
                 ?: throw AssembleException(
                     "Field $fieldId has more than one setter: ${settersAndDirectAccessors.joinToString(" ")}"
                 )

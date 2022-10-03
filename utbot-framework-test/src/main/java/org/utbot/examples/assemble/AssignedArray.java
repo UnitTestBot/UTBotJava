@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.arrays;
+package org.utbot.examples.assemble;
 
 /**
  * A class with an array with a default value.

@@ -129,6 +129,10 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 )
             }
             // we can access the field only via reflection
+
+            // NOTE that current implementation works only if field access is located
+            // in the right part of the assignment. However, obtaining this construction
+            // as an "l-value" seems to be an error in assemble models or somewhere else.
             is ReflectionOnly -> fieldId.accessWithReflection(this)
         }
     }

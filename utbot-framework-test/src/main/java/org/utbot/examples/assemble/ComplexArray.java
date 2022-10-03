@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.arrays;
+package org.utbot.examples.assemble;
 
 import org.utbot.examples.assemble.PrimitiveFields;
 

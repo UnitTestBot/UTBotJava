@@ -16,27 +16,27 @@ import org.utbot.examples.assemble.ListItem
 import org.utbot.examples.assemble.NoModifier
 import org.utbot.examples.assemble.PackagePrivateFields
 import org.utbot.examples.assemble.PrimitiveFields
-import org.utbot.examples.assemble.arrays.ArrayOfComplexArrays
-import org.utbot.examples.assemble.arrays.ArrayOfPrimitiveArrays
-import org.utbot.examples.assemble.arrays.AssignedArray
-import org.utbot.examples.assemble.arrays.ComplexArray
-import org.utbot.examples.assemble.arrays.MethodUnderTest
-import org.utbot.examples.assemble.arrays.PrimitiveArray
-import org.utbot.examples.assemble.constructors.ComplexConstructor
-import org.utbot.examples.assemble.constructors.ComplexConstructorWithSetter
-import org.utbot.examples.assemble.constructors.ConstructorModifyingStatic
-import org.utbot.examples.assemble.constructors.InheritComplexConstructor
-import org.utbot.examples.assemble.constructors.InheritPrimitiveConstructor
-import org.utbot.examples.assemble.constructors.PrimitiveConstructor
-import org.utbot.examples.assemble.constructors.PrimitiveConstructorWithDefaultField
-import org.utbot.examples.assemble.constructors.PrivateConstructor
-import org.utbot.examples.assemble.constructors.PseudoComplexConstructor
-import org.utbot.examples.assemble.defaults.DefaultField
-import org.utbot.examples.assemble.defaults.DefaultFieldModifiedInConstructor
-import org.utbot.examples.assemble.defaults.DefaultFieldWithDirectAccessor
-import org.utbot.examples.assemble.defaults.DefaultFieldWithSetter
-import org.utbot.examples.assemble.defaults.DefaultPackagePrivateField
-import org.utbot.examples.assemble.statics.StaticField
+import org.utbot.examples.assemble.ArrayOfComplexArrays
+import org.utbot.examples.assemble.ArrayOfPrimitiveArrays
+import org.utbot.examples.assemble.AssignedArray
+import org.utbot.examples.assemble.ComplexArray
+import org.utbot.examples.assemble.another.MethodUnderTest
+import org.utbot.examples.assemble.PrimitiveArray
+import org.utbot.examples.assemble.ComplexConstructor
+import org.utbot.examples.assemble.ComplexConstructorWithSetter
+import org.utbot.examples.assemble.ConstructorModifyingStatic
+import org.utbot.examples.assemble.InheritComplexConstructor
+import org.utbot.examples.assemble.InheritPrimitiveConstructor
+import org.utbot.examples.assemble.PrimitiveConstructor
+import org.utbot.examples.assemble.PrimitiveConstructorWithDefaultField
+import org.utbot.examples.assemble.PrivateConstructor
+import org.utbot.examples.assemble.PseudoComplexConstructor
+import org.utbot.examples.assemble.DefaultField
+import org.utbot.examples.assemble.DefaultFieldModifiedInConstructor
+import org.utbot.examples.assemble.DefaultFieldWithDirectAccessor
+import org.utbot.examples.assemble.DefaultFieldWithSetter
+import org.utbot.examples.assemble.DefaultPackagePrivateField
+import org.utbot.examples.assemble.StaticField
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -58,7 +58,6 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
 import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
-import org.utbot.examples.assemble.*
 import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 
 /**
@@ -150,8 +149,7 @@ class AssembleModelGeneratorTests {
             fields(testClassId, "a" to 5, "b" to 3)
         )
 
-        val methodFromAnotherPackage =
-            MethodUnderTest::class.functions.first()
+        val methodFromAnotherPackage = MethodUnderTest::class.functions.first()
 
         createModelAndAssert(compositeModel, null, methodFromAnotherPackage.executableId)
     }
@@ -413,7 +411,7 @@ class AssembleModelGeneratorTests {
         val baseClassId = PrimitiveFields::class.id
 
         val thisFields = fields(inheritedFieldClassId, "i" to 5, "d" to 3.0)
-        val baseFields = fields(baseClassId, "a" to 2, "b" to 4)
+        val baseFields = fields(baseClassId, "b" to 4)
 
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
@@ -425,7 +423,6 @@ class AssembleModelGeneratorTests {
         val v1 = statementsChain.addExpectedVariableDecl<InheritedField>()
         statementsChain.add("$v1." + ("i" `=` 5))
         statementsChain.add("$v1." + ("d" `=` 3.0))
-        statementsChain.add("$v1." + addExpectedSetter("a", 2))
         statementsChain.add("$v1." + ("b" `=` 4))
 
         val expectedRepresentation = printExpectedModel(inheritedFieldClassId.simpleName, v1, statementsChain)
@@ -1448,9 +1445,9 @@ class AssembleModelGeneratorTests {
     private fun createModelsAndAssert(
         models: List<UtModel>,
         expectedModelRepresentations: List<String?>,
-        assembleTestUtils: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
+        assembleTestDummyMethod: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) {
-        val modelsMap = AssembleModelGenerator(assembleTestUtils.classId.packageName).createAssembleModels(models)
+        val modelsMap = AssembleModelGenerator(assembleTestDummyMethod.classId.packageName).createAssembleModels(models)
         //we sort values to fix order of models somehow (IdentityHashMap does not guarantee the order)
         val assembleModels = modelsMap.values
             .filterIsInstance<UtAssembleModel>()

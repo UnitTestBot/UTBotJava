@@ -936,13 +936,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun collectExecutionsResultFields() {
-        val successfulExecutionsModels = allExecutions
-            .filter {
-                it.result is UtExecutionSuccess
-            }.map {
-                (it.result as UtExecutionSuccess).model
-            }
-
         for (model in successfulExecutionsModels) {
             when (model) {
                 is UtCompositeModel -> {

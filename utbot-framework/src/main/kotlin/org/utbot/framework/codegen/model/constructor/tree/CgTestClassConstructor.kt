@@ -32,6 +32,7 @@ import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgUtilEntity
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.kClass
@@ -124,7 +125,10 @@ internal class CgTestClassConstructor(val context: CgContext) :
             return null
         }
 
-        allExecutions = testSet.executions
+        successfulExecutionsModels = testSet
+            .executions
+            .filter { it.result is UtExecutionSuccess }
+            .map { (it.result as UtExecutionSuccess).model }
 
         val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()

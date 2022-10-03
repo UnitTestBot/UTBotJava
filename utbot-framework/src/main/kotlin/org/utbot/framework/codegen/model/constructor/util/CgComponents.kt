@@ -40,7 +40,6 @@ internal object CgComponents {
     fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
 
     fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) { CgMethodConstructor(context) }
-    fun getTestClassConstructorBy(context: CgContext) = testClassConstructors.getOrPut(context) { CgTestClassConstructor(context) }
 
     private val nameGenerators: MutableMap<CgContext, CgNameGenerator> = mutableMapOf()
     private val statementConstructors: MutableMap<CgContext, CgStatementConstructor> = mutableMapOf()
@@ -50,5 +49,4 @@ internal object CgComponents {
 
     private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
     private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
-    private val testClassConstructors: MutableMap<CgContext, CgTestClassConstructor> = mutableMapOf()
 }

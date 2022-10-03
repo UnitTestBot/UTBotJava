@@ -148,7 +148,6 @@ import java.lang.reflect.ParameterizedType
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
 internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
-    CgFieldStateManager by CgComponents.getFieldStateManagerBy(context),
     CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context),
     CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
 
@@ -1275,6 +1274,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 rememberInitialStaticFields(statics)
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()
+                val fieldStateManager = CgFieldStateManagerImpl(context)
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
                     substituteStaticFields(statics)
@@ -1288,10 +1288,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
-                    rememberInitialEnvironmentState(modificationInfo)
+                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()
                     generateResultAssertions()
-                    rememberFinalEnvironmentState(modificationInfo)
+                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
                     generateFieldStateAssertions()
                 }
 

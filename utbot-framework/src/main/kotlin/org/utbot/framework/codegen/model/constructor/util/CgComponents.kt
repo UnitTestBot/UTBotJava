@@ -35,11 +35,7 @@ internal object CgComponents {
         is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
     }
 
-    fun getMockFrameworkManagerBy(context: CgContext) =
-            mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
-
-    fun getFieldStateManagerBy(context: CgContext) =
-            fieldStateManagers.getOrPut(context) { CgFieldStateManagerImpl(context) }
+    fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
 
     fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
 
@@ -51,7 +47,6 @@ internal object CgComponents {
     private val callableAccessManagers: MutableMap<CgContext, CgCallableAccessManager> = mutableMapOf()
     private val testFrameworkManagers: MutableMap<CgContext, TestFrameworkManager> = mutableMapOf()
     private val mockFrameworkManagers: MutableMap<CgContext, MockFrameworkManager> = mutableMapOf()
-    private val fieldStateManagers: MutableMap<CgContext, CgFieldStateManager> = mutableMapOf()
 
     private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
     private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()

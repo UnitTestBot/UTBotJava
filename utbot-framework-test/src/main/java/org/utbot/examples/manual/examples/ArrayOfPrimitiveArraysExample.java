@@ -1,6 +1,6 @@
 package org.utbot.examples.manual.examples;
 
-import org.utbot.examples.assemble.arrays.ArrayOfPrimitiveArrays;
+import org.utbot.examples.assemble.ArrayOfPrimitiveArrays;
 
 public class ArrayOfPrimitiveArraysExample {
     int assign10(ArrayOfPrimitiveArrays a) {

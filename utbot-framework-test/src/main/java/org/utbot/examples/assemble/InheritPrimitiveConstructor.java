@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.constructors;
+package org.utbot.examples.assemble;
 
 /**
  * A class with a primitive constructor that inherits another primitive constructor.

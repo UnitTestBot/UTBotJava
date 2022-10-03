@@ -1,4 +1,4 @@
-package org.utbot.examples.assemble.constructors;
+package org.utbot.examples.assemble;
 
 /**
  * A class without default constructor and with primitive one.

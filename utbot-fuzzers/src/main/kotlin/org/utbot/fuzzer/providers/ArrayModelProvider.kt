@@ -15,9 +15,12 @@ class ArrayModelProvider(
     recursionDepthLeft: Int = 2
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
 
-    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider =
-        ArrayModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
-            .copySettings(parentProvider)
+    override fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider {
+        val provider = ArrayModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
+        provider.copySettings(parentProvider)
+        provider.totalLimit = minOf(parentProvider.totalLimit, constructor.limit)
+        return provider
+    }
 
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,

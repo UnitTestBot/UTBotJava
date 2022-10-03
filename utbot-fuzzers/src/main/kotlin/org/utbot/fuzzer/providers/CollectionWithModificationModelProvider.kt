@@ -55,7 +55,7 @@ class CollectionWithModificationModelProvider(
     )
     private var modificationCount = 7
 
-    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider {
+    override fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider {
         val newInstance = CollectionWithModificationModelProvider(
             parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1
         )

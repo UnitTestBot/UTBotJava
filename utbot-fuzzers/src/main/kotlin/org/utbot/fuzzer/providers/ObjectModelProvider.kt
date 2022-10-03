@@ -36,7 +36,7 @@ class ObjectModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
     recursionDepthLeft: Int = 2,
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
-    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider {
+    override fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider {
         val newInstance = ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
         newInstance.copySettings(parentProvider)
         newInstance.branchingLimit = 1

@@ -113,7 +113,7 @@ object UtBotJavaApi {
 
         testSets.addAll(withUtContext(utContext) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
+            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId
@@ -173,7 +173,7 @@ object UtBotJavaApi {
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
+            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId

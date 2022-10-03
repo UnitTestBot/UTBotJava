@@ -54,7 +54,7 @@ abstract class RecursiveModelProvider(
     /**
      * Creates instance of the class on which it is called, assuming that it will be called recursively from [parentProvider]
      */
-    protected abstract fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider
+    protected abstract fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider
 
     /**
      * Creates [ModelProvider]s that will be used to generate values recursively. The order of elements in returned list is important:
@@ -101,16 +101,16 @@ abstract class RecursiveModelProvider(
                 neededTypes[index % neededTypes.size] // because we can repeat neededTypes several times
             }
         }
-        return fuzz(syntheticMethodDescription, nextModelProvider())
+        return fuzz(syntheticMethodDescription, nextModelProvider(this))
             .map { createModel(it) }
             .take(limit)
     }
 
-    private fun nextModelProvider(): ModelProvider =
+    private fun nextModelProvider(constructor: ModelConstructor): ModelProvider =
         if (recursionDepthLeft > 0) {
             modelProviderForRecursiveCalls.map {
                 if (it is RecursiveModelProvider) {
-                    it.newInstance(this)
+                    it.newInstance(this, constructor)
                 } else { it }
             }
         } else {

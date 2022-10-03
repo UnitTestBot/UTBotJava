@@ -97,7 +97,7 @@ private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSt
 fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
-    val commentPrefix =  "CONCRETE EXECUTION ENGINE:"
+    val commentPrefix =  "OTHER:"
     val commentPostfix = "for method ${testSet.method.humanReadableName}"
 
     val grouped = methodExecutions.groupBy { it.result.clusterKind() }
@@ -118,7 +118,7 @@ fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionClust
 }
 
 /**
- * Splits executions into clusters
+ * Splits executions produced by symbolic execution engine into clusters
  * By default there is 5 types of clusters:
  *      Success, UnexpectedFail, ExpectedCheckedThrow, ExpectedUncheckedThrow, UnexpectedUncheckedThrow
  *      These are split by the type of execution result
@@ -131,7 +131,7 @@ fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionClust
 private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
-    val commentPrefix =  "SYMBOLIC EXECUTION ENGINE:"
+    val commentPrefix =  "SYMBOLIC EXECUTION:"
     val commentPostfix = "for method ${testSet.method.humanReadableName}"
 
     val grouped = methodExecutions.groupBy { it.result.clusterKind() }

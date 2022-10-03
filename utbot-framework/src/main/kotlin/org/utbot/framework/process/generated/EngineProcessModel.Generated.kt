@@ -73,7 +73,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = -4621310507632233825L
+        const val serializationHash = 4674749231408610997L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -1158,7 +1158,7 @@ data class Signature (
  * #### Generated from [EngineProcessModel.kt:26]
  */
 data class TestGeneratorParams (
-    val buildDir: String,
+    val buildDir: Array<String>,
     val classpath: String?,
     val dependencyPaths: String,
     val jdkInfo: JdkInfo
@@ -1170,7 +1170,7 @@ data class TestGeneratorParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): TestGeneratorParams  {
-            val buildDir = buffer.readString()
+            val buildDir = buffer.readArray {buffer.readString()}
             val classpath = buffer.readNullable { buffer.readString() }
             val dependencyPaths = buffer.readString()
             val jdkInfo = JdkInfo.read(ctx, buffer)
@@ -1178,7 +1178,7 @@ data class TestGeneratorParams (
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: TestGeneratorParams)  {
-            buffer.writeString(value.buildDir)
+            buffer.writeArray(value.buildDir) { buffer.writeString(it) }
             buffer.writeNullable(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.dependencyPaths)
             JdkInfo.write(ctx, buffer, value.jdkInfo)
@@ -1197,7 +1197,7 @@ data class TestGeneratorParams (
         
         other as TestGeneratorParams
         
-        if (buildDir != other.buildDir) return false
+        if (!(buildDir contentDeepEquals other.buildDir)) return false
         if (classpath != other.classpath) return false
         if (dependencyPaths != other.dependencyPaths) return false
         if (jdkInfo != other.jdkInfo) return false
@@ -1207,7 +1207,7 @@ data class TestGeneratorParams (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + buildDir.hashCode()
+        __r = __r*31 + buildDir.contentDeepHashCode()
         __r = __r*31 + if (classpath != null) classpath.hashCode() else 0
         __r = __r*31 + dependencyPaths.hashCode()
         __r = __r*31 + jdkInfo.hashCode()

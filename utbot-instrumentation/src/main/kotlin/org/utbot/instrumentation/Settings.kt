@@ -36,7 +36,7 @@ object Settings {
      * @see runChildProcessWithDebug
      * @see org.utbot.intellij.plugin.process.EngineProcess
      */
-    const val runIdeaProcessWithDebug = true
+    const val runIdeaProcessWithDebug = false
 
     var defaultConcreteExecutorPoolSize = 10
 }

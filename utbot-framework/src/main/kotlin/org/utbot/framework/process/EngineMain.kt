@@ -97,7 +97,7 @@ private fun EngineProcessModel.setup(
     }
     synchronizer.measureExecutionForTermination(createTestGenerator) { params ->
         AnalyticsConfigureUtil.configureML()
-        testGenerator = TestCaseGenerator(buildDir = Paths.get(params.buildDir),
+        testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
             jdkInfo = JdkInfo(Paths.get(params.jdkInfo.path), params.jdkInfo.version),

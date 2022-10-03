@@ -4,6 +4,7 @@ import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import com.intellij.openapi.vfs.VfsUtil
+import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
@@ -28,7 +29,7 @@ object SarifReportIdea {
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
         // creating report related directory
-        VfsUtil.createDirectoryIfMissing(reportFilePath.parent.toString())
+        runWriteAction { VfsUtil.createDirectoryIfMissing(reportFilePath.parent.toString()) }
 
         proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
     }

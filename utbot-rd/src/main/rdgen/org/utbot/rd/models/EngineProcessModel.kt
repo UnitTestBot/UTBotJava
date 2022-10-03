@@ -24,7 +24,7 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
     }
 
     val testGeneratorParams = structdef {
-        field("buildDir", PredefinedType.string)
+        field("buildDir", array(PredefinedType.string))
         field("classpath", PredefinedType.string.nullable)
         field("dependencyPaths", PredefinedType.string)
         field("jdkInfo", jdkInfo)

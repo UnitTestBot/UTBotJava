@@ -18,7 +18,7 @@ intellij {
 
     val jvmPlugins = listOf(
         "java",
-        "org.jetbrains.kotlin:212-1.7.10-release-333-IJ5457.46"
+        "org.jetbrains.kotlin:222-1.7.20-release-201-IJ4167.29"
     )
 
     val pythonCommunityPlugins = listOf(
@@ -43,7 +43,7 @@ intellij {
         }
     )
 
-    version.set("212.5712.43")
+    version.set("222.4167.29")
     type.set(ideType)
 }
 
@@ -67,7 +67,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("212")
-        untilBuild.set("221.*")
+        untilBuild.set("222.*")
     }
 }
 

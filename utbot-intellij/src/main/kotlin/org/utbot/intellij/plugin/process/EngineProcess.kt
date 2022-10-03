@@ -196,7 +196,7 @@ class EngineProcess(val lifetime: Lifetime) {
     // suppose that only 1 simultaneous test generator process can be executed in idea
     // so every time test generator is created - we just overwrite previous
     fun createTestGenerator(
-        buildDir: String,
+        buildDir: List<String>,
         classPath: String?,
         dependencyPaths: String,
         jdkInfo: JdkInfo,
@@ -205,7 +205,7 @@ class EngineProcess(val lifetime: Lifetime) {
         engineModel().isCancelled.set(handler = isCancelled)
         engineModel().createTestGenerator.startSuspending(
             lifetime,
-            TestGeneratorParams(buildDir, classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
+            TestGeneratorParams(buildDir.toTypedArray(), classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
         )
     }
 

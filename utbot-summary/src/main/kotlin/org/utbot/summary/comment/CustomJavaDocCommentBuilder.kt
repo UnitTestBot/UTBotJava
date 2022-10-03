@@ -84,7 +84,7 @@ class CustomJavaDocCommentBuilder(
         comment: CustomJavaDocComment
     ) {
         when (statement.stmtType) {
-            StmtType.Invoke -> comment.invokes += "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
+            StmtType.Invoke -> comment.invokes += statement.description.replace(CARRIAGE_RETURN, "")
             StmtType.Condition -> comment.executesCondition += "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
             StmtType.Return -> comment.returnsFrom = "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"
             StmtType.CaughtException -> comment.caughtException = "{@code ${statement.description.replace(CARRIAGE_RETURN, "")}}"

@@ -4,7 +4,6 @@ import com.microsoft.z3.Context
 import com.microsoft.z3.Global
 import org.utbot.common.FileUtil
 import java.io.File
-import java.nio.file.Files.createTempDirectory
 
 abstract class Z3Initializer : AutoCloseable {
     protected val context: Context by lazy {

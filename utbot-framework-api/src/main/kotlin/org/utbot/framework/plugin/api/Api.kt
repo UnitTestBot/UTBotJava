@@ -136,7 +136,8 @@ class UtSymbolicExecution(
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null
+    displayName: String? = null,
+    val constrainedExecution: ConstrainedExecution? = null
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
@@ -169,7 +170,12 @@ class UtSymbolicExecution(
         append(")")
     }
 
-    fun copy(stateAfter: EnvironmentModels, result: UtExecutionResult, coverage: Coverage): UtResult {
+    fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+    ): UtExecution {
         return UtSymbolicExecution(
             stateBefore,
             stateAfter,
@@ -180,7 +186,8 @@ class UtSymbolicExecution(
             coverage,
             summary,
             testMethodName,
-            displayName
+            displayName,
+            constrainedExecution
         )
     }
 }
@@ -467,6 +474,80 @@ data class UtArrayModel(
         return id
     }
 }
+
+/**
+ * Models for values with constraints
+ */
+sealed class UtConstraintModel(
+    open val variable: UtConstraintVariable
+) : UtModel(variable.classId) {
+    abstract val utConstraints: Set<UtConstraint>
+}
+
+data class UtPrimitiveConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val utConstraints: Set<UtConstraint>,
+    val concrete: Any? = null
+) : UtConstraintModel(variable) {
+}
+
+data class UtReferenceConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val utConstraints: Set<UtConstraint>,
+) : UtConstraintModel(variable) {
+    fun isNull() = utConstraints.any {
+        it is UtRefEqConstraint && it.lhv == variable && it.rhv is UtConstraintNull
+    }
+}
+
+data class UtReferenceToConstraintModel(
+    override val variable: UtConstraintVariable,
+    val reference: UtModel,
+    override val utConstraints: Set<UtConstraint> = emptySet()
+) : UtConstraintModel(variable)
+
+sealed class UtElementContainerConstraintModel(
+    override val variable: UtConstraintVariable,
+    open val length: UtModel,
+    open val elements: Map<UtModel, UtModel>,
+    open val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtConstraintModel(variable) {
+    final override val utConstraints: Set<UtConstraint> get() =
+        baseConstraints + elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
+            acc +
+                    ((pair.first as? UtConstraintModel)?.utConstraints ?: emptySet()) +
+                    ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet())
+        }
+}
+
+data class UtArrayConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
+
+data class UtListConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
+
+data class UtSetConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
+
+data class UtMapConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
+
 
 /**
  * Model for complex objects with assemble instructions.

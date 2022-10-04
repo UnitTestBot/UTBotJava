@@ -8,6 +8,8 @@ import org.utbot.common.md5
 import org.utbot.common.trace
 import org.utbot.engine.Eq
 import org.utbot.engine.PrimitiveValue
+import org.utbot.engine.ReferenceValue
+import org.utbot.engine.SymbolicValue
 import org.utbot.engine.TypeRegistry
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
 import org.utbot.engine.pc.UtSolverStatusKind.UNKNOWN
@@ -77,6 +79,13 @@ private fun reduceAnd(exprs: List<UtBoolExpression>) =
     }
 
 fun mkEq(left: PrimitiveValue, right: PrimitiveValue): UtBoolExpression = Eq(left, right)
+fun mkEq(left: ReferenceValue, right: ReferenceValue): UtBoolExpression = mkEq(left.addr, right.addr)
+
+fun mkEq(left: SymbolicValue, right: SymbolicValue): UtBoolExpression = when (left) {
+    is PrimitiveValue -> mkEq(left, right as? PrimitiveValue ?: error("Can't cast to PrimitiveValue"))
+    is ReferenceValue -> mkEq(left, right as? ReferenceValue ?: error("Can't cast to ReferenceValue"))
+}
+
 fun mkTrue(): UtBoolLiteral = UtTrue
 fun mkFalse(): UtBoolLiteral = UtFalse
 fun mkBool(boolean: Boolean): UtBoolLiteral = if (boolean) UtTrue else UtFalse
@@ -155,6 +164,12 @@ data class UtSolver constructor(
 
     val rewriter: RewritingVisitor
         get() = constraints.let { if (it is Query) it.rewriter else RewritingVisitor() }
+
+
+    /**
+     * Returns the current constraints.
+     */
+    val query get() = constraints
 
     /**
      * Returns the current status of the constraints.

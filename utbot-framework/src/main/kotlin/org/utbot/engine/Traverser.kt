@@ -96,6 +96,8 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
+import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.isInaccessibleViaReflection
@@ -199,13 +201,14 @@ import kotlin.reflect.jvm.javaType
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: ExecutableId,
+    private val methodUnderTest: SymbolicEngineTarget,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
+    private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -215,6 +218,9 @@ class Traverser(
 
     // TODO: move this and other mutable fields to [TraversalContext]
     lateinit var environment: Environment
+
+    val isInitialized get() = this::environment.isInitialized
+
     private val solver: UtSolver
         get() = environment.state.solver
 
@@ -235,7 +241,7 @@ class Traverser(
 
     private val preferredCexInstanceCache = mutableMapOf<ObjectValue, MutableSet<SootField>>()
 
-    private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
+    internal var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     private val objectCounter = AtomicInteger(TypeRegistry.objectCounterInitialValue)
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
@@ -1006,12 +1012,16 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.executable
+        val executableId = when (methodUnderTest) {
+            is ExecutableIdTarget -> methodUnderTest.executableId
+            else -> return
+        }
+        val callable = executableId.executable
         val kCallable = ::updateGenericTypeInfo
         val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
-            if (methodUnderTest.isConstructor) {
+            if (executableId.isConstructor) {
                 callable.annotatedReturnType?.type
             } else {
                 callable.declaringClass // same as it was, but it isn't parametrized type
@@ -2097,12 +2107,12 @@ class Traverser(
             else -> error("Can't create const from ${type::class}")
         }
 
-    private fun createEnum(type: RefType, addr: UtAddrExpression): ObjectValue {
+    internal fun createEnum(type: RefType, addr: UtAddrExpression, concreteOrdinal: Int? = null): ObjectValue {
         val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = true)
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 
-        val ordinal = findEnumOrdinal(type, addr)
+        val ordinal = concreteOrdinal?.let { it.primitiveToSymbolic() } ?: findEnumOrdinal(type, addr)
         val enumSize = classLoader.loadClass(type.sootClass.name).enumConstants.size
 
         queuedSymbolicStateUpdates += mkOr(Ge(ordinal, 0), addrEq(addr, nullObjectAddr)).asHardConstraint()
@@ -2112,6 +2122,16 @@ class Traverser(
         touchAddress(addr)
 
         return ObjectValue(typeStorage, addr)
+    }
+
+    internal fun createClassRef(sootType: Type): SymbolicValue {
+        val result = if (sootType is RefLikeType) {
+            typeRegistry.createClassRef(sootType.baseType, sootType.numDimensions)
+        } else {
+            error("Can't get class constant for $sootType")
+        }
+        queuedSymbolicStateUpdates += result.symbolicStateUpdate
+        return (result.symbolicResult as SymbolicSuccess).value
     }
 
     private fun arrayUpdate(array: ArrayValue, index: PrimitiveValue, value: UtExpression): MemoryUpdate {
@@ -2159,7 +2179,7 @@ class Traverser(
         return memory.findArray(descriptor).select(addr)
     }
 
-    private fun touchMemoryChunk(chunkDescriptor: MemoryChunkDescriptor) {
+    internal fun touchMemoryChunk(chunkDescriptor: MemoryChunkDescriptor) {
         queuedSymbolicStateUpdates += MemoryUpdate(touchedChunkDescriptors = persistentSetOf(chunkDescriptor))
     }
 
@@ -2176,7 +2196,7 @@ class Traverser(
      *
      * If the field belongs to a substitute object, record the read access for the real type instead.
      */
-    private fun recordInstanceFieldRead(addr: UtAddrExpression, field: SootField) {
+    internal fun recordInstanceFieldRead(addr: UtAddrExpression, field: SootField) {
         val realType = typeRegistry.findRealType(field.declaringClass.type)
         if (realType is RefType) {
             val readOperation = InstanceFieldReadOperation(addr, FieldId(realType.id, field.name))
@@ -3487,6 +3507,14 @@ class Traverser(
         val isNotNullableResult = environment.method.returnValueHasNotNullAnnotation()
         if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue && isNotNullableResult) {
             queuedSymbolicStateUpdates += mkNot(mkEq(symbolicResult.value.addr, nullObjectAddr)).asHardConstraint()
+        }
+
+        if (!environment.state.isInNestedMethod()) {
+            val postConditionUpdates = postConditionConstructor.constructPostCondition(
+                this@Traverser,
+                symbolicResult
+            )
+            queuedSymbolicStateUpdates += postConditionUpdates
         }
 
         val symbolicState = environment.state.symbolicState + queuedSymbolicStateUpdates

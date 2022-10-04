@@ -81,43 +81,7 @@ import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtSandboxFailure
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isNotNull
-import org.utbot.framework.plugin.api.isNull
-import org.utbot.framework.plugin.api.onFailure
-import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -704,6 +668,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
                 }
+
+                else -> {
+                    error("Unexpected ${expectedModel::class.java} in deep equals")
+                }
             }
         }
     }
@@ -964,6 +932,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 is UtArrayModel,
                 is UtClassRefModel,
                 is UtEnumConstantModel,
+                is UtConstraintModel,
                 is UtVoidModel -> {
                     // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
                 }
@@ -1005,6 +974,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             is UtArrayModel,
             is UtClassRefModel,
             is UtEnumConstantModel,
+            is UtConstraintModel,
             is UtVoidModel -> {
                 // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
             }

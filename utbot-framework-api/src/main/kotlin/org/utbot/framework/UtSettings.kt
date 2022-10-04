@@ -381,6 +381,28 @@ object UtSettings : AbstractSettings(
     var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
 
     /**
+     * Flag for enabling model synthesis
+     */
+    var enableSynthesis by getBooleanProperty(false)
+
+    /**
+     * Flag for enabling model synthesis
+     */
+    var enableSynthesisCache by getBooleanProperty(true)
+
+    /**
+     * Timeout model synthesis
+     *
+     */
+    var synthesisTimeoutInMillis by getLongProperty(60000L)
+
+    /**
+     * Max depth for synthesis search
+     *
+     */
+    var synthesisMaxDepth by getIntProperty(10)
+
+    /**
      * Use the sandbox in the concrete executor.
      *
      * If true (default), the sandbox will prevent potentially dangerous calls, e.g., file access, reading
@@ -439,7 +461,12 @@ enum class PathSelectorType {
     /**
      * [RandomPathSelector]
      */
-    RANDOM_PATH_SELECTOR
+    RANDOM_PATH_SELECTOR,
+
+    /**
+     * [ScoringPathSelector]
+     */
+    SCORING_PATH_SELECTOR
 }
 
 enum class TestSelectionStrategyType {

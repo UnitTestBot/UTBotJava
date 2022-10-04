@@ -1,16 +1,12 @@
 package org.utbot.summary.fuzzer.names
 
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.exceptionOrNull
+import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.summary.comment.classic.fuzzer.SimpleCommentForTestProducedByFuzzerBuilder
+import org.utbot.summary.comment.customtags.fuzzer.CommentWithCustomTagForTestProducedByFuzzerBuilder
 import java.util.*
 
 class ModelBasedNameSuggester(
@@ -37,7 +33,8 @@ class ModelBasedNameSuggester(
         return sequenceOf(
             TestSuggestedInfo(
                 testName = createTestName(description, values, result),
-                displayName = createDisplayName(description, values, result)
+                displayName = createDisplayName(description, values, result),
+                javaDoc = createJavaDoc(description, values, result)
             )
         )
     }
@@ -140,6 +137,19 @@ class ModelBasedNameSuggester(
         }
 
         return listOfNotNull(parameters, returnValue).joinToString(separator = " ")
+    }
+
+    /**
+     * Builds the JavaDoc.
+     */
+    private fun createJavaDoc(
+        description: FuzzedMethodDescription,
+        values: List<FuzzedValue>,
+        result: UtExecutionResult?
+    ): List<DocStatement> {
+        return if (UtSettings.useCustomJavaDocTags) {
+            CommentWithCustomTagForTestProducedByFuzzerBuilder(description, values, result).buildDocStatements()
+        } else SimpleCommentForTestProducedByFuzzerBuilder(description, values, result).buildDocStatements()
     }
 
     companion object {

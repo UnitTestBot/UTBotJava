@@ -6,14 +6,17 @@ import org.utbot.go.api.GoUtFuzzedFunctionTestCase
 import org.utbot.go.gocodeanalyzer.GoSourceCodeAnalyzer
 import org.utbot.go.simplecodegeneration.GoTestCasesCodeGenerator
 
-abstract class AbstractGoUtTestsGenerationController(private val goExecutableAbsolutePath: String) {
+abstract class AbstractGoUtTestsGenerationController {
 
-    fun generateTests(selectedFunctionsNamesBySourceFiles: Map<String, List<String>>) {
+    fun generateTests(
+        selectedFunctionsNamesBySourceFiles: Map<String, List<String>>,
+        testsGenerationConfig: GoUtTestsGenerationConfig
+    ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
 
         val analysisResults = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
-            goExecutableAbsolutePath
+            testsGenerationConfig.goExecutableAbsolutePath
         )
         if (!onSourceCodeAnalysisFinished(analysisResults)) return
 
@@ -23,7 +26,8 @@ abstract class AbstractGoUtTestsGenerationController(private val goExecutableAbs
             GoTestCasesGenerator.generateTestCasesForGoSourceFileFunctions(
                 sourceFile,
                 functions,
-                goExecutableAbsolutePath
+                testsGenerationConfig.goExecutableAbsolutePath,
+                testsGenerationConfig.eachExecutionTimeoutsMillisConfig
             ).also { if (!onTestCasesGenerationForGoSourceFileFunctionsFinished(sourceFile, it)) return }
         }
 
@@ -34,7 +38,9 @@ abstract class AbstractGoUtTestsGenerationController(private val goExecutableAbs
         }
     }
 
-    protected abstract fun onSourceCodeAnalysisStart(targetFunctionsNamesBySourceFiles: Map<String, List<String>>): Boolean
+    protected abstract fun onSourceCodeAnalysisStart(
+        targetFunctionsNamesBySourceFiles: Map<String, List<String>>
+    ): Boolean
 
     protected abstract fun onSourceCodeAnalysisFinished(
         analysisResults: Map<GoUtFile, GoSourceCodeAnalyzer.GoSourceFileAnalysisResult>

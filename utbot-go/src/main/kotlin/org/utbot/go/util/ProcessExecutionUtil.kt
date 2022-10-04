@@ -3,7 +3,13 @@ package org.utbot.go.util
 import java.io.File
 import java.io.InputStreamReader
 
-fun executeCommandByNewProcessOrFail(command: List<String>, workingDirectory: File, executionTargetName: String) {
+fun executeCommandByNewProcessOrFail(
+    command: List<String>,
+    workingDirectory: File,
+    executionTargetName: String,
+    helpMessage: String? = null
+) {
+    val helpMessageLine = if (helpMessage == null) "" else "\n\nHELP: $helpMessage"
     val executedProcess = runCatching {
         val process = ProcessBuilder(command)
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
@@ -14,14 +20,20 @@ fun executeCommandByNewProcessOrFail(command: List<String>, workingDirectory: Fi
         process
     }.getOrElse {
         throw RuntimeException(
-            "Execution of $executionTargetName in child process failed with throwable: $it"
+            StringBuilder()
+                .append("Execution of $executionTargetName in child process failed with throwable: ")
+                .append("$it").append(helpMessageLine)
+                .toString()
         )
     }
     val exitCode = executedProcess.exitValue()
     if (exitCode != 0) {
         val processOutput = InputStreamReader(executedProcess.inputStream).readText()
         throw RuntimeException(
-            "Execution of $executionTargetName in child process failed with non-zero exit code = $exitCode:\n$processOutput"
+            StringBuilder()
+                .append("Execution of $executionTargetName in child process failed with non-zero exit code = $exitCode: ")
+                .append("\n$processOutput").append(helpMessageLine)
+                .toString()
         )
     }
 }

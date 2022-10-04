@@ -16,3 +16,7 @@ data class GoUtPanicFailure(
     val panicValue: GoUtModel,
     val panicValueSourceGoType: GoTypeId
 ) : GoUtExecutionResult
+
+data class GoUtTimeoutExceeded(
+    val timeoutMillis: Long
+) : GoUtExecutionResult

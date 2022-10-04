@@ -2,6 +2,7 @@ package org.utbot.go.executor
 
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
+import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import java.io.File
@@ -11,7 +12,8 @@ object GoFuzzedFunctionsExecutor {
     fun executeGoSourceFileFuzzedFunctions(
         sourceFile: GoUtFile,
         fuzzedFunctions: List<GoUtFuzzedFunction>,
-        goExecutableAbsolutePath: String
+        goExecutableAbsolutePath: String,
+        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig
     ): Map<GoUtFuzzedFunction, GoUtExecutionResult> {
         val fileToExecuteName = createFileToExecuteName(sourceFile)
         val rawExecutionResultsFileName = createRawExecutionResultsFileName(sourceFile)
@@ -32,6 +34,7 @@ object GoFuzzedFunctionsExecutor {
             val fileToExecuteGoCode = GoFuzzedFunctionsExecutorCodeGenerationHelper.generateExecutorTestFileGoCode(
                 sourceFile,
                 fuzzedFunctions,
+                eachExecutionTimeoutsMillisConfig,
                 executorTestFunctionName,
                 rawExecutionResultsFileName
             )
@@ -40,7 +43,13 @@ object GoFuzzedFunctionsExecutor {
             executeCommandByNewProcessOrFail(
                 runGeneratedGoExecutorTestCommand,
                 sourceFileDir,
-                "functions from $sourceFile"
+                "functions from $sourceFile",
+                StringBuilder()
+                    .append("Try reducing the timeout for each function execution, ")
+                    .append("select fewer functions for test generation at the same time, ")
+                    .append("or handle corner cases in the source code. ")
+                    .append("Perhaps some functions are too resource-intensive.")
+                    .toString()
             )
             val rawExecutionResults = parseFromJsonOrFail<RawExecutionResults>(rawExecutionResultsFile)
 
@@ -48,7 +57,8 @@ object GoFuzzedFunctionsExecutor {
                 .associate { (fuzzedFunction, rawExecutionResult) ->
                     val executionResult = convertRawExecutionResultToExecutionResult(
                         rawExecutionResult,
-                        fuzzedFunction.function.resultTypes
+                        fuzzedFunction.function.resultTypes,
+                        eachExecutionTimeoutsMillisConfig[fuzzedFunction.function],
                     )
                     fuzzedFunction to executionResult
                 }
@@ -79,8 +89,13 @@ object GoFuzzedFunctionsExecutor {
 
     private fun convertRawExecutionResultToExecutionResult(
         rawExecutionResult: RawExecutionResult,
-        functionResultTypes: List<GoTypeId>
+        functionResultTypes: List<GoTypeId>,
+        timeoutMillis: Long
     ): GoUtExecutionResult {
+        if (rawExecutionResult.timeoutExceeded) {
+            return GoUtTimeoutExceeded(timeoutMillis)
+        }
+
         if (rawExecutionResult.panicMessage != null) {
             val (rawValue, rawGoType, implementsError) = rawExecutionResult.panicMessage
             if (rawValue == null) {
@@ -95,7 +110,7 @@ object GoFuzzedFunctionsExecutor {
             return GoUtPanicFailure(panicValue, panicValueSourceGoType)
         }
 
-        if (rawExecutionResult.resultRawValues.size != functionResultTypes.size) {
+        if (rawExecutionResult.resultRawValues!!.size != functionResultTypes.size) {
             error("Function completed execution must have as many result raw values as result types.")
         }
         var executedWithNonNilErrorString = false
@@ -119,7 +134,6 @@ object GoFuzzedFunctionsExecutor {
         }
     }
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     private fun createGoUtPrimitiveModelFromRawValue(rawValue: String, typeId: GoTypeId): GoUtPrimitiveModel {
         if (typeId == goFloat64TypeId || typeId == goFloat32TypeId) {
             return convertRawFloatValueToGoUtPrimitiveModel(rawValue, typeId)

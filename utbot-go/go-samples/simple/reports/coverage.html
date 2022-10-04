@@ -1,0 +1,384 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>simple: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">go-samples/simple/primitive_types.go (71.2%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Most of the algorithm examples are taken from https://github.com/TheAlgorithms/Go
+
+package simple
+
+import (
+        cryptorand "crypto/rand"
+        "fmt"
+        "io"
+        "math"
+        "math/big"
+        "math/rand"
+        "regexp"
+        "runtime"
+        "strings"
+        "time"
+)
+
+// Abs returns absolute value
+func Abs(n int) int <span class="cov8" title="1">{
+        if n &lt; 0 </span><span class="cov8" title="1">{
+                return -n
+        }</span>
+        <span class="cov8" title="1">return n</span>
+}
+
+// DivOrPanic divides x by y or panics if y is 0
+func DivOrPanic(x int, y int) int <span class="cov8" title="1">{
+        if y == 0 </span><span class="cov8" title="1">{
+                panic("div by 0")</span>
+        }
+        <span class="cov8" title="1">return x / y</span>
+}
+
+// CatalanRecursive finds n-th Catalan number recursively
+func CatalanRecursive(n int) int <span class="cov8" title="1">{
+        if n == 0 </span><span class="cov8" title="1">{
+                return 1
+        }</span> else<span class="cov8" title="1"> {
+                return 2 * (2*n - 1) * CatalanRecursive(n-1) / (n + 1)
+        }</span>
+}
+
+// Bitwise computes using bitwise operator the maximum of all the integer input and returns it
+func Bitwise(a int, b int, base int) int <span class="cov8" title="1">{
+        z := a - b
+        i := (z &gt;&gt; base) &amp; 1
+        return a - (i * z)
+}</span>
+
+// Formula This function calculates the n-th fibonacci number using the [formula](https://en.wikipedia.org/wiki/Fibonacci_number#Relation_to_the_golden_ratio)
+// Attention! Tests for large values fall due to rounding error of floating point numbers, works well, only on small numbers
+func Formula(n uint) uint <span class="cov8" title="1">{
+        sqrt5 := math.Sqrt(5)
+        phi := (sqrt5 + 1) / 2
+        powPhi := math.Pow(phi, float64(n))
+        return uint(powPhi/sqrt5 + 0.5)
+}</span>
+
+// Extended simple extended gcd
+func Extended(a, b int64) (int64, int64, int64) <span class="cov8" title="1">{
+        if a == 0 </span><span class="cov8" title="1">{
+                return b, 0, 1
+        }</span>
+        <span class="cov8" title="1">gcd, xPrime, yPrime := Extended(b%a, a)
+        return gcd, yPrime - (b/a)*xPrime, xPrime</span>
+}
+
+// IterativePower is iterative O(logn) function for pow(x, y)
+func IterativePower(n uint, power uint) uint <span class="cov8" title="1">{
+        var res uint = 1
+        for power &gt; 0 </span><span class="cov8" title="1">{
+                if (power &amp; 1) != 0 </span><span class="cov8" title="1">{
+                        res = res * n
+                }</span>
+
+                <span class="cov8" title="1">power = power &gt;&gt; 1
+                n *= n</span>
+        }
+        <span class="cov8" title="1">return res</span>
+}
+
+// IsPowOfTwoUseLog This function checks if a number is a power of two using the logarithm.
+// The limiting degree can be from 0 to 63.
+// See alternatives in the binary package.
+func IsPowOfTwoUseLog(number float64) bool <span class="cov8" title="1">{
+        if number == 0 || math.Round(number) == math.MaxInt64 </span><span class="cov8" title="1">{
+                return false
+        }</span>
+        <span class="cov8" title="1">log := math.Log2(number)
+        return log == math.Round(log)</span>
+}
+
+// Reverse function that will take string,
+// and returns the reverse of that string.
+func Reverse(str string) string <span class="cov8" title="1">{
+        rStr := []rune(str)
+        for i, j := 0, len(rStr)-1; i &lt; len(rStr)/2; i, j = i+1, j-1 </span><span class="cov8" title="1">{
+                rStr[i], rStr[j] = rStr[j], rStr[i]
+        }</span>
+        <span class="cov8" title="1">return string(rStr)</span>
+}
+
+// Parenthesis algorithm checks if every opened parenthesis
+// is closed correctly
+
+// when parcounter is less than 0 is because a closing
+// parenthesis is detected without an opening parenthesis
+// that surrounds it
+
+// parcounter will be 0 if all open parenthesis are closed
+// correctly
+func Parenthesis(text string) bool <span class="cov8" title="1">{
+        parcounter := 0
+
+        for _, r := range text </span><span class="cov8" title="1">{
+                switch r </span>{
+                case '(':<span class="cov0" title="0">
+                        parcounter++</span>
+                case ')':<span class="cov0" title="0">
+                        parcounter--</span>
+                }
+                <span class="cov8" title="1">if parcounter &lt; 0 </span><span class="cov0" title="0">{
+                        return false
+                }</span>
+        }
+        <span class="cov8" title="1">return parcounter == 0</span>
+}
+
+// IsPalindrome checks if text is palindrome
+func IsPalindrome(text string) bool <span class="cov8" title="1">{
+        clean_text := cleanString(text)
+        var i, j int
+        rune := []rune(clean_text)
+        for i = 0; i &lt; len(rune)/2; i++ </span><span class="cov8" title="1">{
+                j = len(rune) - 1 - i
+                if string(rune[i]) != string(rune[j]) </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+        }
+        <span class="cov8" title="1">return true</span>
+}
+
+func cleanString(text string) string <span class="cov8" title="1">{
+        clean_text := strings.ToLower(text)
+        clean_text = strings.Join(strings.Fields(clean_text), "") // Remove spaces
+        regex, _ := regexp.Compile(`[^\p{L}\p{N} ]+`)             // Regular expression for alphanumeric only characters
+        return regex.ReplaceAllString(clean_text, "")
+}</span>
+
+// Distance Function that gives Levenshtein Distance
+func Distance(str1, str2 string, icost, scost, dcost int) int <span class="cov8" title="1">{
+        row1 := make([]int, len(str2)+1)
+        row2 := make([]int, len(str2)+1)
+
+        for i := 1; i &lt;= len(str2); i++ </span><span class="cov8" title="1">{
+                row1[i] = i * icost
+        }</span>
+
+        <span class="cov8" title="1">for i := 1; i &lt;= len(str1); i++ </span><span class="cov8" title="1">{
+                row2[0] = i * dcost
+
+                for j := 1; j &lt;= len(str2); j++ </span><span class="cov8" title="1">{
+                        if str1[i-1] == str2[j-1] </span><span class="cov8" title="1">{
+                                row2[j] = row1[j-1]
+                        }</span> else<span class="cov8" title="1"> {
+                                ins := row2[j-1] + icost
+                                del := row1[j] + dcost
+                                sub := row1[j-1] + scost
+
+                                if ins &lt; del &amp;&amp; ins &lt; sub </span><span class="cov8" title="1">{
+                                        row2[j] = ins
+                                }</span> else<span class="cov8" title="1"> if del &lt; sub </span><span class="cov8" title="1">{
+                                        row2[j] = del
+                                }</span> else<span class="cov8" title="1"> {
+                                        row2[j] = sub
+                                }</span>
+                        }
+                }
+                <span class="cov8" title="1">row1, row2 = row2, row1</span>
+        }
+
+        <span class="cov8" title="1">return row1[len(row1)-1]</span>
+}
+
+// Generate returns a newly generated password
+func Generate(minLength int, maxLength int) string <span class="cov8" title="1">{
+        var chars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&amp;*()-_=+,.?/:;{}[]`~")
+
+        length, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(maxLength-minLength)))
+        if err != nil </span><span class="cov0" title="0">{
+                panic(err)</span> // handle this gracefully
+        }
+        <span class="cov8" title="1">length.Add(length, big.NewInt(int64(minLength)))
+
+        intLength := int(length.Int64())
+
+        newPassword := make([]byte, intLength)
+        randomData := make([]byte, intLength+intLength/4)
+        clen := byte(len(chars))
+        maxrb := byte(256 - (256 % len(chars)))
+        i := 0
+        for </span><span class="cov0" title="0">{
+                if _, err := io.ReadFull(cryptorand.Reader, randomData); err != nil </span><span class="cov0" title="0">{
+                        panic(err)</span>
+                }
+                <span class="cov0" title="0">for _, c := range randomData </span><span class="cov0" title="0">{
+                        if c &gt;= maxrb </span><span class="cov0" title="0">{
+                                continue</span>
+                        }
+                        <span class="cov0" title="0">newPassword[i] = chars[c%clen]
+                        i++
+                        if i == intLength </span><span class="cov0" title="0">{
+                                return string(newPassword)
+                        }</span>
+                }
+        }
+}
+
+// MonteCarloPiConcurrent approximates the value of pi using the Monte Carlo method.
+// Unlike the MonteCarloPi function (first version), this implementation uses
+// goroutines and channels to parallelize the computation.
+// More details on the Monte Carlo method available at https://en.wikipedia.org/wiki/Monte_Carlo_method.
+// More details on goroutines parallelization available at https://go.dev/doc/effective_go#parallel.
+func MonteCarloPiConcurrent(n int) (float64, error) <span class="cov8" title="1">{
+        numCPU := runtime.GOMAXPROCS(0)
+        c := make(chan int, numCPU)
+        pointsToDraw, err := splitInt(n, numCPU) // split the task in sub-tasks of approximately equal sizes
+        if err != nil </span><span class="cov8" title="1">{
+                return 0, err
+        }</span>
+
+        // launch numCPU parallel tasks
+        <span class="cov0" title="0">for _, p := range pointsToDraw </span><span class="cov0" title="0">{
+                go drawPoints(p, c)
+        }</span>
+
+        // collect the tasks results
+        <span class="cov0" title="0">inside := 0
+        for i := 0; i &lt; numCPU; i++ </span><span class="cov0" title="0">{
+                inside += &lt;-c
+        }</span>
+        <span class="cov0" title="0">return float64(inside) / float64(n) * 4, nil</span>
+}
+
+// drawPoints draws n random two-dimensional points in the interval [0, 1), [0, 1) and sends through c
+// the number of points which where within the circle of center 0 and radius 1 (unit circle)
+func drawPoints(n int, c chan&lt;- int) <span class="cov0" title="0">{
+        rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+        inside := 0
+        for i := 0; i &lt; n; i++ </span><span class="cov0" title="0">{
+                x, y := rnd.Float64(), rnd.Float64()
+                if x*x+y*y &lt;= 1 </span><span class="cov0" title="0">{
+                        inside++
+                }</span>
+        }
+        <span class="cov0" title="0">c &lt;- inside</span>
+}
+
+// splitInt takes an integer x and splits it within an integer slice of length n in the most uniform
+// way possible.
+// For example, splitInt(10, 3) will return []int{4, 3, 3}, nil
+func splitInt(x int, n int) ([]int, error) <span class="cov8" title="1">{
+        if x &lt; n </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("x must be &lt; n - given values are x=%d, n=%d", x, n)
+        }</span>
+        <span class="cov0" title="0">split := make([]int, n)
+        if x%n == 0 </span><span class="cov0" title="0">{
+                for i := 0; i &lt; n; i++ </span><span class="cov0" title="0">{
+                        split[i] = x / n
+                }</span>
+        } else<span class="cov0" title="0"> {
+                limit := x % n
+                for i := 0; i &lt; limit; i++ </span><span class="cov0" title="0">{
+                        split[i] = x/n + 1
+                }</span>
+                <span class="cov0" title="0">for i := limit; i &lt; n; i++ </span><span class="cov0" title="0">{
+                        split[i] = x / n
+                }</span>
+        }
+        <span class="cov0" title="0">return split, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

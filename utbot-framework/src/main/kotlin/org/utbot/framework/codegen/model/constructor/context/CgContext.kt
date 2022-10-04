@@ -215,7 +215,10 @@ internal interface CgContextOwner {
 
     var statesCache: EnvironmentFieldStateCache
 
-    var allExecutions: List<UtExecution>
+    /**
+     * Result models required to create generic execution in parametrized tests.
+     */
+    var successfulExecutionsModels: List<UtModel>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -463,7 +466,7 @@ internal data class CgContext(
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
-    override lateinit var allExecutions: List<UtExecution>
+    override lateinit var successfulExecutionsModels: List<UtModel>
 
     /**
      * This property cannot be accessed outside of test class file scope

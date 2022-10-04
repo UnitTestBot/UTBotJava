@@ -13,10 +13,20 @@ import org.utbot.framework.plugin.api.DocStatement
 import kotlin.math.pow
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.tests.infrastructure.CodeGeneration
 
-internal class RecursionTest : UtValueTestCaseChecker(testClass = Recursion::class) {
+// TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
+internal class RecursionTest : UtValueTestCaseChecker(
+    testClass = Recursion::class,
+    testCodeGeneration = true,
+    languagePipelines = listOf(
+        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    )
+) {
     @Test
     fun testFactorial() {
         val factorialSummary = listOf<DocStatement>(

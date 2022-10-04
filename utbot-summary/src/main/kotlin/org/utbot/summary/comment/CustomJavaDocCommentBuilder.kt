@@ -3,7 +3,6 @@ package org.utbot.summary.comment
 import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.exceptionOrNull
-import org.utbot.summary.SummarySentenceConstants
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.tag.TraceTagWithoutExecution
@@ -52,6 +51,15 @@ class CustomJavaDocCommentBuilder(
             val reason = findExceptionReason(currentMethod, thrownException)
 
             comment.throwsException = "{@link $exceptionName} $reason".replace(CARRIAGE_RETURN, "")
+        }
+
+        if (rootSentenceBlock.recursion != null) {
+            comment.recursion += rootSentenceBlock.recursion?.first
+            val insideRecursionSentence = rootSentenceBlock.recursion?.second?.toSentence()
+            if (!insideRecursionSentence.isNullOrEmpty()) {
+                comment.recursion += stringTemplates.insideRecursionSentence.format(insideRecursionSentence)
+                    .replace(CARRIAGE_RETURN, "").trim()
+            }
         }
 
         generateSequence(rootSentenceBlock) { it.nextBlock }.forEach {

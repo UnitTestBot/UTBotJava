@@ -72,6 +72,13 @@ object FileUtil {
             val creationTime = Files.readAttributes(it.toPath(), BasicFileAttributes::class.java).creationTime()
             TimeUnit.MILLISECONDS.toDays(currentTimeInMillis - creationTime.toMillis()) > daysLimit
         }.forEach { it.deleteRecursively() }
+        File(tempDirectoryPath).listFiles { _, name ->
+            name.matches(Regex("Graph-vis\\d{10,}"))
+                    || name.matches(Regex("\\d{10,}-0"))
+                    || name.matches(Regex("byteBuddyAgent\\d{10,}\\.jar"))
+                    || name.matches(Regex("cmd-args\\d{10,}"))
+                    || name.matches(Regex("mockitoboot\\d{10,}\\.jar"))
+        }?.forEach { it.deleteRecursively() }
     }
 
     fun createTempDirectory(prefix: String): Path {

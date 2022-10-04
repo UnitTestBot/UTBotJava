@@ -61,7 +61,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
                 val module = ModuleUtil.findModuleForFile(srcSourceRoot, project) ?: return null
                 val matchingRoot = ModuleRootManager.getInstance(module).contentEntries
                     .flatMap { entry -> entry.sourceFolders.toList() }
-                    .singleOrNull { folder -> folder.file == srcSourceRoot }
+                    .firstOrNull { folder -> folder.file == srcSourceRoot }
                 if (srcMembers.isEmpty() || matchingRoot == null || matchingRoot.rootType.isForTests) {
                     return null
                 }

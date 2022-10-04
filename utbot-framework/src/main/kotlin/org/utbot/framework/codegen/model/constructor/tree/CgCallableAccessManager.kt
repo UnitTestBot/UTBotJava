@@ -13,7 +13,8 @@ import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.*
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.isUtil
@@ -85,9 +86,9 @@ interface CgCallableAccessManager {
 internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
     CgContextOwner by context {
 
-    private val statementConstructor by lazy { CgComponents.getStatementConstructorBy(context) }
+    private val statementConstructor by lazy { getStatementConstructorBy(context) }
 
-    private val variableConstructor by lazy { CgComponents.getVariableConstructorBy(context) }
+    private val variableConstructor by lazy { getVariableConstructorBy(context) }
 
     override operator fun CgExpression?.get(methodId: MethodId): CgIncompleteMethodCall =
         CgIncompleteMethodCall(methodId, this)

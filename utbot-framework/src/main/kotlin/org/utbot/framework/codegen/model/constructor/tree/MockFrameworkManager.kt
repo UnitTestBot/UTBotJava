@@ -20,7 +20,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.thenReturnMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.whenMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
 import org.utbot.framework.codegen.model.constructor.util.hasAmbiguousOverloadsOf
@@ -70,7 +70,7 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgCallableAccessManager by CgCallableAccessManagerImpl(context),
         CgStatementConstructor by CgStatementConstructorImpl(context) {
 
-    val variableConstructor: CgVariableConstructor by lazy { CgComponents.getVariableConstructorBy(context) }
+    val variableConstructor: CgVariableConstructor by lazy { getVariableConstructorBy(context) }
 
     fun mockitoArgumentMatchersFor(executable: ExecutableId): Array<CgMethodCall> =
             executable.parameters.map {

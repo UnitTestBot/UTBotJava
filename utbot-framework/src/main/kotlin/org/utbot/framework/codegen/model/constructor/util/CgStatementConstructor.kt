@@ -59,6 +59,8 @@ import fj.data.Either
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredField
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgIsInstance
@@ -187,9 +189,9 @@ interface CgStatementConstructor {
 internal class CgStatementConstructorImpl(context: CgContext) :
     CgStatementConstructor,
     CgContextOwner by context,
-    CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context) {
+    CgCallableAccessManager by getCallableAccessManagerBy(context) {
 
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = getNameGeneratorBy(context)
 
     override fun createDeclarationForNewVarAndUpdateVariableScopeOrGetExistingVariable(
         baseType: ClassId,

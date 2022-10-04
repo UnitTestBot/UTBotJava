@@ -5,7 +5,10 @@ import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getMockFrameworkManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.MAX_ARRAY_INITIALIZER_SIZE
 import org.utbot.framework.codegen.model.constructor.util.arrayInitializer
@@ -56,11 +59,11 @@ import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 @Suppress("unused")
 internal class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
-    CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context),
-    CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
+    CgCallableAccessManager by getCallableAccessManagerBy(context),
+    CgStatementConstructor by getStatementConstructorBy(context) {
 
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
+    private val nameGenerator = getNameGeneratorBy(context)
+    private val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     /**
      * Take already created CgValue or construct either a new [CgVariable] or new [CgLiteral] for the given model.

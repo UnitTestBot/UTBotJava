@@ -96,7 +96,9 @@ Go project automatically.
 * installed in IntelliJ IDEA [Go plugin](https://plugins.jetbrains.com/plugin/9568-go), compatible with the IDE
   version (it is for this that the `Ultimate` edition of the IDE is needed);
 * properly configured Go module for source code file (i.e. for file to generate tests for): corresponding `go.mod` file
-  must exist.
+  must exist;
+* installed Go module `github.com/stretchr/testify/assert` to run tests: fortunately, IDEA will automatically highlight
+  it and offer to install the first time the tests are generated.
 
 Most likely, if you are already developing Go project in IntelliJ IDEA, then you have already met all the requirements.
 
@@ -125,7 +127,8 @@ See an example demo for [`primitive_types.go`](go-samples)!
 * installed `Java SDK` version `11` or higher;
 * installed `Go SDK` version later than `1.18`;
 * properly configured Go module for source code file (i.e. for file to generate tests for): corresponding `go.mod` file
-  must exist.
+  must exist;
+* installed `gcc` and Go module `github.com/stretchr/testify/assert` to run tests.
 
 <ins>_To install the UTBot Go CLI application:_</ins> download zip archive containing `utbot-cli JAR`
 from [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/3012565900), then extract its content (JAR file) to a

@@ -30,22 +30,21 @@ the same names).
 There is a setting `Javadoc comment style` in the main plugin's `Settings`. It has two options: `Plain` text
 and `Structured via custom Javadoc tags` (selected by default).
 
-## Examples: Summaries without custom tags/With custom tags
-
+## View
 There are two modes the comment could be shown in IntelliJ IDEA: plain text and rendered view. 
-To activate rendered mode, click on the toggle near comment.
 
-| Version  | Old | New | 
-|----------|-----|-----|
-| Plain    |     |     |
-| Rendered |     |     |
+To activate rendered mode, click on the toggle near comment.
 
 ## Implementation details
 
 Implemented `JavadocTagInfo` to introduce our custom JavaDoc tags.
+
 Implemented `CustomJavadocTagProvider` and registered it in `plugin.xml` to support plugin's custom tags.
+
 Overrided behavior of `JavaDocumentationProvider#generateRenderedDoc` and registered it in `plugin.xml` to render our custom JavaDoc tags correctly.
-Added a flag `USE_CUSTOM_TAGS` to settings
+
+Added a flag `USE_CUSTOM_TAGS` to settings.
+
 After plugin's removal, IDE doesn't recognize our custom tags. It doesn't lead to errors, but highlights tags with
 yellow color.
 

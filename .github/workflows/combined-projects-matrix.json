@@ -2,19 +2,19 @@
   "projects": [
     {
       "FIRST": "utbot-intellij",
-      "SECOND": "utbot-cli",
+      "SECOND": "utbot-cli"
     },
     {
       "FIRST": "utbot-instrumentation",
-      "SECOND": "utbot-instrumentation-tests",
+      "SECOND": "utbot-instrumentation-tests"
     },
     {
       "FIRST": "utbot-summary",
-      "SECOND": "utbot-summary-tests",
+      "SECOND": "utbot-summary-tests"
     },
     {
       "FIRST": "utbot-api",
-      "SECOND": "utbot-framework-api",
+      "SECOND": "utbot-framework-api"
     }
   ]
 }

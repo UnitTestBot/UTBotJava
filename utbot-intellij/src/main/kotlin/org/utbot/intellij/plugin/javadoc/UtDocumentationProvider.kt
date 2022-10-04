@@ -38,12 +38,12 @@ class UtDocumentationProvider : JavaDocumentationProvider() {
         comment: PsiDocCommentBase
     ): String? {
         val utJavaDocInfoGenerator = UtJavaDocInfoGenerator()
-        // case 1: IDE successfully parsed comment with plugin's custom tags,
+        // case 1 (2022.2): IDE successfully parsed comment with plugin's custom tags,
         // and we only need to replace tags names with their messages.
         return if (baseJavaDocInfo != null && baseJavaDocInfo.contains("@utbot")) {
             val finalJavaDoc = replaceTagNamesWithMessages(baseJavaDocInfo)
             JavaDocExternalFilter.filterInternalDocInfo(finalJavaDoc)
-            // case 2: IDE failed to parse plugin's tags, and we need to add them on our own.
+            // case 2 (2022.1 and older): IDE failed to parse plugin's tags, and we need to add them on our own.
         } else if (baseJavaDocInfo != null && comment.text.contains("@utbot")) {
             val javaDocInfoWithUtSections =
                 utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(docComment)

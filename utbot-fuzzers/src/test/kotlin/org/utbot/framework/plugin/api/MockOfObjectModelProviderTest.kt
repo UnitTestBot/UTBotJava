@@ -31,8 +31,8 @@ class MockOfObjectModelProviderTest {
         results.forEach { model ->
             assertInstanceOf(UtAssembleModel::class.java, model)
         }
-        assertEquals(0, (results[0] as UtAssembleModel).modificationsChain.size)
-        assertEquals(1, (results[1] as UtAssembleModel).modificationsChain.size)
+        assertEquals(0, (results[1] as UtAssembleModel).modificationsChain.size)
+        assertEquals(1, (results[0] as UtAssembleModel).modificationsChain.size)
     }
 
     @Test
@@ -65,7 +65,7 @@ class MockOfObjectModelProviderTest {
             assertInstanceOf(UtCompositeModel::class.java, model)
             assertTrue((model as UtCompositeModel).isMock)
         }
-        val modelWithFieldChanger = results[1] as UtCompositeModel
+        val modelWithFieldChanger = results[0] as UtCompositeModel
         assertEquals(1, modelWithFieldChanger.mocks.size)
         val entry = modelWithFieldChanger.mocks.entries.single()
         assertEquals("getAnother", entry.key.name)

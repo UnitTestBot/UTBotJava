@@ -12,7 +12,8 @@ object GoTestCasesGenerator {
     fun generateTestCasesForGoSourceFileFunctions(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>,
-        goExecutableAbsolutePath: String
+        goExecutableAbsolutePath: String,
+        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
     ): List<GoUtFuzzedFunctionTestCase> {
         val fuzzedFunctions = functions.map { function ->
             GoFuzzer.goFuzzing(function = function).map { fuzzedParametersValues ->
@@ -23,7 +24,8 @@ object GoTestCasesGenerator {
         return GoFuzzedFunctionsExecutor.executeGoSourceFileFuzzedFunctions(
             sourceFile,
             fuzzedFunctions,
-            goExecutableAbsolutePath
+            goExecutableAbsolutePath,
+            eachExecutionTimeoutsMillisConfig
         ).map { (fuzzedFunction, executionResult) ->
             GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult)
         }

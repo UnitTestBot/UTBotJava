@@ -4,9 +4,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.fuzz
 import org.utbot.go.api.GoUtFunction
-import org.utbot.go.fuzzer.providers.GoConstantsModelProvider
 import org.utbot.go.fuzzer.providers.GoPrimitivesModelProvider
-import org.utbot.go.fuzzer.providers.GoStringConstantModelProvider
 
 object GoFuzzer {
 
@@ -22,8 +20,6 @@ object GoFuzzer {
 
         // TODO: add more ModelProvider-s
         val modelProviderWithFallback = ModelProvider.of(
-            GoConstantsModelProvider,
-            GoStringConstantModelProvider,
             GoPrimitivesModelProvider
         )
 

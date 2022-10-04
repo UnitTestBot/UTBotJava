@@ -3,8 +3,10 @@ package org.utbot.go.util
 import com.beust.klaxon.Klaxon
 import java.io.File
 
+fun <T> convertObjectToJsonString(targetObject: T): String = Klaxon().toJsonString(targetObject)
+
 fun <T> writeJsonToFileOrFail(targetObject: T, jsonFile: File) {
-    val targetObjectAsJson = Klaxon().toJsonString(targetObject)
+    val targetObjectAsJson = convertObjectToJsonString(targetObject)
     jsonFile.writeText(targetObjectAsJson)
 }
 

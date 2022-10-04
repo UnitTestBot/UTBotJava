@@ -2,17 +2,19 @@ package org.utbot.go.executor
 
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFuzzedFunction
+import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
 import org.utbot.go.simplecodegeneration.generateFuzzedFunctionCall
 import org.utbot.go.util.goRequiredImports
 
 internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
 
-    private val alwaysRequiredImports = setOf("encoding/json", "fmt", "math", "os", "testing", "reflect")
+    private val alwaysRequiredImports = setOf("context", "encoding/json", "fmt", "math", "os", "reflect", "testing", "time")
 
     fun generateExecutorTestFileGoCode(
         sourceFile: GoUtFile,
         fuzzedFunctions: List<GoUtFuzzedFunction>,
+        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
         executorTestFunctionName: String,
         rawExecutionResultsFileName: String,
     ): String {
@@ -27,7 +29,12 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
         fileCodeBuilder.setImports(alwaysRequiredImports + additionalImports)
 
         val executorTestFunctionCode =
-            generateExecutorTestFunctionCode(fuzzedFunctions, executorTestFunctionName, rawExecutionResultsFileName)
+            generateExecutorTestFunctionCode(
+                fuzzedFunctions,
+                eachExecutionTimeoutsMillisConfig,
+                executorTestFunctionName,
+                rawExecutionResultsFileName
+            )
         fileCodeBuilder.addTopLevelElements(
             CodeTemplates.topLevelHelperStructsAndFunctions + listOf(executorTestFunctionCode)
         )
@@ -38,6 +45,7 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
     // TODO: use more convenient code generation
     private fun generateExecutorTestFunctionCode(
         fuzzedFunctions: List<GoUtFuzzedFunction>,
+        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
         executorTestFunctionName: String,
         rawExecutionResultsFileName: String,
     ): String {
@@ -48,13 +56,19 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
         fuzzedFunctions.forEach { fuzzedFunction ->
             val fuzzedFunctionCall = generateFuzzedFunctionCall(fuzzedFunction)
             val function = fuzzedFunction.function
-            codeSb.append("\n\t\t__executeFunctionForUtBotGoExecutor__(\"${function.name}\", func() []*string {")
+            val timeoutMillis = eachExecutionTimeoutsMillisConfig[function]
+
+            codeSb.append("\n\t\t__executeFunctionForUtBotGoExecutor__(")
+                .append("\"${function.name}\", $timeoutMillis * time.Millisecond, ")
+                .append("func() []*string {")
+
             if (function.resultTypes.isEmpty()) {
                 codeSb.append("\n\t\t\t$fuzzedFunctionCall")
                 codeSb.append("\n\t\t\treturn []*string{}")
             } else {
                 codeSb.append("\n\t\t\treturn __wrapResultValuesForUtBotGoExecutor__($fuzzedFunctionCall)")
             }
+
             codeSb.append("\n\t\t}),")
         }
 
@@ -90,6 +104,7 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
         private val rawExecutionResultStruct = """
             type __UtBotGoExecutorRawExecutionResult__ struct {
             	FunctionName    string                              `json:"functionName"`
+                TimeoutExceeded bool                                `json:"timeoutExceeded"`
             	ResultRawValues []*string                           `json:"resultRawValues"`
             	PanicMessage    *__UtBotGoExecutorRawPanicMessage__ `json:"panicMessage"`
             }
@@ -178,31 +193,52 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
         """.trimIndent()
 
         private val executeFunctionFunction = """
-            func __executeFunctionForUtBotGoExecutor__(functionName string, wrappedFunction func() []*string) (
-            	executionResult __UtBotGoExecutorRawExecutionResult__,
-            ) {
-            	executionResult.FunctionName = functionName
-            	executionResult.ResultRawValues = []*string{}
-            	panicked := true
-            	defer func() {
-            		panicMessage := recover()
-            		if panicked {
-            			_, implementsError := panicMessage.(error)
-            			executionResult.PanicMessage = &__UtBotGoExecutorRawPanicMessage__{
-            				RawValue:        __convertValueToRawValueForUtBotGoExecutor__(panicMessage),
-            				GoTypeName:      __getValueRawGoTypeForUtBotGoExecutor__(panicMessage),
-            				ImplementsError: implementsError,
-            			}
-            		} else {
-            			executionResult.PanicMessage = nil
+            func __executeFunctionForUtBotGoExecutor__(
+            	functionName string,
+            	timeoutMillis time.Duration,
+            	wrappedFunction func() []*string,
+            ) __UtBotGoExecutorRawExecutionResult__ {
+            	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeoutMillis)
+            	defer cancel()
+
+            	done := make(chan __UtBotGoExecutorRawExecutionResult__, 1)
+            	go func() {
+            		executionResult := __UtBotGoExecutorRawExecutionResult__{
+            			FunctionName:    functionName,
+            			TimeoutExceeded: false,
+            			ResultRawValues: nil,
+            			PanicMessage:    nil,
             		}
+            		panicked := true
+            		defer func() {
+            			panicMessage := recover()
+            			if panicked {
+            				_, implementsError := panicMessage.(error)
+            				executionResult.PanicMessage = &__UtBotGoExecutorRawPanicMessage__{
+            					RawValue:        __convertValueToRawValueForUtBotGoExecutor__(panicMessage),
+            					GoTypeName:      __getValueRawGoTypeForUtBotGoExecutor__(panicMessage),
+            					ImplementsError: implementsError,
+            				}
+            			}
+            			done <- executionResult
+            		}()
+
+            		rawResultValues := wrappedFunction()
+            		executionResult.ResultRawValues = rawResultValues
+            		panicked = false
             	}()
 
-            	rawResultValues := wrappedFunction()
-            	executionResult.ResultRawValues = rawResultValues
-            	panicked = false
-
-            	return executionResult
+            	select {
+            	case timelyExecutionResult := <-done:
+            		return timelyExecutionResult
+            	case <-ctxWithTimeout.Done():
+            		return __UtBotGoExecutorRawExecutionResult__{
+            			FunctionName:    functionName,
+            			TimeoutExceeded: true,
+                        ResultRawValues: nil,
+            			PanicMessage:    nil,
+            		}
+            	}
             }
         """.trimIndent()
 

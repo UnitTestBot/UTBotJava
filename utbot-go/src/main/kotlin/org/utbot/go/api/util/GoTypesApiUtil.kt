@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUnsignedTypes::class)
-
 package org.utbot.go.api.util
 
 import org.utbot.framework.plugin.api.go.GoClassId

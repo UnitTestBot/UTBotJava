@@ -42,16 +42,14 @@ object GoTestCasesCodeGenerator {
             }
         }
 
-        fun GoUtFuzzedFunctionTestCase.isPanicTestCase(): Boolean {
-            return this.executionResult is GoUtPanicFailure
-        }
-
         val testCasesByFunction = testCases.groupBy { it.function }
         testCasesByFunction.forEach { (_, functionTestCases) ->
-            functionTestCases.filterNot { it.isPanicTestCase() }
+            functionTestCases.filter { it.executionResult is GoUtExecutionCompleted }
                 .generateTestFunctions(::generateTestFunctionForCompletedExecutionTestCase)
-            functionTestCases.filter { it.isPanicTestCase() }
+            functionTestCases.filter { it.executionResult is GoUtPanicFailure }
                 .generateTestFunctions(::generateTestFunctionForPanicFailureTestCase)
+            functionTestCases.filter { it.executionResult is GoUtTimeoutExceeded }
+                .generateTestFunctions(::generateTestFunctionForTimeoutExceededTestCase)
         }
 
         return fileBuilder.buildCodeString()
@@ -198,5 +196,15 @@ object GoTestCasesCodeGenerator {
         }
 
         return "$testFunctionSignatureDeclaration {\n$testFunctionBody\n}"
+    }
+
+    private fun generateTestFunctionForTimeoutExceededTestCase(
+        testCase: GoUtFuzzedFunctionTestCase,
+        @Suppress("UNUSED_PARAMETER") testIndexToShow: Int?
+    ): String {
+        val (fuzzedFunction, executionResult) = testCase
+        val actualFunctionCall = generateFuzzedFunctionCall(fuzzedFunction)
+        val exceededTimeoutMillis = (executionResult as GoUtTimeoutExceeded).timeoutMillis
+        return "// $actualFunctionCall exceeded $exceededTimeoutMillis ms timeout"
     }
 }

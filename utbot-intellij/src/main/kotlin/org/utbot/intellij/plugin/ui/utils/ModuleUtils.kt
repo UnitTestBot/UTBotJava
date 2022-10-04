@@ -145,7 +145,8 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
 
     return sourceFolders
         .filterNot { it.isForGeneratedSources() }
-        .filter { it.rootType == codegenLanguage.testRootType() }
+        .filter { it.isTestSource }
+        .filter { it.expectedLanguageForTests == codegenLanguage }
         // Heuristics: User is more likely to choose the shorter path
         .sortedBy { it.url.length }
 }
@@ -275,3 +276,20 @@ private fun jdkVersionBy(sdk: Sdk?): JavaSdkVersion {
     }
     return jdkVersion
 }
+
+private val SourceFolder.expectedLanguageForTests: CodegenLanguage?
+    get() {
+        // unfortunately, Gradle creates Kotlin test source root with Java source root type, so type is misleading,
+        // and we should try looking for name first
+        if (file?.name == "kotlin")
+            return CodegenLanguage.KOTLIN
+
+        if (file?.name == "java")
+            return CodegenLanguage.JAVA
+
+        return when (rootType) {
+            CodegenLanguage.KOTLIN.testRootType() -> CodegenLanguage.KOTLIN
+            CodegenLanguage.JAVA.testRootType() -> CodegenLanguage.JAVA
+            else -> null
+        }
+    }

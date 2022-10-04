@@ -18,6 +18,7 @@ import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.common.PathUtil
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -58,7 +59,17 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
         val suggestedModules =
             if (model.project.isBuildWithGradle) model.project.allModules() else model.potentialTestModules
 
-        val testRoots = suggestedModules.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
+        val testRootsByLanguage = CodegenLanguage.allItems.associateWith { language ->
+            suggestedModules.flatMap { module ->
+                module.suitableTestSourceRoots(language)
+            }
+        }
+
+        // testRoots for default codegen language should go before other testRoots (this impacts default-selected test root item)
+        val testRoots = with (testRootsByLanguage.entries) {
+            filter { it.key == model.codegenLanguage } + filter { it.key != model.codegenLanguage }
+        }.flatMap { it.value }.toMutableList()
+
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots)
 
@@ -95,7 +106,6 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
         }
 
     private fun configureRootsCombo(testRoots: List<VirtualFile>) {
-        // unfortunately, Gradle creates Kotlin test source root with Java source root type, so type is misleading
         val selectedRoot = testRoots.first()
 
         // do not update model.testModule here, because fake test source root could have been chosen

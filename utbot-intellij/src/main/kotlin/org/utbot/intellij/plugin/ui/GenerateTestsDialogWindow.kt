@@ -74,6 +74,7 @@ import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Dimension
 import java.awt.event.ActionEvent
 import java.nio.file.Files
 import java.nio.file.Path
@@ -90,6 +91,8 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
+import javax.swing.JSpinner
+import javax.swing.text.DefaultFormatter
 import kotlin.streams.toList
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
@@ -179,8 +182,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
-        )
-    private val parametrizedTestSources = JCheckBox("Parametrized tests")
+        ).also {
+            when(val editor = it.editor) {
+                is JSpinner.DefaultEditor -> {
+                    when(val formatter = editor.textField.formatter) {
+                        is DefaultFormatter -> {formatter.allowsInvalid = false}
+                    }
+                }
+            }
+        }
+    private val parametrizedTestSources = JCheckBox("Parameterized tests")
 
     private lateinit var panel: DialogPanel
 
@@ -193,7 +204,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     )
 
     private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
-        return ComboBox<T>(DefaultComboBoxModel(values)).also {
+        val comboBox = object:ComboBox<T>(DefaultComboBoxModel(values)) {
+            var maxWidth = 0
+            //Don't shrink strategy
+            override fun getPreferredSize(): Dimension {
+                val size = super.getPreferredSize()
+                if (size.width > maxWidth) maxWidth = size.width
+                return size.apply { width = maxWidth }
+            }
+        }
+        return comboBox.also {
             it.renderer = CodeGenerationSettingItemRenderer()
         }
     }
@@ -243,7 +263,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     @Suppress("UNCHECKED_CAST")
     override fun createCenterPanel(): JComponent {
         panel = panel {
-            row("Test source root:") {
+            row("Test sources root:") {
                 component(testSourceFolderField)
             }
             row("Testing framework:") {
@@ -253,25 +273,21 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 )
             }
             row { component(parametrizedTestSources) }
-            row("Mock strategy:") {
+            row("Mocking strategy:") {
                 makePanelWithHelpTooltip(
                     mockStrategies,
-                    ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. Otherwise mock nothing.")
+                    ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. " +
+                            "Otherwise, mock nothing. Mockito will be installed, if you don't have one.")
                 )
             }
             row { component(staticsMocking)}
             row("Test generation timeout:") {
-                cell{
+                cell {
                     component(timeoutSpinner)
                     label("seconds per class")
+                    component(ContextHelpLabel.create("Set the timeout for all test generation processes per class to complete."))
                 }
             }
-            row {
-                component(cbSpecifyTestPackage)
-            }.apply { visible = false }
-            row("Destination package:") {
-                component(testPackageField)
-            }.apply { visible = false }
 
             row("Generate tests for:") {}
             row {
@@ -380,7 +396,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             srcClasses.flatMap { it.extractFirstLevelMembers(false) }
         } else {
             srcClasses.map { MemberInfo(it) }
-        }
+        }.toSortedSet { o1, o2 -> o1.displayName.compareTo(o2.displayName, true) }
 
         checkMembers(items)
         membersTable.setMemberInfos(items)
@@ -392,7 +408,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         membersTable.preferredScrollableViewportSize = size(-1, height)
     }
 
-    private fun checkMembers(allMembers: List<MemberInfo>) {
+    private fun checkMembers(allMembers: Collection<MemberInfo>) {
         val selectedDisplayNames = model.selectedMembers.map { it.displayName }
         val selectedMembers = allMembers.filter { it.displayName in selectedDisplayNames }
 

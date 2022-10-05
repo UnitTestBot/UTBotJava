@@ -569,6 +569,21 @@ class UtLambdaModel(
             ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
 
     override fun toString(): String = "Anonymous function $lambdaName implementing functional interface $declaringClass"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtLambdaModel
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id ?: 0
+    }
 }
 
 /**

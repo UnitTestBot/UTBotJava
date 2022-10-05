@@ -662,12 +662,15 @@ class Resolver(
                 builder.toString()
             }
 
-        return UtLambdaModel(
+        val lambdaModel = UtLambdaModel(
             id = addr,
             samType = samType,
             declaringClass = declaringClass.id,
             lambdaName = lambdaName
         )
+        addConstructedModel(addr, lambdaModel)
+
+        return lambdaModel
     }
 
     private fun constructEnum(addr: Address, type: RefType, clazz: Class<*>): UtEnumConstantModel {

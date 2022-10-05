@@ -33,8 +33,11 @@ import org.utbot.intellij.plugin.util.isAbstract
 class GenerateTestsAction : AnAction(), UpdateInBackground {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e, true) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)
+
+        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        val validatedSrcClasses = validateSrcClasses(srcClasses) ?: return
+
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, validatedSrcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
     override fun update(e: AnActionEvent) {
@@ -44,7 +47,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 
-    private fun getPsiTargets(e: AnActionEvent, withWarnings: Boolean = false): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
+    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR)
         if (editor != null) {
@@ -56,7 +59,6 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
-                if (srcClass.isInvalid(withWarnings)) return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
                 val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
@@ -117,7 +119,6 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
                 }
             }
 
-            srcClasses.removeIf { it.isInvalid(withWarnings) }
             if (srcClasses.size > 1) {
                 extractMembersFromSrcClasses = false
             }
@@ -140,22 +141,39 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         return null
     }
 
+    /**
+     * Validates that a set of source classes matches some requirements from [isInvalid].
+     * If no one of them matches, shows a warning about the first mismatch reason.
+     */
+    private fun validateSrcClasses(srcClasses: Set<PsiClass>): Set<PsiClass>? {
+        val filteredClasses = srcClasses
+            .filterNot { it.isInvalid(withWarnings = false) }
+            .toSet()
+
+        if (filteredClasses.isEmpty()) {
+            srcClasses.first().isInvalid(withWarnings = true)
+            return null
+        }
+
+       return filteredClasses
+    }
+
     private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
         val isAbstractOrInterface = this.isInterface || this.isAbstract
         if (isAbstractOrInterface) {
-            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface")
+            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface ${this.name}")
             return true
         }
 
         val isInvisible = !this.isVisible
         if (isInvisible) {
-            if (withWarnings) InvalidClassNotifier.notify("private or protected class")
+            if (withWarnings) InvalidClassNotifier.notify("private or protected class ${this.name}")
             return true
         }
 
         val packageIsIncorrect = this.packageName.startsWith("java")
         if (packageIsIncorrect) {
-            if (withWarnings) InvalidClassNotifier.notify("class located in java.* package")
+            if (withWarnings) InvalidClassNotifier.notify("class ${this.name} located in java.* package")
             return true
         }
 

@@ -67,7 +67,7 @@ object UnsupportedJdkNotifier : ErrorNotifier() {
 object InvalidClassNotifier : WarningNotifier() {
     override val displayId: String = "Invalid class"
     override fun content(project: Project?, module: Module?, info: String): String =
-        "Generate tests with UtBot for the $info is not supported"
+        "Generate tests with UtBot for the $info is not supported."
 }
 
 object MissingLibrariesNotifier : WarningNotifier() {

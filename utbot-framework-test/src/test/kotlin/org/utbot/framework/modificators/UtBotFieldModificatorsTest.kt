@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.utbot.common.nameOfPackage
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
 

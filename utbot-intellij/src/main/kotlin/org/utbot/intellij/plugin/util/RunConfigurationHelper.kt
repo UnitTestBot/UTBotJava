@@ -22,8 +22,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.util.childrenOfType
 import mu.KotlinLogging
-import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 

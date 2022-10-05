@@ -55,8 +55,8 @@ inline fun <T, R: LifetimedProcess> R.terminateOnException(block: (R) -> T): T {
     }
 }
 
-const val processKillTimeoutMillis = 100L
-const val checkProcessAliveDelay = 100L
+private const val processKillTimeoutMillis = 100L
+private const val checkProcessAliveDelayMillis = 100L
 
 class LifetimedProcessIml(override val process: Process, lifetime: Lifetime? = null): LifetimedProcess {
     private val ldef: LifetimeDefinition
@@ -69,12 +69,12 @@ class LifetimedProcessIml(override val process: Process, lifetime: Lifetime? = n
         ldef.onTermination {
             process.destroy()
 
-            if (process.waitFor(processKillTimeoutMillis, TimeUnit.MILLISECONDS))
+            if (!process.waitFor(processKillTimeoutMillis, TimeUnit.MILLISECONDS))
                 process.destroyForcibly()
         }
         UtRdCoroutineScope.current.launch(ldef) {
             while (process.isAlive) {
-                delay(checkProcessAliveDelay)
+                delay(checkProcessAliveDelayMillis)
             }
 
             ldef.terminate()

@@ -2,6 +2,7 @@ package org.utbot.framework
 
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
+import org.utbot.common.PropertiesSettingsContainer
 import kotlin.reflect.KProperty
 
 private val logger = KotlinLogging.logger {}
@@ -16,30 +17,6 @@ internal val utbotHomePath = "${System.getProperty("user.home")}/.utbot"
  */
 private val defaultSettingsPath = "$utbotHomePath/settings.properties"
 private const val defaultKeyForSettingsPath = "utbot.settings.path"
-
-/**
- * Stores current values for each setting from [UtSettings].
- */
-private val settingsValues: MutableMap<KProperty<*>, Any?> = mutableMapOf()
-
-internal class SettingDelegate<T>(val property: KProperty<*>, val initializer: () -> T) {
-    private var value = initializer()
-
-    init {
-        updateSettingValue()
-    }
-
-    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
-
-    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-        this.value = value
-        updateSettingValue()
-    }
-
-    private fun updateSettingValue() {
-        settingsValues[property] = value
-    }
-}
 
 /**
  * Default concrete execution timeout (in milliseconds).
@@ -282,7 +259,7 @@ object UtSettings : AbstractSettings(
     )
 
     /**
-     * Determines whether should errors from a child process be written to a log file or suppressed.
+     * Determines whether should errors from a child process and idea engine process be written to a log file or suppressed.
      * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
      *
      * False by default (for saving disk space).

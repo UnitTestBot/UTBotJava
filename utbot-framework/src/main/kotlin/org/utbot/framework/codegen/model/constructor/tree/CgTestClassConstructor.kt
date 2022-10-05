@@ -44,7 +44,7 @@ import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
 
-internal class CgTestClassConstructor(val context: CgContext) :
+open class CgTestClassConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgStatementConstructor by getStatementConstructorBy(context) {
 
@@ -52,16 +52,16 @@ internal class CgTestClassConstructor(val context: CgContext) :
         clearContextRelatedStorage()
     }
 
-    private val methodConstructor = getMethodConstructorBy(context)
+    protected val methodConstructor = getMethodConstructorBy(context)
     private val nameGenerator = getNameGeneratorBy(context)
-    private val testFrameworkManager = getTestFrameworkManagerBy(context)
+    protected val testFrameworkManager = getTestFrameworkManagerBy(context)
 
-    private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
+    protected val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
      * Given a testClass model  constructs CgTestClass
      */
-    fun construct(testClassModel: TestClassModel): CgTestClassFile {
+    open fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
             this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
@@ -69,7 +69,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
+    open fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
         return buildTestClass {
             id = currentTestClass
 
@@ -130,7 +130,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    open fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }
@@ -186,7 +186,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         return regions
     }
 
-    private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
+    protected fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
@@ -287,7 +287,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
     /**
      * Engine errors + codegen errors for a given [UtMethodTestSet]
      */
-    private val CgMethodTestSet.allErrors: Map<String, Int>
+    protected val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 
     internal object CgComponents {
@@ -323,6 +323,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
             is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }
             is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
             is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
+            else -> throw UnsupportedOperationException()
         }
 
         fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }

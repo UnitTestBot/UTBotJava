@@ -125,6 +125,7 @@ private fun getEnumConstantByName(visibility: Visibility, language: CodegenLangu
             }
         """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguage): String =
@@ -175,6 +176,7 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
             }
         """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): String =
@@ -209,6 +211,7 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
             }
         """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun setStaticField(visibility: Visibility, language: CodegenLanguage): String =
@@ -260,6 +263,7 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
             }
         """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun setField(visibility: Visibility, language: CodegenLanguage): String =
@@ -294,6 +298,7 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
             }
         """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun createArray(visibility: Visibility, language: CodegenLanguage): String =
@@ -328,6 +333,7 @@ private fun createArray(visibility: Visibility, language: CodegenLanguage): Stri
             }
         """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun createInstance(visibility: Visibility, language: CodegenLanguage): String =
@@ -350,6 +356,7 @@ private fun createInstance(visibility: Visibility, language: CodegenLanguage): S
             }
             """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 private fun getUnsafeInstance(visibility: Visibility, language: CodegenLanguage): String =
@@ -372,6 +379,7 @@ private fun getUnsafeInstance(visibility: Visibility, language: CodegenLanguage)
             }
             """
         }
+        else -> throw UnsupportedOperationException()
     }.trimIndent()
 
 /**
@@ -592,6 +600,7 @@ private fun deepEquals(
             }
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 private fun arraysDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -634,6 +643,7 @@ private fun arraysDeepEquals(visibility: Visibility, language: CodegenLanguage):
             }
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 private fun iterablesDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -674,6 +684,7 @@ private fun iterablesDeepEquals(visibility: Visibility, language: CodegenLanguag
             }
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 private fun streamsDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -718,6 +729,7 @@ private fun streamsDeepEquals(visibility: Visibility, language: CodegenLanguage)
             }
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 private fun mapsDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -774,6 +786,7 @@ private fun mapsDeepEquals(visibility: Visibility, language: CodegenLanguage): S
             }
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 private fun hasCustomEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -812,6 +825,7 @@ private fun hasCustomEquals(visibility: Visibility, language: CodegenLanguage): 
             }
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
@@ -826,6 +840,7 @@ private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
             """
             ${visibility by language}fun getArrayLength(arr: kotlin.Any?): Int = java.lang.reflect.Array.getLength(arr)
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun buildStaticLambda(visibility: Visibility, language: CodegenLanguage) =
@@ -936,6 +951,7 @@ private fun buildStaticLambda(visibility: Visibility, language: CodegenLanguage)
                 return handle.invokeWithArguments(*capturedValues)
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun buildLambda(visibility: Visibility, language: CodegenLanguage) =
@@ -1070,6 +1086,7 @@ private fun buildLambda(visibility: Visibility, language: CodegenLanguage) =
                 return handle.invokeWithArguments(*capturedValues)
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getLookupIn(language: CodegenLanguage) =
@@ -1112,6 +1129,7 @@ private fun getLookupIn(language: CodegenLanguage) =
                 return lookup
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getLambdaCapturedArgumentTypes(language: CodegenLanguage) =
@@ -1154,6 +1172,7 @@ private fun getLambdaCapturedArgumentTypes(language: CodegenLanguage) =
                     .toTypedArray()
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getLambdaCapturedArgumentValues(language: CodegenLanguage) =
@@ -1180,6 +1199,7 @@ private fun getLambdaCapturedArgumentValues(language: CodegenLanguage) =
                     .toTypedArray()
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getInstantiatedMethodType(language: CodegenLanguage) =
@@ -1227,6 +1247,7 @@ private fun getInstantiatedMethodType(language: CodegenLanguage) =
                 return java.lang.invoke.MethodType.methodType(lambdaMethod.returnType, instantiatedMethodParamTypes)
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getLambdaMethod(language: CodegenLanguage) =
@@ -1257,6 +1278,7 @@ private fun getLambdaMethod(language: CodegenLanguage) =
                     ?: throw IllegalArgumentException("No lambda method named ${'$'}lambdaName was found in class: ${'$'}{declaringClass.canonicalName}")
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun getSingleAbstractMethod(language: CodegenLanguage) =
@@ -1291,6 +1313,7 @@ private fun getSingleAbstractMethod(language: CodegenLanguage) =
                 return abstractMethods[0]
             }
             """.trimIndent()
+        else -> throw UnsupportedOperationException()
     }
 
 private fun capturedArgumentClass(language: CodegenLanguage) =
@@ -1322,6 +1345,7 @@ private fun capturedArgumentClass(language: CodegenLanguage) =
             data class CapturedArgument(val type: Class<*>, val value: Any?)
             """.trimIndent()
         }
+        else -> throw UnsupportedOperationException()
     }
 
 internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
@@ -1362,22 +1386,27 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
                 Arrays::class.id
             )
             CodegenLanguage.KOTLIN -> listOf(fieldClassId, Arrays::class.id)
+            else -> throw UnsupportedOperationException()
         }
         arraysDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(java.lang.reflect.Array::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> listOf(java.lang.reflect.Array::class.id)
+            else -> throw UnsupportedOperationException()
         }
         iterablesDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Iterable::class.id, Iterator::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> throw UnsupportedOperationException()
         }
         streamsDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(java.util.stream.BaseStream::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> throw UnsupportedOperationException()
         }
         mapsDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Map::class.id, Iterator::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> throw UnsupportedOperationException()
         }
         hasCustomEqualsMethodId -> emptyList()
         getArrayLengthMethodId -> listOf(java.lang.reflect.Array::class.id)
@@ -1387,6 +1416,7 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
                 MethodHandle::class.id, CallSite::class.id, LambdaMetafactory::class.id
             )
             CodegenLanguage.KOTLIN -> listOf(MethodType::class.id, LambdaMetafactory::class.id)
+            else -> throw UnsupportedOperationException()
         }
         buildLambdaMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(
@@ -1394,18 +1424,22 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
                 MethodHandle::class.id, CallSite::class.id, LambdaMetafactory::class.id
             )
             CodegenLanguage.KOTLIN -> listOf(MethodType::class.id, LambdaMetafactory::class.id)
+            else -> throw UnsupportedOperationException()
         }
         getLookupInMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(MethodHandles::class.id, Field::class.id, Modifier::class.id)
             CodegenLanguage.KOTLIN -> listOf(MethodHandles::class.id, Modifier::class.id)
+            else -> throw UnsupportedOperationException()
         }
         getLambdaCapturedArgumentTypesMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(LambdaMetafactory::class.id)
             CodegenLanguage.KOTLIN -> listOf(LambdaMetafactory::class.id)
+            else -> throw UnsupportedOperationException()
         }
         getLambdaCapturedArgumentValuesMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Arrays::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> throw UnsupportedOperationException()
         }
         getInstantiatedMethodTypeMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(
@@ -1413,10 +1447,12 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
                 java.util.List::class.id, Arrays::class.id, Collectors::class.id
             )
             CodegenLanguage.KOTLIN -> listOf(Method::class.id, MethodType::class.id, LambdaMetafactory::class.id)
+            else -> throw UnsupportedOperationException()
         }
         getLambdaMethodMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Method::class.id, Arrays::class.id)
             CodegenLanguage.KOTLIN -> listOf(Method::class.id)
+            else -> throw UnsupportedOperationException()
         }
         getSingleAbstractMethodMethodId -> listOf(
             Method::class.id, java.util.List::class.id, Arrays::class.id,

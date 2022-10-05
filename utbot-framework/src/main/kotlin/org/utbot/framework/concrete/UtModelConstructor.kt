@@ -37,7 +37,7 @@ import java.util.IdentityHashMap
 /**
  * Represents common interface for model constructors.
  */
-internal interface UtModelConstructorInterface {
+interface UtModelConstructorInterface {
     /**
      * Constructs a UtModel from a concrete [value] with a specific [classId].
      */

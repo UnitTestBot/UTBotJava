@@ -40,6 +40,7 @@ import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
+import org.utbot.framework.codegen.model.tree.CgForEachLoop
 import org.utbot.framework.codegen.model.tree.CgForLoop
 import org.utbot.framework.codegen.model.tree.CgGreaterThan
 import org.utbot.framework.codegen.model.tree.CgIfStatement
@@ -101,9 +102,9 @@ import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 
-internal abstract class CgAbstractRenderer(
+abstract class CgAbstractRenderer(
     val context: CgRendererContext,
-    val printer: CgPrinter = CgPrinterImpl()
+    private val printer: CgPrinter = CgPrinterImpl()
 ) : CgVisitor<Unit>,
     CgPrinter by printer {
 
@@ -112,8 +113,8 @@ internal abstract class CgAbstractRenderer(
     protected abstract val logicalAnd: String
     protected abstract val logicalOr: String
 
-    protected val regionStart: String = "///region"
-    protected val regionEnd: String = "///endregion"
+    protected open val regionStart: String = "///region"
+    protected open val regionEnd: String = "///endregion"
 
     protected abstract val language: CodegenLanguage
 
@@ -528,6 +529,8 @@ internal abstract class CgAbstractRenderer(
         println()
     }
 
+    override fun visit(element: CgForEachLoop) {}
+
     override fun visit(element: CgWhileLoop) {
         print("while (")
         element.condition.accept(this)
@@ -855,7 +858,7 @@ internal abstract class CgAbstractRenderer(
         }
     }
 
-    private fun renderClassFileImports(element: AbstractCgClassFile<*>) {
+    open fun renderClassFileImports(element: AbstractCgClassFile<*>) {
         val regularImports = element.imports.filterIsInstance<RegularImport>()
         val staticImports = element.imports.filterIsInstance<StaticImport>()
 
@@ -949,10 +952,7 @@ internal abstract class CgAbstractRenderer(
         }
 
         private fun makeRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer {
-            return when (context.codegenLanguage) {
-                CodegenLanguage.JAVA -> CgJavaRenderer(context, printer)
-                CodegenLanguage.KOTLIN -> CgKotlinRenderer(context, printer)
-            }
+            return context.codeGenLanguage.cgRenderer(context, printer)
         }
 
         /**

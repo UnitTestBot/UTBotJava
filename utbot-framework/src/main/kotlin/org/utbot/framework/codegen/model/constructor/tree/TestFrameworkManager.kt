@@ -50,7 +50,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
-internal abstract class TestFrameworkManager(val context: CgContext)
+abstract class TestFrameworkManager(val context: CgContext)
     : CgContextOwner by context,
         CgCallableAccessManager by getCallableAccessManagerBy(context) {
 
@@ -234,6 +234,8 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     fun addDataProvider(dataProvider: CgMethod) {
         dataProviderMethodsHolder.cgDataProviderMethods += dataProvider
     }
+
+    open fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {}
 }
 
 internal class TestNgManager(context: CgContext) : TestFrameworkManager(context) {
@@ -379,6 +381,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
     }
 }
 
+
 internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context) {
     private val parametrizedTestsNotSupportedError: Nothing
         get() = error("Parametrized tests are not supported for JUnit4")
@@ -392,12 +395,14 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForOuterClasses: CgAnnotation
         get() {
             require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
+            require(codegenLanguage == CodegenLanguage.JAVA || codegenLanguage == CodegenLanguage.KOTLIN) { "Expected Java or Kotlin language, but got: $codegenLanguage" }
             return statementConstructor.annotation(
                 testFramework.runWithAnnotationClassId,
                 testFramework.enclosedClassId.let {
                     when (codegenLanguage) {
                         CodegenLanguage.JAVA   -> CgGetJavaClass(it)
                         CodegenLanguage.KOTLIN -> CgGetKotlinClass(it)
+                        else -> throw UnsupportedOperationException()
                     }
                 }
             )

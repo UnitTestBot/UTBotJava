@@ -26,7 +26,7 @@ data class Instruction(
  * @param instructionsCount a number of all instructions in the current class.
  *
  */
-data class Coverage(
+open class Coverage(
     val coveredInstructions: List<Instruction> = emptyList(),
     val instructionsCount: Long? = null
 )

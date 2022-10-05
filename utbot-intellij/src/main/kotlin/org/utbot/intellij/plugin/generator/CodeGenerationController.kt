@@ -74,7 +74,6 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
-import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
@@ -94,6 +93,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
+import org.utbot.intellij.plugin.models.packageName
 import mu.KotlinLogging
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
@@ -558,6 +558,7 @@ object CodeGenerationController {
                                 when (model.codegenLanguage) {
                                     CodegenLanguage.JAVA -> it !is KtUltraLightClass
                                     CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                                    else -> throw UnsupportedOperationException()
                                 }
                             }
                     })
@@ -573,6 +574,7 @@ object CodeGenerationController {
             when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
+                else -> throw UnsupportedOperationException()
             }
         )
         runWriteAction { testDirectory.findFile(testClassName + model.codegenLanguage.extension)?.delete() }
@@ -689,6 +691,7 @@ object CodeGenerationController {
                     JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
+                else -> throw UnsupportedOperationException()
             }
         }
     }
@@ -909,7 +912,7 @@ object CodeGenerationController {
         }
     }
 
-    private fun unblockDocument(project: Project, document: Document) {
+    fun unblockDocument(project: Project, document: Document) {
         PsiDocumentManager.getInstance(project).apply {
             commitDocument(document)
             doPostponedOperationsAndUnblockDocument(document)

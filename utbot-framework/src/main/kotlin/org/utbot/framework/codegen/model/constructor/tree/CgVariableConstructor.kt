@@ -74,7 +74,7 @@ import org.utbot.framework.plugin.api.util.wrapperByPrimitive
  * Constructs CgValue or CgVariable given a UtModel
  */
 @Suppress("unused")
-internal class CgVariableConstructor(val context: CgContext) :
+open class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
@@ -105,7 +105,7 @@ internal class CgVariableConstructor(val context: CgContext) :
      * We use [valueByModelId] for [UtReferenceModel] by id to not create new variable in case state before
      * was not transformed.
      */
-    fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
+    open fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return if (model is UtReferenceModel) valueByModelId.getOrPut(model.id) {
@@ -123,6 +123,7 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
+                else -> error("Unexpected UtModel: ${model::class}")
             }
         }
     }
@@ -208,7 +209,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+    fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
         val instantiationCall = model.instantiationCall
         processInstantiationStatement(model, instantiationCall, baseName)
 
@@ -302,6 +303,7 @@ internal class CgVariableConstructor(val context: CgContext) :
 
                 return null
             }
+            else -> throw UnsupportedOperationException()
         }
     }
 

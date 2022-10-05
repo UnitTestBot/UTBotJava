@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.ExecutableId
  * @param concreteValues any concrete values to be processed by fuzzer
  *
  */
-class FuzzedMethodDescription(
+open class FuzzedMethodDescription(
     val name: String,
     val returnType: ClassId,
     val parameters: List<ClassId>,
@@ -69,4 +69,31 @@ class FuzzedMethodDescription(
         executableId.parameters,
         concreteValues
     )
+}
+
+enum class FuzzedOp(val sign: String?) : FuzzedContext {
+    NONE(null),
+    EQ("=="),
+    NE("!="),
+    GT(">"),
+    GE(">="),
+    LT("<"),
+    LE("<="),
+    CH(null), // changed or called
+    ;
+
+    fun isComparisonOp() = this == EQ || this == NE || this == GT || this == GE || this == LT || this == LE
+
+    fun reverseOrNull() : FuzzedOp? = when(this) {
+        EQ -> NE
+        NE -> EQ
+        GT -> LE
+        LT -> GE
+        LE -> GT
+        GE -> LT
+        else -> null
+    }
+
+    fun reverseOrElse(another: (FuzzedOp) -> FuzzedOp): FuzzedOp =
+        reverseOrNull() ?: another(this)
 }

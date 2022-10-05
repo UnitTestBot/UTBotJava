@@ -65,7 +65,7 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 
-internal abstract class CgVariableConstructorComponent(val context: CgContext) :
+abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
         CgCallableAccessManager by CgCallableAccessManagerImpl(context),
         CgStatementConstructor by CgStatementConstructorImpl(context) {
@@ -114,12 +114,13 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
             argumentMatchersClassId[anyOfClass](getClassOf(id))
 }
 
-internal class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(context) {
+class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(context) {
 
     private val objectMocker = MockitoMocker(context)
     private val staticMocker = when (context.staticsMocking) {
         is NoStaticMocking -> null
         is MockitoStaticMocking -> MockitoStaticMocker(context, objectMocker)
+        else -> null
     }
 
     /**

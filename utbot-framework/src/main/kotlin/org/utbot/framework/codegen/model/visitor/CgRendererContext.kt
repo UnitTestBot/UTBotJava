@@ -5,17 +5,14 @@ import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_PACKAG
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.*
 
 /**
  * Information from [CgContext] that is relevant for the renderer.
  * Not all the information from [CgContext] is required to render a class,
  * so this more lightweight context is created for this purpose.
  */
-internal class CgRendererContext(
+class CgRendererContext(
     val shouldOptimizeImports: Boolean,
     val importedClasses: Set<ClassId>,
     val importedStaticMethods: Set<MethodId>,
@@ -25,7 +22,9 @@ internal class CgRendererContext(
     val codegenLanguage: CodegenLanguage,
     val mockFrameworkUsed: Boolean,
     val mockFramework: MockFramework,
+    val codeGenLanguage: CodeGenLanguage = CodeGenLanguage.defaultItem,
 ) {
+
     companion object {
         fun fromCgContext(context: CgContext): CgRendererContext {
             return CgRendererContext(
@@ -36,6 +35,7 @@ internal class CgRendererContext(
                 generatedClass = context.outerMostTestClass,
                 utilMethodProvider = context.utilMethodProvider,
                 codegenLanguage = context.codegenLanguage,
+                codeGenLanguage = context.codeGenLanguage,
                 mockFrameworkUsed = context.mockFrameworkUsed,
                 mockFramework = context.mockFramework
             )

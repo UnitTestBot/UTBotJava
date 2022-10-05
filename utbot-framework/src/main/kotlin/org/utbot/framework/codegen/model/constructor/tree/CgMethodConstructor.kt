@@ -1286,21 +1286,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     resources.forEach {
                         // First argument for mocked resource declaration initializer is a target type.
                         // Pass this argument as a type parameter for the mocked resource
+
+                        // TODO this type parameter (required for Kotlin test) is unused until the proper implementation
+                        //  of generics in code generation https://github.com/UnitTestBot/UTBotJava/issues/88
+                        @Suppress("UNUSED_VARIABLE")
                         val typeParameter = when (val firstArg = (it.initializer as CgMethodCall).arguments.first()) {
                             is CgGetJavaClass -> firstArg.classId
                             is CgVariable -> firstArg.type
                             else -> error("Unexpected mocked resource declaration argument $firstArg")
                         }
-                        val varType = CgClassId(
-                            it.variableType,
-                            TypeParameters(listOf(typeParameter)),
-                            isNullable = true,
-                        )
+
                         +CgDeclaration(
-                            varType,
+                            it.variableType,
                             it.variableName,
-                            // guard initializer to reuse typecast creation logic
-                            initializer = guardExpression(varType, nullLiteral()).expression,
+                            initializer = nullLiteral(),
                             isMutable = true,
                         )
                     }

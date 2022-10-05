@@ -193,6 +193,8 @@ class ValueConstructor {
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            // Python, JavaScript and go are supposed to be here as well
+            else -> UtConcreteValue(null, model.classId.jClass)
         }
     }
 

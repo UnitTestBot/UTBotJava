@@ -125,6 +125,7 @@ private fun getEnumConstantByName(visibility: Visibility, language: CodegenLangu
             }
         """
         }
+        else -> ""
     }.trimIndent()
 
 private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguage): String =
@@ -175,6 +176,7 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
             }
         """
         }
+        else -> ""
     }.trimIndent()
 
 private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): String =
@@ -209,6 +211,7 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
             }
         """
         }
+        else -> ""
     }.trimIndent()
 
 private fun setStaticField(visibility: Visibility, language: CodegenLanguage): String =
@@ -260,6 +263,7 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
             }
         """
         }
+        else -> ""
     }.trimIndent()
 
 private fun setField(visibility: Visibility, language: CodegenLanguage): String =
@@ -294,6 +298,7 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
             }
         """
         }
+        else -> ""
     }.trimIndent()
 
 private fun createArray(visibility: Visibility, language: CodegenLanguage): String =
@@ -328,6 +333,7 @@ private fun createArray(visibility: Visibility, language: CodegenLanguage): Stri
             }
         """
         }
+        else -> ""
     }.trimIndent()
 
 private fun createInstance(visibility: Visibility, language: CodegenLanguage): String =
@@ -350,6 +356,7 @@ private fun createInstance(visibility: Visibility, language: CodegenLanguage): S
             }
             """
         }
+        else -> ""
     }.trimIndent()
 
 private fun getUnsafeInstance(visibility: Visibility, language: CodegenLanguage): String =
@@ -372,6 +379,7 @@ private fun getUnsafeInstance(visibility: Visibility, language: CodegenLanguage)
             }
             """
         }
+        else -> ""
     }.trimIndent()
 
 /**
@@ -592,6 +600,7 @@ private fun deepEquals(
             }
             """.trimIndent()
         }
+        else -> ""
     }
 
 private fun arraysDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -634,6 +643,7 @@ private fun arraysDeepEquals(visibility: Visibility, language: CodegenLanguage):
             }
             """.trimIndent()
         }
+        else -> ""
     }
 
 private fun iterablesDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -674,6 +684,7 @@ private fun iterablesDeepEquals(visibility: Visibility, language: CodegenLanguag
             }
             """.trimIndent()
         }
+        else -> ""
     }
 
 private fun streamsDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -718,6 +729,7 @@ private fun streamsDeepEquals(visibility: Visibility, language: CodegenLanguage)
             }
             """.trimIndent()
         }
+        else -> ""
     }
 
 private fun mapsDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -774,6 +786,7 @@ private fun mapsDeepEquals(visibility: Visibility, language: CodegenLanguage): S
             }
             """.trimIndent()
         }
+        else -> ""
     }
 
 private fun hasCustomEquals(visibility: Visibility, language: CodegenLanguage): String =
@@ -812,6 +825,7 @@ private fun hasCustomEquals(visibility: Visibility, language: CodegenLanguage): 
             }
             """.trimIndent()
         }
+        else -> ""
     }
 
 private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
@@ -826,6 +840,7 @@ private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
             """
             ${visibility by language}fun getArrayLength(arr: kotlin.Any?): Int = java.lang.reflect.Array.getLength(arr)
             """.trimIndent()
+        else -> ""
     }
 
 private fun buildStaticLambda(visibility: Visibility, language: CodegenLanguage) =
@@ -1362,22 +1377,27 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
                 Arrays::class.id
             )
             CodegenLanguage.KOTLIN -> listOf(fieldClassId, Arrays::class.id)
+            else -> emptyList()
         }
         arraysDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(java.lang.reflect.Array::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> listOf(java.lang.reflect.Array::class.id)
+            else -> emptyList()
         }
         iterablesDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Iterable::class.id, Iterator::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> emptyList()
         }
         streamsDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(java.util.stream.BaseStream::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> emptyList()
         }
         mapsDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Map::class.id, Iterator::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
+            else -> emptyList()
         }
         hasCustomEqualsMethodId -> emptyList()
         getArrayLengthMethodId -> listOf(java.lang.reflect.Array::class.id)

@@ -529,7 +529,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.codegenLanguage)) "`$s`" else s
+        if (isLanguageKeyword(s, context.codeGenLanguage)) "`$s`" else s
 
     override fun renderClassVisibility(classId: ClassId) {
         when {

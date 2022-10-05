@@ -37,6 +37,7 @@ data class Snippet(val codegenLanguage: CodegenLanguage, var text: String) {
         when (codegenLanguage) {
             CodegenLanguage.JAVA -> text.contains("import $fullyQualifiedName;")
             CodegenLanguage.KOTLIN -> text.contains("import $fullyQualifiedName")
+            else -> TODO()
         }
 
     fun doesntHaveImport(fullyQualifiedName: String) = !hasImport(fullyQualifiedName)
@@ -45,6 +46,7 @@ data class Snippet(val codegenLanguage: CodegenLanguage, var text: String) {
         when (codegenLanguage) {
             CodegenLanguage.JAVA -> text.contains("import static $member;")
             CodegenLanguage.KOTLIN -> text.contains("import $member")
+            else -> TODO()
         }
 
     fun doesntHaveStaticImport(member: String) = !hasStaticImport(member)

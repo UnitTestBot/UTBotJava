@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.util.isArray
 /**
  * Interface for method and variable name generators
  */
-internal interface CgNameGenerator {
+interface CgNameGenerator {
     /**
      * Generate a variable name given a [base] name.
      * @param isMock denotes whether a variable represents a mock object or not
@@ -67,7 +67,7 @@ internal interface CgNameGenerator {
  * Class that generates names for methods and variables
  * To avoid name collisions it uses existing names information from CgContext
  */
-internal class CgNameGeneratorImpl(private val context: CgContext)
+open class CgNameGeneratorImpl(val context: CgContext)
     : CgNameGenerator, CgContextOwner by context {
 
     override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
@@ -78,7 +78,7 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         }
         return when {
             baseName in existingVariableNames -> nextIndexedVarName(baseName)
-            isLanguageKeyword(baseName, codegenLanguage) -> createNameFromKeyword(baseName)
+            isLanguageKeyword(baseName, context.codeGenLanguage) -> createNameFromKeyword(baseName)
             else -> baseName
         }.also {
             existingVariableNames = existingVariableNames.add(it)
@@ -130,7 +130,7 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
     /**
      * Creates a new indexed variable name by [base] name.
      */
-    private fun nextIndexedVarName(base: String): String =
+    fun nextIndexedVarName(base: String): String =
         infiniteInts()
             .map { "$base$it" }
             .first { it !in existingVariableNames }
@@ -140,20 +140,20 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
      *
      * @param skipOne shows if we add "1" to first method name or not
      */
-    private fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
+    fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
         infiniteInts()
             .map { if (skipOne && it == 1) base else "$base$it" }
             .first { it !in existingMethodNames }
 
-    private fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
-        CodegenLanguage.JAVA -> nextIndexedVarName(baseName)
+    fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
         CodegenLanguage.KOTLIN -> {
             // use backticks for first variable with keyword name and use indexed names for all next such variables
             if (baseName !in existingVariableNames) "`$baseName`" else nextIndexedVarName(baseName)
         }
+        else -> nextIndexedVarName(baseName)
     }
 
-    private fun createExecutableName(executableId: ExecutableId): String {
+    fun createExecutableName(executableId: ExecutableId): String {
         return when (executableId) {
             is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
             is MethodId -> executableId.name

@@ -78,6 +78,7 @@ interface CgElement {
             is CgTryCatch -> visit(element)
             is CgInnerBlock -> visit(element)
             is CgForLoop -> visit(element)
+            is CgForEachLoop -> visit(element)
             is CgWhileLoop -> visit(element)
             is CgDoWhileLoop -> visit(element)
             is CgBreakStatement -> visit(element)
@@ -133,7 +134,7 @@ data class CgRegularClassFile(
 data class CgTestClassFile(
     override val imports: List<Import>,
     override val declaredClass: CgTestClass,
-    val testsGenerationReport: TestsGenerationReport
+    val testsGenerationReport: TestsGenerationReport,
 ) : AbstractCgClassFile<CgTestClass>()
 
 sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
@@ -919,7 +920,7 @@ class CgGetLength(val variable: CgVariable) : CgExpression {
 
 // Acquisition of java or kotlin class, e.g. MyClass.class in Java, MyClass::class.java in Kotlin or MyClass::class for Kotlin classes
 
-sealed class CgGetClass(val classId: ClassId) : CgReferenceExpression {
+open class CgGetClass(val classId: ClassId) : CgReferenceExpression {
     override val type: ClassId = Class::class.id
 }
 

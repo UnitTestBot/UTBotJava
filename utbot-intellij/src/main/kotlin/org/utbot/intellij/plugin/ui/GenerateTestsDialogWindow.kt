@@ -169,7 +169,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
 
-    private val codegenLanguages = createComboBox(CodegenLanguage.values())
+    private val codegenLanguages = createComboBox(CodegenLanguage.allItems.toTypedArray())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
@@ -712,6 +712,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> jUnit4LibraryDescriptor(versionInProject)
             Junit5 -> jUnit5LibraryDescriptor(versionInProject)
             TestNg -> testNgLibraryDescriptor(versionInProject)
+            else -> throw IllegalStateException()
         }
 
         selectedTestFramework.isInstalled = true
@@ -977,6 +978,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> parametrizedTestSources.isEnabled = false
             Junit5,
             TestNg -> parametrizedTestSources.isEnabled = true
+            TestNg -> parametrizedTestSources.isEnabled = true
+            else -> parametrizedTestSources.isEnabled = false
         }
     }
 

@@ -131,7 +131,7 @@ open class TestCaseGenerator(
             engineActions.clear()
             return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
         } catch (e: Exception) {
-            e.printStackTrace()
+            logger.error(e) {"Generate async failed"}
             throw e
         }
     }
@@ -185,7 +185,7 @@ open class TestCaseGenerator(
                                     }
                                 }
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            logger.error(e) {"Error in engine"}
                         }
                     }
                     controller.paused = true

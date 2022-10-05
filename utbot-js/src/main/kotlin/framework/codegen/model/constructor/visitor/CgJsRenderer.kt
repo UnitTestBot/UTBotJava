@@ -50,7 +50,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 
-internal class CgJsRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
+internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
 
     override val statementEnding: String = ""

@@ -1224,12 +1224,12 @@ enum class MockStrategyApi(
     NO_MOCKS("No mocks", "Do not mock", "Do not use mock frameworks at all"),
     OTHER_PACKAGES(
         "Other packages: Mockito",
-        "Mock package environment",
+        "Mock everything outside the package",
         "Mock all classes outside the current package except system ones"
     ),
     OTHER_CLASSES(
         "Other classes: Mockito",
-        "Mock class environment",
+        "Mock everything outside the class",
         "Mock all classes outside the class under test except system ones"
     );
 

@@ -1,15 +1,15 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.python.*
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(context_) {
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = CgTestClassConstructor.CgComponents.getNameGeneratorBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val baseName = name ?: nameGenerator.nameFrom(model.classId)

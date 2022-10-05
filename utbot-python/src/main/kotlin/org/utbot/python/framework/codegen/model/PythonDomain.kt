@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 
-object Pytest : TestFramework(displayName = "pytest") {
+object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     override val mainPackage: String = "pytest"
     override val assertionsClass: ClassId = pythonNoneClassId
     override val arraysAssertionsClass: ClassId = assertionsClass
@@ -45,7 +45,7 @@ object Pytest : TestFramework(displayName = "pytest") {
     }
 }
 
-object Unittest : TestFramework(displayName = "Unittest") {
+object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
     override val testSuperClass: ClassId = PythonClassId("unittest.TestCase")
     override val mainPackage: String = "unittest"
     override val assertionsClass: ClassId = PythonClassId("self")

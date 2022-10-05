@@ -42,7 +42,14 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun visit(element: AbstractCgClass<*>) {
-        TODO("Not yet implemented")
+        print("class ")
+        print(element.simpleName)
+        if (element.superclass != null) {
+            print("(${element.superclass!!.asString()})")
+        }
+        println(":")
+        withIndent { element.body.accept(this) }
+        println("")
     }
 
     override fun visit(element: CgCommentedAnnotation) {
@@ -101,19 +108,17 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         element.expression.accept(this)
     }
 
-    override fun visit(element: CgTestClass) {
-        print("class ")
-        print(element.simpleName)
-        if (element.superclass != null) {
-            print("(${element.superclass!!.asString()})")
-        }
-        println(":")
-        withIndent { element.body.accept(this) }
-        println("")
-    }
-
     override fun visit(element: CgTestClassBody) {
-        TODO("Not yet implemented")
+        // render regions for test methods
+        for ((i, region) in (element.testMethodRegions + element.nestedClassRegions).withIndex()) {
+            if (i != 0) println()
+
+            region.accept(this)
+        }
+
+        if (element.staticDeclarationRegions.isEmpty()) {
+            return
+        }
     }
 
     override fun visit(element: CgTryCatch) {

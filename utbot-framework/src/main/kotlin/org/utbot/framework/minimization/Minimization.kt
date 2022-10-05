@@ -232,7 +232,6 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
         is PythonModel -> TODO()
         is GoUtModel -> TODO()
         is JsUtModel -> TODO()
-        else -> 0
         is UtLambdaModel -> 1 + capturedValues.sumOf { it.calculateSize(used) }
         // PythonModel, GoUtModel, JsUtModel may go here
         else -> 0

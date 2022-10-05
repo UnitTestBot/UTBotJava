@@ -484,6 +484,7 @@ object CodeGenerationController {
         get() = when (this) {
             CodegenLanguage.JAVA -> JavaFileType.INSTANCE
             CodegenLanguage.KOTLIN -> KotlinFileType.INSTANCE
+            else -> throw UnsupportedOperationException()
         }
 
     private fun waitForCountDown(latch: CountDownLatch, timeout: Long = 5, timeUnit: TimeUnit = TimeUnit.SECONDS, action: Runnable) {

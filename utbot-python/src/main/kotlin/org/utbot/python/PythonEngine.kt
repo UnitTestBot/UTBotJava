@@ -5,15 +5,12 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.python.PythonTreeModel
 import org.utbot.framework.plugin.api.python.pythonAnyClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.*
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.fuzzer.FuzzedValue
 import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
@@ -138,7 +135,7 @@ class PythonEngine(
                     }
 
                     yield(
-                        UtExecution(
+                        UtFuzzedExecution(
                             stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
                             stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
                             result = result,

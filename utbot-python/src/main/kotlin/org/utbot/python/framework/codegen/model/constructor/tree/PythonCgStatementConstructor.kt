@@ -4,7 +4,8 @@ import fj.data.Either
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.ExpressionWithType
 import org.utbot.framework.codegen.model.tree.*
@@ -12,6 +13,8 @@ import org.utbot.framework.codegen.model.util.buildExceptionHandler
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.python.framework.codegen.model.constructor.util.*
@@ -20,9 +23,9 @@ import java.util.*
 class PythonCgStatementConstructorImpl(context: CgContext) :
     CgStatementConstructor,
     CgContextOwner by context,
-    CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context) {
+    CgCallableAccessManager by getCallableAccessManagerBy(context) {
 
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = getNameGeneratorBy(context)
 
     override fun newVar(
         baseType: ClassId,
@@ -119,6 +122,18 @@ class PythonCgStatementConstructorImpl(context: CgContext) :
 
     override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) = withNameScope {
         currentBlock += buildCgForEachLoop(init)
+    }
+
+    override fun getClassOf(classId: ClassId): CgExpression {
+        TODO("Not yet implemented")
+    }
+
+    override fun createFieldVariable(fieldId: FieldId): CgVariable {
+        TODO("Not yet implemented")
+    }
+
+    override fun createExecutableVariable(executableId: ExecutableId, arguments: List<CgExpression>): CgVariable {
+        TODO("Not yet implemented")
     }
 
     override fun tryBlock(init: () -> Unit): CgTryCatch = tryBlock(init, null)

@@ -1,8 +1,10 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
 import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.python.*
@@ -36,8 +38,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                 rememberInitialStaticFields(statics)
                 context.codeGenLanguage.memoryObjects.clear()
 
-//                val stateAnalyzer = ExecutionStateAnalyzer(execution)
-                val modificationInfo = StateModificationInfo() // stateAnalyzer.findModifiedFields()
+                val stateAnalyzer = ExecutionStateAnalyzer(execution)
+                val modificationInfo = stateAnalyzer.findModifiedFields()
+                val fieldStateManager = CgFieldStateManagerImpl(context)
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
                     substituteStaticFields(statics)
@@ -51,16 +54,10 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                         val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
-//                    if (executableId is PythonMethodId) {
-//                        existingVariableNames += executableId.name
-//                        executableId.moduleName.split('.').forEach {
-//                            existingVariableNames += it
-//                        }
-//                    }
-                    rememberInitialEnvironmentState(modificationInfo)
+                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()
                     generateResultAssertions()
-                    rememberFinalEnvironmentState(modificationInfo)
+                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
                     generateFieldStateAssertions()
                     if (executableId is PythonMethodId)
                         generatePythonTestComments(execution)

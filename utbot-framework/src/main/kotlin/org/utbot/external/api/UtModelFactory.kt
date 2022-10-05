@@ -1,5 +1,6 @@
 package org.utbot.external.api
 
+import org.utbot.common.nameOfPackage
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -8,7 +9,6 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -49,7 +49,7 @@ class UtModelFactory(
         classUnderTest: Class<*>,
         models: List<UtModel>
     ): IdentityHashMap<UtModel, UtModel> =
-        AssembleModelGenerator(classUnderTest.packageName)
+        AssembleModelGenerator(classUnderTest.nameOfPackage)
             .createAssembleModels(models)
 
     @JvmOverloads

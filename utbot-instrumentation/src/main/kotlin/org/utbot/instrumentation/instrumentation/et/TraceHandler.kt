@@ -1,5 +1,7 @@
 package org.utbot.instrumentation.instrumentation.et
 
+import com.jetbrains.rd.util.error
+import com.jetbrains.rd.util.getLogger
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.Settings
@@ -9,7 +11,6 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.LocalVariablesSorter
-import org.utbot.instrumentation.process.logError
 
 sealed class InstructionData {
     abstract val line: Int
@@ -107,6 +108,7 @@ class ProcessingStorage {
     }
 }
 
+private val logger = getLogger<RuntimeTraceStorage>()
 
 /**
  * Storage to which instrumented classes will write execution data.
@@ -157,7 +159,7 @@ object RuntimeTraceStorage {
             val loggedTip = alreadyLoggedIncreaseStackSizeTip
             if (!loggedTip) {
                 alreadyLoggedIncreaseStackSizeTip = true
-                logError { "Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)" }
+                logger.error { "Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)" }
             }
         }
     }

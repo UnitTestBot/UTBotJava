@@ -9,8 +9,6 @@ import com.intellij.util.PlatformUtils
 import com.intellij.util.ReflectionUtil
 import com.intellij.util.concurrency.AppExecutorUtil
 import org.jetbrains.kotlin.idea.util.application.invokeLater
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.withUtContext
 
 /**
  * This object is required to encapsulate Android API usage and grant safe access to it.
@@ -20,21 +18,19 @@ object IntelliJApiHelper {
     enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
     fun run(target: Target, runnable: Runnable) {
-        UtContext.currentContext()?.let {
-            when (target) {
-                Target.THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit {
-                    withUtContext(it) {
-                        runnable.run()
-                    }
-                }
-                Target.READ_ACTION -> runReadAction { withUtContext(it) { runnable.run() } }
-                Target.WRITE_ACTION -> runWriteAction { withUtContext(it) { runnable.run() } }
-                Target.EDT_LATER -> invokeLater { withUtContext(it) { runnable.run() } }
+        when (target) {
+            Target.THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit {
+                runnable.run()
             }
-        } ?: error("No context in thread ${Thread.currentThread()}")
+
+            Target.READ_ACTION -> runReadAction { runnable.run() }
+            Target.WRITE_ACTION -> runWriteAction { runnable.run() }
+            Target.EDT_LATER -> invokeLater { runnable.run() }
+        }
     }
 
-    private val isAndroidPluginAvailable: Boolean = !PluginManagerCore.isDisabled(PluginId.getId("org.jetbrains.android"))
+    private val isAndroidPluginAvailable: Boolean =
+        !PluginManagerCore.isDisabled(PluginId.getId("org.jetbrains.android"))
 
     fun isAndroidStudio(): Boolean =
         isAndroidPluginAvailable && ("AndroidStudio" == PlatformUtils.getPlatformPrefix())
@@ -43,9 +39,9 @@ object IntelliJApiHelper {
         if (!isAndroidPluginAvailable) return null
         try {
             val finderClass = Class.forName("com.android.tools.idea.gradle.util.GradleProjectSettingsFinder")
-            var method = ReflectionUtil.getMethod(finderClass, "findGradleProjectSettings", Project::class.java)?: return null
-            val gradleProjectSettings = method.invoke(project)?: return null
-            method = ReflectionUtil.getMethod(gradleProjectSettings.javaClass, "getGradleJvm")?: return null
+            var method = ReflectionUtil.getMethod(finderClass, "findGradleProjectSettings", Project::class.java) ?: return null
+            val gradleProjectSettings = method.invoke(project) ?: return null
+            method = ReflectionUtil.getMethod(gradleProjectSettings.javaClass, "getGradleJvm") ?: return null
             val gradleJvm = method.invoke(gradleProjectSettings)
             return if (gradleJvm is String) gradleJvm else null
         } catch (e: Exception) {

@@ -14,11 +14,15 @@ dependencies {
     api project(':utbot-instrumentation')
     api project(':utbot-summary')
     api project(':utbot-framework-api')
+    api project(':utbot-rd')
 
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 
     implementation "com.github.UnitTestBot:soot:${sootCommitHash}"
+    implementation group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryoVersion
+    // this is necessary for serialization of some collections
+    implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryoSerializersVersion
 
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version

@@ -154,7 +154,7 @@ private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {
         const val minSupportedSdkVersion = 8
-        const val maxSupportedSdkVersion = 11
+        const val maxSupportedSdkVersion = 17
     }
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
@@ -336,7 +336,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             addToLeft(JBLabel().apply {
                 icon = AllIcons.Ide.FatalError
                 text = if (sdkVersion != null) {
-                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8} or ${JavaSdkVersion.JDK_11}."
+                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}, ${JavaSdkVersion.JDK_11} or ${JavaSdkVersion.JDK_17}"
                 } else {
                     "SDK is not defined"
                 }

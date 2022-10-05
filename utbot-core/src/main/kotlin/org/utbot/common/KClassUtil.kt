@@ -4,7 +4,7 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import kotlin.reflect.KClass
 
-val Class<*>.packageName: String get() = `package`?.name?:""
+val Class<*>.nameOfPackage: String get() = `package`?.name?:""
 
 fun Method.invokeCatching(obj: Any?, args: List<Any?>) = try {
     Result.success(invoke(obj, *args.toTypedArray()))

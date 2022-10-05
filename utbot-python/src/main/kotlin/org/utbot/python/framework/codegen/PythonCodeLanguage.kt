@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenLanguage
+import org.utbot.framework.plugin.api.CodegenLanguageProvider
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.framework.codegen.model.constructor.name.PythonCgNameGenerator
@@ -58,4 +59,7 @@ object PythonCodeLanguage : CodeGenLanguage() {
 
     override val defaultTestFramework = Unittest
 
+    init {
+        CodegenLanguageProvider.allItems.add(this)
+    }
 }

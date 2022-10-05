@@ -49,4 +49,8 @@ object JavaCodeLanguage : CodeGenLanguage() {
     }
 
     override val defaultTestFramework: TestFramework = Junit5
+
+    init {
+        CodegenLanguageProvider.allItems.add(this)
+    }
 }

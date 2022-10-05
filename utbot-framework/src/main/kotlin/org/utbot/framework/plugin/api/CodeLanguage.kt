@@ -46,10 +46,7 @@ abstract class CodeGenLanguage : CodeGenerationSettingItem {
             }
         }
     }
-    val operatingSystem: OperatingSystem = OperatingSystem.fromSystemProperties()
 
-    // Get is mandatory because of the initialization order of the inheritors.
-    // Otherwise, in some cases we could get an incorrect value
     companion object : CodeGenerationSettingBox {
         override val defaultItem: CodeGenLanguage get() = allItems.first()
         override val allItems: List<CodeGenLanguage> = CodegenLanguageProvider.allItems.toList()

@@ -271,7 +271,7 @@ object UtTestsDialogProcessor {
                 val name = qualifiedName
                     ?.substringAfter("$packageName.")
                     ?.replace(".", "$")
-                    ?: ""
+                    ?: error("Unable to get canonical name for $this")
                 "$packageName.$name"
             }
         }

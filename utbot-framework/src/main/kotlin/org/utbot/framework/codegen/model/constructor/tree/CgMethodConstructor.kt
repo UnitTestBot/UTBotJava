@@ -113,6 +113,7 @@ import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
+import org.utbot.framework.UtSettings
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -329,6 +330,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
+        if (UtSettings.treatAssertAsErrorSuit && exception is AssertionError) return false
 
         val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
         val exceptionIsExplicit = execution.result is UtExplicitlyThrownException

@@ -87,6 +87,6 @@ val mockitoPatterns = listOf(MOCKITO_JAR_PATTERN, MOCKITO_MVN_PATTERN)
 val MOCKITO_BASIC_MODULE_PATTERN = Regex("mockito-core")
 val mockitoModulePatterns = listOf(MOCKITO_BASIC_MODULE_PATTERN)
 
-const val MOCKITO_EXTENSIONS_STORAGE = "mockito-extensions"
+const val MOCKITO_EXTENSIONS_FOLDER = "mockito-extensions"
 const val MOCKITO_MOCKMAKER_FILE_NAME = "org.mockito.plugins.MockMaker"
-val MOCKITO_EXTENSIONS_FILE_CONTENT = listOf("mock-maker-inline")
+val MOCKITO_EXTENSIONS_FILE_CONTENT = "mock-maker-inline"

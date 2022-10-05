@@ -38,7 +38,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         println()
         println()
 
-        element.testClass.accept(this)
+        element.declaredClass.accept(this)
     }
 
     override fun visit(element: AbstractCgClass<*>) {
@@ -215,7 +215,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         TODO("Not yet implemented")
     }
 
-    override fun renderClassFileImports(element: CgTestClassFile) {
+    private fun renderClassFileImports(element: CgTestClassFile) {
         element.imports
             .toSet()
             .filterIsInstance<PythonImport>()

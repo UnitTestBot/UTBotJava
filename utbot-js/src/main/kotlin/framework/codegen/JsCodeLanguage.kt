@@ -40,7 +40,7 @@ object JsCodeLanguage : CodeGenLanguage() {
         return testClassNameGenerator(testClassCustomName, testClassPackageName, classUnderTest)
     }
 
-    override fun cgRenderer(context: CgContext, printer: CgPrinter): CgAbstractRenderer = CgJsRenderer(context, printer)
+    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgJsRenderer(context, printer)
 
     override fun getCallableAccessManagerBy(context: CgContext) = JsCgCallableAccessManager(context)
 

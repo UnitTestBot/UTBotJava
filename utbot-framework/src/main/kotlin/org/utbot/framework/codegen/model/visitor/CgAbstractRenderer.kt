@@ -938,7 +938,8 @@ abstract class CgAbstractRenderer(
             context: CgContext,
             printer: CgPrinter = CgPrinterImpl()
         ): CgAbstractRenderer {
-            return context.codeGenLanguage.cgRenderer(context, printer)
+            val rendererContext = CgRendererContext.fromCgContext(context)
+            return makeRenderer(rendererContext, printer)
         }
 
         fun makeRenderer(
@@ -951,11 +952,7 @@ abstract class CgAbstractRenderer(
         }
 
         private fun makeRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer {
-            return when (context.codegenLanguage) {
-                CodegenLanguage.JAVA -> CgJavaRenderer(context, printer)
-                CodegenLanguage.KOTLIN -> CgKotlinRenderer(context, printer)
-                else -> throw UnsupportedOperationException()
-            }
+            return context.codeGenLanguage.cgRenderer(context, printer)
         }
 
         /**

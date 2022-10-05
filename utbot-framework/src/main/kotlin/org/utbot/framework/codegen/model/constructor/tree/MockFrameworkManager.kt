@@ -237,7 +237,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mockClassCounter.variable
         )
         val mockedConstructionDeclaration = CgDeclaration(
-            CgClassId(MockitoStaticMocking.mockedConstructionClassId),
+            MockitoStaticMocking.mockedConstructionClassId,
             variableConstructor.constructVarName(MOCKED_CONSTRUCTION_NAME),
             mockConstructionInitializer
         )
@@ -295,7 +295,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             val classMockStaticCall = mockStatic(modelClass)
             val mockedStaticVariableName = variableConstructor.constructVarName(MOCKED_STATIC_NAME)
             CgDeclaration(
-                CgClassId(MockitoStaticMocking.mockedStaticClassId),
+                MockitoStaticMocking.mockedStaticClassId,
                 mockedStaticVariableName,
                 classMockStaticCall
             ).also {

@@ -18,6 +18,7 @@ import org.utbot.framework.plugin.api.utils.testClassNameGenerator
 object JsCodeLanguage : CodeGenLanguage() {
     override val outerMostTestClassContent: TestClassContext = TestClassContext()
     override val displayName: String = "JavaScript"
+    override val id: String = "JavaScript"
 
     override val extension: String
         get() = ".js"

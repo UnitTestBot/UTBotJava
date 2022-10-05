@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.utils.testClassNameGenerator
 
 object JavaCodeLanguage : CodeGenLanguage() {
     override val displayName: String = "Java"
+    override val id: String = "Java"
 
     override val extension: String
         get() = ".java"

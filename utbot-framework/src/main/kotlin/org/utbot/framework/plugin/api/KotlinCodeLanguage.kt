@@ -15,7 +15,8 @@ import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.utils.testClassNameGenerator
 
 object KotlinCodeLanguage : CodeGenLanguage() {
-    override val displayName: String = "Kotlin"
+    override val displayName: String = "Kotlin (experimental)"
+    override val id: String = "Kotlin"
 
     override val extension: String
         get() = ".kt"

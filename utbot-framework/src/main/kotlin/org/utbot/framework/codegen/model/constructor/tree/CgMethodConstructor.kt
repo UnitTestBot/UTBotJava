@@ -15,7 +15,12 @@ import org.utbot.framework.codegen.model.constructor.builtin.invoke
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getMockFrameworkManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
@@ -148,15 +153,14 @@ import java.lang.reflect.ParameterizedType
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
 internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
-    CgFieldStateManager by CgComponents.getFieldStateManagerBy(context),
-    CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context),
-    CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
+    CgCallableAccessManager by getCallableAccessManagerBy(context),
+    CgStatementConstructor by getStatementConstructorBy(context) {
 
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-    private val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
+    private val nameGenerator = getNameGeneratorBy(context)
+    private val testFrameworkManager = getTestFrameworkManagerBy(context)
 
-    private val variableConstructor = CgComponents.getVariableConstructorBy(context)
-    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
+    private val variableConstructor = getVariableConstructorBy(context)
+    private val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     private val floatDelta: Float = 1e-6f
     private val doubleDelta = 1e-6
@@ -937,13 +941,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun collectExecutionsResultFields() {
-        val successfulExecutionsModels = allExecutions
-            .filter {
-                it.result is UtExecutionSuccess
-            }.map {
-                (it.result as UtExecutionSuccess).model
-            }
-
         for (model in successfulExecutionsModels) {
             when (model) {
                 is UtCompositeModel -> {
@@ -1275,6 +1272,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 rememberInitialStaticFields(statics)
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()
+                val fieldStateManager = CgFieldStateManagerImpl(context)
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
                     substituteStaticFields(statics)
@@ -1288,10 +1286,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
-                    rememberInitialEnvironmentState(modificationInfo)
+                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()
                     generateResultAssertions()
-                    rememberFinalEnvironmentState(modificationInfo)
+                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
                     generateFieldStateAssertions()
                 }
 
@@ -1318,21 +1316,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     resources.forEach {
                         // First argument for mocked resource declaration initializer is a target type.
                         // Pass this argument as a type parameter for the mocked resource
+
+                        // TODO this type parameter (required for Kotlin test) is unused until the proper implementation
+                        //  of generics in code generation https://github.com/UnitTestBot/UTBotJava/issues/88
+                        @Suppress("UNUSED_VARIABLE")
                         val typeParameter = when (val firstArg = (it.initializer as CgMethodCall).arguments.first()) {
                             is CgGetJavaClass -> firstArg.classId
                             is CgVariable -> firstArg.type
                             else -> error("Unexpected mocked resource declaration argument $firstArg")
                         }
-                        val varType = CgClassId(
-                            it.variableType,
-                            TypeParameters(listOf(typeParameter)),
-                            isNullable = true,
-                        )
+
                         +CgDeclaration(
-                            varType,
+                            it.variableType,
                             it.variableName,
-                            // guard initializer to reuse typecast creation logic
-                            initializer = guardExpression(varType, nullLiteral()).expression,
+                            initializer = nullLiteral(),
                             isMutable = true,
                         )
                     }

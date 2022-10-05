@@ -1,5 +1,6 @@
 package org.utbot.examples.collections
 
+import org.junit.jupiter.api.Tag
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.DoNotCalculate
@@ -10,6 +11,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.tests.infrastructure.CodeGeneration
 
@@ -147,6 +149,17 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
             { map, i, result -> map.isNotEmpty() && CustomClass(i) in map && result == map[CustomClass(i)] },
             coverage = DoNotCalculate
         )
+    }
+
+    @Test
+    @Tag("slow") // it takes about 20 minutes to execute this test
+    fun testMapOperator() {
+        withPushingStateFromPathSelectorForConcrete {
+            check(
+                Maps::mapOperator,
+                ignoreExecutionsNumber
+            )
+        }
     }
 
     @Test

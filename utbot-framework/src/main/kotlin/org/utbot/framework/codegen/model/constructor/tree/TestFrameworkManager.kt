@@ -7,7 +7,8 @@ import org.utbot.framework.codegen.model.constructor.TestClassContext
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.util.addToListMethodId
 import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.constructor.util.argumentsMethodId
@@ -51,7 +52,7 @@ import java.util.concurrent.TimeUnit
 @Suppress("MemberVisibilityCanBePrivate")
 internal abstract class TestFrameworkManager(val context: CgContext)
     : CgContextOwner by context,
-        CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context) {
+        CgCallableAccessManager by getCallableAccessManagerBy(context) {
 
     val assertions = context.testFramework.assertionsClass
 
@@ -79,7 +80,7 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     // all data providers should be placed in the outermost class.
     protected abstract val dataProviderMethodsHolder: TestClassContext
 
-    protected val statementConstructor = CgComponents.getStatementConstructorBy(context)
+    protected val statementConstructor = getStatementConstructorBy(context)
 
     abstract val annotationForNestedClasses: CgAnnotation?
 

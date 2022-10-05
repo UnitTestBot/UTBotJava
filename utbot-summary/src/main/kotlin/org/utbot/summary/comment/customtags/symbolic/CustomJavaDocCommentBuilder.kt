@@ -54,6 +54,15 @@ class CustomJavaDocCommentBuilder(
             comment.throwsException = "{@link $exceptionName} $reason".replace(CARRIAGE_RETURN, "")
         }
 
+        if (rootSentenceBlock.recursion != null) {
+            comment.recursion += rootSentenceBlock.recursion?.first
+            val insideRecursionSentence = rootSentenceBlock.recursion?.second?.toSentence()
+            if (!insideRecursionSentence.isNullOrEmpty()) {
+                comment.recursion += stringTemplates.insideRecursionSentence.format(insideRecursionSentence)
+                    .replace(CARRIAGE_RETURN, "").trim()
+            }
+        }
+
         generateSequence(rootSentenceBlock) { it.nextBlock }.forEach {
             it.stmtTexts.forEach { statement ->
                 processStatement(statement, comment)

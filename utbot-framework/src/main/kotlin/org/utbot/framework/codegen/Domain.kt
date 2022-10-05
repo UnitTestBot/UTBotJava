@@ -380,9 +380,9 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
     """.trimIndent()
 }
 
-object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit4") {
+object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
     private val parametrizedTestsNotSupportedError: Nothing
-        get() = error("Parametrized tests are not supported for JUnit4")
+        get() = error("Parametrized tests are not supported for JUnit 4")
 
     override val mainPackage: String = JUNIT4_PACKAGE
     override val testAnnotation = "@$mainPackage.Test"
@@ -453,7 +453,7 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit4") {
     }
 }
 
-object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit5") {
+object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
     override val mainPackage: String = JUNIT5_PACKAGE
     override val testAnnotation = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"

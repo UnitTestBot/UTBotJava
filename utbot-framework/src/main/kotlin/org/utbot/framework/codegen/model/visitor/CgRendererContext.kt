@@ -22,9 +22,9 @@ class CgRendererContext(
     val codegenLanguage: CodegenLanguage,
     val mockFrameworkUsed: Boolean,
     val mockFramework: MockFramework,
+    val codeGenLanguage: CodeGenLanguage = CodeGenLanguage.defaultItem,
 ) {
 
-    val codeGenLanguage: CodeGenLanguage = CodeGenLanguage.defaultItem
     companion object {
         fun fromCgContext(context: CgContext): CgRendererContext {
             return CgRendererContext(
@@ -35,6 +35,7 @@ class CgRendererContext(
                 generatedClass = context.outerMostTestClass,
                 utilMethodProvider = context.utilMethodProvider,
                 codegenLanguage = context.codegenLanguage,
+                codeGenLanguage = context.codeGenLanguage,
                 mockFrameworkUsed = context.mockFrameworkUsed,
                 mockFramework = context.mockFramework
             )

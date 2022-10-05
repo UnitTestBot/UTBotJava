@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
@@ -346,7 +347,10 @@ val ClassId.isPrimitive: Boolean
     get() = this in primitives
 
 val ClassId.isPrimitiveArray: Boolean
-    get() = elementClassId != null && elementClassId.isPrimitive
+    get() {
+        val curElementClassId = elementClassId
+        return curElementClassId != null && curElementClassId.isPrimitive
+    }
 
 val ClassId.isPrimitiveWrapper: Boolean
     get() = this in primitiveWrappers

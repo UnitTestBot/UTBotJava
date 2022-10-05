@@ -236,7 +236,7 @@ data class UtError(
  *
  * UtNullModel represents nulls, other models represent not-nullable entities.
  */
-sealed class UtModel(
+open class UtModel(
     open val classId: ClassId
 )
 
@@ -675,6 +675,7 @@ data class UtStaticMethodInstrumentation(
     val values: List<UtModel>
 ) : UtInstrumentation()
 
+
 val SootClass.id: ClassId
     get() = ClassId(name)
 
@@ -726,7 +727,7 @@ val Type.classId: ClassId
  */
 open class ClassId @JvmOverloads constructor(
     val name: String,
-    val elementClassId: ClassId? = null,
+    open val elementClassId: ClassId? = null,
     // Treat simple class ids as non-nullable
     open val isNullable: Boolean = false
 ) {
@@ -1247,7 +1248,9 @@ enum class CodegenLanguage(
     @Suppress("unused") override val description: String = "Generate unit tests in $displayName"
 ) : CodeGenerationSettingItem {
     JAVA(id = "Java", displayName = "Java"),
-    KOTLIN(id = "Kotlin", displayName = "Kotlin (experimental)");
+    KOTLIN(id = "Kotlin", displayName = "Kotlin (experimental)"),
+    JS(id = "JavaScript",  displayName = "JavaScript"),
+    PYTHON(id = "Python", displayName = "Python");
 
     enum class OperatingSystem {
         WINDOWS,
@@ -1272,18 +1275,21 @@ enum class CodegenLanguage(
         get() = when (this) {
             JAVA -> listOf(System.getenv("JAVA_HOME"), "bin", "javac")
             KOTLIN -> listOf(System.getenv("KOTLIN_HOME"), "bin", kotlinCompiler)
+            else -> throw UnsupportedOperationException()
         }.joinToString(File.separator)
 
     val extension: String
         get() = when (this) {
             JAVA -> ".java"
             KOTLIN -> ".kt"
+            else -> throw UnsupportedOperationException()
         }
 
     val executorInvokeCommand: String
         get() = when (this) {
             JAVA -> listOf(System.getenv("JAVA_HOME"), "bin", "java")
             KOTLIN -> listOf(System.getenv("JAVA_HOME"), "bin", "java")
+            else -> throw UnsupportedOperationException()
         }.joinToString(File.separator)
 
     override fun toString(): String = id
@@ -1297,6 +1303,7 @@ enum class CodegenLanguage(
             ).plus(sourcesFiles)
 
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
+            else -> throw UnsupportedOperationException()
         }
         if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {
             throw RuntimeException("'KOTLIN_HOME' environment variable is not defined. Standard location is {IDEA installation dir}/plugins/Kotlin/kotlinc")
@@ -1410,3 +1417,4 @@ class DocRegularStmt(val stmt: String) : DocStatement() {
 
     override fun hashCode(): Int = stmt.hashCode()
 }
+

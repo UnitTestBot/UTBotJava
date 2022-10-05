@@ -39,6 +39,7 @@ import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
+import org.utbot.framework.codegen.model.tree.CgForEachLoop
 import org.utbot.framework.codegen.model.tree.CgForLoop
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
@@ -266,4 +267,6 @@ interface CgVisitor<R> {
 
     // Empty line
     fun visit(element: CgEmptyLine): R
+
+    fun visit(element: CgForEachLoop): R
 }

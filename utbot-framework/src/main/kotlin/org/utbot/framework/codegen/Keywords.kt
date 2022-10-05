@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen
 
+import org.utbot.framework.plugin.api.CodeGenLanguage
 import org.utbot.framework.plugin.api.CodegenLanguage
 
 private val javaKeywords = setOf(
@@ -32,10 +33,5 @@ private val kotlinModifierKeywords = setOf(
 // For now we check only hard keywords because others can be used as methods and variables identifiers
 private val kotlinKeywords = kotlinHardKeywords
 
-private fun getLanguageKeywords(codegenLanguage: CodegenLanguage): Set<String> = when(codegenLanguage) {
-    CodegenLanguage.JAVA -> javaKeywords
-    CodegenLanguage.KOTLIN -> kotlinKeywords
-}
-
-fun isLanguageKeyword(word: String, codegenLanguage: CodegenLanguage): Boolean =
-    word in getLanguageKeywords(codegenLanguage)
+fun isLanguageKeyword(word: String, codegenLanguage: CodeGenLanguage): Boolean =
+    word in codegenLanguage.languageKeywords

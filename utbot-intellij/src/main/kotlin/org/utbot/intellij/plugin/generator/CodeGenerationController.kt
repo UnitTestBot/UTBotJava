@@ -70,6 +70,10 @@ import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.reflect.KClass
+import kotlin.reflect.full.functions
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -548,6 +552,7 @@ object CodeGenerationController {
                                 when (model.codegenLanguage) {
                                     CodegenLanguage.JAVA -> it !is KtUltraLightClass
                                     CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                                    else -> throw UnsupportedOperationException()
                                 }
                             }
                     })
@@ -563,6 +568,7 @@ object CodeGenerationController {
             when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
+                else -> throw UnsupportedOperationException()
             }
         )
         runWriteAction { testDirectory.findFile(testClassName + model.codegenLanguage.extension)?.delete() }
@@ -694,6 +700,7 @@ object CodeGenerationController {
                     JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
+                else -> throw UnsupportedOperationException()
             }
         }
     }
@@ -763,6 +770,7 @@ object CodeGenerationController {
                         }
                     }
                     is RegularImport -> { }
+                    else -> { }
                 }
             }
         }
@@ -796,7 +804,7 @@ object CodeGenerationController {
         }
     }
 
-    private fun unblockDocument(project: Project, document: Document) {
+    fun unblockDocument(project: Project, document: Document) {
         PsiDocumentManager.getInstance(project).apply {
             commitDocument(document)
             doPostponedOperationsAndUnblockDocument(document)

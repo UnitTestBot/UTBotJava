@@ -26,11 +26,14 @@ import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
 import org.jetbrains.kotlin.utils.addIfNotNull
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.ui.InvalidClassNotifier
+import org.utbot.intellij.plugin.util.isAbstract
 
 class GenerateTestsAction : AnAction(), UpdateInBackground {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e, true) ?: return
         UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
@@ -41,7 +44,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 
-    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
+    private fun getPsiTargets(e: AnActionEvent, withWarnings: Boolean = false): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR)
         if (editor != null) {
@@ -53,7 +56,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
-                if (srcClass.isInterface || !srcClass.isVisible) return null
+                if (srcClass.isInvalid(withWarnings)) return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
                 val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
@@ -113,7 +116,8 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
                     }
                 }
             }
-            srcClasses.removeIf { it.isInterface }
+
+            srcClasses.removeIf { it.isInvalid(withWarnings) }
             if (srcClasses.size > 1) {
                 extractMembersFromSrcClasses = false
             }
@@ -134,6 +138,28 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
             return Triple(srcClasses.toSet(), selectedMethods.toSet(), extractMembersFromSrcClasses)
         }
         return null
+    }
+
+    private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
+        val isAbstractOrInterface = this.isInterface || this.isAbstract
+        if (isAbstractOrInterface) {
+            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface")
+            return true
+        }
+
+        val isInvisible = !this.isVisible
+        if (isInvisible) {
+            if (withWarnings) InvalidClassNotifier.notify("private or protected class")
+            return true
+        }
+
+        val packageIsIncorrect = this.packageName.startsWith("java")
+        if (packageIsIncorrect) {
+            if (withWarnings) InvalidClassNotifier.notify("class located in java.* package")
+            return true
+        }
+
+        return false
     }
 
     private fun PsiElement?.getSourceRoot() : VirtualFile? {

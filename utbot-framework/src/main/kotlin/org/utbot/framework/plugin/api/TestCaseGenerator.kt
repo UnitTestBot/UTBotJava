@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api
 
+import com.google.protobuf.compiler.PluginProtos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -134,18 +135,23 @@ open class TestCaseGenerator(
         useSynthesis: Boolean = enableSynthesis,
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
     ): Flow<UtResult> {
-        val engine = createSymbolicEngine(
-            controller,
-            method,
-            mockStrategy,
-            chosenClassesToMockAlways,
-            executionTimeEstimator,
-            useSynthesis,
-            postConditionConstructor,
-        )
-        engineActions.map { engine.apply(it) }
-        engineActions.clear()
-        return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
+        try {
+            val engine = createSymbolicEngine(
+                controller,
+                method,
+                mockStrategy,
+                chosenClassesToMockAlways,
+                executionTimeEstimator,
+                useSynthesis,
+                postConditionConstructor,
+            )
+            engineActions.map { engine.apply(it) }
+            engineActions.clear()
+            return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
+        } catch (e: Exception) {
+            logger.error(e) {"Generate async failed"}
+            throw e
+        }
     }
 
     fun generate(
@@ -172,8 +178,9 @@ open class TestCaseGenerator(
                     controller.job = launch(currentUtContext) {
                         if (!isActive) return@launch
 
-                        //yield one to
-                        yield()
+                        try {
+                            //yield one to
+                            yield()
 
                         val engine: UtBotSymbolicEngine = createSymbolicEngine(
                             controller,
@@ -185,18 +192,21 @@ open class TestCaseGenerator(
                             EmptyPostCondition
                         )
 
-                        engineActions.map { engine.apply(it) }
+                            engineActions.map { engine.apply(it) }
 
-                        generate(engine)
-                            .catch {
-                                logger.error(it) { "Error in flow" }
-                            }
-                            .collect {
-                                when (it) {
-                                    is UtExecution -> method2executions.getValue(method) += it
-                                    is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                            generate(engine)
+                                .catch {
+                                    logger.error(it) { "Error in flow" }
                                 }
-                            }
+                                .collect {
+                                    when (it) {
+                                        is UtExecution -> method2executions.getValue(method) += it
+                                        is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                    }
+                                }
+                        } catch (e: Exception) {
+                            logger.error(e) {"Error in engine"}
+                        }
                     }
                     controller.paused = true
                 }

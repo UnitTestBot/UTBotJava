@@ -120,6 +120,14 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             return false
         }
 
+        if (baseType.sootClass.packageName.startsWith("org.utbot")) {
+            return true
+        }
+
+        if (baseType.sootClass.packageName.startsWith("soot")) {
+            return true
+        }
+
         val baseSootClass = baseType.sootClass
 
         if (numDimensions == 0 && baseSootClass.isInappropriate) {

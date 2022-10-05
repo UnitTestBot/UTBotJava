@@ -756,7 +756,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         }
         char[] newValue = new char[length + str.length()];
         UtArrayMock.arraycopy(value, 0, newValue, 0, length);
-        UtArrayMock.arraycopy(otherVal, 0, newValue, length + 1, str.length());
+        UtArrayMock.arraycopy(otherVal, 0, newValue, length, str.length());
         return new String(newValue);
     }
 

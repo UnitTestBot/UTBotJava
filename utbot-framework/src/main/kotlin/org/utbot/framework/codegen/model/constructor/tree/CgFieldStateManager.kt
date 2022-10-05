@@ -38,7 +38,7 @@ interface CgFieldStateManager {
     fun rememberFinalEnvironmentState(info: StateModificationInfo)
 }
 
-internal class CgFieldStateManagerImpl(val context: CgContext)
+class CgFieldStateManagerImpl(val context: CgContext)
     : CgContextOwner by context,
         CgFieldStateManager,
         CgCallableAccessManager by getCallableAccessManagerBy(context),

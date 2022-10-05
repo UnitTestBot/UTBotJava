@@ -31,22 +31,6 @@ data class CgMethodTestSet constructor(
     ) {
         executions = from.executions
     }
-    /**
-     * For JavaScript purposes.
-     * todo: consider to remove
-     */
-    constructor(
-        executableId: ExecutableId,
-        execs: List<UtExecution> = emptyList(),
-        errors: Map<String, Int> = emptyMap()
-    ) : this(
-        executableId,
-        null,
-        errors,
-        listOf(null to execs.indices)
-    ) {
-        executions = execs
-    }
 
     constructor(
         executableId: ExecutableId,

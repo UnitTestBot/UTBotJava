@@ -1,23 +1,18 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
-import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.clearContextRelatedStorage
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getMethodConstructorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
 import org.utbot.framework.codegen.model.tree.CgMethod
@@ -293,7 +288,7 @@ open class CgTestClassConstructor(val context: CgContext) :
     protected val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 
-    internal object CgComponents {
+    object CgComponents {
         /**
          * Clears all stored data for current [CgContext].
          * As far as context is created per class under test,
@@ -318,20 +313,24 @@ open class CgTestClassConstructor(val context: CgContext) :
         private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
         private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
 
-        fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) { CgNameGeneratorImpl(context) }
-        fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) { CgCallableAccessManagerImpl(context) }
-        fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) { CgStatementConstructorImpl(context) }
-
-        fun getTestFrameworkManagerBy(context: CgContext) = when (context.testFramework) {
-            is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }
-            is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
-            is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
-            else -> throw UnsupportedOperationException()
+        fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) {
+            context.codeGenLanguage.getNameGeneratorBy(context)
         }
+        fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) {
+            context.codeGenLanguage.getCallableAccessManagerBy(context)
+        }
+        fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) {
+            context.codeGenLanguage.getStatementConstructorBy(context)
+        }
+
+        fun getTestFrameworkManagerBy(context: CgContext) =
+            testFrameworkManagers.getOrDefault(context, context.codeGenLanguage.managerByFramework(context))
 
         fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
         fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
-        fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) { CgMethodConstructor(context) }
+        fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
+            context.codeGenLanguage.getMethodConstructorBy(context)
+        }
     }
 }
 

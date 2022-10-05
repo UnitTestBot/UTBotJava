@@ -22,6 +22,14 @@ class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAcce
     override fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall =
         CgIncompleteMethodCall(staticMethodId, CgThisInstance(pythonAnyClassId))
 
+    override fun CgExpression.get(fieldId: FieldId): CgExpression {
+        TODO("Not yet implemented")
+    }
+
+    override fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
+        TODO("Not yet implemented")
+    }
+
     override fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()
         val constructorCall = CgConstructorCall(this, resolvedArgs)

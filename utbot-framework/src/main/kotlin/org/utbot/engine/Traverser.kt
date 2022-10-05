@@ -46,6 +46,7 @@ import org.utbot.engine.pc.UtPrimitiveSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusSAT
+import org.utbot.engine.pc.UtSolverStatusUNSAT
 import org.utbot.engine.pc.UtSubNoOverflowExpression
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.addrEq
@@ -2554,6 +2555,15 @@ class Traverser(
          * TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
          */
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
+
+        // The problem here is that we might have an unsat current state.
+        // We get states with `SAT` last status only for traversing,
+        // but during the parameters resolving this status might be changed.
+        // It happens inside the `org.utbot.engine.Traverser.initStringLiteral` function.
+        // So, if it happens, we should just drop the state we processing now.
+        if (environment.state.solver.lastStatus is UtSolverStatusUNSAT) {
+            return emptyList()
+        }
 
         // If so, return the result of the override
         if (artificialMethodOverride.success) {

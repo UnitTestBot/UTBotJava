@@ -1139,12 +1139,13 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
         else -> {
             workaround(RUN_CONCRETE) {
                 val className = value.javaClass.id.name
-                val superclassName = value.javaClass.superclass.name
+                val superClass = value.javaClass.superclass
 
                 val refTypeName = when {
                     // hardcoded string is used cause class is not public
                     className in typesOfObjectsToRecreate -> className
-                    superclassName == PrintStream::class.qualifiedName -> superclassName
+                    // superClass is null for Object class
+                    superClass != null && superClass.name == PrintStream::class.qualifiedName -> superClass.name
                     // we want to generate an unbounded symbolic variable for every unknown class as well
                     else -> workaround(MAKE_SYMBOLIC) { className }
                 }

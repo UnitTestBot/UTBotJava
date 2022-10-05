@@ -13,7 +13,6 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.util.ui.UIUtil
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
-import com.intellij.util.ui.UIUtil
 import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
@@ -23,7 +22,7 @@ import org.utbot.intellij.plugin.models.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
-class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
+class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
 
     private val SET_TEST_FOLDER = "set test folder"

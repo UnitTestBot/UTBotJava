@@ -2,7 +2,8 @@ package org.utbot.python.framework.codegen.model
 
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.TestsCodeWithTestReport
+import org.utbot.framework.codegen.model.CodeGeneratorResult
+
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -17,7 +18,7 @@ class PythonCodeGenerator(
     classUnderTest: ClassId,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     testFramework: TestFramework = TestFramework.defaultItem,
-    mockFramework: MockFramework? = MockFramework.defaultItem,
+    mockFramework: MockFramework = MockFramework.defaultItem,
     staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
     forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
     generateWarningsForStaticMocking: Boolean = true,
@@ -30,6 +31,7 @@ class PythonCodeGenerator(
 ) : CodeGenerator(
     classUnderTest,
     paramNames,
+    false,
     testFramework,
     mockFramework,
     staticsMocking,
@@ -46,7 +48,7 @@ class PythonCodeGenerator(
         classUnderTest = classUnderTest,
         paramNames = paramNames,
         testFramework = testFramework,
-        mockFramework = mockFramework ?: MockFramework.MOCKITO,
+        mockFramework = mockFramework,
         codegenLanguage = codegenLanguage,
         codeGenLanguage = PythonCodeLanguage,
         parametrizedTestSource = parameterizedTestSource,
@@ -63,12 +65,12 @@ class PythonCodeGenerator(
         cgTestSets: List<CgMethodTestSet>,
         importModules: Set<PythonImport>,
         testClassCustomName: String? = null,
-    ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
+    ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
             val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)
-            TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+            CodeGeneratorResult(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
         }
     }
 }

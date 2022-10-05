@@ -323,6 +323,7 @@ open class CgTestClassConstructor(val context: CgContext) :
             is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }
             is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
             is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
+            else -> throw UnsupportedOperationException()
         }
 
         fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }

@@ -11,15 +11,11 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
-import org.utbot.intellij.plugin.ui.utils.jdkVersion
 
 class GenerateTestsModel(
     project: Project,
@@ -37,23 +33,6 @@ class GenerateTestsModel(
     potentialTestModules,
     srcClasses
 ) {
-
-    fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
-        requireNotNull(newTestSourceRoot)
-        testSourceRoot = newTestSourceRoot
-        var target = newTestSourceRoot
-        while(target != null && target is FakeVirtualFile) {
-            target = target.parent
-        }
-        if (target == null) {
-            error("Could not find module for $newTestSourceRoot")
-        }
-
-        testModule = ModuleUtil.findModuleForFile(target, project)
-            ?: error("Could not find module for $newTestSourceRoot")
-    }
-
-    var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
@@ -68,12 +47,6 @@ class GenerateTestsModel(
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
     var runGeneratedTestsWithCoverage : Boolean = false
-
-    val jdkVersion: JavaSdkVersion?
-        get() = try {
-            testModule.jdkVersion()
-        } catch (e: IllegalStateException) {
-            // Just ignore it here, notification will be shown in org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
-            null
-        }
 }
+
+val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""

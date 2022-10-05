@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.language
 
-import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -33,11 +32,11 @@ object JvmLanguageAssistant : LanguageAssistant(){
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (srcClasses, focusedMethod, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethod)
+        val (srcClasses, setOfFocusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, setOfFocusedMethods)
     }
 
-    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, MemberInfo?, Boolean>? {
+    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR)
         if (editor != null) {
@@ -62,7 +61,7 @@ object JvmLanguageAssistant : LanguageAssistant(){
                     return null
                 }
 
-                return Triple(setOf(srcClass), focusedMethod, true)
+                return Triple(setOf(srcClass), if (focusedMethod == null) emptySet() else setOf(focusedMethod), true)
             }
         } else {
             // The action is being called from 'Project' tool window
@@ -106,7 +105,7 @@ object JvmLanguageAssistant : LanguageAssistant(){
                     .filter { folder -> !folder.rootType.isForTests && folder.file == commonSourceRoot}
                     .findAny().isPresent ) return null
 
-            return Triple(srcClasses.toSet(), selectedMethod, extractMembersFromSrcClasses)
+            return Triple(srcClasses.toSet(), if (selectedMethod == null) emptySet() else setOf(selectedMethod), extractMembersFromSrcClasses)
         }
         return null
     }

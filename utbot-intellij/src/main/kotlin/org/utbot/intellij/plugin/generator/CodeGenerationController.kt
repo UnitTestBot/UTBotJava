@@ -93,8 +93,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.PythonSysPathImport
 import org.utbot.intellij.plugin.models.packageName
 import mu.KotlinLogging
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
@@ -881,8 +879,6 @@ object CodeGenerationController {
                         }
                     }
                     is RegularImport -> { }
-                    is PythonImport -> { }
-                    is PythonSysPathImport -> { }
                 }
             }
         }

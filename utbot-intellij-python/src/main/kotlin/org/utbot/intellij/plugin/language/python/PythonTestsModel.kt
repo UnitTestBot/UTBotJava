@@ -7,7 +7,6 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenLanguage
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class PythonTestsModel(

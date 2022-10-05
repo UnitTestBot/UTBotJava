@@ -37,18 +37,16 @@ intellij {
     )
 
     val jsPlugins = listOf(
-        "JavaScriptLanguage"
+        "JavaScript"
     )
 
-    plugins.set(
-        when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
-            "PC" -> pythonCommunityPlugins
-            "PU" -> pythonUltimatePlugins // something else, JS?
-            else -> jvmPlugins
-        }
-    )
+    plugins.set(when (ideType) {
+        "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
+        "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
+        "PC" -> pythonCommunityPlugins
+        "PY" -> pythonUltimatePlugins // something else, JS?
+        else -> jvmPlugins
+    })
 
     version.set("222.4167.29")
     type.set(ideTypeOrAndroidStudio)
@@ -96,4 +94,12 @@ dependencies {
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
     testApi(project(":utbot-framework"))
+    implementation(project(":utbot-ui-commons"))
+
+    //Family
+    implementation(project(":utbot-python"))
+    implementation(project(":utbot-intellij-python"))
+
+//    implementation(project(":utbot-js"))
+//    implementation(project(":utbot-intellij-js"))
 }

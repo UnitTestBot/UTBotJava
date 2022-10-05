@@ -79,8 +79,8 @@ open class CodeGenerator(
             val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
             CodeGeneratorResult(
                 generatedCode = renderClassFile(testClassFile),
-                utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-                testsGenerationReport = testClassFile.testsGenerationReport
+                testsGenerationReport = testClassFile.testsGenerationReport,
+                utilClassKind = UtilClassKind.fromCgContextOrNull(context)
             )
         }
     }

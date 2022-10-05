@@ -7,5 +7,5 @@ target/
 .idea/
 .gradle/
 *.log
-*.rdgen
 __pycache__/
+*.rdgen

@@ -1655,6 +1655,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         testSet.executions.any { it.result is UtExecutionFailure }
 
 
+    protected final fun testMethod(
     /**
      * Determines [CgTestMethodType] for current execution according to its success or failure.
      */

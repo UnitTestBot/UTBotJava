@@ -24,7 +24,7 @@ import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
-class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
+class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
 
     private val SET_TEST_FOLDER = "set test folder"

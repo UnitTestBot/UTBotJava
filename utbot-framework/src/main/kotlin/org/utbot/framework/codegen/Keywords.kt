@@ -30,7 +30,7 @@ private val kotlinModifierKeywords = setOf(
     "private", "protected", "public", "reified", "sealed", "suspend", "tailrec", "vararg"
 )
 
-// For now we check only hard keywords because others can be used as methods and variables identifiers
+// For now, we check only hard keywords because others can be used as methods and variables identifiers
 private val kotlinKeywords = kotlinHardKeywords
 
 fun isLanguageKeyword(word: String, codegenLanguage: CodeGenLanguage): Boolean =

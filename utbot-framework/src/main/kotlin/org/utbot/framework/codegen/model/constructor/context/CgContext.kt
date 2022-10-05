@@ -417,7 +417,7 @@ interface CgContextOwner {
  */
 data class CgContext(
     override val classUnderTest: ClassId,
-    val generateUtilClassFile: Boolean,
+    val generateUtilClassFile: Boolean = false,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),

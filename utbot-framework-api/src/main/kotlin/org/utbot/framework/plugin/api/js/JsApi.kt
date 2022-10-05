@@ -96,37 +96,12 @@ class JsMethodId(
     override val returnType: JsClassId
         get() = lazyReturnType?.value ?: returnTypeNotLazy
 
-    override val isPrivate: Boolean
-        get() = throw UnsupportedOperationException("JavaScript does not support private methods.")
-
-    override val isProtected: Boolean
-        get() = throw UnsupportedOperationException("JavaScript does not support protected methods.")
-
-    override val isPublic: Boolean
-        get() = true
-
-    override val isStatic: Boolean
-        get() = staticModifier
-
 }
 
 class JsConstructorId(
     override var classId: JsClassId,
     override val parameters: List<JsClassId>,
-) : ConstructorId(classId, parameters) {
-
-    override val returnType: JsClassId
-        get() = classId
-
-    override val isPrivate: Boolean
-        get() = throw UnsupportedOperationException("JavaScript does not support private constructors.")
-
-    override val isProtected: Boolean
-        get() = throw UnsupportedOperationException("JavaScript does not support protected constructors.")
-
-    override val isPublic: Boolean
-        get() = true
-}
+) : ConstructorId(classId, parameters)
 
 class JsMultipleClassId(private val jsJoinedName: String) : JsClassId(jsJoinedName) {
 

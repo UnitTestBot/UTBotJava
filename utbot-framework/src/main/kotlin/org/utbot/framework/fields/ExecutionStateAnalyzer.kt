@@ -5,10 +5,7 @@ import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.workaround
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.go.GoUtModel
-import org.utbot.framework.plugin.api.js.JsUtModel
 import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.python.PythonModel
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -269,8 +266,7 @@ fun <D> UtModel.accept(visitor: UtModelVisitor<D>, data: D) = visitor.run {
         is UtPrimitiveModel -> visit(element, data)
         is UtReferenceModel -> visit(element, data)
         is UtVoidModel -> visit(element, data)
-        is PythonModel -> visit(element, data)
-        is GoUtModel -> error("Unexpected GoUtModel: unsupported")
-        is JsUtModel -> error("Unexpected JsUtModel: unsupported")
+        // PythonModel, GoUtModel, JsUtModel may go here
+        else -> throw UnsupportedOperationException()
     }
 }

@@ -5,7 +5,7 @@ import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 
-internal class CodeGenerationSettingItemRenderer : DefaultListCellRenderer() {
+class CodeGenerationSettingItemRenderer : DefaultListCellRenderer() {
     override fun getListCellRendererComponent(
         list: JList<*>?,
         value: Any?,

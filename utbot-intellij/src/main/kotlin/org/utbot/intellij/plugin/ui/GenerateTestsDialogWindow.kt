@@ -725,7 +725,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> jUnit4LibraryDescriptor(versionInProject)
             Junit5 -> jUnit5LibraryDescriptor(versionInProject)
             TestNg -> testNgLibraryDescriptor(versionInProject)
-            else -> throw IllegalStateException()
+            else -> throw UnsupportedOperationException()
         }
 
         selectedTestFramework.isInstalled = true
@@ -784,6 +784,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> error("Parametrized tests are not supported for JUnit 4")
             Junit5 -> jUnit5ParametrizedTestsLibraryDescriptor(versionInProject)
             TestNg -> null // Parametrized tests come with TestNG by default
+            else -> throw UnsupportedOperationException()
         }
 
         selectedTestFramework.isParametrizedTestsConfigured = true
@@ -990,7 +991,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         when (testFramework) {
             Junit4 -> parametrizedTestSources.isEnabled = false
             Junit5,
-            TestNg -> parametrizedTestSources.isEnabled = true
             TestNg -> parametrizedTestSources.isEnabled = true
             else -> parametrizedTestSources.isEnabled = false
         }

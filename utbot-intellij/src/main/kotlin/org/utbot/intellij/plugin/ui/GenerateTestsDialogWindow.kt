@@ -1033,8 +1033,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 val mockMakerPath = "$entryPath/$MOCKITO_EXTENSIONS_FOLDER/$MOCKITO_MOCKMAKER_FILE_NAME".toPath()
                 if (!Files.exists(mockMakerPath)) return false
 
-                val fileLines = Files.readAllLines(mockMakerPath)
-                fileLines.singleOrNull() == MOCKITO_EXTENSIONS_FILE_CONTENT
+                try {
+                    val fileLines = Files.readAllLines(mockMakerPath)
+                    fileLines.singleOrNull() == MOCKITO_EXTENSIONS_FILE_CONTENT
+                } catch (e: java.io.IOException) {
+                    return false
+                }
+
             }
     }
 }

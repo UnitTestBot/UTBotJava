@@ -90,12 +90,16 @@ class SymbolicExecutionClusterCommentBuilder(
             val className = invokeSootMethod.declaringClass.name
             val methodName = invokeSootMethod.name
             val methodParameterTypes = invokeSootMethod.parameterTypes
+            val isPrivate = invokeSootMethod.isPrivate
             val sentenceInvoke = SimpleSentenceBlock(stringTemplates = StringsTemplatesPlural())
             buildSentenceBlock(invoke, sentenceInvoke, invokeSootMethod)
             sentenceInvoke.squashStmtText()
             if (!sentenceInvoke.isEmpty()) {
                 sentenceBlock.invokeSentenceBlock =
-                    Pair(getMethodReference(className, methodName, methodParameterTypes), sentenceInvoke)
+                    Pair(
+                        getMethodReference(className, methodName, methodParameterTypes, isPrivate),
+                        sentenceInvoke
+                    )
                 createNextBlock = true
                 invokeRegistered = true
             }

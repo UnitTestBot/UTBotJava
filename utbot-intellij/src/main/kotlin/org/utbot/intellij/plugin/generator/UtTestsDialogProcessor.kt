@@ -108,6 +108,9 @@ object UtTestsDialogProcessor {
             *model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
         )
         promise.onSuccess {
+            if (it.hasErrors() || it.isAborted)
+                return@onSuccess
+
             (object : Task.Backgroundable(project, "Generate tests") {
 
                 override fun run(indicator: ProgressIndicator) {

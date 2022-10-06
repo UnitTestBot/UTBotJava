@@ -26,12 +26,18 @@ import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
 import org.jetbrains.kotlin.utils.addIfNotNull
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.ui.InvalidClassNotifier
+import org.utbot.intellij.plugin.util.isAbstract
 
 class GenerateTestsAction : AnAction(), UpdateInBackground {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
+
         val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)
+        val validatedSrcClasses = validateSrcClasses(srcClasses) ?: return
+
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, validatedSrcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
     override fun update(e: AnActionEvent) {
@@ -53,7 +59,6 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
-                if (srcClass.isInterface || !srcClass.isVisible) return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
                 val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
@@ -113,7 +118,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
                     }
                 }
             }
-            srcClasses.removeIf { it.isInterface }
+
             if (srcClasses.size > 1) {
                 extractMembersFromSrcClasses = false
             }
@@ -134,6 +139,45 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
             return Triple(srcClasses.toSet(), selectedMethods.toSet(), extractMembersFromSrcClasses)
         }
         return null
+    }
+
+    /**
+     * Validates that a set of source classes matches some requirements from [isInvalid].
+     * If no one of them matches, shows a warning about the first mismatch reason.
+     */
+    private fun validateSrcClasses(srcClasses: Set<PsiClass>): Set<PsiClass>? {
+        val filteredClasses = srcClasses
+            .filterNot { it.isInvalid(withWarnings = false) }
+            .toSet()
+
+        if (filteredClasses.isEmpty()) {
+            srcClasses.first().isInvalid(withWarnings = true)
+            return null
+        }
+
+       return filteredClasses
+    }
+
+    private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
+        val isAbstractOrInterface = this.isInterface || this.isAbstract
+        if (isAbstractOrInterface) {
+            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface ${this.name}")
+            return true
+        }
+
+        val isInvisible = !this.isVisible
+        if (isInvisible) {
+            if (withWarnings) InvalidClassNotifier.notify("private or protected class ${this.name}")
+            return true
+        }
+
+        val packageIsIncorrect = this.packageName.startsWith("java")
+        if (packageIsIncorrect) {
+            if (withWarnings) InvalidClassNotifier.notify("class ${this.name} located in java.* package")
+            return true
+        }
+
+        return false
     }
 
     private fun PsiElement?.getSourceRoot() : VirtualFile? {

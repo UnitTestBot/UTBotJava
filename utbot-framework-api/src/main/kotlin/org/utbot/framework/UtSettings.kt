@@ -241,6 +241,13 @@ object UtSettings : AbstractSettings(
     var treatOverflowAsError: Boolean by getBooleanProperty(false)
 
     /**
+     * Generate tests that treat assertions as error suits.
+     *
+     * True by default.
+     */
+    var treatAssertAsErrorSuit: Boolean by getBooleanProperty(true)
+
+    /**
      * Instrument all classes before start
      */
     var warmupConcreteExecution by getBooleanProperty(false)

@@ -475,12 +475,12 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
         val summary1 = "Test executes conditions:\n" +
                 "    (num1 > num2): True\n" +
                 "invokes:\n" +
-                "    {@link org.utbot.examples.ternary.Ternary#intFunc1()} once\n" +
+                "    org.utbot.examples.ternary.Ternary#intFunc1() once\n" +
                 "returns from: return num1 > num2 ? intFunc1() : intFunc2();\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (num1 > num2): False\n" +
                 "invokes:\n" +
-                "    {@link org.utbot.examples.ternary.Ternary#intFunc2()} once\n" +
+                "    org.utbot.examples.ternary.Ternary#intFunc2() once\n" +
                 "returns from: return num1 > num2 ? intFunc1() : intFunc2();\n"
 
         val methodName1 = "testIntFunc_Num1GreaterThanNum2"

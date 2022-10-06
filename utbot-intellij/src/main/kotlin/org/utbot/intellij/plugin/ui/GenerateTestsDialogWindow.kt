@@ -109,7 +109,7 @@ import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FILE_CONTENT
-import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_STORAGE
+import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.codegen.model.util.MOCKITO_MOCKMAKER_FILE_NAME
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -762,7 +762,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * for further details.
      */
     private fun configureMockitoResources(testResourcesPath: Path) {
-        val mockitoExtensionsPath = "$testResourcesPath/$MOCKITO_EXTENSIONS_STORAGE".toPath()
+        val mockitoExtensionsPath = "$testResourcesPath/$MOCKITO_EXTENSIONS_FOLDER".toPath()
         val mockitoMockMakerPath = "$mockitoExtensionsPath/$MOCKITO_MOCKMAKER_FILE_NAME".toPath()
 
         if (!testResourcesPath.exists()) Files.createDirectory(testResourcesPath)
@@ -770,7 +770,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         if (!mockitoMockMakerPath.exists()) {
             Files.createFile(mockitoMockMakerPath)
-            Files.write(mockitoMockMakerPath, MOCKITO_EXTENSIONS_FILE_CONTENT)
+            Files.write(mockitoMockMakerPath, listOf(MOCKITO_EXTENSIONS_FILE_CONTENT))
         }
     }
 
@@ -1027,14 +1027,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     .map { f -> Paths.get(urlToPath(f.url)) }
             }
 
-        return entriesPaths.all { path ->
-            if (Files.exists(path)) {
-                val fileNames = Files.walk(path).map { it.fileName }.toList()
-                fileNames.any { it.toString() == MOCKITO_MOCKMAKER_FILE_NAME }
-            } else {
-                false
+        return entriesPaths.all { entryPath ->
+                if (!Files.exists(entryPath)) return false
+
+                val mockMakerPath = "$entryPath/$MOCKITO_EXTENSIONS_FOLDER/$MOCKITO_MOCKMAKER_FILE_NAME".toPath()
+                if (!Files.exists(mockMakerPath)) return false
+
+                try {
+                    val fileLines = Files.readAllLines(mockMakerPath)
+                    fileLines.singleOrNull() == MOCKITO_EXTENSIONS_FILE_CONTENT
+                } catch (e: java.io.IOException) {
+                    return false
+                }
+
             }
-        }
     }
 }
 

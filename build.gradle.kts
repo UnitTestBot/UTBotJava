@@ -9,8 +9,9 @@ val semVer: String? by project
 val coroutinesVersion: String by project
 val collectionsVersion: String by project
 val junit5Version: String by project
+val dateBasedVersion: String = SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis()) // CI proceeds the same way
 
-version = semVer ?: "${SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis())}-SNAPSHOT"
+version = semVer ?: "$dateBasedVersion-SNAPSHOT"
 
 plugins {
     `java-library`

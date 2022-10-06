@@ -6,6 +6,8 @@ import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.comment.*
+import org.utbot.summary.comment.customtags.getClassReference
+import org.utbot.summary.comment.customtags.getMethodReference
 import org.utbot.summary.tag.TraceTagWithoutExecution
 import soot.SootMethod
 

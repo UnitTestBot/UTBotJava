@@ -136,7 +136,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "throws IllegalArgumentException in: return binarySearch.leftBinSearch(array, key);\n"
         val summary7 = "Test calls {@link org.utbot.examples.algorithms.BinarySearch#leftBinSearch(long[],long)},\n" +
                 "    there it invokes:\n" +
-                "        {@link org.utbot.examples.algorithms.BinarySearch#isUnsorted(long[])} once\n" +
+                "        org.utbot.examples.algorithms.BinarySearch#isUnsorted(long[]) once\n" +
                 "    triggers recursion of leftBinSearch once, \n" +
                 "Test throws NullPointerException in: return binarySearch.leftBinSearch(array, key);\n"
 
@@ -378,8 +378,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "        (fst < 100): False,\n" +
                 "        (snd < 100): False\n" +
                 "    invokes:\n" +
-                "        {@link org.utbot.examples.invokes.InvokeExample#half(int)} once,\n" +
-                "        {@link org.utbot.examples.invokes.InvokeExample#mult(int,int)} once\n" +
+                "        org.utbot.examples.invokes.InvokeExample#half(int) once,\n" +
+                "        org.utbot.examples.invokes.InvokeExample#mult(int,int) once\n" +
                 "    returns from: return mult(x, y);\n" +
                 "    \n" +
                 "Test then returns from: return invokeExample.simpleFormula(f, s);\n"
@@ -625,8 +625,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "            (fst < 100): False,\n" +
                 "            (snd < 100): False\n" +
                 "        invokes:\n" +
-                "            {@link org.utbot.examples.invokes.InvokeExample#half(int)} once,\n" +
-                "            {@link org.utbot.examples.invokes.InvokeExample#mult(int,int)} once\n" +
+                "            org.utbot.examples.invokes.InvokeExample#half(int) once,\n" +
+                "            org.utbot.examples.invokes.InvokeExample#mult(int,int) once\n" +
                 "        returns from: return mult(x, y);\n" +
                 "        \n" +
                 "    Test later returns from: return invokeExample.simpleFormula(f, s);\n" +

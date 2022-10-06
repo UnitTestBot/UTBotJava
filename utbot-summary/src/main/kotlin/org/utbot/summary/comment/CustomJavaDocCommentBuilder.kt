@@ -30,7 +30,8 @@ class CustomJavaDocCommentBuilder(
         val methodReference = getMethodReference(
             currentMethod.declaringClass.name,
             currentMethod.name,
-            currentMethod.parameterTypes
+            currentMethod.parameterTypes,
+            false
         )
         val classReference = getClassReference(currentMethod.declaringClass.javaStyleName)
 

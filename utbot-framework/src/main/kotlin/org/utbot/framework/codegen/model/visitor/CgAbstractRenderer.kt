@@ -881,7 +881,7 @@ abstract class CgAbstractRenderer(
 
     protected abstract fun renderClassModality(aClass: AbstractCgClass<*>)
 
-    private fun renderMethodDocumentation(element: CgMethod) {
+    protected fun renderMethodDocumentation(element: CgMethod) {
         element.documentation.accept(this)
     }
 

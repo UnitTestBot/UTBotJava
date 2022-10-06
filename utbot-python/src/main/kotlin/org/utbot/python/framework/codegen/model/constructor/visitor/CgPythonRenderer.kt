@@ -140,7 +140,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun visit(element: CgArrayAnnotationArgument) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun visit(element: CgAnonymousFunction) {
@@ -162,27 +162,34 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun visit(element: CgNotNullAssertion) {
-        TODO("Not yet implemented")
+        element.expression.accept(this)
     }
 
     override fun visit(element: CgAllocateArray) {
-        TODO("Not yet implemented")
+        print("[None] * ${element.size}")
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
-        TODO("Not yet implemented")
+        print(" [")
+        element.initializer.accept(this)
+        print(" ]")
     }
 
     override fun visit(element: CgArrayInitializer) {
-        TODO("Not yet implemented")
+        val elementType = element.elementType
+        val elementsInLine = arrayElementsInLine(elementType)
+
+        print("[")
+        element.values.renderElements(elementsInLine)
+        print("]")
     }
 
     override fun visit(element: CgSwitchCaseLabel) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun visit(element: CgSwitchCase) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun visit(element: CgParameterDeclaration) {
@@ -199,11 +206,11 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun visit(element: CgGetJavaClass) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun visit(element: CgGetKotlinClass) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun visit(element: CgConstructorCall) {
@@ -217,7 +224,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun renderStaticImport(staticImport: StaticImport) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     private fun renderClassFileImports(element: CgTestClassFile) {
@@ -260,8 +267,16 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         print(")")
     }
 
+    override fun visit(element: CgErrorTestMethod) {
+        renderMethodDocumentation(element)
+        renderMethodSignature(element)
+        visit(element as CgMethod)
+        println("pass")
+    }
+
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
-        TODO("Not yet implemented")
+        val returnType = element.returnType.canonicalName
+        println("def ${element.name}() -> $returnType: pass")
     }
 
     override fun visit(element: CgInnerBlock) {
@@ -332,11 +347,11 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override fun escapeNamePossibleKeywordImpl(s: String): String = s
     override fun renderClassVisibility(classId: ClassId) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun renderClassModality(aClass: AbstractCgClass<*>) {
-        TODO("Not yet implemented")
+        throw UnsupportedOperationException()
     }
 
     override fun visit(block: List<CgStatement>, printNextLine: Boolean) {

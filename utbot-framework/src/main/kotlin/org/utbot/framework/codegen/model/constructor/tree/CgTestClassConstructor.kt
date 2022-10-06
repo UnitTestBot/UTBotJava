@@ -47,9 +47,9 @@ open class CgTestClassConstructor(val context: CgContext) :
         clearContextRelatedStorage()
     }
 
-    protected val methodConstructor = getMethodConstructorBy(context)
+    private val methodConstructor = getMethodConstructorBy(context)
     private val nameGenerator = getNameGeneratorBy(context)
-    protected val testFrameworkManager = getTestFrameworkManagerBy(context)
+    private val testFrameworkManager = getTestFrameworkManagerBy(context)
 
     protected val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
@@ -181,7 +181,7 @@ open class CgTestClassConstructor(val context: CgContext) :
         return regions
     }
 
-    protected fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
+    private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
@@ -324,7 +324,9 @@ open class CgTestClassConstructor(val context: CgContext) :
             testFrameworkManagers.getOrDefault(context, context.codeGenLanguage.managerByFramework(context))
 
         fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
-        fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
+        fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) {
+            context.codeGenLanguage.getVariableConstructorBy(context)
+        }
         fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
             context.codeGenLanguage.getMethodConstructorBy(context)
         }

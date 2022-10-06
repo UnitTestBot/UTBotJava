@@ -4,6 +4,7 @@ val ideType: String by rootProject
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
 }
+project.tasks.asMap["runIde"]?.enabled = false
 
 intellij {
     version.set("212.5712.43")

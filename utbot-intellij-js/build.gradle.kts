@@ -64,7 +64,7 @@ intellij {
             "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
             "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
             "PC" -> pythonCommunityPlugins
-            "PU" -> pythonUltimatePlugins // something else, JS?
+            "PY" -> pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
         }
     )

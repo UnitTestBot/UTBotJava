@@ -256,6 +256,6 @@ fun getDirectoriesForSysPath(
 
     return Pair(
         sources.map { it.path }.toSet(),
-        "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".")
+        "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".").replace("/", File.separator)
     )
 }

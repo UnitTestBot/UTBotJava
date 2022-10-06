@@ -58,7 +58,7 @@ fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
         input.directoriesForSysPath,
         input.moduleToImport,
         input.additionalModulesToImport,
-        fileForOutput.path
+        fileForOutput.path.replace("\\", "\\\\")
     )
     val fileWithCode = TemporaryFileManager.createTemporaryFile(
         runCode,
@@ -78,10 +78,10 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
 
     if (result.exitValue != 0)
         return EvaluationError(
-            if (result.terminatedByTimeout) "Timeout" else "Non-zero exit status"
+            if (result.terminatedByTimeout) "Timeout" else "Non-zero exit status: ${result.stderr}"
         )
 
-    val output = process.fileForOutput.readText().split('\n')
+    val output = process.fileForOutput.readText().split(System.lineSeparator())
     process.fileForOutput.delete()
 
     if (output.size != 4)

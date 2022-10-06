@@ -64,6 +64,12 @@ object UnsupportedJdkNotifier : ErrorNotifier() {
             "JDK versions older than 8 are not supported. This project's JDK version is $info"
 }
 
+object InvalidClassNotifier : WarningNotifier() {
+    override val displayId: String = "Invalid class"
+    override fun content(project: Project?, module: Module?, info: String): String =
+        "Generate tests with UtBot for the $info is not supported."
+}
+
 object MissingLibrariesNotifier : WarningNotifier() {
     override val displayId: String = "Missing libraries"
     override fun content(project: Project?, module: Module?, info: String): String =

@@ -53,9 +53,19 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
  * Command-line option to disable the sandbox
  */
 const val DISABLE_SANDBOX_OPTION = "--disable-sandbox"
-private val defaultLogLevel = LogLevel.Info
+const val ENABLE_LOGS_OPTION = "--enable-logs"
 private val logger = getLogger("ChildProcess")
 private val messageFromMainTimeout: Duration = 120.seconds
+
+fun logLevelArgument(level: LogLevel): String {
+    return "$ENABLE_LOGS_OPTION=$level"
+}
+
+private fun findLogLevel(args: Array<String>): LogLevel {
+    val logArgument = args.find{ it.contains(ENABLE_LOGS_OPTION) } ?: return LogLevel.Fatal
+
+    return enumValueOf(logArgument.split("=").last())
+}
 
 /**
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
@@ -76,7 +86,9 @@ fun main(args: Array<String>) = runBlocking {
         }
     }
 
-    Logger.set(Lifetime.Eternal, UtRdConsoleLoggerFactory(defaultLogLevel, System.err))
+    val logLevel: LogLevel = findLogLevel(args)
+    Logger.set(Lifetime.Eternal, UtRdConsoleLoggerFactory(logLevel, System.err))
+
     val port = findRdPort(args)
 
     try {

@@ -1,10 +1,8 @@
 package org.utbot.framework
 
+import com.jetbrains.rd.util.LogLevel
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
-import org.utbot.common.PropertiesSettingsContainer
-import kotlin.reflect.KProperty
-
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -266,7 +264,17 @@ object UtSettings : AbstractSettings(
     )
 
     /**
-     * Determines whether should errors from a child process and idea engine process be written to a log file or suppressed.
+     * Log level for engine process, which started in idea on generate tests action.
+     */
+    var engineProcessLogLevel by getEnumProperty(LogLevel.Info)
+
+    /**
+     * Log level for concrete executor process.
+     */
+    var childProcessLogLevel by getEnumProperty(LogLevel.Info)
+
+    /**
+     * Determines whether should errors from a child process be written to a log file or suppressed.
      * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
      *
      * False by default (for saving disk space).

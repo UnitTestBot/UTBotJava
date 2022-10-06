@@ -5,49 +5,16 @@ import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
-import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
-import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgArrayInitializer
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
-import org.utbot.framework.codegen.model.tree.CgErrorWrapper
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgForLoop
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
-import org.utbot.framework.codegen.model.tree.CgGetLength
-import org.utbot.framework.codegen.model.tree.CgInnerBlock
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgSpread
-import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgSwitchCase
-import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgThrowStatement
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
+import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.util.isStatic
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
@@ -196,13 +163,12 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         element.values.renderElements(elementsInLine)
     }
 
-    @Suppress("DuplicatedCode")
     override fun visit(element: CgTestClassFile) {
-        context.collectedImports.filterIsInstance<RegularImport>().forEach {
+        element.imports.filterIsInstance<RegularImport>().forEach {
             renderRegularImport(it)
         }
         println()
-        element.testClass.accept(this)
+        element.declaredClass.accept(this)
     }
 
     override fun visit(element: CgSwitchCaseLabel) {
@@ -281,6 +247,23 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
     override fun visit(element: CgThrowStatement) {
         // TODO: Should we render throw statement right here?
+    }
+
+    override fun visit(element: AbstractCgClass<*>) {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(element: CgTestClassBody) {
+        // render regions for test methods
+        for ((i, region) in (element.testMethodRegions + element.nestedClassRegions).withIndex()) {
+            if (i != 0) println()
+
+            region.accept(this)
+        }
+
+        if (element.staticDeclarationRegions.isEmpty()) {
+            return
+        }
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
@@ -376,6 +359,14 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
     override fun escapeNamePossibleKeywordImpl(s: String): String =
         if (isLanguageKeyword(s, context.codeGenLanguage)) "`$s`" else s
+
+    override fun renderClassVisibility(classId: ClassId) {
+        TODO("Not yet implemented")
+    }
+
+    override fun renderClassModality(aClass: AbstractCgClass<*>) {
+        TODO("Not yet implemented")
+    }
 
     //TODO MINOR: check
     override fun String.escapeCharacters(): String =

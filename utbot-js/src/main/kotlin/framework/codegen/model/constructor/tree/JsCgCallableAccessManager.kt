@@ -4,13 +4,11 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.constructor.tree.CgIncompleteMethodCall
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgMethodCall
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 
 class JsCgCallableAccessManager(context: CgContext) : CgCallableAccessManager,
@@ -21,6 +19,14 @@ class JsCgCallableAccessManager(context: CgContext) : CgCallableAccessManager,
 
     override operator fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall =
         CgIncompleteMethodCall(staticMethodId, null)
+
+    override fun CgExpression.get(fieldId: FieldId): CgExpression {
+        TODO("Not yet implemented")
+    }
+
+    override fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
+        TODO("Not yet implemented")
+    }
 
     override operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()

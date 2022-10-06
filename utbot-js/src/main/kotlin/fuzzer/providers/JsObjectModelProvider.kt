@@ -3,7 +3,6 @@ package fuzzer.providers
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.js.JsClassId
 import org.utbot.framework.plugin.api.js.JsConstructorId
 import org.utbot.framework.plugin.api.js.util.isJsBasic
@@ -51,16 +50,13 @@ object JsObjectModelProvider : ModelProvider {
     }
 
     private fun assemble(id: Int, constructor: ConstructorId, values: List<FuzzedValue>): FuzzedValue {
-        val instantiationChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(null, constructor, values.map { it.model })
         val model = UtAssembleModel(
             id,
             constructor.classId,
             "${constructor.classId.name}${constructor.parameters}#" + id.toString(16),
-            instantiationChain = instantiationChain,
-            modificationsChain = mutableListOf()
-        ).apply {
-            instantiationChain += UtExecutableCallModel(null, constructor, values.map { it.model }, this)
-        }.fuzzed {
+            instantiationCall = instantiationCall,
+        ) .fuzzed {
             summary =
                 "%var% = ${constructor.classId.simpleName}(${constructor.parameters.joinToString { it.simpleName }})"
         }

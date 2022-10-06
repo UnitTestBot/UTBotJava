@@ -5,7 +5,7 @@ import framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.ExpressionWithType
 import org.utbot.framework.codegen.model.tree.CgAnnotation
@@ -40,14 +40,16 @@ import org.utbot.framework.codegen.model.tree.buildWhileLoop
 import org.utbot.framework.codegen.model.util.buildExceptionHandler
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 
 class JsCgStatementConstructor(context: CgContext) :
     CgStatementConstructor,
     CgContextOwner by context,
-    CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context) {
+    CgCallableAccessManager by CgTestClassConstructor.CgComponents.getCallableAccessManagerBy(context) {
 
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = CgTestClassConstructor.CgComponents.getNameGeneratorBy(context)
 
     override fun newVar(
         baseType: ClassId,
@@ -154,6 +156,18 @@ class JsCgStatementConstructor(context: CgContext) :
 
     override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) {
         throw UnsupportedOperationException("JavaScript does not have forEach loops")
+    }
+
+    override fun getClassOf(classId: ClassId): CgExpression {
+        TODO("Not yet implemented")
+    }
+
+    override fun createFieldVariable(fieldId: FieldId): CgVariable {
+        TODO("Not yet implemented")
+    }
+
+    override fun createExecutableVariable(executableId: ExecutableId, arguments: List<CgExpression>): CgVariable {
+        TODO("Not yet implemented")
     }
 
     override fun tryBlock(init: () -> Unit): CgTryCatch = tryBlock(init, null)

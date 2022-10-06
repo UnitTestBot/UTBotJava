@@ -9,7 +9,7 @@ import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.TestsCodeWithTestReport
+import org.utbot.framework.codegen.model.CodeGeneratorResult
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -59,10 +59,10 @@ class JsCodeGenerator(
     fun generateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
-    ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
+    ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         val testClassModel = TestClassModel(classUnderTest, cgTestSets)
         val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
-        TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+        CodeGeneratorResult(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
     }
 
     private fun <R> withCustomContext(testClassCustomName: String? = null, block: () -> R): R {

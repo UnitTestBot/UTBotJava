@@ -2,9 +2,9 @@ package org.utbot.rd.models
 
 import com.jetbrains.rd.generator.nova.*
 
-object ProtocolRoot : Root()
+object ChildProcessProtocolRoot : Root()
 
-object ProtocolModel : Ext(ProtocolRoot) {
+object ChildProcessModel : Ext(ChildProcessProtocolRoot) {
     val AddPathsParams = structdef {
         field("pathsToUserClasses", PredefinedType.string)
         field("pathsToDependencyClasses", PredefinedType.string)

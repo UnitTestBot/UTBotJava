@@ -4,7 +4,8 @@ import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.getArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.util.CgFieldState
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
@@ -44,8 +45,8 @@ internal interface CgFieldStateManager {
 internal class CgFieldStateManagerImpl(val context: CgContext)
     : CgContextOwner by context,
         CgFieldStateManager,
-        CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context),
-        CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
+        CgCallableAccessManager by getCallableAccessManagerBy(context),
+        CgStatementConstructor by getStatementConstructorBy(context) {
 
     override fun rememberInitialEnvironmentState(info: StateModificationInfo) {
         rememberThisInstanceState(info, FieldState.INITIAL)

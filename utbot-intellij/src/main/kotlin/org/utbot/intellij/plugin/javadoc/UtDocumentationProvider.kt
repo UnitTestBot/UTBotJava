@@ -37,14 +37,20 @@ class UtDocumentationProvider : JavaDocumentationProvider() {
         docComment: PsiDocComment,
         comment: PsiDocCommentBase
     ): String? {
-        // add UTBot sections with custom tags.
         val utJavaDocInfoGenerator = UtJavaDocInfoGenerator()
-        return if (baseJavaDocInfo != null && baseJavaDocInfo.contains("utbot")) {
+        // case 1 (2022.2): IDE successfully parsed comment with plugin's custom tags,
+        // and we only need to replace tags names with their messages.
+        return if (baseJavaDocInfo != null && baseJavaDocInfo.contains("@utbot")) {
+            val finalJavaDoc = replaceTagNamesWithMessages(baseJavaDocInfo)
+            JavaDocExternalFilter.filterInternalDocInfo(finalJavaDoc)
+            // case 2 (2022.1 and older): IDE failed to parse plugin's tags, and we need to add them on our own.
+        } else if (baseJavaDocInfo != null && comment.text.contains("@utbot")) {
             val javaDocInfoWithUtSections =
                 utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(docComment)
             val finalJavaDoc = replaceTagNamesWithMessages(javaDocInfoWithUtSections)
             JavaDocExternalFilter.filterInternalDocInfo(finalJavaDoc)
         } else {
+            // case 3: comment doesn't contain plugin's tags, so IDE can parse it on its own.
             super.generateRenderedDoc(comment)
         }
     }

@@ -340,6 +340,8 @@ class SarifReport(
 
         return if (utExecution is UtSymbolicExecution) {
             val lastPathLine = try {
+                // path/fullPath might be empty when engine executes in another process -
+                // soot entities cannot be passed to the main process because kryo cannot deserialize them
                 utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
             } catch (t: Throwable) {
                 null

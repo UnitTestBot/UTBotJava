@@ -1,7 +1,9 @@
 package org.utbot.examples.collections;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Maps {
@@ -243,6 +245,20 @@ public class Maps {
             return null;
         } else {
             return removed;
+        }
+    }
+
+    public List<String> mapOperator(Map<String, String> map) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (entry.getValue().equals("key")) {
+                result.add(entry.getKey());
+            }
+        }
+        if (result.size() > 1) {
+            return result;
+        } else {
+            return new ArrayList<>(map.values());
         }
     }
 }

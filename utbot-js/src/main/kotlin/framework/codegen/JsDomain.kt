@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.js.util.jsErrorClassId
 import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
 
 
-object Mocha : TestFramework("Mocha") {
+object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val mainPackage = ""
     override val assertionsClass = jsUndefinedClassId
     override val arraysAssertionsClass = jsUndefinedClassId

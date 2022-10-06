@@ -27,10 +27,12 @@ import org.utbot.framework.plugin.api.js.JsMultipleClassId
 import org.utbot.framework.plugin.api.js.JsPrimitiveModel
 import org.utbot.framework.plugin.api.js.util.isJsBasic
 import org.utbot.framework.plugin.api.js.util.jsErrorClassId
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.UtFuzzedExecution
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -153,7 +155,7 @@ class JsTestGenerator(
             val thisInstance = makeThisInstance(execId, classId, concreteValues)
             val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
             testsForGenerator.add(
-                UtExecution(
+                UtFuzzedExecution(
                     stateBefore = initEnv,
                     stateAfter = initEnv,
                     result = result,
@@ -189,20 +191,17 @@ class JsTestGenerator(
             classId.allConstructors.first().parameters.isEmpty() -> {
                 val id = JsObjectModelProvider.idGenerator.asInt
                 val constructor = classId.allConstructors.first()
-                val instantiationChain = mutableListOf<UtStatementModel>()
+                val instantiationCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = constructor,
+                    params = emptyList(),
+                )
                 UtAssembleModel(
                     id = id,
                     classId = constructor.classId,
                     modelName = "${constructor.classId.name}${constructor.parameters}#" + id.toString(16),
-                    instantiationChain = instantiationChain
-                ).apply {
-                    instantiationChain += UtExecutableCallModel(
-                        instance = null,
-                        executable = constructor,
-                        params = emptyList(),
-                        returnValue = this
-                    )
-                }
+                    instantiationCall = instantiationCall,
+                )
             }
 
             else -> {
@@ -424,7 +423,7 @@ class JsTestGenerator(
     private fun UtAssembleModel.toParamString(): String =
         with(this) {
             val callConstructorString = "new $fileUnderTestAliases.${classId.name}"
-            val paramsString = (instantiationChain.first() as UtExecutableCallModel).params.joinToString(
+            val paramsString = instantiationCall.params.joinToString(
                 prefix = "(",
                 postfix = ")",
             ) {

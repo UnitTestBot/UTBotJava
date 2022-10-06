@@ -17,17 +17,15 @@ configurations {
 }
 
 dependencies {
-    implementation project(':utbot-framework-api')
     implementation project(':utbot-framework')
-    implementation project(':utbot-summary')
     implementation project(':utbot-cli')
-    api project(':utbot-js')
+    implementation project(':utbot-js')
 
     // Without this dependency testng tests do not run.
     implementation group: 'com.beust', name: 'jcommander', version: '1.48'
-    implementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4_platform_version
+    implementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4PlatformVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: clikt_version
+    implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: cliktVersion
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junit5Version
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5Version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version

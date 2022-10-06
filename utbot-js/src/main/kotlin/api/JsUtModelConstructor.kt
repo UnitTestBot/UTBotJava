@@ -52,15 +52,12 @@ class JsUtModelConstructor : UtModelConstructorInterface {
             construct(it, JsEmptyClassId())
         }
         val id = JsObjectModelProvider.idGenerator.asInt
-        val instantiationChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(null, constructor, values)
         return UtAssembleModel(
             id = id,
             classId = constructor.classId,
             modelName = "${constructor.classId.name}${constructor.parameters}#" + id.toString(16),
-            instantiationChain = instantiationChain,
-            modificationsChain = mutableListOf()
-        ).apply {
-            instantiationChain += UtExecutableCallModel(null, constructor, values, this)
-        }
+            instantiationCall = instantiationCall,
+        )
     }
 }

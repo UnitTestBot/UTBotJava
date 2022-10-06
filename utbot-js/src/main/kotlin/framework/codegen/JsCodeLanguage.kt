@@ -11,6 +11,7 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.TestFrameworkManager
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
+import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenLanguage
 import org.utbot.framework.plugin.api.utils.testClassNameGenerator

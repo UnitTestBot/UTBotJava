@@ -1,3 +1,4 @@
+import java.text.SimpleDateFormat
 import org.gradle.api.JavaVersion.VERSION_11
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -9,7 +10,7 @@ val coroutinesVersion: String by project
 val collectionsVersion: String by project
 val junit5Version: String by project
 
-version = semVer ?: "1.0-SNAPSHOT"
+version = semVer ?: "${SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis())}-SNAPSHOT"
 
 plugins {
     `java-library`

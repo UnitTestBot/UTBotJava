@@ -7,6 +7,7 @@ val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 val sootCommitHash: String? by rootProject
 val kryoVersion: String? by rootProject
+val semVer: String? by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
@@ -68,6 +69,7 @@ tasks {
     patchPluginXml {
         sinceBuild.set("212")
         untilBuild.set("222.*")
+        version.set(semVer)
     }
 }
 

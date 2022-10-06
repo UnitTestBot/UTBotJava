@@ -365,8 +365,12 @@ data class Memory( // TODO: split purely symbolic memory and information about s
  */
 class TypeRegistry {
     init {
+        // TODO mistake
         // initializes type storage for OBJECT_TYPE from current scene
-        objectTypeStorage = TypeStorage(OBJECT_TYPE, Scene.v().classes.mapTo(mutableSetOf()) { it.type })
+        objectTypeStorage = TypeStorage.constructTypeStorageUnsafe(
+            OBJECT_TYPE,
+            Scene.v().classes.mapTo(mutableSetOf()) { it.type }
+        )
     }
 
     private val typeIdBiMap = HashBiMap.create<Type, Int>()
@@ -612,9 +616,11 @@ class TypeRegistry {
     fun createClassRef(baseType: Type, numDimensions: Int = 0): MethodResult {
         val addr = classRefBiMap.getOrPut(baseType) { nextClassRefAddr() }
 
-        val objectValue = ObjectValue(TypeStorage(CLASS_REF_TYPE), addr)
+        val objectTypeStorage = TypeStorage.constructTypeStorageWithSingleType(CLASS_REF_TYPE)
+        val objectValue = ObjectValue(objectTypeStorage, addr)
 
-        val typeConstraint = typeConstraint(addr, TypeStorage(CLASS_REF_TYPE)).all()
+        val classRefTypeStorage = TypeStorage.constructTypeStorageWithSingleType(CLASS_REF_TYPE)
+        val typeConstraint = typeConstraint(addr, classRefTypeStorage).all()
 
         val typeId = mkInt(findTypeId(baseType))
         val symNumDimensions = mkInt(numDimensions)

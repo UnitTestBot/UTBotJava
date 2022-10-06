@@ -112,7 +112,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }
 
-        return TypeStorage(type, concretePossibleTypes).removeInappropriateTypes()
+        return TypeStorage.constructTypeStorageUnsafe(type, concretePossibleTypes).removeInappropriateTypes()
     }
 
     private fun isInappropriateOrArrayOfMocksOrLocals(numDimensions: Int, baseType: Type?): Boolean {
@@ -160,7 +160,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
      */
     fun constructTypeStorage(type: Type, useConcreteType: Boolean): TypeStorage {
         // create a typeStorage with concreteType even if the type belongs to an interface or an abstract class
-        if (useConcreteType) return TypeStorage(type)
+        if (useConcreteType) return TypeStorage.constructTypeStorageWithSingleType(type)
 
         val baseType = type.baseType
 
@@ -190,7 +190,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             else -> error("Unexpected type $type")
         }
 
-        return TypeStorage(type, possibleTypes).removeInappropriateTypes()
+        return TypeStorage.constructTypeStorageUnsafe(type, possibleTypes).removeInappropriateTypes()
     }
 
     /**
@@ -223,16 +223,20 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             return@filter true
         }.toSet()
 
-        return copy(possibleConcreteTypes = appropriateTypes)
+        return TypeStorage.constructTypeStorageUnsafe(leastCommonType, appropriateTypes)
     }
 
     /**
      * Constructs a nullObject with TypeStorage containing all the inheritors for the given type
      */
-    fun nullObject(type: Type) = when (type) {
-        is RefType, is NullType, is VoidType -> ObjectValue(TypeStorage(type), nullObjectAddr)
-        is ArrayType -> ArrayValue(TypeStorage(type), nullObjectAddr)
-        else -> error("Unsupported nullType $type")
+    fun nullObject(type: Type): ReferenceValue {
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(type)
+
+        return when (type) {
+            is RefType, is NullType, is VoidType -> ObjectValue(typeStorage, nullObjectAddr)
+            is ArrayType -> ArrayValue(typeStorage, nullObjectAddr)
+            else -> error("Unsupported nullType $type")
+        }
     }
 
     fun downCast(arrayValue: ArrayValue, typeToCast: ArrayType): ArrayValue {

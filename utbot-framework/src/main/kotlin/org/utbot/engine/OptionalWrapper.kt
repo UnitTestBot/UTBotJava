@@ -65,7 +65,11 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
     ): List<InvokeResult>? {
         when (method.signature) {
             AS_OPTIONAL_METHOD_SIGNATURE -> {
-                return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+                val typeStorage = TypeStorage.constructTypeStorageWithSingleType(method.returnType)
+                val resultingWrapper = wrapper.copy(typeStorage = typeStorage)
+                val methodResult = MethodResult(resultingWrapper)
+
+                return listOf(methodResult)
             }
             UT_OPTIONAL_EQ_GENERIC_TYPE_SIGNATURE -> {
                 return listOf(

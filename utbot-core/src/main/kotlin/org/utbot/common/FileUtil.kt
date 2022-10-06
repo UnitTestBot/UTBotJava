@@ -64,31 +64,21 @@ object FileUtil {
      * Deletes all the files and folders from the java unit-test temp directory that are older than [daysLimit].
      */
     fun clearTempDirectory(daysLimit: Int) {
-        val currentTimeInMillis = System.currentTimeMillis()
+        (utBotTempDirectory.toFile().listFiles() ?: return).filter { isOld(it, daysLimit) }
+            .forEach { it.deleteRecursively() }
+    }
 
-        val files = utBotTempDirectory.toFile().listFiles() ?: return
-
-        files.filter {
-            val creationTime = Files.readAttributes(it.toPath(), BasicFileAttributes::class.java).creationTime()
-            TimeUnit.MILLISECONDS.toDays(currentTimeInMillis - creationTime.toMillis()) > daysLimit
-        }.forEach { it.deleteRecursively() }
-        File(tempDirectoryPath).listFiles { file ->
-            val name = file.name
-            if ((name.matches(Regex("Graph-vis\\d{10,}"))
-                        || name.matches(Regex("\\d{10,}-0"))
-                        || name.matches(Regex("byteBuddyAgent\\d{10,}\\.jar"))
-                        || name.matches(Regex("cmd-args\\d{10,}"))
-                        || name.matches(Regex("mockitoboot\\d{10,}\\.jar")))
-            ) {
-                val creationTime = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java).creationTime()
-                return@listFiles (TimeUnit.MILLISECONDS.toDays(currentTimeInMillis - creationTime.toMillis()) > daysLimit)
-            }
-            return@listFiles false
-        }?.forEach { it.deleteRecursively() }
+    private fun isOld(it: File, daysLimit: Int): Boolean {
+        val creationTime = Files.readAttributes(it.toPath(), BasicFileAttributes::class.java).creationTime()
+        return TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - creationTime.toMillis()) > daysLimit
     }
 
     fun createTempDirectory(prefix: String): Path {
         return createTempDirectory(utBotTempDirectory, prefix)
+    }
+
+    fun createTempFile(prefix: String, suffix: String) : Path {
+        return Files.createTempFile(utBotTempDirectory, prefix, suffix)
     }
 
     /**

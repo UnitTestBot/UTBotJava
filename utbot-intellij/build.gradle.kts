@@ -100,6 +100,6 @@ dependencies {
     implementation(project(":utbot-python"))
     implementation(project(":utbot-intellij-python"))
 
-//    implementation(project(":utbot-js"))
-//    implementation(project(":utbot-intellij-js"))
+    implementation(project(":utbot-js"))
+    implementation(project(":utbot-intellij-js"))
 }

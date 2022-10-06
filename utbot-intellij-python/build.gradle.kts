@@ -9,6 +9,7 @@ val pythonUltimatePluginVersion: String? by rootProject
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
 }
+project.tasks.asMap["runIde"]?.enabled = false
 
 tasks {
     compileKotlin {

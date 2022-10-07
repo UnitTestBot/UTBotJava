@@ -501,7 +501,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.mockFramework = MOCKITO
         model.staticsMocking = if (staticsMocking.isSelected) MockitoStaticMocking else NoStaticMocking
-        model.codegenLanguage = model.project.service<Settings>().codegenLanguage//codegenLanguages.item
+        model.codegenLanguage = model.project.service<Settings>().codegenLanguage
         try {
             timeoutSpinner.commitEdit()
         } catch (ignored: ParseException) {

@@ -4,9 +4,10 @@ import com.jetbrains.rd.framework.util.RdCoroutineScope
 import com.jetbrains.rd.framework.util.asCoroutineDispatcher
 import com.jetbrains.rd.util.lifetime.Lifetime
 
+private val coroutineDispatcher = UtSingleThreadScheduler("UtCoroutineScheduler").asCoroutineDispatcher
+
 class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
     companion object {
-        val scheduler = UtSingleThreadScheduler("UtRdCoroutineScope")
         val current = UtRdCoroutineScope(Lifetime.Eternal)
     }
 
@@ -14,5 +15,5 @@ class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
         override(lifetime, this)
     }
 
-    override val defaultDispatcher = scheduler.asCoroutineDispatcher
+    override val defaultDispatcher = coroutineDispatcher
 }

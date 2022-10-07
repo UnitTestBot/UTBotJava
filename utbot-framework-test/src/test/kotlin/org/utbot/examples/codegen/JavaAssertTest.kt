@@ -5,7 +5,10 @@ import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.isException
 import org.utbot.testcheckers.eq
 
-class JavaAssertTest : UtValueTestCaseChecker(testClass = JavaAssert::class){
+class JavaAssertTest : UtValueTestCaseChecker(
+    testClass = JavaAssert::class,
+    testCodeGeneration = false
+) {
     @Test
     fun testAssertPositive() {
         checkWithException(

@@ -7,29 +7,24 @@ import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.services.WorkingDirService
+import org.utbot.framework.process.OpenModulesContainer
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
+import org.utbot.rd.rdPortArgument
 import java.io.File
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
-const val serverPortProcessArgumentTag = "serverPort"
 
 class ChildProcessRunner {
     private val id = Random.nextLong()
     private var processSeqN = 0
     private val cmds: List<String> by lazy {
-        val debugCmd =
-            listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug} )
-
-        val javaVersionSpecificArguments =
-            listOf("--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "--illegal-access=warn")
-                .takeIf { JdkInfoService.provide().version > 8 }
-                ?: emptyList()
-
+        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug })
+        val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
         val pathToJava = JdkInfoService.provide().path
 
-        listOf(pathToJava.resolve("bin${File.separatorChar}java").toString()) +
+        listOf(pathToJava.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()) +
             debugCmd +
             javaVersionSpecificArguments +
             listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
@@ -37,8 +32,8 @@ class ChildProcessRunner {
 
     var errorLogFile: File = NULL_FILE
 
-    fun start(port: Int): Process {
-        val portArgument = "$serverPortProcessArgumentTag=$port"
+    fun start(rdPort: Int): Process {
+        val portArgument = rdPortArgument(rdPort)
 
         logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
         processSeqN++
@@ -54,6 +49,9 @@ class ChildProcessRunner {
             if (!UtSettings.useSandbox) {
                 add(DISABLE_SANDBOX_OPTION)
             }
+            if (UtSettings.logConcreteExecutionErrors) {
+                add(logLevelArgument(UtSettings.childProcessLogLevel))
+            }
             add(portArgument)
         }
 
@@ -62,10 +60,10 @@ class ChildProcessRunner {
             .directory(directory)
 
         return processBuilder.start().also {
-            logger.debug { "Process started with PID=${it.getPid}" }
+            logger.info { "Process started with PID=${it.getPid}" }
 
             if (UtSettings.logConcreteExecutionErrors) {
-                logger.debug { "Child process error log: ${errorLogFile.absolutePath}" }
+                logger.info { "Child process error log: ${errorLogFile.absolutePath}" }
             }
         }
     }
@@ -75,7 +73,7 @@ class ChildProcessRunner {
         private const val ERRORS_FILE_PREFIX = "utbot-childprocess-errors"
         private const val INSTRUMENTATION_LIB = "lib"
 
-        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005"
+        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5006"
 
         private val UT_BOT_TEMP_DIR: File = File(utBotTempDirectory.toFile(), ERRORS_FILE_PREFIX)
 
@@ -114,7 +112,7 @@ class ChildProcessRunner {
                 } ?: run {
                     logger.debug("Failed to find jar in the resources. Trying to find it in the classpath.")
                     ChildProcessRunner::class.java.classLoader
-                        .scanForResourcesContaining(DynamicClassTransformer::class.java.packageName)
+                        .scanForResourcesContaining(DynamicClassTransformer::class.java.nameOfPackage)
                         .firstOrNull {
                             it.absolutePath.contains(UTBOT_INSTRUMENTATION) && it.extension == "jar"
                         }

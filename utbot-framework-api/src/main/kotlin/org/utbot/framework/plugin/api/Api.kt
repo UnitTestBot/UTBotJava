@@ -33,31 +33,21 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
-import soot.ArrayType
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.LongType
-import soot.RefType
-import soot.ShortType
-import soot.SootClass
-import soot.Type
-import soot.VoidType
+import soot.*
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
 import java.lang.reflect.Modifier
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import org.utbot.common.FileUtil
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
 data class UtMethodTestSet(
     val method: ExecutableId,
     val executions: List<UtExecution> = emptyList(),
+    // in idea process this property is null
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
@@ -1154,12 +1144,12 @@ enum class MockStrategyApi(
     NO_MOCKS("No mocks", "Do not mock", "Do not use mock frameworks at all"),
     OTHER_PACKAGES(
         "Other packages: Mockito",
-        "Mock package environment",
+        "Mock everything outside the package",
         "Mock all classes outside the current package except system ones"
     ),
     OTHER_CLASSES(
         "Other classes: Mockito",
-        "Mock class environment",
+        "Mock everything outside the class",
         "Mock all classes outside the class under test except system ones"
     );
 
@@ -1314,7 +1304,7 @@ enum class CodegenLanguage(
 
 // https://docs.oracle.com/javase/7/docs/technotes/tools/windows/javac.html#commandlineargfile
 fun isolateCommandLineArgumentsToArgumentFile(arguments: List<String>): String {
-    val argumentFile = File.createTempFile("cmd-args", "")
+    val argumentFile = FileUtil.createTempFile("cmd-args", "").toFile()
     argumentFile.writeText(
         arguments.joinToString(" ") {
             // If a filename contains embedded spaces, put the whole filename in double quotes,

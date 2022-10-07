@@ -1,9 +1,8 @@
 package org.utbot.framework
 
+import com.jetbrains.rd.util.LogLevel
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
-import kotlin.reflect.KProperty
-
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -16,30 +15,6 @@ internal val utbotHomePath = "${System.getProperty("user.home")}/.utbot"
  */
 private val defaultSettingsPath = "$utbotHomePath/settings.properties"
 private const val defaultKeyForSettingsPath = "utbot.settings.path"
-
-/**
- * Stores current values for each setting from [UtSettings].
- */
-private val settingsValues: MutableMap<KProperty<*>, Any?> = mutableMapOf()
-
-internal class SettingDelegate<T>(val property: KProperty<*>, val initializer: () -> T) {
-    private var value = initializer()
-
-    init {
-        updateSettingValue()
-    }
-
-    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
-
-    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-        this.value = value
-        updateSettingValue()
-    }
-
-    private fun updateSettingValue() {
-        settingsValues[property] = value
-    }
-}
 
 /**
  * Default concrete execution timeout (in milliseconds).
@@ -264,6 +239,13 @@ object UtSettings : AbstractSettings(
     var treatOverflowAsError: Boolean by getBooleanProperty(false)
 
     /**
+     * Generate tests that treat assertions as error suits.
+     *
+     * True by default.
+     */
+    var treatAssertAsErrorSuit: Boolean by getBooleanProperty(true)
+
+    /**
      * Instrument all classes before start
      */
     var warmupConcreteExecution by getBooleanProperty(false)
@@ -280,6 +262,16 @@ object UtSettings : AbstractSettings(
     var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(
         DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
     )
+
+    /**
+     * Log level for engine process, which started in idea on generate tests action.
+     */
+    var engineProcessLogLevel by getEnumProperty(LogLevel.Info)
+
+    /**
+     * Log level for concrete executor process.
+     */
+    var childProcessLogLevel by getEnumProperty(LogLevel.Info)
 
     /**
      * Determines whether should errors from a child process be written to a log file or suppressed.

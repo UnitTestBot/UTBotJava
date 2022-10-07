@@ -8,6 +8,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MissingState
@@ -98,9 +99,7 @@ class UtConcreteExecutionResult(
      *
      * @return [UtConcreteExecutionResult] with converted models.
      */
-    fun convertToAssemble(
-        packageName: String
-    ): UtConcreteExecutionResult {
+    fun convertToAssemble(packageName: String): UtConcreteExecutionResult {
         val allModels = collectAllModels()
 
         val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)

@@ -1,7 +1,9 @@
 package org.utbot.common
 
 import mu.KLogger
+import java.time.format.DateTimeFormatter
 
+val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
 
 class LoggerWithLogMethod(val logger: KLogger, val logMethod: (() -> Any?) -> Unit)
 

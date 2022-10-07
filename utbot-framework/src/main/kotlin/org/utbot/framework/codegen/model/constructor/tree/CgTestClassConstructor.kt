@@ -1,15 +1,26 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
-import org.utbot.common.appendHtmlLine
+import org.utbot.framework.codegen.Junit4
+import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
+import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.clearContextRelatedStorage
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getMethodConstructorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.tree.CgMethod
+import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
+import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
@@ -18,32 +29,32 @@ import org.utbot.framework.codegen.model.tree.CgTestClass
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
+import org.utbot.framework.codegen.model.tree.CgUtilEntity
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildTestClass
 import org.utbot.framework.codegen.model.tree.buildTestClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
-import org.utbot.framework.codegen.model.tree.CgUtilEntity
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
-import org.utbot.framework.plugin.api.util.kClass
-import kotlin.reflect.KClass
 
 internal class CgTestClassConstructor(val context: CgContext) :
     CgContextOwner by context,
-    CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
+    CgStatementConstructor by getStatementConstructorBy(context) {
 
-    private val methodConstructor = CgComponents.getMethodConstructorBy(context)
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-    private val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
+    init {
+        clearContextRelatedStorage()
+    }
+
+    private val methodConstructor = getMethodConstructorBy(context)
+    private val nameGenerator = getNameGeneratorBy(context)
+    private val testFrameworkManager = getTestFrameworkManagerBy(context)
 
     private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
@@ -124,7 +135,10 @@ internal class CgTestClassConstructor(val context: CgContext) :
             return null
         }
 
-        allExecutions = testSet.executions
+        successfulExecutionsModels = testSet
+            .executions
+            .filter { it.result is UtExecutionSuccess }
+            .map { (it.result as UtExecutionSuccess).model }
 
         val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
@@ -275,106 +289,45 @@ internal class CgTestClassConstructor(val context: CgContext) :
      */
     private val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
+
+    internal object CgComponents {
+        /**
+         * Clears all stored data for current [CgContext].
+         * As far as context is created per class under test,
+         * no related data is required after it's processing.
+         */
+        fun clearContextRelatedStorage() {
+            nameGenerators.clear()
+            statementConstructors.clear()
+            callableAccessManagers.clear()
+            testFrameworkManagers.clear()
+            mockFrameworkManagers.clear()
+            variableConstructors.clear()
+            methodConstructors.clear()
+        }
+
+        private val nameGenerators: MutableMap<CgContext, CgNameGenerator> = mutableMapOf()
+        private val statementConstructors: MutableMap<CgContext, CgStatementConstructor> = mutableMapOf()
+        private val callableAccessManagers: MutableMap<CgContext, CgCallableAccessManager> = mutableMapOf()
+        private val testFrameworkManagers: MutableMap<CgContext, TestFrameworkManager> = mutableMapOf()
+        private val mockFrameworkManagers: MutableMap<CgContext, MockFrameworkManager> = mutableMapOf()
+
+        private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
+        private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
+
+        fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) { CgNameGeneratorImpl(context) }
+        fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) { CgCallableAccessManagerImpl(context) }
+        fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) { CgStatementConstructorImpl(context) }
+
+        fun getTestFrameworkManagerBy(context: CgContext) = when (context.testFramework) {
+            is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }
+            is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
+            is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
+        }
+
+        fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
+        fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
+        fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) { CgMethodConstructor(context) }
+    }
 }
 
-typealias MethodGeneratedTests = MutableMap<ExecutableId, MutableSet<CgTestMethod>>
-typealias ErrorsCount = Map<String, Int>
-
-data class TestsGenerationReport(
-    val executables: MutableSet<ExecutableId> = mutableSetOf(),
-    var successfulExecutions: MethodGeneratedTests = mutableMapOf(),
-    var timeoutExecutions: MethodGeneratedTests = mutableMapOf(),
-    var failedExecutions: MethodGeneratedTests = mutableMapOf(),
-    var crashExecutions: MethodGeneratedTests = mutableMapOf(),
-    var errors: MutableMap<ExecutableId, ErrorsCount> = mutableMapOf()
-) {
-    val classUnderTest: KClass<*>
-        get() = executables.firstOrNull()?.classId?.kClass
-            ?: error("No executables found in test report")
-
-    val initialWarnings: MutableList<() -> String> = mutableListOf()
-    val hasWarnings: Boolean
-        get() = initialWarnings.isNotEmpty()
-
-    val detailedStatistics: String
-        get() = buildString {
-            appendHtmlLine("Class: ${classUnderTest.qualifiedName}")
-            val testMethodsStatistic = executables.map { it.countTestMethods() }
-            val errors = executables.map { it.countErrors() }
-            val overallErrors = errors.sum()
-
-            appendHtmlLine("Successful test methods: ${testMethodsStatistic.sumBy { it.successful }}")
-            appendHtmlLine(
-                "Failing because of unexpected exception test methods: ${testMethodsStatistic.sumBy { it.failing }}"
-            )
-            appendHtmlLine(
-                "Failing because of exceeding timeout test methods: ${testMethodsStatistic.sumBy { it.timeout }}"
-            )
-            appendHtmlLine(
-                "Failing because of possible JVM crash test methods: ${testMethodsStatistic.sumBy { it.crashes }}"
-            )
-            appendHtmlLine("Not generated because of internal errors test methods: $overallErrors")
-        }
-
-    fun addMethodErrors(testSet: CgMethodTestSet, errors: Map<String, Int>) {
-        this.errors[testSet.executableId] = errors
-    }
-
-    fun addTestsByType(testSet: CgMethodTestSet, testMethods: List<CgTestMethod>) {
-        with(testSet.executableId) {
-            executables += this
-
-            testMethods.forEach {
-                when (it.type) {
-                    SUCCESSFUL -> updateExecutions(it, successfulExecutions)
-                    FAILING -> updateExecutions(it, failedExecutions)
-                    TIMEOUT -> updateExecutions(it, timeoutExecutions)
-                    CRASH -> updateExecutions(it, crashExecutions)
-                    PARAMETRIZED -> {
-                        // Parametrized tests are not supported in the tests report yet
-                        // TODO JIRA:1507
-                    }
-                }
-            }
-        }
-    }
-
-    fun toString(isShort: Boolean): String = buildString {
-        appendHtmlLine("Target: ${classUnderTest.qualifiedName}")
-        if (initialWarnings.isNotEmpty()) {
-            initialWarnings.forEach { appendHtmlLine(it()) }
-            appendHtmlLine()
-        }
-
-        val testMethodsStatistic = executables.map { it.countTestMethods() }
-        val overallTestMethods = testMethodsStatistic.sumBy { it.count }
-
-        appendHtmlLine("Overall test methods: $overallTestMethods")
-
-        if (!isShort) {
-            appendHtmlLine(detailedStatistics)
-        }
-    }
-
-    override fun toString(): String = toString(false)
-
-    private fun ExecutableId.countTestMethods(): TestMethodStatistic = TestMethodStatistic(
-        testMethodsNumber(successfulExecutions),
-        testMethodsNumber(failedExecutions),
-        testMethodsNumber(timeoutExecutions),
-        testMethodsNumber(crashExecutions)
-    )
-
-    private fun ExecutableId.countErrors(): Int = errors.getOrDefault(this, emptyMap()).values.sum()
-
-    private fun ExecutableId.testMethodsNumber(executables: MethodGeneratedTests): Int =
-        executables.getOrDefault(this, emptySet()).size
-
-    private fun ExecutableId.updateExecutions(it: CgTestMethod, executions: MethodGeneratedTests) {
-        executions.getOrPut(this) { mutableSetOf() } += it
-    }
-
-    private data class TestMethodStatistic(val successful: Int, val failing: Int, val timeout: Int, val crashes: Int) {
-        val count: Int = successful + failing + timeout + crashes
-    }
-}

@@ -13,9 +13,7 @@ import org.utbot.framework.plugin.api.util.voidClassId
  *
  * @param context context in which code is generated (it is needed because the method needs to know package and language)
  */
-// TODO: change parameter from packageName: String to context: CgContext in ClassId.isAccessibleFrom and ExecutableId.isAccessibleFrom ?
-private fun FieldId.isAccessibleFrom(context: CgContext): Boolean {
-    val packageName = context.testClassPackageName
+fun FieldId.isAccessibleFrom(packageName: String): Boolean {
     val isClassAccessible = declaringClass.isAccessibleFrom(packageName)
     val isAccessibleByVisibility = isPublic || (declaringClass.packageName == packageName && (isPackagePrivate || isProtected))
     val isAccessibleFromPackageByModifiers = isAccessibleByVisibility && !isSynthetic
@@ -36,7 +34,7 @@ internal infix fun FieldId.canBeReadFrom(context: CgContext): Boolean {
             return true
     }
 
-    return isAccessibleFrom(context)
+    return isAccessibleFrom(context.testClassPackageName)
 }
 
 private fun FieldId.canBeSetViaSetterFrom(context: CgContext): Boolean =
@@ -49,12 +47,12 @@ internal fun FieldId.canBeSetFrom(context: CgContext): Boolean {
     if (context.codegenLanguage == CodegenLanguage.KOTLIN) {
         // Kotlin will allow direct write access if both getter and setter is defined
         // !isAccessibleFrom(context) is important here because above rule applies to final fields only if they are not accessible in Java terms
-        if (!isAccessibleFrom(context) && !isStatic && canBeReadViaGetterFrom(context) && canBeSetViaSetterFrom(context)) {
+        if (!isAccessibleFrom(context.testClassPackageName) && !isStatic && canBeReadViaGetterFrom(context) && canBeSetViaSetterFrom(context)) {
             return true
         }
     }
 
-    return isAccessibleFrom(context) && !isFinal
+    return isAccessibleFrom(context.testClassPackageName) && !isFinal
 }
 
 /**

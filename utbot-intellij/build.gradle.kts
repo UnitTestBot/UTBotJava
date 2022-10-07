@@ -21,10 +21,12 @@ intellij {
 
     val androidPlugins = listOf("org.jetbrains.android")
 
-    val jvmPlugins = listOf(
+    val jvmPlugins = mutableListOf(
         "java",
         "org.jetbrains.kotlin:222-1.7.20-release-201-IJ4167.29"
     )
+
+    androidStudioPath?.let { jvmPlugins += androidPlugins }
 
     val pythonCommunityPlugins = listOf(
         "PythonCore:${pythonCommunityPluginVersion}"
@@ -44,7 +46,6 @@ intellij {
             "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
             "PC" -> pythonCommunityPlugins
             "PU" -> pythonUltimatePlugins // something else, JS?
-            "AS" -> jvmPlugins + androidPlugins
             else -> jvmPlugins
         }
     )

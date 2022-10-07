@@ -4,9 +4,6 @@
     <id>org.utbot.intellij.plugin.id</id>
     <name>UnitTestBot</name>
     <vendor>utbot.org</vendor>
-    <!-- Do not insert, it is updated from build.gradle-->
-    <!-- <idea-version since-build="202.8194.7"/>-->
-    <version>2022.7-beta</version>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>

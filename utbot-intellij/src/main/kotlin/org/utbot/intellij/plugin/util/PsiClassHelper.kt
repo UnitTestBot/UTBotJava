@@ -12,9 +12,8 @@ import org.jetbrains.kotlin.asJava.elements.isSetter
 import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
 
-private val PsiMember.isAbstract: Boolean
+val PsiMember.isAbstract: Boolean
     get() = modifierList?.hasModifierProperty(PsiModifier.ABSTRACT)?: false
-
 
 private val PsiMember.isKotlinGetterOrSetter: Boolean
     get() {

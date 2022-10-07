@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.kryo5.SerializerFactory
 import com.esotericsoftware.kryo.kryo5.io.Input
 import com.esotericsoftware.kryo.kryo5.io.Output
 import com.esotericsoftware.kryo.kryo5.objenesis.instantiator.ObjectInstantiator
+import com.esotericsoftware.kryo.kryo5.objenesis.strategy.InstantiatorStrategy
 import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy
 import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
 import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
@@ -17,7 +18,7 @@ import java.io.ByteArrayOutputStream
 /**
  * Helpful class for working with the kryo.
  */
-class KryoHelper internal constructor(
+class KryoHelper constructor(
     private val lifetime: Lifetime
 ) {
     private val outputBuffer = ByteArrayOutputStream()
@@ -31,6 +32,28 @@ class KryoHelper internal constructor(
             kryoInput.close()
             kryoOutput.close()
         }
+    }
+
+    fun <T> register(clazz: Class<T>, serializer: Serializer<T>) {
+        sendKryo.register(clazz, serializer)
+        receiveKryo.register(clazz, serializer)
+    }
+
+    private fun <T> addInstantiatorOnKryo(kryo: Kryo, clazz: Class<T>, factory: () -> T)  {
+        val instantiator = kryo.instantiatorStrategy
+        kryo.instantiatorStrategy = object : InstantiatorStrategy {
+            override fun <R : Any?> newInstantiatorOf(type: Class<R>): ObjectInstantiator<R> {
+                return if (type === clazz) {
+                    ObjectInstantiator<R> { factory() as R }
+                }
+                else
+                    instantiator.newInstantiatorOf(type)
+            }
+        }
+    }
+    fun <T> addInstantiator(clazz: Class<T>, factory: () -> T) {
+        addInstantiatorOnKryo(sendKryo, clazz, factory)
+        addInstantiatorOnKryo(receiveKryo, clazz, factory)
     }
 
     fun setKryoClassLoader(classLoader: ClassLoader) {

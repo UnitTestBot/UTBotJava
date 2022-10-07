@@ -30,5 +30,13 @@ object Settings {
      */
     const val runChildProcessWithDebug = false
 
+    /**
+     * Property useful only for idea
+     * If true - runs engine process with the ability to attach a debugger
+     * @see runChildProcessWithDebug
+     * @see org.utbot.intellij.plugin.process.EngineProcess
+     */
+    const val runIdeaProcessWithDebug = false
+
     var defaultConcreteExecutorPoolSize = 10
 }

@@ -149,6 +149,7 @@ import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
+import org.utbot.framework.UtSettings
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -365,6 +366,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
+        if (UtSettings.treatAssertAsErrorSuit && exception is AssertionError) return false
 
         val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
         val exceptionIsExplicit = execution.result is UtExplicitlyThrownException
@@ -1316,21 +1318,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     resources.forEach {
                         // First argument for mocked resource declaration initializer is a target type.
                         // Pass this argument as a type parameter for the mocked resource
+
+                        // TODO this type parameter (required for Kotlin test) is unused until the proper implementation
+                        //  of generics in code generation https://github.com/UnitTestBot/UTBotJava/issues/88
+                        @Suppress("UNUSED_VARIABLE")
                         val typeParameter = when (val firstArg = (it.initializer as CgMethodCall).arguments.first()) {
                             is CgGetJavaClass -> firstArg.classId
                             is CgVariable -> firstArg.type
                             else -> error("Unexpected mocked resource declaration argument $firstArg")
                         }
-                        val varType = CgClassId(
-                            it.variableType,
-                            TypeParameters(listOf(typeParameter)),
-                            isNullable = true,
-                        )
+
                         +CgDeclaration(
-                            varType,
+                            it.variableType,
                             it.variableName,
-                            // guard initializer to reuse typecast creation logic
-                            initializer = guardExpression(varType, nullLiteral()).expression,
+                            initializer = nullLiteral(),
                             isMutable = true,
                         )
                     }

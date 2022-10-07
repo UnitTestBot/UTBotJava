@@ -1,5 +1,5 @@
 @file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
-package org.utbot.instrumentation.rd.generated
+package org.utbot.rd.generated
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.base.*
@@ -15,28 +15,28 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [ProtocolRoot.kt:5]
+ * #### Generated from [SynchronizationModel.kt:5]
  */
-class ProtocolRoot private constructor(
+class SynchronizationModelRoot private constructor(
 ) : RdExtBase() {
     //companion
     
     companion object : ISerializersOwner {
         
         override fun registerSerializersCore(serializers: ISerializers)  {
-            ProtocolRoot.register(serializers)
-            ProtocolModel.register(serializers)
+            SynchronizationModelRoot.register(serializers)
+            SynchronizationModel.register(serializers)
         }
         
         
         
         
         
-        const val serializationHash = -479905474426893924L
+        const val serializationHash = -1304011640135373779L
         
     }
-    override val serializersOwner: ISerializersOwner get() = ProtocolRoot
-    override val serializationHash: Long get() = ProtocolRoot.serializationHash
+    override val serializersOwner: ISerializersOwner get() = SynchronizationModelRoot
+    override val serializationHash: Long get() = SynchronizationModelRoot.serializationHash
     
     //fields
     //methods
@@ -46,12 +46,12 @@ class ProtocolRoot private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("ProtocolRoot (")
+        printer.println("SynchronizationModelRoot (")
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): ProtocolRoot   {
-        return ProtocolRoot(
+    override fun deepClone(): SynchronizationModelRoot   {
+        return SynchronizationModelRoot(
         )
     }
     //contexts

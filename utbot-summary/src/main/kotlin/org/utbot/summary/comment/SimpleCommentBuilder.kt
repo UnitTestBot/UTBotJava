@@ -194,7 +194,10 @@ open class SimpleCommentBuilder(
             sentenceInvoke.squashStmtText()
             if (!sentenceInvoke.isEmpty()) {
                 sentenceBlock.invokeSentenceBlock =
-                    Pair(getMethodReference(className, methodName, methodParameterTypes), sentenceInvoke)
+                    Pair(
+                        getMethodReference(className, methodName, methodParameterTypes, invokeSootMethod.isPrivate),
+                        sentenceInvoke
+                    )
                 createNextBlock = true
                 invokeRegistered = true
             }
@@ -302,7 +305,15 @@ open class SimpleCommentBuilder(
             val className = stmt.invokeExpr.methodRef.declaringClass.name
             val methodName = stmt.invokeExpr.method.name
             val methodParameterTypes = stmt.invokeExpr.method.parameterTypes
-            addTextInvoke(sentenceBlock, className, methodName, methodParameterTypes, frequency)
+            val isPrivate = stmt.invokeExpr.method.isPrivate
+            addTextInvoke(
+                sentenceBlock,
+                className,
+                methodName,
+                methodParameterTypes,
+                isPrivate,
+                frequency
+            )
         }
     }
 
@@ -314,13 +325,14 @@ open class SimpleCommentBuilder(
         className: String,
         methodName: String,
         methodParameterTypes: List<Type>,
+        isPrivate: Boolean,
         frequency: Int
     ) {
         if (!shouldSkipInvoke(methodName))
             sentenceBlock.stmtTexts.add(
                 StmtDescription(
                     StmtType.Invoke,
-                    getMethodReference(className, methodName, methodParameterTypes),
+                    getMethodReference(className, methodName, methodParameterTypes, isPrivate),
                     frequency
                 )
             )
@@ -345,21 +357,33 @@ open class SimpleCommentBuilder(
     }
 
     /**
-     * Returns a reference to the invoked method.
+     * Returns a reference to the invoked method. IDE can't resolve references to private methods in comments,
+     * so we add @link tag only if the invoked method is not private.
      *
      * It looks like {@link packageName.className#methodName(type1, type2)}.
      *
      * In case when an enclosing class in nested, we need to replace '$' with '.'
      * to render the reference.
      */
-    fun getMethodReference(className: String, methodName: String, methodParameterTypes: List<Type>): String {
+    fun getMethodReference(
+        className: String,
+        methodName: String,
+        methodParameterTypes: List<Type>,
+        isPrivate: Boolean
+    ): String {
         val prettyClassName: String = className.replace("$", ".")
 
-        return if (methodParameterTypes.isEmpty()) {
-            "{@link $prettyClassName#$methodName()}"
+        val text = if (methodParameterTypes.isEmpty()) {
+            "$prettyClassName#$methodName()"
         } else {
             val methodParametersAsString = methodParameterTypes.joinToString(",")
-            "{@link $prettyClassName#$methodName($methodParametersAsString)}"
+            "$prettyClassName#$methodName($methodParametersAsString)"
+        }
+
+        return if (isPrivate) {
+            text
+        } else {
+            "{@link $text}"
         }
     }
 

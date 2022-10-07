@@ -47,6 +47,7 @@ sourceSets {
 }
 
 dependencies {
+    implementation project(':utbot-core')
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 
@@ -98,12 +99,12 @@ test {
     systemProperty("PROCESS_WITH_RD_SERVER_MOCK", processWithRdServerMockJar.archiveFile.get().getAsFile().canonicalPath)
 }
 
-task generateProtocolModels(type: RdGenTask) {
+task generateChildProcessProtocolModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir
     def instrumentationProjectDir = project.rootProject.childProjects["utbot-instrumentation"].projectDir
-    def hashDir = new File(instrumentationProjectDir, "build/rdgen/hashes/models")
-    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
     def generatedOutputDir = new File(instrumentationProjectDir, "src/main/kotlin/org/utbot/instrumentation/rd/generated")
+    def hashDir = generatedOutputDir
+    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
     def rdParams = extensions.getByName("params") as RdGenExtension
 
     group = "rdgen"
@@ -116,9 +117,67 @@ task generateProtocolModels(type: RdGenTask) {
     rdParams.generator {
         language = "kotlin"
         transform = "symmetric"
-        root = "org.utbot.rd.models.ProtocolRoot"
+        root = "org.utbot.rd.models.ChildProcessProtocolRoot"
 
         directory = generatedOutputDir.canonicalPath
         namespace = "org.utbot.instrumentation.rd.generated"
+    }
+}
+
+task generateEngineProcessProtocolModels(type: RdGenTask) {
+    def currentProjectDir = project.projectDir
+    def ideaPluginProjectDir = project.rootProject.childProjects["utbot-framework"].projectDir
+    def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/framework/process/generated")
+    def hashDir = generatedOutputDir
+    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+    def rdParams = extensions.getByName("params") as RdGenExtension
+
+    group = "rdgen"
+    rdParams.verbose = true
+    rdParams.sources(sourcesDir)
+    rdParams.hashFolder = hashDir.canonicalPath
+    // where to search roots
+    rdParams.packages = "org.utbot.rd.models"
+
+    rdParams.generator {
+        language = "kotlin"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.EngineProcessProtocolRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "org.utbot.framework.process.generated"
+    }
+    rdParams.generator {
+        language = "kotlin"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.SettingsProtocolRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "org.utbot.framework.process.generated"
+    }
+}
+
+task generateSynchronizationModels(type: RdGenTask) {
+    def currentProjectDir = project.projectDir
+    def ideaPluginProjectDir = project.rootProject.childProjects["utbot-rd"].projectDir
+    def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/rd/generated")
+    def hashDir = generatedOutputDir
+    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+    def rdParams = extensions.getByName("params") as RdGenExtension
+
+    group = "rdgen"
+    rdParams.verbose = true
+    rdParams.sources(sourcesDir)
+    rdParams.hashFolder = hashDir.canonicalPath
+    // where to search roots
+    rdParams.packages = "org.utbot.rd.models"
+
+    rdParams.generator {
+        language = "kotlin"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.SynchronizationModelRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "org.utbot.rd.generated"
     }
 }

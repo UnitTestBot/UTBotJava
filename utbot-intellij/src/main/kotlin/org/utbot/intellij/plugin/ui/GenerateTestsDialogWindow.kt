@@ -74,6 +74,7 @@ import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Dimension
 import java.awt.event.ActionEvent
 import java.nio.file.Files
 import java.nio.file.Path
@@ -90,6 +91,8 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
+import javax.swing.JSpinner
+import javax.swing.text.DefaultFormatter
 import kotlin.streams.toList
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
@@ -106,7 +109,7 @@ import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FILE_CONTENT
-import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_STORAGE
+import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.codegen.model.util.MOCKITO_MOCKMAKER_FILE_NAME
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -154,7 +157,7 @@ private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {
         const val minSupportedSdkVersion = 8
-        const val maxSupportedSdkVersion = 11
+        const val maxSupportedSdkVersion = 17
     }
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
@@ -179,8 +182,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
-        )
-    private val parametrizedTestSources = JCheckBox("Parametrized tests")
+        ).also {
+            when(val editor = it.editor) {
+                is JSpinner.DefaultEditor -> {
+                    when(val formatter = editor.textField.formatter) {
+                        is DefaultFormatter -> {formatter.allowsInvalid = false}
+                    }
+                }
+            }
+        }
+    private val parametrizedTestSources = JCheckBox("Parameterized tests")
 
     private lateinit var panel: DialogPanel
 
@@ -193,7 +204,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     )
 
     private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
-        return ComboBox<T>(DefaultComboBoxModel(values)).also {
+        val comboBox = object:ComboBox<T>(DefaultComboBoxModel(values)) {
+            var maxWidth = 0
+            //Don't shrink strategy
+            override fun getPreferredSize(): Dimension {
+                val size = super.getPreferredSize()
+                if (size.width > maxWidth) maxWidth = size.width
+                return size.apply { width = maxWidth }
+            }
+        }
+        return comboBox.also {
             it.renderer = CodeGenerationSettingItemRenderer()
         }
     }
@@ -243,7 +263,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     @Suppress("UNCHECKED_CAST")
     override fun createCenterPanel(): JComponent {
         panel = panel {
-            row("Test source root:") {
+            row("Test sources root:") {
                 component(testSourceFolderField)
             }
             row("Testing framework:") {
@@ -253,25 +273,21 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 )
             }
             row { component(parametrizedTestSources) }
-            row("Mock strategy:") {
+            row("Mocking strategy:") {
                 makePanelWithHelpTooltip(
                     mockStrategies,
-                    ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. Otherwise mock nothing.")
+                    ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. " +
+                            "Otherwise, mock nothing. Mockito will be installed, if you don't have one.")
                 )
             }
             row { component(staticsMocking)}
             row("Test generation timeout:") {
-                cell{
+                cell {
                     component(timeoutSpinner)
                     label("seconds per class")
+                    component(ContextHelpLabel.create("Set the timeout for all test generation processes per class to complete."))
                 }
             }
-            row {
-                component(cbSpecifyTestPackage)
-            }.apply { visible = false }
-            row("Destination package:") {
-                component(testPackageField)
-            }.apply { visible = false }
 
             row("Generate tests for:") {}
             row {
@@ -336,7 +352,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             addToLeft(JBLabel().apply {
                 icon = AllIcons.Ide.FatalError
                 text = if (sdkVersion != null) {
-                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8} or ${JavaSdkVersion.JDK_11}."
+                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}, ${JavaSdkVersion.JDK_11} or ${JavaSdkVersion.JDK_17}"
                 } else {
                     "SDK is not defined"
                 }
@@ -380,7 +396,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             srcClasses.flatMap { it.extractFirstLevelMembers(false) }
         } else {
             srcClasses.map { MemberInfo(it) }
-        }
+        }.toSortedSet { o1, o2 -> o1.displayName.compareTo(o2.displayName, true) }
 
         checkMembers(items)
         membersTable.setMemberInfos(items)
@@ -392,7 +408,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         membersTable.preferredScrollableViewportSize = size(-1, height)
     }
 
-    private fun checkMembers(allMembers: List<MemberInfo>) {
+    private fun checkMembers(allMembers: Collection<MemberInfo>) {
         val selectedDisplayNames = model.selectedMembers.map { it.displayName }
         val selectedMembers = allMembers.filter { it.displayName in selectedDisplayNames }
 
@@ -746,7 +762,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * for further details.
      */
     private fun configureMockitoResources(testResourcesPath: Path) {
-        val mockitoExtensionsPath = "$testResourcesPath/$MOCKITO_EXTENSIONS_STORAGE".toPath()
+        val mockitoExtensionsPath = "$testResourcesPath/$MOCKITO_EXTENSIONS_FOLDER".toPath()
         val mockitoMockMakerPath = "$mockitoExtensionsPath/$MOCKITO_MOCKMAKER_FILE_NAME".toPath()
 
         if (!testResourcesPath.exists()) Files.createDirectory(testResourcesPath)
@@ -754,7 +770,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         if (!mockitoMockMakerPath.exists()) {
             Files.createFile(mockitoMockMakerPath)
-            Files.write(mockitoMockMakerPath, MOCKITO_EXTENSIONS_FILE_CONTENT)
+            Files.write(mockitoMockMakerPath, listOf(MOCKITO_EXTENSIONS_FILE_CONTENT))
         }
     }
 
@@ -1011,14 +1027,20 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     .map { f -> Paths.get(urlToPath(f.url)) }
             }
 
-        return entriesPaths.all { path ->
-            if (Files.exists(path)) {
-                val fileNames = Files.walk(path).map { it.fileName }.toList()
-                fileNames.any { it.toString() == MOCKITO_MOCKMAKER_FILE_NAME }
-            } else {
-                false
+        return entriesPaths.all { entryPath ->
+                if (!Files.exists(entryPath)) return false
+
+                val mockMakerPath = "$entryPath/$MOCKITO_EXTENSIONS_FOLDER/$MOCKITO_MOCKMAKER_FILE_NAME".toPath()
+                if (!Files.exists(mockMakerPath)) return false
+
+                try {
+                    val fileLines = Files.readAllLines(mockMakerPath)
+                    fileLines.singleOrNull() == MOCKITO_EXTENSIONS_FILE_CONTENT
+                } catch (e: java.io.IOException) {
+                    return false
+                }
+
             }
-        }
     }
 }
 

@@ -7,18 +7,12 @@ import java.nio.file.Paths
 import kotlin.io.path.deleteExisting
 
 object TemporaryFileManager {
-    private var testSourceRoot: String = ""
     private lateinit var tmpDirectory: Path
     private var nextId = 0
 
-    fun setup(testSourceRoot: String) {
-        tmpDirectory = FileUtil.createTempDirectory("python-test-generation")
+    fun setup() {
+        tmpDirectory = FileUtil.createTempDirectory("python-test-generation-${nextId++}")
         Cleaner.addFunction { tmpDirectory.deleteExisting() }
-
-        this.testSourceRoot = testSourceRoot
-        val testsFolder = File(testSourceRoot)
-        if (!testsFolder.exists())
-            testsFolder.mkdirs()
     }
 
     fun assignTemporaryFile(fileName_: String? = null, tag: String? = null, addToCleaner: Boolean = true): File {

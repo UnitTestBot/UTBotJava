@@ -10,11 +10,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
@@ -37,6 +36,8 @@ import org.utbot.python.framework.codegen.PythonCodeLanguage
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import java.io.File
+import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.Path
 
 const val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
@@ -131,10 +132,8 @@ object PythonDialogProcessor {
                     )
                     return
                 }
-                val testSourceRootPath = model.testSourceRoot!!.path
                 processTestGeneration(
                     pythonPath = pythonPath,
-                    testSourceRoot = testSourceRootPath,
                     pythonFilePath = model.file.virtualFile.path,
                     pythonFileContent = getContentFromPyFile(model.file),
                     directoriesForSysPath = model.directoriesForSysPath,
@@ -161,34 +160,51 @@ object PythonDialogProcessor {
                         )
                     },
                     writeTestTextToFile = { generatedCode ->
-                        invokeLater {
-                            runWriteAction {
-                                val testDirAsVirtualFile =
-                                    LocalFileSystem.getInstance().refreshAndFindFileByIoFile(File(testSourceRootPath))
-                                val testDir = PsiDirectoryFactory.getInstance(project).createDirectory(
-                                    testDirAsVirtualFile!!
-                                )
-                                val testFileName = getOutputFileName(model)
-                                val testPsiFile = PsiFileFactory.getInstance(project)
-                                    .createFileFromText(testFileName, PythonLanguageAssistant.language, generatedCode)
-                                testDir.findFile(testPsiFile.name)?.delete()
-                                testDir.add(testPsiFile)
-                                val file = testDir.findFile(testPsiFile.name)!!
-                                CodeInsightUtil.positionCursor(project, file, file)
-                            }
-                        }
+                        writeGeneratedCodeToPsiDocument(generatedCode, model)
                     },
                     processMypyWarnings = {
                         val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                         WarningTestsReportNotifier.notify(message.toString())
                     },
                     startedCleaningAction = { indicator.text = "Cleaning up..." },
-                    pythonRunRoot = Path(model.testSourceRoot!!.path)
+                    pythonRunRoot = Path(model.testSourceRootPath)
                 )
             }
         })
     }
 
+    private fun getDirectoriesFromRoot(root: Path, path: Path): List<String> {
+        if (path == root || path.parent == null)
+            return emptyList()
+        return getDirectoriesFromRoot(root, path.parent) + listOf(path.fileName.toString())
+    }
+
+    private fun createPsiDirectoryForTestSourceRoot(model: PythonTestsModel): PsiDirectory {
+        val root = getContentRoot(model.project, model.file.virtualFile)
+        val paths = getDirectoriesFromRoot(
+            Paths.get(root.path),
+            Paths.get(model.testSourceRootPath)
+        )
+        val rootPSI = getContainingElement<PsiDirectory>(model.file) { it.virtualFile == root } !!
+        return paths.fold(rootPSI) { acc, folderName ->
+            acc.findSubdirectory(folderName) ?: acc.createSubdirectory(folderName)
+        }
+    }
+
+    private fun writeGeneratedCodeToPsiDocument(generatedCode: String, model: PythonTestsModel) {
+        invokeLater {
+            runWriteAction {
+                val testDir = createPsiDirectoryForTestSourceRoot(model)
+                val testFileName = getOutputFileName(model)
+                val testPsiFile = PsiFileFactory.getInstance(model.project)
+                    .createFileFromText(testFileName, PythonLanguageAssistant.language, generatedCode)
+                testDir.findFile(testPsiFile.name)?.delete()
+                testDir.add(testPsiFile)
+                val file = testDir.findFile(testPsiFile.name)!!
+                CodeInsightUtil.positionCursor(model.project, file, file)
+            }
+        }
+    }
     private fun askAndInstallRequirementsLater(project: Project, pythonPath: String) {
         val message = """
             Some requirements are not installed.

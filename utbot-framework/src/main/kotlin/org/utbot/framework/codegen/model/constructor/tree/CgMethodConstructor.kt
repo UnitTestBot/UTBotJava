@@ -1337,7 +1337,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     substituteStaticFields(statics, isParametrized = true)
 
                     // build this instance
-                    thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
+                    thisInstance = genericExecution.stateBefore.thisInstance?.let {
+                        variableConstructor.getOrCreateVariable(it)
+                    }
 
                     // build arguments for method under test and parameterized test
                     for (index in genericExecution.stateBefore.parameters.indices) {
@@ -1399,20 +1401,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val executableUnderTestParameters = testSet.executableId.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
-            // this instance
-            val thisInstanceModel = genericExecution.stateBefore.thisInstance
-            if (thisInstanceModel != null) {
-                val type = wrapTypeIfRequired(thisInstanceModel.classId)
-                val thisInstance = CgParameterDeclaration(
-                    parameter = declareParameter(
-                        type = type,
-                        name = nameGenerator.variableName(type)
-                    ),
-                    isReferenceType = true
-                )
-                this += thisInstance
-                currentMethodParameters[CgParameterKind.ThisInstance] = thisInstance.parameter
-            }
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
                 val argumentName = paramNames[executableUnderTest]?.get(index)
@@ -1524,9 +1512,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
         val arguments = mutableListOf<CgExpression>()
-        execution.stateBefore.thisInstance?.let {
-            arguments += variableConstructor.getOrCreateVariable(it)
-        }
 
         for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
             val argumentName = paramNames[testSet.executableId]?.get(paramIndex)

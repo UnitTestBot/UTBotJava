@@ -24,6 +24,7 @@ include 'utbot-cli'
 include 'utbot-cli-python'
 include 'utbot-cli-js'
 include 'utbot-cli-go'
+
 include 'utbot-api'
 include 'utbot-instrumentation'
 //include 'utbot-instrumentation-tests'

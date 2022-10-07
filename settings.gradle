@@ -43,4 +43,5 @@ include 'utbot-ui-commons'
 
 include 'utbot-intellij-python'
 include 'utbot-intellij-js'
+include 'utbot-intellij-go'
 

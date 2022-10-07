@@ -10,7 +10,6 @@ val goPluginVersion: String? by rootProject
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
 }
-project.tasks.asMap["runIde"]?.enabled = false
 
 tasks {
     compileKotlin {
@@ -37,7 +36,7 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
-    implementation(project(":utbot-python"))
+    implementation(project(":utbot-go"))
 }
 
 intellij {
@@ -70,7 +69,7 @@ intellij {
             "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
             "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins
             "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
+            "PU" -> pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
         }
     )

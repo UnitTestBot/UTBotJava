@@ -9,3 +9,9 @@ fun showErrorDialogLater(project: Project, message: String, title: String) {
         Messages.showErrorDialog(project, message, title)
     }
 }
+
+fun showWarningDialogLater(project: Project, message: String, title: String) {
+    invokeLater {
+        Messages.showWarningDialog(project, message, title)
+    }
+}

@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.Panel
@@ -17,7 +18,6 @@ import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
 import javax.swing.*
@@ -28,7 +28,7 @@ private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
-    private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
+    private val testSourceFolderField = TestSourceDirectoryChooser(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
@@ -156,7 +156,12 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.timeoutForRun = TimeUnit.SECONDS.toMillis(timeoutSpinnerForOneRun.number.toLong())
         model.visitOnlySpecifiedSource = visitOnlySpecifiedSource.isSelected
+        model.testSourceRootPath = testSourceFolderField.text
 
         super.doOKAction()
+    }
+
+    override fun doValidate(): ValidationInfo? {
+        return testSourceFolderField.validatePath()
     }
 }

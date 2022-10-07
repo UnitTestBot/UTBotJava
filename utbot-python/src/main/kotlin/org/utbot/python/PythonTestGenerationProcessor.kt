@@ -24,7 +24,6 @@ import kotlin.io.path.pathString
 object PythonTestGenerationProcessor {
     fun processTestGeneration(
         pythonPath: String,
-        testSourceRoot: String,
         pythonFilePath: String,
         pythonFileContent: String,
         directoriesForSysPath: Set<String>,
@@ -35,6 +34,7 @@ object PythonTestGenerationProcessor {
         testFramework: TestFramework,
         timeoutForRun: Long,
         writeTestTextToFile: (String) -> Unit,
+        pythonRunRoot: Path,
         doNotCheckRequirements: Boolean = false,
         visitOnlySpecifiedSource: Boolean = false,
         withMinimization: Boolean = true,
@@ -50,12 +50,11 @@ object PythonTestGenerationProcessor {
         processCoverageInfo: (String) -> Unit = {},
         startedCleaningAction: () -> Unit = {},
         finishedAction: (List<String>) -> Unit = {},  // take names of functions with generated tests
-        pythonRunRoot: Path? = null
     ) {
         Cleaner.restart()
 
         try {
-            TemporaryFileManager.setup(testSourceRoot)
+            TemporaryFileManager.setup()
 
             if (!doNotCheckRequirements) {
                 checkingRequirementsAction()
@@ -84,7 +83,7 @@ object PythonTestGenerationProcessor {
                     pythonFilePath,
                     timeoutForRun,
                     withMinimization,
-                    pythonRunRoot = pythonRunRoot ?: Path(testSourceRoot)
+                    pythonRunRoot = pythonRunRoot
                 ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
             }
 

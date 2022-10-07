@@ -182,14 +182,9 @@ class PythonGenerateTestsCommand: CliktCommand(
     private lateinit var currentPythonModule: String
     private lateinit var pythonMethods: List<PythonMethod>
     private lateinit var sourceFileContent: String
-    private lateinit var testSourceRoot: String
-    private lateinit var outputFilename: String
 
     @Suppress("UNCHECKED_CAST")
     private fun calculateValues(): Optional<Unit> {
-        val outputFile = File(output.toAbsolutePath())
-        testSourceRoot = outputFile.parentFile.path
-        outputFilename = outputFile.name
         val currentPythonModuleOpt = findCurrentPythonModule()
         sourceFileContent = File(sourceFile).readText()
         val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, it) }
@@ -216,6 +211,14 @@ class PythonGenerateTestsCommand: CliktCommand(
         return PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
     }
 
+    private fun writeToFileAndSave(filename: String, fileContent: String) {
+        val file = File(filename)
+        file.parentFile?.mkdirs()
+        file.writeText(fileContent)
+        file.createNewFile()
+    }
+
+
     override fun run() {
         val status = calculateValues()
         if (status is Fail) {
@@ -225,7 +228,6 @@ class PythonGenerateTestsCommand: CliktCommand(
 
         processTestGeneration(
             pythonPath = pythonPath,
-            testSourceRoot = testSourceRoot,
             pythonFilePath = sourceFile.toAbsolutePath(),
             pythonFileContent = sourceFileContent,
             directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
@@ -239,10 +241,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             doNotCheckRequirements = doNotCheckRequirements,
             visitOnlySpecifiedSource = visitOnlySpecifiedSource,
             writeTestTextToFile = { generatedCode ->
-                val file = File(output)
-                file.parentFile?.mkdirs()
-                file.writeText(generatedCode)
-                file.createNewFile()
+                writeToFileAndSave(output, generatedCode)
             },
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
@@ -265,10 +264,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             },
             processCoverageInfo = { coverageReport ->
                 val output = coverageOutput ?: return@processTestGeneration
-                val file = File(output)
-                file.writeText(coverageReport)
-                file.parentFile?.mkdirs()
-                file.createNewFile()
+                writeToFileAndSave(output, coverageReport)
             },
             pythonRunRoot = Paths.get("").toAbsolutePath()
         )

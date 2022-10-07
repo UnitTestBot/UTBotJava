@@ -45,8 +45,8 @@ object PythonLanguageAssistant : LanguageAssistant() {
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
         val element = findPsiElement(file, editor) ?: return null
 
-        val containingFunction = IterationUtils.getContainingElement<PyFunction>(element)
-        val containingClass = IterationUtils.getContainingElement<PyClass>(element)
+        val containingFunction = getContainingElement<PyFunction>(element)
+        val containingClass = getContainingElement<PyClass>(element)
 
         if (containingClass == null) {
             val functions = file.topLevelFunctions

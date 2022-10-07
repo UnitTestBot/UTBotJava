@@ -28,6 +28,7 @@ class PythonTestsModel(
     srcModule,
     potentialTestModules
 ) {
+    lateinit var testSourceRootPath: String
     lateinit var testFramework: TestFramework
     lateinit var selectedFunctions: Set<PyFunction>
 }

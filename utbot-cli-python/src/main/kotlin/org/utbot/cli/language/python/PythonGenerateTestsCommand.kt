@@ -110,7 +110,7 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private fun findCurrentPythonModule(): Optional<String> {
         directoriesForSysPath.forEach { path ->
-            val module = getModuleName(path, sourceFile)
+            val module = getModuleName(path, sourceFile.toAbsolutePath())
             if (module != null)
                 return Success(module)
         }

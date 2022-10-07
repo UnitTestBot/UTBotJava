@@ -8,6 +8,10 @@ val pythonUltimatePluginVersion: String? by rootProject
 val sootCommitHash: String? by rootProject
 val kryoVersion: String? by rootProject
 val semVer: String? by rootProject
+val androidStudioPath: String? by rootProject
+
+// https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
+val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
 
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
@@ -40,12 +44,13 @@ intellij {
             "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
             "PC" -> pythonCommunityPlugins
             "PU" -> pythonUltimatePlugins // something else, JS?
+            "AS" -> jvmPlugins + androidPlugins
             else -> jvmPlugins
         }
     )
 
     version.set("222.4167.29")
-    type.set(ideType)
+    type.set(ideTypeOrAndroidStudio)
 }
 
 tasks {
@@ -64,6 +69,7 @@ tasks {
 
     runIde {
         jvmArgs("-Xmx2048m")
+        androidStudioPath?.let { ideDir.set(file(it)) }
     }
 
     patchPluginXml {

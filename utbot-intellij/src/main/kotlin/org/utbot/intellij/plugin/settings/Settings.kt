@@ -213,9 +213,9 @@ private class TestFrameworkConverter : Converter<TestFramework>() {
     override fun toString(value: TestFramework): String = "$value"
 
     override fun fromString(value: String): TestFramework = when (value) {
-        Junit4.displayName -> Junit4
-        Junit5.displayName -> Junit5
-        TestNg.displayName -> TestNg
+        Junit4.id -> Junit4
+        Junit5.id -> Junit5
+        TestNg.id -> TestNg
         else -> error("Unknown TestFramework $value")
     }
 }
@@ -225,8 +225,8 @@ private class StaticsMockingConverter : Converter<StaticsMocking>() {
     override fun toString(value: StaticsMocking): String = "$value"
 
     override fun fromString(value: String): StaticsMocking = when (value) {
-        NoStaticMocking.displayName -> NoStaticMocking
-        MockitoStaticMocking.displayName -> MockitoStaticMocking
+        NoStaticMocking.id -> NoStaticMocking
+        MockitoStaticMocking.id -> MockitoStaticMocking
         else -> error("Unknown StaticsMocking $value")
     }
 }

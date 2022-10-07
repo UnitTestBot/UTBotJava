@@ -19,6 +19,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
@@ -69,6 +70,8 @@ import org.utbot.sarif.SarifReport
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -373,6 +376,12 @@ object CodeGenerationController {
         return when {
             testPackageName.isNullOrEmpty() -> srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName
             else -> testPackageName
+        }
+    }
+
+    fun GenerateTestsModel.getAllTestSourceRoots() : MutableList<VirtualFile> {
+        with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
+            return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
         }
     }
 

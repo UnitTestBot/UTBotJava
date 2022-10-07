@@ -16,12 +16,11 @@ import com.intellij.util.ui.UIUtil
 import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
-import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.common.PathUtil
+import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
@@ -55,10 +54,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
             }
         }
 
-        val suggestedModules =
-            if (model.project.isBuildWithGradle) model.project.allModules() else model.potentialTestModules
-
-        val testRoots = suggestedModules.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
+        val testRoots = model.getAllTestSourceRoots()
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots)
 

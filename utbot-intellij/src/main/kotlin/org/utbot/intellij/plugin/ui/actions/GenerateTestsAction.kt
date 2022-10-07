@@ -16,8 +16,10 @@ import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
+import com.intellij.psi.impl.PsiJavaParserFacadeImpl
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import org.jetbrains.kotlin.asJava.findFacadeClass
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
@@ -26,6 +28,7 @@ import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.models.packageName
@@ -60,11 +63,13 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         if (editor != null) {
             //The action is being called from editor
             val file = e.getData(CommonDataKeys.PSI_FILE) ?: return null
+            //file.setName("abcdef")
             val element = findPsiElement(file, editor) ?: return null
 
             val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
-            if (psiElementHandler.isCreateTestActionAvailable(element)) {
+            // When in Kotlin file, we should propose top-level functions for testing
+            if (psiElementHandler.isCreateTestActionAvailable(element) || file is KtFile) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
@@ -232,6 +237,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
             return emptySet()
         }
         val allClasses = psiFiles.flatMap { getClassesFromFile(it) }.toMutableSet()
+        allClasses.addAll(psiFiles.mapNotNull { (it as? KtFile)?.findFacadeClass() })
         for (psiDir in psiDirectories) allClasses += getAllClasses(psiDir)
 
         return allClasses

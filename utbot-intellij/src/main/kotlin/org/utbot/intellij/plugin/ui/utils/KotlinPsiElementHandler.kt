@@ -2,6 +2,8 @@ package org.utbot.intellij.plugin.ui.utils
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.findParentOfType
+import org.jetbrains.kotlin.asJava.findFacadeClass
 import org.jetbrains.kotlin.idea.testIntegration.KotlinCreateTestIntention
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassOrObject
@@ -9,6 +11,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
+import org.jetbrains.kotlin.toKtPsiSourceElement
 import org.jetbrains.uast.toUElement
 
 class KotlinPsiElementHandler(
@@ -31,6 +34,12 @@ class KotlinPsiElementHandler(
         element?.parentsWithSelf
             ?.firstOrNull { it is KtClassOrObject || it is KtNamedDeclaration && it.parent is KtFile } as? KtNamedDeclaration
 
-    override fun containingClass(element: PsiElement): PsiClass? =
-         element.parentsWithSelf.firstOrNull { it is KtClassOrObject }?.let { toPsi(it, PsiClass::class.java) }
+    override fun containingClass(element: PsiElement): PsiClass? {
+        element.findParentOfType<KtClassOrObject>(strict=false)?.let {
+            return toPsi(it, PsiClass::class.java)
+        }
+        return element.findParentOfType<KtFile>(strict=false)?.findFacadeClass()?.let {
+            toPsi(it, PsiClass::class.java)
+        }
+    }
 }

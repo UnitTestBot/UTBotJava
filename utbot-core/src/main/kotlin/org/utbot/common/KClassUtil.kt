@@ -14,3 +14,6 @@ fun Method.invokeCatching(obj: Any?, args: List<Any?>) = try {
 
 val KClass<*>.allNestedClasses: List<KClass<*>>
     get() = listOf(this) + nestedClasses.flatMap { it.allNestedClasses }
+
+val Class<*>.allNestedClasses: List<Class<*>>
+    get() = listOf(this) + this.declaredClasses.flatMap { it.declaredClasses.toList() }

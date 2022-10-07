@@ -1244,12 +1244,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     ) {
                         thisInstance[executable](*methodArguments.toTypedArray())
                     }
-
-                    // We need to clear scope of created variables
-                    // because after invocation of MUT some expressions could be changed.
-                    // For example, fields of object that were null could be assigned to some new objects
-                    // and previously created variables do not reflect these changes.
-                    createdFromExpressionVariables.clear()
                 }
                 else -> {} // TODO: check this specific case
             }

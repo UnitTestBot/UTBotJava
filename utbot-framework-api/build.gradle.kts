@@ -12,6 +12,9 @@ plugins {
 dependencies {
     api(project(":utbot-core"))
     api(project(":utbot-api"))
+    api(project(":utbot-rd"))
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
     implementation("com.github.UnitTestBot:soot:${sootCommitHash}")
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     // TODO do we really need apache commons?

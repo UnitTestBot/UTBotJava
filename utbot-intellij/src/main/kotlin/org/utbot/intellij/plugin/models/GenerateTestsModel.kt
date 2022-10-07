@@ -17,8 +17,9 @@ import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import org.jetbrains.kotlin.idea.core.getPackage
+import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
@@ -84,4 +85,11 @@ data class GenerateTestsModel(
         }
 }
 
-val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
+val PsiClass.packageName: String
+    get() {
+        return when (val currentFile = containingFile) {
+            is PsiJavaFile -> currentFile.packageName
+            is KtFile -> currentFile.packageFqName.asString()
+            else -> error("Can't find package name for $this: it should be located either in Java or Kt file")
+        }
+    }

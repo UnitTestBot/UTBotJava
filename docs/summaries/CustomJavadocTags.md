@@ -30,10 +30,15 @@ the same names).
 There is a setting `Javadoc comment style` in the main plugin's `Settings`. It has two options: `Plain` text
 and `Structured via custom Javadoc tags` (selected by default).
 
+![Settings](../images/utbot_settings.png)
+
 ## View
-There are two modes the comment could be shown in IntelliJ IDEA: plain text and rendered view. 
+
+There are two modes the comment could be shown in IntelliJ IDEA: plain text and rendered view.
 
 To activate rendered mode, click on the toggle near comment.
+
+![Example](../images/utbot_custom_javadoc_tags.png)
 
 ## Implementation details
 
@@ -41,7 +46,8 @@ Implemented `JavadocTagInfo` to introduce our custom JavaDoc tags.
 
 Implemented `CustomJavadocTagProvider` and registered it in `plugin.xml` to support plugin's custom tags.
 
-Overrided behavior of `JavaDocumentationProvider#generateRenderedDoc` and registered it in `plugin.xml` to render our custom JavaDoc tags correctly.
+Overrided behavior of `JavaDocumentationProvider#generateRenderedDoc` and registered it in `plugin.xml` to render our
+custom JavaDoc tags correctly.
 
 Added a flag `USE_CUSTOM_TAGS` to settings.
 
@@ -61,7 +67,8 @@ In general, teammates said that the idea and the way it looks like is good and s
 
 ## Test scenarios
 
-Currently, the feature works only for Symbolic execution engine, so make sure the slider is on the Deeper side.
+Currently, the feature works only for Symbolic execution engine, so make sure the slider is on the Symbolic execution
+side.
 
 ### Default behaviour (the feature is enabled).
 

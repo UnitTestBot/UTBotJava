@@ -40,6 +40,7 @@ import java.io.File
 import java.lang.reflect.Modifier
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import org.utbot.common.FileUtil
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -1384,7 +1385,7 @@ enum class CodegenLanguage(
 
 // https://docs.oracle.com/javase/7/docs/technotes/tools/windows/javac.html#commandlineargfile
 fun isolateCommandLineArgumentsToArgumentFile(arguments: List<String>): String {
-    val argumentFile = File.createTempFile("cmd-args", "")
+    val argumentFile = FileUtil.createTempFile("cmd-args", "").toFile()
     argumentFile.writeText(
         arguments.joinToString(" ") {
             // If a filename contains embedded spaces, put the whole filename in double quotes,

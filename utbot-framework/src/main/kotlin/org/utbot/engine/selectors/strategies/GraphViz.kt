@@ -19,6 +19,7 @@ import java.awt.datatransfer.StringSelection
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Paths
+import org.utbot.common.FileUtil
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,7 +30,7 @@ class GraphViz(
 ) : TraverseGraphStatistics(globalGraph) {
 
     // Files
-    private val graphVisDirectory = Files.createTempDirectory("Graph-vis")
+    private val graphVisDirectory = FileUtil.createTempDirectory("Graph-vis")
     private val graphVisPathString = graphVisDirectory.toString()
     private val graphJs = Paths.get(graphVisPathString, "graph.js").toFile()
 

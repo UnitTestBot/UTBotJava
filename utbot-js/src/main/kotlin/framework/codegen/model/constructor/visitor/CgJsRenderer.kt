@@ -4,7 +4,6 @@ import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
-import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
@@ -358,7 +357,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.codeGenLanguage)) "`$s`" else s
+        if (isLanguageKeyword(s, context.cgLanguageAssistant)) "`$s`" else s
 
     override fun renderClassVisibility(classId: ClassId) {
         TODO("Not yet implemented")

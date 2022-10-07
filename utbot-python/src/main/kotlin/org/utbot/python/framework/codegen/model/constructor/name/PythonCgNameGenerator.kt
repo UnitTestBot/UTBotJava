@@ -25,7 +25,7 @@ class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(context_) 
         return when {
             baseName in existingVariableNames -> nextIndexedVarName(baseName)
             baseName in importedModuleNames -> nextIndexedVarName(baseName)
-            isLanguageKeyword(baseName, context.codeGenLanguage) -> createNameFromKeyword(baseName)
+            isLanguageKeyword(baseName, context.cgLanguageAssistant) -> createNameFromKeyword(baseName)
             else -> baseName
         }.also {
             existingVariableNames = existingVariableNames.add(it)

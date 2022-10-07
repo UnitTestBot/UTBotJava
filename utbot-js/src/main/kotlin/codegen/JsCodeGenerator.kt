@@ -1,6 +1,6 @@
 package codegen
 
-import framework.codegen.JsCodeLanguage
+import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
@@ -38,7 +38,7 @@ class JsCodeGenerator(
         testFramework = testFramework,
         mockFramework = MockFramework.MOCKITO,
         codegenLanguage = CodegenLanguage.JS,
-        codeGenLanguage = JsCodeLanguage,
+        cgLanguageAssistant = JsCgLanguageAssistant,
         parametrizedTestSource = ParametrizedTestSource.defaultItem,
         staticsMocking = StaticsMocking.defaultItem,
         forceStaticMocking = ForceStaticMocking.defaultItem,

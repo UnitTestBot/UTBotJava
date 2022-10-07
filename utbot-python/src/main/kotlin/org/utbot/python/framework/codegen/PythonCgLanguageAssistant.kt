@@ -1,22 +1,20 @@
 package org.utbot.python.framework.codegen
 
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.TestFrameworkManager
+import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodeGenLanguage
-import org.utbot.framework.plugin.api.CodegenLanguageProvider
-import org.utbot.python.framework.codegen.model.Pytest
-import org.utbot.python.framework.codegen.model.Unittest
+import org.utbot.framework.plugin.api.CgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.name.PythonCgNameGenerator
-import org.utbot.python.framework.codegen.model.constructor.tree.*
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgCallableAccessManagerImpl
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgMethodConstructor
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgStatementConstructorImpl
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariableConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
 
-object PythonCodeLanguage : CodeGenLanguage() {
-    override val displayName: String = "Python"
-    override val id: String = "Python"
+object PythonCgLanguageAssistant : CgLanguageAssistant() {
 
     override val extension: String
         get() = ".py"
@@ -47,19 +45,8 @@ object PythonCodeLanguage : CodeGenLanguage() {
     override fun getStatementConstructorBy(context: CgContext) = PythonCgStatementConstructorImpl(context)
     override fun getVariableConstructorBy(context: CgContext) = PythonCgVariableConstructor(context)
     override fun getMethodConstructorBy(context: CgContext) = PythonCgMethodConstructor(context)
+    override fun getLanguageTestFrameworkManager() = PythonTestFrameworkManager()
     override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgPythonRenderer(context, printer)
 
-    override val testFrameworks = listOf(Unittest, Pytest)
-
-    override fun managerByFramework(context: CgContext): TestFrameworkManager = when (context.testFramework) {
-        is Unittest -> UnittestManager(context)
-        is Pytest -> PytestManager(context)
-        else -> throw UnsupportedOperationException("Incorrect TestFramework ${context.testFramework}")
-    }
-
-    override val defaultTestFramework = Unittest
-
-    init {
-        CodegenLanguageProvider.allItems.add(this)
-    }
+    var memoryObjects: MutableMap<Long, CgVariable> = emptyMap<Long, CgVariable>().toMutableMap()
 }

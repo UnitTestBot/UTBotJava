@@ -44,7 +44,7 @@ For example, the following configuration may be used:
     <testFramework>junit5</testFramework>
     <mockFramework>mockito</mockFramework>
     <generationTimeout>60000L</generationTimeout>
-    <codegenLanguage>java</codegenLanguage>
+    <codegenLanguageAssistant>java</codegenLanguageAssistant>
     <mockStrategy>other-packages</mockStrategy>
     <staticsMocking>mock-statics</staticsMocking>
     <forceStaticMocking>force</forceStaticMocking>
@@ -100,7 +100,7 @@ For example, the following configuration may be used:
     - Time budget for generating tests for one class (in milliseconds).
     - By default, 60 seconds is used.
 
-- `codegenLanguage` &ndash;
+- `codegenLanguageAssistant` &ndash;
     - The language of the generated tests.
     - Can be one of:
         - `'java'` _(by default)_

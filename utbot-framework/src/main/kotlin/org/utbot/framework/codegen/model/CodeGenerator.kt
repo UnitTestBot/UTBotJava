@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.model
 
-import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -46,7 +45,7 @@ open class CodeGenerator(
         testFramework = testFramework,
         mockFramework = mockFramework,
         codegenLanguage = codegenLanguage,
-        codeGenLanguage = if (codegenLanguage == CodegenLanguage.JAVA) JavaCodeLanguage else KotlinCodeLanguage,
+        cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
         parametrizedTestSource = parameterizedTestSource,
         staticsMocking = staticsMocking,
         forceStaticMocking = forceStaticMocking,

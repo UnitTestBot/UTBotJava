@@ -20,7 +20,6 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.js.JsClassId
 import org.utbot.framework.plugin.api.js.JsMethodId
 import org.utbot.framework.plugin.api.js.JsMultipleClassId

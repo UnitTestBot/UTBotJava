@@ -15,9 +15,9 @@ import org.utbot.tests.infrastructure.Compilation
 internal class ClassWithClassRefTest : UtValueTestCaseChecker(
     testClass = ClassWithClassRef::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA, Compilation), // TODO JIRA:1479
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        CodeGenerationLastStage(CodegenLanguage.JAVA, Compilation), // TODO JIRA:1479
+        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

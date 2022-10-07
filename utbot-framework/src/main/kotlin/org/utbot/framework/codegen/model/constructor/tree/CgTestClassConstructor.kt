@@ -164,7 +164,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
-                for (splitByExecutionTestSet in testSet.splitExecutionsByResult()) {
+                for (splitByExecutionTestSet in testSet.excludeExecutionsWithMocking().splitExecutionsByResult()) {
                     for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
                         createParametrizedTestAndDataProvider(
                             splitByChangedStaticsTestSet,

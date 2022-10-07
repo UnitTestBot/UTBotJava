@@ -11,10 +11,10 @@ import org.utbot.tests.infrastructure.isException
 
 class ArrayStoreExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ArrayStoreExceptionExamples::class,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+    pipelines = listOf(
+        CodeGenerationLastStage(CodegenLanguage.JAVA),
         // Type inference errors in generated Kotlin code
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

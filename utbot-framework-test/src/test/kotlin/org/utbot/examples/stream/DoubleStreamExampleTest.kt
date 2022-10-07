@@ -16,9 +16,9 @@ import kotlin.streams.toList
 class DoubleStreamExampleTest : UtValueTestCaseChecker(
     testClass = DoubleStreamExample::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        CodeGenerationLastStage(CodegenLanguage.JAVA),
+        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

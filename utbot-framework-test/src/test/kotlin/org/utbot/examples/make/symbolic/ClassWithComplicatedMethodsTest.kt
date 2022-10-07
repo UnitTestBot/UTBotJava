@@ -18,9 +18,9 @@ import org.utbot.tests.infrastructure.Compilation
 internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
     testClass = ClassWithComplicatedMethods::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA, Compilation),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, Compilation)
+    pipelines = listOf(
+        CodeGenerationLastStage(CodegenLanguage.JAVA, Compilation),
+        CodeGenerationLastStage(CodegenLanguage.KOTLIN, Compilation)
     )
 ) {
     @Test

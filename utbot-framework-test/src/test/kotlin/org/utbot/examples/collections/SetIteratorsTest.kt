@@ -13,9 +13,9 @@ import org.utbot.tests.infrastructure.CodeGeneration
 class SetIteratorsTest : UtValueTestCaseChecker(
     testClass = SetIterators::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        CodeGenerationLastStage(CodegenLanguage.JAVA),
+        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

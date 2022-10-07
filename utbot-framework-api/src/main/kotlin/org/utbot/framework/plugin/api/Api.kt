@@ -103,7 +103,9 @@ abstract class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null
-) : UtResult()
+) : UtResult() {
+    var wasForceMocked: Boolean = false
+}
 
 /**
  * Symbolic execution.

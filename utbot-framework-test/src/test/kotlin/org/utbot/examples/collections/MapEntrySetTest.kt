@@ -16,9 +16,9 @@ import org.utbot.tests.infrastructure.CodeGeneration
 class MapEntrySetTest : UtValueTestCaseChecker(
     testClass = MapEntrySet::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        CodeGenerationLastStage(CodegenLanguage.JAVA),
+        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

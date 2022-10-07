@@ -6,7 +6,9 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.Compilation
 
 internal class UseNetworkTest : UtValueTestCaseChecker(testClass = UseNetwork::class) {
     @Test

@@ -65,6 +65,15 @@ data class CgMethodTestSet private constructor(
         return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
     }
 
+    /*
+    * Excludes executions with mocking from [CgMethodTestSet].
+    * */
+    fun excludeExecutionsWithMocking(): CgMethodTestSet {
+        val executionsWithoutMocking = executions.filter { !it.wasForceMocked }
+
+        return substituteExecutions(executionsWithoutMocking)
+    }
+
     /**
      * Finds a [ClassId] of all result models in executions.
      *

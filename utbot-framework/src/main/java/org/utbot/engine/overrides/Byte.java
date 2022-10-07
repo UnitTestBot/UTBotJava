@@ -48,37 +48,39 @@ public class Byte {
 
     @SuppressWarnings("ConstantConditions")
     public static String toString(byte b) {
-        // condition = b < 0
-        boolean condition = less(b, (byte) 0);
+        if (b == -128) {
+            return "-128";
+        }
+
+        if (b == 0) {
+            return "0";
+        }
+
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
         assume(b < 128);
-        assume(b >= -128);
+        assume(b > -128);
+        assume(b != 0);
 
-        if (b == -128) {
-            return "-128";
-        } else {
-            String prefix = ite(condition, "-", "");
-            int value = ite(condition, (byte) -b, b);
-            char[] reversed = new char[3];
-            int offset = 0;
-            while (value > 0) {
-                reversed[offset] = (char) ('0' + value % 10);
-                value = value / 10;
-                offset++;
-            }
+        // isNegative = b < 0
+        boolean isNegative = less(b, (byte) 0);
+        String prefix = ite(isNegative, "-", "");
 
-            if (offset > 0) {
-                char[] buffer = new char[offset];
-                int counter = 0;
-                while (offset > 0) {
-                    offset--;
-                    buffer[counter++] = reversed[offset];
-                }
-                return prefix + new String(buffer);
-            } else {
-                return "0";
-            }
+        int value = ite(isNegative, (byte) -b, b);
+        char[] reversed = new char[3];
+        int offset = 0;
+        while (value > 0) {
+            reversed[offset] = (char) ('0' + (value % 10));
+            value /= 10;
+            offset++;
         }
+
+        char[] buffer = new char[offset];
+        int counter = 0;
+        while (offset > 0) {
+            offset--;
+            buffer[counter++] = reversed[offset];
+        }
+        return prefix + new String(buffer);
     }
 }

@@ -848,70 +848,21 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         return toString().replace(target, replacement);
     }
 
-    public String[] splitWithLimitImpl(String regex, int limit) {
+    private String[] splitWithLimitImpl(String regex, int limit) {
         return toString().split(regex, limit);
     }
 
     public String[] split(String regex, int limit) {
-        preconditionCheck();
         return splitWithLimitImpl(regex, limit);
     }
 
-    /*
-    public String[] split(String regex, int limit) {
-        preconditionCheck();
-        if (regex == null) {
-            throw new NullPointerException();
-        }
-        if (limit < 0) {
-            throw new IllegalArgumentException();
-        }
-        if (regex.length() == 0) {
-            int size = limit == 0 ? length + 1 : min(limit, length + 1);
-            String[] strings = new String[size];
-            strings[size] = substring(size - 1);
-            // TODO remove assume
-            assume(size < 10);
-            for (int i = 0; i < size - 1; i++) {
-                strings[i] = Character.toString(value[i]);
-            }
-            return strings;
-        }
-        assume(regex.length() < 10);
-        executeConcretely();
-        return toStringImpl().split(regex, limit);
-    }
-     */
-
-    public String[] splitImpl(String regex) {
+    private String[] splitImpl(String regex) {
         return toString().split(regex);
     }
 
     public String[] split(String regex) {
-        preconditionCheck();
         return splitImpl(regex);
     }
-
-    /*
-    public String[] split(String regex) {
-        preconditionCheck();
-        if (regex == null) {
-            throw new NullPointerException();
-        }
-        if (regex.length() == 0) {
-            String[] strings = new String[length + 1];
-            strings[length] = "";
-            // TODO remove assume
-            assume(length <= 25);
-            for (int i = 0; i < length; i++) {
-                strings[i] = Character.toString(value[i]);
-            }
-            return strings;
-        }
-        executeConcretely();
-        return toStringImpl().split(regex);
-    }
-     */
 
     public String toLowerCase(Locale locale) {
         preconditionCheck();

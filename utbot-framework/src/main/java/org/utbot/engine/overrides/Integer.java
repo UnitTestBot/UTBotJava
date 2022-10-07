@@ -3,6 +3,7 @@ package org.utbot.engine.overrides;
 import org.utbot.api.annotation.UtClassMock;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
+import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
 import static org.utbot.engine.overrides.UtLogicMock.less;
@@ -69,34 +70,39 @@ public class Integer {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     public static String toString(int i) {
-        if (i == 0x80000000) { // java.lang.MIN_VALUE
+        if (i == 0x80000000) { // java.lang.Integer.MIN_VALUE
             return "-2147483648";
         }
 
-        // condition = i < 0
-        boolean condition = less(i, 0);
-        // prefix = condition ? "-" : ""
-        String prefix = ite(condition, "-", "");
-        int value = ite(condition, -i, i);
+        if (i == 0) {
+            return "0";
+        }
+
+        assume(i <= 0x7FFFFFFF); // java.lang.Integer.MAX_VALUE
+        assume(i > 0x80000000); // java.lang.Integer.MIN_VALUE
+        assume(i != 0);
+
+        // isNegative = i < 0
+        boolean isNegative = less(i, 0);
+        String prefix = ite(isNegative, "-", "");
+
+        int value = ite(isNegative, -i, i);
         char[] reversed = new char[10];
         int offset = 0;
         while (value > 0) {
-            reversed[offset] = (char) ('0' + value % 10);
-            value = value / 10;
+            reversed[offset] = (char) ('0' + (value % 10));
+            value /= value;
             offset++;
         }
 
-        if (offset > 0) {
-            char[] buffer = new char[offset];
-            int counter = 0;
-            while (offset > 0) {
-                offset--;
-                buffer[counter++] = reversed[offset];
-            }
-            return prefix + new String(buffer);
-        } else {
-            return "0";
+        char[] buffer = new char[offset];
+        int counter = 0;
+        while (offset > 0) {
+            offset--;
+            buffer[counter++] = reversed[offset];
         }
+        return prefix + new String(buffer);
     }
 }

@@ -296,7 +296,6 @@ val UtSort.defaultValue: UtExpression
         UtFp32Sort -> mkFloat(0f)
         UtFp64Sort -> mkDouble(0.0)
         UtBoolSort -> mkBool(false)
-        // empty string because we want to have a default value of the same sort as the items stored in the strings array
         is UtArraySort -> if (itemSort is UtArraySort) nullObjectAddr else mkArrayWithConst(this, itemSort.defaultValue)
         else -> nullObjectAddr
     }

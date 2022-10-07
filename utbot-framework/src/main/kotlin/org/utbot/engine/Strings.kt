@@ -49,10 +49,6 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         overriddenClass.getMethodByName(UtString::matchesImpl.name).subSignature
     private val charAtMethodSignature =
         overriddenClass.getMethodByName(UtString::charAtImpl.name).subSignature
-    private val splitWithLimitMethodSignature =
-        overriddenClass.getMethodByName(UtString::splitWithLimitImpl.name).subSignature
-    private val splitMethodSignature =
-        overriddenClass.getMethodByName(UtString::splitImpl.name).subSignature
 
     private fun Traverser.getValueArray(addr: UtAddrExpression) =
         getArrayField(addr, overriddenClass, STRING_VALUE)
@@ -71,12 +67,6 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
             }
             charAtMethodSignature -> {
                 symbolicCharAtMethodImpl(wrapper, parameters)
-            }
-            splitWithLimitMethodSignature -> {
-                null
-            }
-            splitMethodSignature -> {
-                null
             }
             else -> {
                 null
@@ -149,7 +139,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         }
 
         val rgxGen = RgxGen(String(matchingValue))
-        val matching = (rgxGen.generate())
+        val matching = rgxGen.generate()
         val notMatching = rgxGen.generateNotMatching()
 
         val thisLength = getIntFieldValue(wrapper, STRING_LENGTH)

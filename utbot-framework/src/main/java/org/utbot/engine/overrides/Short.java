@@ -3,6 +3,7 @@ package org.utbot.engine.overrides;
 import org.utbot.api.annotation.UtClassMock;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
+import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
 import static org.utbot.engine.overrides.UtLogicMock.less;
@@ -43,39 +44,38 @@ public class Short {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     public static String toString(short s) {
-        // condition = s < 0
-        boolean condition = less(s, (short) 0);
+        if (s == -32768)
+            return "-32768";
+        if (s == 0)
+            return "0";
+
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assumeOrExecuteConcretely(s <= 10000);
-        assumeOrExecuteConcretely(s >= -10000);
+        assume(s < 32768);
+        assume(s > -32768);
+        assume(s != 0);
 
-        if (s == -32768) {
-            return "-32768";
-        } else {
-            // prefix = condition ? "-" : ""
-            String prefix = ite(condition, "-", "");
-            int value = ite(condition, (short) -s, s);
-            char[] reversed = new char[5];
-            int offset = 0;
-            while (value > 0) {
-                reversed[offset] = (char) ('0' + value % 10);
-                value = value / 10;
-                offset++;
-            }
+        // isNegative = s < 0
+        boolean isNegative = less(s, (short) 0);
+        String prefix = ite(isNegative, "-", "");
 
-            if (offset > 0) {
-                char[] repr = new char[offset];
-                int i = 0;
-                while (offset > 0) {
-                    offset--;
-                    repr[i++] = reversed[offset];
-                }
-                return prefix + new String(repr);
-            } else {
-                return "0";
-            }
+        int value = ite(isNegative, (short) -s, s);
+        char[] reversed = new char[5];
+        int offset = 0;
+        while (value > 0) {
+            reversed[offset] = (char) ('0' + (value % 10));
+            value /= value;
+            offset++;
         }
+
+        char[] buffer = new char[offset];
+        int counter = 0;
+        while (offset > 0) {
+            offset--;
+            buffer[counter++] = reversed[offset];
+        }
+        return prefix + new String(buffer);
     }
 }

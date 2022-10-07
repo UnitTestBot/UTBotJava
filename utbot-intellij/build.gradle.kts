@@ -12,6 +12,7 @@ val androidStudioPath: String? by rootProject
 
 // https://plugins.jetbrains.com/docs/intellij/android-studio.html#configuring-the-plugin-pluginxml-file
 val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
+val goPluginVersion: String? by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
@@ -40,13 +41,19 @@ intellij {
         "JavaScript"
     )
 
-    plugins.set(when (ideType) {
-        "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-        "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
-        "PC" -> pythonCommunityPlugins
-        "PY" -> pythonUltimatePlugins // something else, JS?
-        else -> jvmPlugins
-    })
+    val goPlugins = listOf(
+        "org.jetbrains.plugins.go:${goPluginVersion}"
+    )
+
+    plugins.set(
+        when (ideType) {
+            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
+            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins
+            "PC" -> pythonCommunityPlugins
+            "PY" -> pythonUltimatePlugins // something else, JS?
+            else -> jvmPlugins
+        }
+    )
 
     version.set("222.4167.29")
     type.set(ideTypeOrAndroidStudio)
@@ -102,4 +109,7 @@ dependencies {
 
     implementation(project(":utbot-js"))
     implementation(project(":utbot-intellij-js"))
+
+    implementation(project(":utbot-go"))
+    implementation(project(":utbot-intellij-go"))
 }

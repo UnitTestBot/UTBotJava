@@ -113,6 +113,7 @@ class ClientProtocolBuilder {
     private var timeout = Duration.INFINITE
 
     suspend fun start(port: Int, parent: Lifetime? = null, bindables: Protocol.(CallsSynchronizer) -> Unit) {
+        UtRdCoroutineScope.current // coroutine scope initialization
         val pid = currentProcessPid.toInt()
         val ldef = parent?.createNested() ?: LifetimeDefinition()
         ldef.terminateOnException { _ ->

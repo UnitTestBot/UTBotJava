@@ -54,7 +54,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
-import org.utbot.intellij.plugin.process.RdGTestenerationResult
+import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.ui.*
@@ -83,7 +83,7 @@ object CodeGenerationController {
 
     fun generateTests(
         model: GenerateTestsModel,
-        classesWithTests: Map<PsiClass, RdGTestenerationResult>,
+        classesWithTests: Map<PsiClass, RdTestGenerationResult>,
         psi2KClass: Map<PsiClass, ClassId>,
         proc: EngineProcess
     ) {

@@ -36,7 +36,7 @@ import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTest
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
-import org.utbot.intellij.plugin.process.RdGTestenerationResult
+import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -46,7 +46,6 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.intellij.plugin.util.*
 import org.utbot.rd.terminateOnException
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
@@ -136,12 +135,12 @@ object UtTestsDialogProcessor {
 
                         val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
-                        val testSetsByClass = mutableMapOf<PsiClass, RdGTestenerationResult>()
+                        val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
                         val psi2KClass = mutableMapOf<PsiClass, ClassId>()
                         var processedClasses = 0
                         val totalClasses = model.srcClasses.size
 
-                        val proc = EngineProcess(lifetime)
+                        val proc = EngineProcess(lifetime, project)
 
                         proc.setupUtContext(buildDirs + classpathList)
                         proc.createTestGenerator(
@@ -282,10 +281,6 @@ object UtTestsDialogProcessor {
         appendLine("Try to alter test generation configuration, e.g. enable mocking and static mocking.")
         appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
-
-
-    private fun urlClassLoader(classpath: List<String>) =
-        URLClassLoader(classpath.map { File(it).toURI().toURL() }.toTypedArray())
 
     private fun findSrcModule(srcClasses: Set<PsiClass>): Module {
         val srcModules = srcClasses.mapNotNull { it.module }.distinct()

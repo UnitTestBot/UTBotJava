@@ -93,7 +93,6 @@ import javax.swing.JList
 import javax.swing.JPanel
 import javax.swing.JSpinner
 import javax.swing.text.DefaultFormatter
-import kotlin.streams.toList
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
@@ -502,7 +501,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.mockFramework = MOCKITO
         model.staticsMocking = if (staticsMocking.isSelected) MockitoStaticMocking else NoStaticMocking
-        model.codegenLanguage = codegenLanguages.item
+        model.codegenLanguage = model.project.service<Settings>().codegenLanguage
         try {
             timeoutSpinner.commitEdit()
         } catch (ignored: ParseException) {

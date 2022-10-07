@@ -78,7 +78,7 @@ open class CgNameGeneratorImpl(val context: CgContext)
         }
         return when {
             baseName in existingVariableNames -> nextIndexedVarName(baseName)
-            isLanguageKeyword(baseName, context.codeGenLanguage) -> createNameFromKeyword(baseName)
+            isLanguageKeyword(baseName, context.cgLanguageAssistant) -> createNameFromKeyword(baseName)
             else -> baseName
         }.also {
             existingVariableNames = existingVariableNames.add(it)

@@ -27,7 +27,7 @@ import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.panel
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.ui.JBUI
-import framework.codegen.JsCodeLanguage
+import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -80,7 +80,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     init {
         title = "Generate Tests with UtBot"
         initTestFrameworkPresenceThread = thread(start = true) {
-            JsCodeLanguage.testFrameworks.forEach {
+            JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
                 it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()))
             }
         }

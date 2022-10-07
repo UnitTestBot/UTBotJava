@@ -37,7 +37,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
-import org.utbot.python.framework.codegen.PythonCodeLanguage
+import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import java.io.File
@@ -88,7 +88,7 @@ object PythonDialogProcessor {
                 UtSettings.utBotGenerationTimeoutInMillis,
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 visitOnlySpecifiedSource = false,
-                codeGenLanguage = PythonCodeLanguage,
+                cgLanguageAssistant = PythonCgLanguageAssistant,
             )
         )
     }

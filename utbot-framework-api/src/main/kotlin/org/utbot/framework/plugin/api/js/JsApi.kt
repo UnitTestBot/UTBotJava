@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.js
 
+import java.lang.reflect.Modifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
@@ -96,12 +97,18 @@ class JsMethodId(
     override val returnType: JsClassId
         get() = lazyReturnType?.value ?: returnTypeNotLazy
 
+    override val modifiers: Int
+        get() = if (staticModifier) Modifier.STATIC else 0
+
 }
 
 class JsConstructorId(
     override var classId: JsClassId,
     override val parameters: List<JsClassId>,
-) : ConstructorId(classId, parameters)
+) : ConstructorId(classId, parameters) {
+    override val modifiers: Int
+        get() = 0
+}
 
 class JsMultipleClassId(private val jsJoinedName: String) : JsClassId(jsJoinedName) {
 

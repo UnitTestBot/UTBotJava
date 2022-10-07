@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import java.util.Locale
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
@@ -342,7 +343,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         val elementsInLine = arrayElementsInLine(elementType)
 
         if (elementType.isPrimitive) {
-            val prefix = elementType.name.toLowerCase()
+            val prefix = elementType.name.lowercase(Locale.getDefault())
             print("${prefix}ArrayOf(")
             element.values.renderElements(elementsInLine)
             print(")")
@@ -529,7 +530,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.codeGenLanguage)) "`$s`" else s
+        if (isLanguageKeyword(s, context.cgLanguageAssistant)) "`$s`" else s
 
     override fun renderClassVisibility(classId: ClassId) {
         when {

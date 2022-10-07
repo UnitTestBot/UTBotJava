@@ -11,7 +11,7 @@ import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.plugin.api.ClassId
 
-internal class MochaManager(context: CgContext) : TestFrameworkManager(context) {
+class MochaManager(context: CgContext) : TestFrameworkManager(context) {
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Mocha) { "According to settings, Mocha.js was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(exception) { block() }
@@ -40,9 +40,9 @@ internal class MochaManager(context: CgContext) : TestFrameworkManager(context) 
 
     override val dataProviderMethodsHolder: TestClassContext
         get() = TODO("Not yet implemented")
-    override val annotationForNestedClasses: CgAnnotation?
+    override val annotationForNestedClasses: CgAnnotation
         get() = TODO("Not yet implemented")
-    override val annotationForOuterClasses: CgAnnotation?
+    override val annotationForOuterClasses: CgAnnotation
         get() = TODO("Not yet implemented")
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {

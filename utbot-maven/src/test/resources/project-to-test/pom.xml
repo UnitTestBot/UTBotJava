@@ -34,7 +34,7 @@
                     <testFramework>junit5</testFramework>
                     <mockFramework>mockito</mockFramework>
                     <generationTimeout>10000</generationTimeout>
-                    <codegenLanguage>java</codegenLanguage>
+                    <codegenLanguageAssistant>java</codegenLanguageAssistant>
                     <mockStrategy>other-packages</mockStrategy>
                     <staticsMocking>mock-statics</staticsMocking>
                     <forceStaticMocking>force</forceStaticMocking>

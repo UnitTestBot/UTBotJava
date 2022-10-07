@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.python.*
+import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
@@ -35,7 +36,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
-                context.codeGenLanguage.memoryObjects.clear()
+                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
 
                 val modificationInfo = StateModificationInfo()
                 val fieldStateManager = CgFieldStateManagerImpl(context)
@@ -102,8 +103,8 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
             is PythonTree.ReduceNode -> {
                 val id = objectNode.id
-                if (context.codeGenLanguage.memoryObjects.containsKey(id)) {
-                    return context.codeGenLanguage.memoryObjects[id]!!
+                if ((context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.containsKey(id)) {
+                    return (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id]!!
                 }
 
                 val initArgs = objectNode.args.map {
@@ -120,7 +121,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                         initArgs
                     )
                 }
-                context.codeGenLanguage.memoryObjects[id] = obj
+                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
 
                 val state = objectNode.state.map { (key, value) ->
                     key to pythonBuildObject(value)

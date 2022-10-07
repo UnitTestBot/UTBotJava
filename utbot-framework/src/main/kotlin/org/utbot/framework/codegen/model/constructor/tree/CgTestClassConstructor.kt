@@ -314,24 +314,24 @@ open class CgTestClassConstructor(val context: CgContext) :
         private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
 
         fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) {
-            context.codeGenLanguage.getNameGeneratorBy(context)
+            context.cgLanguageAssistant.getNameGeneratorBy(context)
         }
         fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) {
-            context.codeGenLanguage.getCallableAccessManagerBy(context)
+            context.cgLanguageAssistant.getCallableAccessManagerBy(context)
         }
         fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) {
-            context.codeGenLanguage.getStatementConstructorBy(context)
+            context.cgLanguageAssistant.getStatementConstructorBy(context)
         }
 
         fun getTestFrameworkManagerBy(context: CgContext) =
-            testFrameworkManagers.getOrDefault(context, context.codeGenLanguage.managerByFramework(context))
+            testFrameworkManagers.getOrDefault(context, context.cgLanguageAssistant.getLanguageTestFrameworkManager().managerByFramework(context))
 
         fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
         fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) {
-            context.codeGenLanguage.getVariableConstructorBy(context)
+            context.cgLanguageAssistant.getVariableConstructorBy(context)
         }
         fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
-            context.codeGenLanguage.getMethodConstructorBy(context)
+            context.cgLanguageAssistant.getMethodConstructorBy(context)
         }
     }
 }

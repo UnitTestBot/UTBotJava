@@ -43,7 +43,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
         )
-    private val testFrameworks = ComboBox(DefaultComboBoxModel(model.codeGenLanguage.testFrameworks.toTypedArray()))
+    private val testFrameworks = ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
 
     private val visitOnlySpecifiedSource = JCheckBox("Visit only specified source")
 

@@ -952,7 +952,7 @@ abstract class CgAbstractRenderer(
         }
 
         private fun makeRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer {
-            return context.codeGenLanguage.cgRenderer(context, printer)
+            return context.cgLanguageAssistant.cgRenderer(context, printer)
         }
 
         /**

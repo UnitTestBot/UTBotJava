@@ -6,7 +6,7 @@ import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.plugin.api.CodeGenLanguage
+import org.utbot.framework.plugin.api.CgLanguageAssistant
 import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class PythonTestsModel(
@@ -22,7 +22,7 @@ class PythonTestsModel(
     var timeout: Long,
     var timeoutForRun: Long,
     var visitOnlySpecifiedSource: Boolean,
-    val codeGenLanguage: CodeGenLanguage,
+    val cgLanguageAssistant: CgLanguageAssistant,
 ): BaseTestsModel(
     project,
     srcModule,

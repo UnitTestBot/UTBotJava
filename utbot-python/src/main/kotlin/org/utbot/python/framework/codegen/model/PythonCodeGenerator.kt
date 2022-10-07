@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.python.framework.codegen.PythonCodeLanguage
+import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
 
 class PythonCodeGenerator(
@@ -51,7 +51,7 @@ class PythonCodeGenerator(
         testFramework = testFramework,
         mockFramework = mockFramework,
         codegenLanguage = codegenLanguage,
-        codeGenLanguage = PythonCodeLanguage,
+        cgLanguageAssistant = PythonCgLanguageAssistant,
         parametrizedTestSource = parameterizedTestSource,
         staticsMocking = staticsMocking,
         forceStaticMocking = forceStaticMocking,

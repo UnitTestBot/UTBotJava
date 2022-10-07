@@ -4,7 +4,7 @@
 
 When you have the forked repository on your local machine, you are almost ready to build your own version of UnitTestBot.
 
-💡 Before you start coding, please check the [system requirements](SystemRequirements.md) and find instructions on
+💡 Before you start coding, please check the [system requirements](https://github.com/UnitTestBot/UTBotJava/wiki/Check-system-requirements) and find instructions on
 configuring development environment.
 
 💡 Get to know the [code style](https://github.com/saveourtool/diktat/blob/master/info/guide/diktat-coding-convention.md) we are used to.

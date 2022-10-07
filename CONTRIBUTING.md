@@ -114,4 +114,4 @@ We do our best in reviewing, but we can hardly specify the exact timeout for it.
 
 By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](https://github.com/UnitTestBot/UTBotJava/blob/main/LICENSE).
 
-Feel free to [contact us directly](https://www.utbot.org/contact/) if that's a concern.
+Feel free to [contact us directly](https://www.utbot.org/about) if that's a concern.

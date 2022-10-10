@@ -90,7 +90,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection language="JAVA"
-                          displayName="Errors detected by UTBot"
+                          displayName="Errors detected by UnitTestBot"
                           groupPath="Java"
                           groupBundle="messages.InspectionsBundle"
                           groupKey="group.names.probable.bugs"

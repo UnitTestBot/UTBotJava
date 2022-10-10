@@ -11,10 +11,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
-import org.utbot.common.AbstractSettings
-import org.utbot.common.getPid
-import org.utbot.common.osSpecificJavaExecutable
-import org.utbot.common.utBotTempDirectory
+import org.utbot.common.*
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.UtilClassKind
@@ -81,8 +78,9 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 )
             }.toPath()
             realPath = configPath
+            logger.info("log configuration path - ${realPath!!.pathString}")
         }
-        return realPath!!.pathString
+        return realPath.pathString
     }
 
     private fun debugArgument(): String {
@@ -104,14 +102,14 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     val java =
                         JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()
                     val cp = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-                        separator = ";",
+                        separator = if (isWindows) ";" else ":",
                         prefix = "\"",
                         postfix = "\""
                     )
                     val classname = "org.utbot.framework.process.EngineMainKt"
                     val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
                     val directory = WorkingDirService.provide().toFile()
-                    val log4j2ConfigFile = "\"-Dlog4j2.configurationFile=${getOrCreateLogConfig()}\""
+                    val log4j2ConfigFile = "-Dlog4j2.configurationFile=${getOrCreateLogConfig()}"
                     val debugArg = debugArgument()
                     logger.info { "java - $java\nclasspath - $cp\nport - $port" }
                     val cmd = mutableListOf<String>(java, "-ea")

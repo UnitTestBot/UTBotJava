@@ -53,6 +53,7 @@ import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isKotlinFile
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.kClass
@@ -71,6 +72,9 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     override val language: CodegenLanguage = CodegenLanguage.KOTLIN
 
     override val langPackage: String = "kotlin"
+
+    override val ClassId.shouldBeOmittedWhenUsedAsCaller: Boolean
+        get() = isKotlinFile
 
     override fun visit(element: AbstractCgClass<*>) {
         for (annotation in element.annotations) {

@@ -25,6 +25,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.internal.impl.load.kotlin.header.KotlinClassHeader
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaGetter
@@ -177,6 +178,14 @@ val ClassId.isDoubleType: Boolean
 
 val ClassId.isClassType: Boolean
     get() = this == classClassId
+
+/**
+ * Checks if the class is a Kotlin class with kind File (see [Metadata.kind] for more details)
+ */
+val ClassId.isKotlinFile: Boolean
+    get() = jClass.annotations.filterIsInstance<Metadata>().singleOrNull()?.let {
+        KotlinClassHeader.Kind.getById(it.kind) == KotlinClassHeader.Kind.FILE_FACADE
+    } ?: false
 
 val voidClassId = ClassId("void")
 val booleanClassId = ClassId("boolean")

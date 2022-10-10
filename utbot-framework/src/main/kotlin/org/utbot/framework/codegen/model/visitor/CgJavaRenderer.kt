@@ -60,6 +60,9 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
 
     override val langPackage: String = "java.lang"
 
+    override val ClassId.shouldBeOmittedWhenUsedAsCaller: Boolean
+        get() = false
+
     override fun visit(element: AbstractCgClass<*>) {
         for (annotation in element.annotations) {
             annotation.accept(this)

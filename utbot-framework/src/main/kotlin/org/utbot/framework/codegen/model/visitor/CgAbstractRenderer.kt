@@ -131,8 +131,10 @@ internal abstract class CgAbstractRenderer(
         }
     }
 
+    protected abstract val ClassId.shouldBeOmittedWhenUsedAsCaller: Boolean
+
     private val MethodId.accessibleByName: Boolean
-        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.generatedClass
+        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.generatedClass || classId.shouldBeOmittedWhenUsedAsCaller
 
     override fun visit(element: CgElement) {
         val error =
@@ -654,8 +656,10 @@ internal abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgStaticFieldAccess) {
-        print(element.declaringClass.asString())
-        print(".")
+        if (!element.declaringClass.shouldBeOmittedWhenUsedAsCaller) {
+            print(element.declaringClass.asString())
+            print(".")
+        }
         print(element.fieldName)
     }
 

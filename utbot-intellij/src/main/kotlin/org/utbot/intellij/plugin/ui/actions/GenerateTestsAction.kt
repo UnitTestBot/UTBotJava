@@ -16,7 +16,6 @@ import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
-import com.intellij.psi.impl.PsiJavaParserFacadeImpl
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.asJava.findFacadeClass
@@ -63,7 +62,6 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         if (editor != null) {
             //The action is being called from editor
             val file = e.getData(CommonDataKeys.PSI_FILE) ?: return null
-            //file.setName("abcdef")
             val element = findPsiElement(file, editor) ?: return null
 
             val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)

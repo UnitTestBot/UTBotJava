@@ -745,13 +745,11 @@ data class CgParameterDeclaration(
 
 /**
  * Test method parameter can be one of the following types:
- * - this instance for method under test (MUT)
  * - argument of MUT with a certain index
  * - result expected from MUT with the given arguments
  * - exception expected from MUT with the given arguments
  */
 sealed class CgParameterKind {
-    object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
     data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()

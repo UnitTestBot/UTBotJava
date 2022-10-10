@@ -89,7 +89,7 @@ object JsDialogProcessor {
     }
 
     private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor) {
-        val normalizedContainingFilePath = containingFilePath.replace("/", "\\")
+        val normalizedContainingFilePath = containingFilePath.replace("/", File.separator)
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
@@ -102,7 +102,7 @@ object JsDialogProcessor {
                 val testGenerator = JsTestGenerator(
                     fileText = editor.document.text,
                     sourceFilePath = normalizedContainingFilePath,
-                    projectPath = model.project.basePath?.replace("/", "\\")
+                    projectPath = model.project.basePath?.replace("/", File.separator)
                         ?: throw IllegalStateException("Can't access project path."),
                     selectedMethods = runReadAction {
                         model.selectedMethods.map {
@@ -113,7 +113,7 @@ object JsDialogProcessor {
                         val name = (model.selectedMethods.first().member.parent as ES6Class).name
                         if (name == dummyClassName) null else name
                     },
-                    outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace("/", "\\"),
+                    outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace("/", File.separator),
                     exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project),
                     timeout = model.timeout,
                 )

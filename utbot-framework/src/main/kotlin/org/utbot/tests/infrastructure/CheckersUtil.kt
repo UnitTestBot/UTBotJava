@@ -52,6 +52,9 @@ data class TestFrameworkConfiguration(
             // junit4 doesn't support parametrized tests
             if (testFramework == Junit4 && parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE) return true
 
+            //if we do not use mocks at all, we do not use static mocking too
+            if (mockStrategy == NO_MOCKS && staticsMocking == MockitoStaticMocking) return true
+
             // if we want to generate mocks for every class but CUT, we must have specified staticsMocking
             if (mockStrategy == OTHER_CLASSES && staticsMocking == NoStaticMocking) return true
 

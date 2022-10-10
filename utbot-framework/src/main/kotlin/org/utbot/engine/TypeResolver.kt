@@ -6,7 +6,6 @@ import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkEq
-import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
 import soot.ArrayType
@@ -211,10 +210,6 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 if (leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden) {
                     return@filter false
                 }
-            }
-
-            if (!UtSettings.useUnnamedTypes) {
-                return@filter sootClass.isExportedByModule || sootClass.isOpenedByModule
             }
 
             return@filter true

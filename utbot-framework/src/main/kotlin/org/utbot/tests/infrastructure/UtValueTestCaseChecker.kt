@@ -88,7 +88,6 @@ abstract class UtValueTestCaseChecker(
         UtSettings.saveRemainingStatesForConcreteExecution = false
         UtSettings.useFuzzing = false
         UtSettings.useCustomJavaDocTags = false
-        UtSettings.useUnnamedTypes = false
     }
 
     // checks paramsBefore and result

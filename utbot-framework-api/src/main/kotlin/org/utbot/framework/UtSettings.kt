@@ -382,11 +382,6 @@ object UtSettings : AbstractSettings(
      * and test generation.
      */
     var useSandbox by getBooleanProperty(true)
-
-    /**
-     * Use types in test generation from unnamed modules.
-     */
-    var useUnnamedTypes by getBooleanProperty(true)
 }
 
 /**

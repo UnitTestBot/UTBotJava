@@ -9,7 +9,6 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
-import org.utbot.sarif.Sarif
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -74,7 +73,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 4674749231408610997L
+        const val serializationHash = 1019152229801641560L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel

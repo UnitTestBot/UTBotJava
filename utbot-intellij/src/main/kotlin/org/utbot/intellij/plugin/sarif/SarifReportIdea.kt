@@ -2,6 +2,8 @@ package org.utbot.intellij.plugin.sarif
 
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiClass
+import com.intellij.psi.SmartPsiElementPointer
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil
@@ -14,6 +16,7 @@ import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.sarif.Sarif
 import org.utbot.sarif.SarifReport
+import org.utbot.sarif.SourceFindingStrategyDefault
 import java.nio.file.Path
 
 object SarifReportIdea {
@@ -27,8 +30,8 @@ object SarifReportIdea {
         testSetsId: Long,
         srcClassFqn: String,
         model: GenerateTestsModel,
+        testClassPointer: SmartPsiElementPointer<PsiClass>,
         generatedTestsCode: String,
-        sourceFinding: SourceFindingStrategyIdea
     ): Sarif {
         var resultSarif = Sarif.empty()
         try {
@@ -41,6 +44,12 @@ object SarifReportIdea {
                 runWriteAction { VfsUtil.createDirectoryIfMissing(reportFilePath.parent.toString()) }
 
                 // creating & saving the report
+                val sourceFinding = SourceFindingStrategyDefault(
+                    "io.github.ideaseeker.Main",
+                    "C:/Users/sWX1137517/IdeaProjects/SarifTest/src/main/java/io/github/ideaseeker/Main.java",
+                    "C:/Users/sWX1137517/IdeaProjects/SarifTest/src/test/java/io/github/ideaseeker/MainTest.java",
+                    "C:/Users/sWX1137517/IdeaProjects/SarifTest/",
+                ) //SourceFindingStrategyIdea(testClassPointer)
                 resultSarif = proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
             }
         } catch (e: Exception) {

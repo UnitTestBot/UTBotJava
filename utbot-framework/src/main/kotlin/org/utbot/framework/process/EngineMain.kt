@@ -32,6 +32,7 @@ import org.utbot.rd.findRdPort
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
+import org.utbot.sarif.SourceFindingStrategyDefault
 import org.utbot.summary.summarize
 import soot.SootMethod
 import soot.UnitPatchingChain
@@ -174,13 +175,23 @@ private fun EngineProcessModel.setup(
         ))
     }
     synchronizer.measureExecutionForTermination(writeSarifReport) { params ->
+        val lg = org.utbot.framework.process.logger
+        lg.error("START")
         val reportFilePath = Paths.get(params.reportFilePath)
+        repeat(10) { lg.error("EEEEEEEEEEEEEEEEEEEEEEEEEEE") }
+        lg.error(reportFilePath.toString()); repeat(5) { lg.error("\n") }
+        lg.error(testSets[params.testSetsId].toString()); repeat(5) { lg.error("\n") }
+        lg.error(params.generatedTestsCode); repeat(5) { lg.error("\n") }
+        val rdSourceFindingStrategy = RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+        lg.error(rdSourceFindingStrategy.toString()); repeat(5) { lg.error("\n") }
         val sarifReportAsJson = SarifReport(
             testSets[params.testSetsId]!!,
             params.generatedTestsCode,
-            RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+            rdSourceFindingStrategy
         ).createReport().toJson()
+        lg.error(sarifReportAsJson); repeat(5) { lg.error("\n") }
         reportFilePath.toFile().writeText(sarifReportAsJson)
+        lg.error("Success!")
         sarifReportAsJson
     }
     synchronizer.measureExecutionForTermination(generateTestReport) { params ->

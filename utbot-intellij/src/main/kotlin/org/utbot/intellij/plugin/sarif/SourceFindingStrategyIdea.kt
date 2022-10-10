@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.sarif
 
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
+import com.intellij.psi.SmartPsiElementPointer
 import org.jetbrains.kotlin.idea.search.allScope
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.safeRelativize
@@ -12,7 +13,9 @@ import java.io.File
 /**
  * The search strategy based on the information available to the PsiClass.
  */
-class SourceFindingStrategyIdea(testClass: PsiClass) : SourceFindingStrategy() {
+class SourceFindingStrategyIdea(
+    testClassPointer: SmartPsiElementPointer<PsiClass>
+) : SourceFindingStrategy() {
 
     /**
      * Returns the relative path (against `project.basePath`) to the file with generated tests.
@@ -44,15 +47,21 @@ class SourceFindingStrategyIdea(testClass: PsiClass) : SourceFindingStrategy() {
 
     // internal
 
-    private val project = testClass.project
+    private val project by lazy {
+        testClassPointer.project
+    }
 
-    private val testsFilePath = testClass.containingFile.virtualFile.path
+    private val testsFilePath by lazy {
+        testClassPointer.virtualFile.path
+    }
 
     /**
      * The file extension to be used in [getSourceRelativePath] if the source file
      * was not found by the class qualified name and the `extension` parameter is null.
      */
-    private val defaultExtension = "." + (testClass.containingFile.virtualFile.extension ?: "java")
+    private val defaultExtension by lazy {
+        "." + (testClassPointer.virtualFile.extension ?: "java")
+    }
 
     /**
      * Returns PsiClass by given [classFqn].

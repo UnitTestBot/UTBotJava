@@ -57,7 +57,6 @@ import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
-import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.*
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
@@ -103,11 +102,14 @@ object CodeGenerationController {
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
-                val testFilePointer = SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(testClass.containingFile)
+
+                val smartPointerManager = SmartPointerManager.getInstance(model.project)
+                val testClassPointer = smartPointerManager.createSmartPsiElementPointer(testClass)
+                val testFilePointer = smartPointerManager.createSmartPsiElementPointer(testClass.containingFile)
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(proc, testSetsId, srcClass, cut, testClass, testFilePointer, model, latch, srcClassPathToSarifReport, utilClassListener)
+                        generateCodeAndReport(proc, testSetsId, srcClass, cut, testClassPointer, testFilePointer, model, latch, srcClassPathToSarifReport, utilClassListener)
                         testFilesPointers.add(testFilePointer)
                     } catch (e: IncorrectOperationException) {
                         logger.error { e }
@@ -283,7 +285,12 @@ object CodeGenerationController {
         }
 
         runWriteCommandAction(model.project, "UtBot util class reformatting", null, {
-            reformat(model, SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(utUtilsFile), utUtilsClass)
+            val smartPointerManager = SmartPointerManager.getInstance(model.project)
+            reformat(
+                model,
+                smartPointerManager.createSmartPsiElementPointer(utUtilsFile),
+                smartPointerManager.createSmartPsiElementPointer(utUtilsClass)
+            )
         })
 
         val utUtilsDocument = runReadAction {
@@ -558,8 +565,8 @@ object CodeGenerationController {
         testSetsId: Long,
         srcClass: PsiClass,
         classUnderTest: ClassId,
-        testClass: PsiClass,
-        filePointer: SmartPsiElementPointer<PsiFile>,
+        testClassPointer: SmartPsiElementPointer<PsiClass>,
+        testFilePointer: SmartPsiElementPointer<PsiFile>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
         srcClassPathToSarifReport: MutableMap<Path, Sarif>,
@@ -568,8 +575,13 @@ object CodeGenerationController {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
         val paramNames = DumbService.getInstance(model.project)
             .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
-        val testPackageName = testClass.packageName
-        val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
+        val testPackageName = testClassPointer.element?.packageName
+            ?: return // TODO
+        val editor = CodeInsightUtil.positionCursorAtLBrace(
+            testClassPointer.project,
+            testFilePointer.containingFile,
+            testClassPointer.element ?: return // TODO
+        )
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
@@ -593,42 +605,42 @@ object CodeGenerationController {
             utilClassListener.onTestClassGenerated(utilClassKind)
             run(EDT_LATER) {
                 run(WRITE_ACTION) {
-                    unblockDocument(testClass.project, editor.document)
+                    unblockDocument(testClassPointer.project, editor.document)
                     // TODO: JIRA:1246 - display warnings if we rewrite the file
-                    executeCommand(testClass.project, "Insert Generated Tests") {
+                    executeCommand(testClassPointer.project, "Insert Generated Tests") {
                         editor.document.setText(generatedTestsCode.replace("jdk.internal.misc.Unsafe", "sun.misc.Unsafe"))
                     }
-                    unblockDocument(testClass.project, editor.document)
+                    unblockDocument(testClassPointer.project, editor.document)
 
                     // after committing the document the `testClass` is invalid in PsiTree,
                     // so we have to reload it from the corresponding `file`
-                    val testClassUpdated = (filePointer.containingFile as PsiClassOwner).classes.first() // only one class in the file
+//                    val testClassUpdated = (testFilePointer.containingFile as PsiClassOwner).classes.first() // only one class in the file
 
                     // reformatting before creating reports due to
                     // SarifReport requires the final version of the generated tests code
                     run(THREAD_POOL) {
 //                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
                         run(EDT_LATER) {
-                            runWriteCommandAction(filePointer.project, "UtBot tests reformatting", null, {
-                                reformat(model, filePointer, testClassUpdated)
+                            runWriteCommandAction(testFilePointer.project, "UtBot tests reformatting", null, {
+                                reformat(model, testFilePointer, testClassPointer)
                             })
-                            unblockDocument(testClassUpdated.project, editor.document)
+                            unblockDocument(testClassPointer.project, editor.document)
 
-                            // uploading formatted code
-                            val testsFile = filePointer.containingFile
+//                            // uploading formatted code
+//                            val testsFile = testFilePointer.containingFile
 
                             val sarifReport = SarifReportIdea.createAndSave(
                                 proc,
                                 testSetsId,
                                 classUnderTest.name,
                                 model,
-                                testsFile?.text ?: generatedTestsCode,
-                                SourceFindingStrategyIdea(testClass)
+                                testClassPointer,
+                                testFilePointer.element?.text ?: generatedTestsCode,
                             )
                             val srcClassPath = srcClass.containingFile.virtualFile.toNioPath()
                             srcClassPathToSarifReport[srcClassPath] = sarifReport
 
-                            unblockDocument(testClassUpdated.project, editor.document)
+                            unblockDocument(testClassPointer.project, editor.document)
 
                             reportsCountDown.countDown()
                         }
@@ -638,10 +650,14 @@ object CodeGenerationController {
         }
     }
 
-    private fun reformat(model: GenerateTestsModel, smartPointer: SmartPsiElementPointer<PsiFile>, testClass: PsiClass) {
+    private fun reformat(
+        model: GenerateTestsModel,
+        testFilePointer: SmartPsiElementPointer<PsiFile>,
+        testClassPointer: SmartPsiElementPointer<PsiClass>,
+    ) {
         val project = model.project
         val codeStyleManager = CodeStyleManager.getInstance(project)
-        val file = smartPointer.containingFile?: return
+        val file = testFilePointer.containingFile?: return
         DumbService.getInstance(model.project).runWhenSmart {
             codeStyleManager.reformat(file)
             when (model.codegenLanguage) {
@@ -652,7 +668,11 @@ object CodeGenerationController {
                     val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
                     JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
                 }
-                CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
+                CodegenLanguage.KOTLIN -> {
+                    ShortenReferences.DEFAULT.process(
+                        (testClassPointer.element as KtUltraLightClass).kotlinOrigin.containingKtFile
+                    )
+                }
             }
         }
     }

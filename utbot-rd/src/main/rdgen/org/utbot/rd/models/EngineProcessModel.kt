@@ -122,7 +122,7 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
         call("obtainClassId", PredefinedType.string, array(PredefinedType.byte)).async
         call("findMethodsInClassMatchingSelected", findMethodsInClassMatchingSelectedArguments, findMethodsInClassMatchingSelectedResult).async
         call("findMethodParamNames", findMethodParamNamesArguments, findMethodParamNamesResult).async
-        call("writeSarifReport", writeSarifReportArguments, PredefinedType.void).async
+        call("writeSarifReport", writeSarifReportArguments, PredefinedType.string).async
         call("generateTestReport", generateTestReportArgs, generateTestReportResult).async
     }
 }

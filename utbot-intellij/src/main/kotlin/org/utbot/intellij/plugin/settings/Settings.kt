@@ -55,6 +55,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
+        var runInspectionAfterTestGeneration: Boolean = true,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem
     ) {
         constructor(model: GenerateTestsModel) : this(
@@ -92,6 +93,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
             if (fuzzingValue != other.fuzzingValue) return false
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
+            if (runInspectionAfterTestGeneration != other.runInspectionAfterTestGeneration) return false
 
             return true
         }
@@ -109,6 +111,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + classesToMockAlways.contentHashCode()
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
+            result = 31 * result + if (runInspectionAfterTestGeneration) 1 else 0
 
             return result
         }
@@ -147,7 +150,10 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         set(value) {
             state.fuzzingValue = value.coerceIn(0.0, 1.0)
         }
+
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
+
+    val runInspectionAfterTestGeneration = state.runInspectionAfterTestGeneration
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()

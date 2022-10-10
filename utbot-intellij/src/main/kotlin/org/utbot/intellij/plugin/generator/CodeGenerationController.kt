@@ -12,6 +12,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -57,6 +58,7 @@ import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
+import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.*
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -151,6 +153,8 @@ object CodeGenerationController {
         project: Project,
         srcClassPathToSarifReport: MutableMap<Path, Sarif>
     ) {
+        if (!project.service<Settings>().runInspectionAfterTestGeneration)
+            return
         val sarifHasResults = srcClassPathToSarifReport.any { (_, sarif) ->
             sarif.getAllResults().isNotEmpty()
         }

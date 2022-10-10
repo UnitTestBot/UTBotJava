@@ -37,6 +37,11 @@ import org.jetbrains.kotlin.platform.TargetPlatformVersion
 
 private val logger = KotlinLogging.logger {}
 
+data class TestSourceRoot(
+    val dir: VirtualFile,
+    val expectedLanguage: CodegenLanguage
+)
+
 /**
  * @return jdk version of the module
  */
@@ -59,12 +64,6 @@ fun Module.kotlinTargetPlatform(): TargetPlatformVersion {
         ?.map { it.targetPlatformVersion }
         ?.singleOrNull() ?: error("Can't determine target platform for module $this")
 }
-
-fun Module.suitableTestSourceRoots(): List<VirtualFile> =
-    suitableTestSourceRoots(CodegenLanguage.JAVA) + suitableTestSourceRoots(CodegenLanguage.KOTLIN)
-
-fun Module.suitableTestSourceFolders(): List<SourceFolder> =
-    suitableTestSourceFolders(CodegenLanguage.JAVA) + suitableTestSourceFolders(CodegenLanguage.KOTLIN)
 
 /**
  * Gets a path to test resources source root.
@@ -121,8 +120,8 @@ private fun findPotentialModulesForTests(project: Project, srcModule: Module): L
 /**
  * Finds all suitable test root virtual files.
  */
-fun Module.suitableTestSourceRoots(codegenLanguage: CodegenLanguage): List<VirtualFile> {
-    val sourceRootsInModule = suitableTestSourceFolders(codegenLanguage).mapNotNull { it.file }
+fun Module.suitableTestSourceRoots(): List<TestSourceRoot> {
+    val sourceRootsInModule = suitableTestSourceFolders().mapNotNull { it.testSourceRoot }
 
     if (sourceRootsInModule.isNotEmpty()) {
         return sourceRootsInModule
@@ -133,11 +132,20 @@ fun Module.suitableTestSourceRoots(codegenLanguage: CodegenLanguage): List<Virtu
     ModuleUtilCore.collectModulesDependsOn(this, dependentModules)
 
     return dependentModules
-        .flatMap { it.suitableTestSourceFolders(codegenLanguage) }
-        .mapNotNull { it.file }
+        .flatMap { it.suitableTestSourceFolders() }
+        .mapNotNull { it.testSourceRoot }
 }
 
-private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): List<SourceFolder> {
+private val SourceFolder.testSourceRoot:TestSourceRoot?
+    get() {
+        val file = file
+        val expectedLanguage = expectedLanguageForTests
+        if (file != null && expectedLanguage != null)
+            return TestSourceRoot(file, expectedLanguage)
+        return null
+    }
+
+private fun Module.suitableTestSourceFolders(): List<SourceFolder> {
     val sourceFolders = ModuleRootManager.getInstance(this)
         .contentEntries
         .flatMap { it.sourceFolders.toList() }
@@ -145,10 +153,9 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
 
     return sourceFolders
         .filterNot { it.isForGeneratedSources() }
-        .filter { it.rootType == codegenLanguage.testRootType() }
-        // Heuristics: User is more likely to choose the shorter path
-        .sortedBy { it.url.length }
+        .filter { it.isTestSource }
 }
+
 private val GRADLE_SYSTEM_ID = ProjectSystemId("GRADLE")
 
 val Project.isBuildWithGradle get() =
@@ -157,11 +164,12 @@ val Project.isBuildWithGradle get() =
          }
 
 private const val dedicatedTestSourceRootName = "utbot_tests"
-fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<VirtualFile>): VirtualFile? {
+
+fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<TestSourceRoot>, language: CodegenLanguage): VirtualFile? {
     // Don't suggest new test source roots for Gradle project where 'unexpected' test roots won't work
     if (project.isBuildWithGradle) return null
     // Dedicated test root already exists
-    if (testSourceRoots.any { file -> file.name == dedicatedTestSourceRootName }) return null
+    if (testSourceRoots.any { root -> root.dir.name == dedicatedTestSourceRootName }) return null
 
     val moduleInstance = ModuleRootManager.getInstance(this)
     val testFolder = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
@@ -169,7 +177,7 @@ fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<VirtualFile>): Virt
     (testFolder?.let { testFolder.file?.parent }
         ?: testFolder?.contentEntry?.file ?: this.guessModuleDir())?.let {
         val file = FakeVirtualFile(it, dedicatedTestSourceRootName)
-        testSourceRoots.add(file)
+        testSourceRoots.add(TestSourceRoot(file, language))
         // We return "true" IFF it's case of not yet created fake directory
         return if (VfsUtil.findRelativeFile(it, dedicatedTestSourceRootName) == null) file else null
     }
@@ -275,3 +283,20 @@ private fun jdkVersionBy(sdk: Sdk?): JavaSdkVersion {
     }
     return jdkVersion
 }
+
+private val SourceFolder.expectedLanguageForTests: CodegenLanguage?
+    get() {
+        // unfortunately, Gradle creates Kotlin test source root with Java source root type, so type is misleading,
+        // and we should try looking for name first
+        if (file?.name == "kotlin")
+            return CodegenLanguage.KOTLIN
+
+        if (file?.name == "java")
+            return CodegenLanguage.JAVA
+
+        return when (rootType) {
+            CodegenLanguage.KOTLIN.testRootType() -> CodegenLanguage.KOTLIN
+            CodegenLanguage.JAVA.testRootType() -> CodegenLanguage.JAVA
+            else -> null
+        }
+    }

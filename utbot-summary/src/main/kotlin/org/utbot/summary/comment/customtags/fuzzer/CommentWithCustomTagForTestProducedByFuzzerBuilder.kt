@@ -29,19 +29,28 @@ class CommentWithCustomTagForTestProducedByFuzzerBuilder(
     }
 
     private fun buildCustomJavaDocComment(): CommentWithCustomTagForTestProducedByFuzzer {
-        val methodReference = getMethodReferenceForFuzzingTest(
-            methodDescription.packageName!! + "." + methodDescription.className!!,
-            methodDescription.compilableName!!,
-            methodDescription.parameters,
-            false
-        )
-        val classReference = getClassReference(methodDescription.packageName!! + "." +methodDescription.className!!)
+        val packageName = methodDescription.packageName
+        val className = methodDescription.className
+        val methodName = methodDescription.compilableName
 
-        val javaDocComment = CommentWithCustomTagForTestProducedByFuzzer(
-            classUnderTest = classReference.replace(CARRIAGE_RETURN, ""),
-            methodUnderTest = methodReference.replace(CARRIAGE_RETURN, ""),
-        )
+        return if(packageName!=null && className!=null && methodName!=null) {
+            val fullClassName = "$packageName.$className"
 
-        return javaDocComment
+            val methodReference = getMethodReferenceForFuzzingTest(
+                fullClassName,
+                methodName,
+                methodDescription.parameters,
+                false
+            ).replace(CARRIAGE_RETURN, "")
+
+            val classReference = getClassReference(fullClassName).replace(CARRIAGE_RETURN, "")
+
+            CommentWithCustomTagForTestProducedByFuzzer(
+                classUnderTest = classReference,
+                methodUnderTest = methodReference,
+            )
+        } else {
+            CommentWithCustomTagForTestProducedByFuzzer()
+        }
     }
 }

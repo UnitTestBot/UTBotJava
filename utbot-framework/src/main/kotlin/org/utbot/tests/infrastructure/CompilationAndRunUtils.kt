@@ -39,17 +39,45 @@ fun writeTest(
     return writeFile(testContents, classUnderTest.generatedTestFile)
 }
 
+private const val compilationTries = 2
+
+private data class UnnamedPackageInfo(val pack: String, val module: String)
+
+private fun findAllNotVisiblePackages(report: String): List<UnnamedPackageInfo> {
+    val regex = """package ([\d\w.]+) is declared in module ([\d\w.]+), which does not export it to the unnamed module""".toRegex()
+    return regex.findAll(report).map {
+        val pack = it.groupValues[1]
+        val module = it.groupValues[2]
+        UnnamedPackageInfo(pack, module)
+    }.toList().distinct()
+}
+
 fun compileTests(
     buildDirectory: String,
     sourcesFiles: List<String>,
     generatedLanguage: CodegenLanguage
 ) {
     val classpath = System.getProperty("java.class.path")
-    val command = generatedLanguage.getCompilationCommand(buildDirectory, classpath, sourcesFiles)
+    var command: List<String> = generatedLanguage.getCompilationCommand(buildDirectory, classpath, sourcesFiles)
 
-    logger.trace { "Command to compile [${sourcesFiles.joinToString(" ")}]: [${command.joinToString(" ")}]" }
-    val exitCode = execCommandLine(command, "Tests compilation")
-    logger.info { "Compilation exit code: $exitCode" }
+    repeat(compilationTries) { iter ->
+        try {
+            logger.trace { "Command to compile [${sourcesFiles.joinToString(" ")}]: [${command.joinToString(" ")}]" }
+            val exitCode = execCommandLine(command, "Tests compilation")
+            logger.info { "Compilation exit code: $exitCode" }
+            return
+        } catch (e: ReportByProcessException) {
+            if (iter + 1 == compilationTries) {
+                throw e
+            }
+            val unnamedPackages = e.report?.let { findAllNotVisiblePackages(it) } ?: emptyList()
+            val opens = unnamedPackages.map {
+                "${it.module}/${it.pack}"
+            }
+            logger.info { "Add opens: ${opens.joinToString()}" }
+            command = generatedLanguage.getCompilationCommand(buildDirectory, classpath, sourcesFiles, opens)
+        }
+    }
 }
 
 fun runTests(
@@ -100,6 +128,8 @@ private fun constructProcess(command: List<String>, classpath: String? = null): 
     return process
 }
 
+private class ReportByProcessException(val report: String? = null, message: String? = null, cause: Throwable? = null) : RuntimeException(message, cause)
+
 private fun generateReportByProcess(process: Process, executionName: String, command: List<String>): Int {
     val report = process.inputStream.reader().readText()
 
@@ -110,7 +140,7 @@ private fun generateReportByProcess(process: Process, executionName: String, com
     if (exitCode != 0) {
         logger.warn { "Exit code for process run: $exitCode" }
         logger.warn { "The command line led to the pipeline failure: [${command.joinToString(" ")}]" }
-        throw RuntimeException("$executionName failed  with non-zero exit code = $exitCode")
+        throw ReportByProcessException(report, "$executionName failed  with non-zero exit code = $exitCode")
     }
 
     return exitCode

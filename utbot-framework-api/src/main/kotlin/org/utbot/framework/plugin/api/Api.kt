@@ -1277,13 +1277,20 @@ enum class CodegenLanguage(
 
     override fun toString(): String = id
 
-    fun getCompilationCommand(buildDirectory: String, classPath: String, sourcesFiles: List<String>): List<String> {
+    fun getCompilationCommand(
+        buildDirectory: String,
+        classPath: String,
+        sourcesFiles: List<String>,
+        opens: List<String> = emptyList()
+    ): List<String> {
         val arguments = when (this) {
-            JAVA -> listOf(
+            JAVA -> opens.flatMap {
+                listOf("--add-opens", "$it=ALL-UNNAMED")
+            }.plus(listOf(
                 "-d", buildDirectory,
                 "-cp", classPath,
                 "-XDignore.symbol.file" // to let javac use classes from rt.jar
-            ).plus(sourcesFiles)
+            )).plus(sourcesFiles)
 
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
         }

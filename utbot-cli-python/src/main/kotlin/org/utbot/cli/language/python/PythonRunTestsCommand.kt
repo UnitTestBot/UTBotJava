@@ -76,9 +76,7 @@ class PythonRunTestsCommand : CliktCommand(name = "run_python", help = "Run test
             file.parentFile?.mkdirs()
             file.createNewFile()
         }
-        System.err.println(result.stderr)
+        println(result.stderr)
         println(result.stdout)
-
-        exitProcess(result.exitValue)
     }
 }

@@ -36,6 +36,7 @@ import org.utbot.intellij.plugin.util.signature
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
+import org.utbot.sarif.Sarif
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
 import java.nio.file.Path
@@ -301,7 +302,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                    testSetsId: Long,
                    generatedTestsCode: String,
                    sourceFindingStrategy: SourceFindingStrategy
-    ) = runBlocking {
+    ): Sarif = runBlocking {
         current!!.protocol.rdSourceFindingStrategy.let {
             it.getSourceFile.set { params ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String?> {
@@ -325,7 +326,10 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 }
             }
         }
-        engineModel().writeSarifReport.startSuspending(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
+        val sarifReportAsJson = engineModel().writeSarifReport.startSuspending(
+            WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
+        )
+        Sarif.fromJson(sarifReportAsJson)
     }
 
     fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> = runBlocking {

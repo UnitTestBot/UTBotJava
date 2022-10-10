@@ -9,6 +9,7 @@ import com.jetbrains.rd.util.lifetime.*
 import com.jetbrains.rd.util.reactive.*
 import com.jetbrains.rd.util.string.*
 import com.jetbrains.rd.util.*
+import org.utbot.sarif.Sarif
 import kotlin.reflect.KClass
 import kotlin.jvm.JvmStatic
 
@@ -27,7 +28,7 @@ class EngineProcessModel private constructor(
     private val _obtainClassId: RdCall<String, ByteArray>,
     private val _findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>,
     private val _findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>,
-    private val _writeSarifReport: RdCall<WriteSarifReportArguments, Unit>,
+    private val _writeSarifReport: RdCall<WriteSarifReportArguments, String>,
     private val _generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult>
 ) : RdExtBase() {
     //companion
@@ -89,7 +90,7 @@ class EngineProcessModel private constructor(
     val obtainClassId: RdCall<String, ByteArray> get() = _obtainClassId
     val findMethodsInClassMatchingSelected: RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult> get() = _findMethodsInClassMatchingSelected
     val findMethodParamNames: RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult> get() = _findMethodParamNames
-    val writeSarifReport: RdCall<WriteSarifReportArguments, Unit> get() = _writeSarifReport
+    val writeSarifReport: RdCall<WriteSarifReportArguments, String> get() = _writeSarifReport
     val generateTestReport: RdCall<GenerateTestReportArgs, GenerateTestReportResult> get() = _generateTestReport
     //methods
     //initializer
@@ -133,7 +134,7 @@ class EngineProcessModel private constructor(
         RdCall<String, ByteArray>(FrameworkMarshallers.String, FrameworkMarshallers.ByteArray),
         RdCall<FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult>(FindMethodsInClassMatchingSelectedArguments, FindMethodsInClassMatchingSelectedResult),
         RdCall<FindMethodParamNamesArguments, FindMethodParamNamesResult>(FindMethodParamNamesArguments, FindMethodParamNamesResult),
-        RdCall<WriteSarifReportArguments, Unit>(WriteSarifReportArguments, FrameworkMarshallers.Void),
+        RdCall<WriteSarifReportArguments, String>(WriteSarifReportArguments, FrameworkMarshallers.String),
         RdCall<GenerateTestReportArgs, GenerateTestReportResult>(GenerateTestReportArgs, GenerateTestReportResult)
     )
     

@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.generator
 
+import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.ide.fileTemplates.FileTemplateManager
@@ -41,8 +42,6 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
-import org.utbot.common.HTML_LINE_SEPARATOR
-import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RegularImport
@@ -51,6 +50,7 @@ import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.intellij.plugin.inspection.UTBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
@@ -65,13 +65,13 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
-import org.utbot.sarif.SarifReport
+import org.utbot.sarif.Sarif
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 object CodeGenerationController {
-    private val logger = KotlinLogging.logger {}
+    internal val logger = KotlinLogging.logger {}
 
     private class UtilClassListener {
         var requiredUtilClassKind: UtilClassKind? = null
@@ -92,6 +92,7 @@ object CodeGenerationController {
         val allTestPackages = getPackageDirectories(baseTestDirectory)
         val latch = CountDownLatch(classesWithTests.size)
         val testFilesPointers = mutableListOf<SmartPsiElementPointer<PsiFile>>()
+        val srcClassPathToSarifReport = mutableMapOf<Path, Sarif>()
         val utilClassListener = UtilClassListener()
         for ((srcClass, generateResult) in classesWithTests) {
             val (count, testSetsId) = generateResult
@@ -104,7 +105,7 @@ object CodeGenerationController {
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(proc, testSetsId, srcClass, cut, testClass, testFilePointer, model, latch, utilClassListener)
+                        generateCodeAndReport(proc, testSetsId, srcClass, cut, testClass, testFilePointer, model, latch, srcClassPathToSarifReport, utilClassListener)
                         testFilesPointers.add(testFilePointer)
                     } catch (e: IncorrectOperationException) {
                         logger.error { e }
@@ -127,7 +128,10 @@ object CodeGenerationController {
                             run(THREAD_POOL) {
                                 val sarifReportsPath =
                                     model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
-                                mergeSarifReports(model, sarifReportsPath)
+
+                                SarifReportIdea.mergeSarifReports(model, sarifReportsPath)
+                                runInspectionsIfNeeded(model.project, srcClassPathToSarifReport)
+
                                 if (model.runGeneratedTestsWithCoverage) {
                                     RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                                 }
@@ -138,6 +142,25 @@ object CodeGenerationController {
                 }
             }
         }
+    }
+
+    /**
+     * Runs the UTBot inspection if there are detected errors.
+     */
+    private fun runInspectionsIfNeeded(
+        project: Project,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>
+    ) {
+        val sarifHasResults = srcClassPathToSarifReport.any { (_, sarif) ->
+            sarif.getAllResults().isNotEmpty()
+        }
+        if (!sarifHasResults) {
+            return
+        }
+        UTBotInspectionManager
+            .getInstance(project, srcClassPathToSarifReport)
+            .createNewGlobalContext()
+            .doInspections(AnalysisScope(project))
     }
 
     private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) {
@@ -461,30 +484,6 @@ object CodeGenerationController {
         }
     }
 
-    private fun mergeSarifReports(model: GenerateTestsModel, sarifReportsPath: Path) {
-        val mergedReportFile = sarifReportsPath
-            .resolve("${model.project.name}Report.sarif")
-            .toFile()
-        // deleting the old report so that `sarifReports` does not contain it
-        mergedReportFile.delete()
-
-        val sarifReports = sarifReportsPath.toFile()
-            .walkTopDown()
-            .filter { it.extension == "sarif" }
-            .map { it.readText() }
-            .toList()
-
-        val mergedReport = SarifReport.mergeReports(sarifReports)
-        mergedReportFile.writeText(mergedReport)
-
-        // notifying the user
-        SarifReportNotifier.notify(
-            info = """
-                SARIF report was saved to ${toHtmlLinkTag(mergedReportFile.path)}$HTML_LINE_SEPARATOR
-            """.trimIndent()
-        )
-    }
-
     private fun getPackageDirectories(baseDirectory: PsiDirectory): Map<String, PsiDirectory> {
         val allSubdirectories = mutableMapOf<String, PsiDirectory>()
         getPackageDirectoriesRecursively(baseDirectory, allSubdirectories)
@@ -559,6 +558,7 @@ object CodeGenerationController {
         filePointer: SmartPsiElementPointer<PsiFile>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>,
         utilClassListener: UtilClassListener
     ) {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
@@ -611,16 +611,19 @@ object CodeGenerationController {
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             // uploading formatted code
-                            val file = filePointer.containingFile
+                            val testsFile = filePointer.containingFile
 
-                            saveSarifReport(
+                            val sarifReport = SarifReportIdea.createAndSave(
                                 proc,
                                 testSetsId,
-                                testClassUpdated,
-                                classUnderTest,
+                                classUnderTest.name,
                                 model,
-                                file?.text?: generatedTestsCode
+                                testsFile?.text ?: generatedTestsCode,
+                                SourceFindingStrategyIdea(testClass)
                             )
+                            val srcClassPath = srcClass.containingFile.virtualFile.toNioPath()
+                            srcClassPathToSarifReport[srcClassPath] = sarifReport
+
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             reportsCountDown.countDown()
@@ -649,33 +652,6 @@ object CodeGenerationController {
             }
         }
     }
-
-    private fun saveSarifReport(
-        proc: EngineProcess,
-        testSetsId: Long,
-        testClass: PsiClass,
-        testClassId: ClassId,
-        model: GenerateTestsModel,
-        generatedTestsCode: String,
-    ) {
-        val project = model.project
-
-        try {
-            // saving sarif report
-            val sourceFinding = SourceFindingStrategyIdea(testClass)
-            executeCommand(testClass.project, "Saving Sarif report") {
-                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, sourceFinding)
-            }
-        } catch (e: Exception) {
-            logger.error { e }
-            showErrorDialogLater(
-                project,
-                message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",
-                title = "Failed to save Sarif report"
-            )
-        }
-    }
-
 
     private fun eventLogMessage(project: Project): String? {
         if (ToolWindowManager.getInstance(project).getToolWindow("Event Log") != null)

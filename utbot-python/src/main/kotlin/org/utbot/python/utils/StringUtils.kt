@@ -33,8 +33,8 @@ fun moduleOfType(typeName: String): String? {
 }
 
 fun checkIfFileLiesInPath(path: String, fileWithClassPath: String): Boolean {
-    val parentPath = Paths.get(path)
-    val childPath = Paths.get(fileWithClassPath)
+    val parentPath = Paths.get(path).toAbsolutePath()
+    val childPath = Paths.get(fileWithClassPath).toAbsolutePath()
     return childPath.startsWith(parentPath)
 }
 

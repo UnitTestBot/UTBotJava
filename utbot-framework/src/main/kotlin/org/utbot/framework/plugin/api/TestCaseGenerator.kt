@@ -36,6 +36,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.synthesis.Synthesizer
+import org.utbot.framework.synthesis.SynthesizerController
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import org.utbot.framework.util.SootUtils
@@ -52,6 +53,7 @@ import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.reflect.KCallable
+import kotlin.system.measureTimeMillis
 
 /**
  * Generates test cases: one by one or a whole set for the method under test.
@@ -74,6 +76,7 @@ open class TestCaseGenerator(
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
+    protected var synthesizerController = SynthesizerController(UtSettings.synthesisTimeoutInMillis)
 
     private val classpathForEngine: String
         get() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
@@ -387,20 +390,26 @@ open class TestCaseGenerator(
 
     protected fun List<UtExecution>.toAssemble(method: ExecutableId): List<UtExecution> =
         map { execution ->
-            val symbolicExecution = (execution as? UtSymbolicExecution)
-                ?: return@map execution
+            var result = execution
+            synthesizerController.spentTime += measureTimeMillis {
+                if (!synthesizerController.hasTimeLimit()) return@measureTimeMillis
 
-            val newBeforeState = mapEnvironmentModels(method, symbolicExecution, symbolicExecution.stateBefore) {
-                it.modelsBefore
-            } ?: return@map execution
-            val newAfterState = getConcreteAfterState(method, newBeforeState) ?: return@map execution
+                val symbolicExecution = (execution as? UtSymbolicExecution)
+                    ?: return@measureTimeMillis
 
-            symbolicExecution.copy(
-                newBeforeState,
-                newAfterState,
-                symbolicExecution.result,
-                symbolicExecution.coverage
-            )
+                val newBeforeState = mapEnvironmentModels(method, symbolicExecution, symbolicExecution.stateBefore) {
+                    it.modelsBefore
+                } ?: return@measureTimeMillis
+                val newAfterState = getConcreteAfterState(method, newBeforeState) ?: return@measureTimeMillis
+
+                result = symbolicExecution.copy(
+                    newBeforeState,
+                    newAfterState,
+                    symbolicExecution.result,
+                    symbolicExecution.coverage
+                )
+            }
+            result
         }
 
     private fun mapEnvironmentModels(
@@ -411,7 +420,7 @@ open class TestCaseGenerator(
     ): EnvironmentModels? {
         val constrainedExecution = symbolicExecution.constrainedExecution ?: return null
         val aa = Synthesizer(this@TestCaseGenerator, method, selector(constrainedExecution))
-        val synthesizedModels = aa.synthesize()
+        val synthesizedModels = aa.synthesize(synthesizerController.localTimeLimit)
 
         val (synthesizedThis, synthesizedParameters) = models.thisInstance?.let {
             synthesizedModels.first() to synthesizedModels.drop(1)

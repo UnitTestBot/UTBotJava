@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.synthesis.SynthesizerController
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
@@ -93,6 +94,7 @@ class TestSpecificTestCaseGenerator(
         forceMockListener?.detach(this, forceMockListener)
         forceStaticMockListener?.detach(this, forceStaticMockListener)
 
+        synthesizerController = SynthesizerController(UtSettings.synthesisTimeoutInMillis)
         val minimizedExecutions = super.minimizeExecutions(executions.toAssemble(method))
         return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)
     }

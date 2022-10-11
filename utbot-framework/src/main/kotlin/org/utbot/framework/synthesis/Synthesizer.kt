@@ -25,6 +25,16 @@ private object SynthesisCache {
             .add(synthesisUnitContext)
 }
 
+
+data class SynthesizerController(
+    val globalTimeLimit: Long,
+    val localTimeLimit: Long = globalTimeLimit / 10
+) {
+    var spentTime = 0L
+
+    fun hasTimeLimit() = spentTime < globalTimeLimit
+}
+
 class Synthesizer(
     val testCaseGenerator: TestCaseGenerator,
     val method: ExecutableId,

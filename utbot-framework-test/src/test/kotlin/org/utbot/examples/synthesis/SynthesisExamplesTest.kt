@@ -37,7 +37,7 @@ class SynthesisExamplesTest : UtValueTestCaseChecker(
     fun enableSynthesizer() {
         UtSettings.enableSynthesis = true
         UtSettings.enableSynthesisCache = true
-        UtSettings.synthesisTimeoutInMillis = 60_000
+        UtSettings.synthesisTimeoutInMillis = 100_000
         UtSettings.synthesisMaxDepth = 10
     }
 

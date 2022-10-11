@@ -14,8 +14,8 @@ internal class ArrayCastExampleTest : UtValueTestCaseChecker(
     testClass = ArrayCastExample::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

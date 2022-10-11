@@ -69,9 +69,9 @@ import kotlin.reflect.KFunction5
 abstract class UtValueTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    pipelines: List<CodeGenerationLastStage> = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN)
+    pipelines: List<TestLastStage> = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN)
     )
 ) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines) {
     // contains already analyzed by the engine methods

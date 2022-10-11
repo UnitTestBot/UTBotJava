@@ -15,8 +15,8 @@ internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(
     testClass = CompositeModelMinimizationExample::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     private fun UtModel.getFieldsOrNull(): Map<FieldId, UtModel>? = when(this) {

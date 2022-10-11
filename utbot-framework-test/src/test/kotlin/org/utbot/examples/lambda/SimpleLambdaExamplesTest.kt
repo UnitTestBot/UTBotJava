@@ -12,8 +12,8 @@ import org.utbot.tests.infrastructure.isException
 class SimpleLambdaExamplesTest : UtValueTestCaseChecker(
     testClass = SimpleLambdaExamples::class,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration),
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration),
     )
 ) {
     @Test

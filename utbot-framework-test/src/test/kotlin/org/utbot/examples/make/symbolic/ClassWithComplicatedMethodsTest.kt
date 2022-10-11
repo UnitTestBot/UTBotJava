@@ -19,8 +19,8 @@ internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
     testClass = ClassWithComplicatedMethods::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA, Compilation),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, Compilation)
+        TestLastStage(CodegenLanguage.JAVA, Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, Compilation)
     )
 ) {
     @Test

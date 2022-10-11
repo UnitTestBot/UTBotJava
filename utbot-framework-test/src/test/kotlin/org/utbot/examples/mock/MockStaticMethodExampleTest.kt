@@ -19,8 +19,8 @@ internal class MockStaticMethodExampleTest : UtValueTestCaseChecker(
     testClass = MockStaticMethodExample::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
     )
 ) {
     @Test

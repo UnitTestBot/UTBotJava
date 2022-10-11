@@ -16,8 +16,8 @@ internal class LoggerExampleTest : UtValueTestCaseChecker(
     testClass = LoggerExample::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

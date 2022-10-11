@@ -13,15 +13,14 @@ import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.tests.infrastructure.CodeGeneration
-import org.utbot.tests.infrastructure.Compilation
 
 // TODO failed Kotlin compilation SAT-1332
 class MapKeySetTest : UtValueTestCaseChecker(
     testClass = MapKeySet::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

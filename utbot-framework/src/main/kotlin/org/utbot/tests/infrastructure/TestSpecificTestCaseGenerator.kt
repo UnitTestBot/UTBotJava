@@ -10,7 +10,6 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
@@ -74,11 +73,9 @@ class TestSpecificTestCaseGenerator(
                                         conflictTriggers.triggered(Conflict.ForceMockHappened) ||
                                         conflictTriggers.triggered(Conflict.ForceStaticMockHappened)
                                     ) {
-                                        it.wasForceMocked = true
-                                        conflictTriggers.reset(
-                                            Conflict.ForceMockHappened,
-                                            Conflict.ForceStaticMockHappened
-                                        )
+                                        it.containsMocking = true
+
+                                        conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                                     }
                                     executions += it
                                 }

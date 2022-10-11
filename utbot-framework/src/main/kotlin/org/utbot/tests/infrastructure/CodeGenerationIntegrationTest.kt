@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
-import org.utbot.common.filterWhen
 import org.utbot.framework.codegen.ParametrizedTestSource
 import java.nio.file.Path
 
@@ -31,14 +30,14 @@ import java.nio.file.Path
 abstract class CodeGenerationIntegrationTest(
     private val testClass: KClass<*>,
     private var testCodeGeneration: Boolean = true,
-    private val languagesLastStages: List<CodeGenerationLastStage> = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN)
+    private val languagesLastStages: List<TestLastStage> = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN)
     )
 ) {
     private val testSets: MutableList<UtMethodTestSet> = arrayListOf()
 
-    data class CodeGenerationLastStage(
+    data class TestLastStage(
         val language: CodegenLanguage,
         val lastStage: Stage = TestExecution,
         val parameterizedModeLastStage: Stage = lastStage,
@@ -168,7 +167,7 @@ abstract class CodeGenerationIntegrationTest(
         data class CodeGenerationTestCases(
             val testClass: KClass<*>,
             val testSets: List<UtMethodTestSet>,
-            val lastStages: List<CodeGenerationLastStage>
+            val lastStages: List<TestLastStage>
         )
 
         class ReadRunningTestsNumberBeforeAllTestsCallback : BeforeAllCallback {

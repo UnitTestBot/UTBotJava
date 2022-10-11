@@ -18,8 +18,8 @@ internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO generics in lists
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO generics in lists
     )
 ) {
     @Test

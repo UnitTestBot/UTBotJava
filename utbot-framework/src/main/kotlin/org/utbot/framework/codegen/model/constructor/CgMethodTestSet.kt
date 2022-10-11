@@ -69,8 +69,7 @@ data class CgMethodTestSet private constructor(
     * Excludes executions with mocking from [CgMethodTestSet].
     * */
     fun excludeExecutionsWithMocking(): CgMethodTestSet {
-        val executionsWithoutMocking = executions.filter { !it.wasForceMocked }
-
+        val executionsWithoutMocking = executions.filter { !it.containsMocking }
         return substituteExecutions(executionsWithoutMocking)
     }
 

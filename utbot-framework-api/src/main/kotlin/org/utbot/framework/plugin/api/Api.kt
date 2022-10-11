@@ -104,7 +104,7 @@ abstract class UtExecution(
     var testMethodName: String? = null,
     var displayName: String? = null
 ) : UtResult() {
-    var wasForceMocked: Boolean = false
+    var containsMocking: Boolean = false
 }
 
 /**

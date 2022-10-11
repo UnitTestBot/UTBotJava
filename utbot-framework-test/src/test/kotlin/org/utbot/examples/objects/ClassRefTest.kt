@@ -17,9 +17,9 @@ internal class ClassRefTest : UtValueTestCaseChecker(
     testClass = ClassRef::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.JAVA),
         // TODO: SAT-1457 Restore Kotlin codegen for a group of tests with type casts
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

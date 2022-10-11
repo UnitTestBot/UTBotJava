@@ -18,8 +18,8 @@ import org.utbot.tests.infrastructure.TestExecution
 internal class FieldMockTest : UtValueTestCaseChecker(
     testClass = ServiceWithField::class,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
     )
 ) {
     @Test

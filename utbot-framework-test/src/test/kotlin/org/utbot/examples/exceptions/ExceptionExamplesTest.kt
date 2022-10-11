@@ -13,8 +13,8 @@ internal class ExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ExceptionExamples::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO: fails because we construct lists with generics
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO: fails because we construct lists with generics
     )
 ) {
     @Test

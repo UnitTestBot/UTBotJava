@@ -16,8 +16,8 @@ internal class ClassWithClassRefTest : UtValueTestCaseChecker(
     testClass = ClassWithClassRef::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA, Compilation), // TODO JIRA:1479
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.JAVA, Compilation), // TODO JIRA:1479
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

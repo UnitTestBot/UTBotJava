@@ -1,6 +1,5 @@
 package org.utbot.examples.codegen
 
-import org.junit.jupiter.api.Disabled
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Test
@@ -13,8 +12,8 @@ import org.utbot.tests.infrastructure.TestExecution
 internal class ClassWithStaticAndInnerClassesTest : UtValueTestCaseChecker(
     testClass = ClassWithStaticAndInnerClasses::class,
     pipelines = listOf(
-        CodeGenerationLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
-        CodeGenerationLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
     )
 ) {
     @Test

@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.Conflict
@@ -69,13 +70,16 @@ class TestSpecificTestCaseGenerator(
                         .collect {
                             when (it) {
                                 is UtExecution -> {
-                                    if (
-                                        conflictTriggers.triggered(Conflict.ForceMockHappened) ||
-                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened)
+                                    if (it is UtSymbolicExecution &&
+                                        (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                                conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
                                     ) {
                                         it.containsMocking = true
 
-                                        conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
+                                        conflictTriggers.reset(
+                                            Conflict.ForceMockHappened,
+                                            Conflict.ForceStaticMockHappened
+                                        )
                                     }
                                     executions += it
                                 }

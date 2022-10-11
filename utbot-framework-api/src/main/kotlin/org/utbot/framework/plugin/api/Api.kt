@@ -103,9 +103,7 @@ abstract class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null
-) : UtResult() {
-    var containsMocking: Boolean = false
-}
+) : UtResult()
 
 /**
  * Symbolic execution.
@@ -137,6 +135,8 @@ class UtSymbolicExecution(
      */
     val staticFields: Set<FieldId>
         get() = stateBefore.statics.keys
+
+    var containsMocking: Boolean = false
 
     override fun toString(): String = buildString {
         append("UtSymbolicExecution(")

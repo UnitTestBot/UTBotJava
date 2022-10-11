@@ -11,14 +11,16 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.Compilation
+import org.utbot.tests.infrastructure.TestExecution
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class MockStaticMethodExampleTest : UtValueTestCaseChecker(
     testClass = MockStaticMethodExample::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
     )
 ) {
     @Test

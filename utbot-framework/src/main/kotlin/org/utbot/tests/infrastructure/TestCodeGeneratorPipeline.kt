@@ -316,13 +316,16 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     companion object {
         var currentTestFrameworkConfiguration = defaultTestFrameworkConfiguration()
 
-        fun defaultTestFrameworkConfiguration(language: CodegenLanguage = CodegenLanguage.JAVA) = TestFrameworkConfiguration(
+        fun defaultTestFrameworkConfiguration(
+            language: CodegenLanguage = CodegenLanguage.JAVA,
+            parameterizationMode: ParametrizedTestSource = ParametrizedTestSource.defaultItem
+        ) = TestFrameworkConfiguration(
             testFramework = TestFramework.defaultItem,
             codegenLanguage = language,
             mockFramework = MockFramework.defaultItem,
             mockStrategy = MockStrategyApi.defaultItem,
             staticsMocking = StaticsMocking.defaultItem,
-            parametrizedTestSource = ParametrizedTestSource.defaultItem,
+            parametrizedTestSource = parameterizationMode,
             forceStaticMocking = ForceStaticMocking.defaultItem,
             generateUtilClassFile = false
         )

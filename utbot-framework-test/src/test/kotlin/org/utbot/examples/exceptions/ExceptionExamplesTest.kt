@@ -12,9 +12,9 @@ import org.utbot.tests.infrastructure.CodeGeneration
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ExceptionExamples::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO: fails because we construct lists with generics
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO: fails because we construct lists with generics
     )
 ) {
     @Test

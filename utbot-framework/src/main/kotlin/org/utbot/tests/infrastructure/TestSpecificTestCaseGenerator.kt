@@ -10,15 +10,16 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
 
@@ -57,14 +58,8 @@ class TestSpecificTestCaseGenerator(
         val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
         val defaultTimeEstimator = ExecutionTimeEstimator(UtSettings.utBotGenerationTimeoutInMillis, 1)
 
-        val config = TestCodeGeneratorPipeline.currentTestFrameworkConfiguration
-        var forceMockListener: ForceMockListener? = null
-        var forceStaticMockListener: ForceStaticMockListener? = null
-
-        if (config.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE) {
-            forceMockListener = ForceMockListener.create(this, conflictTriggers)
-            forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
-        }
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
@@ -74,7 +69,20 @@ class TestSpecificTestCaseGenerator(
                         .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
                         .collect {
                             when (it) {
-                                is UtExecution -> executions += it
+                                is UtExecution -> {
+                                    if (it is UtSymbolicExecution &&
+                                        (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                                conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                                    ) {
+                                        it.containsMocking = true
+
+                                        conflictTriggers.reset(
+                                            Conflict.ForceMockHappened,
+                                            Conflict.ForceStaticMockHappened
+                                        )
+                                    }
+                                    executions += it
+                                }
                                 is UtError -> errors.merge(it.description, 1, Int::plus)
                             }
                         }
@@ -82,8 +90,8 @@ class TestSpecificTestCaseGenerator(
             }
         }
 
-        forceMockListener?.detach(this, forceMockListener)
-        forceStaticMockListener?.detach(this, forceStaticMockListener)
+        forceMockListener.detach(this, forceMockListener)
+        forceStaticMockListener.detach(this, forceStaticMockListener)
 
         val minimizedExecutions = super.minimizeExecutions(executions)
         return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)

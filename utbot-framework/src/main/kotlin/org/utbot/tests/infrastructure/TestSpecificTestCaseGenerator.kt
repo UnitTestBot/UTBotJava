@@ -11,15 +11,16 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.util.Conflict
 import org.utbot.framework.synthesis.SynthesizerController
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.util.jimpleBody
@@ -60,39 +61,48 @@ class TestSpecificTestCaseGenerator(
         val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
         val defaultTimeEstimator = ExecutionTimeEstimator(UtSettings.utBotGenerationTimeoutInMillis, 1)
 
-        val config = TestCodeGeneratorPipeline.currentTestFrameworkConfiguration
-        var forceMockListener: ForceMockListener? = null
-        var forceStaticMockListener: ForceStaticMockListener? = null
-
-        if (config.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE) {
-            forceMockListener = ForceMockListener.create(this, conflictTriggers)
-            forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
-        }
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
                 val controller = EngineController()
                 controller.job = launch {
-                    super.generateAsync(
-                        controller,
-                        SymbolicEngineTarget.from(method),
-                        mockStrategy,
-                        mockAlwaysDefaults,
-                        defaultTimeEstimator,
-                        UtSettings.enableSynthesis,
-                        EmptyPostCondition
-                    ).collect {
-                        when (it) {
-                            is UtExecution -> executions += it
-                            is UtError -> errors.merge(it.description, 1, Int::plus)
+                    super
+                        .generateAsync(
+                            controller,
+                            SymbolicEngineTarget.from(method),
+                            mockStrategy,
+                            mockAlwaysDefaults,
+                            defaultTimeEstimator,
+                            UtSettings.enableSynthesis,
+                            EmptyPostCondition
+                        )
+                        .collect {
+                            when (it) {
+                                is UtExecution -> {
+                                    if (it is UtSymbolicExecution &&
+                                        (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                                conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                                    ) {
+                                        it.containsMocking = true
+
+                                        conflictTriggers.reset(
+                                            Conflict.ForceMockHappened,
+                                            Conflict.ForceStaticMockHappened
+                                        )
+                                    }
+                                    executions += it
+                                }
+                                is UtError -> errors.merge(it.description, 1, Int::plus)
+                            }
                         }
-                    }
                 }
             }
         }
 
-        forceMockListener?.detach(this, forceMockListener)
-        forceStaticMockListener?.detach(this, forceStaticMockListener)
+        forceMockListener.detach(this, forceMockListener)
+        forceStaticMockListener.detach(this, forceStaticMockListener)
 
         synthesizerController = SynthesizerController(UtSettings.synthesisTimeoutInMillis)
         val minimizedExecutions = super.minimizeExecutions(executions.toAssemble(method))

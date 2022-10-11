@@ -21,8 +21,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
     // Don't launch tests, because ArithmeticException will be expected, but it is not supposed to be actually thrown.
     // ArithmeticException acts as a sign of Overflow.
     listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA, Compilation),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, Compilation),
+        TestLastStage(CodegenLanguage.JAVA, Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, Compilation),
     )
 ) {
     @Test

@@ -137,6 +137,8 @@ class UtSymbolicExecution(
     val staticFields: Set<FieldId>
         get() = stateBefore.statics.keys
 
+    var containsMocking: Boolean = false
+
     override fun toString(): String = buildString {
         append("UtSymbolicExecution(")
         appendLine()

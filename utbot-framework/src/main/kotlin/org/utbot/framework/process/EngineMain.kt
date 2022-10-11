@@ -96,11 +96,11 @@ private fun EngineProcessModel.setup(
         val mockFrameworkInstalled = params.mockInstalled
         val conflictTriggers = ConflictTriggers(kryoHelper.readObject(params.conflictTriggers))
         if (!mockFrameworkInstalled) {
-            ForceMockListener.create(testGenerator, conflictTriggers)
+            ForceMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
         }
         val staticsMockingConfigured = params.staticsMockingIsConfigureda
         if (!staticsMockingConfigured) {
-            ForceStaticMockListener.create(testGenerator, conflictTriggers)
+            ForceStaticMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
         }
         val result = testGenerator.generate(kryoHelper.readObject(params.methods),
             MockStrategyApi.valueOf(params.mockStrategy),

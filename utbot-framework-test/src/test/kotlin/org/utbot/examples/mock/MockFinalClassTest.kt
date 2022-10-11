@@ -7,9 +7,18 @@ import org.utbot.tests.infrastructure.singleMock
 import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.ge
+import org.utbot.tests.infrastructure.Compilation
+import org.utbot.tests.infrastructure.TestExecution
 
-internal class MockFinalClassTest : UtValueTestCaseChecker(testClass = MockFinalClassExample::class) {
+internal class MockFinalClassTest : UtValueTestCaseChecker(
+    testClass = MockFinalClassExample::class,
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
+    )
+) {
     @Test
     fun testFinalClass() {
         checkMocks(

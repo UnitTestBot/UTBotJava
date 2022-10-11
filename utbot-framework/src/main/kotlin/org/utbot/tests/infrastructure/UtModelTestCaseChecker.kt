@@ -45,11 +45,11 @@ import kotlin.reflect.KFunction3
 abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
-    languagePipelines: List<CodeGenerationLanguageLastStage> = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
+    pipelines: List<TestLastStage> = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN)
     )
-) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, languagePipelines) {
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines) {
     protected fun check(
         method: KFunction2<*, *, *>,
         branches: ExecutionsNumberMatcher,

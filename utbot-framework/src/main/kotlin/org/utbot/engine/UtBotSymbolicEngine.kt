@@ -188,7 +188,7 @@ class UtBotSymbolicEngine(
     private val methodUnderTest: SymbolicEngineTarget,
     classpath: String,
     dependencyPaths: String,
-    mockStrategy: MockStrategy = NO_MOCKS,
+    val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
     private val useSynthesis: Boolean = enableSynthesis,
@@ -475,6 +475,7 @@ class UtBotSymbolicEngine(
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
             fuzzerType = { try { toFuzzerType(executableId.executable.genericParameterTypes[it]) } catch (_: Throwable) { null } }
+            shouldMock = { mockStrategy.eligibleToMock(it, classUnderTest) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()

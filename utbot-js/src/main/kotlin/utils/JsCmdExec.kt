@@ -11,7 +11,7 @@ object JsCmdExec {
 
     private val cmdPrefix =
         if (System.getProperty("os.name").lowercase(Locale.getDefault()).contains("windows"))
-            "cmd.exe" else "/bin/bash"
+            "cmd.exe" else ""
     private val cmdDelim = if (System.getProperty("os.name").lowercase(Locale.getDefault()).contains("windows"))
         "/c" else "-c"
 

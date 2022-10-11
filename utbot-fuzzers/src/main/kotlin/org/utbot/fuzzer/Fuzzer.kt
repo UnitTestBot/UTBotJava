@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.mutators.NumberRandomMutator
 import org.utbot.fuzzer.mutators.RegexStringModelMutator
 import org.utbot.fuzzer.mutators.StringRandomMutator
+import org.utbot.fuzzer.objects.replaceWithMock
 import org.utbot.fuzzer.providers.ArrayModelProvider
 import org.utbot.fuzzer.providers.CharToStringModelProvider
 import org.utbot.fuzzer.providers.CollectionWithEmptyStatesModelProvider
@@ -117,7 +118,10 @@ fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvi
     val values = List<MutableList<FuzzedValue>>(description.parameters.size) { mutableListOf() }
     modelProviders.forEach { fuzzingProvider ->
         fuzzingProvider.generate(description).forEach { (index, model) ->
-            values[index].add(model)
+            val mock = replaceWithMock(model.model, description.shouldMock)
+            values[index].add(FuzzedValue(mock, model.createdBy).apply {
+                summary = model.summary
+            })
         }
     }
     description.parameters.forEachIndexed { index, classId ->

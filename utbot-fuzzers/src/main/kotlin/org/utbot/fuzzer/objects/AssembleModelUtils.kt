@@ -6,7 +6,6 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
@@ -25,43 +24,6 @@ fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: L
         UtExecutableCallModel(instance = null, constructorId, params.map { it.model })
     ).fuzzed {
         summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
-    }
-}
-
-fun replaceToMock(assembleModel: UtModel, shouldMock: (ClassId) -> Boolean): UtModel {
-    if (assembleModel !is UtAssembleModel) return assembleModel
-    if (shouldMock(assembleModel.classId)) {
-        return UtCompositeModel(assembleModel.id, assembleModel.classId, true).apply {
-            assembleModel.modificationsChain.forEach {
-                if (it is UtDirectSetFieldModel) {
-                    fields[it.fieldId] = replaceToMock(it.fieldModel, shouldMock)
-                }
-                if (it is UtExecutableCallModel && it.executable is FuzzerMockableMethodId) {
-                    (it.executable as FuzzerMockableMethodId).mock().forEach { (executionId, models) ->
-                        mocks[executionId] = models.map { p -> replaceToMock(p, shouldMock) }
-                    }
-                }
-            }
-        }
-    } else {
-        val models = assembleModel.modificationsChain.map { call ->
-            var mockedStatementModel: UtStatementModel? = null
-            if (call is UtDirectSetFieldModel) {
-                val mock = replaceToMock(call.fieldModel, shouldMock)
-                if (mock != call.fieldModel) {
-                    mockedStatementModel = UtDirectSetFieldModel(call.instance, call.fieldId, mock)
-                }
-            } else if (call is UtExecutableCallModel) {
-                val params = call.params.map { m -> replaceToMock(m, shouldMock) }
-                if (params != call.params) {
-                    mockedStatementModel = UtExecutableCallModel(call.instance, call.executable, params)
-                }
-            }
-            mockedStatementModel ?: call
-        }
-        return with(assembleModel) {
-            UtAssembleModel(id, classId, modelName, instantiationCall, origin) { models }
-        }
     }
 }
 

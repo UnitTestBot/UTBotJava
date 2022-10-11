@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.objects.create
-import org.utbot.fuzzer.objects.replaceToMock
+import org.utbot.fuzzer.objects.replaceWithMock
 import org.utbot.fuzzer.objects.toFuzzerMockable
 import org.utbot.fuzzer.providers.ObjectModelProvider
 
@@ -25,7 +25,7 @@ class MockOfObjectModelProviderTest {
         val description = FuzzedMethodDescription("test", voidClassId, listOf(Some::class.id))
         val provider = ObjectModelProvider(TestIdentityPreservingIdGenerator)
         val results = provider.generate(description).map { it.value.model }.map {
-            replaceToMock(it) { m -> description.shouldMock(m) }
+            replaceWithMock(it) { m -> description.shouldMock(m) }
         }.toList()
         assertEquals(2, results.size)
         results.forEach { model ->
@@ -42,7 +42,7 @@ class MockOfObjectModelProviderTest {
         }
         val provider = ObjectModelProvider(TestIdentityPreservingIdGenerator)
         val results = provider.generate(description).map { it.value.model }.map {
-            replaceToMock(it) { m -> description.shouldMock(m) }
+            replaceWithMock(it) { m -> description.shouldMock(m) }
         }.toList()
         assertEquals(2, results.size)
         results.forEach { model ->
@@ -58,7 +58,7 @@ class MockOfObjectModelProviderTest {
         }
         val provider = ObjectModelProvider(TestIdentityPreservingIdGenerator, recursionDepthLeft = 2)
         val results = provider.generate(description).map { it.value.model }.map {
-            replaceToMock(it) { m -> description.shouldMock(m) }
+            replaceWithMock(it) { m -> description.shouldMock(m) }
         }.toList()
         assertEquals(2, results.size)
         results.forEach { model ->
@@ -80,7 +80,7 @@ class MockOfObjectModelProviderTest {
             using empty constructor
             call instance field("some") with UtNullModel(Nothing::class.id)
         }
-        val replacedModel = replaceToMock(customModel) { true }
+        val replacedModel = replaceWithMock(customModel) { true }
         assertInstanceOf(UtCompositeModel::class.java, replacedModel)
         replacedModel as UtCompositeModel
         assertEquals(0, replacedModel.mocks.size)
@@ -99,7 +99,7 @@ class MockOfObjectModelProviderTest {
                 yield(MethodId(classId, "another", doubleWrapperClassId, emptyList()) to listOf(UtPrimitiveModel(2.0)))
             } with values(UtNullModel(Nothing::class.id))
         }
-        val replacedModel = replaceToMock(customModel) { true }
+        val replacedModel = replaceWithMock(customModel) { true }
         assertInstanceOf(UtCompositeModel::class.java, replacedModel)
         replacedModel as UtCompositeModel
         assertEquals(0, replacedModel.fields.size)

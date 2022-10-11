@@ -110,10 +110,10 @@ class ObjectModelProvider(
                         mock = {
                             field.getter?.let { g ->
                                 val getterMethodID = MethodId(
-                                    constructorId.classId,
-                                    g.name,
-                                    g.returnType.id,
-                                    emptyList()
+                                    classId = constructorId.classId,
+                                    name = g.name,
+                                    returnType = g.returnType.id,
+                                    parameters = emptyList()
                                 )
                                 mapOf(getterMethodID to listOf(value.model))
                             } ?: emptyMap()
@@ -158,16 +158,21 @@ class ObjectModelProvider(
             return jClass.declaredFields.map { field ->
                 val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, description)
                 FieldDescription(
-                    field.name,
-                    field.type.id,
-                    isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
-                    setterAndGetter?.first,
-                    setterAndGetter?.second,
+                    name = field.name,
+                    classId = field.type.id,
+                    canBeSetDirectly = isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
+                    setter = setterAndGetter?.setter,
+                    getter = setterAndGetter?.getter,
                 )
             }
         }
 
-        private fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): Pair<Method, Method>? {
+        private class PublicSetterGetter(
+            val setter: Method,
+            val getter: Method,
+        )
+
+        private fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): PublicSetterGetter? {
             val postfixName = field.name.capitalize()
             val setterName = "set$postfixName"
             val getterName = "get$postfixName"
@@ -178,7 +183,7 @@ class ObjectModelProvider(
                             it.name == setterName &&
                             it.parameterCount == 1 &&
                             it.parameterTypes[0] == field.type
-                }?.let { it to getter }
+                }?.let { PublicSetterGetter(it, getter) }
             } else {
                 null
             }

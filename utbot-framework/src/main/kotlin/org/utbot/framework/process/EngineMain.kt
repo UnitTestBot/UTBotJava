@@ -182,12 +182,19 @@ private fun EngineProcessModel.setup(
         lg.error(reportFilePath.toString()); repeat(5) { lg.error("\n") }
         lg.error(testSets[params.testSetsId].toString()); repeat(5) { lg.error("\n") }
         lg.error(params.generatedTestsCode); repeat(5) { lg.error("\n") }
-        val rdSourceFindingStrategy = RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
-        lg.error(rdSourceFindingStrategy.toString()); repeat(5) { lg.error("\n") }
+//        val rdSourceFindingStrategy = RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+        val sfs = SourceFindingStrategyDefault(
+            "io.github.ideaseeker.Main",
+            "C:/Users/sWX1137517/IdeaProjects/SarifTest/src/main/java/io/github/ideaseeker/Main.java",
+            "C:/Users/sWX1137517/IdeaProjects/SarifTest/src/test/java/io/github/ideaseeker/MainTest.java",
+            "C:/Users/sWX1137517/IdeaProjects/SarifTest/",
+        )
+//        lg.error(rdSourceFindingStrategy.toString()); repeat(5) { lg.error("\n") }
         val sarifReportAsJson = SarifReport(
             testSets[params.testSetsId]!!,
             params.generatedTestsCode,
-            rdSourceFindingStrategy
+            sfs
+//            rdSourceFindingStrategy
         ).createReport().toJson()
         lg.error(sarifReportAsJson); repeat(5) { lg.error("\n") }
         reportFilePath.toFile().writeText(sarifReportAsJson)

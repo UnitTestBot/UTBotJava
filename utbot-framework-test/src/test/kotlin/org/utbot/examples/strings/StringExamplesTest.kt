@@ -328,7 +328,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     fun testSubstring() {
         checkWithException(
             StringExamples::substring,
-            between(5..7),
+            between(5..8),
             { s, _, r -> s == null && r.isException<NullPointerException>() },
             { s, i, r -> s != null && i < 0 || i > s.length && r.isException<StringIndexOutOfBoundsException>() },
             { s, i, r -> s != null && i in 0..s.length && r.getOrThrow() == s.substring(i) && s.substring(i) != "password" },
@@ -588,6 +588,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         }
     }
 
+    // TODO: This test fails without concrete execution as it uses a symbolic variable
     @Test
     fun testListToString() {
         check(

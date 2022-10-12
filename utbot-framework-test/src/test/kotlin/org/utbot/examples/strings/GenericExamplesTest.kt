@@ -12,9 +12,9 @@ import org.utbot.testcheckers.eq
 internal class GenericExamplesTest : UtValueTestCaseChecker(
     testClass = GenericExamples::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

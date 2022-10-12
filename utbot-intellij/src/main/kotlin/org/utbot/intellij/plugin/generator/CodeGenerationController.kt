@@ -416,8 +416,8 @@ object CodeGenerationController {
         // all test roots for the given test module
         val testRoots = runReadAction {
             testModule
-                .suitableTestSourceRoots(this)
-                .mapNotNull { psiManager.findDirectory(it) }
+                .suitableTestSourceRoots()
+                .mapNotNull { psiManager.findDirectory(it.dir) }
         }
 
         // return an util class from one of the test source roots or null if no util class was found

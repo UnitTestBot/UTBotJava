@@ -10,10 +10,20 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.AdviceAdapter
 import org.objectweb.asm.commons.Method.getMethod
+import org.utbot.framework.plugin.api.util.signature
 
 object MockConfig {
     const val IS_MOCK_FIELD = "\$__is_mock_"
 }
+
+/**
+ * Computes key for method that is used for mocking.
+ */
+fun computeKeyForMethod(internalType: String, methodSignature: String) =
+    "$internalType@$methodSignature"
+
+fun computeKeyForMethod(method: Method) =
+    computeKeyForMethod(Type.getInternalName(method.declaringClass), method.signature)
 
 class MockClassVisitor(
     classVisitor: ClassVisitor,
@@ -73,7 +83,7 @@ class MockClassVisitor(
         val isStatic = access and Opcodes.ACC_STATIC != 0
         val isVoidMethod = Type.getReturnType(descriptor) == Type.VOID_TYPE
 
-        val computedSignature = name + descriptor
+        val computedSignature = computeKeyForMethod(internalClassName, "$name$descriptor")
         val id = signatureToId.size
         signatureToId[computedSignature] = id
 

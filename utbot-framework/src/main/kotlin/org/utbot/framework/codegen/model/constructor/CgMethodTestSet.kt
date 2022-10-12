@@ -8,8 +8,10 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.fuzzer.UtFuzzedExecution
 import soot.jimple.JimpleBody
 
 data class CgMethodTestSet private constructor(
@@ -63,6 +65,18 @@ data class CgMethodTestSet private constructor(
             executions.groupBy { it.stateBefore.statics.keys }
 
         return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
+    }
+
+    /*
+    * Excludes executions with mocking from [CgMethodTestSet].
+    * */
+    fun excludeExecutionsWithMocking(): CgMethodTestSet {
+        val fuzzedExecutions = executions.filterIsInstance<UtFuzzedExecution>()
+        val symbolicExecutionsWithoutMocking = executions
+            .filterIsInstance<UtSymbolicExecution>()
+            .filter { !it.containsMocking }
+
+        return substituteExecutions(symbolicExecutionsWithoutMocking + fuzzedExecutions)
     }
 
     /**

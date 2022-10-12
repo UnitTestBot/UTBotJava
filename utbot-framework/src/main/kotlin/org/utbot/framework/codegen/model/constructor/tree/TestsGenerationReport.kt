@@ -4,6 +4,7 @@ import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodType
+import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.util.kClass
 import kotlin.reflect.KClass
@@ -57,11 +58,11 @@ data class TestsGenerationReport(
 
             testMethods.forEach {
                 when (it.type) {
-                    CgTestMethodType.SUCCESSFUL -> updateExecutions(it, successfulExecutions)
-                    CgTestMethodType.FAILING -> updateExecutions(it, failedExecutions)
-                    CgTestMethodType.TIMEOUT -> updateExecutions(it, timeoutExecutions)
-                    CgTestMethodType.CRASH -> updateExecutions(it, crashExecutions)
-                    CgTestMethodType.PARAMETRIZED -> {
+                    SUCCESSFUL, PASSED_EXCEPTION -> updateExecutions(it, successfulExecutions)
+                    FAILING -> updateExecutions(it, failedExecutions)
+                    TIMEOUT -> updateExecutions(it, timeoutExecutions)
+                    CRASH -> updateExecutions(it, crashExecutions)
+                    PARAMETRIZED -> {
                         // Parametrized tests are not supported in the tests report yet
                         // TODO JIRA:1507
                     }

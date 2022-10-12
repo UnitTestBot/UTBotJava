@@ -158,7 +158,7 @@ class UtBotSymbolicEngine(
     private val methodUnderTest: ExecutableId,
     classpath: String,
     dependencyPaths: String,
-    mockStrategy: MockStrategy = NO_MOCKS,
+    val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
@@ -429,12 +429,17 @@ class UtBotSymbolicEngine(
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
             fuzzerType = { try { toFuzzerType(methodUnderTest.executable.genericParameterTypes[it]) } catch (_: Throwable) { null } }
+            shouldMock = { mockStrategy.eligibleToMock(it, classUnderTest) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
+        if (!hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
+            // Currently, fuzzer doesn't work with static methods with empty parameters
+            return@flow
+        }
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {

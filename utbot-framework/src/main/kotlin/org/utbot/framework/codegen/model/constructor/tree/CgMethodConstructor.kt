@@ -58,11 +58,7 @@ import org.utbot.framework.codegen.model.tree.CgStatement
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodType
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.CRASH
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.FAILING
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.PARAMETRIZED
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.SUCCESSFUL
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.TIMEOUT
+import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.tree.CgTryCatch
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgValue
@@ -305,15 +301,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             assertEquality(expected, actual)
                         }
                     }
-                    .onFailure { exception ->
-                        processExecutionFailure(currentExecution, exception)
-                    }
+                    .onFailure { exception -> processExecutionFailure(exception) }
             }
             else -> {} // TODO: check this specific case
         }
     }
 
-    private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
+    private fun processExecutionFailure(exception: Throwable) {
         val methodInvocationBlock = {
             with(currentExecutable) {
                 when (this) {
@@ -324,42 +318,36 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
         }
 
-        if (shouldTestPassWithException(execution, exception)) {
-            testFrameworkManager.expectException(exception::class.id) {
+        when (methodType) {
+            SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $exception")
+            PASSED_EXCEPTION -> {
+                testFrameworkManager.expectException(exception::class.id) {
+                    methodInvocationBlock()
+                }
+            }
+            TIMEOUT -> {
+                writeWarningAboutTimeoutExceeding()
+                testFrameworkManager.expectTimeout(hangingTestsTimeout.timeoutMs) {
+                    methodInvocationBlock()
+                }
+            }
+            CRASH -> when (exception) {
+                is ConcreteExecutionFailureException -> {
+                    writeWarningAboutCrash()
+                    methodInvocationBlock()
+                }
+                is AccessControlException -> {
+                    // exception from sandbox
+                    writeWarningAboutFailureTest(exception)
+                }
+                else -> error("Unexpected crash suite for failing execution with $exception exception")
+            }
+            FAILING -> {
+                writeWarningAboutFailureTest(exception)
                 methodInvocationBlock()
             }
-            methodType = SUCCESSFUL
-
-            return
+            PARAMETRIZED -> error("Unexpected $PARAMETRIZED method type for failing execution with $exception exception")
         }
-
-        if (shouldTestPassWithTimeoutException(execution, exception)) {
-            writeWarningAboutTimeoutExceeding()
-            testFrameworkManager.expectTimeout(hangingTestsTimeout.timeoutMs) {
-                methodInvocationBlock()
-            }
-            methodType = TIMEOUT
-
-            return
-        }
-
-        when (exception) {
-            is ConcreteExecutionFailureException -> {
-                methodType = CRASH
-                writeWarningAboutCrash()
-            }
-            is AccessControlException -> {
-                methodType = CRASH
-                writeWarningAboutFailureTest(exception)
-                return
-            }
-            else -> {
-                methodType = FAILING
-                writeWarningAboutFailureTest(exception)
-            }
-        }
-
-        methodInvocationBlock()
     }
 
     private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
@@ -1187,9 +1175,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     constructorCall(*methodArguments.toTypedArray())
                 }
             }
-            .onFailure { exception ->
-                processExecutionFailure(currentExecution, exception)
-            }
+            .onFailure { exception -> processExecutionFailure(exception) }
     }
 
     /**
@@ -1288,11 +1274,22 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
-                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
+
+                    if (requiresFieldStateAssertions()) {
+                        // we should generate field assertions only for successful tests
+                        // that does not break the current test execution after invocation of method under test
+                        fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
+                    }
+
                     recordActualResult()
                     generateResultAssertions()
-                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
-                    generateFieldStateAssertions()
+
+                    if (requiresFieldStateAssertions()) {
+                        // we should generate field assertions only for successful tests
+                        // that does not break the current test execution after invocation of method under test
+                        fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
+                        generateFieldStateAssertions()
+                    }
                 }
 
                 if (statics.isNotEmpty()) {
@@ -1340,6 +1337,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
         }
 
+    private fun requiresFieldStateAssertions(): Boolean =
+        !methodType.isThrowing ||
+                (methodType == PASSED_EXCEPTION && !testFrameworkManager.isExpectedExceptionExecutionBreaking)
+
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
@@ -1367,7 +1368,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     substituteStaticFields(statics, isParametrized = true)
 
                     // build this instance
-                    thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
+                    thisInstance =
+                        genericExecution.stateBefore.thisInstance?.let {
+                        variableConstructor.getOrCreateVariable(it)
+                    }
 
                     // build arguments for method under test and parameterized test
                     for (index in genericExecution.stateBefore.parameters.indices) {
@@ -1429,20 +1433,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val executableUnderTestParameters = testSet.executableId.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
-            // this instance
-            val thisInstanceModel = genericExecution.stateBefore.thisInstance
-            if (thisInstanceModel != null) {
-                val type = wrapTypeIfRequired(thisInstanceModel.classId)
-                val thisInstance = CgParameterDeclaration(
-                    parameter = declareParameter(
-                        type = type,
-                        name = nameGenerator.variableName(type)
-                    ),
-                    isReferenceType = true
-                )
-                this += thisInstance
-                currentMethodParameters[CgParameterKind.ThisInstance] = thisInstance.parameter
-            }
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
                 val argumentName = paramNames[executableUnderTest]?.get(index)
@@ -1554,9 +1544,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
         val arguments = mutableListOf<CgExpression>()
-        execution.stateBefore.thisInstance?.let {
-            arguments += variableConstructor.getOrCreateVariable(it)
-        }
 
         for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
             val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
@@ -1598,6 +1585,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
         clearTestMethodScope()
         currentExecution = execution
+        determineExecutionType()
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)
         return try {
             block()
@@ -1663,6 +1651,27 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun containsFailureExecution(testSet: CgMethodTestSet) =
         testSet.executions.any { it.result is UtExecutionFailure }
 
+
+    /**
+     * Determines [CgTestMethodType] for current execution according to its success or failure.
+     */
+    private fun determineExecutionType() {
+        val currentExecution = currentExecution!!
+
+        currentExecution.result
+            .onSuccess { methodType = SUCCESSFUL }
+            .onFailure { exception ->
+                methodType = when {
+                    shouldTestPassWithException(currentExecution, exception) -> PASSED_EXCEPTION
+                    shouldTestPassWithTimeoutException(currentExecution, exception) -> TIMEOUT
+                    else -> when (exception) {
+                        is ConcreteExecutionFailureException -> CRASH
+                        is AccessControlException -> CRASH // exception from sandbox
+                        else -> FAILING
+                    }
+                }
+            }
+    }
 
     private fun testMethod(
         methodName: String,

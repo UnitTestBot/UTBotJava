@@ -19,6 +19,7 @@ import javax.swing.JList
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
@@ -58,9 +59,20 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
         val suggestedModules =
             if (model.project.isBuildWithGradle) model.project.allModules() else model.potentialTestModules
 
-        val testRoots = suggestedModules.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
+        val testRoots = suggestedModules.flatMap {
+            it.suitableTestSourceRoots()
+        }.sortedWith(
+            compareByDescending<TestSourceRoot> {
+                // Heuristics: Dirs with language == codegenLanguage should go first
+                it.expectedLanguage == model.codegenLanguage
+            }.thenBy {
+                // Heuristics: User is more likely to choose the shorter path
+                it.dir.path.length
+            }
+        ).toMutableList()
+
         // this method is blocked for Gradle, where multiple test modules can exist
-        model.testModule.addDedicatedTestRoot(testRoots)
+        model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)
 
         if (testRoots.isNotEmpty()) {
             configureRootsCombo(testRoots)
@@ -94,13 +106,12 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
             files.singleOrNull()
         }
 
-    private fun configureRootsCombo(testRoots: List<VirtualFile>) {
-        // unfortunately, Gradle creates Kotlin test source root with Java source root type, so type is misleading
+    private fun configureRootsCombo(testRoots: List<TestSourceRoot>) {
         val selectedRoot = testRoots.first()
 
         // do not update model.testModule here, because fake test source root could have been chosen
-        model.testSourceRoot = selectedRoot
-        newItemList(testRoots.toSet())
+        model.testSourceRoot = selectedRoot.dir
+        newItemList(testRoots.map { it.dir }.toSet())
     }
 
     private fun newItemList(comboItems: Set<Any>) {

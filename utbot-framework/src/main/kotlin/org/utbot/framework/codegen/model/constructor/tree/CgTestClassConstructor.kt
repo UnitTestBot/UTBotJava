@@ -164,7 +164,10 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
-                for (splitByExecutionTestSet in testSet.splitExecutionsByResult()) {
+                // Mocks are not supported in parametrized tests, we should exclude them
+                val testSetWithoutMocking = testSet.excludeExecutionsWithMocking()
+
+                for (splitByExecutionTestSet in testSetWithoutMocking.splitExecutionsByResult()) {
                     for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
                         createParametrizedTestAndDataProvider(
                             splitByChangedStaticsTestSet,

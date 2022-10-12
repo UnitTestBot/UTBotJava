@@ -86,6 +86,11 @@ internal abstract class TestFrameworkManager(val context: CgContext)
 
     abstract val annotationForOuterClasses: CgAnnotation?
 
+    /**
+     * Determines whether appearance of expected exception in test method breaks current test execution or not.
+     */
+    abstract val isExpectedExceptionExecutionBreaking: Boolean
+
     protected open val timeoutArgumentName: String = "timeout"
 
     open fun assertEquals(expected: CgValue, actual: CgValue) {
@@ -246,6 +251,8 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForOuterClasses: CgAnnotation?
         get() = null
 
+    override val isExpectedExceptionExecutionBreaking: Boolean = false
+
     override val timeoutArgumentName: String = "timeOut"
 
     private val assertThrows: BuiltinMethodId
@@ -403,6 +410,8 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
             )
         }
 
+    override val isExpectedExceptionExecutionBreaking: Boolean = true
+
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
@@ -465,6 +474,8 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
 
     override val annotationForOuterClasses: CgAnnotation?
         get() = null
+
+    override val isExpectedExceptionExecutionBreaking: Boolean = false
 
     private val assertThrows: BuiltinMethodId
         get() {

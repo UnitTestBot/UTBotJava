@@ -184,8 +184,11 @@ open class TestCaseGenerator(
                                         is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
                                     }
                                 }
+                        } catch (e: CancellationException) {
+                            logger.info(e) { "Test generation cancelled" }
+                            throw(e)
                         } catch (e: Exception) {
-                            logger.error(e) {"Error in engine"}
+                            logger.error(e) { "Error in engine" }
                         }
                     }
                     controller.paused = true

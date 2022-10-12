@@ -122,7 +122,10 @@ object CodeGenerationController {
                 run(EDT_LATER) {
                     run(WRITE_ACTION) {
                         createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory)
-                        run(EDT_LATER) {
+                        run(EDT_LATER) afterTestGeneration@{
+                            if (testFilesPointers.isEmpty()) {
+                                return@afterTestGeneration
+                            }
                             proceedTestReport(proc, model)
                             run(THREAD_POOL) {
                                 val sarifReportsPath =

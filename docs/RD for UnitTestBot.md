@@ -139,4 +139,3 @@ Usefull:
 	- Cyclic dependencies removed from UtModels
 	- Kotlinx.serialization is used
 
-   P.S. see [this](https://confluence-msc.rnd.huawei.com/pages/viewpage.action?pageId=185665825)

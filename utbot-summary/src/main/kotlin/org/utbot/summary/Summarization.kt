@@ -16,7 +16,7 @@ import org.utbot.summary.UtSummarySettings.GENERATE_NAMES
 import org.utbot.summary.analysis.ExecutionStructureAnalysis
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.ast.SourceCodeParser
-import org.utbot.summary.comment.SymbolicExecutionClusterCommentBuilder
+import org.utbot.summary.comment.cluster.SymbolicExecutionClusterCommentBuilder
 import org.utbot.summary.comment.SimpleCommentBuilder
 import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
@@ -37,7 +37,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.summary.comment.CustomJavaDocCommentBuilder
+import org.utbot.summary.comment.customtags.symbolic.CustomJavaDocCommentBuilder
 import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
@@ -241,6 +241,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
                 utExecution.testMethodName = testMethodName?.testName
                 utExecution.displayName = testMethodName?.displayName
+                utExecution.summary = testMethodName?.javaDoc
 
                 when (utExecution.result) {
                     is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)

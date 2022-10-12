@@ -197,7 +197,7 @@ private fun EngineProcessModel.setup(
                 appendHtmlLine(report.toString(isShort = true))
 
                 val classUnderTestPackageName =
-                    report.classUnderTest.java.nameOfPackage
+                    report.classUnderTest?.java?.nameOfPackage ?: ""
 
                 destinationWarningMessage(testPackageName, classUnderTestPackageName)
                     ?.let {
@@ -227,7 +227,7 @@ private fun EngineProcessModel.setup(
 
                 for (report in reports) {
                     val classUnderTestPackageName =
-                        report.classUnderTest.java.nameOfPackage
+                        report.classUnderTest?.java?.nameOfPackage ?: ""
 
                     hasWarnings = hasWarnings || report.hasWarnings
                     if (!isMultiPackage) {

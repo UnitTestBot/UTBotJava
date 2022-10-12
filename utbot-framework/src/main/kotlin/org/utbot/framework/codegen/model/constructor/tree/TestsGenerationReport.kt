@@ -19,9 +19,8 @@ data class TestsGenerationReport(
     var crashExecutions: MethodGeneratedTests = mutableMapOf(),
     var errors: MutableMap<ExecutableId, ErrorsCount> = mutableMapOf()
 ) {
-    val classUnderTest: KClass<*>
+    val classUnderTest: KClass<*>?
         get() = executables.firstOrNull()?.classId?.kClass
-            ?: error("No executables found in test report")
 
     val initialWarnings: MutableList<() -> String> = mutableListOf()
     val hasWarnings: Boolean
@@ -29,7 +28,7 @@ data class TestsGenerationReport(
 
     val detailedStatistics: String
         get() = buildString {
-            appendHtmlLine("Class: ${classUnderTest.qualifiedName}")
+            classUnderTest?.let { appendHtmlLine("Class: ${it.qualifiedName}") }
             val testMethodsStatistic = executables.map { it.countTestMethods() }
             val errors = executables.map { it.countErrors() }
             val overallErrors = errors.sum()
@@ -71,7 +70,7 @@ data class TestsGenerationReport(
     }
 
     fun toString(isShort: Boolean): String = buildString {
-        appendHtmlLine("Target: ${classUnderTest.qualifiedName}")
+        classUnderTest?.let { appendHtmlLine("Target: ${it.qualifiedName}") }
         if (initialWarnings.isNotEmpty()) {
             initialWarnings.forEach { appendHtmlLine(it()) }
             appendHtmlLine()

@@ -24,7 +24,8 @@ class CommentWithCustomTagForTestProducedByFuzzerBuilder(
     fun buildDocStatements(): List<DocStatement> {
         val comment = buildCustomJavaDocComment()
         val docStatementList =
-            CustomJavaDocTagProvider().getPluginCustomTags().mapNotNull { it.generateDocStatementForTestProducedByFuzzer(comment) }
+            CustomJavaDocTagProvider().getPluginCustomTags()
+                .mapNotNull { it.generateDocStatementForTestProducedByFuzzer(comment) }
         return listOf(DocCustomTagStatement(docStatementList))
     }
 
@@ -33,7 +34,7 @@ class CommentWithCustomTagForTestProducedByFuzzerBuilder(
         val className = methodDescription.className
         val methodName = methodDescription.compilableName
 
-        return if(packageName!=null && className!=null && methodName!=null) {
+        return if (packageName != null && className != null && methodName != null) {
             val fullClassName = "$packageName.$className"
 
             val methodReference = getMethodReferenceForFuzzingTest(

@@ -112,7 +112,9 @@ private fun EngineProcessModel.setup(
                 isFuzzingEnabled = params.isFuzzingEnabled
                 fuzzingValue = params.fuzzingValue
             })
+            .apply { logger.info("generation ended, starting summarization, result size: ${this.size}") }
             .map { it.summarize(Paths.get(params.searchDirectory)) }
+            .apply { logger.info("summarization ended") }
             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 
         val id = ++idCounter

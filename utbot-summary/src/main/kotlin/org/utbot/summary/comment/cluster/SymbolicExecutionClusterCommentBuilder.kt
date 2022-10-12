@@ -1,12 +1,13 @@
-package org.utbot.summary.comment
+package org.utbot.summary.comment.cluster
 
 import com.github.javaparser.ast.stmt.CatchClause
 import com.github.javaparser.ast.stmt.ForStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
+import org.utbot.summary.comment.*
+import org.utbot.summary.comment.customtags.getMethodReference
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag
 import org.utbot.summary.tag.StatementTag

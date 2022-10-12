@@ -183,7 +183,7 @@ object UtTestsDialogProcessor {
                             indicator.text = "Generate test cases for class $className"
                             if (totalClasses > 1) {
                                 indicator.fraction =
-                                    indicator.fraction.coerceAtLeast(0.9 * processedClasses / totalClasses)
+                                    indicator.fraction.coerceAtLeast(0.4 * processedClasses / totalClasses)
                             }
 
                             // set timeout for concrete execution and for generated tests
@@ -248,13 +248,14 @@ object UtTestsDialogProcessor {
                             return
                         }
 
-                        indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
+                        indicator.fraction = indicator.fraction.coerceAtLeast(0.4)
                         indicator.text = "Generate code for tests"
                         // Commented out to generate tests for collected executions even if action was canceled.
                         // indicator.checkCanceled()
 
                         invokeLater {
-                            generateTests(model, testSetsByClass, psi2KClass, proc)
+                            generateTests(model, testSetsByClass, psi2KClass, proc, indicator)
+                            logger.info { "Generation complete" }
                         }
                     }
                 }

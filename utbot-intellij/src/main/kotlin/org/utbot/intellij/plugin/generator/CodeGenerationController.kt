@@ -16,6 +16,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
@@ -25,7 +26,6 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
-import com.intellij.util.IncorrectOperationException
 import com.siyeh.ig.psiutils.ImportUtils
 import mu.KotlinLogging
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
@@ -67,6 +67,7 @@ import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
+import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -85,7 +86,8 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         classesWithTests: Map<PsiClass, RdTestGenerationResult>,
         psi2KClass: Map<PsiClass, ClassId>,
-        proc: EngineProcess
+        proc: EngineProcess,
+        indicator: ProgressIndicator
     ) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
@@ -93,45 +95,64 @@ object CodeGenerationController {
         val latch = CountDownLatch(classesWithTests.size)
         val testFilesPointers = mutableListOf<SmartPsiElementPointer<PsiFile>>()
         val utilClassListener = UtilClassListener()
+        var index = 0
         for ((srcClass, generateResult) in classesWithTests) {
+            if (indicator.isCanceled) return
             val (count, testSetsId) = generateResult
-            if (count <= 0) continue
+            if (count <= 0)  {
+                latch.countDown()
+                continue
+            }
             try {
+                indicator.text = "Saving test cases for class ${srcClass.name}"
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
-                val testFilePointer = SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(testClass.containingFile)
+                val testFilePointer = SmartPointerManager.getInstance(model.project)
+                    .createSmartPsiElementPointer(testClass.containingFile)
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
-                    try {
-                        generateCodeAndReport(proc, testSetsId, srcClass, cut, testClass, testFilePointer, model, latch, utilClassListener)
-                        testFilesPointers.add(testFilePointer)
-                    } catch (e: IncorrectOperationException) {
-                        logger.error { e }
-                        showCreatingClassError(model.project, createTestClassName(srcClass))
-                    }
+                    generateCodeAndReport(
+                        proc,
+                        testSetsId,
+                        srcClass,
+                        cut,
+                        testClass,
+                        testFilePointer,
+                        model,
+                        latch,
+                        utilClassListener,
+                        indicator
+                    )
+                    testFilesPointers.add(testFilePointer)
                 })
-            } catch (e: IncorrectOperationException) {
-                logger.error { e }
+            } catch (e : CancellationException) {
+                throw e
+            } catch (e: Exception) {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
+            } finally {
+                indicator.fraction = indicator.fraction.coerceAtLeast( 0.4 + 0.5 * (++index / classesWithTests.size))
             }
         }
 
-        run(THREAD_POOL) {
-            waitForCountDown(latch) {
-                run(EDT_LATER) {
-                    run(WRITE_ACTION) {
-                        createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory)
-                        run(EDT_LATER) {
+        run(THREAD_POOL, indicator) {
+            waitForCountDown(latch, indicator = indicator) {
+                run(EDT_LATER, indicator) {
+                    run(WRITE_ACTION, indicator) {
+                        createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory, indicator)
+                        run(EDT_LATER, indicator) {
                             proceedTestReport(proc, model)
-                            run(THREAD_POOL) {
+                            run(THREAD_POOL, indicator) {
                                 val sarifReportsPath =
                                     model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+                                indicator.text = "Merge Sarif reports"
                                 mergeSarifReports(model, sarifReportsPath)
                                 if (model.runGeneratedTestsWithCoverage) {
+                                    indicator.text = "Start tests with coverage"
                                     RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                                 }
                                 proc.forceTermination()
+                                indicator.fraction = 1.0
                             }
                         }
                     }
@@ -158,7 +179,8 @@ object CodeGenerationController {
     private fun createUtilityClassIfNeed(
         utilClassListener: UtilClassListener,
         model: GenerateTestsModel,
-        baseTestDirectory: PsiDirectory
+        baseTestDirectory: PsiDirectory,
+        indicator: ProgressIndicator
     ) {
         val requiredUtilClassKind = utilClassListener.requiredUtilClassKind
             ?: return // no util class needed
@@ -170,7 +192,8 @@ object CodeGenerationController {
                 testDirectory = baseTestDirectory,
                 utilClassKind = utilClassKind,
                 existingUtilClass = existingUtilClass,
-                model = model
+                model = model,
+                indicator = indicator
             )
         }
     }
@@ -237,7 +260,8 @@ object CodeGenerationController {
         testDirectory: PsiDirectory,
         utilClassKind: UtilClassKind,
         existingUtilClass: PsiFile?,
-        model: GenerateTestsModel
+        model: GenerateTestsModel,
+        indicator: ProgressIndicator
     ) {
         val language = model.codegenLanguage
 
@@ -247,7 +271,7 @@ object CodeGenerationController {
             // create util class file and put it into utils directory
             createNewUtilClass(utilClassDirectory, language, utilClassKind, model)
         } else {
-            overwriteUtilClass(existingUtilClass, utilClassKind, model)
+            overwriteUtilClass(existingUtilClass, utilClassKind, model, indicator)
         }
 
         val utUtilsClass = runReadAction {
@@ -271,7 +295,8 @@ object CodeGenerationController {
     private fun overwriteUtilClass(
         existingUtilClass: PsiFile,
         utilClassKind: UtilClassKind,
-        model: GenerateTestsModel
+        model: GenerateTestsModel,
+        indicator: ProgressIndicator
     ): PsiFile {
         val utilsClassDocument = runReadAction {
             PsiDocumentManager
@@ -282,8 +307,8 @@ object CodeGenerationController {
 
         val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
 
-        run(EDT_LATER) {
-            run(WRITE_ACTION) {
+        run(EDT_LATER, indicator) {
+            run(WRITE_ACTION, indicator) {
                 unblockDocument(model.project, utilsClassDocument)
                 executeCommand {
                     utilsClassDocument.setText(utUtilsText.replace("jdk.internal.misc", "sun.misc"))
@@ -450,10 +475,10 @@ object CodeGenerationController {
             CodegenLanguage.KOTLIN -> KotlinFileType.INSTANCE
         }
 
-    private fun waitForCountDown(latch: CountDownLatch, timeout: Long = 5, timeUnit: TimeUnit = TimeUnit.SECONDS, action: Runnable) {
+    private fun waitForCountDown(latch: CountDownLatch, timeout: Long = 5, timeUnit: TimeUnit = TimeUnit.SECONDS, indicator : ProgressIndicator, action: Runnable) {
         try {
             if (!latch.await(timeout, timeUnit)) {
-                run(THREAD_POOL) { waitForCountDown(latch, timeout, timeUnit, action) }
+                run(THREAD_POOL, indicator) { waitForCountDown(latch, timeout, timeUnit, indicator, action) }
             } else {
                 action.run()
             }
@@ -559,42 +584,61 @@ object CodeGenerationController {
         filePointer: SmartPsiElementPointer<PsiFile>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
-        utilClassListener: UtilClassListener
+        utilClassListener: UtilClassListener,
+        indicator: ProgressIndicator
     ) {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
-        val paramNames = DumbService.getInstance(model.project)
-            .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
+        val paramNames = try {
+            DumbService.getInstance(model.project)
+                .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
+        } catch (e: Exception) {
+            logger.warn(e) { "Cannot find method param names for ${classUnderTest.name}" }
+            reportsCountDown.countDown()
+            return
+        }
         val testPackageName = testClass.packageName
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
-        run(THREAD_POOL) {
-            val (generatedTestsCode, utilClassKind) = proc.render(
-                testSetsId,
-                classUnderTest,
-                paramNames.toMutableMap(),
-                generateUtilClassFile = true,
-                model.testFramework,
-                model.mockFramework,
-                model.staticsMocking,
-                model.forceStaticMocking,
-                model.generateWarningsForStaticMocking,
-                model.codegenLanguage,
-                model.parametrizedTestSource,
-                model.runtimeExceptionTestsBehaviour,
-                model.hangingTestsTimeout,
-                enableTestsTimeout = true,
-                testPackageName
-            )
+        run(THREAD_POOL, indicator) {
+            val (generatedTestsCode, utilClassKind) = try {
+                proc.render(
+                    testSetsId,
+                    classUnderTest,
+                    paramNames.toMutableMap(),
+                    generateUtilClassFile = true,
+                    model.testFramework,
+                    model.mockFramework,
+                    model.staticsMocking,
+                    model.forceStaticMocking,
+                    model.generateWarningsForStaticMocking,
+                    model.codegenLanguage,
+                    model.parametrizedTestSource,
+                    model.runtimeExceptionTestsBehaviour,
+                    model.hangingTestsTimeout,
+                    enableTestsTimeout = true,
+                    testPackageName
+                )
+            } catch (e: Exception) {
+                logger.warn(e) { "Cannot render test class ${testClass.name}" }
+                reportsCountDown.countDown()
+                return@run
+            }
             utilClassListener.onTestClassGenerated(utilClassKind)
-            run(EDT_LATER) {
-                run(WRITE_ACTION) {
-                    unblockDocument(testClass.project, editor.document)
-                    // TODO: JIRA:1246 - display warnings if we rewrite the file
-                    executeCommand(testClass.project, "Insert Generated Tests") {
-                        editor.document.setText(generatedTestsCode.replace("jdk.internal.misc.Unsafe", "sun.misc.Unsafe"))
+            run(EDT_LATER, indicator) {
+                run(WRITE_ACTION, indicator) {
+                    try {
+                        unblockDocument(testClass.project, editor.document)
+                        // TODO: JIRA:1246 - display warnings if we rewrite the file
+                        executeCommand(testClass.project, "Insert Generated Tests") {
+                            editor.document.setText(generatedTestsCode.replace("jdk.internal.misc.Unsafe", "sun.misc.Unsafe"))
+                        }
+                        unblockDocument(testClass.project, editor.document)
+                    } catch (e: Exception) {
+                        logger.error(e) { "Cannot save document for ${testClass.name}" }
+                        reportsCountDown.countDown()
+                        return@run
                     }
-                    unblockDocument(testClass.project, editor.document)
 
                     // after committing the document the `testClass` is invalid in PsiTree,
                     // so we have to reload it from the corresponding `file`
@@ -602,14 +646,17 @@ object CodeGenerationController {
 
                     // reformatting before creating reports due to
                     // SarifReport requires the final version of the generated tests code
-                    run(THREAD_POOL) {
+                    run(THREAD_POOL, indicator) {
 //                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
-                        run(EDT_LATER) {
-                            runWriteCommandAction(filePointer.project, "UtBot tests reformatting", null, {
-                                reformat(model, filePointer, testClassUpdated)
-                            })
-                            unblockDocument(testClassUpdated.project, editor.document)
-
+                        run(EDT_LATER, indicator) {
+                            try {
+                                runWriteCommandAction(filePointer.project, "UtBot tests reformatting", null, {
+                                    reformat(model, filePointer, testClassUpdated)
+                                })
+                                unblockDocument(testClassUpdated.project, editor.document)
+                            } catch (e : Exception) {
+                                logger.error(e) { "Cannot save Sarif report for ${testClassUpdated.name}" }
+                            }
                             // uploading formatted code
                             val file = filePointer.containingFile
 
@@ -619,11 +666,11 @@ object CodeGenerationController {
                                 testClassUpdated,
                                 classUnderTest,
                                 model,
-                                file?.text?: generatedTestsCode
+                                reportsCountDown,
+                                file?.text ?: generatedTestsCode,
+                                indicator
                             )
                             unblockDocument(testClassUpdated.project, editor.document)
-
-                            reportsCountDown.countDown()
                         }
                     }
                 }
@@ -656,15 +703,17 @@ object CodeGenerationController {
         testClass: PsiClass,
         testClassId: ClassId,
         model: GenerateTestsModel,
+        reportsCountDown: CountDownLatch,
         generatedTestsCode: String,
+        indicator: ProgressIndicator
     ) {
         val project = model.project
 
         try {
             // saving sarif report
             val sourceFinding = SourceFindingStrategyIdea(testClass)
-            executeCommand(testClass.project, "Saving Sarif report") {
-                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, sourceFinding)
+            run(WRITE_ACTION, indicator) {
+                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, sourceFinding, reportsCountDown, indicator)
             }
         } catch (e: Exception) {
             logger.error { e }

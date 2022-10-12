@@ -326,7 +326,7 @@ internal abstract class CgAbstractRenderer(
         if (lines.isEmpty()) return
 
         if (lines.size == 1) {
-            print("/* ${lines.first()} */")
+            println("/* ${lines.first()} */")
             return
         }
 

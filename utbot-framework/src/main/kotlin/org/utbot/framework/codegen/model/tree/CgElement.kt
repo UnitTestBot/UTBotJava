@@ -335,12 +335,13 @@ class CgParameterizedTestDataProviderMethod(
     override val requiredFields: List<CgParameterDeclaration> = emptyList()
 }
 
-enum class CgTestMethodType(val displayName: String) {
-    SUCCESSFUL("Successful tests"),
-    FAILING("Failing tests (with exceptions)"),
-    TIMEOUT("Failing tests (with timeout)"),
-    CRASH("Possibly crashing tests"),
-    PARAMETRIZED("Parametrized tests");
+enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
+    SUCCESSFUL(displayName = "Successful tests without exceptions", isThrowing = false),
+    PASSED_EXCEPTION(displayName = "Thrown exceptions marked as passed", isThrowing = true),
+    FAILING(displayName = "Failing tests (with exceptions)", isThrowing = true),
+    TIMEOUT(displayName = "Failing tests (with timeout)", isThrowing = true),
+    CRASH(displayName = "Possibly crashing tests", isThrowing = true),
+    PARAMETRIZED(displayName = "Parametrized tests", isThrowing = false);
 
     override fun toString(): String = displayName
 }

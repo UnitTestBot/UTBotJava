@@ -10,9 +10,18 @@ import org.utbot.tests.infrastructure.mocksMethod
 import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.Compilation
+import org.utbot.tests.infrastructure.TestExecution
 
-internal class FieldMockTest : UtValueTestCaseChecker(testClass = ServiceWithField::class) {
+internal class FieldMockTest : UtValueTestCaseChecker(
+    testClass = ServiceWithField::class,
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
+    )
+) {
     @Test
     fun testMockForField_callMultipleMethods() {
         checkMocksAndInstrumentation(

@@ -356,7 +356,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 forceMockWarning,
                 forceStaticMockWarnings,
                 testFrameworkWarnings,
-                model.conflictTriggers.triggered
+                model.conflictTriggers.anyTriggered
             )
         )
 

@@ -17,9 +17,9 @@ import org.utbot.tests.infrastructure.CodeGeneration
 internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO generics in lists
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration) // TODO generics in lists
     )
 ) {
     @Test

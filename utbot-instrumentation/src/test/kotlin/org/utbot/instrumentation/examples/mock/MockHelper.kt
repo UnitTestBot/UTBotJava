@@ -1,14 +1,14 @@
 package org.utbot.instrumentation.examples.mock
 
-import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.util.signature
-import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
-import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
-import org.utbot.instrumentation.instrumentation.mock.MockConfig
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
 import org.objectweb.asm.Type
+import org.utbot.common.withAccessibility
+import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
+import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import org.utbot.instrumentation.instrumentation.mock.MockConfig
+import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
 
 /**
  * Helper for generating tests with methods mocks.
@@ -52,8 +52,8 @@ class MockHelper(
             error("Can't mock function returning void!")
         }
 
-        val sign = method.signature
-        val methodId = mockClassVisitor.signatureToId[sign]
+        val computedSignature = computeKeyForMethod(method)
+        val methodId = mockClassVisitor.signatureToId[computedSignature]
 
         val isMockField = instrumentedClazz.getDeclaredField(MockConfig.IS_MOCK_FIELD + methodId)
         MockGetter.updateMocks(instance, method, mockedValues)
@@ -129,7 +129,7 @@ class MockHelper(
         }
 
         fun updateMocks(obj: Any?, method: Method, values: List<*>) {
-            updateMocks(obj, method.signature, values)
+            updateMocks(obj, computeKeyForMethod(method), values)
         }
     }
 }

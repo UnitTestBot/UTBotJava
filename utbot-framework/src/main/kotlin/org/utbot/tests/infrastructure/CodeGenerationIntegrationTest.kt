@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
+import org.utbot.framework.codegen.ParametrizedTestSource
 import java.nio.file.Path
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -29,14 +30,18 @@ import java.nio.file.Path
 abstract class CodeGenerationIntegrationTest(
     private val testClass: KClass<*>,
     private var testCodeGeneration: Boolean = true,
-    private val languagesLastStages: List<CodeGenerationLanguageLastStage> = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
+    private val languagesLastStages: List<TestLastStage> = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN)
     )
 ) {
     private val testSets: MutableList<UtMethodTestSet> = arrayListOf()
 
-    data class CodeGenerationLanguageLastStage(val language: CodegenLanguage, val lastStage: Stage = TestExecution)
+    data class TestLastStage(
+        val language: CodegenLanguage,
+        val lastStage: Stage = TestExecution,
+        val parameterizedModeLastStage: Stage = lastStage,
+    )
 
     fun processTestCase(testSet: UtMethodTestSet) {
         if (testCodeGeneration) testSets += testSet
@@ -91,27 +96,46 @@ abstract class CodeGenerationIntegrationTest(
         val result = packageResult[pkg] ?: return
         try {
             val pipelineErrors = mutableListOf<String?>()
-            languages.map { language ->
+
+            // TODO: leave kotlin & parameterized mode configuration alone for now
+            val pipelineConfigurations = languages
+                .flatMap { language -> parameterizationModes.map { mode -> language to mode } }
+                .filterNot { it == CodegenLanguage.KOTLIN to ParametrizedTestSource.PARAMETRIZE }
+
+            for ((language, parameterizationMode) in pipelineConfigurations) {
                 try {
                     // choose all test cases that should be tested with current language
-                    val resultsWithCurLanguage = result.filter { codeGenerationTestCases ->
-                        codeGenerationTestCases.languagePipelines.any { it.language == language }
+                    val languageSpecificResults = result.filter { codeGenerationTestCases ->
+                        codeGenerationTestCases.lastStages.any { it.language == language }
                     }
 
                     // for each test class choose code generation pipeline stages
-                    val classStages = resultsWithCurLanguage.map { codeGenerationTestCases ->
+                    val classStages = languageSpecificResults.map { codeGenerationTestCases ->
+                        val codeGenerationConfiguration =
+                            codeGenerationTestCases.lastStages.single { it.language == language }
+
+                        val lastStage = when (parameterizationMode) {
+                            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                                codeGenerationConfiguration.lastStage
+                            }
+
+                            ParametrizedTestSource.PARAMETRIZE -> {
+                                codeGenerationConfiguration.parameterizedModeLastStage
+                            }
+                        }
+
                         ClassStages(
                             codeGenerationTestCases.testClass,
                             StageStatusCheck(
                                 firstStage = CodeGeneration,
-                                lastStage = codeGenerationTestCases.languagePipelines.single { it.language == language }.lastStage,
+                                lastStage = lastStage,
                                 status = ExecutionStatus.SUCCESS
                             ),
                             codeGenerationTestCases.testSets
                         )
                     }
 
-                    val config = TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language)
+                    val config = TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language, parameterizationMode)
                     TestCodeGeneratorPipeline(config).runClassesCodeGenerationTests(classStages)
                 } catch (e: RuntimeException) {
                     pipelineErrors.add(e.message)
@@ -138,10 +162,12 @@ abstract class CodeGenerationIntegrationTest(
 
         private val languages = listOf(CodegenLanguage.JAVA, CodegenLanguage.KOTLIN)
 
+        private val parameterizationModes = listOf(ParametrizedTestSource.DO_NOT_PARAMETRIZE, ParametrizedTestSource.PARAMETRIZE)
+
         data class CodeGenerationTestCases(
             val testClass: KClass<*>,
             val testSets: List<UtMethodTestSet>,
-            val languagePipelines: List<CodeGenerationLanguageLastStage>
+            val lastStages: List<TestLastStage>
         )
 
         class ReadRunningTestsNumberBeforeAllTestsCallback : BeforeAllCallback {

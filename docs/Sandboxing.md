@@ -1,8 +1,8 @@
 # Sandboxing tests with Java Security Manager
 
-## What is a sandbox?
+## What is sandboxing?
 
-Sandbox is a testing environment that isolates unsafe code fragments and prevents them from being executed.
+Sandboxing is a security technique to find unsafe code fragments and prevent them from being executed.
 
 What do we mean by "unsafe code" in Java? The most common forbidden actions are:
 
@@ -14,7 +14,10 @@ What do we mean by "unsafe code" in Java? The most common forbidden actions are:
 
 ## Why do we need sandboxing for test generation?
 
-During test generation, UnitTestBot executes the source code with the concrete values. All the fuzzer runs require concrete execution and some of the symbolic execution processes invoke it as well. If the source code contains potentially unsafe operations, executing them with the concrete values may lead to fatal errors. It is safer to isolate these operations and break the generation process with an alert.
+During test generation, UnitTestBot executes the source code with the concrete values. All the fuzzer runs require 
+concrete execution and some of the symbolic execution processes invoke it as well. If the source code contains 
+potentially unsafe operations, executing them with the concrete values may lead to fatal errors. It is safer to catch 
+these operations and break the concrete execution process with `AccessControlException` thrown.
 
 ## What do the sandboxed tests look like?
 
@@ -32,9 +35,9 @@ When the source code fragments are suspicious and the corresponding test generat
             com.company.security.SecurityCheck.property(SecurityCheck.java:32) */
     }
 
-## How does UnitTestBot create a sandbox?
+## How does UnitTestBot sandbox code execution?
 
-UnitTestBot for Java/Kotlin uses [Java Security Manager](https://docs.oracle.com/javase/tutorial/essential/environment/security.html) for sandboxing. In general, the Security Manager allows applications to implement a security policy. It determines whether an operation is potentially safe or not and creates a sandbox if needed.
+UnitTestBot for Java/Kotlin uses [Java Security Manager](https://docs.oracle.com/javase/tutorial/essential/environment/security.html) for sandboxing. In general, the Security Manager allows applications to implement a security policy. It determines whether an operation is potentially safe or not and interrupts the execution if needed.
 
 In UnitTestBot the **secure mode is enabled by default**: only a small subset of runtime permissions necessary for 
 test generation are given (e.g. fields reflection is permitted by default). To extend the list of permissions learn 
@@ -44,7 +47,7 @@ Java Security Manager monitors [all the code](https://github.com/UnitTestBot/UTB
 
 ## How to handle sandboxing
 
-You can **add permissions** by creating and editing the ~\.utbot\sandbox.policy file. Find more about [Policy File and Syntax](https://docs.oracle.com/javase/7/docs/technotes/guides/security/PolicyFiles.html#Examples) and refer to the [Full list of permissions](https://docs.oracle.com/javase/1.5.0/docs/guide/security/spec/security-spec.doc3.html) to choose the proper approach.
+You can **add permissions** by creating and editing the `~\.utbot\sandbox.policy` file. Find more about [Policy File and Syntax](https://docs.oracle.com/javase/7/docs/technotes/guides/security/PolicyFiles.html#Examples) and refer to the [Full list of permissions](https://docs.oracle.com/javase/1.5.0/docs/guide/security/spec/security-spec.doc3.html) to choose the proper approach.
 
 If the permission was added but somehow [not recognized](https://github.com/UnitTestBot/UTBotJava/issues/796), the UnitTestBot plugin will fail to start and generate no tests.
 
@@ -52,7 +55,8 @@ If you are sure you want the code to be executed as is (**including the unsafe o
 
 * You can add `AllPermission`  to `~\.utbot\sandbox.policy`. Be careful!
 * Alternatively, you can add `useSandbox=false` to `~\.utbot\settings.properties`. Create this file manually if you don't have one. Find [more information](https://github.com/UnitTestBot/UTBotJava/pull/857) on how to manage sandboxing to test the UnitTestBot plugin itself.
-* If you remove the `@Disabled` annotation and run the test, it will be run without creating a sandbox.
+
+It is reasonable to regard the `@Disabled` tests just as supplemental information about the source code, not as the tests for actual usage.
 
 ## How to improve sandboxing
 
@@ -81,17 +85,15 @@ TestNG: `@Ignore` as an alternative to `@Test(enabled=false)`
 
 3. We need to add emulation for restricted operations (a kind of mocks)
 
-   Emulating unsafe operations in a sandbox will allow UnitTestBot to generate and run tests instead of disabling them.
-
+   Emulating unsafe operations will allow UnitTestBot to generate useful tests even for the sandboxed code and run them instead of disabling.
 
 4. We need to provide a user with the sandboxing settings.
 
-   UnitTestBot user has no information about configuring the behavior of Security Manager. Information on [How to 
+   The UnitTestBot plugin UI provides no information about configuring the behavior of Security Manager. Information on [How to 
   handle 
 sandboxing](#How-to-handle-sandboxing) is available only on GitHub.
 
-* Should we add Sandboxing (or Security Manager) settings to plugin UI? E.g.: **File operations: Forbidden / Allowed 
- / Emulated in sandbox**.
+* Should we add Sandboxing (or Security Manager) settings to plugin UI? E.g.: **File operations: Forbidden / Allowed / Emulated in sandbox**.
 
 * Should we add a hyperlink to a piece of related documentation or to the `~\.utbot\sandbox.policy` file?
 

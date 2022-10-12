@@ -1,8 +1,8 @@
 package org.utbot.framework.concrete
 
-import org.utbot.framework.plugin.api.util.signature
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
+import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
 
 /**
  * Some information, which is computed after classes instrumentation.
@@ -66,7 +66,7 @@ class InstrumentationContext {
         }
 
         fun updateMocks(obj: Any?, method: Method, values: List<*>) {
-            updateMocks(obj, method.signature, values)
+            updateMocks(obj, computeKeyForMethod(method), values)
         }
     }
 }

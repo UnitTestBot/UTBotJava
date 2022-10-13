@@ -26,6 +26,7 @@ class EngineProcessProtocolRoot private constructor(
         override fun registerSerializersCore(serializers: ISerializers)  {
             EngineProcessProtocolRoot.register(serializers)
             EngineProcessModel.register(serializers)
+            RdInstrumenterAdapter.register(serializers)
             RdSourceFindingStrategy.register(serializers)
         }
         

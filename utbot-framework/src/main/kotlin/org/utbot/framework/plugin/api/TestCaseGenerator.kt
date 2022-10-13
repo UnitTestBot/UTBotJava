@@ -52,14 +52,14 @@ import kotlin.reflect.KCallable
  * Generates test cases: one by one or a whole set for the method under test.
  *
  * Note: the instantiating of [TestCaseGenerator] may take some time,
- * because it requires initializing Soot for the current [buildDir] and [classpath].
+ * because it requires initializing Soot for the current [buildDirs] and [classpath].
  *
  * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's code.
- * @param forceSootReload forces to reinitialize Soot even if the previous buildDir equals to [buildDir] and previous
+ * @param forceSootReload forces to reinitialize Soot even if the previous buildDirs equals to [buildDirs] and previous
  * classpath equals to [classpath]. This is the case for plugin scenario, as the source code may be modified.
  */
 open class TestCaseGenerator(
-    private val buildDir: Path,
+    private val buildDirs: List<Path>,
     private val classpath: String?,
     private val dependencyPaths: String,
     private val jdkInfo: JdkInfo,
@@ -71,13 +71,13 @@ open class TestCaseGenerator(
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
 
     private val classpathForEngine: String
-        get() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
+        get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
 
     init {
         if (!isCanceled()) {
             checkFrameworkDependencies(dependencyPaths)
 
-            logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
+            logger.trace("Initializing ${this.javaClass.name} with buildDirs = ${buildDirs.joinToString(File.pathSeparator)}, classpath = $classpath")
 
 
             if (disableCoroutinesDebug) {
@@ -85,7 +85,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                SootUtils.runSoot(buildDir, classpath, forceSootReload, jdkInfo)
+                SootUtils.runSoot(buildDirs, classpath, forceSootReload, jdkInfo)
             }
 
             //warmup
@@ -124,10 +124,15 @@ open class TestCaseGenerator(
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
-        val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
-        engineActions.map { engine.apply(it) }
-        engineActions.clear()
-        return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
+        try {
+            val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
+            engineActions.map { engine.apply(it) }
+            engineActions.clear()
+            return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
+        } catch (e: Exception) {
+            logger.error(e) {"Generate async failed"}
+            throw e
+        }
     }
 
     fun generate(
@@ -154,29 +159,34 @@ open class TestCaseGenerator(
                     controller.job = launch(currentUtContext) {
                         if (!isActive) return@launch
 
-                        //yield one to
-                        yield()
+                        try {
+                            //yield one to
+                            yield()
 
-                        val engine: UtBotSymbolicEngine = createSymbolicEngine(
-                            controller,
-                            method,
-                            mockStrategy,
-                            chosenClassesToMockAlways,
-                            executionTimeEstimator
-                        )
+                            val engine: UtBotSymbolicEngine = createSymbolicEngine(
+                                controller,
+                                method,
+                                mockStrategy,
+                                chosenClassesToMockAlways,
+                                executionTimeEstimator
+                            )
 
-                        engineActions.map { engine.apply(it) }
+                            engineActions.map { engine.apply(it) }
 
-                        generate(engine)
-                            .catch {
-                                logger.error(it) { "Error in flow" }
-                            }
-                            .collect {
-                                when (it) {
-                                    is UtExecution -> method2executions.getValue(method) += it
-                                    is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                            generate(engine)
+                                .catch {
+                                    logger.error(it) { "Error in flow" }
                                 }
-                            }
+                                .collect {
+                                    when (it) {
+                                        is UtExecution -> method2executions.getValue(method) += it
+                                        is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                    }
+                                }
+                        } catch (e: Exception) {
+                            logger.error(e) {"Error in engine"}
+                            throw e
+                        }
                     }
                     controller.paused = true
                 }
@@ -184,6 +194,7 @@ open class TestCaseGenerator(
                 // All jobs are in the method2controller now (paused). execute them with timeout
 
                 GlobalScope.launch {
+                    logger.debug("test generator global scope lifecycle check started")
                     while (isActive) {
                         var activeCount = 0
                         for ((method, controller) in method2controller) {
@@ -209,6 +220,7 @@ open class TestCaseGenerator(
                         }
                         if (activeCount == 0) break
                     }
+                    logger.debug("test generator global scope lifecycle check ended")
                 }
             }
         }

@@ -18,9 +18,9 @@ import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

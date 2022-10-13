@@ -80,11 +80,11 @@ class SettingsWindow(val project: Project) {
                     step = 50,
                 )
 
-                label("milliseconds")
+                label("milliseconds per method")
                     .apply {
                         ContextHelpLabel.create(
-                            "Test generation may hang due to infinite loops or other code conditions. " +
-                                    "Set timeout to stop waiting for hanging process."
+                            "Set this timeout to define which test is \"hanging\". Increase it to test the " +
+                                    "time-consuming method or decrease if the execution speed is critical for you."
                         )()
                     }
             }

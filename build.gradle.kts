@@ -1,3 +1,4 @@
+import java.text.SimpleDateFormat
 import org.gradle.api.JavaVersion.VERSION_11
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -8,8 +9,9 @@ val semVer: String? by project
 val coroutinesVersion: String by project
 val collectionsVersion: String by project
 val junit5Version: String by project
+val dateBasedVersion: String = SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis()) // CI proceeds the same way
 
-version = semVer ?: "1.0-SNAPSHOT"
+version = semVer ?: "$dateBasedVersion-SNAPSHOT"
 
 plugins {
     `java-library`
@@ -65,7 +67,7 @@ allprojects {
                 override fun beforeSuite(suite: TestDescriptor) {}
                 override fun beforeTest(testDescriptor: TestDescriptor) {}
                 override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {
-                    println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType")
+                    println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType, length - ${(result.endTime - result.startTime) / 1000.0} sec")
                 }
 
                 override fun afterSuite(testDescriptor: TestDescriptor, result: TestResult) {

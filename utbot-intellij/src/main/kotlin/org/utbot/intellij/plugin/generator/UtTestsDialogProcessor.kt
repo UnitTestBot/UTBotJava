@@ -1,12 +1,9 @@
 package org.utbot.intellij.plugin.generator
 
-import com.intellij.compiler.impl.CompositeScope
-import com.intellij.compiler.impl.OneProjectItemCompileScope
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.compiler.CompileContext
-import com.intellij.openapi.compiler.CompilerManager
 import com.intellij.openapi.compiler.CompilerPaths
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -21,49 +18,38 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.task.ProjectTaskManager
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.intellij.util.containers.nullize
+import com.intellij.util.io.exists
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
-import org.utbot.analytics.EngineAnalyticsContext
-import org.utbot.analytics.Predictors
-import org.utbot.common.allNestedClasses
-import org.utbot.engine.util.mockListeners.ForceMockListener
-import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.testFlow
-import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
-import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.services.JdkInfoService
+import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.process.EngineProcess
+import org.utbot.intellij.plugin.process.RdTestGenerationResult
+import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.intellij.plugin.util.IntelliJApiHelper
-import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
-import org.utbot.intellij.plugin.util.signature
-import org.utbot.summary.summarize
+import org.utbot.intellij.plugin.util.*
+import org.utbot.rd.terminateOnException
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import org.utbot.engine.util.mockListeners.ForceStaticMockListener
-import org.utbot.framework.PathSelectorType
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.services.WorkingDirService
-import org.utbot.intellij.plugin.models.packageName
-import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
-import kotlin.reflect.KClass
-import kotlin.reflect.full.functions
+import kotlin.io.path.pathString
 
 object UtTestsDialogProcessor {
 
@@ -116,172 +102,163 @@ object UtTestsDialogProcessor {
     }
 
     private fun createTests(project: Project, model: GenerateTestsModel) {
-        CompilerManager.getInstance(project)
-            .make(
-                // Compile only chosen classes and their dependencies before generation.
-                CompositeScope(
-                    model.srcClasses.map { OneProjectItemCompileScope(project, it.containingFile.virtualFile) }
-                        .toTypedArray()
-                )
-            ) { aborted: Boolean, errors: Int, _: Int, _: CompileContext ->
-                if (!aborted && errors == 0) {
-                    (object : Task.Backgroundable(project, "Generate tests") {
+        val promise = ProjectTaskManager.getInstance(project).compile(
+            // Compile only chosen classes and their dependencies before generation.
+            *model.srcClasses.map { it.containingFile.virtualFile }.toTypedArray()
+        )
+        promise.onSuccess {
+            if (it.hasErrors() || it.isAborted)
+                return@onSuccess
 
-                        override fun run(indicator: ProgressIndicator) {
-                            val startTime = System.currentTimeMillis()
-                            val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
-                            val totalTimeout = model.timeout * model.srcClasses.size
+            (object : Task.Backgroundable(project, "Generate tests") {
 
-                            indicator.isIndeterminate = false
-                            indicator.text = "Generate tests: read classes"
+                override fun run(indicator: ProgressIndicator) {
+                    val ldef = LifetimeDefinition()
+                    ldef.terminateOnException { lifetime ->
+                        val startTime = System.currentTimeMillis()
+                        val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
+                        val totalTimeout = model.timeout * model.srcClasses.size
 
-                            val timerHandler = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
-                                indicator.fraction = (System.currentTimeMillis() - startTime).toDouble() / totalTimeout
+                        indicator.isIndeterminate = false
+                        indicator.text = "Generate tests: read classes"
+
+                        val timerHandler =
+                            AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
+                                indicator.fraction =
+                                    (System.currentTimeMillis() - startTime).toDouble() / totalTimeout
                             }, 0, 500, TimeUnit.MILLISECONDS)
 
-                            val buildPaths = ReadAction
-                                .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
-                                .executeSynchronously()
-                                ?: return
+                        val buildPaths = ReadAction
+                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
+                            .executeSynchronously()
+                            ?: return
 
-                            val (buildDir, classpath, classpathList, pluginJarsPath) = buildPaths
-                            val classLoader = urlClassLoader(listOf(buildDir) + classpathList)
-                            val context = UtContext(classLoader)
+                        val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
-                            val testSetsByClass = mutableMapOf<PsiClass, List<UtMethodTestSet>>()
-                            val psi2KClass = mutableMapOf<PsiClass, KClass<*>>()
-                            var processedClasses = 0
-                            val totalClasses = model.srcClasses.size
+                        val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
+                        val psi2KClass = mutableMapOf<PsiClass, ClassId>()
+                        var processedClasses = 0
+                        val totalClasses = model.srcClasses.size
 
-                            configureML()
+                        val proc = EngineProcess(lifetime, project)
 
-                            val testCaseGenerator = TestCaseGenerator(
-                                Paths.get(buildDir),
-                                classpath,
-                                pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                JdkInfoService.provide(),
-                                isCanceled = { indicator.isCanceled })
+                        proc.setupUtContext(buildDirs + classpathList)
+                        proc.createTestGenerator(
+                            buildDirs,
+                            classpath,
+                            pluginJarsPath.joinToString(separator = File.pathSeparator),
+                            JdkInfoService.provide()
+                        ) {
+                            ApplicationManager.getApplication().runReadAction(Computable {
+                                indicator.isCanceled
+                            })
+                        }
 
-                            for (srcClass in model.srcClasses) {
-                                val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
+                        for (srcClass in model.srcClasses) {
+                            val (methods, className) = DumbService.getInstance(project)
+                                .runReadActionInSmartMode(Computable {
                                     val canonicalName = srcClass.canonicalName
-                                    val clazz = classLoader.loadClass(canonicalName).kotlin
-                                    psi2KClass[srcClass] = clazz
+                                    val classId = proc.obtainClassId(canonicalName)
+                                    psi2KClass[srcClass] = classId
 
                                     val srcMethods = if (model.extractMembersFromSrcClasses) {
                                         val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
-                                        val chosenNestedClasses = model.selectedMembers.mapNotNull { it.member as? PsiClass }
+                                        val chosenNestedClasses =
+                                            model.selectedMembers.mapNotNull { it.member as? PsiClass }
                                         chosenMethods + chosenNestedClasses.flatMap {
                                             it.extractClassMethodsIncludingNested(false)
                                         }
                                     } else {
                                         srcClass.extractClassMethodsIncludingNested(false)
                                     }
-                                    DumbService.getInstance(project).runReadActionInSmartMode(Computable {
-                                        clazz.allNestedClasses.flatMap {
-                                            findMethodsInClassMatchingSelected(it, srcMethods)
-                                        }
-                                    }) to srcClass.name
-                                }.executeSynchronously()
+                                    proc.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
+                                })
 
-                                if (methods.isEmpty()) {
-                                    logger.error { "No methods matching selected found in class $className." }
-                                    continue
+                            if (methods.isEmpty()) {
+                                logger.error { "No methods matching selected found in class $className." }
+                                continue
+                            }
+
+                            indicator.text = "Generate test cases for class $className"
+                            if (totalClasses > 1) {
+                                indicator.fraction =
+                                    indicator.fraction.coerceAtLeast(0.9 * processedClasses / totalClasses)
+                            }
+
+                            // set timeout for concrete execution and for generated tests
+                            UtSettings.concreteExecutionTimeoutInChildProcess =
+                                model.hangingTestsTimeout.timeoutMs
+
+                            UtSettings.useCustomJavaDocTags =
+                                model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+
+                            val searchDirectory = ReadAction
+                                .nonBlocking<Path> {
+                                    project.basePath?.let { Paths.get(it) }
+                                        ?: Paths.get(srcClass.containingFile.virtualFile.parent.path)
                                 }
+                                .executeSynchronously()
 
-                                indicator.text = "Generate test cases for class $className"
-                                if (totalClasses > 1) {
-                                    indicator.fraction =
-                                        indicator.fraction.coerceAtLeast(0.9 * processedClasses / totalClasses)
-                                }
+                            withStaticsSubstitutionRequired(true) {
+                                val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
-                                // set timeout for concrete execution and for generated tests
-                                UtSettings.concreteExecutionTimeoutInChildProcess = model.hangingTestsTimeout.timeoutMs
+                                val rdGenerateResult = proc.generate(
+                                    mockFrameworkInstalled,
+                                    model.staticsMocking.isConfigured,
+                                    model.conflictTriggers,
+                                    methods,
+                                    model.mockStrategy,
+                                    model.chosenClassesToMockAlways,
+                                    model.timeout,
+                                    model.timeout,
+                                    true,
+                                    UtSettings.useFuzzing,
+                                    project.service<Settings>().fuzzingValue,
+                                    searchDirectory.pathString
+                                )
 
-                                UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-
-                                val searchDirectory = ReadAction
-                                    .nonBlocking<Path> {
-                                        project.basePath?.let { Paths.get(it) }
-                                            ?: Paths.get(srcClass.containingFile.virtualFile.parent.path)
-                                    }
-                                    .executeSynchronously()
-
-                                withStaticsSubstitutionRequired(true) {
-                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
-
-                                    if (!mockFrameworkInstalled) {
-                                        ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
-                                    }
-
-                                    if (!model.staticsMocking.isConfigured) {
-                                        ForceStaticMockListener.create(testCaseGenerator, model.conflictTriggers)
-                                    }
-
-                                    val notEmptyCases = runCatching {
-                                        withUtContext(context) {
-                                            testCaseGenerator
-                                                .generate(
-                                                    methods,
-                                                    model.mockStrategy,
-                                                    model.chosenClassesToMockAlways,
-                                                    model.timeout,
-                                                    generate = testFlow {
-                                                        generationTimeout = model.timeout
-                                                        isSymbolicEngineEnabled = true
-                                                        isFuzzingEnabled = UtSettings.useFuzzing
-                                                        fuzzingValue = project.service<Settings>().fuzzingValue
-                                                    }
-                                                )
-                                                .map { it.summarize(searchDirectory) }
-                                                .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
-                                        }
-                                    }.getOrDefault(listOf())
-
-                                    if (notEmptyCases.isEmpty()) {
-                                        if (model.srcClasses.size > 1) {
-                                            logger.error { "Failed to generate any tests cases for class $className" }
-                                        } else {
-                                            showErrorDialogLater(
-                                                model.project,
-                                                errorMessage(className, secondsTimeout),
-                                                title = "Failed to generate unit tests for class $className"
-                                            )
-                                        }
+                                if (rdGenerateResult.notEmptyCases == 0) {
+                                    if (model.srcClasses.size > 1) {
+                                        logger.error { "Failed to generate any tests cases for class $className" }
                                     } else {
-                                        testSetsByClass[srcClass] = notEmptyCases
+                                        showErrorDialogLater(
+                                            model.project,
+                                            errorMessage(className, secondsTimeout),
+                                            title = "Failed to generate unit tests for class $className"
+                                        )
                                     }
-
-                                    timerHandler.cancel(true)
+                                } else {
+                                    testSetsByClass[srcClass] = rdGenerateResult
                                 }
-                                processedClasses++
-                            }
 
-                            if (processedClasses == 0) {
-                                invokeLater {
-                                    Messages.showInfoMessage(
-                                        model.project,
-                                        "No methods for test generation were found among selected items",
-                                        "No methods found"
-                                    )
-                                }
-                                return
+                                timerHandler.cancel(true)
                             }
-
-                            indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
-                            indicator.text = "Generate code for tests"
-                            // Commented out to generate tests for collected executions even if action was canceled.
-                            // indicator.checkCanceled()
-
-                            invokeLater {
-                                withUtContext(context) {
-                                    generateTests(model, testSetsByClass, psi2KClass)
-                                }
-                            }
+                            processedClasses++
                         }
-                    }).queue()
+
+                        if (processedClasses == 0) {
+                            invokeLater {
+                                Messages.showInfoMessage(
+                                    model.project,
+                                    "No methods for test generation were found among selected items",
+                                    "No methods found"
+                                )
+                            }
+                            return
+                        }
+
+                        indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
+                        indicator.text = "Generate code for tests"
+                        // Commented out to generate tests for collected executions even if action was canceled.
+                        // indicator.checkCanceled()
+
+                        invokeLater {
+                            generateTests(model, testSetsByClass, psi2KClass, proc)
+                        }
+                    }
                 }
-            }
+            }).queue()
+        }
     }
 
     private val PsiClass.canonicalName: String
@@ -292,53 +269,10 @@ object UtTestsDialogProcessor {
                 val name = qualifiedName
                     ?.substringAfter("$packageName.")
                     ?.replace(".", "$")
-                    ?: ""
+                    ?: error("Unable to get canonical name for $this")
                 "$packageName.$name"
             }
         }
-
-    /**
-     * Configures utbot-analytics models for the better path selection.
-     *
-     * NOTE: If analytics configuration for the NN Path Selector could not be loaded,
-     * it switches to the [PathSelectorType.INHERITORS_SELECTOR].
-     */
-    private fun configureML() {
-        logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
-
-        if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
-            val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
-            tryToSetUpMLSelector(analyticsConfigurationClassPath)
-        }
-
-        if (UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
-            val analyticsConfigurationClassPath = UtSettings.analyticsTorchConfigurationClassPath
-            tryToSetUpMLSelector(analyticsConfigurationClassPath)
-        }
-    }
-
-    private fun tryToSetUpMLSelector(analyticsConfigurationClassPath: String) {
-        try {
-            Class.forName(analyticsConfigurationClassPath)
-            Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
-
-            logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
-        } catch (e: ClassNotFoundException) {
-            logger.error {
-                "Configuration of the predictors from the utbot-analytics module described in the class: " +
-                        "$analyticsConfigurationClassPath is not found!"
-            }
-
-            logger.info(e) {
-                "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
-            }
-            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
-        }
-        catch (e: Exception) { // engine not found, for example
-            logger.error { e.message }
-            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
-        }
-    }
 
     private fun errorMessage(className: String?, timeout: Long) = buildString {
         appendLine("UtBot failed to generate any test cases for class $className.")
@@ -346,20 +280,6 @@ object UtTestsDialogProcessor {
         appendLine("Try to alter test generation configuration, e.g. enable mocking and static mocking.")
         appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
-
-    private fun findMethodsInClassMatchingSelected(
-        clazz: KClass<*>,
-        selectedMethods: List<MemberInfo>
-    ): List<ExecutableId> {
-        val selectedSignatures = selectedMethods.map { it.signature() }
-        return clazz.functions
-            .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
-            .filter { it.signature().normalized() in selectedSignatures }
-            .map { it.executableId }
-    }
-
-    private fun urlClassLoader(classpath: List<String>) =
-        URLClassLoader(classpath.map { File(it).toURI().toURL() }.toTypedArray())
 
     private fun findSrcModule(srcClasses: Set<PsiClass>): Module {
         val srcModules = srcClasses.mapNotNull { it.module }.distinct()
@@ -372,7 +292,12 @@ object UtTestsDialogProcessor {
 
     private fun findPaths(srcClasses: Set<PsiClass>): BuildPaths? {
         val srcModule = findSrcModule(srcClasses)
-        val buildDir = CompilerPaths.getModuleOutputPath(srcModule, false) ?: return null
+
+        val buildDirs = CompilerPaths.getOutputPaths(arrayOf(srcModule))
+            .toList()
+            .filter { Paths.get(it).exists() }
+            .nullize() ?: return null
+
         val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
 
         val (classpath, classpathList) = if (IntelliJApiHelper.isAndroidStudio()) {
@@ -390,11 +315,11 @@ object UtTestsDialogProcessor {
         }
         val pluginJarsPath = Paths.get(PathManager.getPluginsPath(), "utbot-intellij", "lib").toFile().listFiles()
             ?: error("Can't find plugin folder.")
-        return BuildPaths(buildDir, classpath, classpathList, pluginJarsPath.map { it.path })
+        return BuildPaths(buildDirs, classpath, classpathList, pluginJarsPath.map { it.path })
     }
 
     data class BuildPaths(
-        val buildDir: String,
+        val buildDirs: List<String>,
         val classpath: String,
         val classpathList: List<String>,
         val pluginJarsPath: List<String>

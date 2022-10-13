@@ -17,19 +17,24 @@ class DirectAccessorsAnalyzer {
      */
     fun collectDirectAccesses(classIds: Set<ClassId>): Set<DirectFieldAccessId> =
         classIds
-            .flatMap { classId -> collectFieldsInPackage(classId) }
+            .flatMap { classId -> collectFields(classId) }
             .map { fieldId -> DirectFieldAccessId(fieldId.declaringClass, directSetterName(fieldId), fieldId) }
             .toSet()
 
     /**
-     * Collect all fields with different non-private modifiers from class [classId].
+     * Collect all fields with different non-private modifiers
+     * from class [classId] or it's base classes.
      */
-    private fun collectFieldsInPackage(classId: ClassId): Set<FieldId> {
-        val clazz = classId.jClass
+    private fun collectFields(classId: ClassId): Set<FieldId> {
+        var clazz = classId.jClass
 
         val fieldIds = mutableSetOf<Field>()
-        fieldIds += clazz.fields
         fieldIds += clazz.declaredFields.filterNot { Modifier.isPrivate(it.modifiers) }
+        while (clazz.superclass != null) {
+            clazz = clazz.superclass
+            fieldIds += clazz.declaredFields.filterNot { Modifier.isPrivate(it.modifiers) }
+        }
+
 
         return fieldIds.map { it.fieldId }.toSet()
     }

@@ -219,10 +219,10 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
         )
 
         val clusterInfo = listOf(
-            Pair(UtClusterInfo("SYMBOLIC EXECUTION ENGINE: SUCCESSFUL EXECUTIONS #0 for method ofDoubles(double[])", null), 3),
+            Pair(UtClusterInfo("SYMBOLIC EXECUTION: SUCCESSFUL EXECUTIONS #0 for method ofDoubles(double[])", null), 3),
             Pair(
                 UtClusterInfo(
-                    "SYMBOLIC EXECUTION ENGINE: SUCCESSFUL EXECUTIONS #1 for method ofDoubles(double[])", "\n" +
+                    "SYMBOLIC EXECUTION: SUCCESSFUL EXECUTIONS #1 for method ofDoubles(double[])", "\n" +
                             "Common steps:\n" +
                             "<pre>\n" +
                             "Tests execute conditions:\n" +
@@ -246,7 +246,7 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
                             "</pre>"
                 ), 3
             ),
-            Pair(UtClusterInfo("SYMBOLIC EXECUTION ENGINE: ERROR SUITE for method ofDoubles(double[])", null), 1)
+            Pair(UtClusterInfo("SYMBOLIC EXECUTION: ERROR SUITE for method ofDoubles(double[])", null), 1)
         )
 
         summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, clusterInfo)

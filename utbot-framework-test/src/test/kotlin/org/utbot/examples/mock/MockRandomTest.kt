@@ -11,9 +11,21 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import java.util.Random
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.Compilation
+import org.utbot.tests.infrastructure.TestExecution
 
-internal class MockRandomTest : UtValueTestCaseChecker(testClass = MockRandomExamples::class) {
+// TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
+internal class MockRandomTest : UtValueTestCaseChecker(
+    testClass = MockRandomExamples::class,
+    testCodeGeneration = true,
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
+    )
+) {
     @Test
     fun testRandomAsParameter() {
         val method: Random.() -> Int = Random::nextInt

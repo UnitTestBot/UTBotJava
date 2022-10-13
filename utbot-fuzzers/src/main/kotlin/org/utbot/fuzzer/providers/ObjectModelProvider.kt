@@ -27,6 +27,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.objects.FuzzerMockableMethodId
 import org.utbot.fuzzer.objects.assembleModel
 
 /**
@@ -34,9 +35,9 @@ import org.utbot.fuzzer.objects.assembleModel
  */
 class ObjectModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
-    recursionDepthLeft: Int = 1,
+    recursionDepthLeft: Int = 2,
 ) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
-    override fun newInstance(parentProvider: RecursiveModelProvider): RecursiveModelProvider {
+    override fun newInstance(parentProvider: RecursiveModelProvider, constructor: ModelConstructor): RecursiveModelProvider {
         val newInstance = ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
         newInstance.copySettings(parentProvider)
         newInstance.branchingLimit = 1
@@ -62,9 +63,9 @@ class ObjectModelProvider(
         )
 
         constructors.forEach { constructorId ->
-            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId) }) {
-                assembleModel(idGenerator.createId(), constructorId, it)
-            })
+            // When branching limit = 1 this block tries to create new values
+            // and mutate some fields. Only if there's no option next block
+            // with empty constructor should be used.
             if (constructorId.parameters.isEmpty()) {
                 val fields = findSuitableFields(constructorId.classId, description)
                 if (fields.isNotEmpty()) {
@@ -75,6 +76,9 @@ class ObjectModelProvider(
                     )
                 }
             }
+            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId) }) {
+                assembleModel(idGenerator.createId(), constructorId, it)
+            })
         }
     }
 
@@ -98,11 +102,22 @@ class ObjectModelProvider(
                 )
                 field.setter != null -> UtExecutableCallModel(
                     fuzzedModel.model,
-                    MethodId(
+                    FuzzerMockableMethodId(
                         constructorId.classId,
                         field.setter.name,
                         field.setter.returnType.id,
-                        listOf(field.classId)
+                        listOf(field.classId),
+                        mock = {
+                            field.getter?.let { g ->
+                                val getterMethodID = MethodId(
+                                    classId = constructorId.classId,
+                                    name = g.name,
+                                    returnType = g.returnType.id,
+                                    parameters = emptyList()
+                                )
+                                mapOf(getterMethodID to listOf(value.model))
+                            } ?: emptyMap()
+                        }
                     ),
                     listOf(value.model)
                 )
@@ -141,16 +156,23 @@ class ObjectModelProvider(
         private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {
             val jClass = classId.jClass
             return jClass.declaredFields.map { field ->
+                val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, description)
                 FieldDescription(
-                    field.name,
-                    field.type.id,
-                    isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
-                    jClass.findPublicSetterIfHasPublicGetter(field, description)
+                    name = field.name,
+                    classId = field.type.id,
+                    canBeSetDirectly = isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
+                    setter = setterAndGetter?.setter,
+                    getter = setterAndGetter?.getter,
                 )
             }
         }
 
-        private fun Class<*>.findPublicSetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): Method? {
+        private class PublicSetterGetter(
+            val setter: Method,
+            val getter: Method,
+        )
+
+        private fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): PublicSetterGetter? {
             val postfixName = field.name.capitalize()
             val setterName = "set$postfixName"
             val getterName = "get$postfixName"
@@ -161,7 +183,7 @@ class ObjectModelProvider(
                             it.name == setterName &&
                             it.parameterCount == 1 &&
                             it.parameterTypes[0] == field.type
-                }
+                }?.let { PublicSetterGetter(it, getter) }
             } else {
                 null
             }
@@ -181,6 +203,7 @@ class ObjectModelProvider(
             val classId: ClassId,
             val canBeSetDirectly: Boolean,
             val setter: Method?,
+            val getter: Method?
         )
     }
 }

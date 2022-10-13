@@ -335,12 +335,13 @@ class CgParameterizedTestDataProviderMethod(
     override val requiredFields: List<CgParameterDeclaration> = emptyList()
 }
 
-enum class CgTestMethodType(val displayName: String) {
-    SUCCESSFUL("Successful tests"),
-    FAILING("Failing tests (with exceptions)"),
-    TIMEOUT("Failing tests (with timeout)"),
-    CRASH("Possibly crashing tests"),
-    PARAMETRIZED("Parametrized tests");
+enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
+    SUCCESSFUL(displayName = "Successful tests without exceptions", isThrowing = false),
+    PASSED_EXCEPTION(displayName = "Thrown exceptions marked as passed", isThrowing = true),
+    FAILING(displayName = "Failing tests (with exceptions)", isThrowing = true),
+    TIMEOUT(displayName = "Failing tests (with timeout)", isThrowing = true),
+    CRASH(displayName = "Possibly crashing tests", isThrowing = true),
+    PARAMETRIZED(displayName = "Parametrized tests", isThrowing = false);
 
     override fun toString(): String = displayName
 }
@@ -745,13 +746,11 @@ data class CgParameterDeclaration(
 
 /**
  * Test method parameter can be one of the following types:
- * - this instance for method under test (MUT)
  * - argument of MUT with a certain index
  * - result expected from MUT with the given arguments
  * - exception expected from MUT with the given arguments
  */
 sealed class CgParameterKind {
-    object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
     data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()

@@ -14,9 +14,9 @@ import org.utbot.tests.infrastructure.CodeGeneration
 internal class IntArrayBasicsTest : UtValueTestCaseChecker(
     testClass = IntArrayBasics::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

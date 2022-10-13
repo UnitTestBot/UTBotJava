@@ -14,6 +14,7 @@ import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
+import org.utbot.common.getPid
 import org.utbot.common.info
 import org.utbot.contest.Paths.classesLists
 import org.utbot.contest.Paths.dependenciesJars
@@ -200,7 +201,7 @@ enum class Tool {
                 logger.info { "Started processing $classFqn" }
                 val process = ProcessBuilder(command).redirectErrorStream(true).start()
 
-                logger.info { "Pid: ${process.pid()}" }
+                logger.info { "Pid: ${process.getPid}" }
 
                 process.inputStream.bufferedReader().use { reader ->
                     while (true) {

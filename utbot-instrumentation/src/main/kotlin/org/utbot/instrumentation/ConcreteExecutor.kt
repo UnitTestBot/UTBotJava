@@ -30,7 +30,7 @@ import org.utbot.instrumentation.rd.UtInstrumentationProcess
 import org.utbot.instrumentation.rd.generated.ComputeStaticFieldParams
 import org.utbot.instrumentation.rd.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.util.ChildProcessError
-import org.utbot.rd.UtRdKLoggerFactory
+import org.utbot.rd.loggers.UtRdKLoggerFactory
 
 private val logger = KotlinLogging.logger {}
 
@@ -125,7 +125,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         var defaultPathsToDependencyClasses = ""
 
         init {
-            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory)
+            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
             Runtime.getRuntime().addShutdownHook(thread(start = false) { defaultPool.close() })
         }
 

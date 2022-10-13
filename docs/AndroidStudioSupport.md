@@ -1,14 +1,22 @@
 # Android Studio support
 
-## Installing AS
+## Installing Android Studio
 
-> Install latest AS <https://developer.android.com/studio/install>
+> Install the latest version of Android Studio
+> * <https://developer.android.com/studio/install>
 
 ### Installing Lombok plugin
 
-> Use the first advice from the following link
+> Lombok plugin is not required to use UnitTest Bot.
+> However, if this plugin is required for your own goals, do the following:
 >
-> <https://stackoverflow.com/questions/70900954/cannot-find-lombok-plugin-in-android-studio-2021-1-1-build-of-2022>
+> * go to https://plugins.jetbrains.com/plugin/6317-lombok/versions
+> 
+> * download .zip with the latest version
+> 
+> * unpack it to ~/android-studio/plugins (use your path to Android Studio)
+> 
+> * restart IDE
 
 ## Prerequisites
 
@@ -25,7 +33,7 @@
 > 
 > The reason for it is the Android Gradle Plugin, which requires Java 11 to build anything.
 
-## Running in AS
+## Running in Android Studio
 
 > For now, running Utbot is supported only for Kotlin libraries. You can
 > create one like this:

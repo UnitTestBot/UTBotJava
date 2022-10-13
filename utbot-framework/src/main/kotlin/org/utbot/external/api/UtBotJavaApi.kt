@@ -1,6 +1,7 @@
 package org.utbot.external.api
 
 import org.utbot.common.FileUtil
+import org.utbot.common.nameOfPackage
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit5
@@ -57,7 +58,7 @@ object UtBotJavaApi {
         staticsMocking: StaticsMocking = NoStaticMocking,
         generateWarningsForStaticMocking: Boolean = false,
         forceStaticMocking: ForceStaticMocking = ForceStaticMocking.DO_NOT_FORCE,
-        testClassPackageName: String = classUnderTest.packageName
+        testClassPackageName: String = classUnderTest.nameOfPackage
     ): String {
 
         val utContext = UtContext(classUnderTest.classLoader)
@@ -113,7 +114,7 @@ object UtBotJavaApi {
 
         testSets.addAll(withUtContext(utContext) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
+            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId
@@ -173,7 +174,7 @@ object UtBotJavaApi {
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
+            TestCaseGenerator(listOf(buildPath), classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId

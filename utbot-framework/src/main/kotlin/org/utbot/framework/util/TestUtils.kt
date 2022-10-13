@@ -153,8 +153,12 @@ class ConflictTriggers(
         Conflict.values().forEach { conflict -> map[conflict] = false }
     }
 ) : MutableMap<Conflict, Boolean> by triggers {
-    val triggered: Boolean
+    val anyTriggered: Boolean
         get() = triggers.values.any { it }
+
+    fun triggered(conflict: Conflict): Boolean {
+        return triggers[conflict] ?: false
+    }
 
     fun reset(vararg conflicts: Conflict) {
         for (conflict in conflicts) {

@@ -47,7 +47,8 @@ private val systemPackages = setOf(
     "sun.misc",
     "jdk.internal",
     "kotlin.jvm.internal",
-    "kotlin.internal"
+    "kotlin.internal",
+    "javax"
 )
 
 private fun isSystemPackage(packageName: String): Boolean = systemPackages.any { packageName.startsWith(it) }

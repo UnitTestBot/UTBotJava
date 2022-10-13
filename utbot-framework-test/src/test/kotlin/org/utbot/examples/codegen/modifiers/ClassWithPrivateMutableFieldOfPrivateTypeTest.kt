@@ -14,9 +14,9 @@ import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 class ClassWithPrivateMutableFieldOfPrivateTypeTest : UtValueTestCaseChecker(
     testClass = ClassWithPrivateMutableFieldOfPrivateType::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, Compilation)
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, Compilation)
     )
 ) {
     @Test

@@ -11,7 +11,9 @@ import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.plusAssign
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import com.jetbrains.rd.util.trace
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.common.*
@@ -63,21 +65,23 @@ class CallsSynchronizer(private val ldef: LifetimeDefinition, val timeout: Durat
 
     private val synchronizer: Channel<State> = Channel(1)
 
-    fun <T> measureExecutionForTermination(block: () -> T): T = runBlocking {
+    init {
+        ldef.onTermination { synchronizer.close(CancellationException("Client terminated")) }
+    }
+
+    fun <T> measureExecutionForTermination(block: () -> T): T {
         try {
-            synchronizer.send(State.STARTED)
-            return@runBlocking block()
+            synchronizer.trySendBlocking(State.STARTED)
+            return block()
         } finally {
-            synchronizer.send(State.ENDED)
+            synchronizer.trySendBlocking(State.ENDED)
         }
     }
 
     fun <T, R> measureExecutionForTermination(call: RdCall<T, R>, block: (T) -> R) {
         call.set { it ->
-            runBlocking {
-                measureExecutionForTermination {
-                    block(it)
-                }
+            measureExecutionForTermination {
+                block(it)
             }
         }
     }

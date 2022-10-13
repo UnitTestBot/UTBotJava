@@ -102,7 +102,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     val java =
                         JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()
                     val cp = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-                        separator = if (isWindows) ";" else ":",
+                        separator = File.pathSeparator,
                         prefix = "\"",
                         postfix = "\""
                     )

@@ -182,7 +182,7 @@ private fun EngineProcessModel.setup(
                 testSets[params.testSetsId]!!,
                 params.generatedTestsCode,
                 RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
-            ).createReport()
+            ).createReport().toJson()
         )
     }
     synchronizer.measureExecutionForTermination(generateTestReport) { params ->

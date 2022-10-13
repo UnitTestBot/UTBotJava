@@ -149,7 +149,7 @@ class GenerateTestsCommand :
             else -> {
                 val sourceFinding =
                     SourceFindingStrategyDefault(classFqn, sourceCodeFile, testsFilePath, projectRootPath)
-                val report = SarifReport(testSets, testClassBody, sourceFinding).createReport()
+                val report = SarifReport(testSets, testClassBody, sourceFinding).createReport().toJson()
                 saveToFile(report, sarifReport)
                 println("The report was saved to \"$sarifReport\".")
             }

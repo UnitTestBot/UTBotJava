@@ -1,12 +1,10 @@
 package org.utbot.sarif
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
+import kotlin.io.path.nameWithoutExtension
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -21,45 +19,20 @@ class SarifReport(
     private val generatedTestsCode: String,
     private val sourceFinding: SourceFindingStrategy
 ) {
-
     companion object {
-
         /**
          * Merges several SARIF reports given as JSON-strings into one
          */
         fun mergeReports(reports: List<String>): String =
             reports.fold(Sarif.empty()) { sarif: Sarif, report: String ->
-                sarif.copy(runs = sarif.runs + report.jsonToSarif().runs)
-            }.sarifToJson()
-
-        // internal
-
-        private fun String.jsonToSarif(): Sarif =
-            jacksonObjectMapper().readValue(this)
-
-        private fun Sarif.sarifToJson(): String =
-            jacksonObjectMapper()
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .writerWithDefaultPrettyPrinter()
-                .writeValueAsString(this)
+                sarif.copy(runs = sarif.runs + Sarif.fromJson(report).runs)
+            }.toJson()
     }
 
     /**
-     * Creates a SARIF report and returns it as string
+     * Creates a SARIF report.
      */
-    fun createReport(): String =
-        constructSarif().sarifToJson()
-
-    // internal
-
-    private val defaultLineNumber = 1 // if the line in the source code where the exception is thrown is unknown
-
-    /**
-     * [Read more about links to locations](https://github.com/microsoft/sarif-tutorials/blob/main/docs/3-Beyond-basics.md#msg-links-location)
-     */
-    private val relatedLocationId = 1 // for attaching link to generated test in related locations
-
-    private fun constructSarif(): Sarif {
+    fun createReport(): Sarif {
         val sarifResults = mutableListOf<SarifResult>()
         val sarifRules = mutableSetOf<SarifRule>()
 
@@ -84,6 +57,15 @@ class SarifReport(
             )
         )
     }
+
+    // internal
+
+    private val defaultLineNumber = 1 // if the line in the source code where the exception is thrown is unknown
+
+    /**
+     * [Read more about links to locations](https://github.com/microsoft/sarif-tutorials/blob/main/docs/3-Beyond-basics.md#msg-links-location)
+     */
+    private val relatedLocationId = 1 // for attaching link to generated test in related locations
 
     /**
      * Minimizes detected errors and removes duplicates.
@@ -227,10 +209,14 @@ class SarifReport(
         val methodCallLocation: SarifPhysicalLocation? =
             findMethodCallInTestBody(utExecution.testMethodName, method.name)
         if (methodCallLocation != null) {
+            val testFileName = sourceFinding.testsRelativePath.toPath().fileName
+            val testClassName = testFileName.nameWithoutExtension
+            val testMethodName = utExecution.testMethodName
+            val methodCallLineNumber = methodCallLocation.region.startLine
             val methodCallLocationWrapper = SarifFlowLocationWrapper(
                 SarifFlowLocation(
                     message = Message(
-                        text = "${sourceFinding.testsRelativePath.toPath().fileName}:${methodCallLocation.region.startLine}"
+                        text = "$testClassName.$testMethodName($testFileName:$methodCallLineNumber)"
                     ),
                     physicalLocation = methodCallLocation
                 )

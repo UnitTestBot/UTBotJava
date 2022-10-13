@@ -80,12 +80,6 @@ public class Long {
             return "0";
         }
 
-        // assumes are placed here to limit search space of solver
-        // and reduce time of solving queries with bv2int expressions
-        assume(l <= 0x7FFFFFFFFFFFFFFFL); // java.lang.Long.MAX_VALUE
-        assume(l > 0x8000000000000000L); // java.lang.Long.MIN_VALUE
-        assume(l != 0);
-
         // isNegative = i < 0
         boolean isNegative = less(l, 0);
         String prefix = ite(isNegative, "-", "");
@@ -95,7 +89,7 @@ public class Long {
         int offset = 0;
         while (value > 0) {
             reversed[offset] = (char) ('0' + (value % 10));
-            value /= value;
+            value /= 10;
             offset++;
         }
 

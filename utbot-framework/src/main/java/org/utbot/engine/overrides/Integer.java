@@ -80,10 +80,6 @@ public class Integer {
             return "0";
         }
 
-        assume(i <= 0x7FFFFFFF); // java.lang.Integer.MAX_VALUE
-        assume(i > 0x80000000); // java.lang.Integer.MIN_VALUE
-        assume(i != 0);
-
         // isNegative = i < 0
         boolean isNegative = less(i, 0);
         String prefix = ite(isNegative, "-", "");
@@ -93,7 +89,7 @@ public class Integer {
         int offset = 0;
         while (value > 0) {
             reversed[offset] = (char) ('0' + (value % 10));
-            value /= value;
+            value /= 10;
             offset++;
         }
 

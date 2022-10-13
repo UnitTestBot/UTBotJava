@@ -58,7 +58,7 @@ public class Byte {
 
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assume(b < 128);
+        assume(b <= 127);
         assume(b > -128);
         assume(b != 0);
 

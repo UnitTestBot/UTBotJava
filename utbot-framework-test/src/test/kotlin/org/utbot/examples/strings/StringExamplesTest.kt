@@ -36,6 +36,25 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testByteToStringWithConstants() {
+        val values: Array<Byte> = arrayOf(
+            Byte.MIN_VALUE,
+            (Byte.MIN_VALUE + 100).toByte(),
+            0.toByte(),
+            (Byte.MAX_VALUE - 100).toByte(),
+            Byte.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::byteToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
+
+    @Test
     fun testReplace() {
         check(
             StringExamples::replace,
@@ -57,6 +76,24 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         )
     }
 
+    @Test
+    fun testShortToStringWithConstants() {
+        val values: Array<Short> = arrayOf(
+            Short.MIN_VALUE,
+            (Short.MIN_VALUE + 100).toShort(),
+            0.toShort(),
+            (Short.MAX_VALUE - 100).toShort(),
+            Short.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::shortToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
 
     @Test
     fun testIntToString() {
@@ -68,6 +105,24 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         )
     }
 
+    @Test
+    fun testIntToStringWithConstants() {
+        val values: Array<Int> = arrayOf(
+            Integer.MIN_VALUE,
+            Integer.MIN_VALUE + 100,
+            0,
+            Integer.MAX_VALUE - 100,
+            Integer.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::intToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
 
     @Test
     fun testLongToString() {
@@ -79,6 +134,25 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         )
     }
 
+    @Test
+    fun testLongToStringWithConstants() {
+        val values: Array<Long> = arrayOf(
+            Long.MIN_VALUE,
+            Long.MIN_VALUE + 100L,
+            0L,
+            Long.MAX_VALUE - 100L,
+            Long.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::longToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
+    
     @Test
     fun testStartsWithLiteral() {
         check(

@@ -46,14 +46,17 @@ public class Short {
 
     @SuppressWarnings("ConstantConditions")
     public static String toString(short s) {
-        if (s == -32768)
+        if (s == -32768) {
             return "-32768";
-        if (s == 0)
+        }
+
+        if (s == 0) {
             return "0";
+        }
 
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assume(s < 32768);
+        assume(s <= 32767);
         assume(s > -32768);
         assume(s != 0);
 
@@ -66,7 +69,7 @@ public class Short {
         int offset = 0;
         while (value > 0) {
             reversed[offset] = (char) ('0' + (value % 10));
-            value /= value;
+            value /= 10;
             offset++;
         }
 

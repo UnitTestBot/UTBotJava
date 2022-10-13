@@ -40,51 +40,39 @@
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
-                Generate <b>unit tests</b> with a single action!
+                UnitTestBot is the tool for automated unit test generation and precise code analysis.
                 <br />
-                <br />
-                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
-                <br />
-                <br />
-                The engine finds potential problems in your code:
-                <br />
-                <br />
+                Discover UnitTestBot key features in our latest release:
                 <ul>
-                    <li>exceptions</li>
-                    <li>hangs</li>
-                    <li>overflows</li>
-                    <li>and even native crashes</li>
+                    <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
+                    <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a></li>
+                    <li>minimizing the number of tests and false positives among bugs</li>
+                    <li>fine-tuned <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation#mocking-settings">mocking</a>, including mocking static methods</li>
+                    <li>representing all the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results#read-test-descriptions">test descriptions</a> in a human-readable format</li>
+                    <li>generating <a href="https://github.com/microsoft/sarif-tutorials/blob/main/README.md">SARIF</a> reports</li>
                 </ul>
+                UnitTestBot supports the latest JDKs, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
                 <br />
-                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
+                Try UnitTestBot <a href="https://www.utbot.org/utbot/">online demo</a> to see how it generates tests for your code in real time.
                 <br />
+                Contribute to UnitTestBot via <a href="https://github.com/UnitTestBot/UTBotJava">GitHub</a>.
                 <br />
-                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
+                Found a bug? File an <a href="https://github.com/UnitTestBot/UTBotJava/issues">issue</a>.
                 <br />
-                <br />
-                You can <a href="http://utbot.org">try the engine online</a> without installation.
-                <br />
-                <br />
-                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
-                <br />
-                <br />
-                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
+                Have an idea? Start a <a href="https://github.com/UnitTestBot/UTBotJava/discussions">discussion</a>.
         ]]>
     </description>
     <change-notes>
         <![CDATA[
-        In this version we have implemented multiple features and improvements:
+        Our first stable release of UnitTestBot is now available.
+        <br />
+        Check what's new:
         <ul>
-        <li>Java 11 support.</li>
-        <li>Smart Fuzzer significantly improves test generation results.</li>
-        <li>Generated tests have become even more human-readable and user-friendly.</li>
-        <li>We have enabled Mac OS X platform, give it a try.</li>
-        <li>The UnitTestBot engine generates SARIF reports.</li>
-        <li>We have polished plugin UX.</li>
-        <li>Mocking support is enhanced.</li>
-        <li>Java Streams, better Java Optional support, Java String support is improved, package-private constructors now are used for the test generation.</li>
+            <li>Support for the latest IntelliJ IDEA 2022.2.2 (JRE 17)</li>
+            <li>Custom UnitTestBot tags in Javadoc comments</li>
+            <li>Fuzzing tests for Generics and Date classes</li>
+            <li>UI/UX improvements</li>
         </ul>
-        Discover everything mentioned above and much more in this release.
         ]]>
     </change-notes>
 

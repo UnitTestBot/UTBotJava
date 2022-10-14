@@ -103,11 +103,12 @@ class SettingsWindow(val project: Project) {
             cell {
                 enableSummarizationGenerationCheckBox = checkBox("Enable Summaries Generation")
                     .onApply {
-                        settings.state.enableSummariesGeneration =
-                            enableSummarizationGenerationCheckBox.isSelected
+                        settings.state.enableSummariesGeneration = enableSummarizationGenerationCheckBox.isSelected
                     }
-                    .onReset { enableSummarizationGenerationCheckBox.isSelected = settings.enableSummariesGeneration == true }
-                    .onIsModified { enableSummarizationGenerationCheckBox.isSelected xor (settings.enableSummariesGeneration != false) }
+                    .onReset {
+                        enableSummarizationGenerationCheckBox.isSelected = settings.state.enableSummariesGeneration
+                    }
+                    .onIsModified { enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration }
                     .component
             }
         }

@@ -19,6 +19,7 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.NoFuzzerPlaform
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.NullModelProvider
@@ -154,7 +155,7 @@ class FuzzerTest {
         parameters: List<ClassId>,
         concreteValues: Collection<FuzzedConcreteValue> = emptyList()
     ): FuzzedMethodDescription {
-        return FuzzedMethodDescription("testMethod", voidClassId, parameters, concreteValues)
+        return FuzzedMethodDescription("testMethod", voidClassId, parameters, NoFuzzerPlaform, concreteValues)
     }
 
 }

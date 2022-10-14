@@ -10,6 +10,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.JavaFuzzerPlatform
 import org.utbot.fuzzer.fuzzNumbers
 import org.utbot.fuzzer.objects.create
 
@@ -66,13 +67,14 @@ class CollectionWithModificationModelProvider(
         return newInstance
     }
 
+    override fun canProcess(description: FuzzedMethodDescription) = description.platform is JavaFuzzerPlatform
+
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,
         parameterIndex: Int,
         classId: ClassId,
     ): Sequence<ModelConstructor> {
-
-        val info: Info? = if (!classId.isAbstract) {
+        val info: Info? = if (!description.platform.isAbstract(classId)) {
             when {
                 classId.isSubtypeOfWithReflection(Collection::class.id) -> Info(classId, classId, "add", listOf(objectClassId), booleanClassId)
                 classId.isSubtypeOfWithReflection(Map::class.id) -> Info(classId, classId, "put", listOf(objectClassId, objectClassId), objectClassId)

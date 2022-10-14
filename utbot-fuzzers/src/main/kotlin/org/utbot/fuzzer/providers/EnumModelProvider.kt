@@ -12,7 +12,7 @@ class EnumModelProvider(private val idGenerator: IdentityPreservingIdGenerator<I
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap
             .asSequence()
-            .filter { (classId, _) -> classId.jClass.isEnum }
+            .filter { (classId, _) -> description.platform.isEnum(classId) }
             .forEach { (classId, indices) ->
                 yieldAllValues(indices, classId.jClass.enumConstants.filterIsInstance<Enum<*>>().map {
                     val id = idGenerator.getOrCreateIdForValue(it)

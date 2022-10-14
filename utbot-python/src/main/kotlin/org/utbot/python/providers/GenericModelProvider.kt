@@ -26,6 +26,7 @@ class GenericModelProvider(recursionDepth: Int): PythonModelProvider(recursionDe
                 "${description.name}<syntheticGenericList>",
                 pythonNoneClassId,
                 parameters,
+                NoFuzzerPlaform,
                 description.concreteValues
             )
 

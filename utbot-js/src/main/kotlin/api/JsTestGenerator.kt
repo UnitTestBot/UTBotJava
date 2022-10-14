@@ -31,7 +31,16 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.NoFuzzerPlaform
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.exceptIsInstance
+import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.providers.CollectionWithEmptyStatesModelProvider
+import org.utbot.fuzzer.providers.CollectionWithModificationModelProvider
+import org.utbot.fuzzer.providers.EnumModelProvider
+import org.utbot.fuzzer.providers.ObjectModelProvider
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -209,7 +218,8 @@ class JsTestGenerator(
                         name = "thisInstance",
                         returnType = voidClassId,
                         parameters = listOf(classId),
-                        concreteValues = concreteValues
+                        platform = NoFuzzerPlaform,
+                        concreteValues = concreteValues,
                     )
                 ).take(10).toList()
                     .shuffled().map { it.value.model }.first()
@@ -297,15 +307,18 @@ class JsTestGenerator(
         val fuzzerVisitor = JsFuzzerAstVisitor()
         funcNode.body.accept(fuzzerVisitor)
         val methodUnderTestDescription =
-            FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
+            FuzzedMethodDescription(execId, JsFuzzerPlatform, fuzzerVisitor.fuzzedConcreteValues).apply {
                 compilableName = funcNode.name.toString()
                 val names = funcNode.parameters.map { it.name.toString() }
                 parameterNameMap = { index -> names.getOrNull(index) }
             }
-        val fuzzedValues =
-            JsFuzzer.jsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
-                .shuffled()
-                .take(1_000)
+        val fuzzedValues = try {
+                fuzz(methodUnderTestDescription, defaultModelProviders(ReferencePreservingIntIdGenerator())).take(1_000)
+                    .toList()
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            emptyList()
+        }
         return Pair(fuzzerVisitor.fuzzedConcreteValues.toSet(), fuzzedValues)
     }
 

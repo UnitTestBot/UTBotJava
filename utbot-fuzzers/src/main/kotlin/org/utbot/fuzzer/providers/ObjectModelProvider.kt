@@ -1,14 +1,5 @@
 package org.utbot.fuzzer.providers
 
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier.isFinal
-import java.lang.reflect.Modifier.isPrivate
-import java.lang.reflect.Modifier.isProtected
-import java.lang.reflect.Modifier.isPublic
-import java.lang.reflect.Modifier.isStatic
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -21,11 +12,11 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.FuzzerPlatform
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.objects.assembleModel
 
@@ -50,23 +41,22 @@ class ObjectModelProvider(
     ): Sequence<ModelConstructor> = sequence {
         if (unwantedConstructorsClasses.contains(classId)
             || classId.isPrimitiveWrapper
-            || classId.isEnum
-            || classId.isAbstract
-            || (classId.isInner && !classId.isStatic)
+            || description.platform.isEnum(classId)
+            || description.platform.isAbstract(classId)
+            || (description.platform.isInner(classId) && !description.platform.isStatic(classId))
         ) return@sequence
 
-        val constructors = collectConstructors(classId) { javaConstructor ->
-            isAccessible(javaConstructor, description.packageName)
-        }.sortedWith(
-            primitiveParameterizedConstructorsFirstAndThenByParameterCount
-        )
+        val constructors = description.platform.collectConstructors(classId, description)
+            .sortedWith(
+                primitiveParameterizedConstructorsFirstAndThenByParameterCount
+            )
 
         constructors.forEach { constructorId ->
             // When branching limit = 1 this block tries to create new values
             // and mutate some fields. Only if there's no option next block
             // with empty constructor should be used.
             if (constructorId.parameters.isEmpty()) {
-                val fields = findSuitableFields(constructorId.classId, description)
+                val fields = description.platform.findSuitableFields(constructorId.classId, description)
                 if (fields.isNotEmpty()) {
                     yield(
                         ModelConstructor(fields.map { FuzzedType(it.classId) }) {
@@ -83,7 +73,7 @@ class ObjectModelProvider(
 
     private fun generateModelsWithFieldsInitialization(
         constructorId: ConstructorId,
-        fields: List<FieldDescription>,
+        fields: List<FuzzerPlatform.FieldDescription>,
         fieldValues: List<FuzzedValue>
     ): FuzzedValue {
         val fuzzedModel = assembleModel(idGenerator.createId(), constructorId, emptyList())
@@ -121,55 +111,6 @@ class ObjectModelProvider(
             stringClassId, dateClassId
         )
 
-        private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorId> {
-            return classId.jClass.declaredConstructors.asSequence()
-                .filter(predicate)
-                .map { javaConstructor ->
-                    ConstructorId(classId, javaConstructor.parameters.map { it.type.id })
-                }
-        }
-
-        private fun isAccessible(member: Member, packageName: String?): Boolean {
-            return isPublic(member.modifiers) ||
-                    (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
-        }
-
-        private fun isPackagePrivate(modifiers: Int): Boolean {
-            val hasAnyAccessModifier = isPrivate(modifiers)
-                    || isProtected(modifiers)
-                    || isProtected(modifiers)
-            return !hasAnyAccessModifier
-        }
-
-        private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {
-            val jClass = classId.jClass
-            return jClass.declaredFields.map { field ->
-                FieldDescription(
-                    field.name,
-                    field.type.id,
-                    isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
-                    jClass.findPublicSetterIfHasPublicGetter(field, description)
-                )
-            }
-        }
-
-        private fun Class<*>.findPublicSetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): Method? {
-            val postfixName = field.name.capitalize()
-            val setterName = "set$postfixName"
-            val getterName = "get$postfixName"
-            val getter = try { getDeclaredMethod(getterName) } catch (_: NoSuchMethodException) { return null }
-            return if (isAccessible(getter, description.packageName) && getter.returnType == field.type) {
-                declaredMethods.find {
-                    isAccessible(it, description.packageName) &&
-                            it.name == setterName &&
-                            it.parameterCount == 1 &&
-                            it.parameterTypes[0] == field.type
-                }
-            } else {
-                null
-            }
-        }
-
         private val primitiveParameterizedConstructorsFirstAndThenByParameterCount =
             compareByDescending<ConstructorId> { constructorId ->
                 constructorId.parameters.all { classId ->
@@ -178,12 +119,5 @@ class ObjectModelProvider(
             }.thenComparingInt { constructorId ->
                 constructorId.parameters.size
             }
-
-        private class FieldDescription(
-            val name: String,
-            val classId: ClassId,
-            val canBeSetDirectly: Boolean,
-            val setter: Method?,
-        )
     }
 }

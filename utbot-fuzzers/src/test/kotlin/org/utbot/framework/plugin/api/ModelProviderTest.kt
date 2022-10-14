@@ -34,6 +34,7 @@ import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.JavaFuzzerPlatform
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.defaultModelProviders
@@ -165,6 +166,7 @@ class ModelProviderTest {
             "method",
             voidClassId,
             listOf(stringClassId),
+            JavaFuzzerPlatform,
             listOf(
                 FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedContext.Call(method.executableId))
             )
@@ -599,7 +601,7 @@ internal fun collect(
     block: FuzzedMethodDescription.() -> Unit = {}
 ): Map<Int, List<UtModel>> {
     return mutableMapOf<Int, MutableList<UtModel>>().apply {
-        modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants).apply(block)).forEach { (i, m) ->
+        modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, JavaFuzzerPlatform, constants).apply(block)).forEach { (i, m) ->
             computeIfAbsent(i) { mutableListOf() }.add(m.model)
         }
     }

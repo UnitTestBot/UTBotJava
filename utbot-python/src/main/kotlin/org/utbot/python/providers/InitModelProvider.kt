@@ -22,6 +22,7 @@ class InitModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth
                         type.pythonClassId.name,
                         classId,
                         initSignature,
+                        NoFuzzerPlaform,
                         description.concreteValues
                     )
 

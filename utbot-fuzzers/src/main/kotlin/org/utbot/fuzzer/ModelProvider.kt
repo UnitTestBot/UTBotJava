@@ -6,6 +6,11 @@ import org.utbot.framework.plugin.api.ClassId
 fun interface ModelProvider {
 
     /**
+     * Validate, does this provider can work with this description.
+     */
+    fun canProcess(description: FuzzedMethodDescription): Boolean = true
+
+    /**
      * Generates values for the method.
      *
      * @param description a fuzzed method description
@@ -148,7 +153,7 @@ fun interface ModelProvider {
         }
 
         override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-            providers.forEach { provider ->
+            providers.filter { it.canProcess(description) }.forEach { provider ->
                 provider.generate(description).forEach {
                     yieldValue(it.index, it.value)
                 }

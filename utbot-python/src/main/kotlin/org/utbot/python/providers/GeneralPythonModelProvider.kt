@@ -36,7 +36,7 @@ class PythonFuzzedMethodDescription(
     returnType: ClassId,
     parameters: List<NormalizedPythonAnnotation>,
     concreteValues: Collection<FuzzedConcreteValue> = emptyList()
-): FuzzedMethodDescription(name, returnType, parameters, concreteValues)
+): FuzzedMethodDescription(name, returnType, parameters, NoFuzzerPlaform, concreteValues)
 
 fun substituteTypesByIndex(
     description: PythonFuzzedMethodDescription,

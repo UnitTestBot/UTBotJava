@@ -2,6 +2,7 @@ package org.utbot.fuzzer
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
+import java.util.IdentityHashMap
 
 /**
  * Method traverser is an object,
@@ -17,6 +18,7 @@ open class FuzzedMethodDescription(
     val name: String,
     val returnType: ClassId,
     val parameters: List<ClassId>,
+    val platform: FuzzerPlatform,
     val concreteValues: Collection<FuzzedConcreteValue> = emptyList()
 ) {
 
@@ -63,12 +65,32 @@ open class FuzzedMethodDescription(
         result
     }
 
-    constructor(executableId: ExecutableId, concreteValues: Collection<FuzzedConcreteValue> = emptyList()) : this(
+    constructor(executableId: ExecutableId, platform: FuzzerPlatform, concreteValues: Collection<FuzzedConcreteValue> = emptyList()) : this(
         executableId.classId.simpleName + "." + executableId.name,
         executableId.returnType,
         executableId.parameters,
+        platform,
         concreteValues
     )
+}
+
+class FuzzedMethodDescriptionAdapter(val origin: FuzzedMethodDescription) : FuzzedMethodDescription(
+    origin.name,
+    origin.returnType,
+    origin.parameters.map { origin.platform.toPlatformClassId(it) },
+    origin.platform,
+    origin.concreteValues
+) {
+
+    val originClassMap : IdentityHashMap<ClassId, ClassId> = parameters.zip(origin.parameters).toMap(IdentityHashMap())
+
+    init {
+        compilableName = origin.compilableName
+        className = origin.className
+        packageName = origin.packageName
+        parameterNameMap = origin.parameterNameMap
+        fuzzerType = origin.fuzzerType
+    }
 }
 
 enum class FuzzedOp(val sign: String?) : FuzzedContext {

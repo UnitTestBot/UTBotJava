@@ -94,6 +94,7 @@ abstract class RecursiveModelProvider(
             "<synthetic method: ${this::class.simpleName}>",
             voidClassId,
             (1..repeat).flatMap { neededTypes.map { it.classId } },
+            baseMethodDescription.platform,
             baseMethodDescription.concreteValues
         ).apply {
             packageName = baseMethodDescription.packageName

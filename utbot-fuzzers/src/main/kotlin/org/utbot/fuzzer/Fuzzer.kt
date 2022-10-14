@@ -115,12 +115,20 @@ fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvi
         throw IllegalArgumentException("At least one model provider is required")
     }
 
+    val fmd = FuzzedMethodDescriptionAdapter(description)
     val values = List<MutableList<FuzzedValue>>(description.parameters.size) { mutableListOf() }
-    modelProviders.forEach { fuzzingProvider ->
-        fuzzingProvider.generate(description).forEach { (index, model) ->
-            values[index].add(model)
+    modelProviders.asSequence()
+        .filter { it.canProcess(fmd) }
+        .forEach { fuzzingProvider ->
+            fuzzingProvider.generate(fmd).forEach { (index, model) ->
+                values[index].add(model.let {
+                    FuzzedValue(
+                        description.platform.toLanguageUtModel(it.model, description),
+                        it.createdBy
+                    ).apply { summary = it.summary }
+                })
+            }
         }
-    }
     description.parameters.forEachIndexed { index, classId ->
         val models = values[index]
         if (models.isEmpty()) {
@@ -163,7 +171,7 @@ fun <T> Sequence<List<FuzzedValue>>.withMutations(statistics: FuzzerStatistics<T
  * All values after filtering are cast to [Int].
  */
 fun fuzzNumbers(concreteValues: Collection<FuzzedConcreteValue>, vararg defaultValues: Int, filter: (Number) -> Boolean = { true }): Sequence<Int> {
-    val description = FuzzedMethodDescription("helper: number fuzzing", voidClassId, listOf(intClassId), concreteValues)
+    val description = FuzzedMethodDescription("helper: number fuzzing", voidClassId, listOf(intClassId), NoFuzzerPlaform, concreteValues)
     val fuzzedValues = fuzz(description, ConstantsModelProvider)
         .mapNotNull { ((it.single().model as? UtPrimitiveModel)?.value as? Number) }
         .filter(filter)

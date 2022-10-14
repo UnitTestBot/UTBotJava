@@ -44,7 +44,8 @@ object PrimitiveWrapperModelProvider: ModelProvider {
             name = "Primitive wrapper constant generation ",
             returnType = voidClassId,
             parameters = primitiveWrapperTypesAsPrimitiveTypes,
-            concreteValues = description.concreteValues
+            platform = description.platform,
+            concreteValues = description.concreteValues,
         )).forEach { (index, value) ->
             val primitiveWrapper = wrapperByPrimitive[primitiveWrapperTypesAsPrimitiveTypes[index]]
             if (primitiveWrapper != null) {

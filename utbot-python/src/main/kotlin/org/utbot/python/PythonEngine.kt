@@ -43,6 +43,7 @@ class PythonEngine(
             methodUnderTest.name,
             pythonAnyClassId,
             types,
+            PythonFuzzerPlatform,
             fuzzedConcreteValues
         ).apply {
             compilableName = methodUnderTest.name // what's the difference with ordinary name?
@@ -53,7 +54,7 @@ class PythonEngine(
             getModulesFromAnnotation(it)
         }.toSet()
 
-        val evaluationInputIterator = fuzz(methodUnderTestDescription, defaultPythonModelProvider).map { values ->
+        val evaluationInputIterator = fuzz(methodUnderTestDescription, defaultModelProviders(ReferencePreservingIntIdGenerator())).map { values ->
             val parameterValues = values.map { it.model }
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)

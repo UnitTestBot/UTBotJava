@@ -5,7 +5,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.dateClassId
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -19,6 +18,7 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.JavaFuzzerPlatform
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.fuzzer.defaultModelProviders
@@ -47,6 +47,8 @@ class DateConstantModelProvider(
         return none { it.isDigit() } && // fixes concrete date values
                 runCatching { SimpleDateFormat(this) }.isSuccess
     }
+
+    override fun canProcess(description: FuzzedMethodDescription) = description.platform is JavaFuzzerPlatform
 
     private fun generateFromNumbers(
         baseMethodDescription: FuzzedMethodDescription,
@@ -125,6 +127,7 @@ class DateConstantModelProvider(
             "<synthetic method for DateModelProvider>", // TODO: maybe add more info here
             voidClassId,
             types,
+            baseMethodDescription.platform,
             baseMethodDescription.concreteValues
         ).apply {
             packageName = baseMethodDescription.packageName

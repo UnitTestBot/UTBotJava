@@ -11,8 +11,11 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.NoFuzzerPlaform
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.SimpleIdGenerator
 import org.utbot.fuzzer.TooManyCombinationsException
+import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 
 object JsObjectModelProvider : ModelProvider {
@@ -69,7 +72,8 @@ object JsObjectModelProvider : ModelProvider {
     ): Sequence<List<FuzzedValue>> {
         val fuzzedMethod = FuzzedMethodDescription(
             executableId = constructorId,
-            concreteValues = this.concreteValues
+            concreteValues = this.concreteValues,
+            platform = NoFuzzerPlaform,
         ).apply {
             this.packageName = this@fuzzParameters.packageName
         }

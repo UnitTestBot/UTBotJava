@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.IdGenerator
+import org.utbot.fuzzer.JavaFuzzerPlatform
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.fuzzer.objects.create
@@ -29,6 +30,8 @@ class CollectionWithEmptyStatesModelProvider(
         Info(Iterable::class.id, "emptyList", returnType = List::class.id),
         Info(Iterator::class.id, "emptyIterator"),
     )
+
+    override fun canProcess(description: FuzzedMethodDescription) = description.platform is JavaFuzzerPlatform
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap

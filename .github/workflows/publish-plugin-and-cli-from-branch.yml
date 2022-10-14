@@ -15,7 +15,7 @@ on:
           type: choice
           description: "It adds minor release indicator to version."
           required: true
-          default: ''
+          default: 'none'
           options:
           - 'none'
           - '1'

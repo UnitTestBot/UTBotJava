@@ -55,7 +55,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
-        var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem
+        var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
+        var enableSummariesGeneration: Boolean = true
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,
@@ -70,7 +71,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
             fuzzingValue = model.fuzzingValue,
             runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
-            commentStyle = model.commentStyle
+            commentStyle = model.commentStyle,
+            enableSummariesGeneration = model.enableSummariesGeneration
         )
 
         override fun equals(other: Any?): Boolean {
@@ -92,6 +94,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
             if (fuzzingValue != other.fuzzingValue) return false
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
+            if (commentStyle != other.commentStyle) return false
+            if (enableSummariesGeneration != other.enableSummariesGeneration) return false
 
             return true
         }
@@ -148,6 +152,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             state.fuzzingValue = value.coerceIn(0.0, 1.0)
         }
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
+
+    var enableSummariesGeneration = state.enableSummariesGeneration
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()

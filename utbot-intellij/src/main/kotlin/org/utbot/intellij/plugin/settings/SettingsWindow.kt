@@ -36,6 +36,7 @@ class SettingsWindow(val project: Project) {
     // TODO it is better to use something like SearchEverywhere for classes but it is complicated to implement
     private val excludeTable = MockAlwaysClassesTable(project)
     private lateinit var forceMockCheckBox: JCheckBox
+    private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
 
     val panel: JPanel = panel {
         val valuesComboBox: LayoutBuilder.(KClass<*>, Array<*>) -> Unit = { loader, values ->
@@ -96,6 +97,19 @@ class SettingsWindow(val project: Project) {
             JavaDocCommentStyle::class to JavaDocCommentStyle.values()
         ).forEach { (loader, values) ->
             valuesComboBox(loader, values)
+        }
+
+        row {
+            cell {
+                enableSummarizationGenerationCheckBox = checkBox("Enable Summaries Generation")
+                    .onApply {
+                        settings.state.enableSummariesGeneration =
+                            enableSummarizationGenerationCheckBox.isSelected
+                    }
+                    .onReset { enableSummarizationGenerationCheckBox.isSelected = settings.enableSummariesGeneration == true }
+                    .onIsModified { enableSummarizationGenerationCheckBox.isSelected xor (settings.enableSummariesGeneration != false) }
+                    .component
+            }
         }
 
         row {

@@ -24,12 +24,14 @@ import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.extensionReceiverParameter
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.internal.impl.load.kotlin.header.KotlinClassHeader
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.jvm.kotlinFunction
 
 // ClassId utils
 
@@ -438,6 +440,9 @@ val MethodId.method: Method
         return declaringClass.singleMethodOrNull(signature)
                 ?: error("Can't find method $signature in ${declaringClass.name}")
     }
+
+val MethodId.extensionReceiverParameterIndex: Int?
+    get() = this.method.kotlinFunction?.extensionReceiverParameter?.index
 
 // TODO: maybe cache it somehow in the future
 val ConstructorId.constructor: Constructor<*>

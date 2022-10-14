@@ -49,6 +49,8 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.exceptions
+import org.utbot.framework.plugin.api.util.extensionReceiverParameterIndex
+import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -110,7 +112,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
         val resolvedArgs = args.resolve()
         val methodCall = if (method.canBeCalledWith(caller, resolvedArgs)) {
-            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method))
+            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method)).takeCallerFromArgumentsIfNeeded()
         } else {
             method.callWithReflection(caller, resolvedArgs)
         }
@@ -193,6 +195,29 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             this.type isSubtypeOf executable.classId -> true
             else -> false
         }
+
+    /**
+     * For Kotlin extension functions, real caller is one of the arguments in JVM method (and declaration class is omitted),
+     * thus we should move it from arguments to caller
+     *
+     * For example, if we have `Int.f(a: Int)` declared in `Main.kt`, the JVM method signature will be `MainKt.f(Int, Int)`
+     * and in Kotlin we should render this not like `MainKt.f(a, b)` but like `a.f(b)`
+     */
+    private fun CgMethodCall.takeCallerFromArgumentsIfNeeded(): CgMethodCall {
+        if (codegenLanguage == CodegenLanguage.KOTLIN) {
+            // TODO: reflection calls for util and some of mockito methods produce exceptions => currently runCatching is needed
+            //  (but their reflection may be supported, alternatively maybe get rid of reflection somehow here)
+            runCatching {
+                executableId.extensionReceiverParameterIndex?.let { receiverIndex ->
+                    require(caller == null) { "${executableId.humanReadableName} is an extension function but it already has a non-static caller provided" }
+                    val args = arguments.toMutableList()
+                    return CgMethodCall(args.removeAt(receiverIndex), executableId, args, typeParameters)
+                }
+            }
+        }
+
+        return this
+    }
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
         // TODO: SAT-1210 support generics so that we wouldn't need to check specific cases such as this one

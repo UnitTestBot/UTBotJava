@@ -711,7 +711,10 @@ internal abstract class CgAbstractRenderer(
         if (caller != null) {
             // 'this' can be omitted, otherwise render caller
             if (caller !is CgThisInstance) {
+                // TODO: we need parentheses for calls like (-1).inv(), do something smarter here
+                if (caller !is CgVariable) print("(")
                 caller.accept(this)
+                if (caller !is CgVariable) print(")")
                 renderAccess(caller)
             }
         } else {

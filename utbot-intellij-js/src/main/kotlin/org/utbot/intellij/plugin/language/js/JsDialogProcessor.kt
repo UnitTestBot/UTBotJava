@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.language.js
 
+import settings.JsDynamicSettings
 import api.JsTestGenerator
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.lang.ecmascript6.psi.ES6Class
@@ -90,6 +91,12 @@ object JsDialogProcessor {
 
     private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor) {
         val normalizedContainingFilePath = containingFilePath.replace("/", File.separator)
+        val settings = JsDynamicSettings(
+            pathToNode = model.pathToNode,
+            pathToNYC = model.pathToNYC,
+            pathToNPM = model.pathToNPM,
+            timeout = model.timeout,
+        )
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
@@ -115,7 +122,7 @@ object JsDialogProcessor {
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace("/", File.separator),
                     exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project),
-                    timeout = model.timeout,
+                    settings = settings
                 )
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)

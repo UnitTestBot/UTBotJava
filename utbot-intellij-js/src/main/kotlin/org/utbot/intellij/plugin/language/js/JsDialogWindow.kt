@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.language.js
 
+import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreterManager
 import com.intellij.lang.javascript.refactoring.ui.JSMemberSelectionTable
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
 import com.intellij.openapi.application.runWriteAction
@@ -29,6 +30,11 @@ import com.intellij.util.IncorrectOperationException
 import com.intellij.util.ui.JBUI
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
+import java.awt.BorderLayout
+import java.util.Locale
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComboBox
+import javax.swing.JComponent
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
@@ -36,11 +42,6 @@ import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import settings.JsTestGenerationSettings.defaultTimeout
 import utils.JsCmdExec
-import java.awt.BorderLayout
-import java.util.Locale
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JComboBox
-import javax.swing.JComponent
 import kotlin.concurrent.thread
 
 class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
@@ -53,6 +54,12 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     }
 
     private fun findTestPackageComboValue() = SAME_PACKAGE_LABEL
+
+    private val nodeInterp = try {
+        NodeJsLocalInterpreterManager.getInstance().interpreters.first()
+    } catch (e: NoSuchElementException) {
+        throw IllegalStateException("Node.js interpreter is not set in the IDEA settings!")
+    }
 
     private val cbSpecifyTestPackage = CheckBox("Specify destination package", false)
     private val testPackageField = PackageNameReferenceEditorCombo(
@@ -78,6 +85,11 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         )
 
     init {
+        model.pathToNode = nodeInterp.interpreterSystemDependentPath.replace("\\", "/")
+        model.pathToNPM = model.pathToNode.substringBeforeLast("/") + "/" + "npm"
+        //TODO: fix.
+        model.pathToNode = "node"
+        model.pathToNPM = "\"${model.pathToNPM}\""
         title = "Generate Tests with UtBot"
         initTestFrameworkPresenceThread = thread(start = true) {
             JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
@@ -139,7 +151,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.selectedMethods = if (selected.any()) selected else emptySet()
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
-
         configureTestFrameworkIfRequired()
         try {
             val testRootPrepared = createTestRootAndPackages()
@@ -190,7 +201,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
             dir = model.project.basePath!!,
             shouldWait = true,
             timeout = 10,
-            cmd = arrayOf("npm", "list", "-g")
+            cmd = arrayOf(model.pathToNPM, "list", "-g")
         )
         val checkForPackageText = bufferedReader.readText()
         bufferedReader.close()

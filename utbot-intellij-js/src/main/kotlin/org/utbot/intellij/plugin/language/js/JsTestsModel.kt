@@ -26,4 +26,7 @@ class JsTestsModel(
 
     lateinit var testFramework: TestFramework
     lateinit var containingFilePath: String
+    var pathToNode: String = "node"
+    var pathToNYC: String = "nyc"
+    var pathToNPM: String = "npm"
 }

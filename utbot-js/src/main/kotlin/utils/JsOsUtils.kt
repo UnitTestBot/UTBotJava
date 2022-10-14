@@ -5,6 +5,7 @@ import java.util.Locale
 abstract class OsProvider {
 
     abstract fun getCmdPrefix(): Array<String>
+    abstract fun getAbstractivePathTool(): String
 
     companion object {
 
@@ -18,10 +19,12 @@ abstract class OsProvider {
     }
 }
 
-class WindowsProvider: OsProvider() {
+class WindowsProvider : OsProvider() {
     override fun getCmdPrefix() = arrayOf("cmd.exe", "/c")
+    override fun getAbstractivePathTool() = "where"
 }
 
-class LinuxProvider: OsProvider() {
+class LinuxProvider : OsProvider() {
     override fun getCmdPrefix() = emptyArray<String>()
+    override fun getAbstractivePathTool() = "which"
 }

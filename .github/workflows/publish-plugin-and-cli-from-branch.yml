@@ -13,11 +13,11 @@ on:
     inputs:
         minor-release:
           type: choice
-          description: "It adds alpha or beta postfix to version."
+          description: "It adds minor release indicator to version."
           required: true
           default: ''
           options:
-          - ''
+          - 'none'
           - '1'
           - '2'
           - '3'
@@ -62,7 +62,7 @@ jobs:
           echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
 
       - name: Set version for minor release
-        if: ${{ github.event.inputs.minor-release != '' }}
+        if: ${{ github.event.inputs.minor-release != 'none' }}
         run: |
           echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
 

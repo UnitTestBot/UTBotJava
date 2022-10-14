@@ -18,6 +18,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import settings.JsDynamicSettings
 
 private val logger = KotlinLogging.logger {}
 
@@ -67,7 +68,7 @@ class JsGenerateTestsCommand :
                 parentClassName = targetClass,
                 outputFilePath = outputAbsolutePath,
                 exportsManager = ::manageExports,
-                timeout = timeout.toLong()
+                settings = JsDynamicSettings()
             )
             val testCode = testGenerator.run()
 

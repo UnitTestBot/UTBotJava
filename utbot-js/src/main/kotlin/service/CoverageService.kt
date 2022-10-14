@@ -27,7 +27,7 @@ class CoverageService(
         if (id in errors) return emptyList()
         val jsonText = with(context) {
             val file =
-                File("$projectPath${File.separator}$utbotDir${File.separator}coverage$id${File.separator}coverage-final.json")
+                File("$projectPath/$utbotDir/coverage$id/coverage-final.json")
             file.readText()
         }
         val json = JSONObject(jsonText)
@@ -52,12 +52,12 @@ class CoverageService(
 
     fun removeTempFiles() {
         with(context) {
-            FileUtils.deleteDirectory(File("$projectPath${File.separator}$utbotDir${File.separator}coverage$id"))
+            FileUtils.deleteDirectory(File("$projectPath/$utbotDir/coverage$id"))
         }
     }
 
     private fun generateCoverageReport(workingDir: String, filePath: String) {
-        val dir = File("$workingDir${File.separator}${context.utbotDir}${File.separator}coverage$id")
+        val dir = File("$workingDir/${context.utbotDir}/coverage$id")
             .also { it.mkdir() }
         try {
             val (_, error) = when (originalFileName) {
@@ -65,12 +65,12 @@ class CoverageService(
                     JsCmdExec.runCommand(
                         shouldWait = true,
                         dir = workingDir,
-                        timeout = context.nodeTimeout,
+                        timeout = context.settings.timeout,
                         cmd = arrayOf(
-                            "nyc",
+                            context.settings.pathToNYC,
                             "--report-dir=${dir.absolutePath}",
                             "--reporter=\"json\"",
-                            "--temp-dir=${dir.absolutePath}${File.separator}cache$id",
+                            "--temp-dir=${dir.absolutePath}/cache$id",
                             "node",
                             filePath
                         )
@@ -81,12 +81,12 @@ class CoverageService(
                     JsCmdExec.runCommand(
                         shouldWait = true,
                         dir = File(filePath).parent,
-                        timeout = context.nodeTimeout,
+                        timeout = context.settings.timeout,
                         cmd = arrayOf(
-                            "nyc",
+                            context.settings.pathToNYC,
                             "--report-dir=${dir.absolutePath}",
                             "--reporter=\"json\"",
-                            "--temp-dir=${dir.absolutePath}${File.separator}cache$id",
+                            "--temp-dir=${dir.absolutePath}/cache$id",
                             "node",
                             "-e",
                             "\"$scriptText\""

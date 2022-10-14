@@ -50,6 +50,7 @@ import utils.constructClass
 import utils.toJsAny
 import java.io.File
 import java.util.Collections
+import settings.JsDynamicSettings
 
 
 class JsTestGenerator(
@@ -60,7 +61,7 @@ class JsTestGenerator(
     private var parentClassName: String? = null,
     private var outputFilePath: String?,
     private val exportsManager: (List<String>) -> Unit,
-    private val timeout: Long,
+    private val settings: JsDynamicSettings,
 ) {
 
     private val exports = mutableSetOf<String>()
@@ -90,7 +91,7 @@ class JsTestGenerator(
             filePathToInference = sourceFilePath,
             trimmedFileText = fileText,
             fileText = fileText,
-            nodeTimeout = timeout,
+            settings = settings,
         )
         val ternService = TernService(context)
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
@@ -108,8 +109,8 @@ class JsTestGenerator(
         methods.forEach { funcNode ->
             try {
                 makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
-            } catch (_: Exception) {
-
+            } catch (e: Exception) {
+                throw e
             }
         }
         val importPrefix = makeImportPrefix()
@@ -374,8 +375,8 @@ class JsTestGenerator(
         val (reader, errorReader) = JsCmdExec.runCommand(
             dir = workDir,
             shouldWait = true,
-            timeout = timeout,
-            cmd = arrayOf("node", "-e", "\"$scriptText\"")
+            timeout = settings.timeout,
+            cmd = arrayOf(settings.pathToNode, "-e", "\"$scriptText\"")
         )
         return errorReader.readText().ifEmpty { reader.readText() }
     }

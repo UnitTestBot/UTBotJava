@@ -11,6 +11,18 @@ on:
 
   workflow_dispatch:
     inputs:
+        minor-release:
+          type: choice
+          description: "It adds minor release indicator to version."
+          required: true
+          default: 'none'
+          options:
+          - 'none'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+
         version-postfix:
           type: choice
           description: "It adds alpha or beta postfix to version."
@@ -48,6 +60,11 @@ jobs:
         if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
         run: |
           echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+
+      - name: Set version for minor release
+        if: ${{ github.event.inputs.minor-release != 'none' }}
+        run: |
+          echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
 
       - name: Create version with postfix
         if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}

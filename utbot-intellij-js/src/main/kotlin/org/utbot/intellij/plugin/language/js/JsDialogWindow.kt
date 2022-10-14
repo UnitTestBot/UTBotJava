@@ -71,6 +71,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
+    private val nycSourceFileChooserField = NycSourceFileChooser(model)
 
     private var initTestFrameworkPresenceThread: Thread
 
@@ -93,7 +94,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         title = "Generate Tests with UtBot"
         initTestFrameworkPresenceThread = thread(start = true) {
             JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
-                it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()))
+                it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()), model)
             }
         }
         isResizable = false
@@ -113,6 +114,9 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
                         add(testFrameworks as ComboBox<CodeGenerationSettingItem>, BorderLayout.LINE_START)
                     }
                 )
+            }
+            row("Nyc source path:") {
+                component(nycSourceFileChooserField)
             }
             row("Timeout for Node.js (in seconds):") {
                 panelWithHelpTooltip("The execution timeout") {
@@ -196,25 +200,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         }
     }
 
-    private fun findFrameworkLibrary(npmPackageName: String): Boolean {
-        val (bufferedReader, _) = JsCmdExec.runCommand(
-            dir = model.project.basePath!!,
-            shouldWait = true,
-            timeout = 10,
-            cmd = arrayOf(model.pathToNPM, "list", "-g")
-        )
-        val checkForPackageText = bufferedReader.readText()
-        bufferedReader.close()
-        if (checkForPackageText == "") {
-            Messages.showErrorDialog(
-                model.project,
-                "Node.js is not installed",
-                title,
-            )
-            return false
-        }
-        return checkForPackageText.contains(npmPackageName)
-    }
 
     private fun setListeners() {
 

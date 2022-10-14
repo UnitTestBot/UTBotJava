@@ -372,10 +372,10 @@ class JsTestGenerator(
 
     private fun runJs(scriptText: String, workDir: String): String {
         val (reader, errorReader) = JsCmdExec.runCommand(
-            cmd = "node -e \"$scriptText\"",
             dir = workDir,
             shouldWait = true,
-            timeout = timeout
+            timeout = timeout,
+            cmd = arrayOf("node", "-e", "\"$scriptText\"")
         )
         return errorReader.readText().ifEmpty { reader.readText() }
     }

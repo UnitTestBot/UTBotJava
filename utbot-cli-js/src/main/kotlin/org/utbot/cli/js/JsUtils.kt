@@ -6,10 +6,10 @@ internal object JsUtils {
 
     @Suppress("NAME_SHADOWING")
     fun makeAbsolutePath(path: String): String {
-        val path = path.replace("/", File.separator)
+        val path = path.replace("\\", "/")
         return when {
             File(path).isAbsolute -> path
-            else -> System.getProperty("user.dir") + File.separator + path
+            else -> System.getProperty("user.dir") + "/" + path
         }
     }
 }

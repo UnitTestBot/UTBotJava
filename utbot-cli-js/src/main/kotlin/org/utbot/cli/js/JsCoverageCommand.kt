@@ -37,24 +37,27 @@ class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests c
 
     override fun run() {
         val testFileAbsolutePath = makeAbsolutePath(testFile)
-        val workingDir = testFileAbsolutePath.substringBeforeLast(File.separator)
-        val coverageDataPath = "$workingDir${File.separator}coverage${File.separator}"
+        val workingDir = testFileAbsolutePath.substringBeforeLast("/")
+        val coverageDataPath = "$workingDir/coverage"
         val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
         JsCmdExec.runCommand(
-            cmd = "nyc " +
-                    "--report-dir=$coverageDataPath " +
-                    "--reporter=\"clover\" " +
-                    "--temp-dir=${workingDir}${File.separator}cache " +
-                    "mocha $testFileAbsolutePath",
             dir = workingDir,
             shouldWait = true,
             timeout = 20,
+            cmd = arrayOf(
+                "nyc",
+                "--report-dir=$coverageDataPath",
+                "--reporter=\"clover\"",
+                "--temp-dir=${workingDir}/cache",
+                "mocha",
+                testFileAbsolutePath
+            )
         )
         val coveredList = mutableListOf<Int>()
         val partiallyCoveredList = mutableListOf<Int>()
         val uncoveredList = mutableListOf<Int>()
         val db = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-        val xmlFile = File("$coverageDataPath${File.separator}clover.xml")
+        val xmlFile = File("$coverageDataPath/clover.xml")
         val doc = db.parse(xmlFile)
         buildCoverageLists(
             coveredList,

@@ -81,8 +81,8 @@ test("${context.filePathToInference}")
 
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
-            cmd = "npm install tern -l",
             dir = path,
+            cmd = arrayOf("npm", "install", "tern", "-l")
         )
     }
 
@@ -95,10 +95,10 @@ test("${context.filePathToInference}")
     private fun runTypeInferencer() {
         with(context) {
             val (reader, _) = JsCmdExec.runCommand(
-                cmd = "node ${projectPath}${File.separator}$utbotDir${File.separator}ternScript.js",
                 dir = "$projectPath${File.separator}$utbotDir${File.separator}",
                 shouldWait = true,
-                timeout = 20
+                timeout = 20,
+                cmd = arrayOf("node", "${projectPath}/$utbotDir/ternScript.js"),
             )
             val text = reader.readText().replaceAfterLast("}", "")
             json = try {

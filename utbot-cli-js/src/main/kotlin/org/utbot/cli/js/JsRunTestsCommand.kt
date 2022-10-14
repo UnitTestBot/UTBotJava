@@ -35,14 +35,14 @@ class JsRunTestsCommand : CliktCommand(name = "run_js", help = "Runs tests for t
     override fun run() {
         val fileWithTestsAbsolutePath = makeAbsolutePath(fileWithTests)
         val dir = if (fileWithTestsAbsolutePath.endsWith(".js"))
-            fileWithTestsAbsolutePath.substringBeforeLast(File.separator) else fileWithTestsAbsolutePath
+            fileWithTestsAbsolutePath.substringBeforeLast("/") else fileWithTestsAbsolutePath
         val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
         when (testFramework) {
             "mocha" -> {
                 val (textReader, error) = JsCmdExec.runCommand(
-                    "mocha $fileWithTestsAbsolutePath",
-                    dir
-                )
+                    dir = dir,
+                    cmd = arrayOf("mocha", fileWithTestsAbsolutePath)
+                    )
                 val errorText = error.readText()
                 if (errorText.isNotEmpty()) {
                     logger.error { "An error has occurred while running tests for $fileWithTests : $errorText" }

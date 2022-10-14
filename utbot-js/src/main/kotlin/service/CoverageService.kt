@@ -63,27 +63,34 @@ class CoverageService(
             val (_, error) = when (originalFileName) {
                 newFileName -> {
                     JsCmdExec.runCommand(
-                        cmd = "nyc " +
-                                "--report-dir=${dir.absolutePath} " +
-                                "--reporter=\"json\" " +
-                                "--temp-dir=${dir.absolutePath}${File.separator}cache$id " +
-                                "node $filePath",
                         shouldWait = true,
                         dir = workingDir,
                         timeout = context.nodeTimeout,
+                        cmd = arrayOf(
+                            "nyc",
+                            "--report-dir=${dir.absolutePath}",
+                            "--reporter=\"json\"",
+                            "--temp-dir=${dir.absolutePath}${File.separator}cache$id",
+                            "node",
+                            filePath
+                        )
                     )
                 }
 
                 else -> {
                     JsCmdExec.runCommand(
-                        cmd = "nyc " +
-                                "--report-dir=${dir.absolutePath} " +
-                                "--reporter=\"json\" " +
-                                "--temp-dir=${dir.absolutePath}${File.separator}cache$id " +
-                                "node -e \"$scriptText\" ",
                         shouldWait = true,
                         dir = File(filePath).parent,
                         timeout = context.nodeTimeout,
+                        cmd = arrayOf(
+                            "nyc",
+                            "--report-dir=${dir.absolutePath}",
+                            "--reporter=\"json\"",
+                            "--temp-dir=${dir.absolutePath}${File.separator}cache$id",
+                            "node",
+                            "-e",
+                            "\"$scriptText\""
+                        )
                     )
                 }
             }

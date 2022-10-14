@@ -187,10 +187,10 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
     private fun findFrameworkLibrary(npmPackageName: String): Boolean {
         val (bufferedReader, _) = JsCmdExec.runCommand(
-            cmd = "npm list -g",
             dir = model.project.basePath!!,
             shouldWait = true,
             timeout = 10,
+            cmd = arrayOf("npm", "list", "-g")
         )
         val checkForPackageText = bufferedReader.readText()
         bufferedReader.close()

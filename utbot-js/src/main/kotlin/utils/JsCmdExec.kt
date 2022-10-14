@@ -9,19 +9,33 @@ import java.util.concurrent.TimeUnit
 
 object JsCmdExec {
 
-    private val cmdPrefix =
-        if (System.getProperty("os.name").lowercase(Locale.getDefault()).contains("windows"))
-            "cmd.exe" else ""
-    private val cmdDelim = if (System.getProperty("os.name").lowercase(Locale.getDefault()).contains("windows"))
-        "/c" else "-c"
+    private interface IOsPrefix {
+        fun getCmdPrefix(): Array<String>
+    }
+
+    private class WindowsPrefix: IOsPrefix {
+        override fun getCmdPrefix() = arrayOf("cmd.exe", "/c")
+    }
+
+    private class LinuxPrefix: IOsPrefix {
+        override fun getCmdPrefix() = emptyArray<String>()
+    }
+
+    private fun getPrefixByOs(): Array<String> {
+        val osData = System.getProperty("os.name").lowercase(Locale.getDefault())
+        return when {
+            osData.contains("windows") -> WindowsPrefix().getCmdPrefix()
+            else -> LinuxPrefix().getCmdPrefix()
+        }
+    }
 
     fun runCommand(
-        cmd: String,
         dir: String? = null,
         shouldWait: Boolean = false,
-        timeout: Long = defaultTimeout
+        timeout: Long = defaultTimeout,
+        vararg cmd: String,
     ): Pair<BufferedReader, BufferedReader> {
-        val builder = ProcessBuilder(cmdPrefix, cmdDelim, cmd)
+        val builder = ProcessBuilder(*getPrefixByOs(), *cmd)
         dir?.let {
             builder.directory(File(it))
         }

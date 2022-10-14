@@ -104,7 +104,7 @@ object CodeGenerationController {
                 continue
             }
             try {
-                indicator.text = "Saving test cases for class ${srcClass.name}"
+                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.CODEGEN, "Write test cases for class ${srcClass.name}", index.toDouble() / classesWithTests.size)
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
@@ -131,7 +131,7 @@ object CodeGenerationController {
             } catch (e: Exception) {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
             } finally {
-                indicator.fraction = indicator.fraction.coerceAtLeast( 0.4 + 0.5 * (++index / classesWithTests.size))
+                index++
             }
         }
 
@@ -145,14 +145,14 @@ object CodeGenerationController {
                             run(THREAD_POOL, indicator) {
                                 val sarifReportsPath =
                                     model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
-                                indicator.text = "Merge Sarif reports"
+                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Merge Sarif reports", 0.75)
                                 mergeSarifReports(model, sarifReportsPath)
                                 if (model.runGeneratedTestsWithCoverage) {
-                                    indicator.text = "Start tests with coverage"
+                                    UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 0.95)
                                     RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                                 }
                                 proc.forceTermination()
-                                indicator.fraction = 1.0
+                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 1.0)
                             }
                         }
                     }
@@ -169,6 +169,7 @@ object CodeGenerationController {
                 showTestsReport(proc, model)
             }
         } catch (e: Exception) {
+            logger.error(e) { "Failed to save tests report" }
             showErrorDialogLater(
                 model.project,
                 message = "Cannot save tests generation report: error occurred '${e.message}'",

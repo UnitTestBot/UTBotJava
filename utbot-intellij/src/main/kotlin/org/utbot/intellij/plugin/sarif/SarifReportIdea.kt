@@ -7,6 +7,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import java.util.concurrent.CountDownLatch
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
@@ -27,6 +28,7 @@ object SarifReportIdea {
         reportsCountDown: CountDownLatch,
         indicator: ProgressIndicator
     ) {
+        UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generate SARIF report for ${classId.name}", .5)
         // building the path to the report file
         val classFqn = classId.name
         val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)

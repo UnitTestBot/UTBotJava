@@ -26,6 +26,7 @@ import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
 import org.jetbrains.kotlin.utils.addIfNotNull
+import org.utbot.framework.plugin.api.util.Lock
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.ui.InvalidClassNotifier
 import org.utbot.intellij.plugin.util.isAbstract
@@ -41,6 +42,10 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
     }
 
     override fun update(e: AnActionEvent) {
+        if (Lock.isLocked()) {
+            e.presentation.isEnabled = false
+            return
+        }
         if (e.place == ActionPlaces.POPUP) {
             e.presentation.text = "Tests with UnitTestBot..."
         }

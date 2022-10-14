@@ -19,7 +19,6 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.task.ProjectTaskManager
-import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
@@ -50,10 +49,25 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
+import org.utbot.framework.plugin.api.util.Lock
 
 object UtTestsDialogProcessor {
-
     private val logger = KotlinLogging.logger {}
+
+    enum class ProgressRange(val from : Double, val to: Double) {
+        SOLVING(from = 0.0, to = 0.7),
+        CODEGEN(from = 0.7, to = 0.9),
+        SARIF(from = 0.9, to = 1.0)
+    }
+
+    fun updateIndicator(indicator: ProgressIndicator, range : ProgressRange, text: String? = null, fraction: Double? = null) {
+        invokeLater {
+            text?.let { indicator.text = it }
+            fraction?.let { indicator.fraction = indicator.fraction.coerceAtLeast(range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0)) }
+            logger.debug("Phase ${indicator.text} with progress ${String.format("%.2f",indicator.fraction)}")
+        }
+    }
+
 
     fun createDialogAndGenerateTests(
         project: Project,
@@ -109,24 +123,20 @@ object UtTestsDialogProcessor {
         promise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess
+            if (!Lock.lock()) {
+                return@onSuccess
+            }
 
             (object : Task.Backgroundable(project, "Generate tests") {
 
                 override fun run(indicator: ProgressIndicator) {
                     val ldef = LifetimeDefinition()
+                    ldef.onTermination { Lock.unlock() }
                     ldef.terminateOnException { lifetime ->
-                        val startTime = System.currentTimeMillis()
                         val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
-                        val totalTimeout = model.timeout * model.srcClasses.size
 
                         indicator.isIndeterminate = false
-                        indicator.text = "Generate tests: read classes"
-
-                        val timerHandler =
-                            AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
-                                indicator.fraction =
-                                    (System.currentTimeMillis() - startTime).toDouble() / totalTimeout
-                            }, 0, 500, TimeUnit.MILLISECONDS)
+                        updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
 
                         val buildPaths = ReadAction
                             .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
@@ -180,10 +190,13 @@ object UtTestsDialogProcessor {
                                 continue
                             }
 
-                            indicator.text = "Generate test cases for class $className"
                             if (totalClasses > 1) {
-                                indicator.fraction =
-                                    indicator.fraction.coerceAtLeast(0.4 * processedClasses / totalClasses)
+                                updateIndicator(
+                                    indicator,
+                                    ProgressRange.SOLVING,
+                                    "Generate test cases for class $className",
+                                    processedClasses.toDouble() / totalClasses
+                                )
                             }
 
                             // set timeout for concrete execution and for generated tests
@@ -231,8 +244,6 @@ object UtTestsDialogProcessor {
                                 } else {
                                     testSetsByClass[srcClass] = rdGenerateResult
                                 }
-
-                                timerHandler.cancel(true)
                             }
                             processedClasses++
                         }
@@ -247,9 +258,7 @@ object UtTestsDialogProcessor {
                             }
                             return
                         }
-
-                        indicator.fraction = indicator.fraction.coerceAtLeast(0.4)
-                        indicator.text = "Generate code for tests"
+                        updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code for tests", 0.0)
                         // Commented out to generate tests for collected executions even if action was canceled.
                         // indicator.checkCanceled()
 

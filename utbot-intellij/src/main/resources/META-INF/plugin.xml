@@ -88,4 +88,15 @@
         ]]>
     </change-notes>
 
+    <extensions defaultExtensionNs="com.intellij">
+        <globalInspection language="JAVA"
+                          displayName="Errors detected by UnitTestBot"
+                          groupPath="Java"
+                          groupBundle="messages.InspectionsBundle"
+                          groupKey="group.names.probable.bugs"
+                          enabledByDefault="true"
+                          level="ERROR"
+                          implementationClass="org.utbot.intellij.plugin.inspection.UTBotInspectionTool"/>
+    </extensions>
+
 </idea-plugin>

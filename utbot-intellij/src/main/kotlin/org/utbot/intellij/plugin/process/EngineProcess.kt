@@ -325,7 +325,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                    testSetsId: Long,
                    generatedTestsCode: String,
                    sourceFindingStrategy: SourceFindingStrategy
-    ) = runBlocking {
+    ): String = runBlocking {
         current!!.protocol.rdSourceFindingStrategy.let {
             it.getSourceFile.set { params ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String?> {

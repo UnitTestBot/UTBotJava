@@ -14,12 +14,14 @@ on:
         minor-release:
           type: choice
           description: "It adds alpha or beta postfix to version."
-          required: false
+          required: true
+          default: ''
           options:
-          - "1"
-          - "2"
-          - "3"
-          - "4"
+          - ''
+          - '1'
+          - '2'
+          - '3'
+          - '4'
 
         version-postfix:
           type: choice

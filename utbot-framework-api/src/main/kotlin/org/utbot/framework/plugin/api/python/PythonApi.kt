@@ -36,7 +36,10 @@ open class RawPythonAnnotation(
 
 class NormalizedPythonAnnotation(
     annotation: String
-) : RawPythonAnnotation(annotation)
+) : RawPythonAnnotation(annotation) {
+    override val simpleName: String
+        get() = name
+}
 
 class PythonMethodId(
     override val classId: PythonClassId,  // may be a fake class for top-level functions

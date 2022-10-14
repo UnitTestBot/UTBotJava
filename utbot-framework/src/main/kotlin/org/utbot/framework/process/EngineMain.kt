@@ -23,8 +23,8 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
+import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.CallsSynchronizer
 import org.utbot.rd.ClientProtocolBuilder
@@ -33,13 +33,9 @@ import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
 import org.utbot.summary.summarize
-import soot.SootMethod
-import soot.UnitPatchingChain
-import soot.util.HashChain
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
-import java.util.*
 import kotlin.reflect.full.functions
 import kotlin.time.Duration.Companion.seconds
 
@@ -56,6 +52,7 @@ suspend fun main(args: Array<String>) = runBlocking {
     ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
         settingsModel
         rdSourceFindingStrategy
+        rdInstrumenterAdapter
 
         AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol))
         val kryoHelper = KryoHelper(lifetime)
@@ -82,6 +79,7 @@ private fun EngineProcessModel.setup(
     }
     synchronizer.measureExecutionForTermination(createTestGenerator) { params ->
         AnalyticsConfigureUtil.configureML()
+        Instrumenter.adapter = RdInstrumenter(realProtocol)
         testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
@@ -150,7 +148,7 @@ private fun EngineProcessModel.setup(
         codeGenerator.generateAsStringWithTestReport(testSets[testSetsId]!!)
             .let {
                 testGenerationReports.add(it.testsGenerationReport)
-                RenderResult(it.generatedCode, kryoHelper.writeObject(it.utilClassKind))
+                RenderResult(it.generatedCode, it.utilClassKind?.javaClass?.simpleName)
             }
     }
     synchronizer.measureExecutionForTermination(stopProcess) { synchronizer.stopProtocol() }
@@ -177,6 +175,7 @@ private fun EngineProcessModel.setup(
     }
     synchronizer.measureExecutionForTermination(writeSarifReport) { params ->
         val reportFilePath = Paths.get(params.reportFilePath)
+        reportFilePath.parent.toFile().mkdirs()
         reportFilePath.toFile().writeText(
             SarifReport(
                 testSets[params.testSetsId]!!,

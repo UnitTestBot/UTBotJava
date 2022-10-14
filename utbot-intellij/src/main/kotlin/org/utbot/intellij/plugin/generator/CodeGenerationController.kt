@@ -613,17 +613,17 @@ object CodeGenerationController {
                             // uploading formatted code
                             val file = filePointer.containingFile
 
-                            saveSarifReport(
-                                proc,
-                                testSetsId,
-                                testClassUpdated,
-                                classUnderTest,
-                                model,
-                                file?.text?: generatedTestsCode
-                            )
-                            unblockDocument(testClassUpdated.project, editor.document)
-
-                            reportsCountDown.countDown()
+                            run(THREAD_POOL) {
+                                saveSarifReport(
+                                    proc,
+                                    testSetsId,
+                                    testClassUpdated,
+                                    classUnderTest,
+                                    model,
+                                    file?.text ?: generatedTestsCode
+                                )
+                                reportsCountDown.countDown()
+                            }
                         }
                     }
                 }
@@ -662,12 +662,9 @@ object CodeGenerationController {
 
         try {
             // saving sarif report
-            val sourceFinding = SourceFindingStrategyIdea(testClass)
-            executeCommand(testClass.project, "Saving Sarif report") {
-                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, sourceFinding)
-            }
+            SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, testClass)
         } catch (e: Exception) {
-            logger.error { e }
+            logger.error(e) { "error in saving sarif report"}
             showErrorDialogLater(
                 project,
                 message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",

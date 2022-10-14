@@ -4,7 +4,10 @@ import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.impl.file.impl.JavaFileManager
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import kotlinx.coroutines.runBlocking
@@ -31,6 +34,7 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.rd.ProcessWithRdServer
+import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.sarif.SourceFindingStrategy
@@ -49,6 +53,11 @@ private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdE
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
 class EngineProcess(parent: Lifetime, val project: Project) {
+    companion object {
+        init {
+            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
+        }
+    }
     private val ldef = parent.createNested()
     private val id = Random.nextLong()
     private var count = 0
@@ -137,6 +146,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     }
                 }.initModels {
                     engineProcessModel
+                    rdInstrumenterAdapter
                     rdSourceFindingStrategy
                     settingsModel.settingFor.set { params ->
                         SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
@@ -175,6 +185,17 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         isCancelled: (Unit) -> Boolean
     ) = runBlocking {
         engineModel().isCancelled.set(handler = isCancelled)
+        current!!.protocol.rdInstrumenterAdapter.computeSourceFileByClass.set { params ->
+            val result = DumbService.getInstance(project).runReadActionInSmartMode<String?> {
+                val scope = GlobalSearchScope.allScope(project)
+                val psiClass = JavaFileManager.getInstance(project)
+                    .findClass(params.className, scope)
+
+                psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
+            }
+            logger.debug("computeSourceFileByClass result: $result")
+            result
+        }
         engineModel().createTestGenerator.startSuspending(
             ldef,
             TestGeneratorParams(buildDir.toTypedArray(), classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
@@ -286,7 +307,12 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     testClassPackageName
                 )
             )
-        result.generatedCode to kryoHelper.readObject(result.utilClassKind)
+        result.generatedCode to result.utilClassKind?.let {
+            if (UtilClassKind.RegularUtUtils.javaClass.simpleName == it)
+                UtilClassKind.RegularUtUtils
+            else
+                UtilClassKind.UtUtilsWithMockito
+        }
     }
 
     fun forceTermination() = runBlocking {
@@ -323,7 +349,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 }
             }
         }
-        engineModel().writeSarifReport.startSuspending(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
+        engineModel().writeSarifReport.start(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
     }
 
     fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> = runBlocking {

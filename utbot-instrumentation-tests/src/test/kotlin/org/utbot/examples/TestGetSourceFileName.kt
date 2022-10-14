@@ -27,19 +27,19 @@ class TestGetSourceFileName {
 
     @Test
     fun testThis() {
-        assertEquals("TestGetSourceFileName.kt", Instrumenter.computeSourceFileName(TestGetSourceFileName::class.java))
+        assertEquals("TestGetSourceFileName.kt", Instrumenter.adapter.computeSourceFileName(TestGetSourceFileName::class.java))
     }
 
     @Test
     fun testJavaExample1() {
-        assertEquals("ExampleClass.java", Instrumenter.computeSourceFileName(ExampleClass::class.java))
+        assertEquals("ExampleClass.java", Instrumenter.adapter.computeSourceFileName(ExampleClass::class.java))
     }
 
     @Test
     fun testJavaExample2() {
         assertEquals(
             "ClassWithInnerClasses.java",
-            Instrumenter.computeSourceFileName(ClassWithInnerClasses::class.java)
+            Instrumenter.adapter.computeSourceFileName(ClassWithInnerClasses::class.java)
         )
     }
 
@@ -47,7 +47,7 @@ class TestGetSourceFileName {
     fun testInnerClass() {
         assertEquals(
             "ClassWithInnerClasses.java",
-            Instrumenter.computeSourceFileName(ClassWithInnerClasses.InnerStaticClass::class.java)
+            Instrumenter.adapter.computeSourceFileName(ClassWithInnerClasses.InnerStaticClass::class.java)
         )
     }
 
@@ -55,12 +55,12 @@ class TestGetSourceFileName {
     fun testSameNameButDifferentPackages() {
         assertEquals(
             true,
-            Instrumenter.computeSourceFileByClass(org.utbot.examples.samples.root.MyClass::class.java)?.toPath()
+            Instrumenter.adapter.computeSourceFileByClass(org.utbot.examples.samples.root.MyClass::class.java)?.toPath()
                 ?.endsWith(Paths.get("root", "MyClass.java"))
         )
         assertEquals(
             true,
-            Instrumenter.computeSourceFileByClass(org.utbot.examples.samples.root.child.MyClass::class.java)
+            Instrumenter.adapter.computeSourceFileByClass(org.utbot.examples.samples.root.child.MyClass::class.java)
                 ?.toPath()?.endsWith(Paths.get("root", "child", "MyClass.java"))
         )
     }
@@ -69,7 +69,7 @@ class TestGetSourceFileName {
     fun testEmptyPackage() {
         assertEquals(
             true,
-            Instrumenter.computeSourceFileByClass(ClassWithoutPackage::class.java)?.toPath()
+            Instrumenter.adapter.computeSourceFileByClass(ClassWithoutPackage::class.java)?.toPath()
                 ?.endsWith("java/ClassWithoutPackage.java")
         )
     }
@@ -78,7 +78,7 @@ class TestGetSourceFileName {
     fun testPackageDoesNotMatchDir() {
         assertEquals(
             true,
-            Instrumenter.computeSourceFileByClass(ClassWithWrongPackage::class.java)?.toPath()
+            Instrumenter.adapter.computeSourceFileByClass(ClassWithWrongPackage::class.java)?.toPath()
                 ?.endsWith("org/utbot/examples/samples/ClassWithWrongPackage.kt")
         )
     }
@@ -87,7 +87,7 @@ class TestGetSourceFileName {
     fun testSearchDir() {
         assertEquals(
             null,
-            Instrumenter.computeSourceFileByClass(
+            Instrumenter.adapter.computeSourceFileByClass(
                 org.utbot.examples.samples.root.MyClass::class.java,
                 Paths.get("src/test/kotlin")
             )?.name
@@ -95,7 +95,7 @@ class TestGetSourceFileName {
 
         assertEquals(
             "MyClass.java",
-            Instrumenter.computeSourceFileByClass(
+            Instrumenter.adapter.computeSourceFileByClass(
                 org.utbot.examples.samples.root.MyClass::class.java,
                 Paths.get("src/test")
             )?.name

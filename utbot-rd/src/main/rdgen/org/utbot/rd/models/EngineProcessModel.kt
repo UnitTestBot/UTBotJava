@@ -4,6 +4,16 @@ import com.jetbrains.rd.generator.nova.*
 
 object EngineProcessProtocolRoot : Root()
 
+object RdInstrumenterAdapter: Ext(EngineProcessProtocolRoot) {
+    val computeSourceFileByClassArguments = structdef {
+        field("className", PredefinedType.string)
+        field("packageName", PredefinedType.string.nullable)
+    }
+    init {
+        call("computeSourceFileByClass", computeSourceFileByClassArguments, PredefinedType.string.nullable).async
+    }
+}
+
 object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
     val sourceStrategeMethodArgs = structdef {
         field("classFqn", PredefinedType.string)
@@ -70,7 +80,7 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
     }
     val renderResult = structdef {
         field("generatedCode", PredefinedType.string)
-        field("utilClassKind", array(PredefinedType.byte))
+        field("utilClassKind", PredefinedType.string.nullable)
     }
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))

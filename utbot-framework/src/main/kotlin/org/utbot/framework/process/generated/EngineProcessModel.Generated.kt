@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:20]
+ * #### Generated from [EngineProcessModel.kt:30]
  */
 class EngineProcessModel private constructor(
     private val _setupUtContext: RdCall<SetupContextParams, Unit>,
@@ -73,7 +73,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 4674749231408610997L
+        const val serializationHash = 3907671513584285891L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -180,7 +180,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:89]
+ * #### Generated from [EngineProcessModel.kt:99]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -243,7 +243,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:93]
+ * #### Generated from [EngineProcessModel.kt:103]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -300,7 +300,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:82]
+ * #### Generated from [EngineProcessModel.kt:92]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -363,7 +363,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:86]
+ * #### Generated from [EngineProcessModel.kt:96]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -420,7 +420,7 @@ data class FindMethodsInClassMatchingSelectedResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:32]
+ * #### Generated from [EngineProcessModel.kt:42]
  */
 data class GenerateParams (
     val mockInstalled: Boolean,
@@ -543,7 +543,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:50]
+ * #### Generated from [EngineProcessModel.kt:60]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -606,7 +606,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:101]
+ * #### Generated from [EngineProcessModel.kt:111]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -699,7 +699,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:110]
+ * #### Generated from [EngineProcessModel.kt:120]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -768,7 +768,7 @@ data class GenerateTestReportResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:21]
+ * #### Generated from [EngineProcessModel.kt:31]
  */
 data class JdkInfo (
     val path: String,
@@ -831,7 +831,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:54]
+ * #### Generated from [EngineProcessModel.kt:64]
  */
 data class RenderParams (
     val testSetsId: Long,
@@ -972,11 +972,11 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:71]
+ * #### Generated from [EngineProcessModel.kt:81]
  */
 data class RenderResult (
     val generatedCode: String,
-    val utilClassKind: ByteArray
+    val utilClassKind: String?
 ) : IPrintable {
     //companion
     
@@ -986,13 +986,13 @@ data class RenderResult (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): RenderResult  {
             val generatedCode = buffer.readString()
-            val utilClassKind = buffer.readByteArray()
+            val utilClassKind = buffer.readNullable { buffer.readString() }
             return RenderResult(generatedCode, utilClassKind)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: RenderResult)  {
             buffer.writeString(value.generatedCode)
-            buffer.writeByteArray(value.utilClassKind)
+            buffer.writeNullable(value.utilClassKind) { buffer.writeString(it) }
         }
         
         
@@ -1009,7 +1009,7 @@ data class RenderResult (
         other as RenderResult
         
         if (generatedCode != other.generatedCode) return false
-        if (!(utilClassKind contentEquals other.utilClassKind)) return false
+        if (utilClassKind != other.utilClassKind) return false
         
         return true
     }
@@ -1017,7 +1017,7 @@ data class RenderResult (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + generatedCode.hashCode()
-        __r = __r*31 + utilClassKind.contentHashCode()
+        __r = __r*31 + if (utilClassKind != null) utilClassKind.hashCode() else 0
         return __r
     }
     //pretty print
@@ -1035,7 +1035,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:75]
+ * #### Generated from [EngineProcessModel.kt:85]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1092,7 +1092,7 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:78]
+ * #### Generated from [EngineProcessModel.kt:88]
  */
 data class Signature (
     val name: String,
@@ -1155,7 +1155,7 @@ data class Signature (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:26]
+ * #### Generated from [EngineProcessModel.kt:36]
  */
 data class TestGeneratorParams (
     val buildDir: Array<String>,
@@ -1230,7 +1230,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:96]
+ * #### Generated from [EngineProcessModel.kt:106]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

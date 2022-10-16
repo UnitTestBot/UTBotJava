@@ -2364,11 +2364,10 @@ abstract class UtValueTestCaseChecker(
         // TODO check that all generated classes have different content JIRA:1415
 
         logger.info { "Total configurations: ${succeeded.size + failed.size}. Failed: ${failed.size}." }
-
         require(failed.isEmpty()) {
             val separator = System.lineSeparator()
             val failedConfigurations = failed.joinToString(prefix = separator, separator = separator)
-
+            logger.error { "Failed configurations: $failedConfigurations" }
             "Failed configurations: $failedConfigurations"
         }
     }

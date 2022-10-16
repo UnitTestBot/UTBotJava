@@ -953,167 +953,6 @@ open class RewritingVisitor(
 
     override fun visit(expr: UtMkTermArrayExpression): UtExpression = applySimplification(expr, false)
 
-    override fun visit(expr: UtStringConst): UtExpression = expr
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sConcat
-    // UtConcat("A_1", "A_2", ..., "A_n") ---> "A_1A_2...A_n"
-    override fun visit(expr: UtConcatExpression): UtExpression =
-        applySimplification(expr) {
-            val parts = expr.parts.map { it.accept(this) as UtStringExpression }
-            if (parts.all { it.isConcrete }) {
-                UtSeqLiteral(parts.joinToString { it.toConcrete() as String })
-            } else {
-                UtConcatExpression(parts)
-            }
-        }
-
-    override fun visit(expr: UtConvertToString): UtExpression =
-        applySimplification(expr) { UtConvertToString(expr.expression.accept(this)) }
-
-    override fun visit(expr: UtStringToInt): UtExpression =
-        applySimplification(expr) { UtStringToInt(expr.expression.accept(this), expr.sort) }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sLength
-    // UtLength "A" ---> "A".length
-    override fun visit(expr: UtStringLength): UtExpression =
-        applySimplification(expr) {
-            val string = expr.string.accept(this)
-            when {
-                string is UtArrayToString -> string.length.expr
-                string.isConcrete -> mkInt((string.toConcrete() as String).length)
-                else -> UtStringLength(string)
-            }
-        }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sPositiveLength
-    // UtPositiveLength "A" ---> UtTrue
-    override fun visit(expr: UtStringPositiveLength): UtExpression =
-        applySimplification(expr) {
-            val string = expr.string.accept(this)
-            if (string.isConcrete) UtTrue else UtStringPositiveLength(string)
-        }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sCharAt
-    // UtCharAt "A" (Integral i) ---> "A".charAt(i)
-    override fun visit(expr: UtStringCharAt): UtExpression =
-        applySimplification(expr) {
-            val index = expr.index.accept(this)
-            val string = withNewSelect(index) { expr.string.accept(this) }
-            if (allConcrete(string, index)) {
-                (string.toConcrete() as String)[index.toConcrete() as Int].primitiveToSymbolic().expr
-            } else {
-                UtStringCharAt(string, index)
-            }
-        }
-
-    override fun visit(expr: UtStringEq): UtExpression =
-        applySimplification(expr) {
-            val left = expr.left.accept(this)
-            val right = expr.right.accept(this)
-            when {
-                // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-eqConcrete
-                // Eq("A", "B") ---> "A" == "B"
-                allConcrete(left, right) -> mkBool(left.toConcrete() == right.toConcrete())
-                // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-eqEqual
-                // Eq(a, a) ---> true
-                left == right -> UtTrue
-                else -> UtStringEq(left, right)
-            }
-        }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sSubstring
-    // UtSubstring "A" (Integral begin) (Integral end) ---> "A".substring(begin, end)
-    override fun visit(expr: UtSubstringExpression): UtExpression =
-        applySimplification(expr) {
-            val string = expr.string.accept(this)
-            val beginIndex = expr.beginIndex.accept(this)
-            val length = expr.length.accept(this)
-            if (allConcrete(string, beginIndex, length)) {
-                val begin = beginIndex.toConcrete() as Int
-                val end = begin + length.toConcrete() as Int
-                UtSeqLiteral((string.toConcrete() as String).substring(begin, end))
-            } else {
-                UtSubstringExpression(string, beginIndex, length)
-            }
-        }
-
-    override fun visit(expr: UtReplaceExpression): UtExpression = applySimplification(expr, false)
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sStartsWith
-    // UtStartsWith "A" "P" ---> "A".startsWith("P")
-    override fun visit(expr: UtStartsWithExpression): UtExpression =
-        applySimplification(expr) {
-            val string = expr.string.accept(this)
-            val prefix = expr.prefix.accept(this)
-            if (allConcrete(string, prefix)) {
-                val concreteString = string.toConcrete() as String
-                val concretePrefix = prefix.toConcrete() as String
-                mkBool(concreteString.startsWith(concretePrefix))
-            } else {
-                UtStartsWithExpression(string, prefix)
-            }
-        }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sEndsWith
-    // UtEndsWith "A" "S" ---> "A".endsWith("S")
-    override fun visit(expr: UtEndsWithExpression): UtExpression =
-        applySimplification(expr) {
-            val string = expr.string.accept(this)
-            val suffix = expr.suffix.accept(this)
-            if (allConcrete(string, suffix)) {
-                val concreteString = string.toConcrete() as String
-                val concreteSuffix = suffix.toConcrete() as String
-                mkBool(concreteString.endsWith(concreteSuffix))
-            } else {
-                UtEndsWithExpression(string, suffix)
-            }
-        }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sIndexOf
-    // UtIndexOf "A" "S" ---> "A".indexOf("S")
-    override fun visit(expr: UtIndexOfExpression): UtExpression = applySimplification(expr) {
-        val string = expr.string.accept(this)
-        val substring = expr.substring.accept(this)
-        if (allConcrete(string, substring)) {
-            val concreteString = string.toConcrete() as String
-            val concreteSubstring = substring.toConcrete() as String
-            mkInt(concreteString.indexOf(concreteSubstring))
-        } else {
-            UtIndexOfExpression(string, substring)
-        }
-    }
-
-    // CONFLUENCE:UtBot+Expression+Optimizations#UtBotExpressionOptimizations-sContains
-    // UtContains "A" "S" ---> "A".contains("S")
-    override fun visit(expr: UtContainsExpression): UtExpression =
-        applySimplification(expr) {
-            val string = expr.string.accept(this)
-            val substring = expr.substring.accept(this)
-            if (allConcrete(string, substring)) {
-                val concreteString = string.toConcrete() as String
-                val concreteSubstring = substring.toConcrete() as String
-                mkBool(concreteString.contains(concreteSubstring))
-            } else {
-                UtContainsExpression(string, substring)
-            }
-        }
-
-    override fun visit(expr: UtToStringExpression): UtExpression =
-        applySimplification(expr) {
-            UtToStringExpression(expr.isNull.accept(this) as UtBoolExpression, expr.notNullExpr.accept(this))
-        }
-
-    override fun visit(expr: UtArrayToString): UtExpression =
-        applySimplification(expr) {
-            UtArrayToString(
-                expr.arrayExpression.accept(this),
-                expr.offset.expr.accept(this).toIntValue(),
-                expr.length.expr.accept(this).toIntValue()
-            )
-        }
-
-    override fun visit(expr: UtSeqLiteral): UtExpression = expr
-
     override fun visit(expr: UtConstArrayExpression): UtExpression =
         applySimplification(expr) {
             UtConstArrayExpression(expr.constValue.accept(this), expr.sort)
@@ -1177,21 +1016,10 @@ open class RewritingVisitor(
             expr.constraint
         )
     }
-
-    override fun visit(expr: UtStringToArray): UtExpression = applySimplification(expr, false) {
-        UtStringToArray(
-            expr.stringExpression.accept(this),
-            expr.offset.expr.accept(this).toIntValue()
-        )
-    }
 }
-
 
 private val arrayExpressionAxiomInstantiationCache =
     IdentityHashMap<UtExtendedArrayExpression, UtMkArrayExpression>()
-
-private val stringExpressionAxiomInstantiationCache =
-    IdentityHashMap<UtStringExpression, UtStringConst>()
 
 private val arrayExpressionAxiomIndex = AtomicInteger(0)
 
@@ -1204,22 +1032,12 @@ private fun instantiateArrayAsNewConst(arrayExpression: UtExtendedArrayExpressio
             is UtArrayRemoveRange -> "RemoveRange"
             is UtArraySetRange -> "SetRange"
             is UtArrayShiftIndexes -> "ShiftIndexes"
-            is UtStringToArray -> "StringToArray"
             is UtArrayApplyForAll -> error("UtArrayApplyForAll cannot be instantiated as new const array")
         }
         UtMkArrayExpression(
             "_array$suffix${arrayExpressionAxiomIndex.getAndIncrement()}",
             arrayExpression.sort
         )
-    }
-
-private fun instantiateStringAsNewConst(stringExpression: UtStringExpression) =
-    stringExpressionAxiomInstantiationCache.getOrPut(stringExpression) {
-        val suffix = when (stringExpression) {
-            is UtArrayToString -> "ArrayToString"
-            else -> unreachableBranch("Cannot instantiate new string const for $stringExpression")
-        }
-        UtStringConst("_str$suffix${arrayExpressionAxiomIndex.getAndIncrement()}")
     }
 
 /**
@@ -1376,34 +1194,6 @@ class AxiomInstantiationRewritingVisitor(
         val constraint = expr.constraint(arrayExpression, selectedIndex)
         instantiatedAxiomExpressions += constraint
         return arrayExpression
-    }
-
-    override fun visit(expr: UtStringToArray): UtExpression {
-        val arrayInstance = instantiateArrayAsNewConst(expr)
-        val offset = expr.offset.expr.accept(this).toIntValue()
-        val selectedIndex = selectIndexStack.last()
-        val pushedIndex = Add(selectedIndex, offset)
-        val stringExpression = withNewSelect(pushedIndex) { expr.stringExpression.accept(this) }
-
-        instantiatedAxiomExpressions += UtEqExpression(
-            UtStringCharAt(stringExpression, pushedIndex),
-            arrayInstance.select(selectedIndex.expr)
-        )
-        return arrayInstance
-    }
-
-    override fun visit(expr: UtArrayToString): UtExpression {
-        val stringInstance = instantiateStringAsNewConst(expr)
-        val offset = expr.offset.expr.accept(this).toIntValue()
-        val selectedIndex = selectIndexStack.last()
-        val pushedIndex = Add(selectedIndex, offset)
-        val arrayExpression = withNewSelect(pushedIndex) { expr.arrayExpression.accept(this) }
-
-        instantiatedAxiomExpressions += UtEqExpression(
-            arrayExpression.select(pushedIndex),
-            UtStringCharAt(stringInstance, selectedIndex.expr)
-        )
-        return stringInstance
     }
 
     val instantiatedArrayAxioms: List<UtBoolExpression>

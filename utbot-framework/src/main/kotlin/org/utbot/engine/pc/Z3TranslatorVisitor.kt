@@ -305,98 +305,12 @@ open class Z3TranslatorVisitor(
         }
     }
 
-    override fun visit(expr: UtStringConst): Expr = expr.run { z3Context.mkConst(name, sort.toZ3Sort(z3Context)) }
-
-    override fun visit(expr: UtConcatExpression): Expr =
-        expr.run { z3Context.mkConcat(*parts.map { translate(it) as SeqExpr }.toTypedArray()) }
-
-    override fun visit(expr: UtConvertToString): Expr = expr.run {
-        when (expression) {
-            is UtBvLiteral -> z3Context.mkString(expression.value.toString())
-            else -> {
-                val intValue = z3Context.mkBV2Int(translate(expression) as BitVecExpr, true)
-                z3Context.intToString(intValue)
-            }
-        }
-    }
-
-    override fun visit(expr: UtStringToInt): Expr = expr.run {
-        val intValue = z3Context.stringToInt(translate(expression))
-        z3Context.mkInt2BV(size, intValue)
-    }
-
-    override fun visit(expr: UtStringLength): Expr = expr.run {
-        z3Context.mkInt2BV(MAX_STRING_LENGTH_SIZE_BITS, z3Context.mkLength(translate(string) as SeqExpr))
-    }
-
-    override fun visit(expr: UtStringPositiveLength): Expr = expr.run {
-        z3Context.mkGe(z3Context.mkLength(translate(string) as SeqExpr), z3Context.mkInt(0))
-    }
-
     private fun Context.mkBV2Int(expr: UtExpression): IntExpr =
         if (expr is UtBvLiteral) {
             mkInt(expr.value as Long)
         } else {
             mkBV2Int(translate(expr) as BitVecExpr, true)
         }
-
-
-    override fun visit(expr: UtStringCharAt): Expr = expr.run {
-        val charAtExpr = z3Context.mkSeqNth(translate(string) as SeqExpr, z3Context.mkBV2Int(index))
-        val z3var = charAtExpr.z3Variable(ByteType.v())
-        z3Context.convertVar(z3var, CharType.v()).expr
-    }
-
-    override fun visit(expr: UtStringEq): Expr = expr.run { z3Context.mkEq(translate(left), translate(right)) }
-
-    override fun visit(expr: UtSubstringExpression): Expr = expr.run {
-        z3Context.mkExtract(
-            translate(string) as SeqExpr,
-            z3Context.mkBV2Int(beginIndex),
-            z3Context.mkBV2Int(length)
-        )
-    }
-
-    override fun visit(expr: UtReplaceExpression): Expr = expr.run {
-        workaround(WorkaroundReason.HACK) { // mkReplace replaces first occasion only
-            z3Context.mkReplace(
-                translate(string) as SeqExpr,
-                translate(regex) as SeqExpr,
-                translate(replacement) as SeqExpr
-            )
-        }
-    }
-
-    // Attention, prefix is a first argument!
-    override fun visit(expr: UtStartsWithExpression): Expr = expr.run {
-        z3Context.mkPrefixOf(translate(prefix) as SeqExpr, translate(string) as SeqExpr)
-    }
-
-    // Attention, suffix is a first argument!
-    override fun visit(expr: UtEndsWithExpression): Expr = expr.run {
-        z3Context.mkSuffixOf(translate(suffix) as SeqExpr, translate(string) as SeqExpr)
-    }
-
-    override fun visit(expr: UtIndexOfExpression): Expr = expr.run {
-        z3Context.mkInt2BV(
-            MAX_STRING_LENGTH_SIZE_BITS,
-            z3Context.mkIndexOf(translate(string) as SeqExpr, translate(substring) as SeqExpr, z3Context.mkInt(0))
-        )
-    }
-
-    override fun visit(expr: UtContainsExpression): Expr = expr.run {
-        z3Context.mkGe(
-            z3Context.mkIndexOf(translate(string) as SeqExpr, translate(substring) as SeqExpr, z3Context.mkInt(0)),
-            z3Context.mkInt(0)
-        )
-    }
-
-    override fun visit(expr: UtToStringExpression): Expr = expr.run {
-        z3Context.mkITE(translate(isNull) as BoolExpr, z3Context.mkString("null"), translate(notNullExpr))
-
-    }
-
-    override fun visit(expr: UtSeqLiteral): Expr = expr.run { z3Context.mkString(value) }
 
     companion object {
         const val MAX_TYPE_NUMBER_FOR_ENUMERATION = 64
@@ -416,7 +330,5 @@ open class Z3TranslatorVisitor(
 
     override fun visit(expr: UtArrayApplyForAll): Expr = error("translate of UtArrayApplyForAll expression")
 
-    override fun visit(expr: UtStringToArray): Expr = error("translate of UtStringToArray expression")
 
-    override fun visit(expr: UtArrayToString): Expr = error("translate of UtArrayToString expression")
 }

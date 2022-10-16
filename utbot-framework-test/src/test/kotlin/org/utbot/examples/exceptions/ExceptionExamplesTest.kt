@@ -7,6 +7,7 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withoutConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
@@ -104,6 +105,23 @@ internal class ExceptionExamplesTest : UtValueTestCaseChecker(
             { i, r -> i >= 0 && r.getOrThrow() == i },
             coverage = atLeast(66) // because of unexpected exception thrown
         )
+    }
+
+    /**
+     * Covers [#656](https://github.com/UnitTestBot/UTBotJava/issues/656).
+     */
+    @Test
+    fun testCatchExceptionAfterOtherPossibleException() {
+        withoutConcrete {
+            checkWithException(
+                ExceptionExamples::catchExceptionAfterOtherPossibleException,
+                eq(3),
+                { i, r -> i == -1 && r.isException<ArithmeticException>() },
+                { i, r -> i == 0 && r.getOrThrow() == 2 },
+                { i, r -> r.getOrThrow() == 1 },
+                coverage = atLeast(100)
+            )
+        }
     }
 
     /**

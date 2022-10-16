@@ -13,7 +13,7 @@ fun String.toJsAny(returnType: JsClassId): Pair<Any?, JsClassId> {
     return when {
         this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
         this == "null" || this == "undefined" -> null to jsUndefinedClassId
-        Regex("^.*Error:.*").matches(this) -> this.replace("Error: ", "") to jsErrorClassId
+        Regex("^.*Error:.*").matches(this) -> this.replace("Error:", "") to jsErrorClassId
         Regex("\".*\"").matches(this) -> this.replace("\"", "") to jsStringClassId
         else -> {
             if (contains('.')) {

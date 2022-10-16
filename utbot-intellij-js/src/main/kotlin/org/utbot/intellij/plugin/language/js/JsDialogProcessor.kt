@@ -22,6 +22,7 @@ import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
+import service.CoverageMode
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.exportsLinePrefix
 import settings.JsExportsSettings.startComment
@@ -96,6 +97,7 @@ object JsDialogProcessor {
             pathToNYC = model.pathToNYC,
             pathToNPM = model.pathToNPM,
             timeout = model.timeout,
+            coverageMode = CoverageMode.BASIC
         )
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {

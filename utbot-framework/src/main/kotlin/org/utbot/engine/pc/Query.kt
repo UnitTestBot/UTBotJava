@@ -166,19 +166,6 @@ data class Query(
     }
 
     /**
-     * Mark that part of UtStringEq is equal to concrete part to substitute it in constraints added later.
-     *
-     * Eq expressions with both concrete parts are simplified in RewritingVisitor.visit(UtStringEq)
-     */
-    private fun MutableMap<UtExpression, UtExpression>.putEq(eqExpr: UtStringEq) {
-        when {
-            eqExpr.left.isConcrete -> this[eqExpr.right] = eqExpr.left
-            eqExpr.right.isConcrete -> this[eqExpr.left] = eqExpr.right
-            else -> this[eqExpr] = UtTrue
-        }
-    }
-
-    /**
      * @return
      * [this] if constraints are satisfied under this model.
      *
@@ -208,7 +195,6 @@ data class Query(
         for (expr in addedHard) {
             when (expr) {
                 is UtEqExpression -> addedEqs.putEq(expr)
-                is UtStringEq -> addedEqs.putEq(expr)
                 is UtBoolOpExpression -> when (expr.operator) {
                     Eq -> addedEqs.putEq(expr)
                     Lt -> if (expr.right.expr.isConcrete && expr.right.expr.isInteger()) {

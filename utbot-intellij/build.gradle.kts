@@ -70,6 +70,7 @@ tasks {
 
     runIde {
         jvmArgs("-Xmx2048m")
+        jvmArgs("--add-exports", "java.desktop/sun.awt.windows=ALL-UNNAMED")
         androidStudioPath?.let { ideDir.set(file(it)) }
     }
 

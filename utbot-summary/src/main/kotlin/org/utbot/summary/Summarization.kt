@@ -43,7 +43,7 @@ import soot.SootMethod
 private val logger = KotlinLogging.logger {}
 
 fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.get("")): UtMethodTestSet {
-    if (!UtSettings.enableMachineLearningModule) return this
+    if (!UtSettings.enableSummariesGeneration) return this
 
     return try {
         makeDiverseExecutions(this)
@@ -69,7 +69,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
 }
 
 fun UtMethodTestSet.summarize(searchDirectory: Path): UtMethodTestSet =
-    this.summarize(Instrumenter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory), searchDirectory)
+    this.summarize(Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory), searchDirectory)
 
 
 class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
@@ -388,7 +388,7 @@ private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path):
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }
         .mapNotNull { sootMethod ->
-            val methodFile = Instrumenter.computeSourceFileByClass(
+            val methodFile = Instrumenter.adapter.computeSourceFileByClass(
                 sootMethod.declaringClass.name,
                 sootMethod.declaringClass.javaPackageName.replace(".", File.separator),
                 searchDirectory

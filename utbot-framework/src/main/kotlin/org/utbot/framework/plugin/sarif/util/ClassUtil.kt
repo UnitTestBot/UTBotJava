@@ -56,7 +56,7 @@ object ClassUtil {
         val clazz = classLoader.tryLoadClass(classFqn)
             ?: return null
         val sourceFileName = withUtContext(UtContext(classLoader)) {
-            Instrumenter.computeSourceFileName(clazz) // finds the file name in bytecode
+            Instrumenter.adapter.computeSourceFileName(clazz) // finds the file name in bytecode
         } ?: return null
         val candidates = sourceCodeFiles.filter { sourceCodeFile ->
             sourceCodeFile.endsWith(File(sourceFileName))

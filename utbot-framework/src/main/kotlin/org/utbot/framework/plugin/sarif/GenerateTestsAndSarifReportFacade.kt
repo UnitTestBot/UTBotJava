@@ -91,7 +91,7 @@ class GenerateTestsAndSarifReportFacade(
         testClassBody: String,
         sourceFinding: SourceFindingStrategy
     ) {
-        val sarifReport = SarifReport(testSets, testClassBody, sourceFinding).createReport()
+        val sarifReport = SarifReport(testSets, testClassBody, sourceFinding).createReport().toJson()
         targetClass.sarifReportFile.writeText(sarifReport)
     }
 }

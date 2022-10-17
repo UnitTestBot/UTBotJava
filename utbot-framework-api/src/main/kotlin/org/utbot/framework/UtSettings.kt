@@ -384,7 +384,7 @@ object UtSettings : AbstractSettings(
      * If false, all these operations will be enabled and may lead to data loss during code analysis
      * and test generation.
      */
-    var useSandbox by getBooleanProperty(true)
+    var useSandbox by getBooleanProperty(false)
 
     /**
      * Limit for number of generated tests per method

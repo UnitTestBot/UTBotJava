@@ -1,9 +1,7 @@
 package org.utbot.examples.taint;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.utbot.examples.taint.BadSink.writeIntoBd;
 
@@ -25,6 +23,30 @@ public class CollectionsExamples {
 
         if (shouldBeSanitized) {
             value = TaintCleaner.removeTaintMark(value);
+        }
+
+        writeIntoBd(value);
+    }
+
+    public void passThroughExample(int i, boolean usePassThroughMethod) {
+        String param = BadSource.getEnvironment("data");
+
+        List<String> list = new ArrayList<>();
+
+        list.add("safe");
+        list.add(param);
+        list.add("safe");
+
+        if (i > 0) {
+            list.remove(1);
+        }
+
+        String value;
+
+        if (usePassThroughMethod) {
+            value = TaintPassThrough.passThroughTaintInformation(list.get(1));
+        } else {
+            value = TaintPassThrough.concatenationWithoutSavingTaintInformation(list.get(1));
         }
 
         writeIntoBd(value);

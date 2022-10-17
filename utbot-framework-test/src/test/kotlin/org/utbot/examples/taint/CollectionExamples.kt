@@ -14,4 +14,12 @@ internal class CollectionExamplesTest : UtValueTestCaseChecker(
             eq(-1),
         )
     }
+
+    @Test
+    fun testPassThroughExample() {
+        check(
+            CollectionsExamples::passThroughExample,
+            eq(-1),
+        )
+    }
 }

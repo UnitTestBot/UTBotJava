@@ -82,7 +82,12 @@ class TaintAnalysis {
     )
 
     val taintPassThrough: Map<MethodId, Set<String>> = mapOf(
-
+        MethodId(
+            classId = ClassId("org.utbot.examples.taint.TaintPassThrough"),
+            name = "passThroughTaintInformation",
+            returnType = stringClassId,
+            parameters = listOf(stringClassId)
+        ) to setOf(SQL_INJECTION_FLAG),
     )
 
     companion object {

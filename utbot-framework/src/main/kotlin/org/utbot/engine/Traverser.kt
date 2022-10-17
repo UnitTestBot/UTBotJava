@@ -3300,7 +3300,7 @@ class Traverser(
         val condition = taintAnalysis.containsInTainted(taintValue, flags)
         val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
 
-        implicitlyThrowException(TaintAnalysisException("Taint check failure"), setOf(condition, notNullCondition))
+        implicitlyThrowException(VerifyError("Taint check failure"), setOf(condition, notNullCondition))
 
         queuedSymbolicStateUpdates += mkNot(mkAnd(condition, notNullCondition)).asHardConstraint()
     }
@@ -3549,13 +3549,13 @@ class Traverser(
     }
 
     private fun TraversalContext.implicitlyThrowException(
-        exception: Exception,
+        throwable: Throwable,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(throwable, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(

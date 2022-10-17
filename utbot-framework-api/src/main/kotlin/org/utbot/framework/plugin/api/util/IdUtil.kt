@@ -274,6 +274,7 @@ val floatArrayClassId = ClassId("[F", floatClassId)
 val doubleArrayClassId = ClassId("[D", doubleClassId)
 
 val stringClassId = java.lang.String::class.id
+val stringBuilderClassId = java.lang.StringBuilder::class.id
 
 val objectClassId = java.lang.Object::class.id
 

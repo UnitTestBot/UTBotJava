@@ -83,6 +83,18 @@ class TaintAnalysis {
 
     val taintPassThrough: Map<MethodId, Set<String>> = mapOf(
         MethodId(
+            classId = stringBuilderClassId,
+            name = "append",
+            returnType = stringBuilderClassId,
+            parameters = listOf(stringClassId)
+        ) to setOf(SQL_INJECTION_FLAG),
+        MethodId(
+            classId = stringBuilderClassId,
+            name = "toString",
+            returnType = stringClassId,
+            parameters = emptyList()
+        ) to setOf(SQL_INJECTION_FLAG),
+        MethodId(
             classId = ClassId("org.utbot.examples.taint.TaintPassThrough"),
             name = "passThroughTaintInformation",
             returnType = stringClassId,
@@ -95,5 +107,3 @@ class TaintAnalysis {
         const val SQL_INJECTION_FLAG = "SQL_INJECTION"
     }
 }
-
-class TaintAnalysisException(message: String): RuntimeException(message)

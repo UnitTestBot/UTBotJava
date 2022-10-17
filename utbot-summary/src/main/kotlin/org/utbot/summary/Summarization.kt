@@ -43,7 +43,7 @@ import soot.SootMethod
 private val logger = KotlinLogging.logger {}
 
 fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.get("")): UtMethodTestSet {
-    if (!UtSettings.enableMachineLearningModule) return this
+    if (!UtSettings.enableSummariesGeneration) return this
 
     return try {
         makeDiverseExecutions(this)

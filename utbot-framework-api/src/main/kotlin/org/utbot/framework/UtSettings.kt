@@ -133,12 +133,12 @@ object UtSettings : AbstractSettings(
     var useCustomJavaDocTags by getBooleanProperty(true)
 
     /**
-     * Enable the machine learning module to generate summaries for methods under test.
+     * Enable the Summarization module to generate summaries for methods under test.
      * True by default.
      *
      * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
      */
-    var enableMachineLearningModule by getBooleanProperty(true)
+    var enableSummariesGeneration by getBooleanProperty(true)
 
     /**
      * Options below regulate which [NullPointerException] check should be performed.

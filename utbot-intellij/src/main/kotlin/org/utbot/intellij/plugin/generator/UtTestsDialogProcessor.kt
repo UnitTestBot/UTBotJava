@@ -27,7 +27,6 @@ import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -191,6 +190,8 @@ object UtTestsDialogProcessor {
 
                             UtSettings.useCustomJavaDocTags =
                                 model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+
+                            UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
 
                             val searchDirectory = ReadAction
                                 .nonBlocking<Path> {

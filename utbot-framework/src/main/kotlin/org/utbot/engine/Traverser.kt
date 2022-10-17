@@ -9,6 +9,7 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
+import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -29,6 +30,7 @@ import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.UtBoolOpExpression
 import org.utbot.engine.pc.UtBvConst
 import org.utbot.engine.pc.UtBvLiteral
+import org.utbot.engine.pc.UtBvNotExpression
 import org.utbot.engine.pc.UtByteSort
 import org.utbot.engine.pc.UtCastExpression
 import org.utbot.engine.pc.UtCharSort
@@ -108,6 +110,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.UtSettings.useOnlyTaintAnalysis
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -727,7 +730,7 @@ class Traverser(
         }
 
         val (rightPartWrappedAsMethodResults, taintAnalysisUpdate) = if (rightValue is InvokeExpr) {
-            invokeResult(rightValue) to processTaintSource(rightValue.method.executableId)
+            invokeResult(rightValue) to processTaintAnalysis(rightValue.method.executableId)
         } else {
             val value = resolve(rightValue, current.leftOp.type)
             listOf(MethodResult(value)) to SymbolicStateUpdate()
@@ -2215,11 +2218,23 @@ class Traverser(
         queuedSymbolicStateUpdates += MemoryUpdate(speculativelyNotNullAddresses = persistentListOf(addr))
     }
 
-    private fun markAsTainted(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+    private fun markAsTaint(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
         val taintedBv = taintAnalysis.constructTaintedVector(flags)
         val memoryUpdates = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to taintedBv))
 
         return SymbolicStateUpdate(memoryUpdates = memoryUpdates)
+    }
+
+    private fun clearTaintMark(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+        val taintBv = taintAnalysis.constructTaintedVector(flags)
+        val negatedTaintBv = UtBvNotExpression(taintBv.toLongValue()).toLongValue()
+        val actualTaintBv = memory.taintValue(addr).toLongValue()
+
+        val updTaintBv = And(negatedTaintBv, actualTaintBv)
+
+        val memoryUpdate = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to updTaintBv))
+
+        return SymbolicStateUpdate(memoryUpdates = memoryUpdate)
     }
 
     /**
@@ -3211,8 +3226,12 @@ class Traverser(
         val notMarked = mkEq(memory.isSpeculativelyNotNull(addr), mkFalse())
         val notMarkedAndNull = mkAnd(notMarked, canBeNull)
 
-        if (environment.method.checkForNPE(environment.state.executionStack.size)) {
-            implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
+        if (useOnlyTaintAnalysis) {
+            doNotRun {
+                if (environment.method.checkForNPE(environment.state.executionStack.size)) {
+                    implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
+                }
+            }
         }
 
         queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()
@@ -3220,13 +3239,22 @@ class Traverser(
 
     private fun TraversalContext.divisionByZeroCheck(denom: PrimitiveValue) {
         val equalsToZero = Eq(denom, 0)
-        implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
+        if (UtSettings.useOnlyTaintAnalysis) {
+            doNotRun {
+                implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
+            }
+        }
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
     }
 
-    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId) {
-        processTaintSanitizer(methodId)
-        processTaintPassThrough(methodId)
+    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId): SymbolicStateUpdate {
+        var result = SymbolicStateUpdate()
+
+        result += processTaintSource(methodId)
+        result += processTaintSanitizer(methodId)
+        result += processTaintPassThrough(methodId)
+
+        return result
     }
 
     private fun processTaintSource(methodId: ExecutableId): SymbolicStateUpdate {
@@ -3244,7 +3272,7 @@ class Traverser(
 
         val resultAddr = symbolicResult.value.addr
 
-        return markAsTainted(resultAddr, flags)
+        return markAsTaint(resultAddr, flags)
     }
 
     private fun TraversalContext.processTaintSink(
@@ -3256,18 +3284,33 @@ class Traverser(
         val flags = taintAnalysis.taintSinks[methodId] ?: return
         val taintValue = memory.taintValue(symbolicValue.addr)
         val condition = taintAnalysis.containsInTainted(taintValue, flags)
+        val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
 
-        implicitlyThrowException(SecurityException("Taint analysis failure"), setOf(condition))
+        implicitlyThrowException(TaintAnalysisException("Taint check failure"), setOf(condition, notNullCondition))
 
-        queuedSymbolicStateUpdates += mkNot(condition).asHardConstraint()
+        queuedSymbolicStateUpdates += mkNot(mkAnd(condition, notNullCondition)).asHardConstraint()
     }
 
-    private fun processTaintSanitizer(methodId: ExecutableId) {
-        // TODO
+    private fun processTaintSanitizer(methodId: ExecutableId): SymbolicStateUpdate {
+        // there is no return value yet to mark it as source
+        val methodResult = environment.state.methodResult ?: return SymbolicStateUpdate()
+
+        // return if there are no flags for the methodId as a taint source
+        val flags = taintAnalysis.taintSanitizers[methodId] ?: return SymbolicStateUpdate()
+
+        val symbolicResult = methodResult.symbolicResult
+        // TODO we do not support primitive values yet
+        if (symbolicResult !is SymbolicSuccess || symbolicResult.value !is ReferenceValue) {
+            return SymbolicStateUpdate()
+        }
+
+        val resultAddr = symbolicResult.value.addr
+
+        return clearTaintMark(resultAddr, flags)
     }
 
-    private fun processTaintPassThrough(methodId: ExecutableId) {
-        // TODO
+    private fun processTaintPassThrough(methodId: ExecutableId): SymbolicStateUpdate {
+        return SymbolicStateUpdate()
     }
 
     // Use cast to Int and cmp with min/max for Byte and Short.
@@ -3393,17 +3436,23 @@ class Traverser(
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            if (!useOnlyTaintAnalysis) {
+                implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            }
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
 
     private fun TraversalContext.indexOutOfBoundsChecks(index: PrimitiveValue, length: PrimitiveValue) {
         val ltZero = Lt(index, 0)
-        implicitlyThrowException(IndexOutOfBoundsException("Less than zero"), setOf(ltZero))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(IndexOutOfBoundsException("Less than zero"), setOf(ltZero))
+        }
 
         val geLength = Ge(index, length)
-        implicitlyThrowException(IndexOutOfBoundsException("Greater or equal than length"), setOf(geLength))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(IndexOutOfBoundsException("Greater or equal than length"), setOf(geLength))
+        }
 
         queuedSymbolicStateUpdates += mkNot(ltZero).asHardConstraint()
         queuedSymbolicStateUpdates += mkNot(geLength).asHardConstraint()
@@ -3411,7 +3460,9 @@ class Traverser(
 
     private fun TraversalContext.negativeArraySizeCheck(vararg sizes: PrimitiveValue) {
         val ltZero = mkOr(sizes.map { Lt(it, 0) })
-        implicitlyThrowException(NegativeArraySizeException("Less than zero"), setOf(ltZero))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(NegativeArraySizeException("Less than zero"), setOf(ltZero))
+        }
         queuedSymbolicStateUpdates += mkNot(ltZero).asHardConstraint()
     }
 
@@ -3459,11 +3510,13 @@ class Traverser(
 
         val classCastExceptionAllowed = mkEq(UtTrue, typeRegistry.isClassCastExceptionAllowed(addr))
 
-        implicitlyThrowException(
-            ClassCastException("The object with type ${valueToCast.type} can not be casted to $typeAfterCast"),
-            setOf(notIsExpression, notNull, classCastExceptionAllowed),
-            setOf(constructConstraintForType(valueToCast, preferredTypesForCastException))
-        )
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(
+                ClassCastException("The object with type ${valueToCast.type} can not be casted to $typeAfterCast"),
+                setOf(notIsExpression, notNull, classCastExceptionAllowed),
+                setOf(constructConstraintForType(valueToCast, preferredTypesForCastException))
+            )
+        }
 
         queuedSymbolicStateUpdates += mkOr(isExpression, nullEqualityConstraint).asHardConstraint()
     }

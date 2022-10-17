@@ -6,6 +6,7 @@ import org.utbot.engine.pc.*
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.*
+import java.lang.RuntimeException
 
 class TaintAnalysis {
     // TODO move it to the Memory.kt file?
@@ -72,7 +73,12 @@ class TaintAnalysis {
     )
 
     val taintSanitizers: Map<MethodId, Set<String>> = mapOf(
-
+        MethodId(
+            classId = ClassId("org.utbot.examples.taint.TaintCleaner"),
+            name = "removeTaintMark",
+            returnType = stringClassId,
+            parameters = listOf(stringClassId)
+        ) to setOf(SQL_INJECTION_FLAG),
     )
 
     val taintPassThrough: Map<MethodId, Set<String>> = mapOf(
@@ -84,3 +90,5 @@ class TaintAnalysis {
         const val SQL_INJECTION_FLAG = "SQL_INJECTION"
     }
 }
+
+class TaintAnalysisException(message: String): RuntimeException(message)

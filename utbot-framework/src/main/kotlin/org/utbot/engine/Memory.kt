@@ -366,7 +366,7 @@ data class MemoryUpdate(
     val classIdToClearStatics: ClassId? = null,
     val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
     val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
-    val taintArrayUpdate: PersistentList<Pair<UtAddrExpression, UtBvLiteral>> = persistentListOf(),
+    val taintArrayUpdate: PersistentList<Pair<UtAddrExpression, UtExpression>> = persistentListOf(),
     val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =

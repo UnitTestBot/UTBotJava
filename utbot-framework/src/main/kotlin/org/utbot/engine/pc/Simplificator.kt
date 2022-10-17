@@ -37,6 +37,7 @@ import soot.IntType
 import soot.IntegerType
 import soot.LongType
 import soot.Type
+import kotlin.experimental.inv
 
 
 /**
@@ -627,6 +628,9 @@ open class Simplificator(
                 UtNegExpression(variable.toPrimitiveValue(expr.variable.type))
             }
         }
+
+    override fun visit(expr: UtBvNotExpression): UtExpression = expr // todo add simplification
+
 
     override fun visit(expr: UtCastExpression): UtExpression =
         applySimplification(expr) {

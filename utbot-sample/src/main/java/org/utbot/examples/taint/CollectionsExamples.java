@@ -43,10 +43,12 @@ public class CollectionsExamples {
 
         String value;
 
+        TaintPassThrough taintPassThrough = new TaintPassThrough();
+
         if (usePassThroughMethod) {
-            value = TaintPassThrough.passThroughTaintInformation(list.get(1));
+            value = taintPassThrough.passThroughTaintInformation(list.get(1));
         } else {
-            value = TaintPassThrough.concatenationWithoutSavingTaintInformation(list.get(1));
+            value = taintPassThrough.concatenationWithoutSavingTaintInformation(list.get(1));
         }
 
         writeIntoBd(value);

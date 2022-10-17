@@ -159,11 +159,13 @@ import soot.jimple.ClassConstant
 import soot.jimple.Constant
 import soot.jimple.DefinitionStmt
 import soot.jimple.DoubleConstant
+import soot.jimple.DynamicInvokeExpr
 import soot.jimple.Expr
 import soot.jimple.FieldRef
 import soot.jimple.FloatConstant
 import soot.jimple.IdentityRef
 import soot.jimple.IntConstant
+import soot.jimple.InterfaceInvokeExpr
 import soot.jimple.InvokeExpr
 import soot.jimple.LongConstant
 import soot.jimple.MonitorStmt
@@ -171,11 +173,14 @@ import soot.jimple.NeExpr
 import soot.jimple.NullConstant
 import soot.jimple.ParameterRef
 import soot.jimple.ReturnStmt
+import soot.jimple.SpecialInvokeExpr
 import soot.jimple.StaticFieldRef
+import soot.jimple.StaticInvokeExpr
 import soot.jimple.Stmt
 import soot.jimple.StringConstant
 import soot.jimple.SwitchStmt
 import soot.jimple.ThisRef
+import soot.jimple.VirtualInvokeExpr
 import soot.jimple.internal.JAddExpr
 import soot.jimple.internal.JArrayRef
 import soot.jimple.internal.JAssignStmt
@@ -738,6 +743,19 @@ class Traverser(
         }
 
         rightPartWrappedAsMethodResults.forEach { methodResult ->
+            val taintAnalysisUpdate = if (rightValue is InvokeExpr) {
+                val base = when (rightValue) {
+                    is StaticInvokeExpr -> null
+                    is SpecialInvokeExpr -> rightValue.base
+                    is VirtualInvokeExpr -> rightValue.base
+                    is InterfaceInvokeExpr -> rightValue.base
+                    else -> null
+                }
+                processTaintAnalysis(rightValue.method.executableId, methodResult, base, rightValue.args)
+            } else {
+                SymbolicStateUpdate()
+            }
+
             when (methodResult.symbolicResult) {
 
                 is SymbolicFailure -> { //exception thrown
@@ -745,7 +763,7 @@ class Traverser(
 
                     val nextState = createExceptionStateQueued(
                         methodResult.symbolicResult,
-                        methodResult.symbolicStateUpdate
+                        methodResult.symbolicStateUpdate + taintAnalysisUpdate
                     )
                     globalGraph.registerImplicitEdge(nextState.lastEdge!!)
                     offerState(nextState)
@@ -756,12 +774,6 @@ class Traverser(
                         current.leftOp,
                         methodResult.symbolicResult.value
                     )
-
-                    val taintAnalysisUpdate = if (rightValue is InvokeExpr) {
-                        processTaintAnalysis(rightValue.method.executableId, methodResult, rightValue.args)
-                    } else {
-                        SymbolicStateUpdate()
-                    }
 
                     offerState(
                         updateQueued(
@@ -2312,7 +2324,6 @@ class Traverser(
         val methodResult = environment.state.methodResult
 
         if (methodResult != null) {
-            processTaintAnalysis(invokeExpr.method.executableId, methodResult, invokeExpr.args)
             return listOf(methodResult)
         }
 
@@ -3264,12 +3275,12 @@ class Traverser(
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
     }
 
-    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId, methodResult: MethodResult, args: List<Value>): SymbolicStateUpdate {
+    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId, methodResult: MethodResult, base: Value?, args: List<Value>): SymbolicStateUpdate {
         var result = SymbolicStateUpdate()
 
         result += processTaintSource(methodId, methodResult)
         result += processTaintSanitizer(methodId, methodResult)
-        result += processTaintPassThrough(methodId, methodResult, args)
+        result += processTaintPassThrough(methodId, methodResult, base, args)
 
         return result
     }
@@ -3323,6 +3334,7 @@ class Traverser(
     private fun TraversalContext.processTaintPassThrough(
         methodId: ExecutableId,
         methodResult: MethodResult,
+        base: Value?,
         args: List<Value>
     ): SymbolicStateUpdate {
         // return if there are no flags for the methodId as a taint source
@@ -3335,7 +3347,15 @@ class Traverser(
         }
 
         val resultAddr = symbolicResult.value.addr
-        val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes).filterIsInstance<ReferenceValue>()
+
+        val argsWithThis = listOfNotNull(base) + args
+        val types = if (base != null) {
+            listOf(methodId.sootMethod.declaringClass.type) + methodId.sootMethod.parameterTypes
+        } else {
+            methodId.sootMethod.parameterTypes
+        }
+
+        val parameters = resolveParameters(argsWithThis, types).filterIsInstance<ReferenceValue>()
 
         return assignTaintMark(resultAddr, flags, parameters)
     }

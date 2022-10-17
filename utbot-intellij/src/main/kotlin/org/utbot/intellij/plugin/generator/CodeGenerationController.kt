@@ -52,13 +52,12 @@ import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.intellij.plugin.inspection.UTBotInspectionManager
+import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
-import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.ui.*
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -180,7 +179,7 @@ object CodeGenerationController {
         if (!sarifHasResults) {
             return
         }
-        UTBotInspectionManager
+        UnitTestBotInspectionManager
             .getInstance(project, srcClassPathToSarifReport)
             .createNewGlobalContext()
             .doInspections(AnalysisScope(project))

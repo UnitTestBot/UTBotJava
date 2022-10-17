@@ -7,6 +7,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.jetbrains.rd.framework.util.asCompletableFuture
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -37,6 +38,7 @@ import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
+import org.utbot.sarif.Sarif
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
 import java.nio.file.Path
@@ -349,7 +351,9 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 }
             }
         }
-        engineModel().writeSarifReport.start(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
+        engineModel().writeSarifReport.startSuspending(
+            WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
+        )
     }
 
     fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> = runBlocking {

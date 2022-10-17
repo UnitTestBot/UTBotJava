@@ -96,7 +96,7 @@
                           groupKey="group.names.probable.bugs"
                           enabledByDefault="true"
                           level="ERROR"
-                          implementationClass="org.utbot.intellij.plugin.inspection.UTBotInspectionTool"/>
+                          implementationClass="org.utbot.intellij.plugin.inspection.UnitTestBotInspectionTool"/>
     </extensions>
 
 </idea-plugin>

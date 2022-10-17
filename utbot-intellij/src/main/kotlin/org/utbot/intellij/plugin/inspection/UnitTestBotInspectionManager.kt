@@ -9,15 +9,15 @@ import org.utbot.sarif.Sarif
 import java.nio.file.Path
 
 /**
- * Overrides some methods of [InspectionManagerEx] to satisfy the logic of [UTBotInspectionTool].
+ * Overrides some methods of [InspectionManagerEx] to satisfy the logic of [UnitTestBotInspectionTool].
  */
-class UTBotInspectionManager(project: Project) : InspectionManagerEx(project) {
+class UnitTestBotInspectionManager(project: Project) : InspectionManagerEx(project) {
 
     private var srcClassPathToSarifReport: MutableMap<Path, Sarif> = mutableMapOf()
 
     companion object {
         fun getInstance(project: Project, srcClassPathToSarifReport: MutableMap<Path, Sarif>) =
-            UTBotInspectionManager(project).also {
+            UnitTestBotInspectionManager(project).also {
                 it.srcClassPathToSarifReport = srcClassPathToSarifReport
             }
     }
@@ -32,8 +32,8 @@ class UTBotInspectionManager(project: Project) : InspectionManagerEx(project) {
     }
 
     /**
-     * Overriding is needed to provide [UTBotInspectionContext] instead of [GlobalInspectionContextImpl].
+     * Overriding is needed to provide [UnitTestBotInspectionContext] instead of [GlobalInspectionContextImpl].
      */
     override fun createNewGlobalContext(): GlobalInspectionContextImpl =
-        UTBotInspectionContext(project, myContentManager, srcClassPathToSarifReport)
+        UnitTestBotInspectionContext(project, myContentManager, srcClassPathToSarifReport)
 }

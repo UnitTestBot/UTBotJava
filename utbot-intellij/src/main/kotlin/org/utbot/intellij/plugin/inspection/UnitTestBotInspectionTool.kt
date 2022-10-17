@@ -13,7 +13,7 @@ import java.nio.file.Path
 /**
  * Global inspection tool that displays detected errors from the SARIF report.
  */
-class UTBotInspectionTool : GlobalSimpleInspectionTool() {
+class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
 
     /**
      * Map from the path to the class under test to [Sarif] for it.
@@ -22,7 +22,7 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
 
     companion object {
         fun getInstance(srcClassPathToSarifReport: MutableMap<Path, Sarif>) =
-            UTBotInspectionTool().also {
+            UnitTestBotInspectionTool().also {
                 it.srcClassPathToSarifReport = srcClassPathToSarifReport
             }
     }

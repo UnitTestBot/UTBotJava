@@ -7,14 +7,14 @@ import com.intellij.codeInspection.ui.DefaultInspectionToolPresentation
 /**
  * Overrides [resolveProblem] to avoid suppressing quick fix buttons.
  */
-class UTBotInspectionToolPresentation(
+class UnitTestBotInspectionToolPresentation(
     toolWrapper: InspectionToolWrapper<*, *>,
-    context: UTBotInspectionContext
+    context: UnitTestBotInspectionContext
 ) : DefaultInspectionToolPresentation(toolWrapper, context) {
 
     /**
      * This method is called when the user clicks on the quick fix button.
-     * In the case of [UTBotInspectionTool] we do not want to remove the button after applying the fix.
+     * In the case of [UnitTestBotInspectionTool] we do not want to remove the button after applying the fix.
      *
      * See [DefaultInspectionToolPresentation.resolveProblem] for more details.
      */

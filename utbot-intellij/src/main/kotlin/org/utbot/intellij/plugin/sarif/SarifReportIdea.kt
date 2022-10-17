@@ -36,7 +36,9 @@ object SarifReportIdea {
         UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generate SARIF report for ${classId.name}", .5)
         // building the path to the report file
         val classFqn = classId.name
-        val (sarifReportsPath, sourceFinding) = WriteAction.computeAndWait<Pair<Path, SourceFindingStrategyIdea>, Exception> { model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot) to SourceFindingStrategyIdea(psiClass) }
+        val (sarifReportsPath, sourceFinding) = WriteAction.computeAndWait<Pair<Path, SourceFindingStrategyIdea>, Exception> {
+            model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot) to SourceFindingStrategyIdea(psiClass)
+        }
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
         IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator) {

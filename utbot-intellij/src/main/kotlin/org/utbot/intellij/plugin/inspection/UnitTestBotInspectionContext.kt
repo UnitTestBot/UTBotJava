@@ -11,12 +11,12 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
 /**
- * Overrides some methods of [GlobalInspectionContextImpl] to satisfy the logic of [UTBotInspectionTool].
+ * Overrides some methods of [GlobalInspectionContextImpl] to satisfy the logic of [UnitTestBotInspectionTool].
  */
-class UTBotInspectionContext(
+class UnitTestBotInspectionContext(
     project: Project,
     contentManager: NotNullLazyValue<out ContentManager>,
-    val srcClassPathToSarifReport: MutableMap<Path, Sarif>
+    private val srcClassPathToSarifReport: MutableMap<Path, Sarif>
 ) : GlobalInspectionContextImpl(project, contentManager) {
 
     /**
@@ -26,14 +26,14 @@ class UTBotInspectionContext(
         ConcurrentHashMap()
 
     private val globalInspectionToolWrapper by lazy {
-        val utbotInspectionTool = UTBotInspectionTool.getInstance(srcClassPathToSarifReport)
+        val utbotInspectionTool = UnitTestBotInspectionTool.getInstance(srcClassPathToSarifReport)
         GlobalInspectionToolWrapper(utbotInspectionTool).also {
             it.initialize(/* context = */ this)
         }
     }
 
     /**
-     * Returns [InspectionProfileImpl] with only one inspection tool - [UTBotInspectionTool].
+     * Returns [InspectionProfileImpl] with only one inspection tool - [UnitTestBotInspectionTool].
      */
     override fun getCurrentProfile(): InspectionProfileImpl {
         val supplier = InspectionToolsSupplier.Simple(listOf(globalInspectionToolWrapper))
@@ -51,12 +51,12 @@ class UTBotInspectionContext(
     }
 
     /**
-     * Overriding is needed to provide [UTBotInspectionToolPresentation]
+     * Overriding is needed to provide [UnitTestBotInspectionToolPresentation]
      * instead of the standard implementation of the [InspectionToolPresentation].
      */
     override fun getPresentation(toolWrapper: InspectionToolWrapper<*, *>): InspectionToolPresentation {
         return myPresentationMap.computeIfAbsent(toolWrapper) {
-            UTBotInspectionToolPresentation(globalInspectionToolWrapper, context = this)
+            UnitTestBotInspectionToolPresentation(globalInspectionToolWrapper, context = this)
         }
     }
 }

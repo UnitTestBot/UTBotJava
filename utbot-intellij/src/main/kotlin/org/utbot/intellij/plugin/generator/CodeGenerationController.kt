@@ -442,8 +442,8 @@ object CodeGenerationController {
         // all test roots for the given test module
         val testRoots = runReadAction {
             testModule
-                .suitableTestSourceRoots(this)
-                .mapNotNull { psiManager.findDirectory(it) }
+                .suitableTestSourceRoots()
+                .mapNotNull { psiManager.findDirectory(it.dir) }
         }
 
         // return an util class from one of the test source roots or null if no util class was found
@@ -712,12 +712,9 @@ object CodeGenerationController {
 
         try {
             // saving sarif report
-            val sourceFinding = SourceFindingStrategyIdea(testClass)
-            run(WRITE_ACTION, indicator) {
-                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, sourceFinding, reportsCountDown, indicator)
-            }
+                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, testClass, reportsCountDown, indicator)
         } catch (e: Exception) {
-            logger.error { e }
+            logger.error(e) { "error in saving sarif report"}
             showErrorDialogLater(
                 project,
                 message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",

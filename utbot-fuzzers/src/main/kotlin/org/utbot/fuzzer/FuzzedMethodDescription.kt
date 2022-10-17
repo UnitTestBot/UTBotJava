@@ -53,6 +53,11 @@ class FuzzedMethodDescription(
     var fuzzerType: (Int) -> FuzzedType? = { null }
 
     /**
+     * Returns true if class should be mocked.
+     */
+    var shouldMock: (ClassId) -> Boolean = { false }
+
+    /**
      * Map class id to indices of this class in parameters list.
      */
     val parametersMap: Map<ClassId, List<Int>> by lazy {

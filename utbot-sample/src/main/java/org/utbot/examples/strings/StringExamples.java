@@ -1,5 +1,7 @@
 package org.utbot.examples.strings;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 
 import static java.lang.Boolean.valueOf;
@@ -44,12 +46,32 @@ public class StringExamples {
         }
     }
 
+    public String[] intToStringWithConstants() {
+        return new String[]{
+                Integer.toString(Integer.MIN_VALUE),
+                Integer.toString(Integer.MIN_VALUE + 100),
+                Integer.toString(0),
+                Integer.toString(Integer.MAX_VALUE - 100),
+                Integer.toString(Integer.MAX_VALUE)
+        };
+    }
+
     public String longToString(long a, long b) {
         if (a > b) {
             return Long.toString(a);
         } else {
             return Long.toString(b);
         }
+    }
+
+    public String[] longToStringWithConstants() {
+        return new String[]{
+                Long.toString(Long.MIN_VALUE),
+                Long.toString(Long.MIN_VALUE + 100L),
+                Long.toString(0),
+                Long.toString(Long.MAX_VALUE - 100L),
+                Long.toString(Long.MAX_VALUE)
+        };
     }
 
     public String startsWithLiteral(String str) {
@@ -74,6 +96,16 @@ public class StringExamples {
         }
     }
 
+    public String[] byteToStringWithConstants() {
+        return new String[]{
+                Byte.toString(Byte.MIN_VALUE),
+                Byte.toString((byte) (Byte.MIN_VALUE + 100)),
+                Byte.toString((byte) 0),
+                Byte.toString((byte) (Byte.MAX_VALUE - 100)),
+                Byte.toString(Byte.MAX_VALUE)
+        };
+    }
+
     public String replace(String a, String b) {
         return a.replace("abc", b);
     }
@@ -92,6 +124,16 @@ public class StringExamples {
         } else {
             return Short.toString(b);
         }
+    }
+
+    public String[] shortToStringWithConstants() {
+        return new String[]{
+                Short.toString(Short.MIN_VALUE),
+                Short.toString((short) (Short.MIN_VALUE + 100)),
+                Short.toString((short) 0),
+                Short.toString((short) (Short.MAX_VALUE - 100)),
+                Short.toString(Short.MAX_VALUE)
+        };
     }
 
     public String booleanToString(boolean a, boolean b) {
@@ -173,6 +215,16 @@ public class StringExamples {
             buffer.append("Negative");
         }
         return buffer.toString();
+    }
+
+    @SuppressWarnings("RedundantIfStatement")
+    public boolean isStringBuilderEmpty(@NotNull StringBuilder stringBuilder) {
+        String content = stringBuilder.toString();
+        if (content.length() == 0) {
+            return true;
+        }
+
+        return false;
     }
 
     public boolean isValidUuid(String uuid) {

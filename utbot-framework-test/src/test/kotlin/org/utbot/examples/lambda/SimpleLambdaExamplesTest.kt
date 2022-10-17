@@ -11,9 +11,9 @@ import org.utbot.tests.infrastructure.isException
 // TODO failed Kotlin compilation (generics) SAT-1332
 class SimpleLambdaExamplesTest : UtValueTestCaseChecker(
     testClass = SimpleLambdaExamples::class,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration),
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration),
     )
 ) {
     @Test

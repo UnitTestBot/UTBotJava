@@ -16,10 +16,10 @@ import org.utbot.tests.infrastructure.CodeGeneration
 internal class ClassRefTest : UtValueTestCaseChecker(
     testClass = ClassRef::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
         // TODO: SAT-1457 Restore Kotlin codegen for a group of tests with type casts
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test

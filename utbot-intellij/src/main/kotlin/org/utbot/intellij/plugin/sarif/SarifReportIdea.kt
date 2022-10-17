@@ -1,5 +1,7 @@
 package org.utbot.intellij.plugin.sarif
 
+import com.intellij.openapi.application.WriteAction
+import com.intellij.psi.PsiClass
 import com.intellij.openapi.progress.ProgressIndicator
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
@@ -11,6 +13,7 @@ import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
+import java.nio.file.Path
 
 object SarifReportIdea {
     private val logger = KotlinLogging.logger {}
@@ -24,18 +27,15 @@ object SarifReportIdea {
         classId: ClassId,
         model: GenerateTestsModel,
         generatedTestsCode: String,
-        sourceFinding: SourceFindingStrategyIdea,
+        psiClass: PsiClass
         reportsCountDown: CountDownLatch,
         indicator: ProgressIndicator
     ) {
         UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generate SARIF report for ${classId.name}", .5)
         // building the path to the report file
         val classFqn = classId.name
-        val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+        val (sarifReportsPath, sourceFinding) = WriteAction.computeAndWait<Pair<Path, SourceFindingStrategyIdea>, Exception> { model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot) to SourceFindingStrategyIdea(psiClass) }
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
-
-        // creating report related directory
-        VfsUtil.createDirectoryIfMissing(reportFilePath.parent.toString())
 
         IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator) {
             try {

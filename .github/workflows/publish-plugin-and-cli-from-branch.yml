@@ -3,6 +3,12 @@ name: "[M] Plugin and CLI: publish as archives"
 on: 
   workflow_call:
     inputs:
+        minor-release:
+          type: string
+          description: "It adds minor release indicator to version."
+          required: false
+          default: 'none'
+
         version-postfix:
           type: string
           description: "It adds postfix (alpha or beta) to version (optional)."
@@ -11,14 +17,26 @@ on:
 
   workflow_dispatch:
     inputs:
+        minor-release:
+          type: choice
+          description: "It adds minor release indicator to version."
+          required: true
+          default: 'none'
+          options:
+          - 'none'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+
         version-postfix:
           type: choice
           description: "It adds alpha or beta postfix to version."
           required: true
-          default: no-postfix
+          default: no-postfix-prod
           options:
-          - no-postfix
           - no-postfix-prod
+          - no-postfix
           - alpha
           - beta
 
@@ -48,6 +66,11 @@ jobs:
         if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
         run: |
           echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+
+      - name: Set version for minor release
+        if: ${{ github.event.inputs.minor-release != 'none' }}
+        run: |
+          echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
 
       - name: Create version with postfix
         if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}

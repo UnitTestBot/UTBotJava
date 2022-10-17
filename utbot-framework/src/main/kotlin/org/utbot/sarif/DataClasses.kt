@@ -1,7 +1,10 @@
 package org.utbot.sarif
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 
 /**
  * Useful links:
@@ -24,7 +27,19 @@ data class Sarif(
 
         fun fromRun(run: SarifRun) =
             Sarif(defaultSchema, defaultVersion, listOf(run))
+
+        fun fromJson(reportInJson: String): Sarif =
+            jacksonObjectMapper().readValue(reportInJson)
     }
+
+    fun toJson(): String =
+        jacksonObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .writerWithDefaultPrettyPrinter()
+            .writeValueAsString(this)
+
+    fun getAllResults(): List<SarifResult> =
+        runs.flatMap { it.results }
 }
 
 /**
@@ -104,8 +119,8 @@ data class SarifResult(
      * Returns the total number of locations in all [codeFlows].
      */
     fun totalCodeFlowLocations() =
-        codeFlows.sumBy { codeFlow ->
-            codeFlow.threadFlows.sumBy { threadFlow ->
+        codeFlows.sumOf { codeFlow ->
+            codeFlow.threadFlows.sumOf { threadFlow ->
                 threadFlow.locations.size
             }
         }

@@ -153,7 +153,6 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.collections.UtGenericStorage::class,
     org.utbot.engine.overrides.collections.UtGenericAssociative::class,
     org.utbot.engine.overrides.PrintStream::class,
-    org.utbot.engine.UtNativeStringWrapper::class,
     org.utbot.engine.overrides.strings.UtString::class,
     org.utbot.engine.overrides.strings.UtStringBuilder::class,
     org.utbot.engine.overrides.strings.UtStringBuffer::class,

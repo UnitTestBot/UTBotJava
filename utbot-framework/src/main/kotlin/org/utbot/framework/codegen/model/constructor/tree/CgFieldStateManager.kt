@@ -28,11 +28,7 @@ import org.utbot.framework.fields.ModifiedFields
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.util.hasField
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.hasThisInstance
 import org.utbot.fuzzer.UtFuzzedExecution
 import java.lang.reflect.Array
@@ -141,7 +137,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         emptyLineIfNeeded()
         val fields = when (state) {
             FieldState.INITIAL -> modifiedFields
-                    .filter { it.path.elements.isNotEmpty() && it.path.fieldType.isRefType }
+                    .filter { it.path.elements.isNotEmpty() && !it.path.fieldType.isPrimitive }
                     .filter { needExpectedDeclaration(it.after) }
             FieldState.FINAL -> modifiedFields
         }
@@ -229,7 +225,9 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
             if (index > path.lastIndex) return@generateSequence null
             val passedPath = FieldPath(path.subList(0, index + 1))
             val name = if (index == path.lastIndex) customName else getFieldVariableName(prev, passedPath)
-            val expression = when (val newElement = path[index++]) {
+
+            val newElement = path[index++]
+            val expression = when (newElement) {
                 is FieldAccess -> {
                     val fieldId = newElement.field
                     utilsClassId[getFieldValue](prev, fieldId.declaringClass.name, fieldId.name)
@@ -238,7 +236,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
                     Array::class.id[getArrayElement](prev, newElement.index)
                 }
             }
-            newVar(objectClassId, name) { expression }
+            newVar(newElement.type, name) { expression }
         }.last()
     }
 

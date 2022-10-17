@@ -4,17 +4,17 @@ import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.impl.file.impl.JavaFileManager
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
-import org.utbot.common.AbstractSettings
-import org.utbot.common.getPid
-import org.utbot.common.osSpecificJavaExecutable
-import org.utbot.common.utBotTempDirectory
+import org.utbot.common.*
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.UtilClassKind
@@ -34,6 +34,7 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.rd.ProcessWithRdServer
+import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.sarif.SourceFindingStrategy
@@ -52,6 +53,11 @@ private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdE
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
 class EngineProcess(parent: Lifetime, val project: Project) {
+    companion object {
+        init {
+            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
+        }
+    }
     private val ldef = parent.createNested()
     private val id = Random.nextLong()
     private var count = 0
@@ -81,8 +87,9 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 )
             }.toPath()
             realPath = configPath
+            logger.info("log configuration path - ${realPath!!.pathString}")
         }
-        return realPath!!.pathString
+        return realPath.pathString
     }
 
     private fun debugArgument(): String {
@@ -104,14 +111,14 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     val java =
                         JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()
                     val cp = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-                        separator = ";",
+                        separator = File.pathSeparator,
                         prefix = "\"",
                         postfix = "\""
                     )
                     val classname = "org.utbot.framework.process.EngineMainKt"
                     val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
                     val directory = WorkingDirService.provide().toFile()
-                    val log4j2ConfigFile = "\"-Dlog4j2.configurationFile=${getOrCreateLogConfig()}\""
+                    val log4j2ConfigFile = "-Dlog4j2.configurationFile=${getOrCreateLogConfig()}"
                     val debugArg = debugArgument()
                     logger.info { "java - $java\nclasspath - $cp\nport - $port" }
                     val cmd = mutableListOf<String>(java, "-ea")
@@ -139,6 +146,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     }
                 }.initModels {
                     engineProcessModel
+                    rdInstrumenterAdapter
                     rdSourceFindingStrategy
                     settingsModel.settingFor.set { params ->
                         SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
@@ -177,6 +185,17 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         isCancelled: (Unit) -> Boolean
     ) = runBlocking {
         engineModel().isCancelled.set(handler = isCancelled)
+        current!!.protocol.rdInstrumenterAdapter.computeSourceFileByClass.set { params ->
+            val result = DumbService.getInstance(project).runReadActionInSmartMode<String?> {
+                val scope = GlobalSearchScope.allScope(project)
+                val psiClass = JavaFileManager.getInstance(project)
+                    .findClass(params.className, scope)
+
+                psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
+            }
+            logger.debug("computeSourceFileByClass result: $result")
+            result
+        }
         engineModel().createTestGenerator.startSuspending(
             ldef,
             TestGeneratorParams(buildDir.toTypedArray(), classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
@@ -288,7 +307,12 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     testClassPackageName
                 )
             )
-        result.generatedCode to kryoHelper.readObject(result.utilClassKind)
+        result.generatedCode to result.utilClassKind?.let {
+            if (UtilClassKind.RegularUtUtils.javaClass.simpleName == it)
+                UtilClassKind.RegularUtUtils
+            else
+                UtilClassKind.UtUtilsWithMockito
+        }
     }
 
     fun forceTermination() = runBlocking {
@@ -325,7 +349,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 }
             }
         }
-        engineModel().writeSarifReport.startSuspending(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
+        engineModel().writeSarifReport.start(WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode))
     }
 
     fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> = runBlocking {
@@ -358,7 +382,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 forceMockWarning,
                 forceStaticMockWarnings,
                 testFrameworkWarnings,
-                model.conflictTriggers.triggered
+                model.conflictTriggers.anyTriggered
             )
         )
 

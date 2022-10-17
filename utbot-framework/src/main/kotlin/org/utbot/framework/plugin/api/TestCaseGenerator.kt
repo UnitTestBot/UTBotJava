@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api
 
-import com.google.protobuf.compiler.PluginProtos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -186,6 +185,7 @@ open class TestCaseGenerator(
                                 }
                         } catch (e: Exception) {
                             logger.error(e) {"Error in engine"}
+                            throw e
                         }
                     }
                     controller.paused = true
@@ -194,6 +194,7 @@ open class TestCaseGenerator(
                 // All jobs are in the method2controller now (paused). execute them with timeout
 
                 GlobalScope.launch {
+                    logger.debug("test generator global scope lifecycle check started")
                     while (isActive) {
                         var activeCount = 0
                         for ((method, controller) in method2controller) {
@@ -219,6 +220,7 @@ open class TestCaseGenerator(
                         }
                         if (activeCount == 0) break
                     }
+                    logger.debug("test generator global scope lifecycle check ended")
                 }
             }
         }

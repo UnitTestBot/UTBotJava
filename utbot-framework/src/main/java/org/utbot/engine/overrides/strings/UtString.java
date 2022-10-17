@@ -20,24 +20,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     private static final long serialVersionUID = -6849794470754667710L;
 
-    public UtString(UtNativeString str) {
-        visit(this);
-        length = str.length();
-        value = str.toCharArray(0);
-    }
-
-    public static UtNativeString toUtNativeString(String s, int offset) {
-        char[] value = s.toCharArray();
-        int length = value.length;
-        UtNativeString nativeString = new UtNativeString();
-        assume(nativeString.length() == length - offset);
-        assume(nativeString.length() <= 2);
-        for (int i = offset; i < length; i++) {
-            assume(nativeString.charAt(i - offset) == value[i]);
-        }
-        return nativeString;
-    }
-
     public UtString() {
         visit(this);
         value = new char[0];
@@ -774,7 +756,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         }
         char[] newValue = new char[length + str.length()];
         UtArrayMock.arraycopy(value, 0, newValue, 0, length);
-        UtArrayMock.arraycopy(otherVal, 0, newValue, length + 1, str.length());
+        UtArrayMock.arraycopy(otherVal, 0, newValue, length, str.length());
         return new String(newValue);
     }
 
@@ -866,47 +848,20 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         return toString().replace(target, replacement);
     }
 
+    private String[] splitWithLimitImpl(String regex, int limit) {
+        return toString().split(regex, limit);
+    }
+
     public String[] split(String regex, int limit) {
-        preconditionCheck();
-        if (regex == null) {
-            throw new NullPointerException();
-        }
-        if (limit < 0) {
-            throw new IllegalArgumentException();
-        }
-        if (regex.length() == 0) {
-            int size = limit == 0 ? length + 1 : min(limit, length + 1);
-            String[] strings = new String[size];
-            strings[size] = substring(size - 1);
-            // TODO remove assume
-            assume(size < 10);
-            for (int i = 0; i < size - 1; i++) {
-                strings[i] = Character.toString(value[i]);
-            }
-            return strings;
-        }
-        assume(regex.length() < 10);
-        executeConcretely();
-        return toStringImpl().split(regex, limit);
+        return splitWithLimitImpl(regex, limit);
+    }
+
+    private String[] splitImpl(String regex) {
+        return toString().split(regex);
     }
 
     public String[] split(String regex) {
-        preconditionCheck();
-        if (regex == null) {
-            throw new NullPointerException();
-        }
-        if (regex.length() == 0) {
-            String[] strings = new String[length + 1];
-            strings[length] = "";
-            // TODO remove assume
-            assume(length <= 25);
-            for (int i = 0; i < length; i++) {
-                strings[i] = Character.toString(value[i]);
-            }
-            return strings;
-        }
-        executeConcretely();
-        return toStringImpl().split(regex);
+        return splitImpl(regex);
     }
 
     public String toLowerCase(Locale locale) {

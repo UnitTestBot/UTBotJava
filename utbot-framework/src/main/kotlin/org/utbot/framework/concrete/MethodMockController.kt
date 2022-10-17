@@ -1,11 +1,11 @@
 package org.utbot.framework.concrete
 
-import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.util.signature
-import org.utbot.instrumentation.instrumentation.mock.MockConfig
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import org.utbot.common.withAccessibility
+import org.utbot.instrumentation.instrumentation.mock.MockConfig
+import org.utbot.instrumentation.instrumentation.mock.computeKeyForMethod
 
 
 /**
@@ -31,7 +31,8 @@ class MethodMockController(
             error("$method is an instance method, but instance is null!")
         }
 
-        val id = instrumentationContext.methodSignatureToId[method.signature]
+        val computedSignature = computeKeyForMethod(method)
+        val id = instrumentationContext.methodSignatureToId[computedSignature]
 
         isMockField = clazz.declaredFields.firstOrNull { it.name == MockConfig.IS_MOCK_FIELD + id }
             ?: error("No field ${MockConfig.IS_MOCK_FIELD + id} in $clazz")

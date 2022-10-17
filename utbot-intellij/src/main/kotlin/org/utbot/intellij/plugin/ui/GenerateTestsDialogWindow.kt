@@ -95,7 +95,6 @@ import javax.swing.JSpinner
 import javax.swing.text.DefaultFormatter
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
-import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -501,7 +500,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.mockFramework = MOCKITO
         model.staticsMocking = if (staticsMocking.isSelected) MockitoStaticMocking else NoStaticMocking
-        model.codegenLanguage = model.project.service<Settings>().codegenLanguage
         try {
             timeoutSpinner.commitEdit()
         } catch (ignored: ParseException) {
@@ -516,6 +514,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
             model.fuzzingValue = fuzzingValue
             model.commentStyle = javaDocCommentStyle
+            model.enableSummariesGeneration = state.enableSummariesGeneration
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
         }
 
@@ -651,8 +650,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         mockStrategies.isEnabled = areMocksSupported
         staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
 
-        codegenLanguages.item =
-            if (model.srcClasses.all { it is KtUltraLightClass }) CodegenLanguage.KOTLIN else CodegenLanguage.JAVA
+        codegenLanguages.item = model.codegenLanguage
 
         val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
         currentFrameworkItem = when (parametrizedTestSources.isSelected) {

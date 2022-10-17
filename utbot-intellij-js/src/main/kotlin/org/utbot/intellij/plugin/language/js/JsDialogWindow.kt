@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
@@ -30,18 +31,17 @@ import com.intellij.util.IncorrectOperationException
 import com.intellij.util.ui.JBUI
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
-import java.awt.BorderLayout
-import java.util.Locale
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JComboBox
-import javax.swing.JComponent
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import settings.JsTestGenerationSettings.defaultTimeout
-import utils.JsCmdExec
+import java.awt.BorderLayout
+import java.util.Locale
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComboBox
+import javax.swing.JComponent
 import kotlin.concurrent.thread
 
 class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
@@ -155,6 +155,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.selectedMethods = if (selected.any()) selected else emptySet()
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
+        model.pathToNYC = nycSourceFileChooserField.text
         configureTestFrameworkIfRequired()
         try {
             val testRootPrepared = createTestRootAndPackages()
@@ -167,6 +168,10 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
         }
         super.doOKAction()
+    }
+
+    override fun doValidate(): ValidationInfo? {
+        return nycSourceFileChooserField.validateNyc()
     }
 
     private fun updateMembersTable() {

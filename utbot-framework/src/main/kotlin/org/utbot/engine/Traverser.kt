@@ -9,7 +9,6 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
-import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -3248,11 +3247,9 @@ class Traverser(
         val notMarked = mkEq(memory.isSpeculativelyNotNull(addr), mkFalse())
         val notMarkedAndNull = mkAnd(notMarked, canBeNull)
 
-        if (useOnlyTaintAnalysis) {
-            doNotRun {
-                if (environment.method.checkForNPE(environment.state.executionStack.size)) {
-                    implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
-                }
+        if (!useOnlyTaintAnalysis) {
+            if (environment.method.checkForNPE(environment.state.executionStack.size)) {
+                implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
             }
         }
 
@@ -3261,10 +3258,8 @@ class Traverser(
 
     private fun TraversalContext.divisionByZeroCheck(denom: PrimitiveValue) {
         val equalsToZero = Eq(denom, 0)
-        if (UtSettings.useOnlyTaintAnalysis) {
-            doNotRun {
-                implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
-            }
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
         }
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
     }

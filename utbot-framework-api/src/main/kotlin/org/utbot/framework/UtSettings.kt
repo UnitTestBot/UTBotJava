@@ -99,7 +99,7 @@ object UtSettings : AbstractSettings(
      */
     val copyVisualizationPathToClipboard get() = useDebugVisualization
 
-    val useOnlyTaintAnalysis by getBooleanProperty(true)
+    val useOnlyTaintAnalysis by getBooleanProperty(false)
 
     /**
      * Set the value to true to show library classes' graphs in visualization.

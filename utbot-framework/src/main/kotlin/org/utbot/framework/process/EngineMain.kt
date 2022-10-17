@@ -189,6 +189,7 @@ private fun EngineProcessModel.setup(
         val testPackageName: String? = params.testPackageName
         var hasWarnings = false
         val reports = testGenerationReports
+        if (reports.isEmpty()) return@measureExecutionForTermination GenerateTestReportResult("No tests were generated", null, true)
         val isMultiPackage = params.isMultiPackage
         val (notifyMessage, statistics) = if (reports.size == 1) {
             val report = reports.first()

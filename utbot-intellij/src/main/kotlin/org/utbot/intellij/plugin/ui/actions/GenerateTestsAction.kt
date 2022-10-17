@@ -176,7 +176,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
             return true
         }
 
-        val packageIsIncorrect = this.packageName.startsWith("java")
+        val packageIsIncorrect =  this.packageName.split(".").firstOrNull() == "java"
         if (packageIsIncorrect) {
             if (withWarnings) InvalidClassNotifier.notify("class ${this.name} located in java.* package")
             return true

@@ -228,6 +228,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
+    private val taintAnalysis: TaintAnalysis
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -725,11 +726,11 @@ class Traverser(
             }
         }
 
-        val rightPartWrappedAsMethodResults = if (rightValue is InvokeExpr) {
-            invokeResult(rightValue)
+        val (rightPartWrappedAsMethodResults, taintAnalysisUpdate) = if (rightValue is InvokeExpr) {
+            invokeResult(rightValue) to processTaintSource(rightValue.method.executableId)
         } else {
             val value = resolve(rightValue, current.leftOp.type)
-            listOf(MethodResult(value))
+            listOf(MethodResult(value)) to SymbolicStateUpdate()
         }
 
         rightPartWrappedAsMethodResults.forEach { methodResult ->
@@ -754,7 +755,7 @@ class Traverser(
                     offerState(
                         updateQueued(
                             globalGraph.succ(current),
-                            update + methodResult.symbolicStateUpdate
+                            update + methodResult.symbolicStateUpdate + taintAnalysisUpdate
                         )
                     )
                 }
@@ -1177,6 +1178,7 @@ class Traverser(
 
     private fun TraversalContext.traverseInvokeStmt(current: JInvokeStmt) {
         val results = invokeResult(current.invokeExpr)
+        val methodId = current.invokeExpr.method.executableId
 
         results.forEach { result ->
             if (result.symbolicResult is SymbolicFailure && environment.state.executionStack.last().doesntThrow) {
@@ -1919,8 +1921,18 @@ class Traverser(
         return created
     }
 
-    fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
-        parameters.zip(types).map { (value, type) -> resolve(value, type) }
+    fun TraversalContext.resolveParameters(
+        method: SootMethod,
+        parameters: List<Value>,
+        types: List<Type>
+    ): List<SymbolicValue> {
+        return parameters
+            .zip(types)
+            .map { (value, type) ->
+                resolve(value, type).also { processTaintSink(method.executableId, it) }
+            }
+    }
+
 
     private fun applyPreferredConstraints(value: SymbolicValue) {
         when (value) {
@@ -2203,6 +2215,13 @@ class Traverser(
         queuedSymbolicStateUpdates += MemoryUpdate(speculativelyNotNullAddresses = persistentListOf(addr))
     }
 
+    private fun markAsTainted(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+        val taintedBv = taintAnalysis.constructTaintedVector(flags)
+        val memoryUpdates = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to taintedBv))
+
+        return SymbolicStateUpdate(memoryUpdates = memoryUpdates)
+    }
+
     /**
      * Add a memory update to reflect that a field was read.
      *
@@ -2257,10 +2276,15 @@ class Traverser(
         }.firstOrNull { it.second in hierarchy.ancestors(classId) }?.first
     }
 
-    private fun TraversalContext.invokeResult(invokeExpr: Expr): List<MethodResult> =
-        environment.state.methodResult?.let {
-            listOf(it)
-        } ?: when (invokeExpr) {
+    private fun TraversalContext.invokeResult(invokeExpr: InvokeExpr): List<MethodResult> {
+        val methodResult = environment.state.methodResult
+
+        if (methodResult != null) {
+            processTaintAnalysis(invokeExpr.method.executableId)
+            return listOf(methodResult)
+        }
+
+        return when (invokeExpr) {
             is JStaticInvokeExpr -> staticInvoke(invokeExpr)
             is JInterfaceInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
             is JVirtualInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
@@ -2268,6 +2292,7 @@ class Traverser(
             is JDynamicInvokeExpr -> dynamicInvoke(invokeExpr)
             else -> error("Unknown class ${invokeExpr::class}")
         }
+    }
 
     /**
      * Returns a [MethodResult] containing a mock for a static method call
@@ -2332,7 +2357,7 @@ class Traverser(
         val method = environment.method
         val declaringClass = method.declaringClass
         val isInternalMock = method.hasInternalMockAnnotation || declaringClass.allMethodsAreInternalMocks || declaringClass.isOverridden
-        val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
+        val parameters = resolveParameters(invokeExpr.method, invokeExpr.args, invokeExpr.method.parameterTypes)
         val mockMethodResult = mockStaticMethod(invokeExpr.method, parameters)?.single()
             ?: error("Unsuccessful mock attempt of the `makeSymbolic` method call: $invokeExpr")
         val mockResult = mockMethodResult.symbolicResult as SymbolicSuccess
@@ -2364,7 +2389,7 @@ class Traverser(
     }
 
     private fun TraversalContext.staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
-        val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
+        val parameters = resolveParameters(invokeExpr.method, invokeExpr.args, invokeExpr.method.parameterTypes)
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
 
         if (result != null) return result
@@ -2392,7 +2417,7 @@ class Traverser(
         if (instance.isNullObject()) return emptyList() // Nothing to call
 
         val method = methodRef.resolve()
-        val resolvedParameters = resolveParameters(parameters, method.parameterTypes)
+        val resolvedParameters = resolveParameters(method, parameters, method.parameterTypes)
 
         val invocation = Invocation(instance, method, resolvedParameters) {
             when (instance) {
@@ -2525,7 +2550,7 @@ class Traverser(
         if (instance.isNullObject()) return emptyList() // Nothing to call
 
         val method = invokeExpr.retrieveMethod()
-        val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
+        val parameters = resolveParameters(invokeExpr.method, invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
 
         // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
@@ -3197,6 +3222,52 @@ class Traverser(
         val equalsToZero = Eq(denom, 0)
         implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
+    }
+
+    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId) {
+        processTaintSanitizer(methodId)
+        processTaintPassThrough(methodId)
+    }
+
+    private fun processTaintSource(methodId: ExecutableId): SymbolicStateUpdate {
+        // there is no return value yet to mark it as source
+        val methodResult = environment.state.methodResult ?: return SymbolicStateUpdate()
+
+        // return if there are no flags for the methodId as a taint source
+        val flags = taintAnalysis.taintSources[methodId] ?: return SymbolicStateUpdate()
+
+        val symbolicResult = methodResult.symbolicResult
+        // TODO we do not support primitive values yet
+        if (symbolicResult !is SymbolicSuccess || symbolicResult.value !is ReferenceValue) {
+            return SymbolicStateUpdate()
+        }
+
+        val resultAddr = symbolicResult.value.addr
+
+        return markAsTainted(resultAddr, flags)
+    }
+
+    private fun TraversalContext.processTaintSink(
+        methodId: ExecutableId,
+        symbolicValue: SymbolicValue
+    ) {
+        if (symbolicValue !is ReferenceValue) return
+
+        val flags = taintAnalysis.taintSinks[methodId] ?: return
+        val taintValue = memory.taintValue(symbolicValue.addr)
+        val condition = taintAnalysis.containsInTainted(taintValue, flags)
+
+        implicitlyThrowException(SecurityException("Taint analysis failure"), setOf(condition))
+
+        queuedSymbolicStateUpdates += mkNot(condition).asHardConstraint()
+    }
+
+    private fun processTaintSanitizer(methodId: ExecutableId) {
+        // TODO
+    }
+
+    private fun processTaintPassThrough(methodId: ExecutableId) {
+        // TODO
     }
 
     // Use cast to Int and cmp with min/max for Byte and Short.

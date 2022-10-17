@@ -193,6 +193,8 @@ class UtBotSymbolicEngine(
         MockListenerController(controller)
     )
 
+    private val taintAnalysis: TaintAnalysis = TaintAnalysis()
+
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
 
     fun detachMockListener(mockListener: MockListener) = mocker.mockListenerController?.detach(mockListener)
@@ -206,6 +208,7 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
+        taintAnalysis
     )
 
     //HACK (long strings)

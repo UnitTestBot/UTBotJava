@@ -171,7 +171,7 @@ object UtSettings : AbstractSettings(
      *
      * True by default.
      */
-    var useConcreteExecution by getBooleanProperty(true)
+    var useConcreteExecution by getBooleanProperty(false)
 
     /**
      * Enable check of full coverage for methods with code generations tests.

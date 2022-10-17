@@ -1,4 +1,4 @@
-package org.utbot.examples.taint.aliases;
+package org.utbot.examples.taint.alias;
 
 public class AliasQ {
     private AliasA a;

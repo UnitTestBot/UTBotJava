@@ -1,5 +1,13 @@
-package org.utbot.examples.taint.aliases;
+package org.utbot.examples.taint.alias;
 
+/*
+ * @description 将source转换成char数组，传递给SQL API。
+ *
+ * @bad bad
+ * @cwe 89
+ * @tool fortify: SQL Injection;secbrella: SecS_SQL_Injection
+ * @author 方健尔 f00563108
+ */
 public class AliasA {
     private String data;
 

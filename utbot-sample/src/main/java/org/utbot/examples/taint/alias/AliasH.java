@@ -1,6 +1,6 @@
-package org.utbot.examples.taint.aliases;
+package org.utbot.examples.taint.alias;
 
-public class AliasG implements AliasI {
+public class AliasH implements AliasI {
     AliasA a;
 
     @Override
@@ -10,4 +10,3 @@ public class AliasG implements AliasI {
         return a;
     }
 }
-

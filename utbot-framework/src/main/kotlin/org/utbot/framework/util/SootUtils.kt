@@ -153,6 +153,8 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.Long::class,
     org.utbot.engine.overrides.Short::class,
     org.utbot.engine.overrides.System::class,
+    org.utbot.engine.overrides.Throwable::class,
+    org.utbot.engine.overrides.AutoCloseable::class,
     org.utbot.engine.overrides.collections.UtOptional::class,
     org.utbot.engine.overrides.collections.UtOptionalInt::class,
     org.utbot.engine.overrides.collections.UtOptionalLong::class,

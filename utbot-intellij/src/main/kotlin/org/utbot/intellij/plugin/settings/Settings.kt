@@ -113,6 +113,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + classesToMockAlways.contentHashCode()
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
+            result = 31 * result + if (enableSummariesGeneration) 1 else 0
 
             return result
         }

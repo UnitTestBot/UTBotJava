@@ -108,7 +108,9 @@ class SettingsWindow(val project: Project) {
                     .onReset {
                         enableSummarizationGenerationCheckBox.isSelected = settings.state.enableSummariesGeneration
                     }
-                    .onIsModified { enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration }
+                    .onIsModified {
+                        enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration
+                    }
                     .component
             }
         }

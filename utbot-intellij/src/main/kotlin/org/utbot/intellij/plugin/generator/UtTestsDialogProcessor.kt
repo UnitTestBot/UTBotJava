@@ -191,7 +191,7 @@ object UtTestsDialogProcessor {
                             UtSettings.useCustomJavaDocTags =
                                 model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
 
-                            UtSettings.enableSummariesGeneration = model.enableSummariesGeneration == true
+                            UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
 
                             val searchDirectory = ReadAction
                                 .nonBlocking<Path> {

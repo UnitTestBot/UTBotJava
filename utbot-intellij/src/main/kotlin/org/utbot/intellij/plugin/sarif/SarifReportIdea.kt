@@ -27,7 +27,7 @@ object SarifReportIdea {
         classId: ClassId,
         model: GenerateTestsModel,
         generatedTestsCode: String,
-        psiClass: PsiClass
+        psiClass: PsiClass,
         reportsCountDown: CountDownLatch,
         indicator: ProgressIndicator
     ) {

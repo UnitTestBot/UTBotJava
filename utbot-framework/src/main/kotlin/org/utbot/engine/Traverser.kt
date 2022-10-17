@@ -731,11 +731,11 @@ class Traverser(
             }
         }
 
-        val (rightPartWrappedAsMethodResults, taintAnalysisUpdate) = if (rightValue is InvokeExpr) {
-            invokeResult(rightValue) to processTaintAnalysis(rightValue.method.executableId, rightValue.args)
+        val rightPartWrappedAsMethodResults = if (rightValue is InvokeExpr) {
+            invokeResult(rightValue)
         } else {
             val value = resolve(rightValue, current.leftOp.type)
-            listOf(MethodResult(value)) to SymbolicStateUpdate()
+            listOf(MethodResult(value))
         }
 
         rightPartWrappedAsMethodResults.forEach { methodResult ->
@@ -757,6 +757,13 @@ class Traverser(
                         current.leftOp,
                         methodResult.symbolicResult.value
                     )
+
+                    val taintAnalysisUpdate = if (rightValue is InvokeExpr) {
+                        processTaintAnalysis(rightValue.method.executableId, methodResult, rightValue.args)
+                    } else {
+                        SymbolicStateUpdate()
+                    }
+
                     offerState(
                         updateQueued(
                             globalGraph.succ(current),
@@ -2306,7 +2313,7 @@ class Traverser(
         val methodResult = environment.state.methodResult
 
         if (methodResult != null) {
-            processTaintAnalysis(invokeExpr.method.executableId, invokeExpr.args)
+            processTaintAnalysis(invokeExpr.method.executableId, methodResult, invokeExpr.args)
             return listOf(methodResult)
         }
 
@@ -3262,20 +3269,17 @@ class Traverser(
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
     }
 
-    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId, args: List<Value>): SymbolicStateUpdate {
+    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId, methodResult: MethodResult, args: List<Value>): SymbolicStateUpdate {
         var result = SymbolicStateUpdate()
 
-        result += processTaintSource(methodId)
-        result += processTaintSanitizer(methodId)
-        result += processTaintPassThrough(methodId, args)
+        result += processTaintSource(methodId, methodResult)
+        result += processTaintSanitizer(methodId, methodResult)
+        result += processTaintPassThrough(methodId, methodResult, args)
 
         return result
     }
 
-    private fun processTaintSource(methodId: ExecutableId): SymbolicStateUpdate {
-        // there is no return value yet to mark it as source
-        val methodResult = environment.state.methodResult ?: return SymbolicStateUpdate()
-
+    private fun processTaintSource(methodId: ExecutableId, methodResult: MethodResult): SymbolicStateUpdate {
         // return if there are no flags for the methodId as a taint source
         val flags = taintAnalysis.taintSources[methodId] ?: return SymbolicStateUpdate()
 
@@ -3306,10 +3310,7 @@ class Traverser(
         queuedSymbolicStateUpdates += mkNot(mkAnd(condition, notNullCondition)).asHardConstraint()
     }
 
-    private fun processTaintSanitizer(methodId: ExecutableId): SymbolicStateUpdate {
-        // there is no return value yet to mark it as source
-        val methodResult = environment.state.methodResult ?: return SymbolicStateUpdate()
-
+    private fun processTaintSanitizer(methodId: ExecutableId, methodResult: MethodResult): SymbolicStateUpdate {
         // return if there are no flags for the methodId as a taint source
         val flags = taintAnalysis.taintSanitizers[methodId] ?: return SymbolicStateUpdate()
 
@@ -3324,10 +3325,11 @@ class Traverser(
         return clearTaintMark(resultAddr, flags)
     }
 
-    private fun TraversalContext.processTaintPassThrough(methodId: ExecutableId, args: List<Value>): SymbolicStateUpdate {
-        // there is no return value yet to mark it as source
-        val methodResult = environment.state.methodResult ?: return SymbolicStateUpdate()
-
+    private fun TraversalContext.processTaintPassThrough(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        args: List<Value>
+    ): SymbolicStateUpdate {
         // return if there are no flags for the methodId as a taint source
         val flags = taintAnalysis.taintPassThrough[methodId] ?: return SymbolicStateUpdate()
 

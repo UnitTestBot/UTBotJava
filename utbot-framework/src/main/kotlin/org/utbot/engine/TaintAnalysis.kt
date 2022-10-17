@@ -46,7 +46,7 @@ class TaintAnalysis {
         MethodId(
             classId = java.lang.System::class.id,
             name = "getenv",
-            returnType = mapClassId,
+            returnType = stringClassId,
             parameters = listOf(stringClassId)
         ) to setOf(SQL_INJECTION_FLAG),
         MethodId(

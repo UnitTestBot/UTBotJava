@@ -244,7 +244,12 @@ class Mocker(
 
     companion object {
 
-        val javaDefaultClasses: Set<Class<*>> = setOf(java.util.Random::class.java)
+        val javaDefaultClasses: Set<Class<*>> = setOf(
+            java.util.Random::class.java,
+            java.lang.System::class.java,
+            java.sql.DriverManager::class.java,
+            java.sql.Connection::class.java,
+        )
 
         private val loggerSuperClasses: Set<Class<*>> = setOf(
             org.slf4j.Logger::class.java,

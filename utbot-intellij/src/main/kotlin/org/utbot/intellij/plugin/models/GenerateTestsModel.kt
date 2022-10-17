@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.models
 
+import com.intellij.openapi.components.service
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -7,7 +8,6 @@ import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import com.intellij.openapi.module.Module
@@ -19,10 +19,10 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
+import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
 
 data class GenerateTestsModel(
@@ -57,7 +57,7 @@ data class GenerateTestsModel(
             ?: error("Could not find module for $newTestSourceRoot")
     }
 
-    var codegenLanguage = if (srcClasses.all { it is KtUltraLightClass }) CodegenLanguage.KOTLIN else CodegenLanguage.JAVA
+    val codegenLanguage = project.service<Settings>().codegenLanguage
 
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework

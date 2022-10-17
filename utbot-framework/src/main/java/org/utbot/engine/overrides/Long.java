@@ -1,10 +1,9 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.engine.overrides.strings.UtNativeString;
-import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
+import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
 import static org.utbot.engine.overrides.UtLogicMock.less;
@@ -71,21 +70,35 @@ public class Long {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     public static String toString(long l) {
         if (l == 0x8000000000000000L) { // java.lang.Long.MIN_VALUE
             return "-9223372036854775808";
         }
-        // assumes are placed here to limit search space of solver
-        // and reduce time of solving queries with bv2int expressions
-        assumeOrExecuteConcretely(l <= 10000);
-        assumeOrExecuteConcretely(l >= -10000);
-        // condition = l < 0
-        boolean condition = less(l, 0);
-        // prefix = condition ? "-" : ""
-        String prefix = ite(condition, "-", "");
-        UtStringBuilder sb = new UtStringBuilder(prefix);
-        // value = condition ? -l : l
-        long value = ite(condition, -l, l);
-        return sb.append(new UtString(new UtNativeString(value)).toStringImpl()).toString();
+
+        if (l == 0) {
+            return "0";
+        }
+
+        // isNegative = i < 0
+        boolean isNegative = less(l, 0);
+        String prefix = ite(isNegative, "-", "");
+
+        long value = ite(isNegative, -l, l);
+        char[] reversed = new char[19];
+        int offset = 0;
+        while (value > 0) {
+            reversed[offset] = (char) ('0' + (value % 10));
+            value /= 10;
+            offset++;
+        }
+
+        char[] buffer = new char[offset];
+        int counter = 0;
+        while (offset > 0) {
+            offset--;
+            buffer[counter++] = reversed[offset];
+        }
+        return prefix + new String(buffer);
     }
 }

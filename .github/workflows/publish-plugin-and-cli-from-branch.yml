@@ -3,6 +3,12 @@ name: "[M] Plugin and CLI: publish as archives"
 on: 
   workflow_call:
     inputs:
+        minor-release:
+          type: string
+          description: "It adds minor release indicator to version."
+          required: false
+          default: 'none'
+
         version-postfix:
           type: string
           description: "It adds postfix (alpha or beta) to version (optional)."
@@ -27,10 +33,10 @@ on:
           type: choice
           description: "It adds alpha or beta postfix to version."
           required: true
-          default: no-postfix
+          default: no-postfix-prod
           options:
-          - no-postfix
           - no-postfix-prod
+          - no-postfix
           - alpha
           - beta
 

@@ -1,9 +1,9 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.engine.overrides.strings.UtNativeString;
-import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
+
+import java.util.Arrays;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
@@ -48,17 +48,39 @@ public class Byte {
 
     @SuppressWarnings("ConstantConditions")
     public static String toString(byte b) {
-        // condition = b < 0
-        boolean condition = less(b, (byte) 0);
+        if (b == -128) {
+            return "-128";
+        }
+
+        if (b == 0) {
+            return "0";
+        }
+
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assume(b < 128);
-        assume(b >= -128);
-        // prefix = condition ? "-" : ""
-        String prefix = ite(condition, "-", "");
-        UtStringBuilder sb = new UtStringBuilder(prefix);
-        // value = condition ? -i : i
-        int value = ite(condition, (byte) -b, b);
-        return sb.append(new UtString(new UtNativeString(value)).toStringImpl()).toString();
+        assume(b <= 127);
+        assume(b > -128);
+        assume(b != 0);
+
+        // isNegative = b < 0
+        boolean isNegative = less(b, (byte) 0);
+        String prefix = ite(isNegative, "-", "");
+
+        int value = ite(isNegative, (byte) -b, b);
+        char[] reversed = new char[3];
+        int offset = 0;
+        while (value > 0) {
+            reversed[offset] = (char) ('0' + (value % 10));
+            value /= 10;
+            offset++;
+        }
+
+        char[] buffer = new char[offset];
+        int counter = 0;
+        while (offset > 0) {
+            offset--;
+            buffer[counter++] = reversed[offset];
+        }
+        return prefix + new String(buffer);
     }
 }

@@ -2,6 +2,7 @@ package org.utbot.cli.js
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.check
+import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import mu.KotlinLogging
@@ -35,6 +36,12 @@ class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests c
         it.endsWith(".json")
     }
 
+    private val pathToNYC by option(
+        "--path-to-nyc",
+        help = "Sets path to nyc executable, defaults to \"nyc\" shortcut. " +
+                "As there are many nyc files in the global npm directory, choose one without file extension"
+    ).default("nyc")
+
     override fun run() {
         val testFileAbsolutePath = makeAbsolutePath(testFile)
         val workingDir = testFileAbsolutePath.substringBeforeLast("/")
@@ -45,7 +52,7 @@ class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests c
             shouldWait = true,
             timeout = 20,
             cmd = arrayOf(
-                "nyc",
+                pathToNYC,
                 "--report-dir=$coverageDataPath",
                 "--reporter=\"clover\"",
                 "--temp-dir=${workingDir}/cache",

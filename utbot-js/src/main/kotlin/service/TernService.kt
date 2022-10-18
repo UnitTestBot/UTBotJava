@@ -73,8 +73,8 @@ test("${context.filePathToInference}")
 
     private fun run() {
         with(context) {
-            setupTernEnv("$projectPath${File.separator}$utbotDir")
-            installDeps("$projectPath${File.separator}$utbotDir")
+            setupTernEnv("$projectPath/$utbotDir")
+            installDeps("$projectPath/$utbotDir")
             runTypeInferencer()
         }
     }
@@ -88,14 +88,14 @@ test("${context.filePathToInference}")
 
     private fun setupTernEnv(path: String) {
         File(path).mkdirs()
-        val ternScriptFile = File("$path${File.separator}ternScript.js")
+        val ternScriptFile = File("$path/ternScript.js")
         ternScriptFile.writeText(ternScriptCode(), Charset.defaultCharset())
     }
 
     private fun runTypeInferencer() {
         with(context) {
             val (reader, _) = JsCmdExec.runCommand(
-                dir = "$projectPath${File.separator}$utbotDir${File.separator}",
+                dir = "$projectPath/$utbotDir/",
                 shouldWait = true,
                 timeout = 20,
                 cmd = arrayOf(settings.pathToNode, "${projectPath}/$utbotDir/ternScript.js"),

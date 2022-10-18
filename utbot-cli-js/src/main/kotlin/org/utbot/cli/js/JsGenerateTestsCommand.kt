@@ -7,18 +7,19 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
-import mu.KotlinLogging
-import org.utbot.cli.js.JsUtils.makeAbsolutePath
-import settings.JsExportsSettings.endComment
-import settings.JsExportsSettings.exportsLinePrefix
-import settings.JsExportsSettings.startComment
-import settings.JsTestGenerationSettings.defaultTimeout
+import com.github.ajalt.clikt.parameters.types.choice
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import mu.KotlinLogging
+import org.utbot.cli.js.JsUtils.makeAbsolutePath
+import service.CoverageMode
 import settings.JsDynamicSettings
+import settings.JsExportsSettings.endComment
+import settings.JsExportsSettings.startComment
+import settings.JsTestGenerationSettings.defaultTimeout
 
 private val logger = KotlinLogging.logger {}
 
@@ -55,11 +56,34 @@ class JsGenerateTestsCommand :
         help = "Timeout for Node.js to run scripts in seconds"
     ).default("$defaultTimeout")
 
+    private val coverageMode by option(
+        "--coverage-mode",
+        help = "Specifies the coverage mode for test generation. Check docs for more info"
+    ).choice(
+        CoverageMode.BASIC.toString() to CoverageMode.BASIC,
+        CoverageMode.FAST.toString() to CoverageMode.FAST
+    ).default(CoverageMode.FAST)
+
+    private val pathToNode by option(
+        "--path-to-node",
+        help = "Sets path to Node.js executable, defaults to \"node\" shortcut"
+    ).default("node")
+
+    private val pathToNYC by option(
+        "--path-to-nyc",
+        help = "Sets path to nyc executable, defaults to \"nyc\" shortcut. " +
+                "As there are many nyc files in the global npm directory, choose one without file extension"
+    ).default("nyc")
+
+    private val pathToNPM by option(
+        "--path-to-npm",
+        help = "Sets path to npm executable, defaults to \"npm\" shortcut."
+    ).default("npm")
+
     override fun run() {
         val started = LocalDateTime.now()
         try {
-            logger.debug { "Installing npm packages" }
-            logger.debug { "Generating test for [$sourceCodeFile] - started" }
+            logger.info { "Generating test for [$sourceCodeFile] - started" }
             val fileText = File(sourceCodeFile).readText()
             val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
             val testGenerator = JsTestGenerator(
@@ -68,7 +92,14 @@ class JsGenerateTestsCommand :
                 parentClassName = targetClass,
                 outputFilePath = outputAbsolutePath,
                 exportsManager = ::manageExports,
-                settings = JsDynamicSettings()
+                settings = JsDynamicSettings(
+                    pathToNode = pathToNode,
+                    pathToNYC = pathToNYC,
+                    pathToNPM = pathToNPM,
+                    timeout = timeout.toLong(),
+                    coverageMode = coverageMode,
+
+                )
             )
             val testCode = testGenerator.run()
 
@@ -76,6 +107,7 @@ class JsGenerateTestsCommand :
                 logger.info { "\n$testCode" }
             }
             outputAbsolutePath?.let { filePath ->
+                logger.info { filePath }
                 val outputFile = File(filePath)
                 outputFile.createNewFile()
                 outputFile.writeText(testCode)
@@ -91,28 +123,31 @@ class JsGenerateTestsCommand :
     }
 
     private fun manageExports(exports: List<String>) {
-        val exportLine = exports.joinToString(", ")
+        val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
         val file = File(sourceCodeFile)
         val fileText = file.readText()
         when {
-            fileText.contains("$exportsLinePrefix{$exportLine}") -> {}
-            fileText.contains(startComment) && !fileText.contains("$exportsLinePrefix{$exportLine}") -> {
-                val regex = Regex("\n$startComment\n(.*)\n$endComment")
-                regex.find(fileText)?.groups?.get(1)?.value?.let {
-                    val exportsRegex = Regex("\\{(.*)}")
-                    val existingExportsLine = exportsRegex.find(it)!!.groupValues[1]
-                    val existingExportsSet = existingExportsLine.filterNot { c -> c == ' ' }.split(',').toMutableSet()
-                    existingExportsSet.addAll(exports)
-                    val resLine = existingExportsSet.joinToString()
-                    val swappedText = fileText.replace(it, "$exportsLinePrefix{$resLine}")
+            fileText.contains(exportSection) -> {}
+
+            fileText.contains(startComment) && !fileText.contains(exportSection) -> {
+                val regex = Regex("\n$startComment\n(.|\n)*\n$endComment")
+                regex.find(fileText)?.groups?.get(1)?.value?.let {existingSection ->
+                    val existingExports = existingSection.split("\n")
+                    val exportRegex = Regex("exports.(.*) =")
+                    val existingExportsSet = existingExports.map { rawLine ->
+                        exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                    }.toSet()
+                    val resultSet = existingExportsSet + exports.toSet()
+                    val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
+                    val swappedText = fileText.replace(existingSection, resSection)
                     file.writeText(swappedText)
                 }
             }
 
             else -> {
                 val line = buildString {
-                    append("\n$startComment")
-                    append("\n$exportsLinePrefix{$exportLine}")
+                    append("\n$startComment\n")
+                    append(exportSection)
                     append("\n$endComment")
                 }
                 file.appendText(line)

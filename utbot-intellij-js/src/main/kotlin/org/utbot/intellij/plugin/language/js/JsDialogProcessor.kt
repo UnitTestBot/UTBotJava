@@ -24,7 +24,6 @@ import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import service.CoverageMode
 import settings.JsExportsSettings.endComment
-import settings.JsExportsSettings.exportsLinePrefix
 import settings.JsExportsSettings.startComment
 import settings.JsTestGenerationSettings.dummyClassName
 
@@ -155,21 +154,22 @@ object JsDialogProcessor {
     private fun manageExports(editor: Editor, project: Project, exports: List<String>) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
-                val exportLine = exports.joinToString(", ")
+                val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
                 val fileText = editor.document.text
                 when {
-                    fileText.contains("$exportsLinePrefix{$exportLine}") -> {}
+                    fileText.contains(exportSection) -> {}
 
-                    fileText.contains(startComment) && !fileText.contains("$exportsLinePrefix{$exportLine}") -> {
-                        val regex = Regex("\n$startComment\n(.*)\n$endComment")
-                        regex.find(fileText)?.groups?.get(1)?.value?.let {
-                            val exportsRegex = Regex("\\{(.*)}")
-                            val existingExportsLine = exportsRegex.find(it)!!.groupValues[1]
-                            val existingExportsSet =
-                                existingExportsLine.filterNot { c -> c == ' ' }.split(',').toMutableSet()
-                            existingExportsSet.addAll(exports)
-                            val resLine = existingExportsSet.joinToString()
-                            val swappedText = fileText.replace(it, "$exportsLinePrefix{$resLine}")
+                    fileText.contains(startComment) && !fileText.contains(exportSection) -> {
+                        val regex = Regex("\n$startComment\n(.|\n)*\n$endComment")
+                        regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
+                            val existingExports = existingSection.split("\n")
+                            val exportRegex = Regex("exports.(.*) =")
+                            val existingExportsSet = existingExports.map { rawLine ->
+                                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                            }.toSet()
+                            val resultSet = existingExportsSet + exports.toSet()
+                            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
+                            val swappedText = fileText.replace(existingSection, resSection)
                             runWriteAction {
                                 with(editor.document) {
                                     unblockDocument(project, this)
@@ -185,8 +185,8 @@ object JsDialogProcessor {
 
                     else -> {
                         val line = buildString {
-                            append("\n$startComment")
-                            append("\n$exportsLinePrefix{$exportLine}")
+                            append("\n$startComment\n")
+                            append(exportSection)
                             append("\n$endComment")
                         }
                         runWriteAction {

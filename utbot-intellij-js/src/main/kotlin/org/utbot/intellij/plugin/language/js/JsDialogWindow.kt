@@ -87,10 +87,9 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
     init {
         model.pathToNode = nodeInterp.interpreterSystemDependentPath.replace("\\", "/")
-        model.pathToNPM = model.pathToNode.substringBeforeLast("/") + "/" + "npm"
+        model.pathToNPM = "\"${model.pathToNode.substringBeforeLast("/") + "/" + "npm"}\""
         //TODO: fix.
         model.pathToNode = "node"
-        model.pathToNPM = "\"${model.pathToNPM}\""
         title = "Generate Tests with UtBot"
         initTestFrameworkPresenceThread = thread(start = true) {
             JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {

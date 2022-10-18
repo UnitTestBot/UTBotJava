@@ -2,10 +2,14 @@ package org.utbot.intellij.plugin.util
 
 import com.intellij.coverage.CoverageExecutor
 import com.intellij.execution.ExecutorRegistry
+import com.intellij.execution.JavaTestConfigurationBase
 import com.intellij.execution.Location
 import com.intellij.execution.PsiLocation
 import com.intellij.execution.RunManagerEx
 import com.intellij.execution.actions.ConfigurationContext
+import com.intellij.execution.actions.ConfigurationFromContext
+import com.intellij.execution.actions.RunConfigurationProducer
+import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.runners.ExecutionUtil
 import com.intellij.execution.runners.ProgramRunner
@@ -23,6 +27,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.childrenOfType
+import java.util.Comparator
 import mu.KotlinLogging
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
@@ -86,10 +91,20 @@ class RunConfigurationHelper {
                     )
                     run(IntelliJApiHelper.Target.THREAD_POOL) {
                         val configurations = ApplicationManager.getApplication().runReadAction(Computable {
-                            myConfigurationContext.configurationsFromContext
+                            val list = RunConfigurationProducer.getProducers(model.project)
+                                .mapNotNull { it.findOrCreateConfigurationFromContext(myConfigurationContext) }
+                                .toMutableList().sortedWith(Comparator<ConfigurationFromContext> { o1, o2 ->
+                                    val p1 = o1.configuration.isPatternBased()
+                                    val p2 = o2.configuration.isPatternBased()
+                                    if (p1 xor p2) {
+                                        return@Comparator if (p1) -1 else 1
+                                    }
+                                    ConfigurationFromContext.COMPARATOR.compare(o1, o2)
+                                })
+                            return@Computable list
                         })
 
-                        val settings = if (configurations.isNullOrEmpty()) null else configurations[0].configurationSettings
+                        val settings = if (configurations.isEmpty()) null else configurations[0].configurationSettings
                         if (settings != null) {
                             val executor = if (ProgramRunner.getRunner(CoverageExecutor.EXECUTOR_ID, settings.configuration) != null) {
                                 ExecutorRegistry.getInstance().getExecutorById(CoverageExecutor.EXECUTOR_ID) ?: DefaultRunExecutor.getRunExecutorInstance()
@@ -114,5 +129,6 @@ class RunConfigurationHelper {
             }
         }
 
+        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && testType == "pattern"
     }
 }

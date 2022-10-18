@@ -49,7 +49,7 @@ import utils.toJsAny
 class JsTestGenerator(
     private val fileText: String,
     private var sourceFilePath: String,
-    private var projectPath: String = sourceFilePath.replaceAfterLast(File.separator, ""),
+    private var projectPath: String = sourceFilePath.substringBeforeLast("/"),
     private val selectedMethods: List<String>? = null,
     private var parentClassName: String? = null,
     private var outputFilePath: String?,

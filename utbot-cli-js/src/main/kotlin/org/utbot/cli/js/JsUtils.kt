@@ -4,12 +4,11 @@ import java.io.File
 
 internal object JsUtils {
 
-    @Suppress("NAME_SHADOWING")
     fun makeAbsolutePath(path: String): String {
-        val path = path.replace("\\", "/")
-        return when {
+        val rawPath = when {
             File(path).isAbsolute -> path
             else -> System.getProperty("user.dir") + "/" + path
         }
+        return rawPath.replace("\\", "/")
     }
 }

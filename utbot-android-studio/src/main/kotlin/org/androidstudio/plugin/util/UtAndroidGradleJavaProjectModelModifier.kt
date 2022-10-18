@@ -42,24 +42,6 @@ class UtAndroidGradleJavaProjectModelModifier : AndroidGradleJavaProjectModelMod
 
     }
 
-    // returns single external project path if it is the same for all the modules, or null
-    private fun getSingleExternalProjectPathOrNull(modules: Collection<Module>): String? {
-        var projectPath: String? = null
-        for (module in modules) {
-            val rootProjectPathForModule = getSingleExternalProjectPathOrNull(module)
-                ?: return null
-            if (projectPath == null) {
-                projectPath = rootProjectPathForModule
-            } else if (projectPath != rootProjectPathForModule) {
-                return null
-            }
-        }
-        return projectPath
-    }
-
-    private fun getSingleExternalProjectPathOrNull(module: Module): String? =
-        ExternalSystemModulePropertyManager.getInstance(module).getRootProjectPath()
-
     private fun addExternalLibraryDependency(
         module: Module,
         dependencySpec: ArtifactDependencySpec,
@@ -118,8 +100,7 @@ class UtAndroidGradleJavaProjectModelModifier : AndroidGradleJavaProjectModelMod
         })
     }
 
-    private fun isAndroidGradleProject(project: Project): Boolean =
-        AndroidProjectInfo.getInstance(project).requiresAndroidModel()
+    private fun isAndroidGradleProject(project: Project): Boolean = AndroidProjectInfo.getInstance(project).requiresAndroidModel()
 
     private fun doAndroidGradleSync(project: Project, trigger: GradleSyncStats.Trigger): AsyncPromise<Void?> {
         val promise = AsyncPromise<Void?>()

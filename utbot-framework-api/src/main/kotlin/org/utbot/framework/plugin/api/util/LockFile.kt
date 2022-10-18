@@ -13,7 +13,7 @@ private val lockFilePath = "$utbotHomePath/utbot.lock"
 private var currentLock : OutputStream? = null
 private val logger = KotlinLogging.logger {}
 
-object Lock {
+object LockFile {
     @Synchronized
     fun isLocked() = currentLock != null
 

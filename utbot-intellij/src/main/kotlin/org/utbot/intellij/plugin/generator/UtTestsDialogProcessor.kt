@@ -48,7 +48,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
-import org.utbot.framework.plugin.api.util.Lock
+import org.utbot.framework.plugin.api.util.LockFile
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -122,150 +122,153 @@ object UtTestsDialogProcessor {
         promise.onSuccess {
             if (it.hasErrors() || it.isAborted)
                 return@onSuccess
-            if (!Lock.lock()) {
-                return@onSuccess
-            }
 
             (object : Task.Backgroundable(project, "Generate tests") {
 
                 override fun run(indicator: ProgressIndicator) {
-                    val ldef = LifetimeDefinition()
-                    ldef.onTermination { Lock.unlock() }
-                    ldef.terminateOnException { lifetime ->
-                        val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
+                    if (!LockFile.lock()) {
+                        return
+                    }
+                    try {
+                        val ldef = LifetimeDefinition()
+                        ldef.terminateOnException { lifetime ->
+                            val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
-                        indicator.isIndeterminate = false
-                        updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
+                            indicator.isIndeterminate = false
+                            updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
 
-                        val buildPaths = ReadAction
-                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
-                            .executeSynchronously()
-                            ?: return
+                            val buildPaths = ReadAction
+                                .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
+                                .executeSynchronously()
+                                ?: return
 
-                        val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
+                            val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
-                        val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
-                        val psi2KClass = mutableMapOf<PsiClass, ClassId>()
-                        var processedClasses = 0
-                        val totalClasses = model.srcClasses.size
+                            val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
+                            val psi2KClass = mutableMapOf<PsiClass, ClassId>()
+                            var processedClasses = 0
+                            val totalClasses = model.srcClasses.size
 
-                        val proc = EngineProcess(lifetime, project)
+                            val proc = EngineProcess(lifetime, project)
 
-                        proc.setupUtContext(buildDirs + classpathList)
-                        proc.createTestGenerator(
-                            buildDirs,
-                            classpath,
-                            pluginJarsPath.joinToString(separator = File.pathSeparator),
-                            JdkInfoService.provide()
-                        ) {
-                            ApplicationManager.getApplication().runReadAction(Computable {
-                                indicator.isCanceled
-                            })
-                        }
+                            proc.setupUtContext(buildDirs + classpathList)
+                            proc.createTestGenerator(
+                                buildDirs,
+                                classpath,
+                                pluginJarsPath.joinToString(separator = File.pathSeparator),
+                                JdkInfoService.provide()
+                            ) {
+                                ApplicationManager.getApplication().runReadAction(Computable {
+                                    indicator.isCanceled
+                                })
+                            }
 
-                        for (srcClass in model.srcClasses) {
-                            val (methods, className) = DumbService.getInstance(project)
-                                .runReadActionInSmartMode(Computable {
-                                    val canonicalName = srcClass.canonicalName
-                                    val classId = proc.obtainClassId(canonicalName)
-                                    psi2KClass[srcClass] = classId
+                            for (srcClass in model.srcClasses) {
+                                val (methods, className) = DumbService.getInstance(project)
+                                    .runReadActionInSmartMode(Computable {
+                                        val canonicalName = srcClass.canonicalName
+                                        val classId = proc.obtainClassId(canonicalName)
+                                        psi2KClass[srcClass] = classId
 
-                                    val srcMethods = if (model.extractMembersFromSrcClasses) {
-                                        val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
-                                        val chosenNestedClasses =
-                                            model.selectedMembers.mapNotNull { it.member as? PsiClass }
-                                        chosenMethods + chosenNestedClasses.flatMap {
-                                            it.extractClassMethodsIncludingNested(false)
+                                        val srcMethods = if (model.extractMembersFromSrcClasses) {
+                                            val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
+                                            val chosenNestedClasses =
+                                                model.selectedMembers.mapNotNull { it.member as? PsiClass }
+                                            chosenMethods + chosenNestedClasses.flatMap {
+                                                it.extractClassMethodsIncludingNested(false)
+                                            }
+                                        } else {
+                                            srcClass.extractClassMethodsIncludingNested(false)
+                                        }
+                                        proc.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
+                                    })
+
+                                if (methods.isEmpty()) {
+                                    logger.error { "No methods matching selected found in class $className." }
+                                    continue
+                                }
+
+                                if (totalClasses > 1) {
+                                    updateIndicator(
+                                        indicator,
+                                        ProgressRange.SOLVING,
+                                        "Generate test cases for class $className",
+                                        processedClasses.toDouble() / totalClasses
+                                    )
+                                }
+
+                                // set timeout for concrete execution and for generated tests
+                                UtSettings.concreteExecutionTimeoutInChildProcess =
+                                    model.hangingTestsTimeout.timeoutMs
+
+                                UtSettings.useCustomJavaDocTags =
+                                    model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+
+                                UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+
+                                val searchDirectory = ReadAction
+                                    .nonBlocking<Path> {
+                                        project.basePath?.let { Paths.get(it) }
+                                            ?: Paths.get(srcClass.containingFile.virtualFile.parent.path)
+                                    }
+                                    .executeSynchronously()
+
+                                withStaticsSubstitutionRequired(true) {
+                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
+
+                                    val rdGenerateResult = proc.generate(
+                                        mockFrameworkInstalled,
+                                        model.staticsMocking.isConfigured,
+                                        model.conflictTriggers,
+                                        methods,
+                                        model.mockStrategy,
+                                        model.chosenClassesToMockAlways,
+                                        model.timeout,
+                                        model.timeout,
+                                        true,
+                                        UtSettings.useFuzzing,
+                                        project.service<Settings>().fuzzingValue,
+                                        searchDirectory.pathString
+                                    )
+
+                                    if (rdGenerateResult.notEmptyCases == 0) {
+                                        if (model.srcClasses.size > 1) {
+                                            logger.error { "Failed to generate any tests cases for class $className" }
+                                        } else {
+                                            showErrorDialogLater(
+                                                model.project,
+                                                errorMessage(className, secondsTimeout),
+                                                title = "Failed to generate unit tests for class $className"
+                                            )
                                         }
                                     } else {
-                                        srcClass.extractClassMethodsIncludingNested(false)
+                                        testSetsByClass[srcClass] = rdGenerateResult
                                     }
-                                    proc.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
-                                })
-
-                            if (methods.isEmpty()) {
-                                logger.error { "No methods matching selected found in class $className." }
-                                continue
-                            }
-
-                            if (totalClasses > 1) {
-                                updateIndicator(
-                                    indicator,
-                                    ProgressRange.SOLVING,
-                                    "Generate test cases for class $className",
-                                    processedClasses.toDouble() / totalClasses
-                                )
-                            }
-
-                            // set timeout for concrete execution and for generated tests
-                            UtSettings.concreteExecutionTimeoutInChildProcess =
-                                model.hangingTestsTimeout.timeoutMs
-
-                            UtSettings.useCustomJavaDocTags =
-                                model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-
-                            UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
-
-                            val searchDirectory = ReadAction
-                                .nonBlocking<Path> {
-                                    project.basePath?.let { Paths.get(it) }
-                                        ?: Paths.get(srcClass.containingFile.virtualFile.parent.path)
                                 }
-                                .executeSynchronously()
-
-                            withStaticsSubstitutionRequired(true) {
-                                val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
-
-                                val rdGenerateResult = proc.generate(
-                                    mockFrameworkInstalled,
-                                    model.staticsMocking.isConfigured,
-                                    model.conflictTriggers,
-                                    methods,
-                                    model.mockStrategy,
-                                    model.chosenClassesToMockAlways,
-                                    model.timeout,
-                                    model.timeout,
-                                    true,
-                                    UtSettings.useFuzzing,
-                                    project.service<Settings>().fuzzingValue,
-                                    searchDirectory.pathString
-                                )
-
-                                if (rdGenerateResult.notEmptyCases == 0) {
-                                    if (model.srcClasses.size > 1) {
-                                        logger.error { "Failed to generate any tests cases for class $className" }
-                                    } else {
-                                        showErrorDialogLater(
-                                            model.project,
-                                            errorMessage(className, secondsTimeout),
-                                            title = "Failed to generate unit tests for class $className"
-                                        )
-                                    }
-                                } else {
-                                    testSetsByClass[srcClass] = rdGenerateResult
-                                }
+                                processedClasses++
                             }
-                            processedClasses++
-                        }
 
-                        if (processedClasses == 0) {
+                            if (processedClasses == 0) {
+                                invokeLater {
+                                    Messages.showInfoMessage(
+                                        model.project,
+                                        "No methods for test generation were found among selected items",
+                                        "No methods found"
+                                    )
+                                }
+                                return
+                            }
+                            updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code for tests", 0.0)
+                            // Commented out to generate tests for collected executions even if action was canceled.
+                            // indicator.checkCanceled()
+
                             invokeLater {
-                                Messages.showInfoMessage(
-                                    model.project,
-                                    "No methods for test generation were found among selected items",
-                                    "No methods found"
-                                )
+                                generateTests(model, testSetsByClass, psi2KClass, proc, indicator)
+                                logger.info { "Generation complete" }
                             }
-                            return
                         }
-                        updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code for tests", 0.0)
-                        // Commented out to generate tests for collected executions even if action was canceled.
-                        // indicator.checkCanceled()
-
-                        invokeLater {
-                            generateTests(model, testSetsByClass, psi2KClass, proc, indicator)
-                            logger.info { "Generation complete" }
-                        }
+                    } finally {
+                        LockFile.unlock()
                     }
                 }
             }).queue()

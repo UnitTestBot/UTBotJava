@@ -2,11 +2,11 @@ package org.utbot.examples.taint.alias
 
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.Compilation
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
+import org.utbot.tests.infrastructure.isException
 
 class Injection550Test : UtValueTestCaseChecker(
     testClass = CWE_89_SQL_Injection_console__env_execute_550::class,
@@ -17,9 +17,10 @@ class Injection550Test : UtValueTestCaseChecker(
 ) {
     @Test
     fun testBad() {
-        check(
+        checkWithException(
             CWE_89_SQL_Injection_console__env_execute_550::bad,
             ignoreExecutionsNumber,
+            { r -> r.isException<VerifyError>() },
             coverage = AtLeast(95)
         )
     }

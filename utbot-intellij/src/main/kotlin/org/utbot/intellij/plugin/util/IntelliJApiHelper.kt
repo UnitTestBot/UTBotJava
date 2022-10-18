@@ -4,28 +4,36 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.Project
 import com.intellij.util.PlatformUtils
 import com.intellij.util.ReflectionUtil
 import com.intellij.util.concurrency.AppExecutorUtil
+import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 
 /**
  * This object is required to encapsulate Android API usage and grant safe access to it.
  */
 object IntelliJApiHelper {
-
+    private val logger = KotlinLogging.logger {}
     enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
-    fun run(target: Target, runnable: Runnable) {
-        when (target) {
-            Target.THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit {
+    fun run(target: Target, indicator: ProgressIndicator? = null, runnable: Runnable) {
+        if (indicator != null && indicator.isCanceled) return
+        val wrapper = Runnable {
+            try {
                 runnable.run()
+            } catch (e: Exception) {
+                logger.error(e) { target.toString() }
+                throw e
             }
-
-            Target.READ_ACTION -> runReadAction { runnable.run() }
-            Target.WRITE_ACTION -> runWriteAction { runnable.run() }
-            Target.EDT_LATER -> invokeLater { runnable.run() }
+        }
+        when (target) {
+            Target.THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit { wrapper.run() }
+            Target.READ_ACTION -> runReadAction { wrapper.run() }
+            Target.WRITE_ACTION -> runWriteAction { wrapper.run() }
+            Target.EDT_LATER -> invokeLater { wrapper.run() }
         }
     }
 

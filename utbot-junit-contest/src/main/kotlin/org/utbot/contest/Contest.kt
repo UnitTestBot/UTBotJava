@@ -149,7 +149,7 @@ fun setOptions() {
     UtSettings.useFuzzing = true
     UtSettings.classfilesCanChange = false
     UtSettings.useAssembleModelGenerator = false
-    UtSettings.enableMachineLearningModule = false
+    UtSettings.enableSummariesGeneration = false
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY

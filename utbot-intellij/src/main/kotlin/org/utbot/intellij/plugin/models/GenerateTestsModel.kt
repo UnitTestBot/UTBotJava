@@ -77,6 +77,7 @@ data class GenerateTestsModel(
         srcClasses.map { it.packageName }.distinct().size != 1
     }
     var runGeneratedTestsWithCoverage : Boolean = false
+    var enableSummariesGeneration : Boolean = true
 
     val jdkVersion: JavaSdkVersion?
         get() = try {

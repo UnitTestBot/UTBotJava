@@ -21,6 +21,7 @@ object LockFile {
     fun lock(): Boolean {
         if (currentLock != null) return false
         return try {
+            Paths.get(utbotHomePath).toFile().mkdirs()
             currentLock = Paths.get(lockFilePath).outputStream(StandardOpenOption.CREATE_NEW, StandardOpenOption.DELETE_ON_CLOSE).also {
                 it.write(DateFormat.getDateTimeInstance().format(System.currentTimeMillis()).toByteArray())
             }

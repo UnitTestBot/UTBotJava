@@ -498,6 +498,7 @@ val Method.displayName: String
 
 val KCallable<*>.declaringClazz: Class<*>
     get() = when (this) {
+        is KFunction<*> -> javaMethod?.declaringClass?.kotlin
         is CallableReference -> owner as? KClass<*>
         else -> instanceParameter?.type?.classifier as? KClass<*>
     }?.java ?: tryConstructor(this) ?: error("Can't get parent class for $this")

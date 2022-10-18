@@ -339,7 +339,7 @@ object UtVoidModel : UtModel(voidClassId)
  * Model for enum constant
  */
 data class UtEnumConstantModel(
-    override val id: Int?,
+    override val id: Int,
     override val classId: ClassId,
     val value: Enum<*>
 ) : UtReferenceModel(id, classId) {
@@ -351,7 +351,7 @@ data class UtEnumConstantModel(
  * Model for class reference
  */
 data class UtClassRefModel(
-    override val id: Int?,
+    override val id: Int,
     override val classId: ClassId,
     val value: Class<*>
 ) : UtReferenceModel(id, classId) {
@@ -455,9 +455,7 @@ data class UtArrayModel(
         return true
     }
 
-    override fun hashCode(): Int {
-        return id
-    }
+    override fun hashCode(): Int = id
 }
 
 /**
@@ -524,9 +522,7 @@ data class UtAssembleModel private constructor(
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id ?: 0
-    }
+    override fun hashCode(): Int = id ?: 0
 }
 
 /**
@@ -554,7 +550,7 @@ data class UtAssembleModel private constructor(
  */
 // TODO: what about support for Kotlin lambdas and function types? See https://github.com/UnitTestBot/UTBotJava/issues/852
 class UtLambdaModel(
-    override val id: Int?,
+    override val id: Int,
     val samType: ClassId,
     val declaringClass: ClassId,
     val lambdaName: String,
@@ -569,6 +565,19 @@ class UtLambdaModel(
             ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
 
     override fun toString(): String = "Anonymous function $lambdaName implementing functional interface $declaringClass"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtLambdaModel
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 /**

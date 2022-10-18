@@ -4,9 +4,9 @@ import com.google.common.collect.BiMap
 import com.google.common.collect.HashBiMap
 import org.utbot.engine.pc.*
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.*
-import java.lang.RuntimeException
 
 class TaintAnalysis {
     // TODO move it to the Memory.kt file?
@@ -107,3 +107,10 @@ class TaintAnalysis {
         const val SQL_INJECTION_FLAG = "SQL_INJECTION"
     }
 }
+
+/**
+ * An artificial error that could be implicitly thrown by the symbolic engine during taint sink processing.
+ *
+ * NOTE: should be inherited from [Error] to not be caught with `catch (e: Exception)`.
+ */
+class TaintAnalysisError(message: String, val taintSink: ExecutableId) : Error(message)

@@ -1,6 +1,7 @@
 package org.utbot.examples.taint.alias
 
 import org.junit.jupiter.api.Test
+import org.utbot.engine.TaintAnalysisError
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.Compilation
@@ -20,7 +21,7 @@ class Injection550Test : UtValueTestCaseChecker(
         checkWithException(
             CWE_89_SQL_Injection_console__env_execute_550::bad,
             ignoreExecutionsNumber,
-            { r -> r.isException<VerifyError>() },
+            { r -> r.isException<TaintAnalysisError>() },
             coverage = AtLeast(95)
         )
     }

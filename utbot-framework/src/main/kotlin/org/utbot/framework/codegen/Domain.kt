@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClas
 import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
@@ -31,6 +32,7 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
@@ -509,6 +511,18 @@ object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
         arguments = arrayOf(
             Class::class.id,
             executableClassId
+        )
+    )
+
+    val assertThrowsWithMessage: BuiltinMethodId = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertThrows",
+        // TODO: actually the return type is 'T extends java.lang.Throwable'
+        returnType = java.lang.Throwable::class.id,
+        arguments = arrayOf(
+            Class::class.id,
+            executableClassId,
+            stringClassId
         )
     )
 

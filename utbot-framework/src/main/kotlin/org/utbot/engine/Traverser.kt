@@ -159,7 +159,6 @@ import soot.jimple.ClassConstant
 import soot.jimple.Constant
 import soot.jimple.DefinitionStmt
 import soot.jimple.DoubleConstant
-import soot.jimple.DynamicInvokeExpr
 import soot.jimple.Expr
 import soot.jimple.FieldRef
 import soot.jimple.FloatConstant
@@ -3311,7 +3310,10 @@ class Traverser(
         val condition = taintAnalysis.containsInTainted(taintValue, flags)
         val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
 
-        implicitlyThrowException(VerifyError("Taint check failure"), setOf(condition, notNullCondition))
+        implicitlyThrowException(
+            TaintAnalysisError("Taint check failure", methodId),
+            setOf(condition, notNullCondition)
+        )
 
         queuedSymbolicStateUpdates += mkNot(mkAnd(condition, notNullCondition)).asHardConstraint()
     }

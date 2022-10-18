@@ -173,7 +173,7 @@ class Mocker(
     ): Boolean = checkIfShouldMock(type, mockInfo).also {
         //[utbotSuperClasses] are not involved in code generation, so
         //we shouldn't listen events that such mocks happened
-        if (it && type.id !in utbotSuperClasses.map { it.id }) {
+        if (it && type.id !in utbotSuperClassesToMockAlways.map { it.id }) {
             mockListenerController?.onShouldMock(strategy, mockInfo)
         }
     }
@@ -185,6 +185,7 @@ class Mocker(
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
         if (isUtMockAssumeOrExecuteConcretely(mockInfo)) return false // never mock UtMock.assumeOrExecuteConcretely invocation
         if (isUtMockDisableClassCastExceptionCheck(mockInfo)) return false // never mock UtMock.disableClassCastExceptionCheck invocation
+        if (neverMock(type)) return false // never mock classes that could not be mocked with Mockito (System, Thread)
         if (isOverriddenClass(type)) return false  // never mock overriden classes
         if (type.isInaccessibleViaReflection) return false // never mock classes that we can't process with reflection
         if (isMakeSymbolic(mockInfo)) return true // support for makeSymbolic
@@ -231,10 +232,14 @@ class Mocker(
 
     private fun isEngineClass(type: RefType) = type.className in engineClasses
 
+    private fun neverMock(type: RefType) = type.className in classesToNeverMock
+
     private fun mockAlways(type: RefType) = type.className in classesToMockAlways
 
     // we cannot check modifiers for these classes because they are not in class loader
     private val engineClasses: Set<String> = setOf(UtMock::class.java.name)
+
+    private val classesToNeverMock: Set<String> = javaClassesToNeverMock.mapTo(mutableSetOf()) { it.name }
 
     private val classesToMockAlways: Set<String> =
         (defaultSuperClassesToMockAlwaysIds + chosenClassesToMockAlways)
@@ -244,11 +249,18 @@ class Mocker(
 
     companion object {
 
-        val javaDefaultClasses: Set<Class<*>> = setOf(
+        val javaDefaultClassesToMockAlways: Set<Class<*>> = setOf(
             java.util.Random::class.java,
-            java.lang.System::class.java,
             java.sql.DriverManager::class.java,
             java.sql.Connection::class.java,
+        )
+
+        /**
+         * Mockito cannot mock these classes.
+         */
+        val javaClassesToNeverMock: Set<Class<*>> = setOf(
+            java.lang.System::class.java,
+            java.lang.Thread::class.java,
         )
 
         private val loggerSuperClasses: Set<Class<*>> = setOf(
@@ -256,13 +268,13 @@ class Mocker(
             org.slf4j.LoggerFactory::class.java
         )
 
-        private val utbotSuperClasses: Set<Class<*>> = setOf(
+        private val utbotSuperClassesToMockAlways: Set<Class<*>> = setOf(
             // we must prevent situations when we have already created static object without mock because of UtMock.assume
             // and then are trying to mock makeSymbolic function
             org.utbot.api.mock.UtMock::class.java
         )
 
-        private val defaultSuperClassesToMockAlways = javaDefaultClasses + loggerSuperClasses + utbotSuperClasses
+        private val defaultSuperClassesToMockAlways = javaDefaultClassesToMockAlways + loggerSuperClasses + utbotSuperClassesToMockAlways
 
         val defaultSuperClassesToMockAlwaysNames = defaultSuperClassesToMockAlways.mapTo(mutableSetOf()) { it.name }
 

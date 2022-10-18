@@ -241,13 +241,17 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
-        val updSpeculativelyNotNullAddresses = update.speculativelyNotNullAddresses.fold(speculativelyNotNullAddresses) { acc, addr ->
-            acc.store(addr, UtTrue)
-        }
+        val updSpeculativelyNotNullAddresses = update.speculativelyNotNullAddresses
+            .fold(speculativelyNotNullAddresses) { acc, addr -> acc.store(addr, UtTrue) }
 
-        val updTaintArray = update.taintArrayUpdate.fold(taintArray) { acc, upd ->
-            acc.store(upd.first, upd.second)
-        }
+        val updTaintArray = update.taintArrayUpdate
+            .groupBy { it.first }
+            .map {
+                it.key to it.value.fold(mkLong(0).toLongValue()) { acc, value ->
+                    Or(acc, value.second.toLongValue()).toLongValue()
+                }
+            }
+            .fold(taintArray) { acc, upd -> acc.store(upd.first, upd.second.expr) }
 
         return this.copy(
             initial = updInitial,

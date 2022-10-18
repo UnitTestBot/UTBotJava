@@ -1943,7 +1943,7 @@ class Traverser(
         return created
     }
 
-    fun TraversalContext.resolveParameters(
+    fun TraversalContext. resolveParameters(
         parameters: List<Value>,
         types: List<Type>
     ): List<SymbolicValue> = parameters.zip(types).map { (value, type) -> resolve(value, type) }
@@ -2231,6 +2231,8 @@ class Traverser(
     }
 
     private fun markAsTaint(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+        if (flags.isEmpty()) return SymbolicStateUpdate()
+
         val taintedBv = taintAnalysis.constructTaintedVector(flags)
         val memoryUpdates = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to taintedBv))
 
@@ -2238,6 +2240,8 @@ class Traverser(
     }
 
     private fun clearTaintMark(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+        if (flags.isEmpty()) return SymbolicStateUpdate()
+
         val taintBv = taintAnalysis.constructTaintedVector(flags)
         val negatedTaintBv = UtBvNotExpression(taintBv.toLongValue()).toLongValue()
         val actualTaintBv = memory.taintValue(addr).toLongValue()
@@ -2249,18 +2253,20 @@ class Traverser(
         return SymbolicStateUpdate(memoryUpdates = memoryUpdate)
     }
 
-    private fun assignTaintMark(addr: UtAddrExpression, flags: Set<String>, values: List<ReferenceValue>): SymbolicStateUpdate {
+    private fun assignTaintMark(
+        sourceAddr: UtAddrExpression,
+        targetAddr: UtAddrExpression,
+        flags: Set<String>,
+    ): SymbolicStateUpdate {
         val taintBv = taintAnalysis.constructTaintedVector(flags)
-        val unionOfFlags = values
-            .map { memory.taintValue(it.addr).toLongValue() }
-            .fold(mkLong(0L).toLongValue()) { acc, tv -> Or(acc, tv).toLongValue() }
-            .let { And(taintBv.toLongValue(), it).toLongValue() }
+        val sourceTaintBv = memory.taintValue(sourceAddr).toLongValue()
+        val intersection = And(taintBv.toLongValue(), sourceTaintBv).toLongValue()
 
-        val actTaintBv = memory.taintValue(addr).toLongValue()
-        val updTaintBv = Or(actTaintBv, unionOfFlags)
+        val actTaintBv = memory.taintValue(targetAddr).toLongValue()
+        val updTaintBv = Or(actTaintBv, intersection)
 
         // TODO there is an error here, it should not be that simple (not just or)
-        val memoryUpdate = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to updTaintBv))
+        val memoryUpdate = MemoryUpdate(taintArrayUpdate = persistentListOf(targetAddr to updTaintBv))
 
         return SymbolicStateUpdate(memoryUpdates = memoryUpdate)
     }
@@ -2432,7 +2438,7 @@ class Traverser(
 
     private fun TraversalContext.staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
-            .onEach { processTaintSink(invokeExpr.method.executableId, it) }
+            .onEachIndexed { index, value -> processTaintSink(invokeExpr.method.executableId, index + 1, value) }
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
 
         if (result != null) return result
@@ -2459,9 +2465,13 @@ class Traverser(
 
         if (instance.isNullObject()) return emptyList() // Nothing to call
 
+
         val method = methodRef.resolve()
-        val resolvedParameters = resolveParameters(parameters, method.parameterTypes).onEach {
-            processTaintSink(method.executableId, it)
+
+        processTaintSink(method.executableId, TaintAnalysis.THIS_PARAM_INDEX, instance)
+
+        val resolvedParameters = resolveParameters(parameters, method.parameterTypes).onEachIndexed { index, value ->
+            processTaintSink(method.executableId, index + 1, value)
         }
 
         val invocation = Invocation(instance, method, resolvedParameters) {
@@ -2595,8 +2605,11 @@ class Traverser(
         if (instance.isNullObject()) return emptyList() // Nothing to call
 
         val method = invokeExpr.retrieveMethod()
+
+        processTaintSink(method.executableId, TaintAnalysis.THIS_PARAM_INDEX, instance)
+
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
-            .onEach { processTaintSink(method.executableId, it) }
+            .onEachIndexed { index, value -> processTaintSink(method.executableId, index + 1, value) }
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
 
         // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
@@ -3274,63 +3287,115 @@ class Traverser(
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
     }
 
-    private fun TraversalContext.processTaintAnalysis(methodId: ExecutableId, methodResult: MethodResult, base: Value?, args: List<Value>): SymbolicStateUpdate {
+    private fun TraversalContext.processTaintAnalysis(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate {
         var result = SymbolicStateUpdate()
 
-        result += processTaintSource(methodId, methodResult)
-        result += processTaintSanitizer(methodId, methodResult)
+        result += processTaintSource(methodId, methodResult, base, args)
+        result += processTaintSanitizer(methodId, methodResult, base, args)
         result += processTaintPassThrough(methodId, methodResult, base, args)
 
         return result
     }
 
-    private fun processTaintSource(methodId: ExecutableId, methodResult: MethodResult): SymbolicStateUpdate {
-        // return if there are no flags for the methodId as a taint source
-        val flags = taintAnalysis.taintSources[methodId] ?: return SymbolicStateUpdate()
-
-        val symbolicResult = methodResult.symbolicResult
-        // TODO we do not support primitive values yet
-        if (symbolicResult !is SymbolicSuccess || symbolicResult.value !is ReferenceValue) {
-            return SymbolicStateUpdate()
-        }
-
-        val resultAddr = symbolicResult.value.addr
-
-        return markAsTaint(resultAddr, flags)
-    }
+    private fun TraversalContext.processTaintSource(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate = processTaintAnalysisOperation(
+        methodId,
+        methodResult,
+        base,
+        args,
+        taintAnalysis.taintSources,
+        ::markAsTaint
+    )
 
     private fun TraversalContext.processTaintSink(
         methodId: ExecutableId,
+        parameterIndex: Int,
         symbolicValue: SymbolicValue
     ) {
         if (symbolicValue !is ReferenceValue) return
 
-        val flags = taintAnalysis.taintSinks[methodId] ?: return
+        val flags = taintAnalysis.taintSinks[methodId]?.get(parameterIndex) ?: return
         val taintValue = memory.taintValue(symbolicValue.addr)
         val condition = taintAnalysis.containsInTainted(taintValue, flags)
         val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
 
-        implicitlyThrowException(
-            TaintAnalysisError("Taint check failure", methodId),
-            setOf(condition, notNullCondition)
-        )
-
-        queuedSymbolicStateUpdates += mkNot(mkAnd(condition, notNullCondition)).asHardConstraint()
-    }
-
-    private fun processTaintSanitizer(methodId: ExecutableId, methodResult: MethodResult): SymbolicStateUpdate {
-        // return if there are no flags for the methodId as a taint source
-        val flags = taintAnalysis.taintSanitizers[methodId] ?: return SymbolicStateUpdate()
-
-        val symbolicResult = methodResult.symbolicResult
-        // TODO we do not support primitive values yet
-        if (symbolicResult !is SymbolicSuccess || symbolicResult.value !is ReferenceValue) {
-            return SymbolicStateUpdate()
+        // TODO information about arguments and source of the error
+        val parameterString = when (parameterIndex) {
+            TaintAnalysis.RETURN_VALUE_INDEX -> error("TODO")
+            TaintAnalysis.THIS_PARAM_INDEX -> "`this` instance"
+            else -> "$parameterIndex parameter"
         }
 
-        val resultAddr = symbolicResult.value.addr
+        implicitlyThrowException(
+            TaintAnalysisError("Tainted data was passed as $parameterString into `${methodId.name}` method", methodId),
+            setOf(condition, notNullCondition)
+        )
+        // Note that we do not add negation of the condition leading to an exception.
+        // It is required to find further usages of the same `tainted` data in the following instructions
+    }
 
-        return clearTaintMark(resultAddr, flags)
+    private fun TraversalContext.processTaintSanitizer(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate =
+        processTaintAnalysisOperation(
+            methodId,
+            methodResult,
+            base,
+            args,
+            taintAnalysis.taintSanitizers,
+            ::clearTaintMark
+        )
+
+
+    private fun TraversalContext.processTaintAnalysisOperation(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>,
+        flagsSource: Map<MethodId, ParamIndexToTaintFlags>,
+        aggregationOperation: (UtAddrExpression, Set<String>) -> SymbolicStateUpdate
+    ): SymbolicStateUpdate {
+        val flags = flagsSource[methodId] ?: return SymbolicStateUpdate()
+
+        val symbolicResult = methodResult.symbolicResult
+
+        val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+            symbolicResult.value.addr to flags[TaintAnalysis.RETURN_VALUE_INDEX]
+        } else {
+            null
+        }
+
+        val thisParameter = base?.let {
+            resolve(it, methodId.sootMethod.declaringClass.type).addr to flags[TaintAnalysis.THIS_PARAM_INDEX]
+        }
+
+        val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
+            .asSequence()
+            .withIndex()
+            .filter { it.value is ReferenceValue }
+            .map { it.value.addr to flags[it.index + 1] }
+
+        val allArgs = mutableListOf<Pair<UtAddrExpression, Set<String>?>>().apply {
+            if (thisParameter != null) add(thisParameter)
+            addAll(parameters.toList())
+            if (resultTaint != null) add(resultTaint)
+        }
+
+        return allArgs.fold(SymbolicStateUpdate()) { acc, addrToFlags ->
+            acc + aggregationOperation(addrToFlags.first, addrToFlags.second ?: emptySet())
+        }
     }
 
     private fun TraversalContext.processTaintPassThrough(
@@ -3340,26 +3405,38 @@ class Traverser(
         args: List<Value>
     ): SymbolicStateUpdate {
         // return if there are no flags for the methodId as a taint source
-        val flags = taintAnalysis.taintPassThrough[methodId] ?: return SymbolicStateUpdate()
+        val passThroughInformation = taintAnalysis.taintPassThrough[methodId] ?: return SymbolicStateUpdate()
+
+        val instance = base?.let { resolve(base, methodId.sootMethod.declaringClass.type) }
+        val arguments = resolveParameters(args, methodId.sootMethod.parameterTypes)
 
         val symbolicResult = methodResult.symbolicResult
-        // TODO we do not support primitive values yet
-        if (symbolicResult !is SymbolicSuccess || symbolicResult.value !is ReferenceValue) {
-            return SymbolicStateUpdate()
-        }
 
-        val resultAddr = symbolicResult.value.addr
-
-        val argsWithThis = listOfNotNull(base) + args
-        val types = if (base != null) {
-            listOf(methodId.sootMethod.declaringClass.type) + methodId.sootMethod.parameterTypes
+        val resultValue = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+            symbolicResult.value
         } else {
-            methodId.sootMethod.parameterTypes
+            null
         }
 
-        val parameters = resolveParameters(argsWithThis, types).filterIsInstance<ReferenceValue>()
+        return passThroughInformation.entries.fold(SymbolicStateUpdate()) { acc, information ->
+            val (sourceIndex, passInformation) = information
+            val (targetIndex, flags) = passInformation
 
-        return assignTaintMark(resultAddr, flags, parameters)
+            val sourceValue = when (sourceIndex) {
+                TaintAnalysis.RETURN_VALUE_INDEX -> resultValue
+                TaintAnalysis.THIS_PARAM_INDEX -> instance
+                else -> arguments[sourceIndex - 1]
+            } as? ReferenceValue ?: error("TODO message")
+
+            val targetValue = when (targetIndex) {
+                TaintAnalysis.RETURN_VALUE_INDEX -> resultValue
+                TaintAnalysis.THIS_PARAM_INDEX -> instance
+                else -> arguments[targetIndex - 1]
+            } as? ReferenceValue ?: error("TODO message")
+
+
+            acc + assignTaintMark(sourceValue.addr, targetValue.addr, flags)
+        }
     }
 
     // Use cast to Int and cmp with min/max for Byte and Short.

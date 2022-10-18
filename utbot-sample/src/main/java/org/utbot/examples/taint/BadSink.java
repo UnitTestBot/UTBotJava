@@ -6,4 +6,9 @@ public class BadSink {
     public static void writeIntoBd(String param) {
         value = param;
     }
+
+    public static void onlySecondParamIsImportant(String fst, String snd) {
+        System.out.println(fst);
+        value = snd;
+    }
 }

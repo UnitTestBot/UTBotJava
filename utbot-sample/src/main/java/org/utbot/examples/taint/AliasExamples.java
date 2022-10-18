@@ -17,6 +17,98 @@ public class AliasExamples {
         writeIntoBd(a.f.getData());
     }
 
+    public void paramDependentBad() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        BadSink.onlySecondParamIsImportant("safe", a.f.getData());
+    }
+
+    public void clearSecondParameter() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        BadSink.onlySecondParamIsImportant("safe", TaintCleaner.removeTaintMark(a.f.getData()));
+    }
+
+    public void paramDependentGood() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        BadSink.onlySecondParamIsImportant(a.f.getData(), "safe");
+    }
+
+    public void passSecondParamGood() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        String param = a.f.getData();
+        TaintPassThrough taintPassThrough = new TaintPassThrough();
+
+        BadSink.writeIntoBd(taintPassThrough.passSecondParameter(param, ""));
+    }
+
+    public void passSecondParamBad() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        String param = a.f.getData();
+        TaintPassThrough taintPassThrough = new TaintPassThrough();
+
+        BadSink.writeIntoBd(taintPassThrough.passSecondParameter("", param));
+    }
+
+    public void passFirstParamGood() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        String param = a.f.getData();
+        TaintPassThrough taintPassThrough = new TaintPassThrough();
+
+        BadSink.writeIntoBd(taintPassThrough.passFirstParameter("", param));
+    }
+
+    public void passFirstParamBad() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        String param = a.f.getData();
+        TaintPassThrough taintPassThrough = new TaintPassThrough();
+
+        BadSink.writeIntoBd(taintPassThrough.passFirstParameter(param, ""));
+    }
+
+    public void passSecondParam() {
+        AliasA a = new AliasA();
+        AliasA b = new AliasA();
+        b.getF().setData(BadSource.getEnvironment("data"));
+
+        a.f = b.f;
+
+        BadSink.onlySecondParamIsImportant(a.f.getData(), "safe");
+    }
+
     public void bad551() {
         AliasA a = new AliasA();
         a.getF().setData(BadSource.getEnvironment("data"));

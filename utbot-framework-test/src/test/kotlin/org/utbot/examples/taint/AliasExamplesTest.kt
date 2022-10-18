@@ -16,6 +16,64 @@ internal class AliasExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testParamDependentGood() {
+        check(
+            AliasExamples::paramDependentGood,
+            eq(-1),
+        )
+    }
+
+    @Test
+    fun testPassSecondParamBad() {
+        check(
+            AliasExamples::passSecondParamBad,
+            eq(-1),
+        )
+    }
+
+    @Test
+    fun testPassSecondParamGood() {
+        check(
+            AliasExamples::passSecondParamGood,
+            eq(-1),
+        )
+    }
+
+    @Test
+    fun testPassFirstParamGood() {
+        check(
+            AliasExamples::passFirstParamGood,
+            eq(-1),
+        )
+    }
+
+    @Test
+    fun testPassFirstParamBad() {
+        check(
+            AliasExamples::passFirstParamBad,
+            eq(-1),
+        )
+    }
+
+
+    @Test
+    fun testParamDependentBad() {
+        check(
+            AliasExamples::paramDependentBad,
+            eq(-1),
+        )
+    }
+
+    @Test
+    fun testClearSecondParameter() {
+        check(
+            AliasExamples::clearSecondParameter,
+            eq(-1),
+        )
+    }
+
+
+    @Test
     fun testBad551() {
         check(
             AliasExamples::bad551,

@@ -76,10 +76,16 @@ open class FuzzedMethodDescription(
 
 class FuzzedMethodDescriptionAdapter(val origin: FuzzedMethodDescription) : FuzzedMethodDescription(
     origin.name,
-    origin.returnType,
+    origin.platform.toPlatformClassId(origin.returnType),
     origin.parameters.map { origin.platform.toPlatformClassId(it) },
     origin.platform,
-    origin.concreteValues
+    origin.concreteValues.map {
+        FuzzedConcreteValue(
+            origin.platform.toPlatformClassId(it.classId),
+            it.value,
+            it.fuzzedContext
+        )
+    }
 ) {
 
     val originClassMap : IdentityHashMap<ClassId, ClassId> = parameters.zip(origin.parameters).toMap(IdentityHashMap())

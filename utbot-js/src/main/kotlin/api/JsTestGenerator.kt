@@ -8,8 +8,9 @@ import com.oracle.js.parser.Source
 import com.oracle.js.parser.ir.ClassNode
 import com.oracle.js.parser.ir.FunctionNode
 import com.oracle.truffle.api.strings.TruffleString
-import fuzzer.JsFuzzer
 import fuzzer.providers.JsObjectModelProvider
+import java.io.File
+import java.util.Collections
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -31,16 +32,10 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.NoFuzzerPlaform
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzer.defaultModelProviders
-import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.providers.CollectionWithEmptyStatesModelProvider
-import org.utbot.fuzzer.providers.CollectionWithModificationModelProvider
-import org.utbot.fuzzer.providers.EnumModelProvider
-import org.utbot.fuzzer.providers.ObjectModelProvider
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -57,8 +52,6 @@ import utils.JsCmdExec
 import utils.PathResolver
 import utils.constructClass
 import utils.toJsAny
-import java.io.File
-import java.util.Collections
 
 
 class JsTestGenerator(
@@ -115,11 +108,7 @@ class JsTestGenerator(
         val methods = makeMethodsToTest()
         if (methods.isEmpty()) throw IllegalArgumentException("No methods to test were found!")
         methods.forEach { funcNode ->
-            try {
-                makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
-            } catch (_: Exception) {
-
-            }
+            makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
         }
         val importPrefix = makeImportPrefix()
         val codeGen = JsCodeGenerator(
@@ -218,7 +207,7 @@ class JsTestGenerator(
                         name = "thisInstance",
                         returnType = voidClassId,
                         parameters = listOf(classId),
-                        platform = NoFuzzerPlaform,
+                        platform = JsFuzzerPlatform,
                         concreteValues = concreteValues,
                     )
                 ).take(10).toList()

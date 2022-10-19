@@ -19,11 +19,11 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 private val logger = KotlinLogging.logger {}
 
-class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests coverage for the specified file") {
+class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests coverage for the specified file.") {
 
     private val testFile by option(
         "-s", "--source",
-        help = "Target test file path"
+        help = "Target test file path."
     ).required()
         .check("Must exist and ends with .js suffix") {
             it.endsWith(".js") && Files.exists(Paths.get(it))
@@ -31,7 +31,7 @@ class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests c
 
     private val output by option(
         "-o", "--output",
-        help = "Specifies output .json file for generated tests"
+        help = "Specifies output .json file for generated tests."
     ).check("Must end with .json suffix") {
         it.endsWith(".json")
     }
@@ -39,7 +39,7 @@ class JsCoverageCommand : CliktCommand(name = "coverage_js", help = "Get tests c
     private val pathToNYC by option(
         "--path-to-nyc",
         help = "Sets path to nyc executable, defaults to \"nyc\" shortcut. " +
-                "As there are many nyc files in the global npm directory, choose one without file extension"
+                "As there are many nyc files in the global npm directory, choose one without file extension."
     ).default("nyc")
 
     override fun run() {

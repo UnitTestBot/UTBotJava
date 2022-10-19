@@ -13,21 +13,21 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
-class JsRunTestsCommand : CliktCommand(name = "run_js", help = "Runs tests for the specified file or directory") {
+class JsRunTestsCommand : CliktCommand(name = "run_js", help = "Runs tests for the specified file or directory.") {
 
     private val fileWithTests by option(
         "--fileOrDir", "-f",
-        help = "Specifies a file or directory with tests"
+        help = "Specifies a file or directory with tests."
     ).required()
 
     private val output by option(
         "-o", "--output",
-        help = "Specifies an output .txt file for test framework result"
+        help = "Specifies an output .txt file for test framework result."
     ).check("Must end with .txt suffix") {
         it.endsWith(".txt")
     }
 
-    private val testFramework by option("--test-framework", "-t", help = "Test framework to be used")
+    private val testFramework by option("--test-framework", "-t", help = "Test framework to be used.")
         .choice("mocha")
         .default("mocha")
 

@@ -2,7 +2,6 @@ package org.utbot.python.framework.codegen.model
 
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.TestsCodeWithTestReport
 import org.utbot.framework.codegen.model.CodeGeneratorResult
 
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet

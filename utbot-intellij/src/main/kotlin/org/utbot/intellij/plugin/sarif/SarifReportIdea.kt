@@ -5,7 +5,6 @@ import com.intellij.psi.PsiClass
 import com.intellij.openapi.progress.ProgressIndicator
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
-import com.intellij.openapi.vfs.VfsUtil
 import java.util.concurrent.CountDownLatch
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.ClassId

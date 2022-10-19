@@ -19,7 +19,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.utils.jdkVersion
 
 class GenerateTestsModel(
     project: Project,
@@ -38,24 +37,8 @@ class GenerateTestsModel(
     srcClasses
 ) {
 
-    fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
-        requireNotNull(newTestSourceRoot)
-        testSourceRoot = newTestSourceRoot
-        var target = newTestSourceRoot
-        while(target != null && target is FakeVirtualFile) {
-            target = target.parent
-        }
-        if (target == null) {
-            error("Could not find module for $newTestSourceRoot")
-        }
+    override var codegenLanguage = project.service<Settings>().codegenLanguage
 
-        testModule = ModuleUtil.findModuleForFile(target, project)
-            ?: error("Could not find module for $newTestSourceRoot")
-    }
-
-//    val codegenLanguage = project.service<Settings>().codegenLanguage
-
-    var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
@@ -71,14 +54,6 @@ class GenerateTestsModel(
 
     var runGeneratedTestsWithCoverage : Boolean = false
     var enableSummariesGeneration : Boolean = true
-
-    val jdkVersion: JavaSdkVersion?
-        get() = try {
-            testModule.jdkVersion()
-        } catch (e: IllegalStateException) {
-            // Just ignore it here, notification will be shown in org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
-            null
-        }
 }
 
 val PsiClass.packageName: String

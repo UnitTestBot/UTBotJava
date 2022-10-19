@@ -34,7 +34,7 @@ allprojects {
     tasks {
         withType<JavaCompile> {
             sourceCompatibility = "1.8"
-            targetCompatibility = "11"
+            targetCompatibility = "1.8"
             options.encoding = "UTF-8"
             options.compilerArgs = options.compilerArgs + "-Xlint:all"
         }

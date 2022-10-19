@@ -3,6 +3,8 @@ val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
 val ideType: String? by rootProject
+val ideVersion: String? by rootProject
+val kotlinPluginVersion: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 val goPluginVersion: String? by rootProject
@@ -46,7 +48,7 @@ intellij {
 
     val jvmPlugins = listOf(
         "java",
-        "org.jetbrains.kotlin:212-1.7.10-release-333-IJ5457.46"
+        "org.jetbrains.kotlin:$kotlinPluginVersion"
     )
 
     val pythonCommunityPlugins = listOf(
@@ -75,6 +77,6 @@ intellij {
         }
     )
 
-    version.set("212.5712.43")
+    version.set(ideVersion)
     type.set(ideType)
 }

@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -23,10 +24,19 @@ open class BaseTestsModel(
     var testSourceRoot: VirtualFile? = null
     var testPackageName: String? = null
     open lateinit var codegenLanguage: CodegenLanguage
+
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)
         testSourceRoot = newTestSourceRoot
-        testModule = ModuleUtil.findModuleForFile(newTestSourceRoot, project)
+        var target = newTestSourceRoot
+        while(target != null && target is FakeVirtualFile) {
+            target = target.parent
+        }
+        if (target == null) {
+            error("Could not find module for $newTestSourceRoot")
+        }
+
+        testModule = ModuleUtil.findModuleForFile(target, project)
             ?: error("Could not find module for $newTestSourceRoot")
     }
 

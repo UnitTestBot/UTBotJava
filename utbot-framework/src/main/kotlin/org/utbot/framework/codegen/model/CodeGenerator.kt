@@ -78,8 +78,8 @@ open class CodeGenerator(
             val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
             CodeGeneratorResult(
                 generatedCode = renderClassFile(testClassFile),
-                testsGenerationReport = testClassFile.testsGenerationReport,
-                utilClassKind = UtilClassKind.fromCgContextOrNull(context)
+                utilClassKind = UtilClassKind.fromCgContextOrNull(context),
+                testsGenerationReport = testClassFile.testsGenerationReport
             )
         }
     }
@@ -111,14 +111,14 @@ open class CodeGenerator(
 
 /**
  * @property generatedCode the source code of the test class
- * @property utilClassKind the kind of util class if it is required, otherwise - null
  * @property testsGenerationReport some info about test generation process
+ * @property utilClassKind the kind of util class if it is required, otherwise - null
  */
 data class CodeGeneratorResult(
     val generatedCode: String,
     // null if no util class needed, e.g. when we are generating utils directly into test class
-    val utilClassKind: UtilClassKind?,
-    val testsGenerationReport: TestsGenerationReport
+    val testsGenerationReport: TestsGenerationReport,
+    val utilClassKind: UtilClassKind? = null,
 )
 
 /**

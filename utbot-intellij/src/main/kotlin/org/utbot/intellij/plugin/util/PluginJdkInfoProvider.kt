@@ -8,6 +8,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.plugin.services.fetchJavaVersion
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 
 class PluginJdkInfoProvider(
     private val project: Project

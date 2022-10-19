@@ -27,6 +27,7 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.util.PathUtil.getParentPath
 import java.nio.file.Path
 import mu.KotlinLogging
+import org.jetbrains.android.sdk.AndroidSdkType
 import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType

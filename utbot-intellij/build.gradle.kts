@@ -3,6 +3,8 @@ val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
 val ideType: String? by rootProject
+val ideVersion: String? by rootProject
+val kotlinPluginVersion: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 val sootCommitHash: String? by rootProject
@@ -24,7 +26,7 @@ intellij {
 
     val jvmPlugins = mutableListOf(
         "java",
-        "org.jetbrains.kotlin:222-1.7.20-release-201-IJ4167.29"
+        "org.jetbrains.kotlin:$kotlinPluginVersion"
     )
 
     androidStudioPath?.let { jvmPlugins += androidPlugins }
@@ -55,7 +57,7 @@ intellij {
         }
     )
 
-    version.set("222.4167.29")
+    version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
 }
 

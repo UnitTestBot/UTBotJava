@@ -21,6 +21,8 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         block()
     }
 
+    override val isExpectedExceptionExecutionBreaking: Boolean = true
+
     override fun createDataProviderAnnotations(dataProviderMethodName: String): MutableList<CgAnnotation> {
         TODO("Not yet implemented")
     }
@@ -43,9 +45,9 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     }
 
     override val dataProviderMethodsHolder: TestClassContext get() = TODO()
-    override val annotationForNestedClasses: CgAnnotation?
+    override val annotationForNestedClasses: CgAnnotation
         get() = TODO("Not yet implemented")
-    override val annotationForOuterClasses: CgAnnotation?
+    override val annotationForOuterClasses: CgAnnotation
         get() = TODO("Not yet implemented")
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
@@ -72,11 +74,13 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
 }
 
 internal class UnittestManager(context: CgContext) : TestFrameworkManager(context) {
+    override val isExpectedExceptionExecutionBreaking: Boolean = true
+
     override val dataProviderMethodsHolder: TestClassContext
         get() = TODO()
-    override val annotationForNestedClasses: CgAnnotation?
+    override val annotationForNestedClasses: CgAnnotation
         get() = TODO("Not yet implemented")
-    override val annotationForOuterClasses: CgAnnotation?
+    override val annotationForOuterClasses: CgAnnotation
         get() = TODO("Not yet implemented")
 
     override fun expectException(exception: ClassId, block: () -> Unit) {

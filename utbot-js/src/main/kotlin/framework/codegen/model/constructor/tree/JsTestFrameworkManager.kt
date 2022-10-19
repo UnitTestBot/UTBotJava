@@ -12,6 +12,8 @@ import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.plugin.api.ClassId
 
 class MochaManager(context: CgContext) : TestFrameworkManager(context) {
+    override val isExpectedExceptionExecutionBreaking: Boolean = true
+
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Mocha) { "According to settings, Mocha.js was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(exception) { block() }

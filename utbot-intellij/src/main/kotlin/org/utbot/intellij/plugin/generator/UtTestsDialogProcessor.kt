@@ -37,10 +37,6 @@ import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
-import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.intellij.plugin.util.*
 import org.utbot.rd.terminateOnException
 import java.io.File
@@ -49,6 +45,8 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
 import org.utbot.framework.plugin.api.util.LockFile
+import org.utbot.intellij.plugin.ui.utils.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}

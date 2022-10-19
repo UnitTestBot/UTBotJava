@@ -1072,7 +1072,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return ClassIdArrayInfo(classId, nestedElementClassId, dimensions)
     }
 
-    protected fun assertEquality(expected: CgValue, actual: CgVariable) {
+    open fun assertEquality(expected: CgValue, actual: CgVariable) {
         when {
             expected.type.isArray -> {
                 // TODO: How to compare arrays of Float and Double wrappers?
@@ -1253,7 +1253,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    protected fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    open fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
@@ -1655,7 +1655,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         testSet.executions.any { it.result is UtExecutionFailure }
 
 
-    protected final fun testMethod(
     /**
      * Determines [CgTestMethodType] for current execution according to its success or failure.
      */

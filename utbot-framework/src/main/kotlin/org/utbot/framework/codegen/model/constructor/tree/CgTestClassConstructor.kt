@@ -125,7 +125,7 @@ open class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    open fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }

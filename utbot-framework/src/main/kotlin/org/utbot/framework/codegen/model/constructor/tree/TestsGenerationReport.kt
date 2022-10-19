@@ -3,7 +3,6 @@ package org.utbot.framework.codegen.model.constructor.tree
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTestMethodType
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.util.kClass
@@ -35,15 +34,15 @@ data class TestsGenerationReport(
             val errors = executables.map { it.countErrors() }
             val overallErrors = errors.sum()
 
-            appendHtmlLine("Successful test methods: ${testMethodsStatistic.sumBy { it.successful }}")
+            appendHtmlLine("Successful test methods: ${testMethodsStatistic.sumOf { it.successful }}")
             appendHtmlLine(
-                "Failing because of unexpected exception test methods: ${testMethodsStatistic.sumBy { it.failing }}"
+                "Failing because of unexpected exception test methods: ${testMethodsStatistic.sumOf { it.failing }}"
             )
             appendHtmlLine(
-                "Failing because of exceeding timeout test methods: ${testMethodsStatistic.sumBy { it.timeout }}"
+                "Failing because of exceeding timeout test methods: ${testMethodsStatistic.sumOf { it.timeout }}"
             )
             appendHtmlLine(
-                "Failing because of possible JVM crash test methods: ${testMethodsStatistic.sumBy { it.crashes }}"
+                "Failing because of possible JVM crash test methods: ${testMethodsStatistic.sumOf { it.crashes }}"
             )
             appendHtmlLine("Not generated because of internal errors test methods: $overallErrors")
         }
@@ -71,6 +70,8 @@ data class TestsGenerationReport(
         }
     }
 
+    fun countTestMethods() = executables.map { it.countTestMethods() }.sumOf { it.count }
+
     fun toString(isShort: Boolean): String = buildString {
         appendHtmlLine("Target: ${classUnderTest.qualifiedName}")
         if (initialWarnings.isNotEmpty()) {
@@ -78,10 +79,7 @@ data class TestsGenerationReport(
             appendHtmlLine()
         }
 
-        val testMethodsStatistic = executables.map { it.countTestMethods() }
-        val overallTestMethods = testMethodsStatistic.sumBy { it.count }
-
-        appendHtmlLine("Overall test methods: $overallTestMethods")
+        appendHtmlLine("Overall test methods: ${countTestMethods()}")
 
         if (!isShort) {
             appendHtmlLine(detailedStatistics)

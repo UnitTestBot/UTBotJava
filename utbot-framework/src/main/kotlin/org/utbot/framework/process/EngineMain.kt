@@ -218,7 +218,7 @@ private fun EngineProcessModel.setup(
             processInitialWarnings(accumulatedReport, params)
 
             val message = buildString {
-                appendHtmlLine("${reports.sumBy { it.executables.size }} tests generated for ${reports.size} classes.")
+                appendHtmlLine("${reports.sumOf { it.countTestMethods() }} tests generated for ${reports.size} classes.")
 
                 if (accumulatedReport.initialWarnings.isNotEmpty()) {
                     accumulatedReport.initialWarnings.forEach { appendHtmlLine(it()) }

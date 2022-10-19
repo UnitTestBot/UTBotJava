@@ -49,6 +49,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
         @OptionTag(converter = HangingTestsTimeoutConverter::class)
         var hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
+        var runInspectionAfterTestGeneration: Boolean = false,
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
@@ -66,6 +67,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             staticsMocking = model.staticsMocking,
             runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
             hangingTestsTimeout = model.hangingTestsTimeout,
+            runInspectionAfterTestGeneration = model.runInspectionAfterTestGeneration,
             forceStaticMocking = model.forceStaticMocking,
             parametrizedTestSource = model.parametrizedTestSource,
             classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
@@ -88,6 +90,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (staticsMocking != other.staticsMocking) return false
             if (runtimeExceptionTestsBehaviour != other.runtimeExceptionTestsBehaviour) return false
             if (hangingTestsTimeout != other.hangingTestsTimeout) return false
+            if (runInspectionAfterTestGeneration != other.runInspectionAfterTestGeneration) return false
             if (forceStaticMocking != other.forceStaticMocking) return false
             if (treatOverflowAsError != other.treatOverflowAsError) return false
             if (parametrizedTestSource != other.parametrizedTestSource) return false
@@ -107,6 +110,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + staticsMocking.hashCode()
             result = 31 * result + runtimeExceptionTestsBehaviour.hashCode()
             result = 31 * result + hangingTestsTimeout.hashCode()
+            result = 31 * result + runInspectionAfterTestGeneration.hashCode()
             result = 31 * result + forceStaticMocking.hashCode()
             result = 31 * result + treatOverflowAsError.hashCode()
             result = 31 * result + parametrizedTestSource.hashCode()
@@ -136,6 +140,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         }
 
     val staticsMocking: StaticsMocking get() = state.staticsMocking
+
+    val runInspectionAfterTestGeneration: Boolean get() = state.runInspectionAfterTestGeneration
 
     val forceStaticMocking: ForceStaticMocking get() = state.forceStaticMocking
 

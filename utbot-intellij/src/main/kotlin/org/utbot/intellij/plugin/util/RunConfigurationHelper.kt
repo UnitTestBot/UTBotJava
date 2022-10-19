@@ -64,6 +64,20 @@ class RunConfigurationHelper {
     companion object {
         private val logger = KotlinLogging.logger {}
 
+        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && testType == "pattern"
+
+        // In case we do "generate and run" for many files at once,
+        // desired run configuration has to be one of "pattern" typed test configuration that may run many tests at once.
+        // Thus, we sort list of all provided configurations to get desired configuration the first.
+        private val rcComparator = Comparator<ConfigurationFromContext> { o1, o2 ->
+            val p1 = o1.configuration.isPatternBased()
+            val p2 = o2.configuration.isPatternBased()
+            if (p1 xor p2) {
+                return@Comparator if (p1) -1 else 1
+            }
+            ConfigurationFromContext.COMPARATOR.compare(o1, o2)
+        }
+
         fun runTestsWithCoverage(
             model: GenerateTestsModel,
             testFilesPointers: MutableList<SmartPsiElementPointer<PsiFile>>,
@@ -91,17 +105,9 @@ class RunConfigurationHelper {
                     )
                     run(IntelliJApiHelper.Target.THREAD_POOL) {
                         val configurations = ApplicationManager.getApplication().runReadAction(Computable {
-                            val list = RunConfigurationProducer.getProducers(model.project)
+                            return@Computable RunConfigurationProducer.getProducers(model.project)
                                 .mapNotNull { it.findOrCreateConfigurationFromContext(myConfigurationContext) }
-                                .toMutableList().sortedWith(Comparator<ConfigurationFromContext> { o1, o2 ->
-                                    val p1 = o1.configuration.isPatternBased()
-                                    val p2 = o2.configuration.isPatternBased()
-                                    if (p1 xor p2) {
-                                        return@Comparator if (p1) -1 else 1
-                                    }
-                                    ConfigurationFromContext.COMPARATOR.compare(o1, o2)
-                                })
-                            return@Computable list
+                                .toMutableList().sortedWith(rcComparator)
                         })
 
                         val settings = if (configurations.isEmpty()) null else configurations[0].configurationSettings
@@ -128,7 +134,5 @@ class RunConfigurationHelper {
                 }
             }
         }
-
-        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && testType == "pattern"
     }
 }

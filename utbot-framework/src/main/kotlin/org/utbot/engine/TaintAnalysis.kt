@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap
 import com.google.common.collect.HashBiMap
 import org.utbot.engine.pc.*
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.*
@@ -42,10 +43,16 @@ class TaintAnalysis {
     /*
     * TODO Should be configurable, hardcoded for demonstration purposes
     * */
-    val taintSources: Map<MethodId, ParamIndexToTaintFlags> = mapOf(
+    val taintSources: Map<ExecutableId, ParamIndexToTaintFlags> = mapOf(
         MethodId(
-            classId = java.lang.System::class.id,
+            classId = systemCLassId,
             name = "getenv",
+            returnType = stringClassId,
+            parameters = listOf(stringClassId)
+        ) to mapOf(RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG)),
+        MethodId(
+            classId = propertiesClassId,
+            name = "getProperty",
             returnType = stringClassId,
             parameters = listOf(stringClassId)
         ) to mapOf(RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG)),
@@ -57,7 +64,7 @@ class TaintAnalysis {
         ) to mapOf(RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG)),
     )
 
-    val taintSinks: Map<MethodId, ParamIndexToTaintFlags> = mapOf(
+    val taintSinks: Map<ExecutableId, ParamIndexToTaintFlags> = mapOf(
         MethodId(
             classId = java.sql.Statement::class.id,
             name = "execute",
@@ -78,7 +85,7 @@ class TaintAnalysis {
         ) to mapOf(2 to setOf(SQL_INJECTION_FLAG)),
     )
 
-    val taintSanitizers: Map<MethodId, ParamIndexToTaintFlags> = mapOf(
+    val taintSanitizers: Map<ExecutableId, ParamIndexToTaintFlags> = mapOf(
         MethodId(
             classId = ClassId("org.utbot.examples.taint.TaintCleaner"),
             name = "removeTaintMark",
@@ -88,7 +95,7 @@ class TaintAnalysis {
     )
 
     // int here is about from what parameter should we transfer a flag to the result value of the method
-    val taintPassThrough: Map<MethodId, PassThroughArgument> = mapOf(
+    val taintPassThrough: Map<ExecutableId, PassThroughArgument> = mapOf(
         MethodId(
             classId = stringBuilderClassId,
             name = "append",
@@ -100,10 +107,138 @@ class TaintAnalysis {
         ),
         MethodId(
             classId = stringBuilderClassId,
+            name = "append",
+            returnType = stringBuilderClassId,
+            parameters = listOf(charArrayClassId)
+        ) to mapOf(
+            THIS_PARAM_INDEX to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG)),
+            1 to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))
+        ),
+        MethodId(
+            classId = stringBuilderClassId,
             name = "toString",
             returnType = stringClassId,
             parameters = emptyList()
         ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringBufferClassId,
+            name = "append",
+            returnType = stringBufferClassId,
+            parameters = listOf(stringClassId)
+        ) to mapOf(
+            THIS_PARAM_INDEX to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG)),
+            1 to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))
+        ),
+        MethodId(
+            classId = stringBufferClassId,
+            name = "append",
+            returnType = stringBufferClassId,
+            parameters = listOf(charArrayClassId)
+        ) to mapOf(
+            THIS_PARAM_INDEX to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG)),
+            1 to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))
+        ),
+        MethodId(
+            classId = stringBufferClassId,
+            name = "toString",
+            returnType = stringClassId,
+            parameters = emptyList()
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "concat",
+            returnType = stringClassId,
+            parameters = listOf(stringClassId)
+        ) to mapOf(
+            THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG)),
+            1 to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))
+        ),
+        MethodId(
+            classId = stringClassId,
+            name = "toCharArray",
+            returnType = charArrayClassId,
+            parameters = emptyList()
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        // TODO should it always be pass through?
+        MethodId(
+            classId = stringClassId,
+            name = "replace",
+            returnType = stringClassId,
+            parameters = listOf(charSequenceClassId, charSequenceClassId)
+        ) to mapOf(
+            THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG)),
+            2 to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG)),
+        ),
+        MethodId(
+            classId = stringClassId,
+            name = "toLowerCase",
+            returnType = stringClassId,
+            parameters = emptyList()
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "toLowerCase",
+            returnType = stringClassId,
+            parameters = listOf(localeClassId)
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "toUpperCase",
+            returnType = stringClassId,
+            parameters = emptyList()
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "toUpperCase",
+            returnType = stringClassId,
+            parameters = listOf(localeClassId)
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "substring",
+            returnType = stringClassId,
+            parameters = listOf(intClassId)
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "substring",
+            returnType = stringClassId,
+            parameters = listOf(intClassId, intClassId)
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = stringClassId,
+            name = "toString",
+            returnType = stringClassId,
+            parameters = emptyList()
+        ) to mapOf(THIS_PARAM_INDEX to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),
+        // TODO we should detect CharSequence argument here
+        /*MethodId(
+            classId = stringClassId,
+            name = "valueOf",
+            returnType = stringClassId,
+            parameters = listOf(objectClassId)
+        ) to mapOf(1 to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))),*/
+        ConstructorId(
+            classId = stringClassId,
+            parameters = listOf(stringClassId)
+        ) to mapOf(1 to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))),
+        ConstructorId(
+            classId = stringClassId,
+            parameters = listOf(charArrayClassId)
+        ) to mapOf(1 to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))),
+        MethodId(
+            classId = systemCLassId,
+            name = "arraycopy",
+            returnType = voidClassId,
+            parameters = listOf(objectClassId, intClassId, objectClassId, intClassId, intClassId)
+        ) to mapOf(1 to (3 to setOf(SQL_INJECTION_FLAG))),
+        // TODO we need to process only array of strings here, and mark as tainted if that array contains tainted element
+        /*MethodId(
+            classId = arraysCLassId,
+            name = "toString",
+            returnType = stringClassId,
+            parameters = listOf(objectArrayClassId)
+        ) to mapOf(?? to (RETURN_VALUE_INDEX to setOf(SQL_INJECTION_FLAG))), */
         MethodId(
             classId = ClassId("org.utbot.examples.taint.TaintPassThrough"),
             name = "passThroughTaintInformation",

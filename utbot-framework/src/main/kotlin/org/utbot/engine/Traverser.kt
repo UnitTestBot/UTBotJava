@@ -3370,7 +3370,7 @@ class Traverser(
         methodResult: MethodResult,
         base: Value?,
         args: List<Value>,
-        flagsSource: Map<MethodId, ParamIndexToTaintFlags>,
+        flagsSource: Map<ExecutableId, ParamIndexToTaintFlags>,
         aggregationOperation: (UtAddrExpression, Set<String>) -> SymbolicStateUpdate
     ): SymbolicStateUpdate {
         val flags = flagsSource[methodId] ?: return SymbolicStateUpdate()

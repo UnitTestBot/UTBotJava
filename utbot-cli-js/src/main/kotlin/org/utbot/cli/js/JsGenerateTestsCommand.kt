@@ -25,20 +25,20 @@ private val logger = KotlinLogging.logger {}
 
 
 class JsGenerateTestsCommand :
-    CliktCommand(name = "generate_js", help = "Generates tests for the specified class or toplevel functions") {
+    CliktCommand(name = "generate_js", help = "Generates tests for the specified class or toplevel functions.") {
 
     private val sourceCodeFile by option(
         "-s", "--source",
-        help = "Specifies source code file for a generated test"
+        help = "Specifies source code file for a generated test."
     )
         .required()
         .check("Must exist and ends with .js suffix") {
             it.endsWith(".js") && Files.exists(Paths.get(it))
         }
 
-    private val targetClass by option("-c", "--class", help = "Specifies target class to generate tests for")
+    private val targetClass by option("-c", "--class", help = "Specifies target class to generate tests for.")
 
-    private val output by option("-o", "--output", help = "Specifies output file for generated tests")
+    private val output by option("-o", "--output", help = "Specifies output file for generated tests.")
         .check("Must end with .js suffix") {
             it.endsWith(".js")
         }
@@ -46,19 +46,19 @@ class JsGenerateTestsCommand :
     private val printToStdOut by option(
         "-p",
         "--print-test",
-        help = "Specifies whether test should be printed out to StdOut"
+        help = "Specifies whether test should be printed out to StdOut."
     )
         .flag(default = false)
 
     private val timeout by option(
         "-t",
         "--timeout",
-        help = "Timeout for Node.js to run scripts in seconds"
+        help = "Timeout for Node.js to run scripts in seconds."
     ).default("$defaultTimeout")
 
     private val coverageMode by option(
         "--coverage-mode",
-        help = "Specifies the coverage mode for test generation. Check docs for more info"
+        help = "Specifies the coverage mode for test generation. Check docs for more info."
     ).choice(
         CoverageMode.BASIC.toString() to CoverageMode.BASIC,
         CoverageMode.FAST.toString() to CoverageMode.FAST
@@ -66,13 +66,13 @@ class JsGenerateTestsCommand :
 
     private val pathToNode by option(
         "--path-to-node",
-        help = "Sets path to Node.js executable, defaults to \"node\" shortcut"
+        help = "Sets path to Node.js executable, defaults to \"node\" shortcut."
     ).default("node")
 
     private val pathToNYC by option(
         "--path-to-nyc",
         help = "Sets path to nyc executable, defaults to \"nyc\" shortcut. " +
-                "As there are many nyc files in the global npm directory, choose one without file extension"
+                "As there are many nyc files in the global npm directory, choose one without file extension."
     ).default("nyc")
 
     private val pathToNPM by option(

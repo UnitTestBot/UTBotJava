@@ -1,5 +1,8 @@
 package org.utbot.engine
 
+import soot.Local
+import soot.Modifier
+import soot.RefType
 import soot.SootClass
 import soot.SootMethod
 import soot.Type
@@ -17,12 +20,19 @@ import soot.jimple.InvokeStmt
 import soot.jimple.Jimple
 import soot.jimple.JimpleBody
 import soot.jimple.NewArrayExpr
+import soot.jimple.NewExpr
 import soot.jimple.ParameterRef
 import soot.jimple.ReturnStmt
 import soot.jimple.ReturnVoidStmt
+import soot.jimple.SpecialInvokeExpr
 import soot.jimple.StaticInvokeExpr
+import soot.jimple.VirtualInvokeExpr
 
 fun SootMethod.toStaticInvokeExpr(): StaticInvokeExpr = Jimple.v().newStaticInvokeExpr(this.makeRef())
+
+fun SootMethod.toVirtualInvokeExpr(local: Local, vararg values: Value): VirtualInvokeExpr = Jimple.v().newVirtualInvokeExpr(local, this.makeRef(), *values)
+
+fun SootMethod.toSpecialInvokeExpr(local: Local, vararg values: Value): SpecialInvokeExpr = Jimple.v().newSpecialInvokeExpr(local, this.makeRef(), *values)
 
 fun InvokeExpr.toInvokeStmt(): InvokeStmt = Jimple.v().newInvokeStmt(this)
 
@@ -33,6 +43,8 @@ fun returnStatement(value: Value): ReturnStmt = Jimple.v().newReturnStmt(value)
 fun parameterRef(type: Type, number: Int): ParameterRef = Jimple.v().newParameterRef(type, number)
 
 fun identityStmt(local: Value, identityRef: Value): IdentityStmt = Jimple.v().newIdentityStmt(local, identityRef)
+
+fun newNewExpr(type: RefType): NewExpr = Jimple.v().newNewExpr(type)
 
 fun newArrayExpr(type: Type, size: Value): NewArrayExpr = Jimple.v().newNewArrayExpr(type, size)
 
@@ -60,11 +72,10 @@ fun createSootMethod(
     argsTypes: List<Type>,
     returnType: Type,
     declaringClass: SootClass,
-    graphBody: JimpleBody
-) = SootMethod(name, argsTypes, returnType)
+    graphBody: JimpleBody,
+    isStatic: Boolean = true
+) = SootMethod(name, argsTypes, returnType, (if (isStatic) Modifier.STATIC else 0))
     .also {
-        it.declaringClass = declaringClass
         declaringClass.addMethod(it)
-        graphBody.method = it
         it.activeBody = graphBody
     }

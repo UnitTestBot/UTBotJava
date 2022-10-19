@@ -450,7 +450,7 @@ public class UtStringBuffer implements Appendable, Serializable, CharSequence {
     }
 
     public StringBuffer insert(int offset, boolean b) {
-        return insert(offset, String.valueOf(b));
+        return insert(offset, Boolean.toString(b));
     }
 
     public StringBuffer insert(int offset, char c) {
@@ -463,19 +463,19 @@ public class UtStringBuffer implements Appendable, Serializable, CharSequence {
     }
 
     public StringBuffer insert(int offset, int i) {
-        return insert(offset, String.valueOf(i));
+        return insert(offset, Integer.toString(i));
     }
 
     public StringBuffer insert(int offset, long l) {
-        return insert(offset, String.valueOf(l));
+        return insert(offset, Long.toString(l));
     }
 
     public StringBuffer insert(int offset, float f) {
-        return insert(offset, String.valueOf(f));
+        return insert(offset, Float.toString(f));
     }
 
     public StringBuffer insert(int offset, double d) {
-        return insert(offset, String.valueOf(d));
+        return insert(offset, Double.toString(d));
     }
 
     public int indexOf(String str) {

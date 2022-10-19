@@ -4,10 +4,13 @@ import soot.ArrayType
 import soot.IntType
 import soot.PrimType
 import soot.RefType
+import soot.Scene
+import soot.SootClass
 import soot.SootMethod
 import soot.Type
 import soot.Unit
 import soot.VoidType
+import soot.jimple.StringConstant
 import soot.jimple.internal.JArrayRef
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JNewMultiArrayExpr
@@ -169,4 +172,122 @@ fun unfoldMultiArrayExpr(assignStmt: JAssignStmt): ExceptionalUnitGraph {
     createSootMethod(methodName, jimpleLocalsForSizes.map { it.type }, multiArray.type, sootClass, graphBody)
 
     return ExceptionalUnitGraph(graphBody)
+}
+
+
+fun makeSootConcat(declaringClass: SootClass, recipe: String, paramTypes: List<Type>, constants: List<String>): SootMethod {
+    val paramsHashcode = paramTypes.hashCode()
+    val constantsHashcode = constants.hashCode()
+    val name = "utbot\$concatenateStringWithRecipe<$recipe>AndParams<$paramsHashcode>AndConstants<$constantsHashcode>"
+
+
+    // check if it is already defined
+    val cachedMethod = declaringClass.getMethodByNameUnsafe(name)
+    if (cachedMethod != null) {
+        return cachedMethod
+    }
+
+    var objectCounter = 0
+
+    val units = mutableListOf<Unit>()
+    val locals = mutableSetOf<JimpleLocal>()
+
+
+    // initialize parameter locals
+    val parameterLocals = paramTypes.map {
+        JimpleLocal("r${objectCounter++}", it)
+    }
+    locals += parameterLocals
+
+
+    val parameterRefs = paramTypes.mapIndexed { idx, type  -> parameterRef(type, idx) }
+    val identityStmts = parameterLocals.zip(parameterRefs) { local, ref -> identityStmt(local, ref) }
+    units += identityStmts
+
+
+    // initialize string builder
+    val sbSootClass = Scene.v().getSootClass("java.lang.StringBuilder")
+
+
+    val sb = JimpleLocal("\$r${objectCounter++}", sbSootClass.type)
+    locals += sb
+
+    val newSbExpr = newNewExpr(sbSootClass.type)
+    units += assignStmt(sb, newSbExpr)
+    val initSootMethod = sbSootClass.getMethod("<init>", emptyList())
+    val initSbExpr = initSootMethod.toSpecialInvokeExpr(sb)
+    units += initSbExpr.toInvokeStmt()
+
+
+    var paramPointer = 0 // pointer to dynamic parameter
+    var constantPointer = 0 // pointer to constant list
+    var delayedString = "" // string which is build of sequent values from [constants]
+
+    // helper function for appending constants to delayedString
+    fun appendDelayedStringIfNotEmpty() {
+        if (delayedString.isEmpty()) {
+            return
+        }
+
+        val type = STRING_TYPE
+
+        val appendSootMethod = sbSootClass.getMethod("append", listOf(type), sbSootClass.type)
+
+        val invokeStringBuilderAppendStmt = appendSootMethod.toVirtualInvokeExpr(sb, StringConstant.v(delayedString))
+        units += invokeStringBuilderAppendStmt.toInvokeStmt()
+
+        delayedString = ""
+    }
+
+    // recipe parsing and building the result string
+    for (c in recipe) {
+        when (c) {
+            '\u0001' -> {
+                appendDelayedStringIfNotEmpty()
+
+                val local = parameterLocals[paramPointer++]
+                val type = local.type
+
+                val appendSootMethod = sbSootClass.getMethodUnsafe("append", listOf(type), sbSootClass.type)
+                    ?: sbSootClass.getMethod("append", listOf(OBJECT_TYPE), sbSootClass.type)
+
+                val invokeStringBuilderAppendStmt = appendSootMethod.toVirtualInvokeExpr(sb, local)
+                units += invokeStringBuilderAppendStmt.toInvokeStmt()
+            }
+            '\u0002' -> {
+                appendDelayedStringIfNotEmpty()
+
+                val const = constants[constantPointer++]
+                val type = STRING_TYPE
+
+                val appendSootMethod = sbSootClass.getMethod("append", listOf(type), sbSootClass.type)
+
+                val stringBuilderAppendExpr = appendSootMethod.toVirtualInvokeExpr(sb, StringConstant.v(const))
+                units += stringBuilderAppendExpr.toInvokeStmt()
+            }
+            else -> {
+                delayedString += c
+            }
+        }
+    }
+    appendDelayedStringIfNotEmpty()
+
+    // receiving result
+    val toStringSootMethod = sbSootClass.getMethodByName("toString")
+
+    val result = JimpleLocal("\$r${objectCounter++}", STRING_TYPE)
+    locals += result
+
+    val stringBuilderToStringExpr = toStringSootMethod.toVirtualInvokeExpr(sb)
+    val assignStmt = assignStmt(result, stringBuilderToStringExpr)
+    units += assignStmt
+
+    val returnStmt = returnStatement(result)
+    units += returnStmt
+
+
+    val body = units.toGraphBody()
+    body.locals.addAll(locals)
+
+    return createSootMethod(name, paramTypes, STRING_TYPE, declaringClass, body)
 }

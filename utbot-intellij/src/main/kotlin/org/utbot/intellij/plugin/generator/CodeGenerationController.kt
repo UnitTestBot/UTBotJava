@@ -160,7 +160,7 @@ object CodeGenerationController {
                                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 1.0)
 
                                 invokeLater {
-                                    runInspectionsIfNeeded(model.project, srcClassPathToSarifReport)
+                                    runInspectionsIfNeeded(model, srcClassPathToSarifReport)
                                 }
                             }
                         }
@@ -174,9 +174,12 @@ object CodeGenerationController {
      * Runs the UTBot inspection if there are detected errors.
      */
     private fun runInspectionsIfNeeded(
-        project: Project,
+        model: GenerateTestsModel,
         srcClassPathToSarifReport: MutableMap<Path, Sarif>
     ) {
+        if (!model.runInspectionAfterTestGeneration) {
+            return
+        }
         val sarifHasResults = srcClassPathToSarifReport.any { (_, sarif) ->
             sarif.getAllResults().isNotEmpty()
         }
@@ -184,9 +187,9 @@ object CodeGenerationController {
             return
         }
         UnitTestBotInspectionManager
-            .getInstance(project, srcClassPathToSarifReport)
+            .getInstance(model.project, srcClassPathToSarifReport)
             .createNewGlobalContext()
-            .doInspections(AnalysisScope(project))
+            .doInspections(AnalysisScope(model.project))
     }
 
     private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) {

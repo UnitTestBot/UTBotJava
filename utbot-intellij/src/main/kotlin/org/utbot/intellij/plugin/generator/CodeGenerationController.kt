@@ -8,6 +8,7 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
@@ -157,7 +158,10 @@ object CodeGenerationController {
                                 }
                                 proc.forceTermination()
                                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 1.0)
-                                runInspectionsIfNeeded(model.project, srcClassPathToSarifReport)
+
+                                invokeLater {
+                                    runInspectionsIfNeeded(model.project, srcClassPathToSarifReport)
+                                }
                             }
                         }
                     }
@@ -686,6 +690,7 @@ object CodeGenerationController {
                             // uploading formatted code
                             val file = filePointer.containingFile
 
+                            val srcClassPath = srcClass.containingFile.virtualFile.toNioPath()
                             val sarifReport = saveSarifReport(
                                 proc,
                                 testSetsId,
@@ -694,10 +699,10 @@ object CodeGenerationController {
                                 model,
                                 reportsCountDown,
                                 file?.text ?: generatedTestsCode,
+                                srcClassPathToSarifReport,
+                                srcClassPath,
                                 indicator
                             )
-                            val srcClassPath = srcClass.containingFile.virtualFile.toNioPath()
-                            srcClassPathToSarifReport[srcClassPath] = sarifReport
 
                             unblockDocument(testClassUpdated.project, editor.document)
                         }
@@ -734,13 +739,26 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
         generatedTestsCode: String,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>,
+        srcClassPath: Path,
         indicator: ProgressIndicator
-    ): Sarif {
+    ) {
         val project = model.project
 
-        return try {
+        try {
             // saving sarif report
-            SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, testClass, reportsCountDown, indicator)
+            SarifReportIdea.createAndSave(
+                proc,
+                testSetsId,
+                testClassId,
+                model,
+                generatedTestsCode,
+                testClass,
+                reportsCountDown,
+                srcClassPathToSarifReport,
+                srcClassPath,
+                indicator
+            )
         } catch (e: Exception) {
             logger.error(e) { "error in saving sarif report"}
             showErrorDialogLater(
@@ -748,7 +766,6 @@ object CodeGenerationController {
                 message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",
                 title = "Failed to save Sarif report"
             )
-            Sarif.empty()
         }
     }
 

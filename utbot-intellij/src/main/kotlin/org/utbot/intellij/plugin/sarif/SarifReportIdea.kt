@@ -31,8 +31,10 @@ object SarifReportIdea {
         generatedTestsCode: String,
         psiClass: PsiClass,
         reportsCountDown: CountDownLatch,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>,
+        srcClassPath: Path,
         indicator: ProgressIndicator
-    ): Sarif {
+    ) {
         UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generate SARIF report for ${classId.name}", .5)
         // building the path to the report file
         val classFqn = classId.name
@@ -41,18 +43,17 @@ object SarifReportIdea {
         }
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
-        var resultSarifReport = Sarif.empty()
         IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator) {
             try {
                 val sarifReportAsJson = proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
-                resultSarifReport = Sarif.fromJson(sarifReportAsJson)
+                val sarifReport = Sarif.fromJson(sarifReportAsJson)
+                srcClassPathToSarifReport[srcClassPath] = sarifReport
             } catch (e: Exception) {
                 logger.error { e }
             } finally {
                 reportsCountDown.countDown()
             }
         }
-        return resultSarifReport
     }
 }
 

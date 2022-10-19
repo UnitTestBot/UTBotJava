@@ -155,9 +155,9 @@ object CodeGenerationController {
                                     UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 0.95)
                                     RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                                 }
-                                runInspectionsIfNeeded(model.project, srcClassPathToSarifReport) // TODO
                                 proc.forceTermination()
                                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 1.0)
+                                runInspectionsIfNeeded(model.project, srcClassPathToSarifReport)
                             }
                         }
                     }

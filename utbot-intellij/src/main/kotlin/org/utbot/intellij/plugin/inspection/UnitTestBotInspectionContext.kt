@@ -37,7 +37,7 @@ class UnitTestBotInspectionContext(
      */
     override fun getCurrentProfile(): InspectionProfileImpl {
         val supplier = InspectionToolsSupplier.Simple(listOf(globalInspectionToolWrapper))
-        return InspectionProfileImpl("UnitTestBotProfile", supplier, BASE_PROFILE)
+        return InspectionProfileImpl("UnitTestBot", supplier, BASE_PROFILE)
     }
 
     override fun close(noSuspiciousCodeFound: Boolean) {

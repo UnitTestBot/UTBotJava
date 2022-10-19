@@ -41,16 +41,18 @@ object SarifReportIdea {
         }
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
+        var resultSarifReport = Sarif.empty()
         IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator) {
             try {
                 val sarifReportAsJson = proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
-                return Sarif.fromJson(sarifReportAsJson)
+                resultSarifReport = Sarif.fromJson(sarifReportAsJson)
             } catch (e: Exception) {
                 logger.error { e }
             } finally {
                 reportsCountDown.countDown()
             }
         }
+        return resultSarifReport
     }
 }
 

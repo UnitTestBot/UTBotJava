@@ -111,9 +111,8 @@ class FastCoverageService(
 
     private fun removeTempFiles() {
         FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
-        FileUtils.deleteDirectory(File("$utbotDirPath/cache"))
-        File("$utbotDirPath${tempFileName}Base.js").delete()
-        File("$utbotDirPath${tempFileName}Base.json").delete()
+        File("$utbotDirPath/${tempFileName}Base.js").delete()
+        File("$utbotDirPath/${tempFileName}Base.json").delete()
         for (index in testCaseIndices) {
             File("$utbotDirPath/$tempFileName$index.json").delete()
         }

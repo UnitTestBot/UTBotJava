@@ -83,12 +83,13 @@ class JsGenerateTestsCommand :
     override fun run() {
         val started = LocalDateTime.now()
         try {
-            logger.info { "Generating test for [$sourceCodeFile] - started" }
+            val sourceFileAbsolutePath = makeAbsolutePath(sourceCodeFile)
+            logger.info { "Generating tests for [$sourceFileAbsolutePath] - started" }
             val fileText = File(sourceCodeFile).readText()
             val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
             val testGenerator = JsTestGenerator(
                 fileText = fileText,
-                sourceFilePath = makeAbsolutePath(sourceCodeFile),
+                sourceFilePath = sourceFileAbsolutePath,
                 parentClassName = targetClass,
                 outputFilePath = outputAbsolutePath,
                 exportsManager = ::manageExports,
@@ -107,7 +108,6 @@ class JsGenerateTestsCommand :
                 logger.info { "\n$testCode" }
             }
             outputAbsolutePath?.let { filePath ->
-                logger.info { filePath }
                 val outputFile = File(filePath)
                 outputFile.createNewFile()
                 outputFile.writeText(testCode)
@@ -130,16 +130,16 @@ class JsGenerateTestsCommand :
             fileText.contains(exportSection) -> {}
 
             fileText.contains(startComment) && !fileText.contains(exportSection) -> {
-                val regex = Regex("\n$startComment\n(.|\n)*\n$endComment")
+                val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                 regex.find(fileText)?.groups?.get(1)?.value?.let {existingSection ->
-                    val existingExports = existingSection.split("\n")
-                    val exportRegex = Regex("exports.(.*) =")
+                    val exportRegex = Regex("exports[.](.*) =")
+                    val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
                     val existingExportsSet = existingExports.map { rawLine ->
                         exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
                     }.toSet()
                     val resultSet = existingExportsSet + exports.toSet()
                     val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                    val swappedText = fileText.replace(existingSection, resSection)
+                    val swappedText = fileText.replace(existingSection, "\n$resSection\n")
                     file.writeText(swappedText)
                 }
             }

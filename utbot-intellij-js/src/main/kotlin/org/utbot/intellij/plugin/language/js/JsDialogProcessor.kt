@@ -160,16 +160,16 @@ object JsDialogProcessor {
                     fileText.contains(exportSection) -> {}
 
                     fileText.contains(startComment) && !fileText.contains(exportSection) -> {
-                        val regex = Regex("\n$startComment\n(.|\n)*\n$endComment")
+                        val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                         regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                            val existingExports = existingSection.split("\n")
-                            val exportRegex = Regex("exports.(.*) =")
+                            val exportRegex = Regex("exports[.](.*) =")
+                            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
                             val existingExportsSet = existingExports.map { rawLine ->
                                 exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
                             }.toSet()
                             val resultSet = existingExportsSet + exports.toSet()
                             val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                            val swappedText = fileText.replace(existingSection, resSection)
+                            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
                             runWriteAction {
                                 with(editor.document) {
                                     unblockDocument(project, this)

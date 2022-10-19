@@ -96,4 +96,6 @@ dependencies {
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
     testApi(project(":utbot-framework"))
+
+    implementation(project(":utbot-android-studio"))
 }

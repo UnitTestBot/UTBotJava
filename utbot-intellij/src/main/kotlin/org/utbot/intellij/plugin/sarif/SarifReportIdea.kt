@@ -12,6 +12,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.process.EngineProcess
+import org.utbot.sarif.Sarif
+import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import java.nio.file.Path
 
@@ -29,17 +31,23 @@ object SarifReportIdea {
         generatedTestsCode: String,
         psiClass: PsiClass,
         reportsCountDown: CountDownLatch,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>,
+        srcClassPath: Path,
         indicator: ProgressIndicator
     ) {
         UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generate SARIF report for ${classId.name}", .5)
         // building the path to the report file
         val classFqn = classId.name
-        val (sarifReportsPath, sourceFinding) = WriteAction.computeAndWait<Pair<Path, SourceFindingStrategyIdea>, Exception> { model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot) to SourceFindingStrategyIdea(psiClass) }
+        val (sarifReportsPath, sourceFinding) = WriteAction.computeAndWait<Pair<Path, SourceFindingStrategyIdea>, Exception> {
+            model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot) to SourceFindingStrategyIdea(psiClass)
+        }
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
         IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator) {
             try {
-                proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
+                val sarifReportAsJson = proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
+                val sarifReport = Sarif.fromJson(sarifReportAsJson)
+                srcClassPathToSarifReport[srcClassPath] = sarifReport
             } catch (e: Exception) {
                 logger.error { e }
             } finally {

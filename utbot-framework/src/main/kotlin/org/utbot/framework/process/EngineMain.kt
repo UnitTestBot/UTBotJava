@@ -176,13 +176,13 @@ private fun EngineProcessModel.setup(
     synchronizer.measureExecutionForTermination(writeSarifReport) { params ->
         val reportFilePath = Paths.get(params.reportFilePath)
         reportFilePath.parent.toFile().mkdirs()
-        reportFilePath.toFile().writeText(
-            SarifReport(
-                testSets[params.testSetsId]!!,
-                params.generatedTestsCode,
-                RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
-            ).createReport().toJson()
-        )
+        val sarifReport = SarifReport(
+            testSets[params.testSetsId]!!,
+            params.generatedTestsCode,
+            RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+        ).createReport().toJson()
+        reportFilePath.toFile().writeText(sarifReport)
+        sarifReport
     }
     synchronizer.measureExecutionForTermination(generateTestReport) { params ->
         val eventLogMessage = params.eventLogMessage

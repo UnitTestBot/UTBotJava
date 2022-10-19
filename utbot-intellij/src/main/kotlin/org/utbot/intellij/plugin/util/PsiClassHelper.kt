@@ -9,6 +9,7 @@ import com.intellij.testIntegration.TestIntegrationUtils
 import org.jetbrains.kotlin.asJava.elements.KtLightMethod
 import org.jetbrains.kotlin.asJava.elements.isGetter
 import org.jetbrains.kotlin.asJava.elements.isSetter
+import org.jetbrains.kotlin.psi.KtClass
 import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
 
@@ -22,8 +23,15 @@ private val PsiMember.isKotlinGetterOrSetter: Boolean
         return isGetter || isSetter
     }
 
-private fun Iterable<MemberInfo>.filterTestableMethods(): List<MemberInfo> = this
-    .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { it.member !is SyntheticElement }
+// By now, we think that method in Kotlin is synthetic iff navigation to its declaration leads to its declaring class
+// rather than the method itself (because synthetic methods don't have bodies that we can navigate to)
+private val PsiMember.isSyntheticKotlinMethod: Boolean
+    get() = this is KtLightMethod && navigationElement is KtClass
+
+fun Iterable<MemberInfo>.filterTestableMethods(): List<MemberInfo> = this
+    .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
+        it.member !is SyntheticElement && !it.member.isSyntheticKotlinMethod
+    }
     .filterNot { it.member.isAbstract }
     .filterNot { it.member.isKotlinGetterOrSetter }
 

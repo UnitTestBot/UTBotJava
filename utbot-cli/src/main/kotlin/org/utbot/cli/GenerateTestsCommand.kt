@@ -50,8 +50,8 @@ class GenerateTestsCommand :
         help = "Specifies source code file for a generated test"
     )
         .required()
-        .check("Must exist and ends with *.java suffix") {
-            it.endsWith(".java") && Files.exists(Paths.get(it))
+        .check("Must exist and end with .java or .kt suffix") {
+            (it.endsWith(".java") || it.endsWith(".kt")) && Files.exists(Paths.get(it))
         }
 
     private val projectRoot by option(

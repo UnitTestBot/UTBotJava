@@ -64,7 +64,6 @@ import org.utbot.engine.pc.mkEq
 import org.utbot.engine.pc.mkFalse
 import org.utbot.engine.pc.mkFpConst
 import org.utbot.engine.pc.mkInt
-import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
@@ -3335,8 +3334,15 @@ class Traverser(
             else -> "$parameterIndex parameter"
         }
 
+        // -1 is returned in case unavailable source position
+        val sinkSourcePosition = environment.state.stmt.javaSourceStartLineNumber.takeIf { it != -1 }
+
         implicitlyThrowException(
-            TaintAnalysisError("Tainted data was passed as $parameterString into `${methodId.name}` method", methodId),
+            TaintAnalysisError(
+                "Tainted data was passed as $parameterString into `${methodId.name}` method",
+                methodId,
+                sinkSourcePosition
+            ),
             setOf(condition, notNullCondition)
         )
         // Note that we do not add negation of the condition leading to an exception.

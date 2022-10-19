@@ -134,9 +134,12 @@ class TaintAnalysis {
 /**
  * An artificial error that could be implicitly thrown by the symbolic engine during taint sink processing.
  *
+ * The [sinkSourcePosition] is a position of the [taintSink] from the source ode received from Soot.
+ * Since the source code is not always available, [sinkSourcePosition] could be null.
+ *
  * NOTE: should be inherited from [Error] to not be caught with `catch (e: Exception)`.
  */
-class TaintAnalysisError(message: String, val taintSink: ExecutableId) : Error(message)
+class TaintAnalysisError(message: String, val taintSink: ExecutableId, val sinkSourcePosition: Int? = null) : Error(message)
 
 typealias ParamIndexToTaintFlags = Map<Int, Set<String>>
 private typealias SourceIndex = Int

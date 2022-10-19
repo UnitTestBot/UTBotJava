@@ -11,5 +11,10 @@ val taintErrorClassId: ClassId = VerifyError::class.id
 
 fun constructAssertionMessage(taintAnalysisError: TaintAnalysisError): String =
     with(taintAnalysisError) {
-        "$message, sink: \"$taintSink\""
+        buildString {
+            append("$message, taint sink: \"$taintSink\"")
+            sinkSourcePosition?.let {
+                append(", taint sink source line: $it")
+            }
+        }
     }

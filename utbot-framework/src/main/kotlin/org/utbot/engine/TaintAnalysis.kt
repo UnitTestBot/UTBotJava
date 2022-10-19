@@ -94,7 +94,10 @@ class TaintAnalysis {
             name = "append",
             returnType = stringBuilderClassId,
             parameters = listOf(stringClassId)
-        ) to mapOf(THIS_PARAM_INDEX to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))),
+        ) to mapOf(
+            THIS_PARAM_INDEX to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG)),
+            1 to (THIS_PARAM_INDEX to setOf(SQL_INJECTION_FLAG))
+        ),
         MethodId(
             classId = stringBuilderClassId,
             name = "toString",

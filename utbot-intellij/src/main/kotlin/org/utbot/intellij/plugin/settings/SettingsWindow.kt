@@ -35,6 +35,7 @@ class SettingsWindow(val project: Project) {
 
     // TODO it is better to use something like SearchEverywhere for classes but it is complicated to implement
     private val excludeTable = MockAlwaysClassesTable(project)
+    private lateinit var runInspectionAfterTestGenerationCheckBox: JCheckBox
     private lateinit var forceMockCheckBox: JCheckBox
     private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
 
@@ -97,6 +98,23 @@ class SettingsWindow(val project: Project) {
             JavaDocCommentStyle::class to JavaDocCommentStyle.values()
         ).forEach { (loader, values) ->
             valuesComboBox(loader, values)
+        }
+
+        row {
+            cell {
+                runInspectionAfterTestGenerationCheckBox = checkBox("Display detected errors on the Problems tool window")
+                    .onApply {
+                        settings.state.runInspectionAfterTestGeneration = runInspectionAfterTestGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        runInspectionAfterTestGenerationCheckBox.isSelected = settings.state.runInspectionAfterTestGeneration
+                    }
+                    .onIsModified {
+                        runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
+                    }
+                    // .apply { ContextHelpLabel.create("Automatically run code inspection after test generation")() }
+                    .component
+            }
         }
 
         row {

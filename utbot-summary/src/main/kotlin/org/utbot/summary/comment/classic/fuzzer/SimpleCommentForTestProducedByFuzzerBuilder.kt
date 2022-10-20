@@ -12,7 +12,6 @@ import org.utbot.summary.comment.customtags.fuzzer.CommentWithCustomTagForTestPr
 import org.utbot.summary.comment.customtags.getClassReference
 import org.utbot.summary.comment.customtags.getMethodReferenceForFuzzingTest
 
-// TODO: https://github.com/UnitTestBot/UTBotJava/issues/1127
 class SimpleCommentForTestProducedByFuzzerBuilder(
     val methodDescription: FuzzedMethodDescription,
     val values: List<FuzzedValue>,

@@ -1,25 +1,21 @@
-compileKotlin {
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11
         freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
     }
 }
 
-java {
+tasks.withType(JavaCompile) {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-
-//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
 dependencies {
-    implementation project(':utbot-framework-api')
     implementation project(':utbot-framework')
-    implementation project(':utbot-summary')
     implementation project(':utbot-cli')
     implementation project(':utbot-go')
 
@@ -61,11 +57,6 @@ classes {
 }
 
 jar {
-    dependsOn project(':utbot-framework').tasks.jar
-    dependsOn project(':utbot-summary').tasks.jar
-    dependsOn project(':utbot-go').tasks.jar
-    dependsOn project(':utbot-fuzzers').tasks.jar
-
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.go.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli.go'

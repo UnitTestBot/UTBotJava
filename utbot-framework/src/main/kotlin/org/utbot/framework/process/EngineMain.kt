@@ -23,8 +23,8 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
+import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.CallsSynchronizer
 import org.utbot.rd.ClientProtocolBuilder
@@ -33,13 +33,9 @@ import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
 import org.utbot.summary.summarize
-import soot.SootMethod
-import soot.UnitPatchingChain
-import soot.util.HashChain
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
-import java.util.*
 import kotlin.reflect.full.functions
 import kotlin.time.Duration.Companion.seconds
 
@@ -56,6 +52,7 @@ suspend fun main(args: Array<String>) = runBlocking {
     ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
         settingsModel
         rdSourceFindingStrategy
+        rdInstrumenterAdapter
 
         AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol))
         val kryoHelper = KryoHelper(lifetime)
@@ -82,6 +79,7 @@ private fun EngineProcessModel.setup(
     }
     synchronizer.measureExecutionForTermination(createTestGenerator) { params ->
         AnalyticsConfigureUtil.configureML()
+        Instrumenter.adapter = RdInstrumenter(realProtocol)
         testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
@@ -96,11 +94,11 @@ private fun EngineProcessModel.setup(
         val mockFrameworkInstalled = params.mockInstalled
         val conflictTriggers = ConflictTriggers(kryoHelper.readObject(params.conflictTriggers))
         if (!mockFrameworkInstalled) {
-            ForceMockListener.create(testGenerator, conflictTriggers)
+            ForceMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
         }
         val staticsMockingConfigured = params.staticsMockingIsConfigureda
         if (!staticsMockingConfigured) {
-            ForceStaticMockListener.create(testGenerator, conflictTriggers)
+            ForceStaticMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
         }
         val result = testGenerator.generate(kryoHelper.readObject(params.methods),
             MockStrategyApi.valueOf(params.mockStrategy),
@@ -112,7 +110,9 @@ private fun EngineProcessModel.setup(
                 isFuzzingEnabled = params.isFuzzingEnabled
                 fuzzingValue = params.fuzzingValue
             })
+            .apply { logger.info("generation ended, starting summarization, result size: ${this.size}") }
             .map { it.summarize(Paths.get(params.searchDirectory)) }
+            .apply { logger.info("summarization ended") }
             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 
         val id = ++idCounter
@@ -148,7 +148,7 @@ private fun EngineProcessModel.setup(
         codeGenerator.generateAsStringWithTestReport(testSets[testSetsId]!!)
             .let {
                 testGenerationReports.add(it.testsGenerationReport)
-                RenderResult(it.generatedCode, kryoHelper.writeObject(it.utilClassKind))
+                RenderResult(it.generatedCode, it.utilClassKind?.javaClass?.simpleName)
             }
     }
     synchronizer.measureExecutionForTermination(stopProcess) { synchronizer.stopProtocol() }
@@ -175,19 +175,21 @@ private fun EngineProcessModel.setup(
     }
     synchronizer.measureExecutionForTermination(writeSarifReport) { params ->
         val reportFilePath = Paths.get(params.reportFilePath)
-        reportFilePath.toFile().writeText(
-            SarifReport(
-                testSets[params.testSetsId]!!,
-                params.generatedTestsCode,
-                RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
-            ).createReport()
-        )
+        reportFilePath.parent.toFile().mkdirs()
+        val sarifReport = SarifReport(
+            testSets[params.testSetsId]!!,
+            params.generatedTestsCode,
+            RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+        ).createReport().toJson()
+        reportFilePath.toFile().writeText(sarifReport)
+        sarifReport
     }
     synchronizer.measureExecutionForTermination(generateTestReport) { params ->
         val eventLogMessage = params.eventLogMessage
         val testPackageName: String? = params.testPackageName
         var hasWarnings = false
         val reports = testGenerationReports
+        if (reports.isEmpty()) return@measureExecutionForTermination GenerateTestReportResult("No tests were generated", null, true)
         val isMultiPackage = params.isMultiPackage
         val (notifyMessage, statistics) = if (reports.size == 1) {
             val report = reports.first()
@@ -216,7 +218,7 @@ private fun EngineProcessModel.setup(
             processInitialWarnings(accumulatedReport, params)
 
             val message = buildString {
-                appendHtmlLine("${reports.sumBy { it.executables.size }} tests generated for ${reports.size} classes.")
+                appendHtmlLine("${reports.sumOf { it.countTestMethods() }} tests generated for ${reports.size} classes.")
 
                 if (accumulatedReport.initialWarnings.isNotEmpty()) {
                     accumulatedReport.initialWarnings.forEach { appendHtmlLine(it()) }

@@ -34,21 +34,6 @@ val featureIndex = listOf(
         UtBoolOpExpression::class.simpleName,
         UtIsExpression::class.simpleName,
         UtIteExpression::class.simpleName,
-        UtStringConst::class.simpleName,
-        UtConcatExpression::class.simpleName,
-        UtConvertToString::class.simpleName,
-        UtStringLength::class.simpleName,
-        UtStringPositiveLength::class.simpleName,
-        UtStringCharAt::class.simpleName,
-        UtStringEq::class.simpleName,
-        UtSubstringExpression::class.simpleName,
-        UtReplaceExpression::class.simpleName,
-        UtStartsWithExpression::class.simpleName,
-        UtEndsWithExpression::class.simpleName,
-        UtIndexOfExpression::class.simpleName,
-        UtContainsExpression::class.simpleName,
-        UtToStringExpression::class.simpleName,
-        UtSeqLiteral::class.simpleName,
         TREES,
         MAX_NODES,
         MIN_NODES,
@@ -216,59 +201,6 @@ class UtExpressionStructureCounter(private val input: Iterable<UtExpression>) : 
         )
     }
 
-    //const string value
-    override fun visit(expr: UtStringConst) = NestStat()
-
-    override fun visit(expr: UtConcatExpression) = multipleExpression(expr.parts)
-
-    override fun visit(expr: UtConvertToString): NestStat {
-        val stat = buildState(expr.expression)
-        stat.level++
-        stat.nodes++
-        return stat
-    }
-
-    override fun visit(expr: UtStringToInt): NestStat {
-        val stat = buildState(expr.expression)
-        stat.level++
-        stat.nodes++
-        return stat
-    }
-
-    override fun visit(expr: UtStringLength): NestStat {
-        val stat = buildState(expr.string)
-        stat.level++
-        stat.nodes++
-        return stat
-    }
-
-    override fun visit(expr: UtStringPositiveLength): NestStat {
-        val stat = buildState(expr.string)
-        stat.level++
-        stat.nodes++
-        return stat
-    }
-
-    override fun visit(expr: UtStringCharAt) = multipleExpressions(expr.string, expr.index)
-
-    override fun visit(expr: UtStringEq) = multipleExpressions(expr.left, expr.right)
-
-    override fun visit(expr: UtSubstringExpression) = multipleExpressions(expr.string, expr.beginIndex, expr.length)
-
-    override fun visit(expr: UtReplaceExpression) = multipleExpressions(expr.string, expr.regex, expr.replacement)
-
-    override fun visit(expr: UtStartsWithExpression) = multipleExpressions(expr.string, expr.prefix)
-
-    override fun visit(expr: UtEndsWithExpression) = multipleExpressions(expr.string, expr.suffix)
-
-    override fun visit(expr: UtIndexOfExpression) = multipleExpressions(expr.string, expr.substring)
-
-    override fun visit(expr: UtContainsExpression) = multipleExpressions(expr.string, expr.substring)
-
-    override fun visit(expr: UtToStringExpression) = multipleExpressions(expr.notNullExpr, expr.isNull)
-
-    override fun visit(expr: UtSeqLiteral) = NestStat()
-
     private fun multipleExpressions(vararg expressions: UtExpression) = multipleExpression(expressions.toList())
 
     private fun multipleExpression(expressions: List<UtExpression>): NestStat {
@@ -309,14 +241,6 @@ class UtExpressionStructureCounter(private val input: Iterable<UtExpression>) : 
     }
 
     override fun visit(expr: UtArrayApplyForAll): NestStat {
-        return NestStat()
-    }
-
-    override fun visit(expr: UtStringToArray): NestStat {
-        return NestStat()
-    }
-
-    override fun visit(expr: UtArrayToString): NestStat {
         return NestStat()
     }
 }

@@ -29,7 +29,6 @@ import org.utbot.engine.pc.mkFloat
 import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
-import org.utbot.engine.pc.mkString
 import org.utbot.engine.pc.toSort
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
@@ -297,8 +296,6 @@ val UtSort.defaultValue: UtExpression
         UtFp32Sort -> mkFloat(0f)
         UtFp64Sort -> mkDouble(0.0)
         UtBoolSort -> mkBool(false)
-        // empty string because we want to have a default value of the same sort as the items stored in the strings array
-        UtSeqSort -> mkString("")
         is UtArraySort -> if (itemSort is UtArraySort) nullObjectAddr else mkArrayWithConst(this, itemSort.defaultValue)
         else -> nullObjectAddr
     }

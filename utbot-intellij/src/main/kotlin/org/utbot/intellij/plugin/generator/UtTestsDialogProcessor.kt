@@ -19,7 +19,6 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.task.ProjectTaskManager
-import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
@@ -27,7 +26,6 @@ import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -49,10 +47,25 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
 import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
+import org.utbot.framework.plugin.api.util.LockFile
 
 object UtTestsDialogProcessor {
-
     private val logger = KotlinLogging.logger {}
+
+    enum class ProgressRange(val from : Double, val to: Double) {
+        SOLVING(from = 0.0, to = 0.7),
+        CODEGEN(from = 0.7, to = 0.9),
+        SARIF(from = 0.9, to = 1.0)
+    }
+
+    fun updateIndicator(indicator: ProgressIndicator, range : ProgressRange, text: String? = null, fraction: Double? = null) {
+        invokeLater {
+            text?.let { indicator.text = it }
+            fraction?.let { indicator.fraction = indicator.fraction.coerceAtLeast(range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0)) }
+            logger.debug("Phase ${indicator.text} with progress ${String.format("%.2f",indicator.fraction)}")
+        }
+    }
+
 
     fun createDialogAndGenerateTests(
         project: Project,
@@ -111,149 +124,149 @@ object UtTestsDialogProcessor {
             (object : Task.Backgroundable(project, "Generate tests") {
 
                 override fun run(indicator: ProgressIndicator) {
-                    val ldef = LifetimeDefinition()
-                    ldef.terminateOnException { lifetime ->
-                        val startTime = System.currentTimeMillis()
-                        val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
-                        val totalTimeout = model.timeout * model.srcClasses.size
+                    if (!LockFile.lock()) {
+                        return
+                    }
+                    try {
+                        val ldef = LifetimeDefinition()
+                        ldef.terminateOnException { lifetime ->
+                            val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
-                        indicator.isIndeterminate = false
-                        indicator.text = "Generate tests: read classes"
+                            indicator.isIndeterminate = false
+                            updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
 
-                        val timerHandler =
-                            AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
-                                indicator.fraction =
-                                    (System.currentTimeMillis() - startTime).toDouble() / totalTimeout
-                            }, 0, 500, TimeUnit.MILLISECONDS)
-
-                        val buildPaths = ReadAction
-                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
-                            .executeSynchronously()
-                            ?: return
-
-                        val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
-
-                        val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
-                        val psi2KClass = mutableMapOf<PsiClass, ClassId>()
-                        var processedClasses = 0
-                        val totalClasses = model.srcClasses.size
-
-                        val proc = EngineProcess(lifetime, project)
-
-                        proc.setupUtContext(buildDirs + classpathList)
-                        proc.createTestGenerator(
-                            buildDirs,
-                            classpath,
-                            pluginJarsPath.joinToString(separator = File.pathSeparator),
-                            JdkInfoService.provide()
-                        ) {
-                            ApplicationManager.getApplication().runReadAction(Computable {
-                                indicator.isCanceled
-                            })
-                        }
-
-                        for (srcClass in model.srcClasses) {
-                            val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
-                                val canonicalName = srcClass.canonicalName
-                                val classId = proc.obtainClassId(canonicalName)
-                                psi2KClass[srcClass] = classId
-
-                                val srcMethods = if (model.extractMembersFromSrcClasses) {
-                                    val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
-                                    val chosenNestedClasses =
-                                        model.selectedMembers.mapNotNull { it.member as? PsiClass }
-                                    chosenMethods + chosenNestedClasses.flatMap {
-                                        it.extractClassMethodsIncludingNested(false)
-                                    }
-                                } else {
-                                    srcClass.extractClassMethodsIncludingNested(false)
-                                }
-                                DumbService.getInstance(project).runReadActionInSmartMode(Computable {
-                                    proc.findMethodsInClassMatchingSelected(classId, srcMethods)
-                                }) to srcClass.name
-                            }.executeSynchronously()
-
-                            if (methods.isEmpty()) {
-                                logger.error { "No methods matching selected found in class $className." }
-                                continue
-                            }
-
-                            indicator.text = "Generate test cases for class $className"
-                            if (totalClasses > 1) {
-                                indicator.fraction =
-                                    indicator.fraction.coerceAtLeast(0.9 * processedClasses / totalClasses)
-                            }
-
-                            // set timeout for concrete execution and for generated tests
-                            UtSettings.concreteExecutionTimeoutInChildProcess =
-                                model.hangingTestsTimeout.timeoutMs
-
-                            UtSettings.useCustomJavaDocTags =
-                                model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-
-                            val searchDirectory = ReadAction
-                                .nonBlocking<Path> {
-                                    project.basePath?.let { Paths.get(it) }
-                                        ?: Paths.get(srcClass.containingFile.virtualFile.parent.path)
-                                }
+                            val buildPaths = ReadAction
+                                .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
                                 .executeSynchronously()
+                                ?: return
 
-                            withStaticsSubstitutionRequired(true) {
-                                val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
+                            val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
-                                val rdGenerateResult = proc.generate(
-                                    mockFrameworkInstalled,
-                                    model.staticsMocking.isConfigured,
-                                    model.conflictTriggers,
-                                    methods,
-                                    model.mockStrategy,
-                                    model.chosenClassesToMockAlways,
-                                    model.timeout,
-                                    model.timeout,
-                                    true,
-                                    UtSettings.useFuzzing,
-                                    project.service<Settings>().fuzzingValue,
-                                    searchDirectory.pathString
-                                )
+                            val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
+                            val psi2KClass = mutableMapOf<PsiClass, ClassId>()
+                            var processedClasses = 0
+                            val totalClasses = model.srcClasses.size
 
-                                if (rdGenerateResult.notEmptyCases == 0) {
-                                    if (model.srcClasses.size > 1) {
-                                        logger.error { "Failed to generate any tests cases for class $className" }
-                                    } else {
-                                        showErrorDialogLater(
-                                            model.project,
-                                            errorMessage(className, secondsTimeout),
-                                            title = "Failed to generate unit tests for class $className"
-                                        )
-                                    }
-                                } else {
-                                    testSetsByClass[srcClass] = rdGenerateResult
+                            val proc = EngineProcess(lifetime, project)
+
+                            proc.setupUtContext(buildDirs + classpathList)
+                            proc.createTestGenerator(
+                                buildDirs,
+                                classpath,
+                                pluginJarsPath.joinToString(separator = File.pathSeparator),
+                                JdkInfoService.provide()
+                            ) {
+                                ApplicationManager.getApplication().runReadAction(Computable {
+                                    indicator.isCanceled
+                                })
+                            }
+
+                            for (srcClass in model.srcClasses) {
+                                val (methods, className) = DumbService.getInstance(project)
+                                    .runReadActionInSmartMode(Computable {
+                                        val canonicalName = srcClass.canonicalName
+                                        val classId = proc.obtainClassId(canonicalName)
+                                        psi2KClass[srcClass] = classId
+
+                                        val srcMethods = if (model.extractMembersFromSrcClasses) {
+                                            val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
+                                            val chosenNestedClasses =
+                                                model.selectedMembers.mapNotNull { it.member as? PsiClass }
+                                            chosenMethods + chosenNestedClasses.flatMap {
+                                                it.extractClassMethodsIncludingNested(false)
+                                            }
+                                        } else {
+                                            srcClass.extractClassMethodsIncludingNested(false)
+                                        }
+                                        proc.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
+                                    })
+
+                                if (methods.isEmpty()) {
+                                    logger.error { "No methods matching selected found in class $className." }
+                                    continue
                                 }
 
-                                timerHandler.cancel(true)
-                            }
-                            processedClasses++
-                        }
+                                if (totalClasses > 1) {
+                                    updateIndicator(
+                                        indicator,
+                                        ProgressRange.SOLVING,
+                                        "Generate test cases for class $className",
+                                        processedClasses.toDouble() / totalClasses
+                                    )
+                                }
 
-                        if (processedClasses == 0) {
+                                // set timeout for concrete execution and for generated tests
+                                UtSettings.concreteExecutionTimeoutInChildProcess =
+                                    model.hangingTestsTimeout.timeoutMs
+
+                                UtSettings.useCustomJavaDocTags =
+                                    model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+
+                                UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+
+                                val searchDirectory = ReadAction
+                                    .nonBlocking<Path> {
+                                        project.basePath?.let { Paths.get(it) }
+                                            ?: Paths.get(srcClass.containingFile.virtualFile.parent.path)
+                                    }
+                                    .executeSynchronously()
+
+                                withStaticsSubstitutionRequired(true) {
+                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
+
+                                    val rdGenerateResult = proc.generate(
+                                        mockFrameworkInstalled,
+                                        model.staticsMocking.isConfigured,
+                                        model.conflictTriggers,
+                                        methods,
+                                        model.mockStrategy,
+                                        model.chosenClassesToMockAlways,
+                                        model.timeout,
+                                        model.timeout,
+                                        true,
+                                        UtSettings.useFuzzing,
+                                        project.service<Settings>().fuzzingValue,
+                                        searchDirectory.pathString
+                                    )
+
+                                    if (rdGenerateResult.notEmptyCases == 0) {
+                                        if (model.srcClasses.size > 1) {
+                                            logger.error { "Failed to generate any tests cases for class $className" }
+                                        } else {
+                                            showErrorDialogLater(
+                                                model.project,
+                                                errorMessage(className, secondsTimeout),
+                                                title = "Failed to generate unit tests for class $className"
+                                            )
+                                        }
+                                    } else {
+                                        testSetsByClass[srcClass] = rdGenerateResult
+                                    }
+                                }
+                                processedClasses++
+                            }
+
+                            if (processedClasses == 0) {
+                                invokeLater {
+                                    Messages.showInfoMessage(
+                                        model.project,
+                                        "No methods for test generation were found among selected items",
+                                        "No methods found"
+                                    )
+                                }
+                                return
+                            }
+                            updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code for tests", 0.0)
+                            // Commented out to generate tests for collected executions even if action was canceled.
+                            // indicator.checkCanceled()
+
                             invokeLater {
-                                Messages.showInfoMessage(
-                                    model.project,
-                                    "No methods for test generation were found among selected items",
-                                    "No methods found"
-                                )
+                                generateTests(model, testSetsByClass, psi2KClass, proc, indicator)
+                                logger.info { "Generation complete" }
                             }
-                            return
                         }
-
-                        indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
-                        indicator.text = "Generate code for tests"
-                        // Commented out to generate tests for collected executions even if action was canceled.
-                        // indicator.checkCanceled()
-
-                        invokeLater {
-                            generateTests(model, testSetsByClass, psi2KClass, proc)
-                        }
+                    } finally {
+                        LockFile.unlock()
                     }
                 }
             }).queue()

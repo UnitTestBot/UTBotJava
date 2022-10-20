@@ -49,13 +49,15 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
         @OptionTag(converter = HangingTestsTimeoutConverter::class)
         var hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
+        var runInspectionAfterTestGeneration: Boolean = false,
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
-        var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem
+        var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
+        var enableSummariesGeneration: Boolean = true
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,
@@ -65,12 +67,14 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             staticsMocking = model.staticsMocking,
             runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
             hangingTestsTimeout = model.hangingTestsTimeout,
+            runInspectionAfterTestGeneration = model.runInspectionAfterTestGeneration,
             forceStaticMocking = model.forceStaticMocking,
             parametrizedTestSource = model.parametrizedTestSource,
             classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
             fuzzingValue = model.fuzzingValue,
             runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
-            commentStyle = model.commentStyle
+            commentStyle = model.commentStyle,
+            enableSummariesGeneration = model.enableSummariesGeneration
         )
 
         override fun equals(other: Any?): Boolean {
@@ -86,12 +90,15 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (staticsMocking != other.staticsMocking) return false
             if (runtimeExceptionTestsBehaviour != other.runtimeExceptionTestsBehaviour) return false
             if (hangingTestsTimeout != other.hangingTestsTimeout) return false
+            if (runInspectionAfterTestGeneration != other.runInspectionAfterTestGeneration) return false
             if (forceStaticMocking != other.forceStaticMocking) return false
             if (treatOverflowAsError != other.treatOverflowAsError) return false
             if (parametrizedTestSource != other.parametrizedTestSource) return false
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
             if (fuzzingValue != other.fuzzingValue) return false
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
+            if (commentStyle != other.commentStyle) return false
+            if (enableSummariesGeneration != other.enableSummariesGeneration) return false
 
             return true
         }
@@ -103,12 +110,14 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + staticsMocking.hashCode()
             result = 31 * result + runtimeExceptionTestsBehaviour.hashCode()
             result = 31 * result + hangingTestsTimeout.hashCode()
+            result = 31 * result + runInspectionAfterTestGeneration.hashCode()
             result = 31 * result + forceStaticMocking.hashCode()
             result = 31 * result + treatOverflowAsError.hashCode()
             result = 31 * result + parametrizedTestSource.hashCode()
             result = 31 * result + classesToMockAlways.contentHashCode()
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
+            result = 31 * result + if (enableSummariesGeneration) 1 else 0
 
             return result
         }
@@ -132,6 +141,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     val staticsMocking: StaticsMocking get() = state.staticsMocking
 
+    val runInspectionAfterTestGeneration: Boolean get() = state.runInspectionAfterTestGeneration
+
     val forceStaticMocking: ForceStaticMocking get() = state.forceStaticMocking
 
     val treatOverflowAsError: TreatOverflowAsError get() = state.treatOverflowAsError
@@ -148,6 +159,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             state.fuzzingValue = value.coerceIn(0.0, 1.0)
         }
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
+
+    var enableSummariesGeneration = state.enableSummariesGeneration
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()

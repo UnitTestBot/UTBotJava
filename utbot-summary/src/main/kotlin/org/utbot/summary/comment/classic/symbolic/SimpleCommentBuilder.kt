@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.AbstractTextBuilder
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
+import org.utbot.summary.comment.customtags.getMethodReference
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag
 import org.utbot.summary.tag.StatementTag
@@ -354,45 +355,6 @@ open class SimpleCommentBuilder(
                     frequency
                 )
             )
-    }
-
-    /**
-     * Returns a reference to the invoked method. IDE can't resolve references to private methods in comments,
-     * so we add @link tag only if the invoked method is not private.
-     *
-     * It looks like {@link packageName.className#methodName(type1, type2)}.
-     *
-     * In case when an enclosing class in nested, we need to replace '$' with '.'
-     * to render the reference.
-     */
-    fun getMethodReference(
-        className: String,
-        methodName: String,
-        methodParameterTypes: List<Type>,
-        isPrivate: Boolean
-    ): String {
-        val prettyClassName: String = className.replace("$", ".")
-
-        val text = if (methodParameterTypes.isEmpty()) {
-            "$prettyClassName#$methodName()"
-        } else {
-            val methodParametersAsString = methodParameterTypes.joinToString(",")
-            "$prettyClassName#$methodName($methodParametersAsString)"
-        }
-
-        return if (isPrivate) {
-            text
-        } else {
-            "{@link $text}"
-        }
-    }
-
-    /**
-     * Returns a reference to the class.
-     * Replaces '$' with '.' in case a class is nested.
-     */
-    fun getClassReference(fullClasName: String): String {
-        return "{@link ${fullClasName.replace("$", ".")}}"
     }
 
     protected fun buildIterationsBlock(

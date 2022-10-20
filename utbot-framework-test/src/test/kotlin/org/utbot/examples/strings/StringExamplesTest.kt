@@ -20,23 +20,38 @@ import org.utbot.tests.infrastructure.CodeGeneration
 internal class StringExamplesTest : UtValueTestCaseChecker(
     testClass = StringExamples::class,
     testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
     @Test
-    @Disabled("Flaky test: https://github.com/UnitTestBot/UTBotJava/issues/131 (will be enabled in new strings PR)")
     fun testByteToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::byteToString,
-                eq(2),
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::byteToString,
+            eq(2),
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
+    }
+
+    @Test
+    fun testByteToStringWithConstants() {
+        val values: Array<Byte> = arrayOf(
+            Byte.MIN_VALUE,
+            (Byte.MIN_VALUE + 100).toByte(),
+            0.toByte(),
+            (Byte.MAX_VALUE - 100).toByte(),
+            Byte.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::byteToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
     }
 
     @Test
@@ -53,45 +68,91 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
 
     @Test
     fun testShortToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::shortToString,
-                eq(2),
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::shortToString,
+            ignoreExecutionsNumber,
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
+    @Test
+    fun testShortToStringWithConstants() {
+        val values: Array<Short> = arrayOf(
+            Short.MIN_VALUE,
+            (Short.MIN_VALUE + 100).toShort(),
+            0.toShort(),
+            (Short.MAX_VALUE - 100).toShort(),
+            Short.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::shortToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
 
     @Test
     fun testIntToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::intToString,
-                ignoreExecutionsNumber,
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::intToString,
+            ignoreExecutionsNumber,
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
+    @Test
+    fun testIntToStringWithConstants() {
+        val values: Array<Int> = arrayOf(
+            Integer.MIN_VALUE,
+            Integer.MIN_VALUE + 100,
+            0,
+            Integer.MAX_VALUE - 100,
+            Integer.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::intToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
 
     @Test
     fun testLongToString() {
-        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
-        withSolverTimeoutInMillis(5000) {
-            check(
-                StringExamples::longToString,
-                ignoreExecutionsNumber,
-                { a, b, r -> a > b && r == a.toString() },
-                { a, b, r -> a <= b && r == b.toString() },
-            )
-        }
+        check(
+            StringExamples::longToString,
+            ignoreExecutionsNumber,
+            { a, b, r -> a > b && r == a.toString() },
+            { a, b, r -> a <= b && r == b.toString() },
+        )
     }
 
+    @Test
+    fun testLongToStringWithConstants() {
+        val values: Array<Long> = arrayOf(
+            Long.MIN_VALUE,
+            Long.MIN_VALUE + 100L,
+            0L,
+            Long.MAX_VALUE - 100L,
+            Long.MAX_VALUE
+        )
+
+        val expected = values.map { it.toString() }
+
+        check(
+            StringExamples::longToStringWithConstants,
+            eq(1),
+            { r -> r != null && r.indices.all { r[it] == expected[it] } }
+        )
+    }
+    
     @Test
     fun testStartsWithLiteral() {
         check(
@@ -251,6 +312,15 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testIsStringBuilderEmpty() {
+        check(
+            StringExamples::isStringBuilderEmpty,
+            eq(2),
+            { stringBuilder, result -> result == stringBuilder.isEmpty() }
+        )
+    }
+
+    @Test
     @Disabled("Flaky on GitHub: https://github.com/UnitTestBot/UTBotJava/issues/1004")
     fun testIsValidUuid() {
         val pattern = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -332,7 +402,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     fun testSubstring() {
         checkWithException(
             StringExamples::substring,
-            between(5..7),
+            between(5..8),
             { s, _, r -> s == null && r.isException<NullPointerException>() },
             { s, i, r -> s != null && i < 0 || i > s.length && r.isException<StringIndexOutOfBoundsException>() },
             { s, i, r -> s != null && i in 0..s.length && r.getOrThrow() == s.substring(i) && s.substring(i) != "password" },
@@ -585,13 +655,14 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         withPushingStateFromPathSelectorForConcrete {
             check(
                 StringExamples::equalsIgnoreCase,
-                eq(2),
+                ignoreExecutionsNumber,
                 { s, r -> "SUCCESS".equals(s, ignoreCase = true) && r == "success" },
                 { s, r -> !"SUCCESS".equals(s, ignoreCase = true) && r == "failure" },
             )
         }
     }
 
+    // TODO: This test fails without concrete execution as it uses a symbolic variable
     @Test
     fun testListToString() {
         check(

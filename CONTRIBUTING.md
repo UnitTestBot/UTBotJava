@@ -17,15 +17,15 @@ We welcome absolutely everyone. With one big and kind request: please follow the
 
 There are so many ways to contribute. Choose yours and find the relevant short guide below.
 
-|(1) Choose what you like and check the guideline:| (2) Contribute:                                                                                                                               |
-|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-|Reporting a bug| Create a [bug reporting issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=)          |
-|Suggesting a feature| Create a [feature suggestion issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) |
-|Contributing the code (bug fix or feature implementation)| Create a pull request                                                                                                                         |
-|Reproducing a reported bug| Comment on the issue                                                                                                                          |
-|Testing a pull request| Comment on the pull request                                                                                                                   |
-|Improving documentation| Create an issue<br/>Create a pull request<br/>Comment on issues and PRs                                                                       |
-|Sharing ideas| Start the [Discussion](https://github.com/UnitTestBot/UTBotJava/discussions) or join the existing one                                         |
+| (1) Choose what you like and check the guideline:                                                                       | (2) Contribute:                                                                                                                               |
+|-------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| [Reporting a bug](#Reporting-a-bug)                                                                                     | Create a [bug reporting issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=)          |
+| [Requesting a feature](#Requesting-a-feature)                                                                           | Create a [feature suggestion issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) |
+| [Contributing the code (bug fix or feature implementation)](#Contributing-the-code-(bug-fix-or-feature-implementation)) | Create a pull request                                                                                                                         |
+| [Reproducing a reported bug](#Reproducing-a-reported-bug)                                                               | Comment on the issue                                                                                                                          |
+| [Testing a pull request](#Testing-a-pull-request)                                                                       | Comment on the pull request                                                                                                                   |
+| [Improving documentation](#Improving-documentation)                                                                     | Create an issue<br/>Create a pull request<br/>Comment on issues and PRs                                                                       |
+| [Sharing ideas](#Sharing-ideas)                                                                                         | Start the [Discussion](https://github.com/UnitTestBot/UTBotJava/discussions) or join the existing one                                         |
 
 # How to submit a contribution
 
@@ -114,4 +114,4 @@ We do our best in reviewing, but we can hardly specify the exact timeout for it.
 
 By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](https://github.com/UnitTestBot/UTBotJava/blob/main/LICENSE).
 
-Feel free to [contact us directly](https://www.utbot.org/contact/) if that's a concern.
+Feel free to [contact us directly](https://www.utbot.org/about) if that's a concern.

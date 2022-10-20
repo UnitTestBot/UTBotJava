@@ -4,13 +4,13 @@
 
 ### To generate tests with UnitTestBot:
 
-you have to install IntelliJ IDEA (versions from 2022.1 to 2022.1.4 are supported).
+you have to install IntelliJ IDEA (versions from 2022.1 to 2022.2.2 are supported).
 
 ### To contribute to UnitTestBot:
 
 you have to install
 
-- IntelliJ IDEA (versions from 2022.1 to 2022.1.4 are supported);
+- IntelliJ IDEA (versions from 2022.1 to 2022.2.2 are supported);
 
 - JDK 11;
 

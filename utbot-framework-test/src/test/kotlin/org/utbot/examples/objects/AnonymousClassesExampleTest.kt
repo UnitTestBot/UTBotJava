@@ -4,9 +4,18 @@ import org.utbot.tests.infrastructure.Full
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.isException
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.Compilation
+import org.utbot.tests.infrastructure.TestExecution
 
-class AnonymousClassesExampleTest : UtValueTestCaseChecker(testClass = AnonymousClassesExample::class) {
+class AnonymousClassesExampleTest : UtValueTestCaseChecker(
+    testClass = AnonymousClassesExample::class,
+    pipelines = listOf(
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
+    )
+) {
     @Test
     fun testAnonymousClassAsParam() {
         checkWithException(

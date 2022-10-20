@@ -86,6 +86,18 @@ public class ExceptionExamples {
         }
     }
 
+    public int catchExceptionAfterOtherPossibleException(int i) {
+        int x = 15;
+        x /= i + 1;
+
+        try {
+            x /= i;
+        } catch (RuntimeException e) {
+            return 2;
+        }
+        return 1;
+    }
+
     public IllegalArgumentException createException() {
         return new IllegalArgumentException("Here we are: " + Math.sqrt(10));
     }

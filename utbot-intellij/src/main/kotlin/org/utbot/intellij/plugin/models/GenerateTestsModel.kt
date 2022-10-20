@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.models
 
+import com.intellij.openapi.components.service
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -7,7 +8,6 @@ import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import com.intellij.openapi.module.Module
@@ -22,6 +22,7 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.psi.KtFile
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
+import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
 
 data class GenerateTestsModel(
@@ -56,15 +57,17 @@ data class GenerateTestsModel(
             ?: error("Could not find module for $newTestSourceRoot")
     }
 
+    val codegenLanguage = project.service<Settings>().codegenLanguage
+
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     lateinit var mockFramework: MockFramework
     lateinit var staticsMocking: StaticsMocking
     lateinit var parametrizedTestSource: ParametrizedTestSource
-    lateinit var codegenLanguage: CodegenLanguage
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
+    var runInspectionAfterTestGeneration: Boolean = false
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
@@ -75,6 +78,7 @@ data class GenerateTestsModel(
         srcClasses.map { it.packageName }.distinct().size != 1
     }
     var runGeneratedTestsWithCoverage : Boolean = false
+    var enableSummariesGeneration : Boolean = true
 
     val jdkVersion: JavaSdkVersion?
         get() = try {

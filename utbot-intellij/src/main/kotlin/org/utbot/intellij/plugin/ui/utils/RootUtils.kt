@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.config.ResourceKotlinRootType
 import org.jetbrains.kotlin.config.SourceKotlinRootType
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
 import org.jetbrains.kotlin.config.TestSourceKotlinRootType
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 
 val sourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>> = setOf(JavaSourceRootType.SOURCE, SourceKotlinRootType)
 val testSourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>> = setOf(JavaSourceRootType.TEST_SOURCE, TestSourceKotlinRootType)
@@ -37,10 +38,18 @@ fun CodegenLanguage.testResourcesRootType(): JpsModuleSourceRootType<JavaResourc
 
 /**
  * Generalizes [JavaResourceRootProperties.isForGeneratedSources] for both Java and Kotlin.
+ *
+ * Unfortunately, Android Studio has another project model, so we cannot rely on the flag value.
+ * The only way is to find build/generated substring in the folder path.
  */
 fun SourceFolder.isForGeneratedSources(): Boolean {
     val properties = jpsElement.getProperties(sourceRootTypes + testSourceRootTypes)
     val resourceProperties = jpsElement.getProperties(resourceRootTypes + testResourceRootTypes)
 
-    return properties?.isForGeneratedSources == true && resourceProperties?.isForGeneratedSources == true
+    val markedGeneratedSources =
+        properties?.isForGeneratedSources == true && resourceProperties?.isForGeneratedSources == true
+    val androidStudioGeneratedSources =
+        IntelliJApiHelper.isAndroidStudio() && this.file?.path?.contains("build/generated") == true
+
+    return markedGeneratedSources || androidStudioGeneratedSources
 }

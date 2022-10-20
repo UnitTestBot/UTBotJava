@@ -6,6 +6,7 @@
 👉 Visit the [official UnitTestBot website](https://www.utbot.org/).
 
 # What is UnitTestBot?
+
 UnitTestBot is the tool for **automated unit test generation** and **precise code analysis**. It produces ready-to-use 
 test 
 cases for 
@@ -17,6 +18,7 @@ The **symbolic execution engine** paired with a **smart fuzzing technique** cons
 UnitTestBot represents all the test summaries in a **human-readable format**. The intelligible test method names and comments help you to control the whole testing process. Test failed? The summary refers you to the related branch or the condition under test.
 
 # Get started
+
 Try the **[online demo](https://www.utbot.org/utbot/)** to generate unit tests with one click.
 
 Get to know the **full version** of UnitTestBot plugin with this quick guide:
@@ -25,13 +27,15 @@ Get to know the **full version** of UnitTestBot plugin with this quick guide:
   <summary>Install UnitTestBot plugin for IntelliJ IDEA</summary>
 
 Try the most straightforward path to start using UnitTestBot plugin.
-1. Please check the [system requirements](SystemRequirements.md).
+1. Please check the [system requirements](https://github.com/UnitTestBot/UTBotJava/wiki/Check-system-requirements).
 2. Open your IntelliJ IDEA.
-3. Go to **File → Settings... → Plugins → Marketplace**.
+3. Go to **File > Settings... > Plugins > Marketplace**.
 4. In the search field type *UnitTestBot* — you'll see the UnitTestBot plugin page.
 5. Press the **Install** button and wait until it changes to **Installed**, then click **OK**.
 
-Now you can find the UnitTestBot plugin enabled in the **File → Settings → Plugins** window.
+Now you can find the UnitTestBot plugin enabled in the **File > Settings > Plugins** window.
+
+Do you want to manually choose the build or to update the plugin? Please refer to [Install or update plugin](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin) in our user guide.
 
 ____________
 </details>
@@ -42,10 +46,14 @@ ____________
 Proceed to generating unit tests for the existing Java project. If you don't have one, create it using the [JetBrains tutorial](https://www.jetbrains.com/help/idea/creating-and-running-your-first-java-application.html).
 
 1. Open your Java project in IntelliJ IDEA. 
-2. Right-click the required package or a file in the Project tool window, scroll the menu down to the bottom and choose **Create Tests with UTBot...**
-3. In the **Generate tests with UTBot** window tick the classes or methods you'd like to cover with unit tests and press **OK**.
+2. Right-click the required package or a file in the Project tool window, scroll the menu down to the bottom and 
+   choose **Generate Tests with UnitTestBot...**
+3. In the **Generate Tests with UnitTestBot** window tick the classes or methods you'd like to cover with unit tests and 
+   press **Generate Tests** or **Generate and Run**.
 
 Now you can see the resulting test class or classes in the Editor tool window.
+
+Need to configure testing framework, mocking strategy or parameterization? Please check all [configuration options](https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation).
 
 ____________
 </details>
@@ -73,12 +81,15 @@ What can you do with the output?
 
 3. To *view coverage*:
 
-Right-click the test class, choose **More Run/Debug → Run ... with Coverage**.
+Right-click the test class, choose **More Run/Debug > Run ... with Coverage**.
+
+Want to know more about test descriptions or SARIF reports? Please learn how to [Get use of test results](https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results).
 
 ____________
 </details>
 
 # Contribute to UnitTestBot
+
 UnitTestBot is an open source project. We welcome everyone who wants to make UnitTestBot better — introduce a new feature or report a bug. We have only one kind request for our contributors: we expect you to prove the necessity and quality of the suggested changes.
 
 How can you do this? Refer to our [Contributing guide](https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md).
@@ -88,9 +99,11 @@ Feel free to join the [Discussions](https://github.com/UnitTestBot/UTBotJava/dis
 And thank you for your time and effort! ⭐
 
 # Find support
-Having troubles with using UnitTestBot? Contact us [directly](https://www.utbot.org/contact).
+
+Having troubles with using UnitTestBot? Contact us [directly](https://www.utbot.org/about).
 
 # Find more UnitTestBot products
+
 You can also try [UnitTestBot](https://github.com/UnitTestBot/UTBotCpp) developed especially for C/C++.
 
 You are welcome to [contribute](https://github.com/UnitTestBot/UTBotCpp/blob/main/CONTRIBUTING.md) to it too!

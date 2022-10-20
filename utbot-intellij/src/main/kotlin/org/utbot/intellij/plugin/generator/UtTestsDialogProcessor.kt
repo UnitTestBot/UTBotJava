@@ -54,9 +54,9 @@ object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
 
     enum class ProgressRange(val from : Double, val to: Double) {
-        SOLVING(from = 0.0, to = 0.7),
-        CODEGEN(from = 0.7, to = 0.9),
-        SARIF(from = 0.9, to = 1.0)
+        SOLVING(from = 0.0, to = 0.9),
+        CODEGEN(from = 0.9, to = 0.95),
+        SARIF(from = 0.95, to = 1.0)
     }
 
     fun updateIndicator(indicator: ProgressIndicator, range : ProgressRange, text: String? = null, fraction: Double? = null) {

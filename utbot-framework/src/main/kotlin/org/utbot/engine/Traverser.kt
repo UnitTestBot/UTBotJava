@@ -2328,7 +2328,17 @@ class Traverser(
         val methodResult = environment.state.methodResult
 
         if (methodResult != null) {
-            return listOf(methodResult)
+            val base = when (invokeExpr) {
+                is JInterfaceInvokeExpr -> invokeExpr.base
+                is VirtualInvokeExpr -> invokeExpr.base
+                is SpecialInvokeExpr -> invokeExpr.base
+                else -> null
+            }
+            val taintAnalysisUpdate = processTaintAnalysis(invokeExpr.method.executableId, methodResult, base, invokeExpr.args)
+
+            return listOf(
+                methodResult.copy(symbolicStateUpdate = methodResult.symbolicStateUpdate + taintAnalysisUpdate)
+            )
         }
 
         return when (invokeExpr) {

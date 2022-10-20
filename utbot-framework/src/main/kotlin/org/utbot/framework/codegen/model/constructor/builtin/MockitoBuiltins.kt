@@ -24,31 +24,26 @@ internal val mockitoBuiltins: Set<MethodId>
     )
 
 internal val mockitoClassId = BuiltinClassId(
-    name = "org.mockito.Mockito",
     canonicalName = "org.mockito.Mockito",
     simpleName = "Mockito",
 )
 
 internal val ongoingStubbingClassId = BuiltinClassId(
-    name = "org.mockito.stubbing.OngoingStubbing",
     canonicalName = "org.mockito.stubbing.OngoingStubbing",
     simpleName = "OngoingStubbing",
 )
 
 internal val answerClassId = BuiltinClassId(
-    name = "org.mockito.stubbing.Answer",
     canonicalName = "org.mockito.stubbing.Answer",
     simpleName = "Answer",
 )
 
 internal val argumentMatchersClassId = BuiltinClassId(
-    name = "org.mockito.ArgumentMatchers",
     canonicalName = "org.mockito.ArgumentMatchers",
     simpleName = "ArgumentMatchers",
 )
 
 internal val mockedConstructionContextClassId = BuiltinClassId(
-    name = "org.mockito.MockedConstruction.Context",
     canonicalName = "org.mockito.MockedConstruction.Context", // TODO use $ as a delimiter of outer and nested classes?
     simpleName = "Context",
     isNested = true

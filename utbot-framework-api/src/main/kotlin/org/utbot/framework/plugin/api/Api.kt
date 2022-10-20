@@ -875,7 +875,6 @@ open class ClassId @JvmOverloads constructor(
  * (it is important because name for nested classes contains $ as a delimiter between nested and outer classes)
  */
 class BuiltinClassId(
-    name: String,
     elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
@@ -906,7 +905,7 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name = name, isNullable = isNullable, elementClassId = elementClassId) {
+) : ClassId(name = "", isNullable = isNullable, elementClassId = elementClassId) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }

@@ -1493,7 +1493,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
                         type = BuiltinClassId(
-                            name = classClassId.name,
                             simpleName = classClassId.simpleName,
                             canonicalName = classClassId.canonicalName,
                             packageName = classClassId.packageName,

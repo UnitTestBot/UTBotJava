@@ -709,7 +709,6 @@ class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId
         get() = when (val expressionType = expression.type) {
             is BuiltinClassId -> BuiltinClassId(
-                name = expressionType.name,
                 canonicalName = expressionType.canonicalName,
                 simpleName = expressionType.simpleName,
                 isNullable = false,

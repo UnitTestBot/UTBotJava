@@ -24,6 +24,7 @@ import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
+import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
 
 
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
@@ -31,7 +32,7 @@ private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
-    private val testSourceFolderField = TestSourceDirectoryChooser(model)
+    private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),

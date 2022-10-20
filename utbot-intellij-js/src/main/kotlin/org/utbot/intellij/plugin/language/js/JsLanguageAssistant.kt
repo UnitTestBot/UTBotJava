@@ -30,11 +30,12 @@ object JsLanguageAssistant : LanguageAssistant() {
         val module: Module,
         val containingFilePath: String,
         val editor: Editor,
+        val file: JSFile
     )
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (methods, focusedMethod, module, containingFilePath, editor) = getPsiTargets(e) ?: return
+        val (methods, focusedMethod, module, containingFilePath, editor, file) = getPsiTargets(e) ?: return
         JsDialogProcessor.createDialogAndGenerateTests(
             project = project,
             srcModule = module,
@@ -42,6 +43,7 @@ object JsLanguageAssistant : LanguageAssistant() {
             focusedMethod = focusedMethod,
             containingFilePath = containingFilePath,
             editor = editor,
+            file = file,
         )
     }
 
@@ -69,6 +71,7 @@ object JsLanguageAssistant : LanguageAssistant() {
                 module = module,
                 containingFilePath = virtualFile,
                 editor = editor,
+                file = file,
             )
         }
         val memberInfos = generateMemberInfo(e.project!!, file.statements.filterIsInstance<JSFunction>())
@@ -81,6 +84,7 @@ object JsLanguageAssistant : LanguageAssistant() {
             module = module,
             containingFilePath = virtualFile,
             editor = editor,
+            file = file,
         )
     }
 

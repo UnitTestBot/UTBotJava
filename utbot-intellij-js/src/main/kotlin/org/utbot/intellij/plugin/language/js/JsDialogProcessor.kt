@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.language.js
 import api.JsTestGenerator
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.lang.ecmascript6.psi.ES6Class
+import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
@@ -36,8 +37,9 @@ object JsDialogProcessor {
         focusedMethod: JSMemberInfo?,
         containingFilePath: String,
         editor: Editor,
+        file: JSFile
     ) {
-        createDialog(project, srcModule, fileMethods, focusedMethod, containingFilePath)?.let { dialogProcessor ->
+        createDialog(project, srcModule, fileMethods, focusedMethod, containingFilePath, file)?.let { dialogProcessor ->
             if (!dialogProcessor.showAndGet()) return
             /*
                 Since Tern.js accesses containing file, sync with file system required before test generation.
@@ -57,6 +59,7 @@ object JsDialogProcessor {
         fileMethods: Set<JSMemberInfo>,
         focusedMethod: JSMemberInfo?,
         filePath: String,
+        file: JSFile
     ): JsDialogWindow? {
         val testModules = srcModule.testModules(project)
 
@@ -76,6 +79,7 @@ object JsDialogProcessor {
                 potentialTestModules = testModules,
                 fileMethods = fileMethods,
                 selectedMethods = if (focusedMethod != null) setOf(focusedMethod) else emptySet(),
+                file = file
             ).apply {
                 containingFilePath = filePath
             }

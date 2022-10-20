@@ -3,19 +3,14 @@ package org.utbot.intellij.plugin.language.js
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreterManager
 import com.intellij.lang.javascript.refactoring.ui.JSMemberSelectionTable
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
-import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.ui.*
-import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.StandardFileSystems
-import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
-import com.intellij.psi.PsiManager
-import com.intellij.refactoring.PackageWrapper
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
-import com.intellij.refactoring.util.RefactoringUtil
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.CheckBox
@@ -23,20 +18,19 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.panel
-import com.intellij.util.IncorrectOperationException
 import com.intellij.util.ui.JBUI
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
-import org.jetbrains.kotlin.config.TestSourceKotlinRootType
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
-import settings.JsTestGenerationSettings.defaultTimeout
 import java.awt.BorderLayout
-import java.util.*
+import java.io.File
+import java.nio.file.Paths
+import java.util.Locale
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
 import javax.swing.JComponent
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
+import settings.JsTestGenerationSettings.defaultTimeout
 import kotlin.concurrent.thread
 
 class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
@@ -64,12 +58,11 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         "Choose Destination Package"
     )
 
-    private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
+    private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
     private val nycSourceFileChooserField = NycSourceFileChooser(model)
 
     private var initTestFrameworkPresenceThread: Thread
-
     private lateinit var panel: DialogPanel
 
     private val timeoutSpinner =
@@ -150,22 +143,14 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
         model.pathToNYC = nycSourceFileChooserField.text
+        File(testSourceFolderField.text).mkdir()
+        model.testSourceRoot = VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Paths.get(testSourceFolderField.text))
         configureTestFrameworkIfRequired()
-        try {
-            val testRootPrepared = createTestRootAndPackages()
-            if (!testRootPrepared) {
-                showTestRootAbsenceErrorMessage()
-                return
-            }
-        } catch (e: IncorrectOperationException) {
-            println(e.message)
-
-        }
         super.doOKAction()
     }
 
     override fun doValidate(): ValidationInfo? {
-        return nycSourceFileChooserField.validateNyc()
+        return testSourceFolderField.validatePath() ?: nycSourceFileChooserField.validateNyc()
     }
 
     private fun updateMembersTable() {
@@ -180,12 +165,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
             checkMembers(selectedMethods)
         }
     }
-
-    private fun showTestRootAbsenceErrorMessage() =
-        Messages.showErrorDialog(
-            "Test source root is not configured or is located out of content entry!",
-            "Generation Error"
-        )
 
     private fun configureTestFrameworkIfRequired() {
         initTestFrameworkPresenceThread.join()
@@ -213,80 +192,9 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         }
     }
 
-    private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
-        val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
-        try {
-            val contentEntry = modifiableModel.contentEntries
-                .filterNot { it.file == null }
-                .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
-                ?: return false
-
-            contentEntry.addSourceRootIfAbsent(
-                modifiableModel,
-                testSourceRoot.url,
-                TestSourceKotlinRootType
-            )
-            return true
-        } finally {
-            if (modifiableModel.isWritable && !modifiableModel.isDisposed) modifiableModel.dispose()
-        }
-    }
-
-    private fun createTestRootAndPackages(): Boolean {
-        model.setSourceRootAndFindTestModule(createDirectoryIfMissing(model.testSourceRoot))
-        val testSourceRoot = model.testSourceRoot ?: return false
-
-        if (model.testSourceRoot?.isDirectory != true) return false
-        if (getOrCreateTestRoot(testSourceRoot)) {
-            if (cbSpecifyTestPackage.isSelected) {
-                createSelectedPackage(testSourceRoot)
-            } else {
-                createPackagesByClasses(testSourceRoot)
-            }
-            return true
-        }
-        return false
-    }
-
-    private fun createPackageWrapper(packageName: String?): PackageWrapper =
-        PackageWrapper(PsiManager.getInstance(model.project), trimPackageName(packageName))
-
-    private fun trimPackageName(name: String?): String = name?.trim() ?: ""
-
-    private fun createPackagesByClasses(testSourceRoot: VirtualFile) {
-        val packageNames = model.srcClasses.map { it.packageName }.sortedBy { it.length }
-        for (packageName in packageNames) {
-            runWriteAction {
-                RefactoringUtil.createPackageDirectoryInSourceRoot(createPackageWrapper(packageName), testSourceRoot)
-            }
-        }
-    }
-
-    private fun createSelectedPackage(testSourceRoot: VirtualFile) =
-        runWriteAction {
-            RefactoringUtil.createPackageDirectoryInSourceRoot(
-                createPackageWrapper(testPackageField.text),
-                testSourceRoot
-            )
-        }
-
-    private fun createDirectoryIfMissing(dir: VirtualFile?): VirtualFile? {
-        val file = if (dir is FakeVirtualFile) {
-            WriteCommandAction.runWriteCommandAction(model.project, Computable<VirtualFile> {
-                VfsUtil.createDirectoryIfMissing(dir.path)
-            })
-        } else {
-            dir
-        } ?: return null
-        return if (VfsUtil.virtualToIoFile(file).isFile) {
-            null
-        } else {
-            StandardFileSystems.local().findFileByPath(file.path)
-        }
-    }
-
-
     private fun checkMembers(members: Collection<JSMemberInfo>) = members.forEach { it.isChecked = true }
+
+
 }
 
 private const val RECENTS_KEY = "org.utbot.recents"

@@ -25,6 +25,7 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
+import org.graalvm.polyglot.Context
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
@@ -282,6 +283,8 @@ class JsTestGenerator(
     }
 
     private fun runParser(fileText: String): FunctionNode {
+        // Fixes problem with Graal.polyglot missing from classpath, resulting in error.
+        Thread.currentThread().contextClassLoader = Context::class.java.classLoader
         val parser = Parser(
             ScriptEnvironment.builder().build(),
             Source.sourceFor("jsFile", fileText),

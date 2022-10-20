@@ -1,15 +1,21 @@
-package org.utbot.intellij.plugin.language.python
+package org.utbot.intellij.plugin.ui.components
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.vfs.VirtualFile
 import java.nio.file.Paths
+import org.utbot.common.PathUtil.replaceSeparator
+import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class TestSourceDirectoryChooser(
-    val model: PythonTestsModel
+    val model: BaseTestsModel,
+    file: VirtualFile
 ) : TextFieldWithBrowseButton() {
-    private val projectRoot = getContentRoot(model.project, model.file.virtualFile)
+    private val projectRoot = getContentRoot(model.project, file)
 
     init {
         val descriptor = FileChooserDescriptor(
@@ -24,16 +30,21 @@ class TestSourceDirectoryChooser(
         addBrowseFolderListener(
             TextBrowseFolderListener(descriptor, model.project)
         )
-        text = Paths.get(projectRoot.path, defaultDirectory).toString()
+        text = replaceSeparator(Paths.get(projectRoot.path, defaultDirectory).toString())
     }
 
     fun validatePath(): ValidationInfo? {
         val typedPath = Paths.get(text).toAbsolutePath()
-        return if (typedPath.startsWith(projectRoot.path)) {
+        return if (typedPath.startsWith(replaceSeparator(projectRoot.path))) {
             defaultDirectory = Paths.get(projectRoot.path).relativize(typedPath).toString()
             null
         } else
             ValidationInfo("Specified directory lies outside of the project", this)
+    }
+
+    private fun getContentRoot(project: Project, file: VirtualFile): VirtualFile {
+        return ProjectFileIndex.getInstance(project)
+            .getContentRootForFile(file) ?: error("Source file lies outside of a module")
     }
 
     companion object {

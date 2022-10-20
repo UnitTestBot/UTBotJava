@@ -149,7 +149,7 @@ object UtSettings : AbstractSettings(
      * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
      */
     var checkNpeInNestedMethods by getBooleanProperty(true)
-    var checkNpeInNestedNotPrivateMethods by getBooleanProperty(false)
+    var checkNpeInNestedNotPrivateMethods by getBooleanProperty(true)
 
     /**
      * This option determines whether we should generate [NullPointerException] checks for final or non-public fields

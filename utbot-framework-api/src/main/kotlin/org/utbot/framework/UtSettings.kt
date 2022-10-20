@@ -133,7 +133,7 @@ object UtSettings : AbstractSettings(
     /**
      * Generate summaries using plugin's custom JavaDoc tags.
      */
-    var useCustomJavaDocTags by getBooleanProperty(true)
+    var useCustomJavaDocTags by getBooleanProperty(false)
 
     /**
      * Enable the Summarization module to generate summaries for methods under test.
@@ -141,7 +141,7 @@ object UtSettings : AbstractSettings(
      *
      * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
      */
-    var enableSummariesGeneration by getBooleanProperty(true)
+    var enableSummariesGeneration by getBooleanProperty(false)
 
     /**
      * Options below regulate which [NullPointerException] check should be performed.
@@ -210,7 +210,7 @@ object UtSettings : AbstractSettings(
      *
      * True by default.
      */
-    var preferredCexOption by getBooleanProperty(true)
+    var preferredCexOption by getBooleanProperty(false)
 
     /**
      * Type of test minimization strategy.

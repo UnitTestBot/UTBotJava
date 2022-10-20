@@ -905,7 +905,7 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name = "", isNullable = isNullable, elementClassId = elementClassId) {
+) : ClassId(name = canonicalName, isNullable = isNullable, elementClassId = elementClassId) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }

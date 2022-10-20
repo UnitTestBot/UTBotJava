@@ -105,6 +105,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.fuzzer.toFuzzerType
+import org.utbot.fuzzer.types.toJavaType
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -395,7 +396,7 @@ class UtBotSymbolicEngine(
         val constantValues = collectConstantsForFuzzer(graph)
 
         val syntheticMethodForFuzzingThisInstanceDescription =
-            FuzzedMethodDescription("thisInstance", voidClassId, listOf(classUnderTest), constantValues).apply {
+            FuzzedMethodDescription("thisInstance", voidClassId.toJavaType(), listOf(classUnderTest.toJavaType()), constantValues).apply {
                 className = classUnderTest.simpleName
                 packageName = classUnderTest.packageName
             }
@@ -422,7 +423,12 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(methodUnderTest, collectConstantsForFuzzer(graph)).apply {
+        val name = methodUnderTest.classId.simpleName + "." + methodUnderTest.name
+        val returnValue = methodUnderTest.returnType.toJavaType()
+        val parameters = methodUnderTest.parameters.map { it.toJavaType() }
+        val concreteValues = collectConstantsForFuzzer(graph)
+
+        val methodUnderTestDescription = FuzzedMethodDescription(name, returnValue, parameters, concreteValues).apply {
             compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
             className = classUnderTest.simpleName
             packageName = classUnderTest.packageName

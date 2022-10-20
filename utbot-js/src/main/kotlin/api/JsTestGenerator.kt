@@ -31,6 +31,8 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.types.ClassIdWrapper
+import org.utbot.fuzzer.types.Type
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -204,8 +206,11 @@ class JsTestGenerator(
                 JsObjectModelProvider.generate(
                     FuzzedMethodDescription(
                         name = "thisInstance",
-                        returnType = voidClassId,
-                        parameters = listOf(classId),
+//                        returnType = voidClassId,
+//                        parameters = listOf(classId),
+                        // todo fix this
+                        returnType = Type(emptyList()),
+                        parameters = emptyList(),
                         concreteValues = concreteValues
                     )
                 ).take(10).toList()
@@ -236,7 +241,12 @@ class JsTestGenerator(
         val fuzzerVisitor = JsFuzzerAstVisitor()
         funcNode.body.accept(fuzzerVisitor)
         val methodUnderTestDescription =
-            FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
+            FuzzedMethodDescription(
+                execId.name,
+                ClassIdWrapper(execId.returnType),
+                execId.parameters.map(::ClassIdWrapper),
+                fuzzerVisitor.fuzzedConcreteValues
+            ).apply {
                 compilableName = funcNode.name.toString()
                 val names = funcNode.parameters.map { it.name.toString() }
                 parameterNameMap = { index -> names.getOrNull(index) }

@@ -30,6 +30,8 @@ import org.apache.commons.lang3.math.NumberUtils
 import org.utbot.framework.plugin.api.python.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
+import org.utbot.fuzzer.types.ClassIdWrapper
+import org.utbot.fuzzer.types.WithClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
@@ -401,10 +403,10 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
         private fun getNumFuzzedValue(num: String, op: FuzzedContext = FuzzedContext.Unknown): FuzzedConcreteValue? =
             try {
                 when (val x = NumberUtils.createNumber(num)) {
-                    is Int -> FuzzedConcreteValue(pythonIntClassId, x.toBigInteger(), op)
-                    is Long -> FuzzedConcreteValue(pythonIntClassId, x.toBigInteger(), op)
-                    is BigInteger -> FuzzedConcreteValue(pythonIntClassId, x, op)
-                    else -> FuzzedConcreteValue(pythonFloatClassId, BigDecimal(num), op)
+                    is Int -> FuzzedConcreteValue(ClassIdWrapper(pythonIntClassId), x.toBigInteger(), op)
+                    is Long -> FuzzedConcreteValue(ClassIdWrapper(pythonIntClassId), x.toBigInteger(), op)
+                    is BigInteger -> FuzzedConcreteValue(ClassIdWrapper(pythonIntClassId), x, op)
+                    else -> FuzzedConcreteValue(ClassIdWrapper(pythonFloatClassId), BigDecimal(num), op)
                 }
             } catch (e: NumberFormatException) {
                 null
@@ -414,15 +416,15 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             val pats = listOf<Pattern<(FuzzedConcreteValue?) -> A, A, N>>(
                 map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
                 map1(refl(str(apply()))) { x ->
-                    FuzzedConcreteValue(pythonStrClassId, x, op)
+                    FuzzedConcreteValue(ClassIdWrapper(pythonStrClassId), x, op)
                 },
                 map0(
                     refl(true_()),
-                    FuzzedConcreteValue(PythonBoolModel.classId, true, op)
+                    FuzzedConcreteValue(ClassIdWrapper(PythonBoolModel.classId), true, op)
                 ),
                 map0(
                     refl(false_()),
-                    FuzzedConcreteValue(PythonBoolModel.classId, false, op)
+                    FuzzedConcreteValue(ClassIdWrapper(PythonBoolModel.classId), false, op)
                 )
             )
             return pats.reduce { acc, elem -> or(acc, elem) }
@@ -432,14 +434,14 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             val value = getNumFuzzedValue(num.n)
             if (value != null && constStorage.find { it.value == value.value } == null) {
                 constStorage.add(value)
-                (value.classId as? PythonClassId) ?.let { generalStorage.types.add(Type(it)) }
+                ((value.type as WithClassId).classId as? PythonClassId) ?.let { generalStorage.types.add(Type(it)) }
             }
             return super.visitNum(num, param)
         }
 
         override fun visitStr(str: Str, param: MutableMap<String, ArgInfoStorage>?): AST {
             if (str.s.isEmpty() || str.s[0] != 'f')
-                constStorage.add(FuzzedConcreteValue(pythonStrClassId, str.s))
+                constStorage.add(FuzzedConcreteValue(ClassIdWrapper(pythonStrClassId), str.s))
             generalStorage.types.add(Type(pythonStrClassId))
             return super.visitStr(str, param)
         }

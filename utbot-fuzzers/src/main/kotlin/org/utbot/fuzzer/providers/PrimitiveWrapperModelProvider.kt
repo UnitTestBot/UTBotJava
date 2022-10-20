@@ -11,6 +11,9 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
+import org.utbot.fuzzer.types.JavaVoid
+import org.utbot.fuzzer.types.WithClassId
+import org.utbot.fuzzer.types.toJavaType
 
 object PrimitiveWrapperModelProvider: ModelProvider {
 
@@ -24,6 +27,8 @@ object PrimitiveWrapperModelProvider: ModelProvider {
         val primitiveWrapperTypesAsPrimitiveTypes = description.parametersMap
             .keys
             .asSequence()
+            .filterIsInstance<WithClassId>()
+            .map { it.classId }
             .filter {
                 it == stringClassId || it.isPrimitiveWrapper
             }
@@ -42,8 +47,8 @@ object PrimitiveWrapperModelProvider: ModelProvider {
         val constants = mutableMapOf<ClassId, MutableList<FuzzedValue>>()
         constantModels.generate(FuzzedMethodDescription(
             name = "Primitive wrapper constant generation ",
-            returnType = voidClassId,
-            parameters = primitiveWrapperTypesAsPrimitiveTypes,
+            returnType = JavaVoid,
+            parameters = primitiveWrapperTypesAsPrimitiveTypes.map { it.toJavaType() },
             concreteValues = description.concreteValues
         )).forEach { (index, value) ->
             val primitiveWrapper = wrapperByPrimitive[primitiveWrapperTypesAsPrimitiveTypes[index]]
@@ -54,9 +59,10 @@ object PrimitiveWrapperModelProvider: ModelProvider {
 
         description.parametersMap
             .asSequence()
-            .filter { (classId, _) -> classId == stringClassId || classId.isPrimitiveWrapper }
-            .forEach { (classId, indices) ->
-                constants[classId]?.let { models ->
+            .filter { (type, _) -> type is WithClassId && (type.classId == stringClassId || type.classId.isPrimitiveWrapper) }
+            .forEach { (type, indices) ->
+                if (type !is WithClassId) return@forEach
+                constants[type.classId]?.let { models ->
                     yieldAllValues(indices, models)
                 }
             }

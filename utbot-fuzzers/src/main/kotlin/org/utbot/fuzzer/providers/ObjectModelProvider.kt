@@ -28,6 +28,9 @@ import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.objects.assembleModel
+import org.utbot.fuzzer.types.Type
+import org.utbot.fuzzer.types.WithClassId
+import org.utbot.fuzzer.types.toJavaType
 
 /**
  * Creates [UtAssembleModel] for objects which have public constructors
@@ -46,8 +49,12 @@ class ObjectModelProvider(
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,
         parameterIndex: Int,
-        classId: ClassId,
+        type: Type,
     ): Sequence<ModelConstructor> = sequence {
+        if (type !is WithClassId) {
+            return@sequence
+        }
+        val classId = type.classId
         if (unwantedConstructorsClasses.contains(classId)
             || classId.isPrimitiveWrapper
             || classId.isEnum
@@ -69,13 +76,13 @@ class ObjectModelProvider(
                 val fields = findSuitableFields(constructorId.classId, description)
                 if (fields.isNotEmpty()) {
                     yield(
-                        ModelConstructor(fields.map { FuzzedType(it.classId) }) {
+                        ModelConstructor(fields.map { FuzzedType(it.classId.toJavaType()) }) {
                             generateModelsWithFieldsInitialization(constructorId, fields, it)
                         }
                     )
                 }
             }
-            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId) }) {
+            yield(ModelConstructor(constructorId.parameters.map { classId -> FuzzedType(classId.toJavaType()) }) {
                 assembleModel(idGenerator.createId(), constructorId, it)
             })
         }

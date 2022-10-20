@@ -1,7 +1,6 @@
 package org.utbot.fuzzer
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.fuzzer.types.Type
 
 /**
  * Method traverser is an object,
@@ -15,8 +14,8 @@ import org.utbot.framework.plugin.api.ExecutableId
  */
 open class FuzzedMethodDescription(
     val name: String,
-    val returnType: ClassId,
-    val parameters: List<ClassId>,
+    val returnType: Type,
+    val parameters: List<Type>,
     val concreteValues: Collection<FuzzedConcreteValue> = emptyList()
 ) {
 
@@ -55,20 +54,13 @@ open class FuzzedMethodDescription(
     /**
      * Map class id to indices of this class in parameters list.
      */
-    val parametersMap: Map<ClassId, List<Int>> by lazy {
-        val result = mutableMapOf<ClassId, MutableList<Int>>()
+    val parametersMap: Map<Type, List<Int>> by lazy {
+        val result = mutableMapOf<Type, MutableList<Int>>()
         parameters.forEachIndexed { index, classId ->
             result.computeIfAbsent(classId) { mutableListOf() }.add(index)
         }
         result
     }
-
-    constructor(executableId: ExecutableId, concreteValues: Collection<FuzzedConcreteValue> = emptyList()) : this(
-        executableId.classId.simpleName + "." + executableId.name,
-        executableId.returnType,
-        executableId.parameters,
-        concreteValues
-    )
 }
 
 enum class FuzzedOp(val sign: String?) : FuzzedContext {

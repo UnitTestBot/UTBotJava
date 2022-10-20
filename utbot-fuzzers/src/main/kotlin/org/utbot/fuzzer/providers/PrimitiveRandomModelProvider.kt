@@ -17,6 +17,7 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.WithClassId
 import kotlin.random.Random
 
 /**
@@ -24,9 +25,10 @@ import kotlin.random.Random
  */
 class PrimitiveRandomModelProvider(val random: Random, val size: Int = 5) : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        description.parametersMap.forEach { (classId, parameterIndices) ->
+        description.parametersMap.forEach { (type, parameterIndices) ->
+            if (type !is WithClassId) return@forEach
             for (i in 1..size) {
-                valueOf(primitiveByWrapper[classId] ?: classId)?.let { model ->
+                valueOf(primitiveByWrapper[type.classId] ?: type.classId)?.let { model ->
                     parameterIndices.forEach { index ->
                         yieldValue(index, model)
                     }

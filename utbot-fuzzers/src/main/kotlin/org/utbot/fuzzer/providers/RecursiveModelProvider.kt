@@ -1,7 +1,5 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedType
@@ -12,6 +10,8 @@ import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.modelProviderForRecursiveCalls
+import org.utbot.fuzzer.types.JavaVoid
+import org.utbot.fuzzer.types.Type
 
 /**
  * Auxiliary data class that stores information describing how to construct model from parts (submodels)
@@ -63,7 +63,7 @@ abstract class RecursiveModelProvider(
     protected abstract fun generateModelConstructors(
         description: FuzzedMethodDescription,
         parameterIndex: Int,
-        classId: ClassId,
+        type: Type,
     ): Sequence<ModelConstructor>
 
     protected open fun copySettings(other: RecursiveModelProvider): RecursiveModelProvider {
@@ -92,8 +92,8 @@ abstract class RecursiveModelProvider(
         }
         val syntheticMethodDescription = FuzzedMethodDescription(
             "<synthetic method: ${this::class.simpleName}>",
-            voidClassId,
-            (1..repeat).flatMap { neededTypes.map { it.classId } },
+            JavaVoid,
+            (1..repeat).flatMap { neededTypes.map { it.type } },
             baseMethodDescription.concreteValues
         ).apply {
             packageName = baseMethodDescription.packageName

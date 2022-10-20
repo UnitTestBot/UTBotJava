@@ -27,6 +27,8 @@ import kotlin.random.Random
 import org.utbot.fuzzer.providers.DateConstantModelProvider
 import org.utbot.fuzzer.providers.PrimitiveRandomModelProvider
 import org.utbot.fuzzer.providers.RecursiveModelProvider
+import org.utbot.fuzzer.types.JavaInt
+import org.utbot.fuzzer.types.JavaVoid
 
 private val logger by lazy { KotlinLogging.logger {} }
 
@@ -163,7 +165,7 @@ fun <T> Sequence<List<FuzzedValue>>.withMutations(statistics: FuzzerStatistics<T
  * All values after filtering are cast to [Int].
  */
 fun fuzzNumbers(concreteValues: Collection<FuzzedConcreteValue>, vararg defaultValues: Int, filter: (Number) -> Boolean = { true }): Sequence<Int> {
-    val description = FuzzedMethodDescription("helper: number fuzzing", voidClassId, listOf(intClassId), concreteValues)
+    val description = FuzzedMethodDescription("helper: number fuzzing", JavaVoid, listOf(JavaInt), concreteValues)
     val fuzzedValues = fuzz(description, ConstantsModelProvider)
         .mapNotNull { ((it.single().model as? UtPrimitiveModel)?.value as? Number) }
         .filter(filter)

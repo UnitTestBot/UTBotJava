@@ -12,6 +12,7 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
+import org.utbot.fuzzer.types.JavaString
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
 import kotlin.random.Random
@@ -24,13 +25,13 @@ object RegexModelProvider : ModelProvider {
     }
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> {
-        val parameters = description.parametersMap[stringClassId]
+        val parameters = description.parametersMap[JavaString]
         if (parameters.isNullOrEmpty()) {
             return emptySequence()
         }
         val regexes = description.concreteValues
             .asSequence()
-            .filter { it.classId == stringClassId }
+            .filter { it.type == JavaString }
             .filter { it.fuzzedContext.isPatterMatchingContext()  }
             .map { it.value as String }
             .distinct()

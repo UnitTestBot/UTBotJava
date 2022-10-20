@@ -8,15 +8,16 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.JavaString
 
 object StringConstantModelProvider : ModelProvider {
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
-            .filter { (classId, _) -> classId == stringClassId }
+            .filter { (classId, _) -> classId == JavaString }
             .forEach { (_, value, _) ->
-                description.parametersMap.getOrElse(stringClassId) { emptyList() }.forEach { index ->
+                description.parametersMap.getOrElse(JavaString) { emptyList() }.forEach { index ->
                     yieldValue(index, UtPrimitiveModel(value).fuzzed { summary = "%var% = string" })
                 }
             }
@@ -28,6 +29,6 @@ object StringConstantModelProvider : ModelProvider {
                     summary = "%var% = $value"
                 }
             }
-        yieldAllValues(description.parametersMap.getOrElse(stringClassId) { emptyList() }, charsAsStrings)
+        yieldAllValues(description.parametersMap.getOrElse(JavaString) { emptyList() }, charsAsStrings)
     }
 }

@@ -14,19 +14,20 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.types.WithClassId
 
 object JsMultipleTypesModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         val parametersFiltered = description.parametersMap.filter { (classId, _) ->
-            classId is JsMultipleClassId
+            classId is WithClassId && classId.classId is JsMultipleClassId
         }
         parametersFiltered.forEach { (jsMultipleClassId, indices) ->
-            val types = (jsMultipleClassId as JsMultipleClassId).types
+            val types = ((jsMultipleClassId as WithClassId).classId as JsMultipleClassId).types
             types.forEach { classId ->
                 when {
                     classId.isJsPrimitive -> {
                         val concreteValuesFiltered = description.concreteValues.filter { (localClassId, _) ->
-                            (localClassId as JsClassId).isJsPrimitive
+                            ((localClassId as WithClassId).classId as JsClassId).isJsPrimitive
                         }
                         concreteValuesFiltered.forEach { (_, value, op) ->
                             sequenceOf(
@@ -47,7 +48,7 @@ object JsMultipleTypesModelProvider : ModelProvider {
                     classId == jsStringClassId -> {
                         val concreteValuesFiltered = description.concreteValues
                             .asSequence()
-                            .filter { (classId, _) -> classId.toJsClassId() == jsStringClassId }
+                            .filter { (classId, _) -> (classId as WithClassId).classId.toJsClassId() == jsStringClassId }
                         concreteValuesFiltered.forEach { (_, value, op) ->
                             listOf(value, mutate(random, value as? String, op as FuzzedOp))
                                 .asSequence()

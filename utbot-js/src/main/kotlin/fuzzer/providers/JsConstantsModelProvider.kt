@@ -9,6 +9,8 @@ import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.types.ClassIdWrapper
+import org.utbot.fuzzer.types.WithClassId
 
 object JsConstantsModelProvider : ModelProvider {
 
@@ -16,7 +18,7 @@ object JsConstantsModelProvider : ModelProvider {
         description.concreteValues
             .asSequence()
             .filter { (classId, _) ->
-                (classId as JsClassId).isJsPrimitive
+                ((classId as WithClassId).classId as JsClassId).isJsPrimitive
             }
             .forEach { (_, value, op) ->
                 sequenceOf(
@@ -25,8 +27,8 @@ object JsConstantsModelProvider : ModelProvider {
                 )
                     .filterNotNull()
                     .forEach { m ->
-                        description.parametersMap.getOrElse(m.model.classId) {
-                            description.parametersMap.getOrElse(jsUndefinedClassId) { emptyList() }
+                        description.parametersMap.getOrElse(ClassIdWrapper(m.model.classId)) {
+                            description.parametersMap.getOrElse(ClassIdWrapper(jsUndefinedClassId)) { emptyList() }
                         }.forEach { index ->
                             yield(FuzzedParameter(index, m))
                         }

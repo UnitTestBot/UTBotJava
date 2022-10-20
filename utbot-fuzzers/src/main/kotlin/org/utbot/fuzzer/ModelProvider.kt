@@ -2,6 +2,7 @@ package org.utbot.fuzzer
 
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.fuzzer.types.Type
 
 fun interface ModelProvider {
 
@@ -94,11 +95,11 @@ fun interface ModelProvider {
      *
      * @param fallbackModelSupplier is called for every [ClassId] which wasn't created by this model provider.
      */
-    fun withFallback(fallbackModelSupplier: (ClassId) -> UtModel?) : ModelProvider {
+    fun withFallback(fallbackModelSupplier: (Type) -> UtModel?) : ModelProvider {
         return withFallback( ModelProvider { description ->
             sequence {
-                description.parametersMap.forEach { (classId, indices) ->
-                    fallbackModelSupplier(classId)?.let { model ->
+                description.parametersMap.forEach { (type, indices) ->
+                    fallbackModelSupplier(type)?.let { model ->
                         indices.forEach { index ->
                             yieldValue(index, model.fuzzed())
                         }

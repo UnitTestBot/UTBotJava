@@ -2,13 +2,14 @@ package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.python.PythonDefaultModel
 import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.fuzzer.types.WithClassId
 import org.utbot.python.typing.PythonTypesStorage
 
 class DefaultValuesModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
     override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         val generated = Array(description.parameters.size) { 0 }
         description.parametersMap.forEach { (classId, parameterIndices) ->
-            val pythonClassIdInfo = PythonTypesStorage.findPythonClassIdInfoByName(classId.name) ?: return@forEach
+            val pythonClassIdInfo = PythonTypesStorage.findPythonClassIdInfoByName((classId as WithClassId).classId.name) ?: return@forEach
             pythonClassIdInfo.preprocessedInstances?.forEach { instance ->
                 parameterIndices.forEach { index ->
                     generated[index] += 1

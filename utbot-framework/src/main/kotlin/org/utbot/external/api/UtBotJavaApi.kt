@@ -33,6 +33,7 @@ import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.WithClassId
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import kotlin.reflect.jvm.kotlinFunction
@@ -161,8 +162,9 @@ object UtBotJavaApi {
 
         val customModelProvider = ModelProvider { description ->
             sequence {
-                description.parametersMap.forEach { (classId, indices) ->
-                    createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
+                description.parametersMap.forEach { (type, indices) ->
+                    if (type !is WithClassId) return@sequence
+                    createPrimitiveModels(primitiveValuesSupplier, type.classId).forEach { model ->
                         indices.forEach { index ->
                             yieldValue(index, FuzzedValue(model))
                         }

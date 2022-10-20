@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.js.util.jsNumberClassId
 import org.utbot.framework.plugin.api.js.util.jsStringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.types.ClassIdWrapper
 
 class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
     private var lastFuzzedOpGlobal = FuzzedOp.NONE
@@ -43,7 +44,7 @@ class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
             is TruffleString -> {
                 fuzzedConcreteValues.add(
                     FuzzedConcreteValue(
-                        jsStringClassId,
+                        ClassIdWrapper(jsStringClassId),
                         literalNode.value.toString(),
                         lastFuzzedOpGlobal
                     )
@@ -53,7 +54,7 @@ class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
             is Boolean -> {
                 fuzzedConcreteValues.add(
                     FuzzedConcreteValue(
-                        jsBooleanClassId,
+                        ClassIdWrapper(jsBooleanClassId),
                         literalNode.value,
                         lastFuzzedOpGlobal
                     )
@@ -61,15 +62,15 @@ class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
             }
 
             is Int -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(ClassIdWrapper(jsNumberClassId), literalNode.value, lastFuzzedOpGlobal))
             }
 
             is Long -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(ClassIdWrapper(jsNumberClassId), literalNode.value, lastFuzzedOpGlobal))
             }
 
             is Double -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(ClassIdWrapper(jsNumberClassId), literalNode.value, lastFuzzedOpGlobal))
             }
         }
     }

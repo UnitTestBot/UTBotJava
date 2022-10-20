@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.python.PythonPrimitiveModel
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.ClassIdWrapper
 import java.math.BigDecimal
 import java.math.BigInteger
 
@@ -14,7 +15,7 @@ class ConstantModelProvider(recursionDepth: Int): PythonModelProvider(recursionD
         description.concreteValues
             .asSequence()
             .flatMap { (classId, value, op) ->
-                val model = (classId as? PythonClassId)?.let { PythonPrimitiveModel(value, it) }
+                val model = ((classId as ClassIdWrapper).classId as? PythonClassId)?.let { PythonPrimitiveModel(value, it) }
                 sequenceOf(
                     model?.fuzzed { summary = "%var% = $value" },
                     modifyValue(model, op)
@@ -22,7 +23,7 @@ class ConstantModelProvider(recursionDepth: Int): PythonModelProvider(recursionD
             }
             .filterNotNull()
             .forEach { value ->
-                description.parametersMap.getOrElse(value.model.classId) { emptyList() }.forEach { index ->
+                description.parametersMap.getOrElse(ClassIdWrapper(value.model.classId)) { emptyList() }.forEach { index ->
                     yieldValue(index, value)
                 }
             }

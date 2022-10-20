@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.python.PythonTreeModel
 import org.utbot.framework.plugin.api.python.pythonAnyClassId
 import org.utbot.fuzzer.*
+import org.utbot.fuzzer.types.ClassIdWrapper
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
@@ -41,8 +42,8 @@ class PythonEngine(
 
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
-            pythonAnyClassId,
-            types,
+            ClassIdWrapper(pythonAnyClassId),
+            types.map(::ClassIdWrapper),
             fuzzedConcreteValues
         ).apply {
             compilableName = methodUnderTest.name // what's the difference with ordinary name?

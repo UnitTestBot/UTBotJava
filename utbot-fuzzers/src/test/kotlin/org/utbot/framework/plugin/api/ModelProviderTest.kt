@@ -1,17 +1,9 @@
 package org.utbot.framework.plugin.api
 
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
@@ -41,6 +33,7 @@ import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
+import org.utbot.fuzzer.types.*
 import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
@@ -50,7 +43,7 @@ class ModelProviderTest {
     @Test
     fun `test generate primitive models for boolean`() {
         val models = collect(PrimitivesModelProvider,
-            parameters = listOf(booleanClassId)
+            parameters = listOf(JavaBool)
         )
 
         assertEquals(1, models.size)
@@ -62,15 +55,15 @@ class ModelProviderTest {
     @Test
     fun `test all known primitive types are generate at least one value`() {
         val primitiveTypes = listOf(
-            byteClassId,
-            booleanClassId,
-            charClassId,
-            shortClassId,
-            intClassId,
-            longClassId,
-            floatClassId,
-            doubleClassId,
-            stringClassId,
+            JavaByte,
+            JavaBool,
+            JavaChar,
+            JavaShort,
+            JavaInt,
+            JavaLong,
+            JavaFloat,
+            JavaDouble,
+            JavaString,
         )
         val models = collect(PrimitivesModelProvider,
             parameters = primitiveTypes
@@ -85,7 +78,7 @@ class ModelProviderTest {
     @Test
     fun `test that empty constants don't generate any models`() {
         val models = collect(ConstantsModelProvider,
-            parameters = listOf(intClassId),
+            parameters = listOf(JavaInt),
             constants = emptyList()
         )
 
@@ -95,9 +88,9 @@ class ModelProviderTest {
     @Test
     fun `test that one constant generate corresponding value`() {
         val models = collect(ConstantsModelProvider,
-            parameters = listOf(intClassId),
+            parameters = listOf(JavaInt),
             constants = listOf(
-                FuzzedConcreteValue(intClassId, 123)
+                FuzzedConcreteValue(JavaInt, 123)
             )
         )
 
@@ -110,14 +103,14 @@ class ModelProviderTest {
     @Test
     fun `test that constants are mutated if comparison operation is set`() {
         val models = collect(ConstantsModelProvider,
-            parameters = listOf(intClassId),
+            parameters = listOf(JavaInt),
             constants = listOf(
-                FuzzedConcreteValue(intClassId, 10, FuzzedContext.Comparison.EQ),
-                FuzzedConcreteValue(intClassId, 20, FuzzedContext.Comparison.NE),
-                FuzzedConcreteValue(intClassId, 30, FuzzedContext.Comparison.LT),
-                FuzzedConcreteValue(intClassId, 40, FuzzedContext.Comparison.LE),
-                FuzzedConcreteValue(intClassId, 50, FuzzedContext.Comparison.GT),
-                FuzzedConcreteValue(intClassId, 60, FuzzedContext.Comparison.GE),
+                FuzzedConcreteValue(JavaInt, 10, FuzzedContext.Comparison.EQ),
+                FuzzedConcreteValue(JavaInt, 20, FuzzedContext.Comparison.NE),
+                FuzzedConcreteValue(JavaInt, 30, FuzzedContext.Comparison.LT),
+                FuzzedConcreteValue(JavaInt, 40, FuzzedContext.Comparison.LE),
+                FuzzedConcreteValue(JavaInt, 50, FuzzedContext.Comparison.GT),
+                FuzzedConcreteValue(JavaInt, 60, FuzzedContext.Comparison.GE),
             )
         )
 
@@ -132,9 +125,9 @@ class ModelProviderTest {
     @Test
     fun `test constant empty string generates only corresponding model`() {
         val models = collect(StringConstantModelProvider,
-            parameters = listOf(stringClassId),
+            parameters = listOf(JavaString),
             constants = listOf(
-                FuzzedConcreteValue(stringClassId, ""),
+                FuzzedConcreteValue(JavaString, ""),
             )
         )
 
@@ -146,9 +139,9 @@ class ModelProviderTest {
     @Test
     fun `test non-empty string is not mutated if operation is not set`() {
         val models = collect(StringConstantModelProvider,
-            parameters = listOf(stringClassId),
+            parameters = listOf(JavaString),
             constants = listOf(
-                FuzzedConcreteValue(stringClassId, "nonemptystring"),
+                FuzzedConcreteValue(JavaString, "nonemptystring"),
             )
         )
 
@@ -163,10 +156,10 @@ class ModelProviderTest {
 
         val description = FuzzedMethodDescription(
             "method",
-            voidClassId,
-            listOf(stringClassId),
+            JavaVoid,
+            listOf(JavaString),
             listOf(
-                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedContext.Call(method.executableId))
+                FuzzedConcreteValue(JavaString, "nonemptystring", FuzzedContext.Call(method.executableId))
             )
         )
 
@@ -196,17 +189,17 @@ class ModelProviderTest {
                 constructor(a: Int, b: String, c: Boolean)
             }
 
-            val classId = A::class.java.id
+            val type = A::class.java.id.toJavaType()
             val models = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
                     modelProviderForRecursiveCalls = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
-                parameters = listOf(classId)
+                parameters = listOf(type)
             )
 
             assertEquals(1, models.size)
             assertEquals(3, models[0]!!.size)
-            assertTrue(models[0]!!.all { it is UtAssembleModel && it.classId == classId })
+            assertTrue(models[0]!!.all { it is UtAssembleModel && it.classId.toJavaType() == type })
 
             models[0]!!.filterIsInstance<UtAssembleModel>().forEachIndexed { index, model ->
                 val stm = model.instantiationCall
@@ -221,7 +214,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             class A
 
-            val classId = A::class.java.id
+            val classId = A::class.java.id.toJavaType()
             val models = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(classId)
@@ -241,7 +234,7 @@ class ModelProviderTest {
                 constructor(a: Int, b: Date)
             }
 
-            val classId = A::class.java.id
+            val classId = A::class.java.id.toJavaType()
             val models = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(classId)
@@ -266,7 +259,7 @@ class ModelProviderTest {
 
         val result = collect(
             firstParameterIsUserGenerated,
-            parameters = listOf(intClassId, intClassId)
+            parameters = listOf(JavaInt, JavaInt)
         )
 
         assertEquals(2, result.size)
@@ -280,7 +273,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
-                parameters = listOf(java.util.List::class.java.id)
+                parameters = listOf(java.util.List::class.java.id.toJavaType())
             )
 
             assertEquals(1, result.size)
@@ -290,7 +283,7 @@ class ModelProviderTest {
     @Test
     fun `test enum model provider`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(EnumModelProvider(ReferencePreservingIntIdGenerator(0)), parameters = listOf(OneTwoThree::class.java.id))
+            val result = collect(EnumModelProvider(ReferencePreservingIntIdGenerator(0)), parameters = listOf(OneTwoThree::class.java.id.toJavaType()))
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
             OneTwoThree.values().forEachIndexed { index: Int, value ->
@@ -304,20 +297,21 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
-                parameters = listOf(stringClassId)
+                parameters = listOf(JavaString)
             )
             assertEquals(1, result.size)
             result[0]!!.forEach {
                 assertInstanceOf(UtPrimitiveModel::class.java, it)
-                assertEquals(stringClassId, it.classId)
+                assertEquals(JavaString.classId, it.classId)
             }
         }
     }
 
     @Test
     fun `test wrapper primitives generate only primitive models`() {
+        val primitiveWrappers = primitiveWrappers.map { it.toJavaType() }
         withUtContext(UtContext(this::class.java.classLoader)) {
-            primitiveWrappers.asSequence().filterNot { it == voidWrapperClassId }.forEach { classId ->
+            primitiveWrappers.asSequence().filterNot { (it as WithClassId).classId == voidWrapperClassId }.forEach { classId ->
                 val result = collect(
                     defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
                     parameters = listOf(classId)
@@ -325,7 +319,7 @@ class ModelProviderTest {
                 assertEquals(1, result.size)
                 result[0]!!.forEach {
                     assertInstanceOf(UtPrimitiveModel::class.java, it)
-                    val expectPrimitiveBecauseItShouldBeGeneratedByDefaultProviders = primitiveByWrapper[classId]
+                    val expectPrimitiveBecauseItShouldBeGeneratedByDefaultProviders = primitiveByWrapper[(classId as WithClassId).classId]
                     assertEquals(expectPrimitiveBecauseItShouldBeGeneratedByDefaultProviders, it.classId)
                 }
             }
@@ -337,11 +331,11 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
-                parameters = listOf(stringClassId),
+                parameters = listOf(JavaString),
                 constants = listOf(
-                    FuzzedConcreteValue(charClassId, 'a'),
-                    FuzzedConcreteValue(charClassId, 'b'),
-                    FuzzedConcreteValue(charClassId, 'c'),
+                    FuzzedConcreteValue(JavaChar, 'a'),
+                    FuzzedConcreteValue(JavaChar, 'b'),
+                    FuzzedConcreteValue(JavaChar, 'c'),
                 )
             )
             assertEquals(1, result.size)
@@ -361,7 +355,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
-                parameters = listOf(A::class.java.id)
+                parameters = listOf(A::class.java.id.toJavaType())
             )
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
@@ -390,7 +384,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0), recursionDepthLeft = 1),
-                parameters = listOf(MyA::class.java.id)
+                parameters = listOf(MyA::class.java.id.toJavaType())
             )
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
@@ -431,7 +425,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
-                parameters = listOf(Outer::class.java.id)
+                parameters = listOf(Outer::class.java.id.toJavaType())
             )
             assertEquals(1, result.size)
             var callCount = 0
@@ -480,7 +474,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0), recursionDepthLeft = 1).apply {
                 modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
-            }, parameters = listOf(FieldSetterClass::class.java.id))
+            }, parameters = listOf(FieldSetterClass::class.java.id.toJavaType()))
             assertEquals(1, result.size)
             assertEquals(2, result[0]!!.size)
             assertEquals(0, (result[0]!![1] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
@@ -508,7 +502,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
                 modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
-            }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
+            }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id.toJavaType())) {
                 packageName = PackagePrivateFieldAndClass::class.java.`package`.name
             }
             assertEquals(1, result.size)
@@ -532,7 +526,7 @@ class ModelProviderTest {
 
             val result = collect(
                 ObjectModelProvider(idGenerator),
-                parameters = listOf(OuterClassWithEnums::class.java.id)
+                parameters = listOf(OuterClassWithEnums::class.java.id.toJavaType())
             )
 
             assertEquals(1, result.size)
@@ -567,7 +561,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 ObjectModelProvider(TestIdentityPreservingIdGenerator),
-                parameters = listOf(WithInnerClass.NonStatic::class.id)
+                parameters = listOf(WithInnerClass.NonStatic::class.id.toJavaType())
             )
             assertEquals(0, result.size)
         }
@@ -578,7 +572,7 @@ class ModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 ObjectModelProvider(TestIdentityPreservingIdGenerator),
-                parameters = listOf(WithInnerClass.Static::class.id)
+                parameters = listOf(WithInnerClass.Static::class.id.toJavaType())
             )
             assertEquals(1, result.size)
             assertTrue(result[0]!!.isNotEmpty())
@@ -593,8 +587,8 @@ class ModelProviderTest {
 internal fun collect(
     modelProvider: ModelProvider,
     name: String = "testMethod",
-    returnType: ClassId = voidClassId,
-    parameters: List<ClassId>,
+    returnType: Type = JavaVoid,
+    parameters: List<Type>,
     constants: List<FuzzedConcreteValue> = emptyList(),
     block: FuzzedMethodDescription.() -> Unit = {}
 ): Map<Int, List<UtModel>> {

@@ -24,6 +24,7 @@ import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.NullModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider.fuzzed
+import org.utbot.fuzzer.types.*
 import java.lang.IllegalArgumentException
 import java.util.concurrent.TimeUnit
 
@@ -69,11 +70,11 @@ class FuzzerTest {
     @Test
     fun `concrete values are created`() {
         val concreteValues = listOf(
-            FuzzedConcreteValue(intClassId, 1),
-            FuzzedConcreteValue(intClassId, 2),
-            FuzzedConcreteValue(intClassId, 3),
+            FuzzedConcreteValue(JavaInt, 1),
+            FuzzedConcreteValue(JavaInt, 2),
+            FuzzedConcreteValue(JavaInt, 3),
         )
-        val fuzz = fuzz(newDescription(listOf(intClassId), concreteValues), ConstantsModelProvider)
+        val fuzz = fuzz(newDescription(listOf(JavaInt), concreteValues), ConstantsModelProvider)
         assertEquals(concreteValues.size, fuzz.count())
         assertEquals(setOf(
             UtPrimitiveModel(1),
@@ -85,17 +86,17 @@ class FuzzerTest {
     @Test
     fun `concrete values are created but filtered`() {
         val concreteValues = listOf(
-            FuzzedConcreteValue(intClassId, 1),
-            FuzzedConcreteValue(intClassId, 2),
-            FuzzedConcreteValue(intClassId, 3),
+            FuzzedConcreteValue(JavaInt, 1),
+            FuzzedConcreteValue(JavaInt, 2),
+            FuzzedConcreteValue(JavaInt, 3),
         )
-        val fuzz = fuzz(newDescription(listOf(charClassId), concreteValues), ConstantsModelProvider)
+        val fuzz = fuzz(newDescription(listOf(JavaChar), concreteValues), ConstantsModelProvider)
         assertEquals(0, fuzz.count())
     }
 
     @Test
     fun `all combinations is found`() {
-        val fuzz = fuzz(newDescription(listOf(booleanClassId, intClassId)), ModelProvider {
+        val fuzz = fuzz(newDescription(listOf(JavaBool, JavaInt)), ModelProvider {
             sequenceOf(
                 FuzzedParameter(0, UtPrimitiveModel(true).fuzzed()),
                 FuzzedParameter(0, UtPrimitiveModel(false).fuzzed()),
@@ -125,36 +126,36 @@ class FuzzerTest {
                 (0 until descr.parameters.size).asSequence()
                     .flatMap { index -> values.map { FuzzedParameter(index, it) } }
             }
-            val parameters = (0 until 7).mapTo(mutableListOf()) { intClassId }
+            val parameters = (0 until 7).mapTo(mutableListOf()) { JavaInt }
             val fuzz = fuzz(newDescription(parameters), provider)
             val first10 = fuzz.take(10).toList()
             assertEquals(10, first10.size)
         }
     }
 
-    private fun defaultTypes(includeStringId: Boolean = false): List<ClassId> {
-        val result = mutableListOf(
-            booleanClassId,
-            byteClassId,
-            charClassId,
-            shortClassId,
-            intClassId,
-            longClassId,
-            floatClassId,
-            doubleClassId,
+    private fun defaultTypes(includeStringId: Boolean = false): List<Type> {
+        val result = mutableListOf<Type>(
+            JavaBool,
+            JavaByte,
+            JavaChar,
+            JavaShort,
+            JavaInt,
+            JavaLong,
+            JavaFloat,
+            JavaDouble,
         )
         if (includeStringId) {
-            result += stringClassId
+            result += JavaString
         }
-        result += Any::class.java.id
+        result += Any::class.java.id.toJavaType()
         return result
     }
 
     private fun newDescription(
-        parameters: List<ClassId>,
+        parameters: List<Type>,
         concreteValues: Collection<FuzzedConcreteValue> = emptyList()
     ): FuzzedMethodDescription {
-        return FuzzedMethodDescription("testMethod", voidClassId, parameters, concreteValues)
+        return FuzzedMethodDescription("testMethod", JavaVoid, parameters, concreteValues)
     }
 
 }

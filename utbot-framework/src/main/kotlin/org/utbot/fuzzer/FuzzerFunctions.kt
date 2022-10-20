@@ -3,18 +3,9 @@ package org.utbot.fuzzer
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.executableId
+import org.utbot.fuzzer.types.*
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType
@@ -135,14 +126,14 @@ private object ConstantsFromIfStatement: ConstantsFinder {
             // in the if statement
             return listOfNotNull(
                 when (local.type) {
-                    is CharType -> FuzzedConcreteValue(charClassId, (exactValue as Int).toChar(), op)
-                    is BooleanType -> FuzzedConcreteValue(booleanClassId, (exactValue == 1), op)
-                    is ByteType -> FuzzedConcreteValue(byteClassId, (exactValue as Int).toByte(), op)
-                    is ShortType -> FuzzedConcreteValue(shortClassId, (exactValue as Int).toShort(), op)
-                    is IntType -> FuzzedConcreteValue(intClassId, exactValue, op)
-                    is LongType -> FuzzedConcreteValue(longClassId, exactValue, op)
-                    is FloatType -> FuzzedConcreteValue(floatClassId, exactValue, op)
-                    is DoubleType -> FuzzedConcreteValue(doubleClassId, exactValue, op)
+                    is CharType -> FuzzedConcreteValue(JavaChar, (exactValue as Int).toChar(), op)
+                    is BooleanType -> FuzzedConcreteValue(JavaBool, (exactValue == 1), op)
+                    is ByteType -> FuzzedConcreteValue(JavaByte, (exactValue as Int).toByte(), op)
+                    is ShortType -> FuzzedConcreteValue(JavaShort, (exactValue as Int).toShort(), op)
+                    is IntType -> FuzzedConcreteValue(JavaInt, exactValue, op)
+                    is LongType -> FuzzedConcreteValue(JavaLong, exactValue, op)
+                    is FloatType -> FuzzedConcreteValue(JavaFloat, exactValue, op)
+                    is DoubleType -> FuzzedConcreteValue(JavaDouble, exactValue, op)
                     else -> null
                 }
             )
@@ -164,10 +155,10 @@ private object ConstantsFromCast: ConstantsFinder {
                 val exactValue = const.plainValue as Number
                 return listOfNotNull(
                     when (value.op.type) {
-                        is ByteType -> FuzzedConcreteValue(byteClassId, exactValue.toByte(), op)
-                        is ShortType -> FuzzedConcreteValue(shortClassId, exactValue.toShort(), op)
-                        is IntType -> FuzzedConcreteValue(intClassId, exactValue.toInt(), op)
-                        is FloatType -> FuzzedConcreteValue(floatClassId, exactValue.toFloat(), op)
+                        is ByteType -> FuzzedConcreteValue(JavaByte, exactValue.toByte(), op)
+                        is ShortType -> FuzzedConcreteValue(JavaShort, exactValue.toShort(), op)
+                        is IntType -> FuzzedConcreteValue(JavaInt, exactValue.toInt(), op)
+                        is FloatType -> FuzzedConcreteValue(JavaFloat, exactValue.toFloat(), op)
                         else -> null
                     }
                 )
@@ -184,12 +175,12 @@ private object ConstantsFromSwitchCase: ConstantsFinder {
         val result = mutableListOf<FuzzedConcreteValue>()
         if (unit is JTableSwitchStmt) {
             for (i in unit.lowIndex..unit.highIndex) {
-                result.add(FuzzedConcreteValue(intClassId, i, FuzzedContext.Comparison.EQ))
+                result.add(FuzzedConcreteValue(JavaInt, i, FuzzedContext.Comparison.EQ))
             }
         }
         if (unit is JLookupSwitchStmt) {
             unit.lookupValues.asSequence().filterIsInstance<IntConstant>().forEach {
-                result.add(FuzzedConcreteValue(intClassId, it.value, FuzzedContext.Comparison.EQ))
+                result.add(FuzzedConcreteValue(JavaInt, it.value, FuzzedContext.Comparison.EQ))
             }
         }
         return result
@@ -202,9 +193,9 @@ private object BoundValuesForDoubleChecks: ConstantsFinder {
         if (value.method.declaringClass.name != "java.lang.Double") return emptyList()
         return when (value.method.name) {
             "isNaN", "isInfinite", "isFinite" -> listOf(
-                FuzzedConcreteValue(doubleClassId, Double.POSITIVE_INFINITY),
-                FuzzedConcreteValue(doubleClassId, Double.NaN),
-                FuzzedConcreteValue(doubleClassId, 0.0),
+                FuzzedConcreteValue(JavaDouble, Double.POSITIVE_INFINITY),
+                FuzzedConcreteValue(JavaDouble, Double.NaN),
+                FuzzedConcreteValue(JavaDouble, 0.0),
             )
             else -> emptyList()
         }
@@ -219,7 +210,7 @@ private object StringConstant: ConstantsFinder {
         if (value.method.declaringClass.name == "java.lang.String") {
             val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
             if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
-                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
+                return listOf(FuzzedConcreteValue(JavaString, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
             }
             val stringConstantWasPassedAsThis = graph.getPredsOf(unit)
                 ?.filterIsInstance<JAssignStmt>()
@@ -228,7 +219,7 @@ private object StringConstant: ConstantsFinder {
                 ?.findFirstInstanceOf<Constant>()
                 ?.plainValue
             if (stringConstantWasPassedAsThis != null && stringConstantWasPassedAsThis is String) {
-                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsThis, FuzzedContext.Call(value.method.executableId)))
+                return listOf(FuzzedConcreteValue(JavaString, stringConstantWasPassedAsThis, FuzzedContext.Call(value.method.executableId)))
             }
         }
         return emptyList()
@@ -246,7 +237,7 @@ private object RegexByVarStringConstant: ConstantsFinder {
         if (value.method.declaringClass.name == "java.util.regex.Pattern") {
             val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
             if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
-                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
+                return listOf(FuzzedConcreteValue(JavaString, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
             }
         }
         return emptyList()
@@ -264,7 +255,7 @@ private object DateFormatByVarStringConstant: ConstantsFinder {
         if (value.method.isConstructor && value.method.declaringClass.name == "java.text.SimpleDateFormat") {
             val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
             if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
-                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
+                return listOf(FuzzedConcreteValue(JavaString, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
             }
         }
         return emptyList()
@@ -274,7 +265,7 @@ private object DateFormatByVarStringConstant: ConstantsFinder {
 private object ConstantsAsIs: ConstantsFinder {
     override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
         if (value !is Constant || value is NullConstant) return emptyList()
-        return listOf(FuzzedConcreteValue(value.type.classId, value.plainValue))
+        return listOf(FuzzedConcreteValue(value.type.classId.toJavaType(), value.plainValue))
 
     }
 
@@ -303,20 +294,20 @@ private fun nextDirectUnit(graph: ExceptionalUnitGraph, unit: Unit): Unit? = gra
 
 fun toFuzzerType(type: Type): FuzzedType {
     return when (type) {
-        is WildcardType -> type.upperBounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(objectClassId)
-        is TypeVariable<*> -> type.bounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(objectClassId)
-        is ParameterizedType -> FuzzedType((type.rawType as Class<*>).id, type.actualTypeArguments.map { toFuzzerType(it) })
+        is WildcardType -> type.upperBounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(JavaObject)
+        is TypeVariable<*> -> type.bounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(JavaObject)
+        is ParameterizedType -> FuzzedType((type.rawType as Class<*>).id.toJavaType(), type.actualTypeArguments.map { toFuzzerType(it) })
         is GenericArrayType -> {
             val genericComponentType = type.genericComponentType
             val fuzzerType = toFuzzerType(genericComponentType)
             val classId = if (genericComponentType !is GenericArrayType) {
-                ClassId("[L${fuzzerType.classId.name};", fuzzerType.classId)
+                ClassId("[L${(fuzzerType.type as WithClassId).classId.name};", (fuzzerType.type as WithClassId).classId)
             } else {
-                ClassId("[" + fuzzerType.classId.name, fuzzerType.classId)
+                ClassId("[" + (fuzzerType.type as WithClassId).classId, (fuzzerType.type as WithClassId).classId)
             }
-            FuzzedType(classId)
+            FuzzedType(classId.toJavaType())
         }
-        is Class<*> -> FuzzedType(type.id)
+        is Class<*> -> FuzzedType(type.id.toJavaType())
         else -> error("Unknown type: $type")
     }
 }

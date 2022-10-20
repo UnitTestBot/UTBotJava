@@ -3,6 +3,8 @@ package org.utbot.python.providers
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.python.*
 import org.utbot.fuzzer.*
+import org.utbot.fuzzer.types.ClassIdWrapper
+import org.utbot.fuzzer.types.WithClassId
 import org.utbot.python.typing.DictAnnotation
 import org.utbot.python.typing.ListAnnotation
 import org.utbot.python.typing.SetAnnotation
@@ -24,8 +26,8 @@ class GenericModelProvider(recursionDepth: Int): PythonModelProvider(recursionDe
 
             val syntheticGenericType = FuzzedMethodDescription(
                 "${description.name}<syntheticGenericList>",
-                pythonNoneClassId,
-                parameters,
+                ClassIdWrapper(pythonNoneClassId),
+                parameters.map { ClassIdWrapper(it) },
                 description.concreteValues
             )
 
@@ -69,7 +71,7 @@ class GenericModelProvider(recursionDepth: Int): PythonModelProvider(recursionDe
         }
 
         description.parametersMap.forEach { (classId, parameterIndices) ->
-            val parsedAnnotation = parseGeneric(classId as NormalizedPythonAnnotation) ?: return@forEach
+            val parsedAnnotation = parseGeneric((classId as WithClassId).classId as NormalizedPythonAnnotation) ?: return@forEach
             parameterIndices.forEach { index ->
                 val generatedModels = when (parsedAnnotation) {
                     is ListAnnotation -> genList(parsedAnnotation, index)

@@ -2,13 +2,13 @@ package org.utbot.framework.plugin.api
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider
+import org.utbot.fuzzer.types.JavaInt
+import org.utbot.fuzzer.types.JavaVoid
 
 class FuzzedValueDescriptionTest {
 
@@ -16,12 +16,12 @@ class FuzzedValueDescriptionTest {
     fun testConstantModelProviderTest() {
         val values = mutableListOf<FuzzedValue>()
         val concreteValues = listOf(
-            FuzzedConcreteValue(intClassId, 10, FuzzedContext.Comparison.EQ),
-            FuzzedConcreteValue(intClassId, 20, FuzzedContext.Comparison.NE),
-            FuzzedConcreteValue(intClassId, 30, FuzzedContext.Comparison.LT),
-            FuzzedConcreteValue(intClassId, 40, FuzzedContext.Comparison.LE),
-            FuzzedConcreteValue(intClassId, 50, FuzzedContext.Comparison.GT),
-            FuzzedConcreteValue(intClassId, 60, FuzzedContext.Comparison.GE),
+            FuzzedConcreteValue(JavaInt, 10, FuzzedContext.Comparison.EQ),
+            FuzzedConcreteValue(JavaInt, 20, FuzzedContext.Comparison.NE),
+            FuzzedConcreteValue(JavaInt, 30, FuzzedContext.Comparison.LT),
+            FuzzedConcreteValue(JavaInt, 40, FuzzedContext.Comparison.LE),
+            FuzzedConcreteValue(JavaInt, 50, FuzzedContext.Comparison.GT),
+            FuzzedConcreteValue(JavaInt, 60, FuzzedContext.Comparison.GE),
         )
         val summaries = listOf(
             "%var% = 10" to 10,
@@ -41,8 +41,8 @@ class FuzzedValueDescriptionTest {
         ConstantsModelProvider.generate(
             FuzzedMethodDescription(
                 name = "name",
-                returnType = voidClassId,
-                parameters = listOf(intClassId),
+                returnType = JavaVoid,
+                parameters = listOf(JavaInt),
                 concreteValues = concreteValues
             )
         ).forEach { (_, value) -> values.add(value) }

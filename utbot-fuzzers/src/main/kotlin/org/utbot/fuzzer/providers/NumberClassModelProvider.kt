@@ -19,6 +19,7 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.objects.create
+import org.utbot.fuzzer.types.*
 import kotlin.random.Random
 
 /**
@@ -29,14 +30,16 @@ class NumberClassModelProvider(
     val random: Random,
 ) : ModelProvider {
     // byteClassId generates bad code because of type cast on method Byte.valueOf
-    private val types = setOf(/*byteClassId,*/ shortClassId, intClassId, longClassId, floatClassId, doubleClassId)
+    private val types: Set<Type> = setOf(/*byteClassId,*/ JavaShort, JavaInt, JavaLong, JavaFloat, JavaDouble)
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        description.parametersMap[Number::class.id]?.forEach { index ->
-            val fuzzedValues = description.concreteValues.filter { types.contains(it.classId) } +
+        description.parametersMap[Number::class.id.toJavaType()]?.forEach { index ->
+            val fuzzedValues = description.concreteValues.filter { types.contains(it.type) } +
                     (-5 until 5).map { FuzzedConcreteValue(types.random(random), it) }
             fuzzedValues.forEach { fuzzedValue ->
-                val targetType = fuzzedValue.classId
+                val type = fuzzedValue.type
+                if (type !is WithClassId) return@forEach
+                val targetType = type.classId
                 check(targetType.isPrimitive) { "$targetType is not primitive value" }
                 val castedValue = castNumberIfPossible(fuzzedValue.value as Number, targetType)
                 val targetValues = listOfNotNull(

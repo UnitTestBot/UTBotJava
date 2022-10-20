@@ -3,21 +3,12 @@ package org.utbot.framework.plugin.api
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.intWrapperClassId
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.primitiveByWrapper
-import org.utbot.framework.plugin.api.util.primitiveWrappers
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.providers.CollectionWithEmptyStatesModelProvider
 import org.utbot.fuzzer.providers.CollectionWithModificationModelProvider
+import org.utbot.fuzzer.types.*
 import java.util.*
 
 class CollectionModelProviderTest {
@@ -29,9 +20,9 @@ class CollectionModelProviderTest {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
                 CollectionWithModificationModelProvider(TestIdentityPreservingIdGenerator),
-                parameters = listOf(Collection::class.id),
+                parameters = listOf(Collection::class.id.toJavaType()),
             ) {
-                fuzzerType = { FuzzedType(Collection::class.id, listOf(FuzzedType(MyInterface::class.id))) }
+                fuzzerType = { FuzzedType(Collection::class.id.toJavaType(), listOf(FuzzedType(MyInterface::class.id.toJavaType()))) }
             }
             assertEquals(1, result.size)
             val models = result[0]!!
@@ -51,9 +42,9 @@ class CollectionModelProviderTest {
                     TestIdentityPreservingIdGenerator,
                     defaultModificationCount = modifications
                 ),
-                parameters = listOf(Collection::class.id),
+                parameters = listOf(Collection::class.id.toJavaType()),
             ) {
-                fuzzerType = { FuzzedType(Collection::class.id, listOf(FuzzedType(objectClassId))) }
+                fuzzerType = { FuzzedType(Collection::class.id.toJavaType(), listOf(FuzzedType(JavaObject))) }
             }
             assertEquals(1, result.size)
             val models = result[0]!!
@@ -77,9 +68,9 @@ class CollectionModelProviderTest {
                 ).apply {
                     totalLimit = 1
                 },
-                parameters = listOf(Collection::class.id),
+                parameters = listOf(Collection::class.id.toJavaType()),
             ) {
-                fuzzerType = { FuzzedType(Collection::class.id, listOf(FuzzedType(intWrapperClassId))) }
+                fuzzerType = { FuzzedType(Collection::class.id.toJavaType(), listOf(FuzzedType(intWrapperClassId.toJavaType()))) }
             }
             assertEquals(1, result.size)
             val models = result[0]!!
@@ -90,7 +81,7 @@ class CollectionModelProviderTest {
                 val modificationsChain = (model as UtAssembleModel).modificationsChain
                 assertEquals(expectedModifications, modificationsChain.size)
                 val statementModel = modificationsChain[0]
-                testStatementIsAsSimpleAddIntToCollection(ArrayList::class.id, statementModel)
+                testStatementIsAsSimpleAddIntToCollection(ArrayList::class.id.toJavaType(), statementModel)
             }
         }
     }
@@ -109,12 +100,12 @@ class CollectionModelProviderTest {
                         .exceptIsInstance<CollectionWithEmptyStatesModelProvider>()
                     totalLimit = 1
                 },
-                parameters = listOf(Collection::class.id),
+                parameters = listOf(Collection::class.id.toJavaType()),
             ) {
                 fuzzerType = {
-                    FuzzedType(Collection::class.id, listOf(
-                            FuzzedType(Set::class.id, listOf(
-                                    FuzzedType(intWrapperClassId)
+                    FuzzedType(Collection::class.id.toJavaType(), listOf(
+                            FuzzedType(Set::class.id.toJavaType(), listOf(
+                                    FuzzedType(JavaInt)
                             ))
                     ))
                 }
@@ -141,29 +132,31 @@ class CollectionModelProviderTest {
                 assertEquals(HashSet::class.id, innerType.classId)
                 assertEquals(1, innerType.modificationsChain.size)
                 statementModel = innerType.modificationsChain[0]
-                testStatementIsAsSimpleAddIntToCollection(HashSet::class.id, statementModel)
+                testStatementIsAsSimpleAddIntToCollection(HashSet::class.id.toJavaType(), statementModel)
             }
         }
     }
 
-    private fun testStatementIsAsSimpleAddIntToCollection(collectionId: ClassId, statementModel: UtStatementModel) {
-        testStatementIsAsSimpleAddGenericSimpleTypeToCollection(collectionId, intWrapperClassId, statementModel)
+    private fun testStatementIsAsSimpleAddIntToCollection(collectionId: Type, statementModel: UtStatementModel) {
+        testStatementIsAsSimpleAddGenericSimpleTypeToCollection(collectionId, intWrapperClassId.toJavaType(), statementModel)
     }
 
-    private fun testStatementIsAsSimpleAddGenericSimpleTypeToCollection(collectionId: ClassId, genericId: ClassId, statementModel: UtStatementModel) {
-        assertTrue(primitiveWrappers.contains(genericId)) { "This test works only with primitive wrapper types" }
+    val primitiveWrapperTypes = primitiveWrappers.map { it.toJavaType() }
+
+    private fun testStatementIsAsSimpleAddGenericSimpleTypeToCollection(collectionId: Type, genericId: Type, statementModel: UtStatementModel) {
+        assertTrue(primitiveWrapperTypes.contains(genericId)) { "This test works only with primitive wrapper types" }
         assertTrue(statementModel is UtExecutableCallModel)
         statementModel as UtExecutableCallModel
         assertEquals(
-            MethodId(collectionId, "add", booleanClassId, listOf(objectClassId)),
+            MethodId((collectionId as WithClassId).classId, "add", booleanClassId, listOf(objectClassId)),
             statementModel.executable
         )
         assertEquals(1, statementModel.params.size)
         val classModel = statementModel.params[0]
         assertTrue(classModel is UtPrimitiveModel)
         classModel as UtPrimitiveModel
-        assertEquals(primitiveByWrapper[genericId], classModel.classId)
-        assertTrue(genericId.jClass.isAssignableFrom(classModel.value::class.java))
+        assertEquals(primitiveByWrapper[(genericId as WithClassId).classId], classModel.classId)
+        assertTrue((genericId as WithClassId).classId.jClass.isAssignableFrom(classModel.value::class.java))
     }
 
     @Test
@@ -177,9 +170,9 @@ class CollectionModelProviderTest {
                 ).apply {
                     totalLimit = 1
                 },
-                parameters = listOf(Map::class.id),
+                parameters = listOf(Map::class.id.toJavaType()),
             ) {
-                fuzzerType = { FuzzedType(Map::class.id, listOf(FuzzedType(intWrapperClassId), FuzzedType(stringClassId))) }
+                fuzzerType = { FuzzedType(Map::class.id.toJavaType(), listOf(FuzzedType(JavaInt), FuzzedType(JavaString))) }
             }
             assertEquals(1, result.size)
             val models = result[0]!!
@@ -190,16 +183,16 @@ class CollectionModelProviderTest {
                 val modificationsChain = (model as UtAssembleModel).modificationsChain
                 assertEquals(expectedModifications, modificationsChain.size)
                 val statementModel = modificationsChain[0]
-                testStatementIsAsSimpleAddIntStringToMap(HashMap::class.id, statementModel)
+                testStatementIsAsSimpleAddIntStringToMap(HashMap::class.id.toJavaType(), statementModel)
             }
         }
     }
 
-    private fun testStatementIsAsSimpleAddIntStringToMap(collectionId: ClassId, statementModel: UtStatementModel) {
+    private fun testStatementIsAsSimpleAddIntStringToMap(collectionId: Type, statementModel: UtStatementModel) {
         assertTrue(statementModel is UtExecutableCallModel)
         statementModel as UtExecutableCallModel
         assertEquals(
-            MethodId(collectionId, "put", objectClassId, listOf(objectClassId, objectClassId)),
+            MethodId((collectionId as WithClassId).classId, "put", objectClassId, listOf(objectClassId, objectClassId)),
             statementModel.executable
         )
         assertEquals(2, statementModel.params.size)
@@ -211,35 +204,35 @@ class CollectionModelProviderTest {
         val stringClassModel = statementModel.params[1]
         assertTrue(stringClassModel is UtPrimitiveModel)
         stringClassModel as UtPrimitiveModel
-        assertEquals(stringClassId, stringClassModel.classId)
+        assertEquals(JavaString.classId, stringClassModel.classId)
         assertTrue(stringClassModel.value is String)
     }
 
     ///region REGRESSION TESTS
     @Test
     fun lists() {
-        testExpectedCollectionIsCreatedWithCorrectGenericType(Collection::class.id, ArrayList::class.id, intWrapperClassId)
-        testExpectedCollectionIsCreatedWithCorrectGenericType(List::class.id, ArrayList::class.id, intWrapperClassId)
-        testExpectedCollectionIsCreatedWithCorrectGenericType(Stack::class.id, Stack::class.id, intWrapperClassId)
-        testExpectedCollectionIsCreatedWithCorrectGenericType(java.util.Deque::class.id, java.util.ArrayDeque::class.id, intWrapperClassId)
-        testExpectedCollectionIsCreatedWithCorrectGenericType(Queue::class.id, java.util.ArrayDeque::class.id, intWrapperClassId)
+        testExpectedCollectionIsCreatedWithCorrectGenericType(Collection::class.id.toJavaType(), ArrayList::class.id.toJavaType(), intWrapperClassId.toJavaType())
+        testExpectedCollectionIsCreatedWithCorrectGenericType(List::class.id.toJavaType(), ArrayList::class.id.toJavaType(), intWrapperClassId.toJavaType())
+        testExpectedCollectionIsCreatedWithCorrectGenericType(Stack::class.id.toJavaType(), Stack::class.id.toJavaType(), intWrapperClassId.toJavaType())
+        testExpectedCollectionIsCreatedWithCorrectGenericType(java.util.Deque::class.id.toJavaType(), java.util.ArrayDeque::class.id.toJavaType(), intWrapperClassId.toJavaType())
+        testExpectedCollectionIsCreatedWithCorrectGenericType(Queue::class.id.toJavaType(), java.util.ArrayDeque::class.id.toJavaType(), intWrapperClassId.toJavaType())
     }
 
     @Test
     fun sets() {
-        testExpectedCollectionIsCreatedWithCorrectGenericType(Set::class.id, HashSet::class.id, intWrapperClassId)
-        testExpectedCollectionIsCreatedWithCorrectGenericType(SortedSet::class.id, TreeSet::class.id, intWrapperClassId)
-        testExpectedCollectionIsCreatedWithCorrectGenericType(NavigableSet::class.id, TreeSet::class.id, intWrapperClassId)
+        testExpectedCollectionIsCreatedWithCorrectGenericType(Set::class.id.toJavaType(), HashSet::class.id.toJavaType(), intWrapperClassId.toJavaType())
+        testExpectedCollectionIsCreatedWithCorrectGenericType(SortedSet::class.id.toJavaType(), TreeSet::class.id.toJavaType(), intWrapperClassId.toJavaType())
+        testExpectedCollectionIsCreatedWithCorrectGenericType(NavigableSet::class.id.toJavaType(), TreeSet::class.id.toJavaType(), intWrapperClassId.toJavaType())
     }
 
     class ConcreteClass<T> : LinkedList<T>()
 
     @Test
     fun `concrete class is created`() {
-        testExpectedCollectionIsCreatedWithCorrectGenericType(ConcreteClass::class.id, ConcreteClass::class.id, intWrapperClassId)
+        testExpectedCollectionIsCreatedWithCorrectGenericType(ConcreteClass::class.id.toJavaType(), ConcreteClass::class.id.toJavaType(), intWrapperClassId.toJavaType())
     }
 
-    private fun testExpectedCollectionIsCreatedWithCorrectGenericType(collectionId: ClassId, expectedId: ClassId, genericId: ClassId) {
+    private fun testExpectedCollectionIsCreatedWithCorrectGenericType(collectionId: Type, expectedId: Type, genericId: Type) {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val modifications = intArrayOf(1)
             val result = collect(

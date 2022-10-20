@@ -1,14 +1,12 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedType
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
-import org.utbot.fuzzer.fuzzNumbers
+import org.utbot.fuzzer.*
+import org.utbot.fuzzer.types.JavaArray
+import org.utbot.fuzzer.types.Type
+import org.utbot.fuzzer.types.WithClassId
 
 class ArrayModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
@@ -25,27 +23,29 @@ class ArrayModelProvider(
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,
         parameterIndex: Int,
-        classId: ClassId,
+        type: Type,
     ): Sequence<ModelConstructor> = sequence {
-        if (!classId.isArray) return@sequence
+        if (type !is JavaArray) return@sequence
         val lengths = fuzzNumbers(description.concreteValues, 0, 3) { it in 1..10 }.toList()
         lengths.forEach { length ->
-            yield(ModelConstructor(listOf(FuzzedType(classId.elementClassId!!)), repeat = length) { values ->
-                createFuzzedArrayModel(classId, length, values.map { it.model } )
+            yield(ModelConstructor(listOf(FuzzedType(type.elementType)), repeat = length) { values ->
+                createFuzzedArrayModel(type, length, values.map { it.model } )
             }.apply {
                 limit = (totalLimit / lengths.size).coerceAtLeast(1)
             })
         }
     }
 
-    private fun createFuzzedArrayModel(arrayClassId: ClassId, length: Int, values: List<UtModel>?) =
-        UtArrayModel(
+    private fun createFuzzedArrayModel(arrayType: JavaArray, length: Int, values: List<UtModel>?): FuzzedValue {
+        val elementClassId = (arrayType.elementType as WithClassId).classId
+        return UtArrayModel(
             idGenerator.createId(),
-            arrayClassId,
+            arrayType.classId,
             length,
-            arrayClassId.elementClassId!!.defaultValueModel(),
+            elementClassId.defaultValueModel(),
             values?.withIndex()?.associate { it.index to it.value }?.toMutableMap() ?: mutableMapOf()
         ).fuzzed {
-            this.summary = "%var% = ${arrayClassId.elementClassId!!.simpleName}[$length]"
+            this.summary = "%var% = ${elementClassId.simpleName}[$length]"
         }
+    }
 }

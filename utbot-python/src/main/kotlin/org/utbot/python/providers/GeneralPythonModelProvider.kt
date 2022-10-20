@@ -4,6 +4,9 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.python.pythonAnyClassId
 import org.utbot.fuzzer.*
+import org.utbot.fuzzer.types.ClassIdWrapper
+import org.utbot.fuzzer.types.Type
+import org.utbot.fuzzer.types.WithClassId
 
 val defaultPythonModelProvider = getDefaultPythonModelProvider(recursionDepth = 4)
 
@@ -23,7 +26,7 @@ abstract class PythonModelProvider(protected val recursionDepth: Int): ModelProv
             PythonFuzzedMethodDescription(
                 description.name,
                 description.returnType,
-                description.parameters.map { (it as? NormalizedPythonAnnotation) ?: pythonAnyClassId },
+                description.parameters.map { ((it as WithClassId).classId as? NormalizedPythonAnnotation) ?: pythonAnyClassId },
                 description.concreteValues
             )
         )
@@ -33,10 +36,10 @@ abstract class PythonModelProvider(protected val recursionDepth: Int): ModelProv
 
 class PythonFuzzedMethodDescription(
     name: String,
-    returnType: ClassId,
+    returnType: Type,
     parameters: List<NormalizedPythonAnnotation>,
     concreteValues: Collection<FuzzedConcreteValue> = emptyList()
-): FuzzedMethodDescription(name, returnType, parameters, concreteValues)
+): FuzzedMethodDescription(name, returnType, parameters.map { ClassIdWrapper(it) }, concreteValues)
 
 fun substituteTypesByIndex(
     description: PythonFuzzedMethodDescription,

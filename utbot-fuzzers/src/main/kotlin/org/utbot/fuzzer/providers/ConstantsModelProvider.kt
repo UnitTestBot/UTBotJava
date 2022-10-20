@@ -8,6 +8,8 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.isJavaPrimitive
+import org.utbot.fuzzer.types.toJavaType
 
 /**
  * Traverses through method constants and creates appropriate models for them.
@@ -17,15 +19,15 @@ object ConstantsModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
-            .filter { (classId, _) -> classId.isPrimitive }
+            .filter { (type, _) -> type.isJavaPrimitive() }
             .forEach { (_, value, op) ->
                 sequenceOf(
                     UtPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
-                    modifyValue(value, op as FuzzedContext)
+                    modifyValue(value, op)
                 )
                     .filterNotNull()
                     .forEach { m ->
-                        description.parametersMap.getOrElse(m.model.classId) { emptyList() }.forEach { index ->
+                        description.parametersMap.getOrElse(m.model.classId.toJavaType()) { emptyList() }.forEach { index ->
                             yieldValue(index, m)
                         }
                     }

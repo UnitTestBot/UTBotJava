@@ -11,6 +11,7 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.WithClassId
 
 object JsPrimitivesModelProvider : ModelProvider {
 
@@ -20,7 +21,7 @@ object JsPrimitivesModelProvider : ModelProvider {
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap.forEach { (classId, parameterIndices) ->
-            val primitives = matchClassId(classId as JsClassId)
+            val primitives = matchClassId((classId as WithClassId).classId as JsClassId)
             primitives.forEach { model ->
                 parameterIndices.forEach { index ->
                     yieldValue(index, model)

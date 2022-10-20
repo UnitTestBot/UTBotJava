@@ -5,7 +5,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.dateClassId
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -13,7 +12,6 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedType
@@ -25,6 +23,9 @@ import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.hex
 import org.utbot.fuzzer.objects.assembleModel
+import org.utbot.fuzzer.types.JavaVoid
+import org.utbot.fuzzer.types.WithClassId
+import org.utbot.fuzzer.types.toJavaType
 
 class DateConstantModelProvider(
     private val idGenerator: IdentityPreservingIdGenerator<Int>,
@@ -57,7 +58,7 @@ class DateConstantModelProvider(
                         constructor.parameters.all { it == intClassId || it == longClassId }
             }.map { constructorId ->
                 with(constructorId) {
-                    ModelConstructor(parameters.map(::FuzzedType)) { assembleModel(idGenerator.createId(), constructorId, it) }
+                    ModelConstructor(parameters.map { it.toJavaType() }.map(::FuzzedType)) { assembleModel(idGenerator.createId(), constructorId, it) }
                 }
             }.sortedBy { it.neededTypes.size }
 
@@ -65,7 +66,7 @@ class DateConstantModelProvider(
             constructorsFromNumbers.forEach { constructor ->
                 yieldAll(
                     fuzzValues(
-                        constructor.neededTypes.map(FuzzedType::classId),
+                        constructor.neededTypes.map(FuzzedType::type).map { (it as WithClassId).classId },
                         baseMethodDescription,
                         defaultModelProviders(idGenerator)
                     ).map(constructor.createModel)
@@ -79,7 +80,7 @@ class DateConstantModelProvider(
     ): Sequence<FuzzedValue> {
         val strings = baseMethodDescription.concreteValues
             .asSequence()
-            .filter { it.classId == stringClassId }
+            .filter { it.type == stringClassId }
             .map { it.value as String }
             .distinct()
         val formats = strings.filter { it.isDateFormat() } + defaultDateFormat
@@ -100,7 +101,7 @@ class DateConstantModelProvider(
     }
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> {
-        val parameters = description.parametersMap[dateClassId]
+        val parameters = description.parametersMap[dateClassId.toJavaType()]
         if (parameters.isNullOrEmpty()) {
             return emptySequence()
         }
@@ -123,8 +124,8 @@ class DateConstantModelProvider(
             return sequenceOf(listOf())
         val syntheticMethodDescription = FuzzedMethodDescription(
             "<synthetic method for DateModelProvider>", // TODO: maybe add more info here
-            voidClassId,
-            types,
+            JavaVoid,
+            types.map { it.toJavaType() },
             baseMethodDescription.concreteValues
         ).apply {
             packageName = baseMethodDescription.packageName

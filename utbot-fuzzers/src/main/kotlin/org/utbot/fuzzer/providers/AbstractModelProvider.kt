@@ -5,6 +5,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.Type
 
 /**
  * Simple model implementation.
@@ -12,8 +13,8 @@ import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 @Suppress("unused")
 abstract class AbstractModelProvider: ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence{
-        description.parametersMap.forEach { (classId, indices) ->
-            toModel(classId)?.let { defaultModel ->
+        description.parametersMap.forEach { (type, indices) ->
+            toModel(type)?.let { defaultModel ->
                 indices.forEach { index ->
                     yieldValue(index, defaultModel.fuzzed())
                 }
@@ -21,5 +22,5 @@ abstract class AbstractModelProvider: ModelProvider {
         }
     }
 
-    abstract fun toModel(classId: ClassId): UtModel?
+    abstract fun toModel(type: Type): UtModel?
 }

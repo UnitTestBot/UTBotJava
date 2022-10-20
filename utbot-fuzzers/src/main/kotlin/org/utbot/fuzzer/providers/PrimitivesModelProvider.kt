@@ -7,51 +7,52 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.*
 
 /**
  * Produces bound values for primitive types.
  */
 object PrimitivesModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        description.parametersMap.forEach { (classId, parameterIndices) ->
-            val primitives: List<FuzzedValue> = when (classId) {
-                booleanClassId -> listOf(
+        description.parametersMap.forEach { (type, parameterIndices) ->
+            val primitives: List<FuzzedValue> = when (type) {
+                JavaBool -> listOf(
                     UtPrimitiveModel(false).fuzzed { summary = "%var% = false" },
                     UtPrimitiveModel(true).fuzzed { summary = "%var% = true" }
                 )
-                charClassId -> listOf(
+                JavaChar -> listOf(
                     UtPrimitiveModel(Char.MIN_VALUE).fuzzed { summary = "%var% = Char.MIN_VALUE" },
                     UtPrimitiveModel(Char.MAX_VALUE).fuzzed { summary = "%var% = Char.MAX_VALUE" },
                 )
-                byteClassId -> listOf(
+                JavaByte -> listOf(
                     UtPrimitiveModel(0.toByte()).fuzzed { summary = "%var% = 0" },
                     UtPrimitiveModel(1.toByte()).fuzzed { summary = "%var% > 0" },
                     UtPrimitiveModel((-1).toByte()).fuzzed { summary = "%var% < 0" },
                     UtPrimitiveModel(Byte.MIN_VALUE).fuzzed { summary = "%var% = Byte.MIN_VALUE" },
                     UtPrimitiveModel(Byte.MAX_VALUE).fuzzed { summary = "%var% = Byte.MAX_VALUE" },
                 )
-                shortClassId -> listOf(
+                JavaShort -> listOf(
                     UtPrimitiveModel(0.toShort()).fuzzed { summary = "%var% = 0" },
                     UtPrimitiveModel(1.toShort()).fuzzed { summary = "%var% > 0" },
                     UtPrimitiveModel((-1).toShort()).fuzzed { summary = "%var% < 0" },
                     UtPrimitiveModel(Short.MIN_VALUE).fuzzed { summary = "%var% = Short.MIN_VALUE" },
                     UtPrimitiveModel(Short.MAX_VALUE).fuzzed { summary = "%var% = Short.MAX_VALUE" },
                 )
-                intClassId -> listOf(
+                JavaInt -> listOf(
                     UtPrimitiveModel(0).fuzzed { summary = "%var% = 0" },
                     UtPrimitiveModel(1).fuzzed { summary = "%var% > 0" },
                     UtPrimitiveModel((-1)).fuzzed { summary = "%var% < 0" },
                     UtPrimitiveModel(Int.MIN_VALUE).fuzzed { summary = "%var% = Int.MIN_VALUE" },
                     UtPrimitiveModel(Int.MAX_VALUE).fuzzed { summary = "%var% = Int.MAX_VALUE" },
                 )
-                longClassId -> listOf(
+                JavaLong -> listOf(
                     UtPrimitiveModel(0L).fuzzed { summary = "%var% = 0L" },
                     UtPrimitiveModel(1L).fuzzed { summary = "%var% > 0L" },
                     UtPrimitiveModel(-1L).fuzzed { summary = "%var% < 0L" },
                     UtPrimitiveModel(Long.MIN_VALUE).fuzzed { summary = "%var% = Long.MIN_VALUE" },
                     UtPrimitiveModel(Long.MAX_VALUE).fuzzed { summary = "%var% = Long.MAX_VALUE" },
                 )
-                floatClassId -> listOf(
+                JavaFloat -> listOf(
                     UtPrimitiveModel(0.0f).fuzzed { summary = "%var% = 0f" },
                     UtPrimitiveModel(1.1f).fuzzed { summary = "%var% > 0f" },
                     UtPrimitiveModel(-1.1f).fuzzed { summary = "%var% < 0f" },
@@ -61,7 +62,7 @@ object PrimitivesModelProvider : ModelProvider {
                     UtPrimitiveModel(Float.POSITIVE_INFINITY).fuzzed { summary = "%var% = Float.POSITIVE_INFINITY" },
                     UtPrimitiveModel(Float.NaN).fuzzed { summary = "%var% = Float.NaN" },
                 )
-                doubleClassId -> listOf(
+                JavaDouble -> listOf(
                     UtPrimitiveModel(0.0).fuzzed { summary = "%var% = 0.0" },
                     UtPrimitiveModel(1.1).fuzzed { summary = "%var% > 0.0" },
                     UtPrimitiveModel(-1.1).fuzzed { summary = "%var% < 0.0" },
@@ -71,7 +72,7 @@ object PrimitivesModelProvider : ModelProvider {
                     UtPrimitiveModel(Double.POSITIVE_INFINITY).fuzzed { summary = "%var% = Double.POSITIVE_INFINITY" },
                     UtPrimitiveModel(Double.NaN).fuzzed { summary = "%var% = Double.NaN" },
                 )
-                stringClassId -> listOf(
+                JavaString -> listOf(
                     UtPrimitiveModel("").fuzzed { summary = "%var% = empty string" },
                     UtPrimitiveModel("   ").fuzzed { summary = "%var% = blank string" },
                     UtPrimitiveModel("string").fuzzed { summary = "%var% != empty string" },

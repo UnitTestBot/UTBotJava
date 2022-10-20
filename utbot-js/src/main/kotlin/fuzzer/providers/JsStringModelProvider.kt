@@ -7,6 +7,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.types.WithClassId
 import kotlin.random.Random
 
 object JsStringModelProvider : ModelProvider {
@@ -16,7 +17,7 @@ object JsStringModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
-            .filter { (classId, _) -> classId.toJsClassId() == jsStringClassId }
+            .filter { (classId, _) -> (classId as WithClassId).classId.toJsClassId() == jsStringClassId }
             .forEach { (_, value, op) ->
                 listOf(value, mutate(random, value as? String, op as FuzzedOp))
                     .asSequence()

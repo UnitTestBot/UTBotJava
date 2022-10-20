@@ -16,14 +16,15 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzer.types.*
 
 /**
  * Provides default values for primitive types.
  */
 object PrimitiveDefaultsModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        description.parametersMap.forEach { (classId, parameterIndices) ->
-            valueOf(classId)?.let { model ->
+        description.parametersMap.forEach { (type, parameterIndices) ->
+            valueOf(type)?.let { model ->
                 parameterIndices.forEach { index ->
                     yieldValue(index, model)
                 }
@@ -31,16 +32,16 @@ object PrimitiveDefaultsModelProvider : ModelProvider {
         }
     }
 
-    fun valueOf(classId: ClassId): FuzzedValue? = when (classId) {
-        booleanClassId -> UtPrimitiveModel(false).fuzzed { summary = "%var% = false" }
-        byteClassId -> UtPrimitiveModel(0.toByte()).fuzzed { summary = "%var% = 0" }
-        charClassId -> UtPrimitiveModel('\u0000').fuzzed { summary = "%var% = \u0000" }
-        shortClassId -> UtPrimitiveModel(0.toShort()).fuzzed { summary = "%var% = 0" }
-        intClassId -> UtPrimitiveModel(0).fuzzed { summary = "%var% = 0" }
-        longClassId -> UtPrimitiveModel(0L).fuzzed { summary = "%var% = 0L" }
-        floatClassId -> UtPrimitiveModel(0.0f).fuzzed { summary = "%var% = 0f" }
-        doubleClassId -> UtPrimitiveModel(0.0).fuzzed { summary = "%var% = 0.0" }
-        stringClassId -> UtPrimitiveModel("").fuzzed { summary = "%var% = \"\"" }
+    fun valueOf(classId: Type): FuzzedValue? = when (classId) {
+        JavaBool -> UtPrimitiveModel(false).fuzzed { summary = "%var% = false" }
+        JavaByte -> UtPrimitiveModel(0.toByte()).fuzzed { summary = "%var% = 0" }
+        JavaChar -> UtPrimitiveModel('\u0000').fuzzed { summary = "%var% = \u0000" }
+        JavaShort -> UtPrimitiveModel(0.toShort()).fuzzed { summary = "%var% = 0" }
+        JavaInt -> UtPrimitiveModel(0).fuzzed { summary = "%var% = 0" }
+        JavaLong -> UtPrimitiveModel(0L).fuzzed { summary = "%var% = 0L" }
+        JavaFloat -> UtPrimitiveModel(0.0f).fuzzed { summary = "%var% = 0f" }
+        JavaDouble -> UtPrimitiveModel(0.0).fuzzed { summary = "%var% = 0.0" }
+        JavaString -> UtPrimitiveModel("").fuzzed { summary = "%var% = \"\"" }
         else -> null
     }
 }

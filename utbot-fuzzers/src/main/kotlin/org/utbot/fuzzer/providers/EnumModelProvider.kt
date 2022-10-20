@@ -7,14 +7,17 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
+import org.utbot.fuzzer.types.WithClassId
 
 class EnumModelProvider(private val idGenerator: IdentityPreservingIdGenerator<Int>) : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap
             .asSequence()
-            .filter { (classId, _) -> classId.jClass.isEnum }
-            .forEach { (classId, indices) ->
-                yieldAllValues(indices, classId.jClass.enumConstants.filterIsInstance<Enum<*>>().map {
+            .filter { (type, _) -> type is WithClassId && type.classId.jClass.isEnum }
+            .forEach { (type, indices) ->
+                val classId = (type as WithClassId).classId
+                val jClass = classId.jClass
+                yieldAllValues(indices, jClass.enumConstants.filterIsInstance<Enum<*>>().map {
                     val id = idGenerator.getOrCreateIdForValue(it)
                     UtEnumConstantModel(id, classId, it).fuzzed { summary = "%var% = ${it.name}" }
                 })

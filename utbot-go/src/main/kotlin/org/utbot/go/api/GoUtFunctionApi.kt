@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.go.GoClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.types.Type
 import java.io.File
 import java.nio.file.Paths
 
@@ -31,7 +32,9 @@ data class GoUtFunction(
         else GoSyntheticMultipleTypesId(resultTypes)
 
     fun toFuzzedMethodDescription() =
-        FuzzedMethodDescription(name, resultTypesAsGoClassId, parametersTypes, concreteValues).apply {
+//        FuzzedMethodDescription(name, resultTypesAsGoClassId, parametersTypes, concreteValues).apply {
+        // todo fix fuzzer
+        FuzzedMethodDescription(name, Type(emptyList()), emptyList(), concreteValues).apply {
             compilableName = name
             val names = parametersNames
             parameterNameMap = { index -> names.getOrNull(index) }

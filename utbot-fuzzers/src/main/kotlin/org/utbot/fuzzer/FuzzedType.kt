@@ -1,6 +1,7 @@
 package org.utbot.fuzzer
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.fuzzer.types.Type
 
 /**
  * Contains information about classId and generic types, that should be applied.
@@ -15,6 +16,6 @@ import org.utbot.framework.plugin.api.ClassId
  * @see ClassId.typeParameters
  */
 class FuzzedType(
-    val classId: ClassId,
+    val type: Type,
     val generics: List<FuzzedType> = emptyList()
 )

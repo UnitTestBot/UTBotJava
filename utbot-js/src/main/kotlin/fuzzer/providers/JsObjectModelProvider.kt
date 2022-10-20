@@ -14,6 +14,8 @@ import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.SimpleIdGenerator
 import org.utbot.fuzzer.TooManyCombinationsException
 import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.types.ClassIdWrapper
+import org.utbot.fuzzer.types.WithClassId
 
 object JsObjectModelProvider : ModelProvider {
 
@@ -30,7 +32,7 @@ object JsObjectModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         val fuzzedValues = with(description) {
             parameters.asSequence()
-                .filterNot { (it as JsClassId).isJsBasic }
+                .filterNot { ((it as WithClassId).classId as JsClassId).isJsBasic }
                 .map { classId ->
                     val constructor = (classId as JsClassId).allConstructors.first() as JsConstructorId
                     constructor
@@ -43,7 +45,7 @@ object JsObjectModelProvider : ModelProvider {
                 }
         }
         fuzzedValues.forEach { fuzzedValue ->
-            description.parametersMap[fuzzedValue.model.classId]?.forEach { index ->
+            description.parametersMap[ClassIdWrapper(fuzzedValue.model.classId)]?.forEach { index ->
                 yieldValue(index, fuzzedValue)
             }
         }
@@ -68,7 +70,9 @@ object JsObjectModelProvider : ModelProvider {
         vararg modelProviders: ModelProvider
     ): Sequence<List<FuzzedValue>> {
         val fuzzedMethod = FuzzedMethodDescription(
-            executableId = constructorId,
+            name = constructorId.name,
+            returnType = ClassIdWrapper(constructorId.returnType),
+            parameters = constructorId.parameters.map(::ClassIdWrapper),
             concreteValues = this.concreteValues
         ).apply {
             this.packageName = this@fuzzParameters.packageName

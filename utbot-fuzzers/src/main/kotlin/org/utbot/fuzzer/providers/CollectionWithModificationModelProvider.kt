@@ -12,6 +12,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.fuzzNumbers
 import org.utbot.fuzzer.objects.create
+import org.utbot.fuzzer.types.*
 
 class CollectionWithModificationModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
@@ -28,30 +29,30 @@ class CollectionWithModificationModelProvider(
     // because suitable info is searched by the list.
     private val modifications = listOf(
         // SETS
-        Info(java.util.NavigableSet::class.id, java.util.TreeSet::class.id, "add", listOf(objectClassId), booleanClassId) {
-            it.size == 1 && it[0].classId.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
+        Info(java.util.NavigableSet::class.id.toJavaType(), java.util.TreeSet::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool) {
+            it.size == 1 && it[0].type.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
         },
-        Info(java.util.SortedSet::class.id, java.util.TreeSet::class.id, "add", listOf(objectClassId), booleanClassId) {
-            it.size == 1 && it[0].classId.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
+        Info(java.util.SortedSet::class.id.toJavaType(), java.util.TreeSet::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool) {
+            it.size == 1 && it[0].type.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
         },
-        Info(java.util.Set::class.id, java.util.HashSet::class.id, "add", listOf(objectClassId), booleanClassId),
+        Info(java.util.Set::class.id.toJavaType(), java.util.HashSet::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool),
         // QUEUES
-        Info(java.util.Queue::class.id, java.util.ArrayDeque::class.id, "add", listOf(objectClassId), booleanClassId),
-        Info(java.util.Deque::class.id, java.util.ArrayDeque::class.id, "add", listOf(objectClassId), booleanClassId),
-        Info(java.util.Stack::class.id, java.util.Stack::class.id, "push", listOf(objectClassId), booleanClassId),
+        Info(java.util.Queue::class.id.toJavaType(), java.util.ArrayDeque::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool),
+        Info(java.util.Deque::class.id.toJavaType(), java.util.ArrayDeque::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool),
+        Info(java.util.Stack::class.id.toJavaType(), java.util.Stack::class.id.toJavaType(), "push", listOf(JavaObject), JavaBool),
         // LISTS
-        Info(java.util.List::class.id, java.util.ArrayList::class.id, "add", listOf(objectClassId), booleanClassId),
+        Info(java.util.List::class.id.toJavaType(), java.util.ArrayList::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool),
         // MAPS
-        Info(java.util.NavigableMap::class.id, java.util.TreeMap::class.id, "put", listOf(objectClassId, objectClassId), objectClassId) {
-            it.size == 2 && it[0].classId.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
+        Info(java.util.NavigableMap::class.id.toJavaType(), java.util.TreeMap::class.id.toJavaType(), "put", listOf(JavaObject, JavaObject), JavaObject) {
+            it.size == 2 && it[0].type.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
         },
-        Info(java.util.SortedMap::class.id, java.util.TreeMap::class.id, "put", listOf(objectClassId, objectClassId), objectClassId) {
-            it.size == 2 && it[0].classId.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
+        Info(java.util.SortedMap::class.id.toJavaType(), java.util.TreeMap::class.id.toJavaType(), "put", listOf(JavaObject, JavaObject), JavaObject) {
+            it.size == 2 && it[0].type.isSubtypeOfWithReflection(java.lang.Comparable::class.id)
         },
-        Info(java.util.Map::class.id, java.util.HashMap::class.id, "put", listOf(objectClassId, objectClassId), objectClassId),
+        Info(java.util.Map::class.id.toJavaType(), java.util.HashMap::class.id.toJavaType(), "put", listOf(JavaObject, JavaObject), JavaObject),
         // ITERABLE
-        Info(java.util.Collection::class.id, java.util.ArrayList::class.id, "add", listOf(objectClassId), booleanClassId),
-        Info(java.lang.Iterable::class.id, java.util.ArrayList::class.id, "add", listOf(objectClassId), booleanClassId),
+        Info(java.util.Collection::class.id.toJavaType(), java.util.ArrayList::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool),
+        Info(java.lang.Iterable::class.id.toJavaType(), java.util.ArrayList::class.id.toJavaType(), "add", listOf(JavaObject), JavaBool),
     )
     private var modificationCount = 7
 
@@ -69,18 +70,20 @@ class CollectionWithModificationModelProvider(
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,
         parameterIndex: Int,
-        classId: ClassId,
+        type: Type,
     ): Sequence<ModelConstructor> {
-
-        val info: Info? = if (!classId.isAbstract) {
+        if (type !is WithClassId) {
+            return emptySequence()
+        }
+        val info: Info? = if (!type.classId.isAbstract) {
             when {
-                classId.isSubtypeOfWithReflection(Collection::class.id) -> Info(classId, classId, "add", listOf(objectClassId), booleanClassId)
-                classId.isSubtypeOfWithReflection(Map::class.id) -> Info(classId, classId, "put", listOf(objectClassId, objectClassId), objectClassId)
+                type.isSubtypeOfWithReflection(Collection::class.id) -> Info(type, type, "add", listOf(JavaObject), JavaBool)
+                type.isSubtypeOfWithReflection(Map::class.id) -> Info(type, type, "put", listOf(JavaObject, JavaObject), JavaObject)
                 else -> null
             }
         } else {
             modifications.find {
-                classId == it.superClass
+                type == it.superClass
             }
         }
 
@@ -95,7 +98,7 @@ class CollectionWithModificationModelProvider(
                 }
                 lengths.map { length ->
                     ModelConstructor(genericTypes, repeat = length) { values ->
-                        info.assembleModel(info.concreteClass, values)
+                        info.assembleModel((info.concreteClass as WithClassId).classId, values)
                     }
                 }
             } else {
@@ -115,8 +118,8 @@ class CollectionWithModificationModelProvider(
                 .forEach { each ->
                     call instance method(
                         methodName,
-                        params,
-                        returnType
+                        params.map { (it as WithClassId).classId },
+                        (returnType as WithClassId).classId
                     ) with values(*Array(paramCount) { each[it].model })
                 }
         }.fuzzed {
@@ -125,17 +128,18 @@ class CollectionWithModificationModelProvider(
     }
 
     private class Info(
-        val superClass: ClassId,
-        val concreteClass: ClassId,
+        val superClass: Type,
+        val concreteClass: Type,
         val methodName: String,
-        val params: List<ClassId>,
-        val returnType: ClassId = voidClassId,
+        val params: List<Type>,
+        val returnType: Type,
         val canModify: (List<FuzzedType>) -> Boolean = { true }
     )
 
-    private fun ClassId.isSubtypeOfWithReflection(another: ClassId): Boolean {
+    private fun Type.isSubtypeOfWithReflection(another: ClassId): Boolean {
+        if (this !is WithClassId) return false
         // commented code above doesn't work this case: SomeList<T> extends LinkedList<T> {} and Collection
 //        return isSubtypeOf(another)
-        return another.jClass.isAssignableFrom(this.jClass)
+        return another.jClass.isAssignableFrom(classId.jClass)
     }
 }

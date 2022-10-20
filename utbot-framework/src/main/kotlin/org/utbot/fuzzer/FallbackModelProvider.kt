@@ -9,7 +9,6 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -21,8 +20,9 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.fuzzer.providers.AbstractModelProvider
+import org.utbot.fuzzer.types.Type
+import org.utbot.fuzzer.types.WithClassId
 import java.util.*
-import java.util.function.IntSupplier
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.reflect.KClass
@@ -36,11 +36,10 @@ open class FallbackModelProvider(
     private val idGenerator: IdGenerator<Int>
 ): AbstractModelProvider() {
 
-    override fun toModel(classId: ClassId): UtModel {
-        return createModelByClassId(classId)
+    override fun toModel(type: Type): UtModel {
+        if (type !is WithClassId) error("This provider works only with classId. Override method to create custom model")
+        return createModelByClassId(type.classId)
     }
-
-    fun toModel(klazz: KClass<*>): UtModel = createSimpleModelByKClass(klazz)
 
     private fun createModelByClassId(classId: ClassId): UtModel {
         val modelConstructor = UtModelConstructor(IdentityHashMap())

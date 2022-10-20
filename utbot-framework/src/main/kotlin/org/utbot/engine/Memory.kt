@@ -109,6 +109,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         mkLong(value = 0L), // TODO there is no way to create a custom BV in UTBot
         UtArraySort(indexSort = UtAddrSort, itemSort = UtLongSort)
     ),
+    private val taintAnalysisAlreadyFoundSomething: UtBoolExpression = UtFalse,
     private val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     val chunkIds: Set<ChunkId>
@@ -119,6 +120,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun mocks(): List<MockInfoEnriched> = mockInfos
 
     fun staticFields(): Map<FieldId, FieldStates> = staticFieldsStates.filterKeys { it in meaningfulStaticFields }
+
+    fun doesTaintAnalysisFoundSomething(): UtBoolExpression = taintAnalysisAlreadyFoundSomething
 
     /**
      * Construct the mapping from addresses to sets of fields whose values are read during the code execution
@@ -271,6 +274,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads),
             speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses,
             taintArray = updTaintArray,
+            taintAnalysisAlreadyFoundSomething = mkOr(taintAnalysisAlreadyFoundSomething, update.taintAnalysisFoundSomething),
             symbolicEnumValues = symbolicEnumValues.addAll(update.symbolicEnumValues)
         )
     }
@@ -371,6 +375,7 @@ data class MemoryUpdate(
     val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
     val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
     val taintArrayUpdate: PersistentList<Pair<UtAddrExpression, UtExpression>> = persistentListOf(),
+    val taintAnalysisFoundSomething: UtBoolExpression = UtFalse,
     val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =
@@ -391,6 +396,7 @@ data class MemoryUpdate(
             instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads),
             speculativelyNotNullAddresses = speculativelyNotNullAddresses.addAll(other.speculativelyNotNullAddresses),
             taintArrayUpdate = taintArrayUpdate.addAll(other.taintArrayUpdate),
+            taintAnalysisFoundSomething = mkOr(taintAnalysisFoundSomething, other.taintAnalysisFoundSomething),
             symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
 

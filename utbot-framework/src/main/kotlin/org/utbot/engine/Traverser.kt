@@ -3347,6 +3347,9 @@ class Traverser(
         )
         // Note that we do not add negation of the condition leading to an exception.
         // It is required to find further usages of the same `tainted` data in the following instructions
+
+        val memoryUpdate = MemoryUpdate(taintAnalysisFoundSomething = mkAnd(condition, notNullCondition))
+        queuedSymbolicStateUpdates += SymbolicStateUpdate(memoryUpdates = memoryUpdate)
     }
 
     private fun TraversalContext.processTaintSanitizer(
@@ -3777,6 +3780,11 @@ class Traverser(
         val isNotNullableResult = environment.method.returnValueHasNotNullAnnotation()
         if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue && isNotNullableResult) {
             queuedSymbolicStateUpdates += mkNot(mkEq(symbolicResult.value.addr, nullObjectAddr)).asHardConstraint()
+        }
+
+        if (!environment.state.isInNestedMethod()) {
+            val isSuccess = if (symbolicResult is SymbolicSuccess) UtTrue else UtFalse
+            queuedSymbolicStateUpdates += mkOr(mkNot(memory.doesTaintAnalysisFoundSomething()), mkNot(isSuccess)).asHardConstraint()
         }
 
         val symbolicState = environment.state.symbolicState + queuedSymbolicStateUpdates

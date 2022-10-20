@@ -479,9 +479,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private val okOptionAction: OKOptionAction get() = OKOptionAction(model, super.getOKAction())
-    override fun getOKAction() = okOptionAction
+
+    //    override fun getOKAction() = okOptionAction
+    override fun getOKAction(): Action {
+        return super.getOKAction().also {
+            it.putValue(Action.NAME, ACTION_GENERATE)
+        }
+    }
 
     override fun doOKAction() {
+        model.runGeneratedTestsWithCoverage = false
         model.testPackageName =
             if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
 

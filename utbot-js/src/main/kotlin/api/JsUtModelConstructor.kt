@@ -7,13 +7,13 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.JsEmptyClassId
-import org.utbot.framework.plugin.api.js.JsNullModel
-import org.utbot.framework.plugin.api.js.JsPrimitiveModel
-import org.utbot.framework.plugin.api.js.JsUndefinedModel
-import org.utbot.framework.plugin.api.js.util.jsErrorClassId
-import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
+import framework.api.js.JsClassId
+import framework.api.js.JsEmptyClassId
+import framework.api.js.JsNullModel
+import framework.api.js.JsPrimitiveModel
+import framework.api.js.JsUndefinedModel
+import framework.api.js.util.jsErrorClassId
+import framework.api.js.util.jsUndefinedClassId
 
 class JsUtModelConstructor : UtModelConstructorInterface {
 

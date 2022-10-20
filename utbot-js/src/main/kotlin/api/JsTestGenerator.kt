@@ -20,11 +20,11 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.JsMethodId
-import org.utbot.framework.plugin.api.js.JsMultipleClassId
-import org.utbot.framework.plugin.api.js.util.isJsBasic
-import org.utbot.framework.plugin.api.js.util.jsErrorClassId
+import framework.api.js.JsClassId
+import framework.api.js.JsMethodId
+import framework.api.js.JsMultipleClassId
+import framework.api.js.util.isJsBasic
+import framework.api.js.util.jsErrorClassId
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue

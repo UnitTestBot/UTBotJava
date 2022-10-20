@@ -6,7 +6,7 @@ import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.*
+import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 

@@ -19,7 +19,7 @@ import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.js.JsClassId
+import framework.api.js.JsClassId
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 class JsCodeGenerator(
@@ -37,7 +37,7 @@ class JsCodeGenerator(
         paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = MockFramework.MOCKITO,
-        codegenLanguage = CodegenLanguage.JS,
+        codegenLanguage = CodegenLanguage.defaultItem,
         cgLanguageAssistant = JsCgLanguageAssistant,
         parametrizedTestSource = ParametrizedTestSource.defaultItem,
         staticsMocking = StaticsMocking.defaultItem,

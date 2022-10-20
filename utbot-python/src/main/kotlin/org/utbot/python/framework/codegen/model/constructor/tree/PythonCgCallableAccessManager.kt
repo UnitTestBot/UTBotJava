@@ -8,8 +8,8 @@ import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.PythonMethodId
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.PythonMethodId
+import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 

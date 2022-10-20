@@ -25,8 +25,8 @@ import org.utbot.python.*
 import org.utbot.python.utils.moduleOfType
 import java.util.*
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.PythonClassId
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
 
 private val logger = KotlinLogging.logger {}
 

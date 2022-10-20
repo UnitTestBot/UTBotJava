@@ -4,9 +4,9 @@ import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.util.jsErrorClassId
-import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
+import framework.api.js.JsClassId
+import framework.api.js.util.jsErrorClassId
+import framework.api.js.util.jsUndefinedClassId
 
 
 object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {

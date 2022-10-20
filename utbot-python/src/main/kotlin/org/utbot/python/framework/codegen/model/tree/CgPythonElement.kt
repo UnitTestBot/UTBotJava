@@ -3,7 +3,7 @@ package org.utbot.python.framework.codegen.model.tree
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.visitor.CgVisitor
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.*
+import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonVisitor
 
 interface CgPythonElement : CgElement {

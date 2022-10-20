@@ -2,12 +2,12 @@ package utils
 
 import org.json.JSONException
 import org.json.JSONObject
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.util.jsBooleanClassId
-import org.utbot.framework.plugin.api.js.util.jsErrorClassId
-import org.utbot.framework.plugin.api.js.util.jsNumberClassId
-import org.utbot.framework.plugin.api.js.util.jsStringClassId
-import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
+import framework.api.js.JsClassId
+import framework.api.js.util.jsBooleanClassId
+import framework.api.js.util.jsErrorClassId
+import framework.api.js.util.jsNumberClassId
+import framework.api.js.util.jsStringClassId
+import framework.api.js.util.jsUndefinedClassId
 
 fun String.toJsAny(returnType: JsClassId): Pair<Any?, JsClassId> {
     return when {

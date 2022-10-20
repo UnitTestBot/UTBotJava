@@ -1,4 +1,4 @@
-package org.utbot.framework.plugin.api.python.util
+package org.utbot.python.framework.api.python.util
 
 
 fun moduleOfType(typeName: String): String? {

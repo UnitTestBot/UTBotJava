@@ -5,7 +5,7 @@ import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.*
+import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(context_) {

@@ -1,6 +1,6 @@
 package org.utbot.python.typing
 
-import org.utbot.framework.plugin.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.utils.AnnotationNormalizer
 
 object StubFileStructures {

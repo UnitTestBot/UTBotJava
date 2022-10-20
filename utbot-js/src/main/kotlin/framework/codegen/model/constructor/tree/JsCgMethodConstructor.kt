@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.js.JsClassId
+import framework.api.js.JsClassId
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.voidClassId

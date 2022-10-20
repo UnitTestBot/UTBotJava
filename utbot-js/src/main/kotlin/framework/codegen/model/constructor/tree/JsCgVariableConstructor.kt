@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.js.JsPrimitiveModel
+import framework.api.js.JsPrimitiveModel
 
 class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
 

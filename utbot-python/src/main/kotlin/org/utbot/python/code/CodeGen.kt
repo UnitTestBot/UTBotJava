@@ -28,8 +28,8 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.As
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.python.*
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 

@@ -1,9 +1,9 @@
 package fuzzer.providers
 
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.JsPrimitiveModel
-import org.utbot.framework.plugin.api.js.util.isJsPrimitive
-import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
+import framework.api.js.JsClassId
+import framework.api.js.JsPrimitiveModel
+import framework.api.js.util.isJsPrimitive
+import framework.api.js.util.jsUndefinedClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter

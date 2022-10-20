@@ -27,10 +27,10 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.As
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.apache.commons.lang3.math.NumberUtils
-import org.utbot.framework.plugin.api.python.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.python.PythonMethod
+import org.utbot.python.framework.api.python.*
 import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger

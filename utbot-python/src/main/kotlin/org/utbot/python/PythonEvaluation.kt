@@ -2,9 +2,9 @@ package org.utbot.python
 
 import com.beust.klaxon.Klaxon
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.PythonClassId
-import org.utbot.framework.plugin.api.python.PythonTree
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator

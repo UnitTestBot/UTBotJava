@@ -1,6 +1,6 @@
 package org.utbot.go.api
 
-import org.utbot.framework.plugin.api.go.GoClassId
+import org.utbot.go.framework.api.go.GoClassId
 
 /**
  * Represents real Go type.

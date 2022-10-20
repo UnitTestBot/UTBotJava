@@ -2,7 +2,7 @@
 
 package org.utbot.go.api
 
-import org.utbot.framework.plugin.api.go.GoUtModel
+import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.api.util.goFloat64TypeId
 import org.utbot.go.api.util.neverRequiresExplicitCast
 

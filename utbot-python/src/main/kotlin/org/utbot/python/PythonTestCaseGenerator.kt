@@ -3,8 +3,8 @@ package org.utbot.python
 import mu.KotlinLogging
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations

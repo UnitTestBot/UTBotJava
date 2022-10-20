@@ -4,9 +4,9 @@ import com.oracle.js.parser.ir.ClassNode
 import com.oracle.js.parser.ir.FunctionNode
 import org.json.JSONException
 import org.json.JSONObject
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.JsMultipleClassId
-import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
+import framework.api.js.JsClassId
+import framework.api.js.JsMultipleClassId
+import framework.api.js.util.jsUndefinedClassId
 import parser.JsParserUtils
 import utils.JsCmdExec
 import utils.MethodTypes

@@ -1,7 +1,7 @@
 package org.utbot.go.simplecodegeneration
 
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.go.GoUtModel
+import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
 import org.utbot.go.util.goRequiredImports

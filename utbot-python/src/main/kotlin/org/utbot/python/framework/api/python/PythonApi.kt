@@ -1,10 +1,10 @@
-package org.utbot.framework.plugin.api.python
+package org.utbot.python.framework.api.python
 
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.python.util.moduleOfType
+import org.utbot.python.framework.api.python.util.moduleOfType
 
 /**
  * PythonClassId represents Python type.

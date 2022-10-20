@@ -2,8 +2,8 @@ package org.utbot.python.typing
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.PythonClassId
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
 
 object StubFileFinder {
     val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()

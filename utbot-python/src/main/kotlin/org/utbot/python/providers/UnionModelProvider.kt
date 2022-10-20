@@ -1,7 +1,7 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.fuzzer.FuzzedParameter
 
 class UnionModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {

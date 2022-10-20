@@ -1,7 +1,7 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.python.PythonInitObjectModel
-import org.utbot.framework.plugin.api.python.PythonModel
+import org.utbot.python.framework.api.python.PythonInitObjectModel
+import org.utbot.python.framework.api.python.PythonModel
 import org.utbot.fuzzer.*
 import org.utbot.python.typing.PythonTypesStorage
 

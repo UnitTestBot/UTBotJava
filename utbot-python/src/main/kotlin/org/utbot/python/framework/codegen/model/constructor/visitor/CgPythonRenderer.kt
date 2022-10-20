@@ -10,9 +10,9 @@ import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.PythonClassId
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
-import org.utbot.framework.plugin.api.python.pythonBuiltinsModuleName
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.codegen.model.tree.*
 
 internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
@@ -27,8 +27,6 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override val logicalOr: String
         get() = "or"
-
-    override val language: CodegenLanguage = CodegenLanguage.PYTHON
 
     override val langPackage: String = "python"
 

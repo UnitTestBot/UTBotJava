@@ -31,6 +31,7 @@ import com.intellij.util.IncorrectOperationException
 import com.intellij.util.ui.JBUI
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
+import org.jetbrains.kotlin.config.TestSourceKotlinRootType
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
@@ -229,7 +230,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
             contentEntry.addSourceRootIfAbsent(
                 modifiableModel,
                 testSourceRoot.url,
-                CodegenLanguage.JS.testRootType()
+                TestSourceKotlinRootType
             )
             return true
         } finally {

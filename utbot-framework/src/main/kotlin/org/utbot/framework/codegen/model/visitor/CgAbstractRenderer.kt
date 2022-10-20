@@ -116,8 +116,6 @@ abstract class CgAbstractRenderer(
     protected open val regionStart: String = "///region"
     protected open val regionEnd: String = "///endregion"
 
-    protected abstract val language: CodegenLanguage
-
     protected abstract val langPackage: String
 
     // We may render array elements in initializer in one line or in separate lines:

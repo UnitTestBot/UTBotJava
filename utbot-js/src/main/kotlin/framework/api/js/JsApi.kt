@@ -1,11 +1,11 @@
-package org.utbot.framework.plugin.api.js
+package framework.api.js
 
 import java.lang.reflect.Modifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.js.util.toJsClassId
+import framework.api.js.util.toJsClassId
 import org.utbot.framework.plugin.api.primitiveModelValueToClassId
 
 open class JsClassId(

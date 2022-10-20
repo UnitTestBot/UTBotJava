@@ -2,10 +2,10 @@ package utils
 
 import com.oracle.js.parser.ir.ClassNode
 import com.oracle.js.parser.ir.FunctionNode
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.JsConstructorId
-import org.utbot.framework.plugin.api.js.JsMethodId
-import org.utbot.framework.plugin.api.js.util.jsUndefinedClassId
+import framework.api.js.JsClassId
+import framework.api.js.JsConstructorId
+import framework.api.js.JsMethodId
+import framework.api.js.util.jsUndefinedClassId
 import service.TernService
 
 fun JsClassId.constructClass(

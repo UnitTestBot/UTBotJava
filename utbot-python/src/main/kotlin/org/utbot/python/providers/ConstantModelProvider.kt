@@ -1,7 +1,7 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.python.PythonClassId
-import org.utbot.framework.plugin.api.python.PythonPrimitiveModel
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonPrimitiveModel
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue

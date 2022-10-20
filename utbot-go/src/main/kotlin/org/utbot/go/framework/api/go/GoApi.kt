@@ -1,4 +1,4 @@
-package org.utbot.framework.plugin.api.go
+package org.utbot.go.framework.api.go
 
 import org.utbot.framework.plugin.api.*
 

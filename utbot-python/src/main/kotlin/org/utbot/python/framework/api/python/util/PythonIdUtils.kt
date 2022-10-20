@@ -1,6 +1,6 @@
-package org.utbot.framework.plugin.api.python.util
+package org.utbot.python.framework.api.python.util
 
-import org.utbot.framework.plugin.api.python.*
+import org.utbot.python.framework.api.python.*
 
 // none annotation can be used in code only since Python 3.10
 val pythonNoneClassId = PythonClassId("types.NoneType")

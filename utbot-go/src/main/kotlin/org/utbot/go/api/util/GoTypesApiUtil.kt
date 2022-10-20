@@ -1,6 +1,6 @@
 package org.utbot.go.api.util
 
-import org.utbot.framework.plugin.api.go.GoClassId
+import org.utbot.go.framework.api.go.GoClassId
 import org.utbot.go.api.GoTypeId
 import kotlin.reflect.KClass
 

@@ -1,6 +1,6 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.python.PythonDefaultModel
+import org.utbot.python.framework.api.python.PythonDefaultModel
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.python.typing.PythonTypesStorage
 

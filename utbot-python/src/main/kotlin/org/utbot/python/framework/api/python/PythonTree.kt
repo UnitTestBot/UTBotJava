@@ -1,4 +1,4 @@
-package org.utbot.framework.plugin.api.python
+package org.utbot.python.framework.api.python
 
 object PythonTree {
     open class PythonTreeNode(

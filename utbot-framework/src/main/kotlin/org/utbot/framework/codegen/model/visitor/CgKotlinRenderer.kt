@@ -49,7 +49,6 @@ import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.id
@@ -68,8 +67,6 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override val logicalOr: String
         get() = "or"
-
-    override val language: CodegenLanguage = CodegenLanguage.KOTLIN
 
     override val langPackage: String = "kotlin"
 

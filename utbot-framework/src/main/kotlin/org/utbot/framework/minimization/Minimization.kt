@@ -2,9 +2,6 @@ package org.utbot.framework.minimization
 
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.go.GoUtModel
-import org.utbot.framework.plugin.api.js.JsUtModel
-import org.utbot.framework.plugin.api.python.PythonModel
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -229,9 +226,6 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
             1 + instantiationCall.calculateSize(used) + modificationsChain.sumOf { it.calculateSize(used) }
         }
         is UtCompositeModel -> 1 + fields.values.sumOf { it.calculateSize(used) }
-        is PythonModel -> TODO()
-        is GoUtModel -> TODO()
-        is JsUtModel -> TODO()
         is UtLambdaModel -> 1 + capturedValues.sumOf { it.calculateSize(used) }
         // PythonModel, GoUtModel, JsUtModel may go here
         else -> 0

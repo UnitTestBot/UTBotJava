@@ -1,8 +1,8 @@
 package org.utbot.python.utils
 
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.PythonClassId
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.pythonAnyClassId
 import java.io.File
 
 

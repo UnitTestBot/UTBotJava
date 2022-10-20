@@ -2,9 +2,9 @@ package org.utbot.python.framework.codegen.model
 
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.PythonClassId
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
-import org.utbot.framework.plugin.api.python.pythonNoneClassId
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.pythonNoneClassId
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId

@@ -7,8 +7,8 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.python.pythonAnyClassId
-import org.utbot.framework.plugin.api.python.pythonBoolClassId
+import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.pythonBoolClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.framework.codegen.model.tree.CgPythonAssertEquals

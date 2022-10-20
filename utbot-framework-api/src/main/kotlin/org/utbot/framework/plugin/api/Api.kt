@@ -1248,9 +1248,7 @@ enum class CodegenLanguage(
     @Suppress("unused") override val description: String = "Generate unit tests in $displayName"
 ) : CodeGenerationSettingItem {
     JAVA(id = "Java", displayName = "Java"),
-    KOTLIN(id = "Kotlin", displayName = "Kotlin (experimental)"),
-    JS(id = "JavaScript",  displayName = "JavaScript"),
-    PYTHON(id = "Python", displayName = "Python");
+    KOTLIN(id = "Kotlin", displayName = "Kotlin (experimental)");
 
     enum class OperatingSystem {
         WINDOWS,
@@ -1275,21 +1273,18 @@ enum class CodegenLanguage(
         get() = when (this) {
             JAVA -> listOf(System.getenv("JAVA_HOME"), "bin", "javac")
             KOTLIN -> listOf(System.getenv("KOTLIN_HOME"), "bin", kotlinCompiler)
-            else -> throw UnsupportedOperationException()
         }.joinToString(File.separator)
 
     val extension: String
         get() = when (this) {
             JAVA -> ".java"
             KOTLIN -> ".kt"
-            else -> throw UnsupportedOperationException()
         }
 
     val executorInvokeCommand: String
         get() = when (this) {
             JAVA -> listOf(System.getenv("JAVA_HOME"), "bin", "java")
             KOTLIN -> listOf(System.getenv("JAVA_HOME"), "bin", "java")
-            else -> throw UnsupportedOperationException()
         }.joinToString(File.separator)
 
     override fun toString(): String = id
@@ -1303,7 +1298,6 @@ enum class CodegenLanguage(
             ).plus(sourcesFiles)
 
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
-            else -> throw UnsupportedOperationException()
         }
         if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {
             throw RuntimeException("'KOTLIN_HOME' environment variable is not defined. Standard location is {IDEA installation dir}/plugins/Kotlin/kotlinc")

@@ -3,8 +3,8 @@ package org.utbot.python.code
 import com.beust.klaxon.JsonArray
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
-import org.utbot.framework.plugin.api.python.PythonClassId
-import org.utbot.framework.plugin.api.python.PythonTree
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonTree
 
 class KlaxonPythonTreeParser(
     jsonString: String

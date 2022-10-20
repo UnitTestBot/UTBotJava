@@ -3,9 +3,9 @@ package fuzzer.providers
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.js.JsClassId
-import org.utbot.framework.plugin.api.js.JsConstructorId
-import org.utbot.framework.plugin.api.js.util.isJsBasic
+import framework.api.js.JsClassId
+import framework.api.js.JsConstructorId
+import framework.api.js.util.isJsBasic
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue

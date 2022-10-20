@@ -1,8 +1,8 @@
 package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.python.*
 import org.utbot.fuzzer.*
+import org.utbot.python.framework.api.python.*
 import org.utbot.python.typing.DictAnnotation
 import org.utbot.python.typing.ListAnnotation
 import org.utbot.python.typing.SetAnnotation

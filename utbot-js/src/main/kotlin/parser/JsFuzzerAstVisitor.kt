@@ -7,9 +7,9 @@ import com.oracle.js.parser.ir.LiteralNode
 import com.oracle.js.parser.ir.Node
 import com.oracle.js.parser.ir.visitor.NodeVisitor
 import com.oracle.truffle.api.strings.TruffleString
-import org.utbot.framework.plugin.api.js.util.jsBooleanClassId
-import org.utbot.framework.plugin.api.js.util.jsNumberClassId
-import org.utbot.framework.plugin.api.js.util.jsStringClassId
+import framework.api.js.util.jsBooleanClassId
+import framework.api.js.util.jsNumberClassId
+import framework.api.js.util.jsStringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedOp
 

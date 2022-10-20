@@ -1,6 +1,6 @@
 package org.utbot.python.typing
 
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 
 fun parseGeneric(annotation: NormalizedPythonAnnotation): GenericAnnotation? =
     ListAnnotation.parse(annotation)

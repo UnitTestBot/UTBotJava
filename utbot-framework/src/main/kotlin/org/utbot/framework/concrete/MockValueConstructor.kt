@@ -44,10 +44,6 @@ import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
-import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.go.GoUtModel
-import org.utbot.framework.plugin.api.js.JsUtModel
-import org.utbot.framework.plugin.api.python.PythonModel
 import org.utbot.engine.util.lambda.CapturedArgument
 import org.utbot.engine.util.lambda.constructLambda
 import org.utbot.engine.util.lambda.constructStaticLambda

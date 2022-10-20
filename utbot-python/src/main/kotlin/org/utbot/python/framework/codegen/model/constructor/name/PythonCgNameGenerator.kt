@@ -6,8 +6,8 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.python.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.python.util.toSnakeCase
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.util.toSnakeCase
 
 class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(context_) {
 

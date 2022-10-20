@@ -4,8 +4,8 @@ import com.oracle.js.parser.ir.ClassNode
 import com.oracle.truffle.api.strings.TruffleString
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.js.JsMethodId
-import org.utbot.framework.plugin.api.js.JsPrimitiveModel
+import framework.api.js.JsMethodId
+import framework.api.js.JsPrimitiveModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import settings.JsTestGenerationSettings

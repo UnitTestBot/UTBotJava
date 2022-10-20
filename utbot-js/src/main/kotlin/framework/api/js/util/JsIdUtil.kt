@@ -1,7 +1,7 @@
-package org.utbot.framework.plugin.api.js.util
+package framework.api.js.util
 
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.js.JsClassId
+import framework.api.js.JsClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.doubleClassId

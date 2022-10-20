@@ -11,7 +11,6 @@ import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.util.isStatic
 import settings.JsTestGenerationSettings.fileUnderTestAliases
@@ -26,8 +25,6 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
     override val logicalOr: String
         get() = "||"
-
-    override val language: CodegenLanguage = CodegenLanguage.JS
 
     override val langPackage: String = "js"
 

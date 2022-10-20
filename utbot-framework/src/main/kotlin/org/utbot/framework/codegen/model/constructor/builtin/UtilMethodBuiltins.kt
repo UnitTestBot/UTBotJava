@@ -270,7 +270,7 @@ internal val utUtilsClassId: ClassId
     get() = BuiltinClassId(
         canonicalName = "org.utbot.runtime.utils.UtUtils",
         simpleName = "UtUtils",
-        isFinal = true
+        isFinal = true,
     )
 
 /**

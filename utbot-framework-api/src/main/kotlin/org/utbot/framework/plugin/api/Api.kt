@@ -878,6 +878,8 @@ class BuiltinClassId(
     elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
+    // set name manually only if it differs from canonical (e.g. for nested classes)
+    name: String = canonicalName,
     // by default, we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
     override val isNullable: Boolean = false,
@@ -905,7 +907,10 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name = canonicalName, isNullable = isNullable, elementClassId = elementClassId) {
+) : ClassId(
+    name = name,
+    elementClassId = elementClassId
+) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }
@@ -923,7 +928,6 @@ class BuiltinClassId(
         fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
     }
 }
-
 enum class FieldIdStrategyValues {
     Reflection,
     Soot

@@ -296,7 +296,7 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
 
     override val parameterizedTestAnnotationId: ClassId = BuiltinClassId(
         canonicalName = "$mainPackage.annotations.Test",
-        simpleName = "Test"
+        simpleName = "Test",
     )
 
     override val methodSourceAnnotationId: ClassId = BuiltinClassId(

@@ -16,13 +16,6 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 
-internal val mockitoBuiltins: Set<MethodId>
-    get() = setOf(
-        mockMethodId, whenMethodId, thenMethodId, thenReturnMethodId,
-        any, anyOfClass, anyByte, anyChar, anyShort, anyInt, anyLong,
-        anyFloat, anyDouble, anyBoolean, anyString
-    )
-
 internal val mockitoClassId = BuiltinClassId(
     canonicalName = "org.mockito.Mockito",
     simpleName = "Mockito",
@@ -44,9 +37,10 @@ internal val argumentMatchersClassId = BuiltinClassId(
 )
 
 internal val mockedConstructionContextClassId = BuiltinClassId(
-    canonicalName = "org.mockito.MockedConstruction.Context", // TODO use $ as a delimiter of outer and nested classes?
+    canonicalName = "org.mockito.MockedConstruction.Context",
     simpleName = "Context",
-    isNested = true
+    name = "org.mockito.MockedConstruction\$Context",
+    isNested = true,
 )
 
 internal val mockMethodId = builtinStaticMethodId(

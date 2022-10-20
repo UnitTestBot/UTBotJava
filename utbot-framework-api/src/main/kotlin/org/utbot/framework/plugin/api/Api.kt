@@ -909,7 +909,8 @@ class BuiltinClassId(
         },
 ) : ClassId(
     name = name,
-    elementClassId = elementClassId
+    elementClassId = elementClassId,
+    isNullable = isNullable,
 ) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this

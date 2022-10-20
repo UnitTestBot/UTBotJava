@@ -10,8 +10,9 @@ object StubFileReader {
         modules: List<String>,
         pythonPath: String,
     ): String {
-        val scriptContent = StubFileFinder::class.java.getResource(scriptPath)?.readText() ?: error("Didn't find $scriptPath")
-        val scriptFile = TemporaryFileManager.createTemporaryFile(scriptContent, tag="stub_file_reader")
+        val scriptContent =
+            StubFileFinder::class.java.getResource(scriptPath)?.readText() ?: error("Didn't find $scriptPath")
+        val scriptFile = TemporaryFileManager.createTemporaryFile(scriptContent, tag = "stub_file_reader")
 
         val command =
             listOf(

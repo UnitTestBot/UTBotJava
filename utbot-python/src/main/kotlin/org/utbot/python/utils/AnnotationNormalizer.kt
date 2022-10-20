@@ -2,7 +2,7 @@ package org.utbot.python.utils
 
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import java.io.File
 
 

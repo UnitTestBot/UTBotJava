@@ -6,12 +6,12 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.io.filefilter.NameFileFilter
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.code.ClassInfoCollector
 import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonModule
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.utils.AnnotationNormalizer
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 import org.utbot.python.utils.checkIfFileLiesInPath
@@ -97,7 +97,7 @@ object PythonTypesStorage {
                     fromStub.fields.map { it.name }.toSet()
                 )
             } else {
-                projectClasses.find { it.name.name == classIdName } ?.let { projectClass ->
+                projectClasses.find { it.name.name == classIdName }?.let { projectClass ->
                     PythonClassIdInfo(
                         projectClass.name,
                         projectClass.initAnnotation,
@@ -163,7 +163,7 @@ object PythonTypesStorage {
                 )
 
             getPythonFiles(pathFile).map { Pair(getModuleNameWithoutCheck(pathFile, it), it) }
-        } .distinctBy { it.second }
+        }.distinctBy { it.second }
 
         filesToVisit.forEach { (module, file) ->
             val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
@@ -191,7 +191,7 @@ object PythonTypesStorage {
 
         logger.debug("Updating info from stub files")
 
-        updateStubFiles(newModules.map { it.name } .toList())
+        updateStubFiles(newModules.map { it.name }.toList())
         projectModules = projectModulesSet.toList()
     }
 
@@ -213,11 +213,12 @@ object PythonTypesStorage {
 
     private object TypesFromJSONStorage {
         val preprocessedTypes: List<PreprocessedValueFromJSON>
+
         init {
             val typesAsString = PythonTypesStorage::class.java.getResource("/preprocessed_values.json")
                 ?.readText(Charsets.UTF_8)
                 ?: error("Didn't find preprocessed_values.json")
-            preprocessedTypes =  Klaxon().parseArray(typesAsString) ?: emptyList()
+            preprocessedTypes = Klaxon().parseArray(typesAsString) ?: emptyList()
         }
 
         val typeNameMap: Map<String, PreprocessedValueFromJSON> by lazy {

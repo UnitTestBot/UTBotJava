@@ -23,7 +23,7 @@ sealed class GenericAnnotation {
 
 class ListAnnotation(
     val elemAnnotation: NormalizedPythonAnnotation
-): GenericAnnotation() {
+) : GenericAnnotation() {
 
     override val args: List<NormalizedPythonAnnotation>
         get() = listOf(elemAnnotation)
@@ -47,7 +47,7 @@ class ListAnnotation(
 class DictAnnotation(
     val keyAnnotation: NormalizedPythonAnnotation,
     val valueAnnotation: NormalizedPythonAnnotation
-): GenericAnnotation() {
+) : GenericAnnotation() {
 
     override val args: List<NormalizedPythonAnnotation>
         get() = listOf(keyAnnotation, valueAnnotation)
@@ -70,7 +70,7 @@ class DictAnnotation(
 
 class SetAnnotation(
     val elemAnnotation: NormalizedPythonAnnotation
-): GenericAnnotation() {
+) : GenericAnnotation() {
 
     override val args: List<NormalizedPythonAnnotation>
         get() = listOf(elemAnnotation)

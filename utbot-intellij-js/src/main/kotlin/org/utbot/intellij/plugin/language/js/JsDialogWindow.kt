@@ -6,11 +6,7 @@ import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.*
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
@@ -33,13 +29,11 @@ import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
 import org.jetbrains.kotlin.config.TestSourceKotlinRootType
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
-import org.utbot.intellij.plugin.ui.utils.testRootType
 import settings.JsTestGenerationSettings.defaultTimeout
 import java.awt.BorderLayout
-import java.util.Locale
+import java.util.*
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
 import javax.swing.JComponent

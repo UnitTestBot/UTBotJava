@@ -13,6 +13,7 @@ class ClassInfoCollector(pyClass: PythonClass) {
         val fields = mutableSetOf<String>()
         val methods = mutableSetOf<String>()
     }
+
     val storage = Storage()
 
     init {
@@ -41,21 +42,22 @@ class ClassInfoCollector(pyClass: PythonClass) {
                         "staticmethod",
                         "classmethod"
                     ).contains(it.name.name)
-            }) return null
+                }) return null
             return params[0].name
         }
+
         fun isProperty(method: PythonMethod): Boolean {
             return method.ast().decorators.any { it.name.name == "property" }
         }
     }
 
-    private class Visitor(val selfName: String): ModifierVisitor<Storage>() {
+    private class Visitor(val selfName: String) : ModifierVisitor<Storage>() {
         override fun visitAtom(atom: Atom, param: Storage): AST {
             parse(
                 classField(fname = name(equal(selfName)), fattributeId = apply()),
                 onError = null,
                 atom
-            ) { it } ?.let { fieldName ->
+            ) { it }?.let { fieldName ->
                 param.fields.add(fieldName)
             }
             return super.visitAtom(atom, param)

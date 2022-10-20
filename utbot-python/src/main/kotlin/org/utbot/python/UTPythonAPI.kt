@@ -1,10 +1,12 @@
 package org.utbot.python
 
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
+import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.typing.MypyAnnotations
 
 data class PythonArgument(val name: String, val annotation: String?)
@@ -33,4 +35,4 @@ data class PythonTestSet(
 class PythonCoverage(
     coveredInstructions: List<Instruction>,
     val missedInstructions: List<Instruction>
-): Coverage(coveredInstructions)
+) : Coverage(coveredInstructions)

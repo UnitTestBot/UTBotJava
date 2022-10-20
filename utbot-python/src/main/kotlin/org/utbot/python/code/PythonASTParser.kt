@@ -2,28 +2,28 @@ package org.utbot.python.code
 
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.*
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Subscript
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Dict
-import io.github.danielnaczo.python3parser.model.expr.datastructures.Set
 import io.github.danielnaczo.python3parser.model.expr.datastructures.ListExpr
+import io.github.danielnaczo.python3parser.model.expr.datastructures.Set
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
+import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.UnaryOp
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Subscript
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.UnaryOp
 import org.apache.commons.lang3.math.NumberUtils
 import java.math.BigInteger
 
 sealed class Result<T>
-class Match<T>(val value: T): Result<T>()
+class Match<T>(val value: T) : Result<T>()
 class Error<T> : Result<T>()
 
-open class Pattern<A, B, N> (
+open class Pattern<A, B, N>(
     val go: (N, A) -> Result<B>
 )
 
@@ -43,7 +43,7 @@ inline fun <A, B, reified N, M> refl(pat: Pattern<A, B, N>): Pattern<A, B, M> =
     }
 
 fun <A, N> drop(): Pattern<A, A, N> =
-    Pattern { _, x ->  Match(x) }
+    Pattern { _, x -> Match(x) }
 
 fun <A, N> apply(): Pattern<(N) -> A, A, N> =
     Pattern { node, x -> Match(x(node)) }
@@ -350,6 +350,7 @@ fun <A> opExpr(
                 val x1 = innerGo(node.left, x)
                 goWithMatches(::innerGo, node.right, x1)
             }
+
             is UnaryOp -> innerGo(node.expression, x)
             else -> Error()
         }

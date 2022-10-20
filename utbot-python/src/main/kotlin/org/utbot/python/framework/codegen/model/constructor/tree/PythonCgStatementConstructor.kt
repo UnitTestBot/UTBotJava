@@ -16,8 +16,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.*
-import org.utbot.python.framework.codegen.model.constructor.util.*
+import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.python.framework.codegen.model.constructor.util.plus
 import java.util.*
 
 class PythonCgStatementConstructorImpl(context: CgContext) :

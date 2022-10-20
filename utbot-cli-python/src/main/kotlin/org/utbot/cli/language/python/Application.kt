@@ -7,7 +7,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.versionOption
 import com.github.ajalt.clikt.parameters.types.enum
 import org.slf4j.event.Level
-import org.utbot.cli.*
+import org.utbot.cli.getVersion
+import org.utbot.cli.setVerbosity
 import kotlin.system.exitProcess
 
 class UtBotCli : CliktCommand(name = "UnitTestBot Python Command Line Interface") {

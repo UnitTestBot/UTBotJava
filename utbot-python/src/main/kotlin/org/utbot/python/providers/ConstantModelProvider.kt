@@ -1,14 +1,14 @@
 package org.utbot.python.providers
 
-import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.PythonPrimitiveModel
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonPrimitiveModel
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class ConstantModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
+class ConstantModelProvider(recursionDepth: Int) : PythonModelProvider(recursionDepth) {
 
     override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         description.concreteValues
@@ -35,10 +35,14 @@ class ConstantModelProvider(recursionDepth: Int): PythonModelProvider(recursionD
             is BigInteger -> value + multiplier.toBigInteger()
             is BigDecimal -> value + multiplier.toBigDecimal()
             else -> null
-        }?.let { PythonPrimitiveModel(it, model.classId as PythonClassId).fuzzed { summary = "%var% ${
-            (if (op == FuzzedContext.Comparison.EQ || op == FuzzedContext.Comparison.LE || op == FuzzedContext.Comparison.GE) {
-                op.reverse()
-            } else op).sign
-        } ${model.value}" } }
+        }?.let {
+            PythonPrimitiveModel(it, model.classId as PythonClassId).fuzzed {
+                summary = "%var% ${
+                    (if (op == FuzzedContext.Comparison.EQ || op == FuzzedContext.Comparison.LE || op == FuzzedContext.Comparison.GE) {
+                        op.reverse()
+                    } else op).sign
+                } ${model.value}"
+            }
+        }
     }
 }

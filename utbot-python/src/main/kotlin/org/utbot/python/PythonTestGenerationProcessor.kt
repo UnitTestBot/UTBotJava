@@ -2,19 +2,28 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.framework.codegen.*
+import org.utbot.framework.codegen.PythonSysPathImport
+import org.utbot.framework.codegen.PythonSystemImport
+import org.utbot.framework.codegen.PythonUserImport
+import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonMethodId
+import org.utbot.python.framework.api.python.PythonModel
+import org.utbot.python.framework.api.python.RawPythonAnnotation
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.Cleaner
-import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
+import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 import java.nio.file.Path
@@ -148,8 +157,7 @@ object PythonTestGenerationProcessor {
                                 }
                             }
                         }
-                    }
-                    else null
+                    } else null
                 }.flatten()
             }
             val testRootModules = notEmptyTests.mapNotNull { testSet ->
@@ -158,11 +166,15 @@ object PythonTestGenerationProcessor {
             val sysImport = PythonSystemImport("sys")
             val sysPathImports = relativizePaths(pythonRunRoot, directoriesForSysPath).map { PythonSysPathImport(it) }
 
-            val testFrameworkModule = testFramework.testSuperClass?.let { PythonUserImport((it as PythonClassId).rootModuleName) }
+            val testFrameworkModule =
+                testFramework.testSuperClass?.let { PythonUserImport((it as PythonClassId).rootModuleName) }
 
             val allImports = (
-                importParamModules + importResultModules + testRootModules + sysPathImports + listOf(testFrameworkModule, sysImport)
-            ).filterNotNull().toSet()
+                    importParamModules + importResultModules + testRootModules + sysPathImports + listOf(
+                        testFrameworkModule,
+                        sysImport
+                    )
+                    ).filterNotNull().toSet()
 
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {
@@ -252,7 +264,7 @@ object PythonTestGenerationProcessor {
             testSet.executions.forEach inner@{ execution ->
                 val coverage = execution.coverage as? PythonCoverage ?: return@inner
                 coverage.coveredInstructions.forEach { covered.add(it.lineNumber) }
-                missed.add(coverage.missedInstructions.map { it.lineNumber } .toSet())
+                missed.add(coverage.missedInstructions.map { it.lineNumber }.toSet())
             }
         }
         val coveredInstructionSets = getInstructionSetList(covered)

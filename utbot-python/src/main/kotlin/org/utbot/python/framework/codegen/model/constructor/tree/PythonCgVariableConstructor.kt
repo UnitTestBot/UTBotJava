@@ -3,8 +3,12 @@ package org.utbot.python.framework.codegen.model.constructor.tree
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
-import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.codegen.model.tree.CgConstructorCall
+import org.utbot.framework.codegen.model.tree.CgLiteral
+import org.utbot.framework.codegen.model.tree.CgValue
+import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.codegen.model.tree.*
 
@@ -19,7 +23,12 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 is PythonPrimitiveModel -> CgLiteral(model.classId, model.value)
                 is PythonTreeModel -> CgPythonTree(model.classId, model.tree)
                 is PythonInitObjectModel -> constructInitObjectModel(model, baseName)
-                is PythonDictModel -> CgPythonDict(model.stores.map { getOrCreateVariable(it.key) to getOrCreateVariable(it.value) }.toMap())
+                is PythonDictModel -> CgPythonDict(model.stores.map {
+                    getOrCreateVariable(it.key) to getOrCreateVariable(
+                        it.value
+                    )
+                }.toMap())
+
                 is PythonListModel -> CgPythonList(model.stores.map { getOrCreateVariable(it) })
                 is PythonSetModel -> CgPythonSet(model.stores.map { getOrCreateVariable(it) }.toSet())
                 is PythonTupleModel -> CgPythonTuple(model.stores.map { getOrCreateVariable(it) })
@@ -31,9 +40,11 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
     }
 
     private fun constructInitObjectModel(model: PythonInitObjectModel, baseName: String): CgVariable {
-        return newVar(model.classId, baseName) { CgConstructorCall(
-            ConstructorId(model.classId, model.initValues.map { it.classId }),
-            model.initValues.map { getOrCreateVariable(it) }
-        ) }
+        return newVar(model.classId, baseName) {
+            CgConstructorCall(
+                ConstructorId(model.classId, model.initValues.map { it.classId }),
+                model.initValues.map { getOrCreateVariable(it) }
+            )
+        }
     }
 }

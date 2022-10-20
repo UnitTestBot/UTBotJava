@@ -1,14 +1,10 @@
 package org.utbot.python.typing
 
 import mu.KotlinLogging
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.utils.Cleaner
-import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
-import org.utbot.python.utils.PriorityCartesianProduct
-import org.utbot.python.utils.getLineOfFunction
-import org.utbot.python.utils.runCommand
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.utils.*
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
@@ -107,26 +103,30 @@ object MypyAnnotations {
     }
 
     private fun stopMypy(pythonPath: String): Int {
-        val result = runCommand(listOf(
-            pythonPath,
-            "-m",
-            "mypy.dmypy",
-            "stop"
-        ))
+        val result = runCommand(
+            listOf(
+                pythonPath,
+                "-m",
+                "mypy.dmypy",
+                "stop"
+            )
+        )
         return result.exitValue
     }
 
     private fun mypyCheck(pythonPath: String, fileWithCode: File, configFile: File): String {
-        val result = runCommand(listOf(
-            pythonPath,
-            "-m",
-            "mypy.dmypy",
-            "run",
-            "--",
-            fileWithCode.path,
-            "--config-file",
-            configFile.path
-        ))
+        val result = runCommand(
+            listOf(
+                pythonPath,
+                "-m",
+                "mypy.dmypy",
+                "run",
+                "--",
+                fileWithCode.path,
+                "--config-file",
+                configFile.path
+            )
+        )
         return result.stdout
     }
 

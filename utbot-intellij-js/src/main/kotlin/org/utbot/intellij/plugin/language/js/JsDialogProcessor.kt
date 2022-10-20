@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.language.js
 
-import settings.JsDynamicSettings
 import api.JsTestGenerator
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.lang.ecmascript6.psi.ES6Class
@@ -23,6 +22,7 @@ import org.jetbrains.kotlin.konan.file.File
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import service.CoverageMode
+import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
 import settings.JsTestGenerationSettings.dummyClassName

@@ -1,10 +1,7 @@
 package org.utbot.intellij.plugin.language.python
 
 import com.intellij.codeInsight.CodeInsightUtil
-import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -16,30 +13,28 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
+import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import com.jetbrains.python.psi.PyClass
-import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
-import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.python.code.PythonCode
-import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
-import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.code.PythonCode
+import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
+import org.utbot.python.utils.camelToSnakeCase
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -190,7 +185,7 @@ object PythonDialogProcessor {
             Paths.get(root.path),
             Paths.get(model.testSourceRootPath)
         )
-        val rootPSI = getContainingElement<PsiDirectory>(model.file) { it.virtualFile == root } !!
+        val rootPSI = getContainingElement<PsiDirectory>(model.file) { it.virtualFile == root }!!
         return paths.fold(rootPSI) { acc, folderName ->
             acc.findSubdirectory(folderName) ?: acc.createSubdirectory(folderName)
         }
@@ -210,6 +205,7 @@ object PythonDialogProcessor {
             }
         }
     }
+
     private fun askAndInstallRequirementsLater(project: Project, pythonPath: String) {
         val message = """
             Some requirements are not installed.

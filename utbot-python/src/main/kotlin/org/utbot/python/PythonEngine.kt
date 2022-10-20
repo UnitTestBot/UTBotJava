@@ -2,11 +2,11 @@ package org.utbot.python
 
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.PythonTreeModel
-import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.fuzzer.*
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonTreeModel
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
@@ -129,7 +129,8 @@ class PythonEngine(
 
                     val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
                     val testMethodName = try {
-                        nameSuggester.flatMap { it.suggest(methodUnderTestDescription, jobResult.values, result) }.firstOrNull()
+                        nameSuggester.flatMap { it.suggest(methodUnderTestDescription, jobResult.values, result) }
+                            .firstOrNull()
                     } catch (t: Throwable) {
                         null
                     }

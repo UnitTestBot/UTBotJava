@@ -1,13 +1,14 @@
 package org.utbot.python
 
 import com.beust.klaxon.Klaxon
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
@@ -20,7 +21,7 @@ class EvaluationSuccess(
     private val output: OutputData,
     private val isException: Boolean,
     val coverage: PythonCoverage
-): EvaluationResult() {
+) : EvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
     operator fun component3() = coverage
@@ -41,7 +42,7 @@ data class EvaluationInput(
     val additionalModulesToImport: Set<String> = emptySet()
 )
 
-data class EvaluationProcess (
+data class EvaluationProcess(
     val process: Process,
     val fileWithCode: File,
     val fileForOutput: File

@@ -23,7 +23,7 @@ class PythonTestsModel(
     var timeoutForRun: Long,
     var visitOnlySpecifiedSource: Boolean,
     val cgLanguageAssistant: CgLanguageAssistant,
-): BaseTestsModel(
+) : BaseTestsModel(
     project,
     srcModule,
     potentialTestModules

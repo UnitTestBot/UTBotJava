@@ -20,12 +20,15 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
-import javax.swing.*
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JCheckBox
+import javax.swing.JComponent
+import javax.swing.JPanel
 
 
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
-class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
+class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
     private val testSourceFolderField = TestSourceDirectoryChooser(model)
@@ -43,7 +46,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
         )
-    private val testFrameworks = ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
+    private val testFrameworks =
+        ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
 
     private val visitOnlySpecifiedSource = JCheckBox("Visit only specified source")
 
@@ -109,11 +113,16 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         return storage.getClassMemberInfos(newClass)
     }
 
-    private fun pyFunctionsToPyMemberInfo(project: Project, functions: Collection<PyFunction>, containingClass: PyClass?): List<PyMemberInfo<PyElement>> {
+    private fun pyFunctionsToPyMemberInfo(
+        project: Project,
+        functions: Collection<PyFunction>,
+        containingClass: PyClass?
+    ): List<PyMemberInfo<PyElement>> {
         if (containingClass == null) {
             return globalPyFunctionsToPyMemberInfo(project, functions)
         }
-        return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass).filter { it.member is PyFunction }
+        return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass)
+            .filter { it.member is PyFunction }
     }
 
     private fun updateFunctionsTable() {

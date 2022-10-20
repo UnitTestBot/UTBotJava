@@ -3,16 +3,21 @@ package org.utbot.python.framework.codegen.model.constructor.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.framework.codegen.*
+import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.PythonSysPathImport
+import org.utbot.framework.codegen.RegularImport
+import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
 
 internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
@@ -236,11 +241,9 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     private fun renderPythonImport(pythonImport: PythonImport) {
         if (pythonImport is PythonSysPathImport) {
             println("sys.path.append('${pythonImport.sysPath}')")
-        }
-        else if (pythonImport.moduleName == null) {
+        } else if (pythonImport.moduleName == null) {
             println("import ${pythonImport.importName}")
-        }
-        else {
+        } else {
             println("from ${pythonImport.moduleName} import ${pythonImport.importName}")
         }
     }

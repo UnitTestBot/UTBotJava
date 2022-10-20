@@ -2,17 +2,8 @@ package org.utbot.cli.js
 
 import api.JsTestGenerator
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.check
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import mu.KotlinLogging
 import org.utbot.cli.js.JsUtils.makeAbsolutePath
 import service.CoverageMode
@@ -20,6 +11,11 @@ import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
 import settings.JsTestGenerationSettings.defaultTimeout
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 private val logger = KotlinLogging.logger {}
 
@@ -100,7 +96,7 @@ class JsGenerateTestsCommand :
                     timeout = timeout.toLong(),
                     coverageMode = coverageMode,
 
-                )
+                    )
             )
             val testCode = testGenerator.run()
 
@@ -131,7 +127,7 @@ class JsGenerateTestsCommand :
 
             fileText.contains(startComment) && !fileText.contains(exportSection) -> {
                 val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
-                regex.find(fileText)?.groups?.get(1)?.value?.let {existingSection ->
+                regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
                     val exportRegex = Regex("exports[.](.*) =")
                     val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
                     val existingExportsSet = existingExports.map { rawLine ->

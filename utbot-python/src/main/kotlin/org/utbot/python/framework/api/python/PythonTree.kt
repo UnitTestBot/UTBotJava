@@ -18,11 +18,11 @@ object PythonTree {
     class PrimitiveNode(
         type: PythonClassId,
         val repr: String,
-    ): PythonTreeNode(type)
+    ) : PythonTreeNode(type)
 
     class ListNode(
         val items: List<PythonTreeNode>
-    ): PythonTreeNode(PythonClassId("builtins.list")) {
+    ) : PythonTreeNode(PythonClassId("builtins.list")) {
         override val children: List<PythonTreeNode>
             get() = items
 
@@ -37,7 +37,7 @@ object PythonTree {
 
     class DictNode(
         val items: Map<PythonTreeNode, PythonTreeNode>
-    ): PythonTreeNode(PythonClassId("builtins.dict")) {
+    ) : PythonTreeNode(PythonClassId("builtins.dict")) {
         override val children: List<PythonTreeNode>
             get() = items.values + items.keys
 
@@ -53,7 +53,7 @@ object PythonTree {
 
     class SetNode(
         val items: Set<PythonTreeNode>
-    ): PythonTreeNode(PythonClassId("builtins.set")) {
+    ) : PythonTreeNode(PythonClassId("builtins.set")) {
         override val children: List<PythonTreeNode>
             get() = items.toList()
 
@@ -73,7 +73,7 @@ object PythonTree {
 
     class TupleNode(
         val items: List<PythonTreeNode>
-    ): PythonTreeNode(PythonClassId("builtins.tuple")) {
+    ) : PythonTreeNode(PythonClassId("builtins.tuple")) {
         override val children: List<PythonTreeNode>
             get() = items
 
@@ -96,13 +96,13 @@ object PythonTree {
         var state: Map<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
-    ): PythonTreeNode(type) {
+    ) : PythonTreeNode(type) {
         constructor(
             id: Long,
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ): this(id, type, constructor, args, emptyMap(), emptyList(), emptyMap())
+        ) : this(id, type, constructor, args, emptyMap(), emptyList(), emptyMap())
 
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)
@@ -113,11 +113,10 @@ object PythonTree {
                     other.state.containsKey(key) && value.typeEquals(other.state[key])
                 } && listitems.withIndex().all { (index, item) ->
                     other.listitems.size > index && item.typeEquals(other.listitems[index])
-                } &&  dictitems.all { (key, value) ->
+                } && dictitems.all { (key, value) ->
                     other.dictitems.containsKey(key) && value.typeEquals(other.dictitems[key])
                 }
-            }
-            else false
+            } else false
         }
     }
 

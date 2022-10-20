@@ -1,13 +1,15 @@
 package org.utbot.python.framework.codegen.model
 
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.pythonAnyClassId
-import org.utbot.python.framework.api.python.pythonNoneClassId
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 
 object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     override val mainPackage: String = "pytest"

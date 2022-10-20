@@ -2,7 +2,7 @@ package org.utbot.python.utils
 
 import java.lang.Integer.min
 
-class PriorityCartesianProduct<T>(private val lists: List<List<T>>){
+class PriorityCartesianProduct<T>(private val lists: List<List<T>>) {
 
     private fun generateFixedSumRepresentation(
         sum: Int,

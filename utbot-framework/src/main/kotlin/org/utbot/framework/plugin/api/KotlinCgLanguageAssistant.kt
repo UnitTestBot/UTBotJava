@@ -13,8 +13,8 @@ object KotlinCgLanguageAssistant : CgLanguageAssistant() {
 
     override val languageKeywords: Set<String> = setOf(
         "as", "as?", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "!in", "interface",
-        "is", "!is", "null", "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof",
-        "val", "var", "when", "while"
+        "is", "!is", "null", "object", "package", "return", "super", "this", "throw", "true", "try", "typealias",
+        "typeof", "val", "var", "when", "while"
     )
 
     override fun testClassName(
@@ -27,5 +27,6 @@ object KotlinCgLanguageAssistant : CgLanguageAssistant() {
 
     override fun getLanguageTestFrameworkManager() = JVMTestFrameworkManager()
 
-    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgKotlinRenderer(context, printer)
+    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer =
+        CgKotlinRenderer(context, printer)
 }

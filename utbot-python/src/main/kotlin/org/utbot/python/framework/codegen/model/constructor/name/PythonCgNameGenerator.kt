@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.util.toSnakeCase
 
-class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(context_) {
+class PythonCgNameGenerator(context_: CgContext) : CgNameGeneratorImpl(context_) {
 
     override fun nameFrom(id: ClassId): String =
         when (id) {

@@ -2,8 +2,10 @@ package org.utbot.python.framework.codegen.model.tree
 
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.visitor.CgVisitor
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.util.*
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonVisitor
 
 interface CgPythonElement : CgElement {
@@ -21,8 +23,7 @@ interface CgPythonElement : CgElement {
                 is CgPythonTuple -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
-        }
-        else {
+        } else {
             super.accept(visitor)
         }
     }
@@ -53,7 +54,7 @@ class CgPythonIndex(
     override val type: PythonClassId,
     val obj: CgVariable,
     val index: CgExpression,
-): CgValue, CgPythonElement
+) : CgValue, CgPythonElement
 
 class CgPythonRange(
     val start: CgValue,
@@ -63,13 +64,13 @@ class CgPythonRange(
     override val type: PythonClassId
         get() = pythonRangeClassId
 
-    constructor(stop: Int): this(
+    constructor(stop: Int) : this(
         CgLiteral(pythonIntClassId, 0),
         CgLiteral(pythonIntClassId, stop),
         CgLiteral(pythonIntClassId, 1),
     )
 
-    constructor(stop: CgValue): this(
+    constructor(stop: CgValue) : this(
         CgLiteral(pythonIntClassId, 0),
         stop,
         CgLiteral(pythonIntClassId, 1),

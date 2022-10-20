@@ -29,5 +29,6 @@ object JavaCgLanguageAssistant : CgLanguageAssistant() {
 
     override fun getLanguageTestFrameworkManager() = JVMTestFrameworkManager()
 
-    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgJavaRenderer(context, printer)
+    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer =
+        CgJavaRenderer(context, printer)
 }

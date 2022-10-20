@@ -7,7 +7,6 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
@@ -26,7 +25,7 @@ private const val DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS = 2000L
 
 private val logger = KotlinLogging.logger {}
 
-class PythonGenerateTestsCommand: CliktCommand(
+class PythonGenerateTestsCommand : CliktCommand(
     name = "generate_python",
     help = "Generate tests for a specified Python class or top-level functions from a specified file."
 ) {
@@ -140,8 +139,7 @@ class PythonGenerateTestsCommand: CliktCommand(
                 val topLevelClassMethods = topLevelClasses.flatMap { getClassMethods(it) }
                 if (topLevelClassMethods.isNotEmpty()) {
                     Success(topLevelClassMethods)
-                }
-                else
+                } else
                     Fail("No top-level functions and top-level classes in the source file to test.")
             }
         } else if (pythonClass == null && selectedMethods != null) {
@@ -172,7 +170,7 @@ class PythonGenerateTestsCommand: CliktCommand(
         return bind(methods) { classFineMethods ->
             pack(
                 *(selectedMethods.map { methodName ->
-                    classFineMethods.find { it.name == methodName } ?.let { Success(it) }
+                    classFineMethods.find { it.name == methodName }?.let { Success(it) }
                         ?: Fail("Couldn't find method $methodName of class $pythonClass")
                 }).toTypedArray()
             )
@@ -230,7 +228,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             pythonPath = pythonPath,
             pythonFilePath = sourceFile.toAbsolutePath(),
             pythonFileContent = sourceFileContent,
-            directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
+            directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() }.toSet(),
             currentPythonModule = currentPythonModule,
             pythonMethods = pythonMethods,
             containingClassName = pythonClass,

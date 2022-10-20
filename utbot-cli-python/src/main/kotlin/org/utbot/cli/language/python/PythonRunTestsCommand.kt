@@ -12,7 +12,6 @@ import org.utbot.python.utils.CmdResult
 import org.utbot.python.utils.runCommand
 import java.io.File
 import java.nio.file.Paths
-import kotlin.system.exitProcess
 
 class PythonRunTestsCommand : CliktCommand(name = "run_python", help = "Run tests in the specified file") {
 
@@ -46,8 +45,7 @@ class PythonRunTestsCommand : CliktCommand(name = "run_python", help = "Run test
                     sourceFile
                 )
             )
-        }
-        else CmdResult(
+        } else CmdResult(
             "",
             "File $sourceFile can not be imported from Unittest. Move test file to child directory or use pytest.",
             1
@@ -55,12 +53,14 @@ class PythonRunTestsCommand : CliktCommand(name = "run_python", help = "Run test
     }
 
     private fun runPytest(): CmdResult =
-        runCommand(listOf(
-            pythonPath,
-            "-m",
-            "pytest",
-            sourceFile
-        ))
+        runCommand(
+            listOf(
+                pythonPath,
+                "-m",
+                "pytest",
+                sourceFile
+            )
+        )
 
     override fun run() {
         val result =

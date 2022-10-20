@@ -1,11 +1,11 @@
 package org.utbot.python.providers
 
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.pythonAnyClassId
-import org.utbot.python.framework.api.python.pythonNoneClassId
 import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 
-class OptionalModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
+class OptionalModelProvider(recursionDepth: Int) : PythonModelProvider(recursionDepth) {
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> {
         var result = emptySequence<FuzzedParameter>()
         description.parametersMap.forEach { (classId, parameterIndices) ->
@@ -16,7 +16,7 @@ class OptionalModelProvider(recursionDepth: Int): PythonModelProvider(recursionD
                 val descriptionWithNoneType = substituteTypesByIndex(
                     description,
                     (0 until description.parameters.size).map {
-                        if (it == index) NormalizedPythonAnnotation(pythonNoneClassId.name)  else pythonAnyClassId
+                        if (it == index) NormalizedPythonAnnotation(pythonNoneClassId.name) else pythonAnyClassId
                     }
                 )
                 val modelProvider = getDefaultPythonModelProvider(recursionDepth)

@@ -8,7 +8,7 @@ import java.nio.file.Paths
 
 class TestSourceDirectoryChooser(
     val model: PythonTestsModel
-): TextFieldWithBrowseButton() {
+) : TextFieldWithBrowseButton() {
     private val projectRoot = getContentRoot(model.project, model.file.virtualFile)
 
     init {

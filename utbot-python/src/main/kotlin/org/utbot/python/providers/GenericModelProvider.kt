@@ -1,8 +1,12 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.*
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.fuzz
 import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.typing.DictAnnotation
 import org.utbot.python.typing.ListAnnotation
 import org.utbot.python.typing.SetAnnotation
@@ -10,11 +14,11 @@ import org.utbot.python.typing.parseGeneric
 import java.lang.Integer.min
 import kotlin.random.Random
 
-class GenericModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
+class GenericModelProvider(recursionDepth: Int) : PythonModelProvider(recursionDepth) {
     private val maxGenNum = 10
 
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        fun <T: UtModel> fuzzGeneric(
+        fun <T : UtModel> fuzzGeneric(
             parameters: List<NormalizedPythonAnnotation>,
             index: Int,
             modelConstructor: (List<List<FuzzedValue>>) -> T?
@@ -48,24 +52,24 @@ class GenericModelProvider(recursionDepth: Int): PythonModelProvider(recursionDe
 
         fun genDict(dictAnnotation: DictAnnotation, index: Int): Sequence<FuzzedParameter> {
             return fuzzGeneric(listOf(dictAnnotation.keyAnnotation, dictAnnotation.valueAnnotation), index) { list ->
-                    if (list.any { it.any { value -> value.model !is PythonModel } })
-                        return@fuzzGeneric null
-                    PythonDictModel(
-                        list.size,
-                        list.associate { pair ->
-                            (pair[0].model as PythonModel) to (pair[1].model as PythonModel)
-                        }
-                    )
-                }
+                if (list.any { it.any { value -> value.model !is PythonModel } })
+                    return@fuzzGeneric null
+                PythonDictModel(
+                    list.size,
+                    list.associate { pair ->
+                        (pair[0].model as PythonModel) to (pair[1].model as PythonModel)
+                    }
+                )
+            }
         }
 
         fun genSet(setAnnotation: SetAnnotation, index: Int): Sequence<FuzzedParameter> {
             return fuzzGeneric(listOf(setAnnotation.elemAnnotation), index) { list ->
-                    PythonSetModel(
-                        list.size,
-                        list.flatten().mapNotNull { it.model as? PythonModel }.toSet(),
-                    )
-                }
+                PythonSetModel(
+                    list.size,
+                    list.flatten().mapNotNull { it.model as? PythonModel }.toSet(),
+                )
+            }
         }
 
         description.parametersMap.forEach { (classId, parameterIndices) ->

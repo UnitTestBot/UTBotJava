@@ -1,8 +1,8 @@
 package org.utbot.cli.language.python
 
 sealed class Optional<A>
-class Fail<A>(val message: String): Optional<A>()
-class Success<A>(val value: A): Optional<A>()
+class Fail<A>(val message: String) : Optional<A>()
+class Success<A>(val value: A) : Optional<A>()
 
 fun <A, B> bind(
     value: Optional<A>,

@@ -14,7 +14,8 @@ object RequirementsUtils {
             ?: error("Didn't find /check_requirements.py")
 
     fun requirementsAreInstalled(pythonPath: String): Boolean {
-        val requirementsScript = TemporaryFileManager.createTemporaryFile(requirementsScriptContent, tag = "requirements")
+        val requirementsScript =
+            TemporaryFileManager.createTemporaryFile(requirementsScriptContent, tag = "requirements")
         val result = runCommand(
             listOf(
                 pythonPath,

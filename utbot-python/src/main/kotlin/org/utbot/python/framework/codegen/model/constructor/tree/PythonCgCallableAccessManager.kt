@@ -7,10 +7,13 @@ import org.utbot.framework.codegen.model.constructor.tree.CgIncompleteMethodCall
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.PythonMethodId
-import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.exceptions
+import org.utbot.python.framework.api.python.PythonMethodId
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
 
 class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,

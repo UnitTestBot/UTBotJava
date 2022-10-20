@@ -29,7 +29,7 @@ open class BaseTestsModel(
         requireNotNull(newTestSourceRoot)
         testSourceRoot = newTestSourceRoot
         var target = newTestSourceRoot
-        while(target != null && target is FakeVirtualFile) {
+        while (target != null && target is FakeVirtualFile) {
             target = target.parent
         }
         if (target == null) {

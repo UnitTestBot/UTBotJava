@@ -1,11 +1,13 @@
 package org.utbot.python.providers
 
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.fuzzer.fuzz
 import org.utbot.python.framework.api.python.PythonInitObjectModel
 import org.utbot.python.framework.api.python.PythonModel
-import org.utbot.fuzzer.*
 import org.utbot.python.typing.PythonTypesStorage
 
-class InitModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
+class InitModelProvider(recursionDepth: Int) : PythonModelProvider(recursionDepth) {
     override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         if (recursionDepth <= 0)
             return@sequence

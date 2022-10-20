@@ -1,12 +1,13 @@
 package org.utbot.python.typing
 
 import mu.KotlinLogging
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.pythonAnyClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.ArgInfoCollector
-import org.utbot.python.utils.*
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.utils.AnnotationNormalizer
+import org.utbot.python.utils.PriorityCartesianProduct
 
 private val logger = KotlinLogging.logger {}
 
@@ -88,15 +89,17 @@ object AnnotationFinder {
         val candidates = getInitCandidateMap()
         hints?.forEach { hint ->
             var isIter = false
-            val foundCandidates : Set<NormalizedPythonAnnotation> =
+            val foundCandidates: Set<NormalizedPythonAnnotation> =
                 when (hint) {
                     is ArgInfoCollector.Type ->
                         setOf(AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(hint.type))
+
                     is ArgInfoCollector.Method -> {
                         if (hint.name == "__iter__")
                             isIter = true
                         PythonTypesStorage.findTypeWithMethod(hint.name)
                     }
+
                     is ArgInfoCollector.Field -> PythonTypesStorage.findTypeWithField(hint.name)
                     is ArgInfoCollector.FunctionArg -> {
                         PythonTypesStorage.findTypeByFunctionWithArgumentPosition(
@@ -104,6 +107,7 @@ object AnnotationFinder {
                             argumentPosition = hint.index
                         )
                     }
+
                     is ArgInfoCollector.FunctionRet -> PythonTypesStorage.findTypeByFunctionReturnValue(hint.name)
                     else -> emptySet()
                 }
@@ -125,11 +129,13 @@ object AnnotationFinder {
                 when (hint) {
                     is ArgInfoCollector.Type ->
                         setOf(AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(hint.type))
+
                     is ArgInfoCollector.Function ->
                         listOf(
                             PythonTypesStorage.findTypeByFunctionReturnValue(hint.name),
                             PythonTypesStorage.findTypeByFunctionWithArgumentPosition(hint.name)
                         ).flatten().toSet()
+
                     is ArgInfoCollector.Method -> PythonTypesStorage.findTypeWithMethod(hint.name)
                     is ArgInfoCollector.Field -> PythonTypesStorage.findTypeWithField(hint.name)
                     else -> emptySet()

@@ -27,11 +27,11 @@ import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.pythonAnyClassId
-import org.utbot.python.*
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.PythonMethod
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 
 
 object PythonCodeGenerator {
@@ -58,13 +58,15 @@ object PythonCodeGenerator {
         directoriesForSysPath: Set<String>,
         additionalModules: Set<String> = emptySet(),
     ): List<Statement> {
-        val systemImport = Import(listOf(
-            Alias("sys"),
-            Alias("typing"),
-            Alias("json"),
-            Alias("inspect"),
-            Alias("builtins"),
-        ))
+        val systemImport = Import(
+            listOf(
+                Alias("sys"),
+                Alias("typing"),
+                Alias("json"),
+                Alias("inspect"),
+                Alias("builtins"),
+            )
+        )
         val systemCalls = directoriesForSysPath.map { path ->
             Atom(
                 Name("sys.path.append"),
@@ -162,14 +164,15 @@ object PythonCodeGenerator {
             else
                 generateMethodCall(method)
 
-        val fullFunctionName = Name((
-            listOf((functionCall.atomElement as Name).id.name) + functionCall.trailers.mapNotNull {
-                if (it is Attribute) {
-                    it.attr.name
-                } else {
-                    null
-                }
-            }).joinToString(".")
+        val fullFunctionName = Name(
+            (
+                    listOf((functionCall.atomElement as Name).id.name) + functionCall.trailers.mapNotNull {
+                        if (it is Attribute) {
+                            it.attr.name
+                        } else {
+                            null
+                        }
+                    }).joinToString(".")
         )
 
         val coverage = Assign(
@@ -220,13 +223,17 @@ object PythonCodeGenerator {
             )
         )
         val covAnalysis = Assign(
-            listOf(Tuple(listOf(
-                Name("_"),
-                stmtsName,
-                Name("_"),
-                missedName,
-                Name("_")
-            ))),
+            listOf(
+                Tuple(
+                    listOf(
+                        Name("_"),
+                        stmtsName,
+                        Name("_"),
+                        missedName,
+                        Name("_")
+                    )
+                )
+            ),
             Atom(
                 coverageName,
                 listOf(
@@ -291,16 +298,24 @@ object PythonCodeGenerator {
                                 Name("\"\\n\""),
                                 listOf(
                                     Attribute(Identifier("join")),
-                                    createArguments(listOf(
-                                        ListExpr(
-                                            listOf(
-                                                Atom(Name("str"), listOf(createArguments(listOf(statusName)))),
-                                                Atom(Name("str"), listOf(createArguments(listOf(jsonDumps)))),
-                                                Atom(Name("str"), listOf(createArguments(listOf(stmtsFilteredWithDefName)))),
-                                                Atom(Name("str"), listOf(createArguments(listOf(missedFilteredName))))
+                                    createArguments(
+                                        listOf(
+                                            ListExpr(
+                                                listOf(
+                                                    Atom(Name("str"), listOf(createArguments(listOf(statusName)))),
+                                                    Atom(Name("str"), listOf(createArguments(listOf(jsonDumps)))),
+                                                    Atom(
+                                                        Name("str"),
+                                                        listOf(createArguments(listOf(stmtsFilteredWithDefName)))
+                                                    ),
+                                                    Atom(
+                                                        Name("str"),
+                                                        listOf(createArguments(listOf(missedFilteredName)))
+                                                    )
+                                                )
                                             )
                                         )
-                                    ))
+                                    )
                                 )
                             )
                         )
@@ -309,21 +324,29 @@ object PythonCodeGenerator {
             )
         )
 
-        val tryBody = Body(listOf(
-            resultSuccess,
-            statusSuccess
-        ))
+        val tryBody = Body(
+            listOf(
+                resultSuccess,
+                statusSuccess
+            )
+        )
         val suppressedBlock = With(
-            listOf(WithItem(Atom(
-                Name(getStdoutSuppressName),
-                listOf(createArguments())
-            ))),
+            listOf(
+                WithItem(
+                    Atom(
+                        Name(getStdoutSuppressName),
+                        listOf(createArguments())
+                    )
+                )
+            ),
             tryBody
         )
-        val failBody = Body(listOf(
-            resultError,
-            statusError
-        ))
+        val failBody = Body(
+            listOf(
+                resultError,
+                statusError
+            )
+        )
         val tryHandler = ExceptHandler("Exception", exceptionName.id.name)
         val tryBlock = Try(suppressedBlock, listOf(tryHandler), listOf(failBody))
 

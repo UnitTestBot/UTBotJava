@@ -17,7 +17,7 @@ import org.utbot.framework.codegen.model.visitor.CgRendererContext
 abstract class CgLanguageAssistant {
 
     companion object {
-        fun getByCodegenLanguage(language: CodegenLanguage) = when(language) {
+        fun getByCodegenLanguage(language: CodegenLanguage) = when (language) {
             CodegenLanguage.JAVA -> JavaCgLanguageAssistant
             CodegenLanguage.KOTLIN -> KotlinCgLanguageAssistant
             else -> throw UnsupportedOperationException()
@@ -30,10 +30,16 @@ abstract class CgLanguageAssistant {
 
     abstract val languageKeywords: Set<String>
 
-    abstract fun testClassName(testClassCustomName: String?, testClassPackageName: String, classUnderTest: ClassId): Pair<String, String>
+    abstract fun testClassName(
+        testClassCustomName: String?,
+        testClassPackageName: String,
+        classUnderTest: ClassId
+    ): Pair<String, String>
 
     open fun getNameGeneratorBy(context: CgContext): CgNameGenerator = CgNameGeneratorImpl(context)
-    open fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager = CgCallableAccessManagerImpl(context)
+    open fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager =
+        CgCallableAccessManagerImpl(context)
+
     open fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = CgStatementConstructorImpl(context)
     open fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = CgVariableConstructor(context)
     open fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)

@@ -7,7 +7,7 @@ import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.framework.codegen.model.constructor.tree.PytestManager
 import org.utbot.python.framework.codegen.model.constructor.tree.UnittestManager
 
-class PythonTestFrameworkManager: LanguageTestFrameworkManager() {
+class PythonTestFrameworkManager : LanguageTestFrameworkManager() {
 
     override fun managerByFramework(context: CgContext) = when (context.testFramework) {
         is Unittest -> UnittestManager(context)

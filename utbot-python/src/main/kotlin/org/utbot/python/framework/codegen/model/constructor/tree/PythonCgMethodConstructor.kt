@@ -7,6 +7,8 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
@@ -22,6 +24,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     emptyLineIfNeeded()
                     comment("raises $it")
                 }
+
             else -> {
                 // nothing
             }
@@ -79,21 +82,25 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             is PythonTree.PrimitiveNode -> {
                 CgLiteral(objectNode.type, objectNode.repr)
             }
+
             is PythonTree.ListNode -> {
                 CgPythonList(
                     objectNode.items.map { pythonBuildObject(it) }
                 )
             }
+
             is PythonTree.TupleNode -> {
                 CgPythonTuple(
                     objectNode.items.map { pythonBuildObject(it) }
                 )
             }
+
             is PythonTree.SetNode -> {
                 CgPythonSet(
                     objectNode.items.map { pythonBuildObject(it) }.toSet()
                 )
             }
+
             is PythonTree.DictNode -> {
                 CgPythonDict(
                     objectNode.items.map { (key, value) ->
@@ -101,6 +108,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     }.toMap()
                 )
             }
+
             is PythonTree.ReduceNode -> {
                 val id = objectNode.id
                 if ((context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.containsKey(id)) {
@@ -160,6 +168,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
                 return obj
             }
+
             else -> {
                 throw UnsupportedOperationException()
             }
@@ -231,8 +240,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                         statements = currentBlock
                     }
                 }
-            }
-            else {
+            } else {
                 emptyLineIfNeeded()
                 testFrameworkManager.assertIsinstance(listOf(expected.type), actual)
             }
@@ -274,6 +282,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     listOf(expected.type), actual
                 )
             }
+
             is PythonTree.ListNode -> {
                 pythonAssertBuiltinsCollection(
                     expectedNode,
@@ -282,6 +291,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     "expected_list"
                 )
             }
+
             is PythonTree.TupleNode -> {
                 pythonAssertBuiltinsCollection(
                     expectedNode,
@@ -290,12 +300,14 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     "expected_tuple"
                 )
             }
+
             is PythonTree.SetNode -> {
                 emptyLineIfNeeded()
                 testFrameworkManager.assertEquals(
                     expected, actual
                 )
             }
+
             is PythonTree.DictNode -> {
                 pythonAssertBuiltinsCollection(
                     expectedNode,
@@ -305,6 +317,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     "key"
                 )
             }
+
             is PythonTree.ReduceNode -> {
                 if (expectedNode.state.isNotEmpty()) {
                     expectedNode.state.forEach { (field, value) ->
@@ -333,6 +346,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     )
                 }
             }
+
             else -> {}
         }
     }

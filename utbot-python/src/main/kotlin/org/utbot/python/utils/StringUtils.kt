@@ -2,7 +2,6 @@ package org.utbot.python.utils
 
 import org.utbot.common.PathUtil.toPath
 import java.io.File
-import java.nio.file.Path
 import java.nio.file.Paths
 
 // numeration from zero

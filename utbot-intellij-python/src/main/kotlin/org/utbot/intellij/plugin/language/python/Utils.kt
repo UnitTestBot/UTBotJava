@@ -5,7 +5,7 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 
-inline fun <reified T: PsiElement> getContainingElement(
+inline fun <reified T : PsiElement> getContainingElement(
     element: PsiElement,
     predicate: (T) -> Boolean = { true }
 ): T? {

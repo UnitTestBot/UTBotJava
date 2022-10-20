@@ -1,10 +1,10 @@
 package org.utbot.framework.codegen
 
-sealed class PythonImport(order: Int): Import(order) {
+sealed class PythonImport(order: Int) : Import(order) {
     var importName: String = ""
     var moduleName: String? = null
 
-    constructor(order: Int, importName: String, moduleName: String? = null): this(order) {
+    constructor(order: Int, importName: String, moduleName: String? = null) : this(order) {
         this.importName = importName
         this.moduleName = moduleName
     }
@@ -30,7 +30,7 @@ sealed class PythonImport(order: Int): Import(order) {
     }
 }
 
-data class PythonSysPathImport(val sysPath: String): PythonImport(2) {
+data class PythonSysPathImport(val sysPath: String) : PythonImport(2) {
     override val qualifiedName: String
         get() = sysPath
 
@@ -47,7 +47,8 @@ data class PythonSysPathImport(val sysPath: String): PythonImport(2) {
     }
 }
 
-data class PythonUserImport(val importName_: String, val moduleName_: String? = null): PythonImport(3, importName_, moduleName_) {
+data class PythonUserImport(val importName_: String, val moduleName_: String? = null) :
+    PythonImport(3, importName_, moduleName_) {
     override val qualifiedName: String
         get() = if (moduleName != null) "${moduleName}.${importName}" else importName
 
@@ -66,7 +67,8 @@ data class PythonUserImport(val importName_: String, val moduleName_: String? = 
     }
 }
 
-data class PythonSystemImport(val importName_: String, val moduleName_: String? = null): PythonImport(1, importName_, moduleName_) {
+data class PythonSystemImport(val importName_: String, val moduleName_: String? = null) :
+    PythonImport(1, importName_, moduleName_) {
     override val qualifiedName: String
         get() = if (moduleName != null) "${moduleName}.${importName}" else importName
 

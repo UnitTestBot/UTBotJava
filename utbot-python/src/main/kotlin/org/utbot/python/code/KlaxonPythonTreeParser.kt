@@ -96,7 +96,10 @@ class KlaxonPythonTreeParser(
         return PythonTree.DictNode(items.associate {
             val key = it[0]
             val value = it[1] as JsonObject
-            (if (key is String) PythonTree.PrimitiveNode(PythonClassId("builtins.str"), key) else parseToPythonTree(key as JsonObject)) to parseToPythonTree(value)
+            (if (key is String) PythonTree.PrimitiveNode(
+                PythonClassId("builtins.str"),
+                key
+            ) else parseToPythonTree(key as JsonObject)) to parseToPythonTree(value)
         })
     }
 }

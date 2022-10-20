@@ -19,27 +19,28 @@ import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
+import mu.KotlinLogging
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
-import org.utbot.python.*
-import org.utbot.python.utils.moduleOfType
-import java.util.*
-import mu.KotlinLogging
+import org.utbot.python.PythonArgument
+import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.utils.moduleOfType
+import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
 class PythonCode(private val body: Module, val filename: String, val pythonModule: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.functionDefs.mapNotNull { functionDef ->
-                PythonMethodBody(functionDef, filename)
-            }
+            PythonMethodBody(functionDef, filename)
+        }
 
     fun getToplevelClasses(): List<PythonClass> =
         body.classDefs?.mapNotNull { classDef ->
-                PythonClass(classDef, filename, pythonModule)
-            } ?: emptyList()
+            PythonClass(classDef, filename, pythonModule)
+        } ?: emptyList()
 
     fun getToplevelModules(): List<PythonModule> =
         body.statements?.flatMap { statement ->
@@ -52,6 +53,7 @@ class PythonCode(private val body: Module, val filename: String, val pythonModul
                         emptyList()
                     }
                 }
+
                 else -> emptyList()
             }
         }?.toSet()?.map {
@@ -89,7 +91,7 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
 
     val initSignature: List<PythonArgument>?
         get() {
-            val ordinary = ast.functionDefs?.find { it.name.name == "__init__" } ?.let {
+            val ordinary = ast.functionDefs?.find { it.name.name == "__init__" }?.let {
                 PythonMethodBody(it, filename ?: "")
             }
             if (ordinary != null) {
@@ -103,7 +105,7 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
                     )
                 }
             }
-            if (ast.decorators.isEmpty() && (ast.arguments == null || !ast.arguments.isPresent)){
+            if (ast.decorators.isEmpty() && (ast.arguments == null || !ast.arguments.isPresent)) {
                 return emptyList()
             }
             return null
@@ -117,7 +119,7 @@ class PythonMethodBody(
     private val ast: FunctionDef,
     override val moduleFilename: String = "",
     override val containingPythonClassId: PythonClassId? = null
-): PythonMethod {
+) : PythonMethod {
     override val name: String
         get() = ast.name.name
 
@@ -172,13 +174,13 @@ object AnnotationProcessor {
         return result
     }
 
-    private class Visitor: ModifierVisitor<MutableSet<String>>() {
+    private class Visitor : ModifierVisitor<MutableSet<String>>() {
         override fun visitAtom(atom: Atom, param: MutableSet<String>): AST {
             parse(
                 nameWithPrefixFromAtom(apply()),
                 onError = null,
                 atom
-            ) { it } ?.let { typeName ->
+            ) { it }?.let { typeName ->
                 moduleOfType(typeName)?.let { param.add(it) }
             }
 

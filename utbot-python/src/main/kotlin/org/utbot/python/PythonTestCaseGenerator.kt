@@ -2,10 +2,12 @@ package org.utbot.python
 
 import mu.KotlinLogging
 import org.utbot.framework.minimization.minimizeExecutions
-import org.utbot.framework.plugin.api.*
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.pythonAnyClassId
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.code.ArgInfoCollector
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
@@ -74,14 +76,16 @@ object PythonTestCaseGenerator {
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
 
-        run breaking@ {
+        run breaking@{
             annotationSequence.forEach { annotations ->
                 if (isCancelled())
                     return@breaking
 
-                logger.debug("Found annotations: ${
-                    annotations.map { "${it.key}: ${it.value}" }.joinToString(" ")
-                }")
+                logger.debug(
+                    "Found annotations: ${
+                        annotations.map { "${it.key}: ${it.value}" }.joinToString(" ")
+                    }"
+                )
 
                 val engine = PythonEngine(
                     method,
@@ -104,6 +108,7 @@ object PythonTestCaseGenerator {
                             executions += it
                             missingLines = updateCoverage(it, coveredLines, missingLines)
                         }
+
                         is UtError -> {
                             logger.debug("Failed evaluation. Reason: ${it.description}")
                             errors += it
@@ -129,12 +134,16 @@ object PythonTestCaseGenerator {
     }
 
     // returns new missingLines
-    private fun updateCoverage(execution: UtExecution, coveredLines: MutableSet<Int>, missingLines: Set<Int>?): Set<Int> {
+    private fun updateCoverage(
+        execution: UtExecution,
+        coveredLines: MutableSet<Int>,
+        missingLines: Set<Int>?
+    ): Set<Int> {
         execution.coverage?.coveredInstructions?.map { instr -> coveredLines.add(instr.lineNumber) }
         val curMissing =
             (execution.coverage as? PythonCoverage)
                 ?.missedInstructions
-                ?.map { x -> x.lineNumber } ?.toSet()
+                ?.map { x -> x.lineNumber }?.toSet()
                 ?: emptySet()
         return if (missingLines == null) curMissing else missingLines intersect curMissing
     }

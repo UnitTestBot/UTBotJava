@@ -3,13 +3,6 @@ package org.utbot.python.code
 import io.github.danielnaczo.python3parser.model.AST
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Gt
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.GtE
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Lt
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.LtE
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.NotEq
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
@@ -31,18 +24,22 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonFloatClassId
+import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger
 
 class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List<NormalizedPythonAnnotation>) {
     open class Hint
-    class Type(val type: PythonClassId): Hint()
-    data class Method(val name: String): Hint()
-    data class FunctionArg(val name: String, val index: Int): Hint()
-    data class FunctionRet(val name: String): Hint()
-    data class Field(val name: String): Hint()
-    data class Function(val name: String): Hint()
+    class Type(val type: PythonClassId) : Hint()
+    data class Method(val name: String) : Hint()
+    data class FunctionArg(val name: String, val index: Int) : Hint()
+    data class FunctionRet(val name: String) : Hint()
+    data class Field(val name: String) : Hint()
+    data class Function(val name: String) : Hint()
     data class ArgInfoStorage(
         val types: MutableSet<Type> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf(),
@@ -60,6 +57,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             ).flatten()
         }
     }
+
     data class GeneralStorage(
         val types: MutableList<Type> = mutableListOf(),
         val functions: MutableSet<Function> = mutableSetOf(),
@@ -91,14 +89,14 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
     fun getAllGeneralHints(): List<Hint> = visitor.generalStorage.toList()
 
     fun getAllArgHints(): Map<String, List<Hint>> {
-       return paramNames.associateWith { argName -> (collectedValues[argName]?.toList() ?: emptyList()) }
+        return paramNames.associateWith { argName -> (collectedValues[argName]?.toList() ?: emptyList()) }
     }
 
     private class MatchVisitor(
         private val paramNames: List<String>,
         val constStorage: MutableSet<FuzzedConcreteValue>,
         val generalStorage: GeneralStorage
-    ): ModifierVisitor<MutableMap<String, ArgInfoStorage>>() {
+    ) : ModifierVisitor<MutableMap<String, ArgInfoStorage>>() {
 
         private fun <A, N> namePat(): Pattern<(String) -> A, A, N> {
             val names: List<Pattern<(String) -> A, A, N>> = paramNames.map { paramName ->
@@ -131,7 +129,8 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                         refl(functionCallWithoutPrefix(name(equal(typeNameWithoutPrefix)), drop()))
                     )
                 else
-                    typeMap[typeNameWithPrefix] = refl(functionCallWithoutPrefix(name(equal(typeNameWithoutPrefix)), drop()))
+                    typeMap[typeNameWithPrefix] =
+                        refl(functionCallWithoutPrefix(name(equal(typeNameWithoutPrefix)), drop()))
             }
             return typeMap.entries.fold(reject()) { acc, entry ->
                 or(acc, map0(typedExpr(entry.value), Type(PythonClassId(entry.key))))
@@ -153,7 +152,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             pat: Pattern<(String) -> (Type) -> Pair<String, Type>?, Pair<String, Type>?, N>,
             ast: N
         ) {
-            parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
+            parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } }?.let {
                 addToStorage(it.first, collection) { storage -> storage.types.add(it.second) }
             }
         }
@@ -163,7 +162,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             pat: Pattern<(String) -> (FunctionRet) -> ResFuncRet, ResFuncRet, N>,
             ast: N
         ) {
-            parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
+            parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } }?.let {
                 addToStorage(it.first, collection) { storage -> storage.functionRets.add(it.second) }
             }
         }
@@ -183,9 +182,13 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                     drop(), drop(), drop()
                 )
             )
-            parse(pat, onError = null, atom) { funcName -> { paramName -> { index ->
-                Pair(paramName, FunctionArg(funcName, index))
-            } } } ?. let {
+            parse(pat, onError = null, atom) { funcName ->
+                { paramName ->
+                    { index ->
+                        Pair(paramName, FunctionArg(funcName, index))
+                    }
+                }
+            }?.let {
                 addToStorage(it.first, param) { storage -> storage.functionArgs.add(it.second) }
             }
         }
@@ -195,9 +198,11 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                 fname = namePat<(String) -> ResField, Name>(),
                 fattributeId = apply()
             )
-            parse(pat, onError = null, atom) { paramName -> { attributeId ->
-                Pair(paramName, Field(attributeId))
-            } } ?.let {
+            parse(pat, onError = null, atom) { paramName ->
+                { attributeId ->
+                    Pair(paramName, Field(attributeId))
+                }
+            }?.let {
                 addToStorage(it.first, param) { storage -> storage.fields.add(it.second) }
             }
         }
@@ -216,9 +221,11 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             )
             val getPat = swap(map0(subscriptPat<ResMethod>(), "__getitem__"))
             val pat = or(methodPat, getPat)
-            parse(pat, onError = null, atom) { paramName -> { attributeId ->
-                Pair(paramName, Method(attributeId))
-            } } ?.let {
+            parse(pat, onError = null, atom) { paramName ->
+                { attributeId ->
+                    Pair(paramName, Method(attributeId))
+                }
+            }?.let {
                 addToStorage(it.first, param) { storage -> storage.methods.add(it.second) }
             }
         }
@@ -247,9 +254,11 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                     drop(), drop(), drop()
                 )
             )
-            parse(pat, onError = null, atom) { methodName -> { paramName ->
-                Pair(paramName, Method(methodName))
-            } } ?.let {
+            parse(pat, onError = null, atom) { methodName ->
+                { paramName ->
+                    Pair(paramName, Method(methodName))
+                }
+            }?.let {
                 addToStorage(it.first, param) { storage -> storage.methods.add(it.second) }
             }
         }
@@ -263,7 +272,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                 ),
                 onError = null,
                 atom
-            ) { it } ?.let { generalStorage.functions.add(Function(it)) }
+            ) { it }?.let { generalStorage.functions.add(Function(it)) }
         }
 
         private fun collectGeneralMethod(atom: Atom) {
@@ -274,7 +283,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                 ),
                 onError = null,
                 atom
-            ) { it } ?.let { generalStorage.methods.add(Method(it)) }
+            ) { it }?.let { generalStorage.methods.add(Method(it)) }
         }
 
         private fun collectGeneralFields(atom: Atom) {
@@ -282,7 +291,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                 attributesFromAtom(fattributes = apply()),
                 onError = null,
                 atom
-            ) { it } ?.let { attributes ->
+            ) { it }?.let { attributes ->
                 attributes.forEach { generalStorage.fields.add(Field(it)) }
             }
         }
@@ -306,7 +315,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                 pat,
                 onError = emptyList(),
                 assign
-            ) { paramName -> { typeStorage -> Pair(paramName, typeStorage) } } .map {
+            ) { paramName -> { typeStorage -> Pair(paramName, typeStorage) } }.map {
                 addToStorage(it.first, param) { storage -> storage.types.add(it.second) }
             }
         }
@@ -325,11 +334,15 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
         }
 
         private fun <A, N> funcCallNamePat(): Pattern<(FunctionRet) -> A, A, N> =
-            map1(refl(functionCallWithPrefix(
-                fprefix = drop(),
-                fid = apply(),
-                farguments = drop()
-            ))) { x -> FunctionRet(x) }
+            map1(
+                refl(
+                    functionCallWithPrefix(
+                        fprefix = drop(),
+                        fid = apply(),
+                        farguments = drop()
+                    )
+                )
+            ) { x -> FunctionRet(x) }
 
         private fun collectFuncRet(assign: Assign, param: MutableMap<String, ArgInfoStorage>) {
             val pat: Pattern<(String) -> (FunctionRet) -> ResFuncRet, List<ResFuncRet>, Assign> = assignAll(
@@ -432,7 +445,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             val value = getNumFuzzedValue(num.n)
             if (value != null && constStorage.find { it.value == value.value } == null) {
                 constStorage.add(value)
-                (value.classId as? PythonClassId) ?.let { generalStorage.types.add(Type(it)) }
+                (value.classId as? PythonClassId)?.let { generalStorage.types.add(Type(it)) }
             }
             return super.visitNum(num, param)
         }
@@ -467,7 +480,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
                     binOp(fleft = refl(name(drop())), fright = constPat(op)),
                     onError = null,
                     ast
-                ) { it } ?.let { constStorage.add(it) }
+                ) { it }?.let { constStorage.add(it) }
 
             saveToAttributeStorage(ast.left, getOpMagicMethod(ast), param)
             saveToAttributeStorage(ast.right, getOpMagicMethod(ast), param)
@@ -519,7 +532,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
             param: MutableMap<String, ArgInfoStorage>
         ): AST {
             generalStorage.methods.add(Method("__iter__"))
-            parse(namePat(), onError = null, comprehension.iter) { it } ?.let { paramName ->
+            parse(namePat(), onError = null, comprehension.iter) { it }?.let { paramName ->
                 addToStorage(paramName, param) { storage -> storage.methods.add(Method("__iter__")) }
             }
             return super.visitComprehension(comprehension, param)
@@ -527,7 +540,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
 
         override fun visitFor(forElement: For, param: MutableMap<String, ArgInfoStorage>): AST {
             generalStorage.methods.add(Method("__iter__"))
-            parse(namePat(), onError = null, forElement.iter) { it } ?.let { paramName ->
+            parse(namePat(), onError = null, forElement.iter) { it }?.let { paramName ->
                 addToStorage(paramName, param) { storage -> storage.methods.add(Method("__iter__")) }
             }
             return super.visitFor(forElement, param)

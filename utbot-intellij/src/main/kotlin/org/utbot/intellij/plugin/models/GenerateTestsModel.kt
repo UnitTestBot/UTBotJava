@@ -79,14 +79,6 @@ data class GenerateTestsModel(
     }
     var runGeneratedTestsWithCoverage : Boolean = false
     var enableSummariesGeneration : Boolean = true
-
-    val jdkVersion: JavaSdkVersion?
-        get() = try {
-            testModule.jdkVersion()
-        } catch (e: IllegalStateException) {
-            // Just ignore it here, notification will be shown in org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
-            null
-        }
 }
 
 val PsiClass.packageName: String

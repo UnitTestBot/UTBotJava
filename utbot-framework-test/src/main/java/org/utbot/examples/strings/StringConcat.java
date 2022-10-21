@@ -2,19 +2,20 @@ package org.utbot.examples.strings;
 
 import org.utbot.api.mock.UtMock;
 
-class Test {
-    int x;
-
-    @Override
-    public String toString() {
-        if (x == 42) {
-            throw new IllegalArgumentException();
-        }
-        return "x = " + x;
-    }
-}
 
 public class StringConcat {
+    static class Test {
+        public int x;
+
+        @Override
+        public String toString() {
+            if (x == 42) {
+                throw new IllegalArgumentException();
+            }
+            return "x = " + x;
+        }
+    }
+
     String str;
     public String concatArguments(String a, String b, String c) {
         return a + b + c;

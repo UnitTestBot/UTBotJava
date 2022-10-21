@@ -32,7 +32,7 @@ dependencies {
     testImplementation project(":utbot-framework").sourceSets.test.output
     testImplementation project(":utbot-core").sourceSets.test.output
 
-    implementation "com.github.UnitTestBot:soot:${sootCommitHash}"
+    implementation "org.unittestbot.soot:soot-utbot-fork:${sootVersion}"
 
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version

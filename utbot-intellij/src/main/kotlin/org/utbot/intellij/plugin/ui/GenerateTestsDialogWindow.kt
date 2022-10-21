@@ -123,7 +123,8 @@ import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
 import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
-import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
+import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
+import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
@@ -140,6 +141,7 @@ import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
+import org.utbot.intellij.plugin.util.findSdkVersion
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -314,15 +316,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             label?.let { add(it, BorderLayout.LINE_END) }
         })
 
-    private fun findSdkVersion(): JavaVersion? {
-        val projectSdk = ModuleRootManager.getInstance(model.srcModule).sdk
-        return JavaVersion.tryParse(projectSdk?.versionString)
-    }
-
     override fun createTitlePane(): JComponent? {
-        val sdkVersion = findSdkVersion()
+        val sdkVersion = findSdkVersion(model.srcModule)
         //TODO:SAT-1571 investigate Android Studio specific sdk issues
-        if (sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
+        if (sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
         isOKActionEnabled = false
         return SdkNotificationPanel(model, sdkVersion)
     }
@@ -372,8 +369,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     val isEdited = ShowSettingsUtil.getInstance().editConfigurable(model.project, projectStructure)
                     { projectStructure.select(model.srcModule.name, ClasspathEditor.getName(), true) }
 
-                    val sdkVersion = findSdkVersion()
-                    val sdkFixed = isEdited && sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion
+                    val sdkVersion = findSdkVersion(model.srcModule)
+                    val sdkFixed = isEdited && sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion
                     if (sdkFixed) {
                         this@SdkNotificationPanel.isVisible = false
                         isOKActionEnabled = true
@@ -721,11 +718,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val libraryInProject =
             findFrameworkLibrary(model.project, model.testModule, selectedTestFramework, LibrarySearchScope.Project)
         val versionInProject = libraryInProject?.libraryName?.parseVersion()
+        val sdkVersion = findSdkVersion(model.srcModule).feature
 
         val libraryDescriptor = when (selectedTestFramework) {
             Junit4 -> jUnit4LibraryDescriptor(versionInProject)
             Junit5 -> jUnit5LibraryDescriptor(versionInProject)
-            TestNg -> testNgLibraryDescriptor(versionInProject)
+            TestNg -> when (sdkVersion) {
+                minSupportedSdkVersion -> testNgOldLibraryDescriptor()
+                else -> testNgNewLibraryDescriptor(versionInProject)
+            }
         }
 
         selectedTestFramework.isInstalled = true
@@ -954,12 +955,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         var enabledTestFrameworks = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.allItems
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.allItems.filterNot { it == Junit4 }
-        }
-
-        //Will be removed after gradle-intelij-plugin version update upper than 2020.2
-        //TestNg will be reverted after https://github.com/UnitTestBot/UTBotJava/issues/309
-        if (findSdkVersion()?.let { it.feature < 11 } == true) {
-            enabledTestFrameworks = enabledTestFrameworks.filterNot { it == TestNg }
         }
 
         var defaultItem = when (parametrizedTestSource) {

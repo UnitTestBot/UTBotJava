@@ -30,10 +30,9 @@ class SimpleCommentForTestProducedByFuzzerBuilder(
                 methodName,
                 methodDescription.parameters,
                 false
-            ).replace(SummarySentenceConstants.CARRIAGE_RETURN, "")
+            )
 
-            val classReference = getClassReference(fullClassName).replace(SummarySentenceConstants.CARRIAGE_RETURN, "")
-
+            val classReference = getClassReference(fullClassName)
 
             val docStatements = mutableListOf<DocStatement>()
             docStatements.add(DocRegularStmt("Class under test: $classReference$NEW_LINE"))

@@ -7,7 +7,7 @@ import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.comment.*
-import org.utbot.summary.comment.customtags.getMethodReference
+import org.utbot.summary.comment.customtags.getMethodReferenceForSymbolicTest
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag
 import org.utbot.summary.tag.StatementTag
@@ -42,7 +42,7 @@ class SymbolicExecutionClusterCommentBuilder(
         sentence = splitLongSentence(sentence)
         sentence = lastCommaToDot(sentence)
 
-        return "<pre>\n$sentence</pre>".replace(CARRIAGE_RETURN, "")
+        return "<pre>\n$sentence</pre>".replace(CARRIAGE_RETURN, EMPTY_STRING)
     }
 
     override fun buildDocStmts(currentMethod: SootMethod): List<DocStatement> {
@@ -98,7 +98,7 @@ class SymbolicExecutionClusterCommentBuilder(
             if (!sentenceInvoke.isEmpty()) {
                 sentenceBlock.invokeSentenceBlock =
                     Pair(
-                        getMethodReference(className, methodName, methodParameterTypes, isPrivate),
+                        getMethodReferenceForSymbolicTest(className, methodName, methodParameterTypes, isPrivate),
                         sentenceInvoke
                     )
                 createNextBlock = true

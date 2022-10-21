@@ -510,6 +510,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         with(settings) {
             model.runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour
             model.hangingTestsTimeout = hangingTestsTimeout
+            model.runInspectionAfterTestGeneration = runInspectionAfterTestGeneration
             model.forceStaticMocking = forceStaticMocking
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
             model.fuzzingValue = fuzzingValue

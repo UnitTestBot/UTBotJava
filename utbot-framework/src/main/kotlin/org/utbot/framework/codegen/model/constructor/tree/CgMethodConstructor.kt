@@ -398,7 +398,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun String.escapeControlChars() : String {
-        return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
+        return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\\u","\\\\u")
     }
 
     private fun writeWarningAboutCrash() {
@@ -1493,7 +1493,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
                         type = BuiltinClassId(
-                            name = classClassId.name,
                             simpleName = classClassId.simpleName,
                             canonicalName = classClassId.canonicalName,
                             packageName = classClassId.packageName,

@@ -1,11 +1,13 @@
 package org.utbot.intellij.plugin.util
 
 import com.intellij.coverage.CoverageExecutor
+import com.intellij.execution.ConfigurationWithCommandLineShortener
 import com.intellij.execution.ExecutorRegistry
 import com.intellij.execution.JavaTestConfigurationBase
 import com.intellij.execution.Location
 import com.intellij.execution.PsiLocation
 import com.intellij.execution.RunManagerEx
+import com.intellij.execution.ShortenCommandLine
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.ConfigurationFromContext
 import com.intellij.execution.actions.RunConfigurationProducer
@@ -64,7 +66,7 @@ class RunConfigurationHelper {
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && testType == "pattern"
+        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && "pattern".contentEquals(testType, true)
 
         // In case we do "generate and run" for many files at once,
         // desired run configuration has to be one of "pattern" typed test configuration that may run many tests at once.
@@ -119,6 +121,10 @@ class RunConfigurationHelper {
                                 DefaultRunExecutor.getRunExecutorInstance()
                             }
                             ApplicationManager.getApplication().invokeLater {
+                                val configuration = settings.configuration
+                                if (configuration is ConfigurationWithCommandLineShortener) {
+                                    configuration.shortenCommandLine = ShortenCommandLine.MANIFEST
+                                }
                                 ExecutionUtil.runConfiguration(settings, executor)
                                 with(RunManagerEx.getInstanceEx(model.project)) {
                                     if (findSettings(settings.configuration) == null) {

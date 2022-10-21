@@ -81,7 +81,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven("https://jitpack.io")
         maven("https://plugins.gradle.org/m2")
         maven("https://www.jetbrains.com/intellij-repository/releases")
         maven("https://cache-redirector.jetbrains.com/maven-central")

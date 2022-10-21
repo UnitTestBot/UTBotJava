@@ -154,7 +154,6 @@ internal val addToListMethodId: MethodId
  */
 internal val argumentsClassId: BuiltinClassId
     get() = BuiltinClassId(
-        name = "org.junit.jupiter.params.provider.Arguments",
         simpleName = "Arguments",
         canonicalName = "org.junit.jupiter.params.provider.Arguments",
         packageName = "org.junit.jupiter.params.provider"
@@ -314,7 +313,6 @@ fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
     val arrayIdName = "[${elementType.arrayLikeName}"
     return when (elementType) {
         is BuiltinClassId -> BuiltinClassId(
-            name = arrayIdName,
             canonicalName = "${elementType.canonicalName}[]",
             simpleName = "${elementType.simpleName}[]",
             elementClassId = elementType,

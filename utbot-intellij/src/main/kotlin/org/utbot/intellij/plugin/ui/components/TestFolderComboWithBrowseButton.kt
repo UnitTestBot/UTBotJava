@@ -7,6 +7,7 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ComponentWithBrowseButton
 import com.intellij.openapi.ui.FixedSizeButton
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.ui.ColoredListCellRenderer
@@ -16,6 +17,7 @@ import com.intellij.util.ui.UIUtil
 import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
+import org.jetbrains.kotlin.idea.util.rootManager
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.intellij.plugin.models.GenerateTestsModel
@@ -55,7 +57,41 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
             }
         }
 
-        val testRoots = model.getAllTestSourceRoots()
+        var commonModuleSourceDirectory = ""
+        for ((i, sourceRoot) in model.srcModule.rootManager.sourceRoots.withIndex()) {
+            commonModuleSourceDirectory = if (i == 0) {
+                sourceRoot.toNioPath().toString()
+            } else {
+                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
+            }
+        }
+        // The first sorting to obtain the best candidate
+        val testRoots = model.getAllTestSourceRoots().distinct().sortedWith(
+            compareByDescending<TestSourceRoot> {
+                // Heuristics: Dirs with language == codegenLanguage should go first
+                it.expectedLanguage == model.codegenLanguage
+            }.thenBy {
+                // Heuristics: move root that is 'closer' to module 'common' directory to the first position
+                StringUtil.commonPrefixLength(commonModuleSourceDirectory, it.dir.toNioPath().toString())
+            }).toMutableList()
+
+        val theBest = if (testRoots.isNotEmpty()) testRoots[0] else null
+
+        // The second sorting to make full list ordered
+        testRoots.sortWith(compareByDescending<TestSourceRoot> {
+                // Heuristics: Dirs with language == codegenLanguage should go first
+                it.expectedLanguage == model.codegenLanguage
+            }.thenBy {
+                // ABC-sorting
+                it.dir.toNioPath()
+            }
+        )
+        // The best candidate should go first to be pre-selected
+        theBest?.let {
+            testRoots.remove(it)
+            testRoots.add(0, it)
+        }
+
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)
 

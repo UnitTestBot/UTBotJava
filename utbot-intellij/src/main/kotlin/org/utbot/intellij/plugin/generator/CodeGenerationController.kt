@@ -75,6 +75,7 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
+import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 object CodeGenerationController {
@@ -436,7 +437,7 @@ object CodeGenerationController {
         }
     }
 
-    fun GenerateTestsModel.getAllTestSourceRoots() : MutableList<VirtualFile> {
+    fun GenerateTestsModel.getAllTestSourceRoots() : MutableList<TestSourceRoot> {
         with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
             return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
         }

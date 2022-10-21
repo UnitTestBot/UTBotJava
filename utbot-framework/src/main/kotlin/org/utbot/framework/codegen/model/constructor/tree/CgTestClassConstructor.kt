@@ -21,7 +21,6 @@ import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
@@ -37,12 +36,12 @@ import org.utbot.framework.codegen.model.tree.buildTestClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
+import org.utbot.fuzzer.UtFuzzedExecution
 
 internal class CgTestClassConstructor(val context: CgContext) :
     CgContextOwner by context,
@@ -140,45 +139,18 @@ internal class CgTestClassConstructor(val context: CgContext) :
             .filter { it.result is UtExecutionSuccess }
             .map { (it.result as UtExecutionSuccess).model }
 
-        val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
-        val requiredFields = mutableListOf<CgParameterDeclaration>()
 
-        when (context.parametrizedTestSource) {
-            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
-                for ((clusterSummary, executionIndices) in clustersInfo) {
-                    val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
-                    emptyLineIfNeeded()
-                    for (i in executionIndices) {
-                        runCatching {
-                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-                        }.onFailure { e -> processFailure(testSet, e) }
-                    }
-                    val clusterHeader = clusterSummary?.header
-                    val clusterContent = clusterSummary?.content
-                        ?.split('\n')
-                        ?.let { CgTripleSlashMultilineComment(it) }
-                    regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
-
-                    testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
-                }
+        runCatching {
+            when (context.parametrizedTestSource) {
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> createTest(testSet, regions)
+                ParametrizedTestSource.PARAMETRIZE ->
+                    createParametrizedTestAndDataProvider(
+                        testSet,
+                        regions
+                    )
             }
-            ParametrizedTestSource.PARAMETRIZE -> {
-                // Mocks are not supported in parametrized tests, we should exclude them
-                val testSetWithoutMocking = testSet.excludeExecutionsWithMocking()
-
-                for (splitByExecutionTestSet in testSetWithoutMocking.splitExecutionsByResult()) {
-                    for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
-                        createParametrizedTestAndDataProvider(
-                            splitByChangedStaticsTestSet,
-                            requiredFields,
-                            regions,
-                            methodUnderTest
-                        )
-                    }
-                }
-            }
-        }
+        }.onFailure { e -> processFailure(testSet, e) }
 
         val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
@@ -195,29 +167,62 @@ internal class CgTestClassConstructor(val context: CgContext) :
             .merge(failure.description, 1, Int::plus)
     }
 
+    private fun createTest(
+        testSet: CgMethodTestSet,
+        regions: MutableList<CgRegion<CgMethod>>
+    ) {
+        val (methodUnderTest, _, _, clustersInfo) = testSet
+
+        for ((clusterSummary, executionIndices) in clustersInfo) {
+            val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
+            emptyLineIfNeeded()
+            for (i in executionIndices) {
+                currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+            }
+            val clusterHeader = clusterSummary?.header
+            val clusterContent = clusterSummary?.content
+                ?.split('\n')
+                ?.let { CgTripleSlashMultilineComment(it) }
+            regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
+
+            testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
+        }
+    }
+
     private fun createParametrizedTestAndDataProvider(
         testSet: CgMethodTestSet,
-        requiredFields: MutableList<CgParameterDeclaration>,
-        regions: MutableList<CgRegion<CgMethod>>,
-        methodUnderTest: ExecutableId,
+        regions: MutableList<CgRegion<CgMethod>>
     ) {
-        runCatching {
-            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.executableId)
+        val (methodUnderTest, _, _, _) = testSet
+
+        for (preparedTestSet in testSet.prepareTestSetsForParameterizedTestGeneration()) {
+            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(preparedTestSet.executableId)
 
             val parameterizedTestMethod =
-                methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
-
-            requiredFields += parameterizedTestMethod.requiredFields
+                methodConstructor.createParameterizedTestMethod(preparedTestSet, dataProviderMethodName)
 
             testFrameworkManager.addDataProvider(
-                methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+                methodConstructor.createParameterizedTestDataProvider(preparedTestSet, dataProviderMethodName)
             )
 
             regions += CgSimpleRegion(
                 "Parameterized test for method ${methodUnderTest.humanReadableName}",
                 listOf(parameterizedTestMethod),
             )
-        }.onFailure { error -> processFailure(testSet, error) }
+        }
+
+        // We cannot track mocking in fuzzed executions,
+        // so we generate standard tests for each [UtFuzzedExecution].
+        // [https://github.com/UnitTestBot/UTBotJava/issues/1137]
+        val testCaseTestMethods = mutableListOf<CgTestMethod>()
+        for (execution in testSet.executions.filterIsInstance<UtFuzzedExecution>()) {
+            testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+        }
+
+        regions += CgSimpleRegion(
+            "FUZZER: EXECUTIONS for method ${methodUnderTest.humanReadableName}",
+            testCaseTestMethods,
+        )
     }
 
     /**

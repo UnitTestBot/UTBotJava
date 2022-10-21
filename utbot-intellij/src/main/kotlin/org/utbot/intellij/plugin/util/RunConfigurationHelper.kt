@@ -64,7 +64,7 @@ class RunConfigurationHelper {
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && testType == "pattern"
+        private fun RunConfiguration.isPatternBased() = this is JavaTestConfigurationBase && "pattern".contentEquals(testType, true)
 
         // In case we do "generate and run" for many files at once,
         // desired run configuration has to be one of "pattern" typed test configuration that may run many tests at once.

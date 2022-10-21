@@ -74,7 +74,7 @@ fun createSootMethod(
     declaringClass: SootClass,
     graphBody: JimpleBody,
     isStatic: Boolean = true
-) = SootMethod(name, argsTypes, returnType, (if (isStatic) Modifier.STATIC else 0))
+) = SootMethod(name, argsTypes, returnType, if (isStatic) Modifier.STATIC else 0)
     .also {
         declaringClass.addMethod(it)
         it.activeBody = graphBody

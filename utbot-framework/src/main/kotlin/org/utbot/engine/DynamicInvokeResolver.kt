@@ -100,12 +100,12 @@ object StringMakeConcatResolver : DynamicInvokeResolver {
         )
 
         val invocationTarget = InvocationTarget(
-            null,
+            instance = null,
             sootMethod
         )
 
         return Invocation(
-            null,
+            instance = null,
             sootMethod,
             parameters,
             invocationTarget

@@ -223,17 +223,15 @@ fun makeSootConcat(declaringClass: SootClass, recipe: String, paramTypes: List<T
     var constantPointer = 0 // pointer to constant list
     var delayedString = "" // string which is build of sequent values from [constants]
 
+    val appendStringSootMethod = sbSootClass.getMethod("append", listOf(STRING_TYPE), sbSootClass.type)
+
     // helper function for appending constants to delayedString
     fun appendDelayedStringIfNotEmpty() {
         if (delayedString.isEmpty()) {
             return
         }
 
-        val type = STRING_TYPE
-
-        val appendSootMethod = sbSootClass.getMethod("append", listOf(type), sbSootClass.type)
-
-        val invokeStringBuilderAppendStmt = appendSootMethod.toVirtualInvokeExpr(sb, StringConstant.v(delayedString))
+        val invokeStringBuilderAppendStmt = appendStringSootMethod.toVirtualInvokeExpr(sb, StringConstant.v(delayedString))
         units += invokeStringBuilderAppendStmt.toInvokeStmt()
 
         delayedString = ""
@@ -258,11 +256,8 @@ fun makeSootConcat(declaringClass: SootClass, recipe: String, paramTypes: List<T
                 appendDelayedStringIfNotEmpty()
 
                 val const = constants[constantPointer++]
-                val type = STRING_TYPE
 
-                val appendSootMethod = sbSootClass.getMethod("append", listOf(type), sbSootClass.type)
-
-                val stringBuilderAppendExpr = appendSootMethod.toVirtualInvokeExpr(sb, StringConstant.v(const))
+                val stringBuilderAppendExpr = appendStringSootMethod.toVirtualInvokeExpr(sb, StringConstant.v(const))
                 units += stringBuilderAppendExpr.toInvokeStmt()
             }
             else -> {

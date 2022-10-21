@@ -4,7 +4,7 @@ import org.utbot.api.mock.UtMock;
 
 
 public class StringConcat {
-    static class Test {
+    public static class Test {
         public int x;
 
         @Override

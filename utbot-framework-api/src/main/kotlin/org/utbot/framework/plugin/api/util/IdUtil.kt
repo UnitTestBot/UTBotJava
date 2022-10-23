@@ -441,6 +441,9 @@ val MethodId.method: Method
                 ?: error("Can't find method $signature in ${declaringClass.name}")
     }
 
+/**
+ * See [KCallable.extensionReceiverParameter] for more details
+ */
 val MethodId.extensionReceiverParameterIndex: Int?
     get() = this.method.kotlinFunction?.extensionReceiverParameter?.index
 

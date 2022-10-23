@@ -205,9 +205,9 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
      */
     private fun CgMethodCall.takeCallerFromArgumentsIfNeeded(): CgMethodCall {
         if (codegenLanguage == CodegenLanguage.KOTLIN) {
-            // TODO: reflection calls for util and some of mockito methods produce exceptions => currently runCatching is needed
-            //  (but their reflection may be supported, alternatively maybe get rid of reflection somehow here)
-            runCatching {
+            // TODO: reflection calls for util and some of mockito methods produce exceptions => here we suppose that
+            //  methods for BuiltinClasses are not extensions by default (which should be true as long as we suppose them to be java methods)
+            if (executableId.classId !is BuiltinClassId) {
                 executableId.extensionReceiverParameterIndex?.let { receiverIndex ->
                     require(caller == null) { "${executableId.humanReadableName} is an extension function but it already has a non-static caller provided" }
                     val args = arguments.toMutableList()

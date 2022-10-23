@@ -73,8 +73,8 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override val langPackage: String = "kotlin"
 
-    override val ClassId.shouldBeOmittedWhenUsedAsCaller: Boolean
-        get() = isKotlinFile
+    override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
+        get() = (this == context.generatedClass) || isKotlinFile
 
     override fun visit(element: AbstractCgClass<*>) {
         for (annotation in element.annotations) {

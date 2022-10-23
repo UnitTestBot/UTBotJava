@@ -66,8 +66,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
 
             val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
-            // When in Kotlin file, we should propose top-level functions for testing
-            if (psiElementHandler.isCreateTestActionAvailable(element) || file is KtFile) {
+            if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
@@ -221,7 +220,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
     }
 
     private fun getAllClasses(directory: PsiDirectory): Set<PsiClass> {
-        val allClasses = directory.files.flatMap { getClassesFromFile(it) }.toMutableSet()
+        val allClasses = directory.files.flatMap { PsiElementHandler.makePsiElementHandler(it).getClassesFromFile(it) }.toMutableSet()
         for (subDir in directory.subdirectories) allClasses += getAllClasses(subDir)
         return allClasses
     }
@@ -234,16 +233,10 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         if (!dirsArePackages) {
             return emptySet()
         }
-        val allClasses = psiFiles.flatMap { getClassesFromFile(it) }.toMutableSet()
+        val allClasses = psiFiles.flatMap { PsiElementHandler.makePsiElementHandler(it).getClassesFromFile(it) }.toMutableSet()
         allClasses.addAll(psiFiles.mapNotNull { (it as? KtFile)?.findFacadeClass() })
         for (psiDir in psiDirectories) allClasses += getAllClasses(psiDir)
 
         return allClasses
-    }
-
-    private fun getClassesFromFile(psiFile: PsiFile): List<PsiClass> {
-        val psiElementHandler = PsiElementHandler.makePsiElementHandler(psiFile)
-        return PsiTreeUtil.getChildrenOfTypeAsList(psiFile, psiElementHandler.classClass)
-                .map { psiElementHandler.toPsi(it, PsiClass::class.java) }
     }
 }

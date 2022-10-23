@@ -131,10 +131,13 @@ internal abstract class CgAbstractRenderer(
         }
     }
 
-    protected abstract val ClassId.shouldBeOmittedWhenUsedAsCaller: Boolean
+    /**
+     * Returns true if one can call methods of this class without specifying a caller (for example if ClassId represents this instance)
+     */
+    protected abstract val ClassId.methodsAreAccessibleAsTopLevel: Boolean
 
     private val MethodId.accessibleByName: Boolean
-        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.generatedClass || classId.shouldBeOmittedWhenUsedAsCaller
+        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId.methodsAreAccessibleAsTopLevel
 
     override fun visit(element: CgElement) {
         val error =
@@ -656,7 +659,7 @@ internal abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgStaticFieldAccess) {
-        if (!element.declaringClass.shouldBeOmittedWhenUsedAsCaller) {
+        if (!element.declaringClass.methodsAreAccessibleAsTopLevel) {
             print(element.declaringClass.asString())
             print(".")
         }

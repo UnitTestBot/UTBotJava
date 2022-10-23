@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.ui.utils
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.psi.KtFile
 
 /**
@@ -35,6 +36,14 @@ interface PsiElementHandler {
      * For instance, we can't cast KtNamedFunction to PsiMethod, but we can transition it.
      */
     fun <T> toPsi(element: PsiElement, clazz: Class<T>): T
+
+    /**
+     * Returns all classes that are declared in the [psiFile]
+     */
+    fun getClassesFromFile(psiFile: PsiFile): List<PsiClass> {
+        return PsiTreeUtil.getChildrenOfTypeAsList(psiFile, classClass)
+            .map { toPsi(it, PsiClass::class.java) }
+    }
 
     /**
      * Get java class of the Class in the corresponding syntax tree (PsiClass, KtClass, e.t.c).

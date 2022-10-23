@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.ui.utils
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.util.findParentOfType
 import org.jetbrains.kotlin.asJava.findFacadeClass
 import org.jetbrains.kotlin.idea.testIntegration.KotlinCreateTestIntention
@@ -11,7 +12,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
-import org.jetbrains.kotlin.toKtPsiSourceElement
 import org.jetbrains.uast.toUElement
 
 class KotlinPsiElementHandler(
@@ -27,8 +27,16 @@ class KotlinPsiElementHandler(
         return element.toUElement()?.javaPsi as? T ?: error("Could not cast $element to $clazz")
     }
 
-    override fun isCreateTestActionAvailable(element: PsiElement): Boolean =
-        getTarget(element)?.let { KotlinCreateTestIntention().applicabilityRange(it) != null } ?: false
+    override fun getClassesFromFile(psiFile: PsiFile): List<PsiClass> {
+        return listOfNotNull((psiFile as? KtFile)?.findFacadeClass()) + super.getClassesFromFile(psiFile)
+    }
+
+    override fun isCreateTestActionAvailable(element: PsiElement): Boolean {
+        getTarget(element)?.let {
+            return KotlinCreateTestIntention().applicabilityRange(it) != null
+        }
+        return (element.containingFile as? KtFile)?.findFacadeClass() != null
+    }
 
     private fun getTarget(element: PsiElement?): KtNamedDeclaration? =
         element?.parentsWithSelf

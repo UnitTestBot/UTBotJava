@@ -23,7 +23,6 @@ include 'utbot-fuzzers'
 include 'utbot-cli'
 include 'utbot-cli-python'
 include 'utbot-cli-js'
-include 'utbot-cli-go'
 
 include 'utbot-api'
 include 'utbot-instrumentation'
@@ -38,11 +37,9 @@ include 'utbot-rd'
 
 include 'utbot-python'
 include 'utbot-js'
-include 'utbot-go'
 
 include 'utbot-ui-commons'
 
 include 'utbot-intellij-python'
 include 'utbot-intellij-js'
-include 'utbot-intellij-go'
 

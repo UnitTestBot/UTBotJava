@@ -658,7 +658,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         updateTestFrameworksList(settings.parametrizedTestSource)
-        updateParametrizationEnabled(currentFrameworkItem)
+        updateParametrizationEnabled()
 
         updateMockStrategyList()
 
@@ -907,6 +907,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             if (!staticsMocking.isEnabled) {
                 staticsMocking.isSelected = false
             }
+
+            updateParametrizationEnabled()
         }
 
         testFrameworks.addActionListener { event ->
@@ -914,10 +916,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val item = comboBox.item as TestFramework
 
             currentFrameworkItem = item
-            updateParametrizationEnabled(currentFrameworkItem)
+
+            updateParametrizationEnabled()
         }
 
-        parametrizedTestSources.addActionListener { event ->
+        codegenLanguages.addActionListener { _ ->
+            updateParametrizationEnabled()
+        }
+
+        parametrizedTestSources.addActionListener { _ ->
             val parametrizedTestSource = if (parametrizedTestSources.isSelected) {
                 ParametrizedTestSource.PARAMETRIZE
             } else {
@@ -980,12 +987,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         currentFrameworkItem = testFrameworks.item
     }
 
-    //We would like to disable parametrization options for JUnit4
-    private fun updateParametrizationEnabled(testFramework: TestFramework) {
-        when (testFramework) {
-            Junit4 -> parametrizedTestSources.isEnabled = false
-            Junit5,
-            TestNg -> parametrizedTestSources.isEnabled = true
+    private fun updateParametrizationEnabled() {
+        val languageIsSupported = codegenLanguages.item == CodegenLanguage.JAVA
+        val frameworkIsSupported = currentFrameworkItem == Junit5
+                || currentFrameworkItem == TestNg && findSdkVersion(model.srcModule).feature > minSupportedSdkVersion
+        val mockStrategyIsSupported = mockStrategies.item == MockStrategyApi.NO_MOCKS
+
+        parametrizedTestSources.isEnabled =
+            languageIsSupported && frameworkIsSupported && mockStrategyIsSupported
+
+        if (!parametrizedTestSources.isEnabled) {
+            parametrizedTestSources.isSelected = false
         }
     }
 

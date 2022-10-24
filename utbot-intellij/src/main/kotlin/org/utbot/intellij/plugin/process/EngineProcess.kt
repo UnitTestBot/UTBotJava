@@ -7,7 +7,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.jetbrains.rd.framework.util.asCompletableFuture
+import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -38,7 +38,6 @@ import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
-import org.utbot.sarif.Sarif
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
 import java.nio.file.Path
@@ -64,6 +63,8 @@ class EngineProcess(parent: Lifetime, val project: Project) {
     private val id = Random.nextLong()
     private var count = 0
     private var configPath: Path? = null
+
+    private val sourceFindingStrategies = ConcurrentHashMap<Long, SourceFindingStrategy>()
 
     private fun getOrCreateLogConfig(): String {
         var realPath = configPath
@@ -164,6 +165,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     }
                 }.awaitSignal()
                 current = proc
+                initSourceFindingStrategies()
             }
 
             proc.protocol.engineProcessModel
@@ -323,15 +325,11 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         current?.terminate()
     }
 
-    fun writeSarif(reportFilePath: Path,
-                   testSetsId: Long,
-                   generatedTestsCode: String,
-                   sourceFindingStrategy: SourceFindingStrategy
-    ): String = runBlocking {
+    private fun initSourceFindingStrategies() {
         current!!.protocol.rdSourceFindingStrategy.let {
             it.getSourceFile.set { params ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String?> {
-                    sourceFindingStrategy.getSourceFile(
+                    sourceFindingStrategies[params.testSetId]!!.getSourceFile(
                         params.classFqn,
                         params.extension
                     )?.canonicalPath
@@ -339,18 +337,27 @@ class EngineProcess(parent: Lifetime, val project: Project) {
             }
             it.getSourceRelativePath.set { params ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String> {
-                    sourceFindingStrategy.getSourceRelativePath(
+                    sourceFindingStrategies[params.testSetId]!!.getSourceRelativePath(
                         params.classFqn,
                         params.extension
                     )
                 }
             }
-            it.testsRelativePath.set { _ ->
+            it.testsRelativePath.set { testSetId ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String> {
-                    sourceFindingStrategy.testsRelativePath
+                    sourceFindingStrategies[testSetId]!!.testsRelativePath
                 }
             }
         }
+    }
+
+    fun writeSarif(
+        reportFilePath: Path,
+        testSetsId: Long,
+        generatedTestsCode: String,
+        sourceFindingStrategy: SourceFindingStrategy
+    ): String = runBlocking {
+        sourceFindingStrategies[testSetsId] = sourceFindingStrategy
         engineModel().writeSarifReport.startSuspending(
             WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
         )

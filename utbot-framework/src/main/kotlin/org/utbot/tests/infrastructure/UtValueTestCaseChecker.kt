@@ -89,6 +89,8 @@ abstract class UtValueTestCaseChecker(
         UtSettings.useFuzzing = false
         UtSettings.useCustomJavaDocTags = false
         UtSettings.enableSummariesGeneration = true
+        // Disable concrete execution to detect failed symbolic tests
+        UtSettings.useConcreteExecution = false
     }
 
     // checks paramsBefore and result

@@ -272,7 +272,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     null
                 )
             }
-            row { component(parametrizedTestSources) }
             row("Mocking strategy:") {
                 makePanelWithHelpTooltip(
                     mockStrategies,
@@ -281,6 +280,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 )
             }
             row { component(staticsMocking)}
+            row {
+                cell {
+                    component(parametrizedTestSources)
+                    component(ContextHelpLabel.create("Parametrization is not supported in some configurations, e.g. if mocks are used."))
+                }
+            }
             row("Test generation timeout:") {
                 cell {
                     component(timeoutSpinner)

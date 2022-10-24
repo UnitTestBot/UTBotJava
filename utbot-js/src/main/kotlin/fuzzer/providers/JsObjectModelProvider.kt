@@ -11,11 +11,17 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
-import org.utbot.fuzzer.SimpleIdGenerator
 import org.utbot.fuzzer.TooManyCombinationsException
 import org.utbot.fuzzer.fuzz
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.function.IntSupplier
 
 object JsObjectModelProvider : ModelProvider {
+
+    class SimpleIdGenerator : IntSupplier {
+        private val id = AtomicInteger()
+        override fun getAsInt() = id.incrementAndGet()
+    }
 
     val idGenerator = SimpleIdGenerator()
 

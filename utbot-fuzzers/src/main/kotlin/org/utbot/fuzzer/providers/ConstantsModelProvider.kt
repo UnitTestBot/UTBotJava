@@ -21,7 +21,7 @@ object ConstantsModelProvider : ModelProvider {
             .forEach { (_, value, op) ->
                 sequenceOf(
                     UtPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
-                    modifyValue(value, op as FuzzedContext)
+                    modifyValue(value, op)
                 )
                     .filterNotNull()
                     .forEach { m ->

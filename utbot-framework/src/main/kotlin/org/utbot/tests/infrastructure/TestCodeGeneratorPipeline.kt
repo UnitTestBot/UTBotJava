@@ -100,7 +100,6 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                                 ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "fun "
                                 ParametrizedTestSource.PARAMETRIZE -> "fun parameterizedTestsFor"
                             }
-                        else -> throw UnsupportedOperationException()
                     }
                     trimmedLine.startsWith(prefix)
                 }

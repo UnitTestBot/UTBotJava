@@ -5,7 +5,11 @@ import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_PACKAG
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CgLanguageAssistant
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.MockFramework
 
 /**
  * Information from [CgContext] that is relevant for the renderer.
@@ -24,7 +28,6 @@ class CgRendererContext(
     val mockFramework: MockFramework,
     val cgLanguageAssistant: CgLanguageAssistant,
 ) {
-
     companion object {
         fun fromCgContext(context: CgContext): CgRendererContext {
             return CgRendererContext(

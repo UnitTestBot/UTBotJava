@@ -134,7 +134,7 @@ data class CgRegularClassFile(
 data class CgTestClassFile(
     override val imports: List<Import>,
     override val declaredClass: CgTestClass,
-    val testsGenerationReport: TestsGenerationReport,
+    val testsGenerationReport: TestsGenerationReport
 ) : AbstractCgClassFile<CgTestClass>()
 
 sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {

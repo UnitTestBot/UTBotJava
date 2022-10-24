@@ -23,7 +23,6 @@ import org.utbot.fuzzer.providers.RegexModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.function.IntSupplier
 import kotlin.random.Random
 import org.utbot.fuzzer.providers.DateConstantModelProvider
 import org.utbot.fuzzer.providers.PrimitiveRandomModelProvider
@@ -268,9 +267,4 @@ suspend fun <T> SequenceScope<List<FuzzedValue>>.yieldMutated(
         return true
     }
     return false
-}
-
-class SimpleIdGenerator : IntSupplier {
-    private val id = AtomicInteger()
-    override fun getAsInt() = id.incrementAndGet()
 }

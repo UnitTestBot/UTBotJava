@@ -5,8 +5,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
 import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
@@ -120,7 +118,6 @@ abstract class StaticsMocking(
             get() = listOf(NoStaticMocking, MockitoStaticMocking)
     }
 }
-
 
 object NoStaticMocking : StaticsMocking(
     id = "No static mocking",
@@ -598,7 +595,6 @@ object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
     }
 }
 
-
 enum class RuntimeExceptionTestsBehaviour(
     override val id: String,
     override val displayName: String,
@@ -623,7 +619,6 @@ enum class RuntimeExceptionTestsBehaviour(
     companion object : CodeGenerationSettingBox {
         override val defaultItem: RuntimeExceptionTestsBehaviour get() = FAIL
         override val allItems: List<RuntimeExceptionTestsBehaviour> = values().toList()
-//        val pythonItems: List<TestFramework> get() = listOf(Unittest, Pytest)
     }
 }
 

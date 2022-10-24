@@ -18,7 +18,6 @@ object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     override val testAnnotation: String
         get() = TODO("Not yet implemented")
     override val testAnnotationId: ClassId = BuiltinClassId(
-        name = "pytest",
         canonicalName = "pytest",
         simpleName = "Tests"
     )
@@ -54,7 +53,6 @@ object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
     override val arraysAssertionsClass: ClassId = assertionsClass
     override val testAnnotation: String = ""
     override val testAnnotationId: ClassId = BuiltinClassId(
-        name = "Unittest",
         canonicalName = "Unittest",
         simpleName = "Tests"
     )

@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId

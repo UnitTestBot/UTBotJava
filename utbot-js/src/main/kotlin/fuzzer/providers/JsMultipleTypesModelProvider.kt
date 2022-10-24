@@ -10,10 +10,7 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsPrimitive
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.toJsClassId
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
-import org.utbot.fuzzer.FuzzedParameter
-import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.*
 
 object JsMultipleTypesModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
@@ -31,7 +28,7 @@ object JsMultipleTypesModelProvider : ModelProvider {
                         concreteValuesFiltered.forEach { (_, value, op) ->
                             sequenceOf(
                                 JsPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
-                                JsConstantsModelProvider.modifyValue(value, op as FuzzedOp)
+                                JsConstantsModelProvider.modifyValue(value, op as FuzzedContext.Comparison)
                             ).filterNotNull()
                                 .forEach { m ->
                                     indices.forEach { index ->

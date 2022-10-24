@@ -17,8 +17,13 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.AbstractCgClassFile
 import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CgLanguageAssistant
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.plugin.api.*
 import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgSingleLineComment
 

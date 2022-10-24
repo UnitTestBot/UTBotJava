@@ -25,7 +25,6 @@ import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.childrenOfType
 import mu.KotlinLogging
 import org.utbot.intellij.plugin.models.GenerateTestsModel
-import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 class RunConfigurationHelper {

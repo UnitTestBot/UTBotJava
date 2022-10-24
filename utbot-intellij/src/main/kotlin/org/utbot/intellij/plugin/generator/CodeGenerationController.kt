@@ -473,7 +473,6 @@ object CodeGenerationController {
         get() = when (this) {
             CodegenLanguage.JAVA -> JavaFileType.INSTANCE
             CodegenLanguage.KOTLIN -> KotlinFileType.INSTANCE
-            else -> throw UnsupportedOperationException()
         }
 
     private fun waitForCountDown(latch: CountDownLatch, timeout: Long = 5, timeUnit: TimeUnit = TimeUnit.SECONDS, indicator : ProgressIndicator, action: Runnable) {
@@ -548,7 +547,6 @@ object CodeGenerationController {
                                 when (model.codegenLanguage) {
                                     CodegenLanguage.JAVA -> it !is KtUltraLightClass
                                     CodegenLanguage.KOTLIN -> it is KtUltraLightClass
-                                    else -> throw UnsupportedOperationException()
                                 }
                             }
                     })
@@ -564,7 +562,6 @@ object CodeGenerationController {
             when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
-                else -> throw UnsupportedOperationException()
             }
         )
         runWriteAction { testDirectory.findFile(testClassName + model.codegenLanguage.extension)?.delete() }
@@ -696,7 +693,6 @@ object CodeGenerationController {
                     JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
-                else -> throw UnsupportedOperationException()
             }
         }
     }

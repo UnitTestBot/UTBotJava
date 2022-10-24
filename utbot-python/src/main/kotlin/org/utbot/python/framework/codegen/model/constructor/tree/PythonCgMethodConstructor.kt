@@ -195,6 +195,16 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         return expectedValue
     }
 
+    private fun assertIsInstance(expected: CgValue, actual: CgVariable) {
+        when (testFrameworkManager) {
+            is PytestManager ->
+                (testFrameworkManager as PytestManager).assertIsinstance(listOf(expected.type), actual)
+            is UnittestManager ->
+                (testFrameworkManager as UnittestManager).assertIsinstance(listOf(expected.type), actual)
+            else -> testFrameworkManager.assertEquals(expected, actual)
+        }
+    }
+
     private fun pythonAssertElementsByKey(
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgVariable,
@@ -242,7 +252,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                 }
             } else {
                 emptyLineIfNeeded()
-                testFrameworkManager.assertIsinstance(listOf(expected.type), actual)
+                assertIsInstance(expected, actual)
             }
         }
     }
@@ -278,9 +288,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         when (expectedNode) {
             is PythonTree.PrimitiveNode -> {
                 emptyLineIfNeeded()
-                testFrameworkManager.assertIsinstance(
-                    listOf(expected.type), actual
-                )
+                assertIsInstance(expected, actual)
             }
 
             is PythonTree.ListNode -> {
@@ -341,9 +349,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     }
                 } else {
                     emptyLineIfNeeded()
-                    testFrameworkManager.assertIsinstance(
-                        listOf(expected.type), actual
-                    )
+                    assertIsInstance(expected, actual)
                 }
             }
 

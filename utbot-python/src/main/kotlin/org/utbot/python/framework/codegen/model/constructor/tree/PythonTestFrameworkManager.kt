@@ -56,7 +56,7 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         )
     }
 
-    override fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
+    fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
         +CgPythonAssertEquals(
             CgPythonFunctionCall(
                 pythonBoolClassId,
@@ -121,12 +121,11 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     }
 
     private val skipAnnotationClassId = BuiltinClassId(
-        name = "skip",
         canonicalName = "unittest.skip",
         simpleName = "skip"
     )
 
-    override fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
+    fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
         +assertions[assertTrue](
             CgPythonFunctionCall(
                 pythonBoolClassId,

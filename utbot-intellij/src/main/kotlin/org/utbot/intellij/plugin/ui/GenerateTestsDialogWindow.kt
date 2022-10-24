@@ -170,7 +170,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
 
-    private val codegenLanguages = createComboBox(CodegenLanguage.allItems.toTypedArray())
+    private val codegenLanguages = createComboBox(CodegenLanguage.values())
     private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
     private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")

@@ -4,8 +4,8 @@ import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsPrimitive
 import framework.api.js.util.jsUndefinedClassId
+import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
@@ -21,7 +21,7 @@ object JsConstantsModelProvider : ModelProvider {
             .forEach { (_, value, op) ->
                 sequenceOf(
                     JsPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
-                    modifyValue(value, op as FuzzedOp)
+                    modifyValue(value, op as FuzzedContext.Comparison)
                 )
                     .filterNotNull()
                     .forEach { m ->
@@ -35,9 +35,8 @@ object JsConstantsModelProvider : ModelProvider {
     }
 
     @Suppress("DuplicatedCode")
-    internal fun modifyValue(value: Any, op: FuzzedOp): FuzzedValue? {
-        if (!op.isComparisonOp()) return null
-        val multiplier = if (op == FuzzedOp.LT || op == FuzzedOp.GE) -1 else 1
+    internal fun modifyValue(value: Any, op: FuzzedContext.Comparison): FuzzedValue? {
+        val multiplier = if (op == FuzzedContext.Comparison.LT || op == FuzzedContext.Comparison.GE) -1 else 1
         return when (value) {
             is Boolean -> value.not()
             is Byte -> value + multiplier.toByte()
@@ -51,8 +50,8 @@ object JsConstantsModelProvider : ModelProvider {
         }?.let {
             JsPrimitiveModel(it).fuzzed {
                 summary = "%var% ${
-                    (if (op == FuzzedOp.EQ || op == FuzzedOp.LE || op == FuzzedOp.GE) {
-                        op.reverseOrNull() ?: error("cannot find reverse operation for $op")
+                    (if (op == FuzzedContext.Comparison.EQ || op == FuzzedContext.Comparison.LE || op == FuzzedContext.Comparison.GE) {
+                        op.reverse()
                     } else op).sign
                 } $value"
             }

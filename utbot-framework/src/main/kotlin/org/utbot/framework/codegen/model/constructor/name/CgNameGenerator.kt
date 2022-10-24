@@ -146,11 +146,11 @@ open class CgNameGeneratorImpl(val context: CgContext)
             .first { it !in existingMethodNames }
 
     fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
+        CodegenLanguage.JAVA -> nextIndexedVarName(baseName)
         CodegenLanguage.KOTLIN -> {
             // use backticks for first variable with keyword name and use indexed names for all next such variables
             if (baseName !in existingVariableNames) "`$baseName`" else nextIndexedVarName(baseName)
         }
-        else -> nextIndexedVarName(baseName)
     }
 
     fun createExecutableName(executableId: ExecutableId): String {

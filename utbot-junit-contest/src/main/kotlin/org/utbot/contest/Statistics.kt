@@ -109,7 +109,7 @@ class GlobalStats {
             avgCoverage.format(PRECISION) + " %"
 }
 
-class StatsForClass {
+class StatsForClass(val project: String, val className: String) {
     val testedClassNames: MutableSet<String> = ConcurrentSkipListSet()
 
     var methodsCount: Int = -1
@@ -126,15 +126,15 @@ class StatsForClass {
     var fuzzedCoverage = CoverageInstructionsSet()
     var concolicCoverage = CoverageInstructionsSet()
 
-    /**
-     * Add class [className] to respect coverage from this class.
-     */
-    fun addTestedClass(className: String) {
-        testedClassNames.add(className)
-    }
-
     private fun CoverageInstructionsSet.prettyInfo(): String =
         getCoverageInfo(testedClassNames).run { "$covered/$total" }
+
+    fun getCoverageInfo(): CoverageStatistic =
+        coverage.getCoverageInfo(testedClassNames)
+    fun getFuzzedCoverageInfo(): CoverageStatistic =
+        fuzzedCoverage.getCoverageInfo(testedClassNames)
+    fun getConcolicCoverageInfo(): CoverageStatistic =
+        concolicCoverage.getCoverageInfo(testedClassNames)
 
     override fun toString(): String = "\n<StatsForClass> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +

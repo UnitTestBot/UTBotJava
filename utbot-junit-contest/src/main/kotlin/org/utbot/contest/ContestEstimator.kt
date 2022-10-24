@@ -83,6 +83,7 @@ enum class Tool {
             project: ProjectToEstimate,
             cut: ClassUnderTest,
             timeLimit: Long,
+            fuzzingRatio: Double,
             methodNameFilter: String?,
             globalStats: GlobalStats,
             compiledTestDir: File,
@@ -91,8 +92,10 @@ enum class Tool {
             val classStats: StatsForClass = try {
                 withUtContext(UtContext(project.classloader)) {
                     runGeneration(
+                        project.name,
                         cut,
                         timeLimit,
+                        fuzzingRatio,
                         project.sootClasspathString,
                         runFromEstimator = true,
                         methodNameFilter
@@ -167,6 +170,7 @@ enum class Tool {
             project: ProjectToEstimate,
             cut: ClassUnderTest,
             timeLimit: Long,
+            fuzzingRatio: Double,
             methodNameFilter: String?,
             globalStats: GlobalStats,
             compiledTestDir: File,
@@ -237,6 +241,7 @@ enum class Tool {
         project: ProjectToEstimate,
         cut: ClassUnderTest,
         timeLimit: Long,
+        fuzzingRatio: Double, // maybe create some specific settings
         methodNameFilter: String?,
         globalStats: GlobalStats,
         compiledTestDir: File,
@@ -257,6 +262,7 @@ fun main(args: Array<String>) {
     if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
         processedClassesThreshold = 9999 //change to change number of classes to run
         val timeLimit = 20 // increase if you want to debug something
+        val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
 
         // Uncomment it for debug purposes:
         // you can specify method for test generation in format `classFqn.methodName`
@@ -283,12 +289,13 @@ fun main(args: Array<String>) {
             classesLists,
             jarsDir,
             "$timeLimit",
+            "$fuzzingRatio",
             outputDir,
             moduleTestDir
         )
     } else {
-        require(args.size == 6) {
-            "Wrong arguments: <classes dir> <classpath_dir> <time limit (s)> <output dir> <test dir> <junit jar path> expected, but got: ${args.toText()}"
+        require(args.size == 7) {
+            "Wrong arguments: <classes dir> <classpath_dir> <time limit (s)> <fuzzing ratio> <output dir> <test dir> <junit jar path> expected, but got: ${args.toText()}"
         }
         logger.info { "Command line: [${args.joinToString(" ")}]" }
 
@@ -315,8 +322,9 @@ fun runEstimator(
     val classesLists = File(args[0])
     val classpathDir = File(args[1])
     val timeLimit = args[2].toLong()
-    val outputDir = File(args[3])
-    // we don't use it: val moduleTestDir = File(args[4])
+    val fuzzingRatio = args[3].toDouble()
+    val outputDir = File(args[4])
+    // we don't use it: val moduleTestDir = File(args[5])
 
     val testCandidatesDir = File(outputDir, "test_candidates")
     val compiledTestDir = File(outputDir, "compiled")
@@ -411,7 +419,7 @@ fun runEstimator(
 
                     logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
 
-                    tool.run(project, cut, timeLimit, methodNameFilter, globalStats, compiledTestDir, classFqn)
+                    tool.run(project, cut, timeLimit, fuzzingRatio, methodNameFilter, globalStats, compiledTestDir, classFqn)
                 }
             }
         }
@@ -422,10 +430,6 @@ fun runEstimator(
 
     logger.info { globalStats }
     ConcreteExecutor.defaultPool.close()
-
-//    For what?
-//    if (globalStats.statsForClasses.isNotEmpty())
-//        exitProcess(1)
 
     return globalStats
 }

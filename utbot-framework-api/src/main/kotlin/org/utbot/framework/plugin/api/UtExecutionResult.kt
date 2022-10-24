@@ -21,6 +21,10 @@ data class UtSandboxFailure(
     override val exception: Throwable
 ) : UtExecutionFailure()
 
+data class UtStreamConsumingFailure(
+    override val exception: Throwable
+) : UtExecutionFailure()
+
 /**
  * unexpectedFail (when exceptions such as NPE, IOBE, etc. appear, but not thrown by a user, applies both for function under test and nested calls )
  * expectedCheckedThrow (when function under test or nested call explicitly says that checked exception could be thrown and throws it)
@@ -40,6 +44,13 @@ data class UtImplicitlyThrownException(
 class TimeoutException(s: String) : Exception(s)
 
 data class UtTimeoutException(override val exception: TimeoutException) : UtExecutionFailure()
+
+/**
+ * Represents an exception that occurs during consuming a stream. Stores it in [innerException].
+ */
+data class UtStreamConsumingException(val innerException: Exception) : RuntimeException() {
+    override fun toString(): String = innerException.toString()
+}
 
 /**
  * Indicates failure in concrete execution.

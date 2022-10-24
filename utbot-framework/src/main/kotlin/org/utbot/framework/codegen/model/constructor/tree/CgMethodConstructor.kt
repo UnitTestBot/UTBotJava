@@ -146,6 +146,18 @@ import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.UtStreamConsumingException
+import org.utbot.framework.plugin.api.util.allSuperTypes
+import org.utbot.framework.plugin.api.util.baseStreamClassId
+import org.utbot.framework.plugin.api.util.doubleStreamClassId
+import org.utbot.framework.plugin.api.util.doubleStreamToArrayMethodId
+import org.utbot.framework.plugin.api.util.intStreamClassId
+import org.utbot.framework.plugin.api.util.intStreamToArrayMethodId
+import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.longStreamClassId
+import org.utbot.framework.plugin.api.util.longStreamToArrayMethodId
+import org.utbot.framework.plugin.api.util.streamClassId
+import org.utbot.framework.plugin.api.util.streamToArrayMethodId
 import org.utbot.framework.plugin.api.util.isStatic
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
@@ -308,21 +320,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun processExecutionFailure(exception: Throwable) {
-        val methodInvocationBlock = {
-            with(currentExecutable) {
-                when (this) {
-                    is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
-                    is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
-                    else -> {} // TODO: check this specific case
-                }
-            }
-        }
+    private fun processExecutionFailure(exceptionFromAnalysis: Throwable) {
+        val (methodInvocationBlock, expectedException) = constructExceptionProducingBlock(exceptionFromAnalysis)
 
         when (methodType) {
-            SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $exception")
+            SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $expectedException")
             PASSED_EXCEPTION -> {
-                testFrameworkManager.expectException(exception::class.id) {
+                testFrameworkManager.expectException(expectedException::class.id) {
                     methodInvocationBlock()
                 }
             }
@@ -332,23 +336,63 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     methodInvocationBlock()
                 }
             }
-            CRASH -> when (exception) {
+            CRASH -> when (expectedException) {
                 is ConcreteExecutionFailureException -> {
                     writeWarningAboutCrash()
                     methodInvocationBlock()
                 }
                 is AccessControlException -> {
                     // exception from sandbox
-                    writeWarningAboutFailureTest(exception)
+                    writeWarningAboutFailureTest(expectedException)
                 }
-                else -> error("Unexpected crash suite for failing execution with $exception exception")
+                else -> error("Unexpected crash suite for failing execution with $expectedException exception")
             }
             FAILING -> {
-                writeWarningAboutFailureTest(exception)
+                writeWarningAboutFailureTest(expectedException)
                 methodInvocationBlock()
             }
-            PARAMETRIZED -> error("Unexpected $PARAMETRIZED method type for failing execution with $exception exception")
+            PARAMETRIZED -> error("Unexpected $PARAMETRIZED method type for failing execution with $expectedException exception")
         }
+    }
+
+    private fun constructExceptionProducingBlock(exceptionFromAnalysis: Throwable): Pair<() -> Unit, Throwable> {
+        if (exceptionFromAnalysis is UtStreamConsumingException) {
+            return constructStreamConsumingBlock() to exceptionFromAnalysis.innerException
+        }
+
+        return {
+            with(currentExecutable) {
+                when (this) {
+                    is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
+                    is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
+                    else -> {} // TODO: check this specific case
+                }
+            }
+        } to exceptionFromAnalysis
+    }
+
+    private fun constructStreamConsumingBlock(): () -> Unit {
+        val executable = currentExecutable
+
+        require((executable is MethodId) && (executable.returnType isSubtypeOf baseStreamClassId)) {
+            "Unexpected non-stream returning executable $executable"
+        }
+
+        val allSuperTypesOfReturn = executable.returnType.allSuperTypes().toSet()
+
+        val streamConsumingMethodId = when {
+            // The order is important since all streams implement BaseStream
+            intStreamClassId in allSuperTypesOfReturn -> intStreamToArrayMethodId
+            longStreamClassId in allSuperTypesOfReturn -> longStreamToArrayMethodId
+            doubleStreamClassId in allSuperTypesOfReturn -> doubleStreamToArrayMethodId
+            streamClassId in allSuperTypesOfReturn -> streamToArrayMethodId
+            else -> {
+                // BaseStream, use util method to consume it
+                return { +utilsClassId[consumeBaseStream](actual) }
+            }
+        }
+
+        return { +actual[streamConsumingMethodId]() }
     }
 
     private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
@@ -1248,6 +1292,32 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 else -> {} // TODO: check this specific case
             }
+        }.onFailure {
+            processActualInvocationFailure(it)
+        }
+    }
+
+    private fun processActualInvocationFailure(e: Throwable) {
+        when (e) {
+            is UtStreamConsumingException -> processStreamConsumingException(e.innerException)
+            else -> throw e
+        }
+    }
+
+    private fun processStreamConsumingException(innerException: Exception) {
+        val executable = currentExecutable
+
+        require((executable is MethodId) && (executable.returnType isSubtypeOf baseStreamClassId)) {
+            "Unexpected exception $innerException during stream consuming in non-stream returning executable $executable"
+        }
+
+        emptyLineIfNeeded()
+
+        actual = newVar(
+            CgClassId(executable.returnType, isNullable = false),
+            "actual"
+        ) {
+            thisInstance[executable](*methodArguments.toTypedArray())
         }
     }
 

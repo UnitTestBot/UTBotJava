@@ -396,6 +396,9 @@ internal interface CgContextOwner {
     val getArrayLength: MethodId
         get() = utilMethodProvider.getArrayLengthMethodId
 
+    val consumeBaseStream: MethodId
+        get() = utilMethodProvider.consumeBaseStreamMethodId
+
     val buildStaticLambda: MethodId
         get() = utilMethodProvider.buildStaticLambdaMethodId
 

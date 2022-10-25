@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.comment.classic.fuzzer.SimpleCommentForTestProducedByFuzzerBuilder
 import org.utbot.summary.comment.customtags.fuzzer.CommentWithCustomTagForTestProducedByFuzzerBuilder
 import java.util.*
@@ -32,9 +33,9 @@ class ModelBasedNameSuggester(
 
         return sequenceOf(
             TestSuggestedInfo(
-                testName = createTestName(description, values, result),
+                testName =  createTestName(description, values, result),
                 displayName = createDisplayName(description, values, result),
-                javaDoc = createJavaDoc(description, values, result)
+                javaDoc = if (UtSummarySettings.GENERATE_COMMENTS) createJavaDoc(description, values, result) else null
             )
         )
     }

@@ -704,7 +704,7 @@ object CodeGenerationController {
                             val file = filePointer.containingFile
 
                             val srcClassPath = srcClass.containingFile.virtualFile.toNioPath()
-                            val sarifReport = saveSarifReport(
+                            saveSarifReport(
                                 proc,
                                 testSetsId,
                                 testClassUpdated,

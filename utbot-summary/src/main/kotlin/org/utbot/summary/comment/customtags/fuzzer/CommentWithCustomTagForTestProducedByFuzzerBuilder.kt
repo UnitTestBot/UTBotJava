@@ -42,9 +42,9 @@ class CommentWithCustomTagForTestProducedByFuzzerBuilder(
                 methodName,
                 methodDescription.parameters,
                 false
-            ).replace(CARRIAGE_RETURN, "")
+            )
 
-            val classReference = getClassReference(fullClassName).replace(CARRIAGE_RETURN, "")
+            val classReference = getClassReference(fullClassName)
 
             CommentWithCustomTagForTestProducedByFuzzer(
                 classUnderTest = classReference,

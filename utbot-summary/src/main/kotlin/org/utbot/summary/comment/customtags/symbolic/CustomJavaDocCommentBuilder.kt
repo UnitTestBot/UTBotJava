@@ -6,8 +6,9 @@ import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.comment.*
+import org.utbot.summary.comment.classic.symbolic.*
 import org.utbot.summary.comment.customtags.getClassReference
-import org.utbot.summary.comment.customtags.getMethodReference
+import org.utbot.summary.comment.customtags.getMethodReferenceForSymbolicTest
 import org.utbot.summary.tag.TraceTagWithoutExecution
 import soot.SootMethod
 
@@ -30,7 +31,7 @@ class CustomJavaDocCommentBuilder(
     }
 
     private fun buildCustomJavaDocComment(currentMethod: SootMethod): CustomJavaDocComment {
-        val methodReference = getMethodReference(
+        val methodReference = getMethodReferenceForSymbolicTest(
             currentMethod.declaringClass.name,
             currentMethod.name,
             currentMethod.parameterTypes,
@@ -39,8 +40,8 @@ class CustomJavaDocCommentBuilder(
         val classReference = getClassReference(currentMethod.declaringClass.javaStyleName)
 
         val comment = CustomJavaDocComment(
-            classUnderTest = classReference.replace(CARRIAGE_RETURN, ""),
-            methodUnderTest = methodReference.replace(CARRIAGE_RETURN, ""),
+            classUnderTest = classReference,
+            methodUnderTest = methodReference,
         )
 
         val rootSentenceBlock = SimpleSentenceBlock(stringTemplates = stringTemplates)

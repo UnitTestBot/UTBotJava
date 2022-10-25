@@ -491,7 +491,7 @@ data class CgContext(
     private var _currentTestClassContext: TestClassContext? = null
 
     override val outerMostTestClass: ClassId by lazy {
-        val (simpleName, name) = cgLanguageAssistant.testClassName(
+        val (name, simpleName) = cgLanguageAssistant.testClassName(
             testClassCustomName, testClassPackageName, classUnderTest
         )
         BuiltinClassId(

@@ -15,6 +15,7 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
 import com.intellij.util.ui.UIUtil
 import java.io.File
+import java.util.Comparator
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.jetbrains.kotlin.idea.util.rootManager
@@ -66,14 +67,16 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
             }
         }
         // The first sorting to obtain the best candidate
-        val testRoots = model.getAllTestSourceRoots().distinct().sortedWith(
-            compareByDescending<TestSourceRoot> {
+        val testRoots = model.getAllTestSourceRoots().distinct().sortedWith(object : Comparator<TestSourceRoot> {
+            override fun compare(o1: TestSourceRoot, o2: TestSourceRoot): Int {
                 // Heuristics: Dirs with language == codegenLanguage should go first
-                it.expectedLanguage == model.codegenLanguage
-            }.thenBy {
+                val languageOrder = (o1.expectedLanguage == model.codegenLanguage).compareTo(o2.expectedLanguage == model.codegenLanguage)
+                if (languageOrder != 0) return -languageOrder
                 // Heuristics: move root that is 'closer' to module 'common' directory to the first position
-                StringUtil.commonPrefixLength(commonModuleSourceDirectory, it.dir.toNioPath().toString())
-            }).toMutableList()
+                return -StringUtil.commonPrefixLength(commonModuleSourceDirectory, o1.dir.toNioPath().toString())
+                    .compareTo(StringUtil.commonPrefixLength(commonModuleSourceDirectory, o2.dir.toNioPath().toString()))
+            }
+        }).toMutableList()
 
         val theBest = if (testRoots.isNotEmpty()) testRoots[0] else null
 

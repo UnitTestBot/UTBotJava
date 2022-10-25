@@ -649,9 +649,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
 
-        val areMocksSupported = settings.parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
-        mockStrategies.isEnabled = areMocksSupported
-        staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
+        mockStrategies.isEnabled = true
+        staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         codegenLanguages.item = model.codegenLanguage
 
@@ -936,12 +935,19 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ParametrizedTestSource.DO_NOT_PARAMETRIZE
             }
 
-
-            val parametrizationEnabled = parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
-            if (parametrizationEnabled) {
-                mockStrategies.item = MockStrategyApi.NO_MOCKS
-                staticsMocking.isEnabled = false
-                staticsMocking.isSelected = false
+            when (parametrizedTestSource) {
+                ParametrizedTestSource.PARAMETRIZE -> {
+                    mockStrategies.item = MockStrategyApi.NO_MOCKS
+                    staticsMocking.isEnabled = false
+                    staticsMocking.isSelected = false
+                }
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                    mockStrategies.isEnabled = true
+                    if (mockStrategies.item != MockStrategyApi.NO_MOCKS) {
+                        staticsMocking.isEnabled = true
+                        staticsMocking.isSelected = true
+                    }
+                }
             }
 
             updateTestFrameworksList(parametrizedTestSource)

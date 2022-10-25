@@ -179,7 +179,7 @@ private fun EngineProcessModel.setup(
         val sarifReport = SarifReport(
             testSets[params.testSetsId]!!,
             params.generatedTestsCode,
-            RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+            RdSourceFindingStrategyFacade(params.testSetsId, realProtocol.rdSourceFindingStrategy)
         ).createReport().toJson()
         reportFilePath.toFile().writeText(sarifReport)
         sarifReport

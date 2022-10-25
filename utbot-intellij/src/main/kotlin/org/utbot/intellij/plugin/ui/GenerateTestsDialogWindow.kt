@@ -936,14 +936,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ParametrizedTestSource.DO_NOT_PARAMETRIZE
             }
 
-            val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
 
-            mockStrategies.isEnabled = areMocksSupported
-            staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
-            if (!mockStrategies.isEnabled) {
+            val parametrizationEnabled = parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
+            if (parametrizationEnabled) {
                 mockStrategies.item = MockStrategyApi.NO_MOCKS
-            }
-            if (!staticsMocking.isEnabled) {
+                staticsMocking.isEnabled = false
                 staticsMocking.isSelected = false
             }
 

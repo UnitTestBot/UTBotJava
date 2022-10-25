@@ -50,10 +50,10 @@ private fun formMethodReferenceForJavaDoc(
     isPrivate: Boolean
 ): String {
     // to avoid $ in names for static inner classes
-    val prettyClassName: String = className.replace("$", ".")
-    val validMethodParameters = methodParametersAsString.replace("$", ".")
+    val prettyClassName: String = className.replace(JAVA_CLASS_DELIMITER, JAVA_DOC_CLASS_DELIMITER)
+    val validMethodParameters = methodParametersAsString.replace(JAVA_CLASS_DELIMITER, JAVA_DOC_CLASS_DELIMITER)
 
-    val text = if (validMethodParameters == "") {
+    val text = if (validMethodParameters == EMPTY_STRING) {
         "$prettyClassName#$methodName()"
     } else {
         "$prettyClassName#$methodName($validMethodParameters)"

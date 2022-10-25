@@ -49,12 +49,14 @@ private fun formMethodReferenceForJavaDoc(
     methodParametersAsString: String,
     isPrivate: Boolean
 ): String {
-    val prettyClassName: String = className.replace(JAVA_CLASS_DELIMITER, JAVA_DOC_CLASS_DELIMITER)
+    // to avoid $ in names for static inner classes
+    val prettyClassName: String = className.replace("$", ".")
+    val validMethodParameters = methodParametersAsString.replace("$", ".")
 
-    val text = if (methodParametersAsString == EMPTY_STRING) {
+    val text = if (validMethodParameters == "") {
         "$prettyClassName#$methodName()"
     } else {
-        "$prettyClassName#$methodName($methodParametersAsString)"
+        "$prettyClassName#$methodName($validMethodParameters)"
     }
 
     return if (isPrivate) {

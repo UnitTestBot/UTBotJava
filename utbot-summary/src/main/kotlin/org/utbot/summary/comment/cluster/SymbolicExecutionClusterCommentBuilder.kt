@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.comment.*
+import org.utbot.summary.comment.classic.symbolic.*
 import org.utbot.summary.comment.customtags.getMethodReferenceForSymbolicTest
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag

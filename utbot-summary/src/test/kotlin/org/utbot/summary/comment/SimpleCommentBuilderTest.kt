@@ -9,6 +9,7 @@ import org.mockito.Mockito.`when`
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.summary.ast.JimpleToASTMap
+import org.utbot.summary.comment.classic.symbolic.SimpleCommentBuilder
 import org.utbot.summary.comment.customtags.getMethodReferenceForSymbolicTest
 import org.utbot.summary.tag.StatementTag
 import org.utbot.summary.tag.TraceTag

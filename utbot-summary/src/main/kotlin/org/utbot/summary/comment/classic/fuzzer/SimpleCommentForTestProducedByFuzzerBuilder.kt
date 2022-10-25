@@ -6,9 +6,7 @@ import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.summary.SummarySentenceConstants
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
-import org.utbot.summary.comment.customtags.fuzzer.CommentWithCustomTagForTestProducedByFuzzer
 import org.utbot.summary.comment.customtags.getClassReference
 import org.utbot.summary.comment.customtags.getMethodReferenceForFuzzingTest
 

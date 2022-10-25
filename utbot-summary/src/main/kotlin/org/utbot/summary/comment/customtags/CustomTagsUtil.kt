@@ -1,8 +1,10 @@
 package org.utbot.summary.comment.customtags
 
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.summary.SummarySentenceConstants
-import org.utbot.summary.comment.EMPTY_STRING
+import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
+import org.utbot.summary.SummarySentenceConstants.JAVA_CLASS_DELIMITER
+import org.utbot.summary.SummarySentenceConstants.JAVA_DOC_CLASS_DELIMITER
+import org.utbot.summary.comment.classic.symbolic.EMPTY_STRING
 import soot.Type
 
 /**
@@ -37,7 +39,8 @@ fun getMethodReferenceForFuzzingTest(className: String, methodName: String, meth
     val methodParametersAsString = if (methodParameterTypes.isNotEmpty()) methodParameterTypes.joinToString(",") { it.canonicalName } else EMPTY_STRING
 
     return formMethodReferenceForJavaDoc(className, methodName, methodParametersAsString, isPrivate).replace(
-        SummarySentenceConstants.CARRIAGE_RETURN, EMPTY_STRING)
+        CARRIAGE_RETURN, EMPTY_STRING
+    )
 }
 
 private fun formMethodReferenceForJavaDoc(
@@ -46,9 +49,9 @@ private fun formMethodReferenceForJavaDoc(
     methodParametersAsString: String,
     isPrivate: Boolean
 ): String {
-    val prettyClassName: String = className.replace("$", ".")
+    val prettyClassName: String = className.replace(JAVA_CLASS_DELIMITER, JAVA_DOC_CLASS_DELIMITER)
 
-    val text = if (methodParametersAsString == "") {
+    val text = if (methodParametersAsString == EMPTY_STRING) {
         "$prettyClassName#$methodName()"
     } else {
         "$prettyClassName#$methodName($methodParametersAsString)"
@@ -66,5 +69,5 @@ private fun formMethodReferenceForJavaDoc(
  * Replaces '$' with '.' in case a class is nested.
  */
 fun getClassReference(fullClassName: String): String {
-    return "{@link ${fullClassName.replace("$", ".")}}".replace(SummarySentenceConstants.CARRIAGE_RETURN, EMPTY_STRING)
+    return "{@link ${fullClassName.replace(JAVA_CLASS_DELIMITER, JAVA_DOC_CLASS_DELIMITER)}}".replace(CARRIAGE_RETURN, EMPTY_STRING)
 }

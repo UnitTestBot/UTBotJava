@@ -17,7 +17,7 @@ import org.utbot.summary.analysis.ExecutionStructureAnalysis
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.ast.SourceCodeParser
 import org.utbot.summary.comment.cluster.SymbolicExecutionClusterCommentBuilder
-import org.utbot.summary.comment.SimpleCommentBuilder
+import org.utbot.summary.comment.classic.symbolic.SimpleCommentBuilder
 import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
 import java.nio.file.Path

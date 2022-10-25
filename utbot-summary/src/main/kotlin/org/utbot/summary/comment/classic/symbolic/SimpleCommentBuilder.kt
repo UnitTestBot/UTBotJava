@@ -1,4 +1,4 @@
-package org.utbot.summary.comment
+package org.utbot.summary.comment.classic.symbolic
 
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.stmt.CatchClause
@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.AbstractTextBuilder
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
+import org.utbot.summary.comment.*
 import org.utbot.summary.comment.customtags.getMethodReferenceForSymbolicTest
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag

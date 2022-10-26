@@ -92,7 +92,7 @@ jobs:
           printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
           printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
           chmod +x ./scripts/project/logging.sh 
-          ./scripts/project/logging.sh "/tmp/filebeat" "${ELK_HOSTNAME}:5044"
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
           echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
       # cache will use the key you provided and contains the files you specify in path.
@@ -179,7 +179,7 @@ jobs:
           printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
           printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
           chmod +x ./scripts/project/logging.sh 
-          ./scripts/project/logging.sh "/tmp/filebeat" "${ELK_HOSTNAME}:5044"
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
           echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
       - uses: actions/cache@v3
@@ -255,7 +255,7 @@ jobs:
           printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
           printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
           chmod +x ./scripts/project/logging.sh 
-          ./scripts/project/logging.sh "/tmp/filebeat" "${ELK_HOSTNAME}:5044"
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
           echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
       - uses: actions/cache@v3

@@ -10,9 +10,8 @@ val kotlinPluginVersion: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 
-val pythonIde: List<String>? by rootProject
-val jsIde: List<String>? by rootProject
-val goIde: List<String>? by rootProject
+val pythonIde: String? by rootProject
+val jsIde: String? by rootProject
 
 val sootCommitHash: String? by rootProject
 val kryoVersion: String? by rootProject
@@ -109,12 +108,12 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
-    if (pythonIde?.contains(ideType) == true) {
+    if (pythonIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-python"))
         implementation(project(":utbot-intellij-python"))
     }
 
-    if (jsIde?.contains(ideType) == true) {
+    if (jsIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-js"))
         implementation(project(":utbot-intellij-js"))
     }

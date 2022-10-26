@@ -1,8 +1,14 @@
 package org.utbot.intellij.plugin.language
 
 import com.intellij.openapi.actionSystem.ActionPlaces
+import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
+import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.UpdateInBackground
+import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
@@ -15,15 +21,24 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
-import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
-import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
-import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
+import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
+import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.utils.addIfNotNull
+import org.utbot.framework.plugin.api.util.LockFile
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.ui.InvalidClassNotifier
+import org.utbot.intellij.plugin.util.isAbstract
+import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 
 object JvmLanguageAssistant : LanguageAssistant(){
 
     override fun update(e: AnActionEvent) {
+        if (LockFile.isLocked()) {
+            e.presentation.isEnabled = false
+            return
+        }
         if (e.place == ActionPlaces.POPUP) {
             e.presentation.text = "Tests with UnitTestBot..."
         }
@@ -32,8 +47,11 @@ object JvmLanguageAssistant : LanguageAssistant(){
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (srcClasses, setOfFocusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, setOfFocusedMethods)
+
+        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        val validatedSrcClasses = validateSrcClasses(srcClasses) ?: return
+
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, validatedSrcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
     private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
@@ -48,7 +66,6 @@ object JvmLanguageAssistant : LanguageAssistant(){
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
-                if (srcClass.isInterface) return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMembers = srcClass.extractFirstLevelMembers(false)
                 val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
@@ -56,24 +73,24 @@ object JvmLanguageAssistant : LanguageAssistant(){
                 val module = ModuleUtil.findModuleForFile(srcSourceRoot, project) ?: return null
                 val matchingRoot = ModuleRootManager.getInstance(module).contentEntries
                     .flatMap { entry -> entry.sourceFolders.toList() }
-                    .singleOrNull { folder -> folder.file == srcSourceRoot }
+                    .firstOrNull { folder -> folder.file == srcSourceRoot }
                 if (srcMembers.isEmpty() || matchingRoot == null || matchingRoot.rootType.isForTests) {
                     return null
                 }
 
-                return Triple(setOf(srcClass), if (focusedMethod == null) emptySet() else setOf(focusedMethod), true)
+                return Triple(setOf(srcClass), if (focusedMethod != null) setOf(focusedMethod) else emptySet(), true)
             }
         } else {
             // The action is being called from 'Project' tool window
             val srcClasses = mutableSetOf<PsiClass>()
-            var selectedMethod: MemberInfo? = null
+            val selectedMethods = mutableSetOf<MemberInfo>()
             var extractMembersFromSrcClasses = false
-            val element = e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+            val element = e.getData(CommonDataKeys.PSI_ELEMENT)
             if (element is PsiFileSystemItem) {
                 e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
                     srcClasses += getAllClasses(project, it)
                 }
-            } else {
+            } else if (element is PsiElement){
                 val file = element.containingFile ?: return null
                 val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
@@ -81,16 +98,37 @@ object JvmLanguageAssistant : LanguageAssistant(){
                     psiElementHandler.containingClass(element)?.let {
                         srcClasses += setOf(it)
                         extractMembersFromSrcClasses = true
-                        if (it.extractFirstLevelMembers(false).isEmpty())
+                        val memberInfoList = runReadAction<List<MemberInfo>> {
+                            it.extractFirstLevelMembers(false)
+                        }
+                        if (memberInfoList.isNullOrEmpty())
                             return null
                     }
 
                     if (element is PsiMethod) {
-                        selectedMethod = MemberInfo(element)
+                        selectedMethods.add(MemberInfo(element))
+                    }
+                }
+            } else {
+                val someSelection = e.getData(PlatformDataKeys.SELECTED_ITEMS)?: return null
+                someSelection.forEach {
+                    when(it) {
+                        is PsiFileSystemItem  -> srcClasses += getAllClasses(project, arrayOf(it.virtualFile))
+                        is PsiClass -> srcClasses.add(it)
+                        is PsiElement -> {
+                            srcClasses.addIfNotNull(it.getContainingClass())
+                            if (it is PsiMethod) {
+                                selectedMethods.add(MemberInfo(it))
+                                extractMembersFromSrcClasses = true
+                            }
+                        }
                     }
                 }
             }
-            srcClasses.removeIf { it.isInterface }
+
+            if (srcClasses.size > 1) {
+                extractMembersFromSrcClasses = false
+            }
             var commonSourceRoot = null as VirtualFile?
             for (srcClass in srcClasses) {
                 if (commonSourceRoot == null) {
@@ -105,10 +143,50 @@ object JvmLanguageAssistant : LanguageAssistant(){
                     .filter { folder -> !folder.rootType.isForTests && folder.file == commonSourceRoot}
                     .findAny().isPresent ) return null
 
-            return Triple(srcClasses.toSet(), if (selectedMethod == null) emptySet() else setOf(selectedMethod), extractMembersFromSrcClasses)
+            return Triple(srcClasses.toSet(), selectedMethods.toSet(), extractMembersFromSrcClasses)
         }
         return null
     }
+
+    /**
+     * Validates that a set of source classes matches some requirements from [isInvalid].
+     * If no one of them matches, shows a warning about the first mismatch reason.
+     */
+    private fun validateSrcClasses(srcClasses: Set<PsiClass>): Set<PsiClass>? {
+        val filteredClasses = srcClasses
+            .filterNot { it.isInvalid(withWarnings = false) }
+            .toSet()
+
+        if (filteredClasses.isEmpty()) {
+            srcClasses.first().isInvalid(withWarnings = true)
+            return null
+        }
+
+        return filteredClasses
+    }
+
+    private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
+        val isAbstractOrInterface = this.isInterface || this.isAbstract
+        if (isAbstractOrInterface) {
+            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface ${this.name}")
+            return true
+        }
+
+        val isInvisible = !this.isVisible
+        if (isInvisible) {
+            if (withWarnings) InvalidClassNotifier.notify("private or protected class ${this.name}")
+            return true
+        }
+
+        val packageIsIncorrect = this.packageName.split(".").firstOrNull() == "java"
+        if (packageIsIncorrect) {
+            if (withWarnings) InvalidClassNotifier.notify("class ${this.name} located in java.* package")
+            return true
+        }
+
+        return false
+    }
+
 
     private fun PsiElement?.getSourceRoot() : VirtualFile? {
         val project = this?.project?: return null

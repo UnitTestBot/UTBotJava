@@ -75,30 +75,3 @@ open class FuzzedMethodDescription(
         concreteValues
     )
 }
-
-enum class FuzzedOp(val sign: String?) : FuzzedContext {
-    NONE(null),
-    EQ("=="),
-    NE("!="),
-    GT(">"),
-    GE(">="),
-    LT("<"),
-    LE("<="),
-    CH(null), // changed or called
-    ;
-
-    fun isComparisonOp() = this == EQ || this == NE || this == GT || this == GE || this == LT || this == LE
-
-    fun reverseOrNull() : FuzzedOp? = when(this) {
-        EQ -> NE
-        NE -> EQ
-        GT -> LE
-        LT -> GE
-        LE -> GT
-        GE -> LT
-        else -> null
-    }
-
-    fun reverseOrElse(another: (FuzzedOp) -> FuzzedOp): FuzzedOp =
-        reverseOrNull() ?: another(this)
-}

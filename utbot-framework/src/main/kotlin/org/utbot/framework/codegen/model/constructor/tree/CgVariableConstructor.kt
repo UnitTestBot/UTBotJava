@@ -303,7 +303,6 @@ open class CgVariableConstructor(val context: CgContext) :
 
                 return null
             }
-            else -> throw UnsupportedOperationException()
         }
     }
 

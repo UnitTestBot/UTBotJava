@@ -44,7 +44,7 @@ __Groovy:__
       testFramework = 'junit5'
       mockFramework = 'mockito'
       generationTimeout = 60000L
-      codegenLanguageAssistant = 'java'
+      codegenLanguage = 'java'
       mockStrategy = 'other-packages'
       staticsMocking = 'mock-statics'
       forceStaticMocking = 'force'
@@ -63,7 +63,7 @@ __Kotlin DSL:__
       testFramework.set("junit5")
       mockFramework.set("mockito")
       generationTimeout.set(60000L)
-      codegenLanguageAssistant.set("java")
+      codegenLanguage.set("java")
       mockStrategy.set("other-packages")
       staticsMocking.set("mock-statics")
       forceStaticMocking.set("force")
@@ -135,7 +135,7 @@ generateTestsAndSarifReport
     - Time budget for generating tests for one class (in milliseconds).
     - By default, 60 seconds is used.
 
-- `codegenLanguageAssistant` &ndash;
+- `codegenLanguage` &ndash;
   - The language of the generated tests.
   - Can be one of: 
     - `'java'` _(by default)_

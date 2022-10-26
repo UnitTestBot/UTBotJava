@@ -3,8 +3,8 @@ package fuzzer.providers
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.toJsClassId
+import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 import kotlin.random.Random
@@ -18,7 +18,7 @@ object JsStringModelProvider : ModelProvider {
             .asSequence()
             .filter { (classId, _) -> classId.toJsClassId() == jsStringClassId }
             .forEach { (_, value, op) ->
-                listOf(value, mutate(random, value as? String, op as FuzzedOp))
+                listOf(value, mutate(random, value as? String, op))
                     .asSequence()
                     .filterNotNull()
                     .map { JsPrimitiveModel(it) }.forEach { model ->
@@ -29,8 +29,8 @@ object JsStringModelProvider : ModelProvider {
             }
     }
 
-    fun mutate(random: Random, value: String?, op: FuzzedOp): String? {
-        if (value.isNullOrEmpty() || op != FuzzedOp.CH) return null
+    fun mutate(random: Random, value: String?, op: FuzzedContext): String? {
+        if (value.isNullOrEmpty() || op != FuzzedContext.Unknown) return null
         val indexOfMutation = random.nextInt(value.length)
         return value.replaceRange(
             indexOfMutation,

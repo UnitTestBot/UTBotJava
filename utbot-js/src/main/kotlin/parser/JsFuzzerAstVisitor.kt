@@ -11,10 +11,10 @@ import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.FuzzedContext
 
 class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
-    private var lastFuzzedOpGlobal = FuzzedOp.NONE
+    private lateinit var lastFuzzedOpGlobal: FuzzedContext
 
     val fuzzedConcreteValues = mutableSetOf<FuzzedConcreteValue>()
     override fun enterCaseNode(caseNode: CaseNode?): Boolean {
@@ -28,10 +28,10 @@ class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
         binaryNode?.let { binNode ->
             val compOp = """>=|<=|>|<|==|!=""".toRegex()
             val curOp = compOp.find(binNode.toString())?.value
-            val currentFuzzedOp = FuzzedOp.values().find { curOp == it.sign } ?: FuzzedOp.NONE
+            val currentFuzzedOp = FuzzedContext.Comparison.values().find { curOp == it.sign } ?: FuzzedContext.Unknown
             lastFuzzedOpGlobal = currentFuzzedOp
             validateNode(binNode.lhs)
-            lastFuzzedOpGlobal = lastFuzzedOpGlobal.reverseOrElse { FuzzedOp.NONE }
+            lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison) (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
             validateNode(binNode.rhs)
         }
         return true

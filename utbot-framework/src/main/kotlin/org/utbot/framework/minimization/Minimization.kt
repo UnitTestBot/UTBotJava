@@ -227,7 +227,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
         }
         is UtCompositeModel -> 1 + fields.values.sumOf { it.calculateSize(used) }
         is UtLambdaModel -> 1 + capturedValues.sumOf { it.calculateSize(used) }
-        // PythonModel, JsUtModel may go here
+        // PythonModel, JsUtModel may be here
         else -> 0
     }
 }

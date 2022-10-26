@@ -46,7 +46,7 @@ object JsMultipleTypesModelProvider : ModelProvider {
                             .asSequence()
                             .filter { (classId, _) -> classId.toJsClassId() == jsStringClassId }
                         concreteValuesFiltered.forEach { (_, value, op) ->
-                            listOf(value, mutate(random, value as? String, op as FuzzedOp))
+                            listOf(value, mutate(random, value as? String, op))
                                 .asSequence()
                                 .filterNotNull()
                                 .map { JsPrimitiveModel(it) }

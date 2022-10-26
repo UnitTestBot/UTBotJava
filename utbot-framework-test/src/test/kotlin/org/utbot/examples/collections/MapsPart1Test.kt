@@ -116,7 +116,7 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
         withoutConcrete {
             check(
                 Maps::containsKeyAndPuts,
-                eq(2),
+                ignoreExecutionsNumber,
                 { values, _ -> values == null },
                 { values, r -> 1 !in values.keys && r == 3 },
                 coverage = DoNotCalculate

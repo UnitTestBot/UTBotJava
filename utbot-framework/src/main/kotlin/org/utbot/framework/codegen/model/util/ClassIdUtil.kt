@@ -37,10 +37,10 @@ infix fun ClassId.isAccessibleFrom(packageName: String): Boolean {
  * Returns field of [this], such that [methodId] is a getter for it (or null if methodId doesn't represent a getter)
  */
 internal fun ClassId.fieldThatIsGotWith(methodId: MethodId): FieldId? =
-    allDeclaredFieldIds.singleOrNull { !it.isStatic && it.getter == methodId }
+    allDeclaredFieldIds.singleOrNull { !it.isStatic && it.getter.describesSameMethodAs(methodId) }
 
 /**
  * Returns field of [this], such that [methodId] is a setter for it (or null if methodId doesn't represent a setter)
  */
 internal fun ClassId.fieldThatIsSetWith(methodId: MethodId): FieldId? =
-    allDeclaredFieldIds.singleOrNull { !it.isStatic && it.setter == methodId }
+    allDeclaredFieldIds.singleOrNull { !it.isStatic && it.setter.describesSameMethodAs(methodId) }

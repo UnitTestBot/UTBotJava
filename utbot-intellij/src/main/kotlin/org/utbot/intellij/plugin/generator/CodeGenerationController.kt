@@ -437,12 +437,6 @@ object CodeGenerationController {
         }
     }
 
-    fun GenerateTestsModel.getAllTestSourceRoots() : MutableList<TestSourceRoot> {
-        with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
-            return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
-        }
-    }
-
     private val CodegenLanguage.utilClassFileName: String
         get() = "$UT_UTILS_CLASS_NAME${this.extension}"
 

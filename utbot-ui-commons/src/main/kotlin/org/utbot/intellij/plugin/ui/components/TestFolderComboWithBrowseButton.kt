@@ -22,7 +22,6 @@ import javax.swing.JList
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
-import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -83,12 +82,12 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
 
         // The second sorting to make full list ordered
         testRoots.sortWith(compareByDescending<TestSourceRoot> {
-                // Heuristics: Dirs with language == codegenLanguage should go first
-                it.expectedLanguage == model.codegenLanguage
-            }.thenBy {
-                // ABC-sorting
-                it.dir.toNioPath()
-            }
+            // Heuristics: Dirs with language == codegenLanguage should go first
+            it.expectedLanguage == model.codegenLanguage
+        }.thenBy {
+            // ABC-sorting
+            it.dir.toNioPath()
+        }
         )
         // The best candidate should go first to be pre-selected
         theBest?.let {

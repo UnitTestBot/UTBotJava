@@ -7,7 +7,11 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import org.jetbrains.kotlin.idea.core.getPackage
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
+import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
 
@@ -43,4 +47,11 @@ open class BaseTestsModel(
     val isMultiPackage: Boolean by lazy {
         srcClasses.map { it.packageName }.distinct().size != 1
     }
+
+    fun getAllTestSourceRoots() : MutableList<TestSourceRoot> {
+        with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
+            return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
+        }
+    }
+
 }

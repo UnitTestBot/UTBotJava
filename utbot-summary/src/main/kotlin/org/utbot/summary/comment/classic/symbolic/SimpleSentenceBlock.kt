@@ -1,4 +1,4 @@
-package org.utbot.summary.comment
+package org.utbot.summary.comment.classic.symbolic
 
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -12,6 +12,7 @@ import org.utbot.summary.SummarySentenceConstants.NEW_LINE
 import org.utbot.summary.SummarySentenceConstants.OPEN_BRACKET
 import org.utbot.summary.SummarySentenceConstants.SENTENCE_SEPARATION
 import org.utbot.summary.SummarySentenceConstants.TAB
+import org.utbot.summary.comment.*
 
 class SimpleSentenceBlock(val stringTemplates: StringsTemplatesInterface) {
     val iterationSentenceBlocks = mutableListOf<Pair<String, List<SimpleSentenceBlock>>>()

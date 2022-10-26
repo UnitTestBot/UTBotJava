@@ -20,6 +20,9 @@ env:
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
   # Environment variable setting gradle options.
   GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+  PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
+  ELK_HOSTNAME: logs.utbot.org
+  FILEBEAT_DIR: /tmp/filebeat
 
 jobs:
   prepare-matrices:
@@ -59,7 +62,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.framework-tests-matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    container:
+      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
     steps:
       - name: Print environment variables
         run: printenv
@@ -74,10 +81,18 @@ jobs:
           git checkout ${{ github.event.inputs.commit_sha }}
 
       - name: Run monitoring
+        # secret uploaded using base64 encoding to have one-line output:
+        # cat file | base64 -w 0
         run: |
-          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x scripts/logging.sh
+          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
       # cache will use the key you provided and contains the files you specify in path.
       #
@@ -135,7 +150,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.combined-projects-matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    container:
+      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
     steps:
       - name: Print environment variables
         run: printenv
@@ -151,9 +170,15 @@ jobs:
 
       - name: Run monitoring
         run: |
-          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x scripts/logging.sh
+          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
       - uses: actions/cache@v3
         with:
@@ -200,7 +225,11 @@ jobs:
       matrix:
         project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    container:
+      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
     steps:
       - name: Print environment variables
         run: printenv
@@ -216,9 +245,15 @@ jobs:
 
       - name: Run monitoring
         run: |
-          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x scripts/logging.sh
+          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
       - uses: actions/cache@v3
         with:

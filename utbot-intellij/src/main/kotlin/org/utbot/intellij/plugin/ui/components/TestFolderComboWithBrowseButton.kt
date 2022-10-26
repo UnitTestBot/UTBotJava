@@ -3,6 +3,7 @@ package org.utbot.intellij.plugin.ui.components
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
+import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ComponentWithBrowseButton
@@ -81,7 +82,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
         }
 
         addActionListener {
-            val testSourceRoot = createNewTestSourceRoot(model)
+            val testSourceRoot = chooseTestRoot(model)
             testSourceRoot?.let {
                 model.setSourceRootAndFindTestModule(it)
 
@@ -97,9 +98,13 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
         }
     }
 
-    private fun createNewTestSourceRoot(model: GenerateTestsModel): VirtualFile? =
+    private fun chooseTestRoot(model: GenerateTestsModel): VirtualFile? =
         ReadAction.compute<VirtualFile, RuntimeException> {
-            val desc = FileChooserDescriptor(false, true, false, false, false, false)
+            val desc = object:FileChooserDescriptor(false, true, false, false, false, false) {
+                override fun isFileSelectable(file: VirtualFile?): Boolean {
+                    return file != null && ModuleUtil.findModuleForFile(file, model.project) != null && super.isFileSelectable(file)
+                }
+            }
             val initialFile = model.project.guessProjectDir()
 
             val files = FileChooser.chooseFiles(desc, model.project, initialFile)

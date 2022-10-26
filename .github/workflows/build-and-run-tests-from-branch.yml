@@ -139,138 +139,138 @@ jobs:
           name: test_report ${{ matrix.project.PART_NAME }}
           path: utbot-framework-test/build/reports/tests/test/*
 
-  combined-projects:
-    # This job does not need to wait for 'prepare-tests-matrix' result.
-    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
-    # to start execution early.
-    needs: prepare-matrices
-    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
-    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
-    strategy:
-      # The option forces to execute all jobs even though some of them have failed.
-      fail-fast: false
-      matrix: ${{ fromJson(needs.prepare-matrices.outputs.combined-projects-matrix) }}
-    runs-on: ubuntu-20.04
-    container:
-      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
-      volumes:
-        - "/home/runner/runners:/home/runner/runners"
-        - "/tmp/filebeat:/tmp/filebeat"
-    steps:
-      - name: Print environment variables
-        run: printenv
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Check out ${{ github.event.inputs.commit_sha }} commit
-        if: github.event.inputs.commit_sha != ''
-        run: |
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          git fetch
-          git checkout ${{ github.event.inputs.commit_sha }}
-
-      - name: Run monitoring
-        run: |
-          chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
-          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
-          echo ---
-          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
-          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
-          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
-          chmod +x ./scripts/project/logging.sh 
-          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
-          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
-
-      - uses: actions/cache@v3
-        with:
-          path: /root/.gradle/caches
-          key: ${{ runner.os }}-gradle-combined-${{ hashFiles('./*.gradle*', './*/.gradle*') }}
-          restore-keys: ${{ runner.os }}-gradle-combined-
-      - name: Build project ${{ matrix.projects.first }}
-        id: first-project
-        run: |
-          cd ${{ matrix.projects.first }}
-          gradle build --build-cache --no-daemon
-
-      - name: Build project ${{ matrix.projects.second }}
-        if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
-        run: |
-          cd ${{ matrix.projects.second }}
-          gradle build --build-cache --no-daemon
-
-      - name: Upload test report if tests have failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: test_report ${{ matrix.projects.first }}
-          path: ${{ matrix.projects.first }}/build/reports/tests/test/*
-
-      - name: Upload test report if tests have failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: test_report ${{ matrix.projects.second }}
-          path: ${{ matrix.projects.second }}/build/reports/tests/test/*
-        
-
-  single-project:
-    # This job does not need to wait for 'prepare-tests-matrix' result.
-    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
-    # to start execution early.
-    needs: prepare-matrices
-    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
-    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
-    strategy:
-      # The option forces to execute all jobs even though some of them have failed.
-      fail-fast: false
-      matrix:
-        project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
-    runs-on: ubuntu-20.04
-    container:
-      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
-      volumes:
-        - "/home/runner/runners:/home/runner/runners"
-        - "/tmp/filebeat:/tmp/filebeat"
-    steps:
-      - name: Print environment variables
-        run: printenv
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Check out ${{ github.event.inputs.commit_sha }} commit
-        if: github.event.inputs.commit_sha != ''
-        run: |
-          git config --global --add safe.directory ${GITHUB_WORKSPACE}
-          git fetch
-          git checkout ${{ github.event.inputs.commit_sha }}
-
-      - name: Run monitoring
-        run: |
-          chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
-          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
-          echo ---
-          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
-          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
-          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
-          chmod +x ./scripts/project/logging.sh 
-          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
-          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
-
-      - uses: actions/cache@v3
-        with:
-          path: /root/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles('./*.gradle*', format('{0}{1}{2}', './', matrix.project, '/*.gradle*')) }}
-          restore-keys: ${{ runner.os }}-gradle-${{ matrix.project }}-
-      - name: Run tests
-        run: |
-          cd ${{ matrix.project }}
-          gradle build --build-cache --no-daemon
-
-      - name: Upload test report if tests have failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: test_report ${{ matrix.project }}
-          path: ${{ matrix.project }}/build/reports/tests/test/*
+#  combined-projects:
+#    # This job does not need to wait for 'prepare-tests-matrix' result.
+#    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them
+#    # to start execution early.
+#    needs: prepare-matrices
+#    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices.
+#    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+#    strategy:
+#      # The option forces to execute all jobs even though some of them have failed.
+#      fail-fast: false
+#      matrix: ${{ fromJson(needs.prepare-matrices.outputs.combined-projects-matrix) }}
+#    runs-on: ubuntu-20.04
+#    container:
+#      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+#      volumes:
+#        - "/home/runner/runners:/home/runner/runners"
+#        - "/tmp/filebeat:/tmp/filebeat"
+#    steps:
+#      - name: Print environment variables
+#        run: printenv
+#
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+#        if: github.event.inputs.commit_sha != ''
+#        run: |
+#          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+#          git fetch
+#          git checkout ${{ github.event.inputs.commit_sha }}
+#
+#      - name: Run monitoring
+#        run: |
+#          chmod +x ./scripts/project/monitoring.sh
+#          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+#          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+#          echo ---
+#          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+#          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+#          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+#          chmod +x ./scripts/project/logging.sh
+#          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
+#          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: /root/.gradle/caches
+#          key: ${{ runner.os }}-gradle-combined-${{ hashFiles('./*.gradle*', './*/.gradle*') }}
+#          restore-keys: ${{ runner.os }}-gradle-combined-
+#      - name: Build project ${{ matrix.projects.first }}
+#        id: first-project
+#        run: |
+#          cd ${{ matrix.projects.first }}
+#          gradle build --build-cache --no-daemon
+#
+#      - name: Build project ${{ matrix.projects.second }}
+#        if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
+#        run: |
+#          cd ${{ matrix.projects.second }}
+#          gradle build --build-cache --no-daemon
+#
+#      - name: Upload test report if tests have failed
+#        if: ${{ failure() }}
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: test_report ${{ matrix.projects.first }}
+#          path: ${{ matrix.projects.first }}/build/reports/tests/test/*
+#
+#      - name: Upload test report if tests have failed
+#        if: ${{ failure() }}
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: test_report ${{ matrix.projects.second }}
+#          path: ${{ matrix.projects.second }}/build/reports/tests/test/*
+#
+#
+#  single-project:
+#    # This job does not need to wait for 'prepare-tests-matrix' result.
+#    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them
+#    # to start execution early.
+#    needs: prepare-matrices
+#    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices.
+#    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+#    strategy:
+#      # The option forces to execute all jobs even though some of them have failed.
+#      fail-fast: false
+#      matrix:
+#        project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
+#    runs-on: ubuntu-20.04
+#    container:
+#      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+#      volumes:
+#        - "/home/runner/runners:/home/runner/runners"
+#        - "/tmp/filebeat:/tmp/filebeat"
+#    steps:
+#      - name: Print environment variables
+#        run: printenv
+#
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+#        if: github.event.inputs.commit_sha != ''
+#        run: |
+#          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+#          git fetch
+#          git checkout ${{ github.event.inputs.commit_sha }}
+#
+#      - name: Run monitoring
+#        run: |
+#          chmod +x ./scripts/project/monitoring.sh
+#          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+#          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+#          echo ---
+#          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+#          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+#          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+#          chmod +x ./scripts/project/logging.sh
+#          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
+#          echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
+#
+#      - uses: actions/cache@v3
+#        with:
+#          path: /root/.gradle/caches
+#          key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles('./*.gradle*', format('{0}{1}{2}', './', matrix.project, '/*.gradle*')) }}
+#          restore-keys: ${{ runner.os }}-gradle-${{ matrix.project }}-
+#      - name: Run tests
+#        run: |
+#          cd ${{ matrix.project }}
+#          gradle build --build-cache --no-daemon
+#
+#      - name: Upload test report if tests have failed
+#        if: ${{ failure() }}
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: test_report ${{ matrix.project }}
+#          path: ${{ matrix.project }}/build/reports/tests/test/*

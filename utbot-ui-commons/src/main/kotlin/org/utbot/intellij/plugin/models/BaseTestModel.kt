@@ -14,7 +14,7 @@ val PsiClass.packageName: String get() = this.containingFile.containingDirectory
 open class BaseTestsModel(
     val project: Project,
     val srcModule: Module,
-    potentialTestModules: List<Module>,
+    val potentialTestModules: List<Module>,
     var srcClasses: Set<PsiClass> = emptySet(),
 ) {
     // GenerateTestsModel is supposed to be created with non-empty list of potentialTestModules.

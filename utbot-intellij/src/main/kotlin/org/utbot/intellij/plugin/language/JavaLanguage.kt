@@ -3,10 +3,8 @@ package org.utbot.intellij.plugin.language
 import com.intellij.openapi.actionSystem.ActionPlaces
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
-import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.actionSystem.UpdateInBackground
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
@@ -21,6 +19,7 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
+import org.jetbrains.kotlin.idea.util.module
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
@@ -31,8 +30,17 @@ import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.ui.InvalidClassNotifier
 import org.utbot.intellij.plugin.util.isAbstract
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
+import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
-object JvmLanguageAssistant : LanguageAssistant(){
+object JvmLanguageAssistant : LanguageAssistant() {
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+
+        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        val validatedSrcClasses = validateSrcClasses(srcClasses) ?: return
+
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, validatedSrcClasses, extractMembersFromSrcClasses, focusedMethods)
+    }
 
     override fun update(e: AnActionEvent) {
         if (LockFile.isLocked()) {
@@ -43,15 +51,6 @@ object JvmLanguageAssistant : LanguageAssistant(){
             e.presentation.text = "Tests with UnitTestBot..."
         }
         e.presentation.isEnabled = getPsiTargets(e) != null
-    }
-
-    override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-
-        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
-        val validatedSrcClasses = validateSrcClasses(srcClasses) ?: return
-
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, validatedSrcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
     private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
@@ -166,6 +165,11 @@ object JvmLanguageAssistant : LanguageAssistant(){
     }
 
     private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
+        if (this.module?.let { findSdkVersionOrNull(it) } == null) {
+            if (withWarnings) InvalidClassNotifier.notify("class out of module or with undefined SDK")
+            return true
+        }
+
         val isAbstractOrInterface = this.isInterface || this.isAbstract
         if (isAbstractOrInterface) {
             if (withWarnings) InvalidClassNotifier.notify("abstract class or interface ${this.name}")
@@ -186,7 +190,6 @@ object JvmLanguageAssistant : LanguageAssistant(){
 
         return false
     }
-
 
     private fun PsiElement?.getSourceRoot() : VirtualFile? {
         val project = this?.project?: return null

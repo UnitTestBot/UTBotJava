@@ -22,6 +22,7 @@ import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :

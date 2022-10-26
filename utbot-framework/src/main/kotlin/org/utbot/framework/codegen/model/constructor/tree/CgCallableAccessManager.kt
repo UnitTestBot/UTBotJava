@@ -56,7 +56,6 @@ import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.isVarArgs
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.objectArrayClassId
@@ -487,17 +486,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         executable: ExecutableId,
         args: List<CgExpression>,
         ambiguousOverloads: List<ExecutableId>
-    ): List<CgExpression> {
-        val parametersCount = executable.parameters.size
-
-        val (nonVarargParameters, varargParameters) = if (executable.isVarArgs) {
-            // Vararg is always the last parameter
-            args.take(parametersCount - 1) to args.drop(parametersCount - 1)
-        } else {
-            args to emptyList()
-        }
-
-        val castedNonVarargs = nonVarargParameters.withIndex().map { (i ,arg) ->
+    ): List<CgExpression> =
+        args.withIndex().map { (i ,arg) ->
             val targetType = executable.parameters[i]
 
             // always cast nulls
@@ -513,33 +503,6 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
             if (ancestors.isNotEmpty()) typeCast(targetType, arg) else arg
         }
-
-        if (varargParameters.isEmpty()) {
-            return castedNonVarargs
-        }
-
-        // Vararg exist, create an array for them without inner casts
-
-        val varargClassId = executable.parameters.last()
-        val varargElementClassId = varargClassId.elementClassId
-            ?: error("Vararg parameter of $executable has to be an array but ${executable.parameters.last()} found")
-
-        // Use a simple array initializer here since this situation is pretty rare
-        val initializer = arrayInitializer(
-            arrayType = varargClassId,
-            elementType = varargElementClassId,
-            values = varargParameters
-        )
-
-        val arrayForVarargs = variableConstructor.newVar(
-            baseType = varargElementClassId,
-            baseName = "varargParameters"
-        ) {
-            initializer
-        }
-
-        return castedNonVarargs + arrayForVarargs
-    }
 
     /**
      * Receives a list of [CgExpression].

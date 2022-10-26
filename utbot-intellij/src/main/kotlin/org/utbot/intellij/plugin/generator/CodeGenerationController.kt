@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.generator
 
+import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.ide.fileTemplates.FileTemplateManager
@@ -7,6 +8,7 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
@@ -51,6 +53,7 @@ import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
@@ -62,6 +65,7 @@ import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
+import org.utbot.sarif.Sarif
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
 import java.util.concurrent.CancellationException
@@ -93,6 +97,7 @@ object CodeGenerationController {
         val allTestPackages = getPackageDirectories(baseTestDirectory)
         val latch = CountDownLatch(classesWithTests.size)
         val testFilesPointers = mutableListOf<SmartPsiElementPointer<PsiFile>>()
+        val srcClassPathToSarifReport = mutableMapOf<Path, Sarif>()
         val utilClassListener = UtilClassListener()
         var index = 0
         for ((srcClass, generateResult) in classesWithTests) {
@@ -118,6 +123,7 @@ object CodeGenerationController {
                         cut,
                         testClass,
                         testFilePointer,
+                        srcClassPathToSarifReport,
                         model,
                         latch,
                         utilClassListener,
@@ -152,12 +158,38 @@ object CodeGenerationController {
                                 }
                                 proc.forceTermination()
                                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 1.0)
+
+                                invokeLater {
+                                    runInspectionsIfNeeded(model, srcClassPathToSarifReport)
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Runs the UTBot inspection if there are detected errors.
+     */
+    private fun runInspectionsIfNeeded(
+        model: GenerateTestsModel,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>
+    ) {
+        if (!model.runInspectionAfterTestGeneration) {
+            return
+        }
+        val sarifHasResults = srcClassPathToSarifReport.any { (_, sarif) ->
+            sarif.getAllResults().isNotEmpty()
+        }
+        if (!sarifHasResults) {
+            return
+        }
+        UnitTestBotInspectionManager
+            .getInstance(model.project, srcClassPathToSarifReport)
+            .createNewGlobalContext()
+            .doInspections(AnalysisScope(model.project))
     }
 
     private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) {
@@ -582,6 +614,7 @@ object CodeGenerationController {
         classUnderTest: ClassId,
         testClass: PsiClass,
         filePointer: SmartPsiElementPointer<PsiFile>,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
         utilClassListener: UtilClassListener,
@@ -660,6 +693,7 @@ object CodeGenerationController {
                             // uploading formatted code
                             val file = filePointer.containingFile
 
+                            val srcClassPath = srcClass.containingFile.virtualFile.toNioPath()
                             saveSarifReport(
                                 proc,
                                 testSetsId,
@@ -668,8 +702,11 @@ object CodeGenerationController {
                                 model,
                                 reportsCountDown,
                                 file?.text ?: generatedTestsCode,
+                                srcClassPathToSarifReport,
+                                srcClassPath,
                                 indicator
                             )
+
                             unblockDocument(testClassUpdated.project, editor.document)
                         }
                     }
@@ -705,13 +742,26 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
         generatedTestsCode: String,
+        srcClassPathToSarifReport: MutableMap<Path, Sarif>,
+        srcClassPath: Path,
         indicator: ProgressIndicator
     ) {
         val project = model.project
 
         try {
             // saving sarif report
-                SarifReportIdea.createAndSave(proc, testSetsId, testClassId, model, generatedTestsCode, testClass, reportsCountDown, indicator)
+            SarifReportIdea.createAndSave(
+                proc,
+                testSetsId,
+                testClassId,
+                model,
+                generatedTestsCode,
+                testClass,
+                reportsCountDown,
+                srcClassPathToSarifReport,
+                srcClassPath,
+                indicator
+            )
         } catch (e: Exception) {
             logger.error(e) { "error in saving sarif report"}
             showErrorDialogLater(

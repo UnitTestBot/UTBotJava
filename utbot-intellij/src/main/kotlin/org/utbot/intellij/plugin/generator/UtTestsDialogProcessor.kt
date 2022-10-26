@@ -19,6 +19,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.task.ProjectTaskManager
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
@@ -58,15 +59,19 @@ object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
 
     enum class ProgressRange(val from : Double, val to: Double) {
-        SOLVING(from = 0.0, to = 0.7),
-        CODEGEN(from = 0.7, to = 0.9),
-        SARIF(from = 0.9, to = 1.0)
+        SOLVING(from = 0.0, to = 0.9),
+        CODEGEN(from = 0.9, to = 0.95),
+        SARIF(from = 0.95, to = 1.0)
     }
 
     fun updateIndicator(indicator: ProgressIndicator, range : ProgressRange, text: String? = null, fraction: Double? = null) {
         invokeLater {
+            if (indicator.isCanceled) return@invokeLater
             text?.let { indicator.text = it }
-            fraction?.let { indicator.fraction = indicator.fraction.coerceAtLeast(range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0)) }
+            fraction?.let {
+                indicator.fraction =
+                    indicator.fraction.coerceAtLeast(range.from + (range.to - range.from) * fraction.coerceIn(0.0, 1.0))
+            }
             logger.debug("Phase ${indicator.text} with progress ${String.format("%.2f",indicator.fraction)}")
         }
     }
@@ -192,14 +197,12 @@ object UtTestsDialogProcessor {
                                     continue
                                 }
 
-                                if (totalClasses > 1) {
-                                    updateIndicator(
-                                        indicator,
-                                        ProgressRange.SOLVING,
-                                        "Generate test cases for class $className",
-                                        processedClasses.toDouble() / totalClasses
-                                    )
-                                }
+                                updateIndicator(
+                                    indicator,
+                                    ProgressRange.SOLVING,
+                                    "Generate test cases for class $className",
+                                    processedClasses.toDouble() / totalClasses
+                                )
 
                                 // set timeout for concrete execution and for generated tests
                                 UtSettings.concreteExecutionTimeoutInChildProcess =
@@ -220,33 +223,50 @@ object UtTestsDialogProcessor {
                                 withStaticsSubstitutionRequired(true) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
-                                    val rdGenerateResult = proc.generate(
-                                        mockFrameworkInstalled,
-                                        model.staticsMocking.isConfigured,
-                                        model.conflictTriggers,
-                                        methods,
-                                        model.mockStrategy,
-                                        model.chosenClassesToMockAlways,
-                                        model.timeout,
-                                        model.timeout,
-                                        true,
-                                        UtSettings.useFuzzing,
-                                        project.service<Settings>().fuzzingValue,
-                                        searchDirectory.pathString
-                                    )
-
-                                    if (rdGenerateResult.notEmptyCases == 0) {
-                                        if (model.srcClasses.size > 1) {
-                                            logger.error { "Failed to generate any tests cases for class $className" }
-                                        } else {
-                                            showErrorDialogLater(
-                                                model.project,
-                                                errorMessage(className, secondsTimeout),
-                                                title = "Failed to generate unit tests for class $className"
+                                    val startTime = System.currentTimeMillis()
+                                    val timerHandler =
+                                        AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
+                                            val innerTimeoutRatio =
+                                                ((System.currentTimeMillis() - startTime).toDouble() / model.timeout)
+                                                    .coerceIn(0.0, 1.0)
+                                            updateIndicator(
+                                                indicator,
+                                                ProgressRange.SOLVING,
+                                                "Generate test cases for class $className",
+                                                (processedClasses.toDouble() + innerTimeoutRatio) / totalClasses
                                             )
+                                        }, 0, 500, TimeUnit.MILLISECONDS)
+                                    try {
+                                        val rdGenerateResult = proc.generate(
+                                            mockFrameworkInstalled,
+                                            model.staticsMocking.isConfigured,
+                                            model.conflictTriggers,
+                                            methods,
+                                            model.mockStrategy,
+                                            model.chosenClassesToMockAlways,
+                                            model.timeout,
+                                            model.timeout,
+                                            true,
+                                            UtSettings.useFuzzing,
+                                            project.service<Settings>().fuzzingValue,
+                                            searchDirectory.pathString
+                                        )
+
+                                        if (rdGenerateResult.notEmptyCases == 0) {
+                                            if (model.srcClasses.size > 1) {
+                                                logger.error { "Failed to generate any tests cases for class $className" }
+                                            } else {
+                                                showErrorDialogLater(
+                                                    model.project,
+                                                    errorMessage(className, secondsTimeout),
+                                                    title = "Failed to generate unit tests for class $className"
+                                                )
+                                            }
+                                        } else {
+                                            testSetsByClass[srcClass] = rdGenerateResult
                                         }
-                                    } else {
-                                        testSetsByClass[srcClass] = rdGenerateResult
+                                    } finally {
+                                        timerHandler.cancel(true)
                                     }
                                 }
                                 processedClasses++

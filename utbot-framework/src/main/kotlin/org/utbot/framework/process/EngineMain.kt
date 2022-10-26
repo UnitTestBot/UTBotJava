@@ -176,13 +176,13 @@ private fun EngineProcessModel.setup(
     synchronizer.measureExecutionForTermination(writeSarifReport) { params ->
         val reportFilePath = Paths.get(params.reportFilePath)
         reportFilePath.parent.toFile().mkdirs()
-        reportFilePath.toFile().writeText(
-            SarifReport(
-                testSets[params.testSetsId]!!,
-                params.generatedTestsCode,
-                RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
-            ).createReport().toJson()
-        )
+        val sarifReport = SarifReport(
+            testSets[params.testSetsId]!!,
+            params.generatedTestsCode,
+            RdSourceFindingStrategyFacade(params.testSetsId, realProtocol.rdSourceFindingStrategy)
+        ).createReport().toJson()
+        reportFilePath.toFile().writeText(sarifReport)
+        sarifReport
     }
     synchronizer.measureExecutionForTermination(generateTestReport) { params ->
         val eventLogMessage = params.eventLogMessage
@@ -218,7 +218,7 @@ private fun EngineProcessModel.setup(
             processInitialWarnings(accumulatedReport, params)
 
             val message = buildString {
-                appendHtmlLine("${reports.sumBy { it.executables.size }} tests generated for ${reports.size} classes.")
+                appendHtmlLine("${reports.sumOf { it.countTestMethods() }} tests generated for ${reports.size} classes.")
 
                 if (accumulatedReport.initialWarnings.isNotEmpty()) {
                     accumulatedReport.initialWarnings.forEach { appendHtmlLine(it()) }

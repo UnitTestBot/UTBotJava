@@ -46,6 +46,7 @@ class GenerateTestsModel(
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
+    var runInspectionAfterTestGeneration: Boolean = false
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle

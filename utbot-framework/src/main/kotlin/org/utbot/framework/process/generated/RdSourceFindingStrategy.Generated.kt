@@ -18,16 +18,16 @@ import kotlin.jvm.JvmStatic
  * #### Generated from [EngineProcessModel.kt:17]
  */
 class RdSourceFindingStrategy private constructor(
-    private val _testsRelativePath: RdCall<Unit, String>,
-    private val _getSourceRelativePath: RdCall<SourceStrategeMethodArgs, String>,
-    private val _getSourceFile: RdCall<SourceStrategeMethodArgs, String?>
+    private val _testsRelativePath: RdCall<Long, String>,
+    private val _getSourceRelativePath: RdCall<SourceStrategyMethodArgs, String>,
+    private val _getSourceFile: RdCall<SourceStrategyMethodArgs, String?>
 ) : RdExtBase() {
     //companion
     
     companion object : ISerializersOwner {
         
         override fun registerSerializersCore(serializers: ISerializers)  {
-            serializers.register(SourceStrategeMethodArgs)
+            serializers.register(SourceStrategyMethodArgs)
         }
         
         
@@ -52,16 +52,16 @@ class RdSourceFindingStrategy private constructor(
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()
         
-        const val serializationHash = -8019839448677987345L
+        const val serializationHash = 3794277837200536292L
         
     }
     override val serializersOwner: ISerializersOwner get() = RdSourceFindingStrategy
     override val serializationHash: Long get() = RdSourceFindingStrategy.serializationHash
     
     //fields
-    val testsRelativePath: RdCall<Unit, String> get() = _testsRelativePath
-    val getSourceRelativePath: RdCall<SourceStrategeMethodArgs, String> get() = _getSourceRelativePath
-    val getSourceFile: RdCall<SourceStrategeMethodArgs, String?> get() = _getSourceFile
+    val testsRelativePath: RdCall<Long, String> get() = _testsRelativePath
+    val getSourceRelativePath: RdCall<SourceStrategyMethodArgs, String> get() = _getSourceRelativePath
+    val getSourceFile: RdCall<SourceStrategyMethodArgs, String?> get() = _getSourceFile
     //methods
     //initializer
     init {
@@ -79,9 +79,9 @@ class RdSourceFindingStrategy private constructor(
     //secondary constructor
     private constructor(
     ) : this(
-        RdCall<Unit, String>(FrameworkMarshallers.Void, FrameworkMarshallers.String),
-        RdCall<SourceStrategeMethodArgs, String>(SourceStrategeMethodArgs, FrameworkMarshallers.String),
-        RdCall<SourceStrategeMethodArgs, String?>(SourceStrategeMethodArgs, __StringNullableSerializer)
+        RdCall<Long, String>(FrameworkMarshallers.Long, FrameworkMarshallers.String),
+        RdCall<SourceStrategyMethodArgs, String>(SourceStrategyMethodArgs, FrameworkMarshallers.String),
+        RdCall<SourceStrategyMethodArgs, String?>(SourceStrategyMethodArgs, __StringNullableSerializer)
     )
     
     //equals trait
@@ -113,23 +113,26 @@ val IProtocol.rdSourceFindingStrategy get() = getOrCreateExtension(RdSourceFindi
 /**
  * #### Generated from [EngineProcessModel.kt:18]
  */
-data class SourceStrategeMethodArgs (
+data class SourceStrategyMethodArgs (
+    val testSetId: Long,
     val classFqn: String,
     val extension: String?
 ) : IPrintable {
     //companion
     
-    companion object : IMarshaller<SourceStrategeMethodArgs> {
-        override val _type: KClass<SourceStrategeMethodArgs> = SourceStrategeMethodArgs::class
+    companion object : IMarshaller<SourceStrategyMethodArgs> {
+        override val _type: KClass<SourceStrategyMethodArgs> = SourceStrategyMethodArgs::class
         
         @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SourceStrategeMethodArgs  {
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SourceStrategyMethodArgs  {
+            val testSetId = buffer.readLong()
             val classFqn = buffer.readString()
             val extension = buffer.readNullable { buffer.readString() }
-            return SourceStrategeMethodArgs(classFqn, extension)
+            return SourceStrategyMethodArgs(testSetId, classFqn, extension)
         }
         
-        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SourceStrategeMethodArgs)  {
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SourceStrategyMethodArgs)  {
+            buffer.writeLong(value.testSetId)
             buffer.writeString(value.classFqn)
             buffer.writeNullable(value.extension) { buffer.writeString(it) }
         }
@@ -145,8 +148,9 @@ data class SourceStrategeMethodArgs (
         if (this === other) return true
         if (other == null || other::class != this::class) return false
         
-        other as SourceStrategeMethodArgs
+        other as SourceStrategyMethodArgs
         
+        if (testSetId != other.testSetId) return false
         if (classFqn != other.classFqn) return false
         if (extension != other.extension) return false
         
@@ -155,14 +159,16 @@ data class SourceStrategeMethodArgs (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
+        __r = __r*31 + testSetId.hashCode()
         __r = __r*31 + classFqn.hashCode()
         __r = __r*31 + if (extension != null) extension.hashCode() else 0
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("SourceStrategeMethodArgs (")
+        printer.println("SourceStrategyMethodArgs (")
         printer.indent {
+            print("testSetId = "); testSetId.print(printer); println()
             print("classFqn = "); classFqn.print(printer); println()
             print("extension = "); extension.print(printer); println()
         }

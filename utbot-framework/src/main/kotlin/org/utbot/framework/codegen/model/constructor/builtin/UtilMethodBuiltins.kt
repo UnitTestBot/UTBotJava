@@ -234,7 +234,6 @@ abstract class UtilMethodProvider(val utilClassId: ClassId) {
 
     val capturedArgumentClassId: BuiltinClassId
         get() = BuiltinClassId(
-            name = "${utilClassId.name}\$CapturedArgument",
             canonicalName = "${utilClassId.name}.CapturedArgument",
             simpleName = "CapturedArgument"
         )
@@ -269,10 +268,9 @@ internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodPro
 
 internal val utUtilsClassId: ClassId
     get() = BuiltinClassId(
-        name = "org.utbot.runtime.utils.UtUtils",
         canonicalName = "org.utbot.runtime.utils.UtUtils",
         simpleName = "UtUtils",
-        isFinal = true
+        isFinal = true,
     )
 
 /**

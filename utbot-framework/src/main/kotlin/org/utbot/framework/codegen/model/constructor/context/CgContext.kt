@@ -551,7 +551,6 @@ data class CgContext(
     private fun createClassIdForNestedClass(testClassModel: TestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
-            name = currentTestClass.name + "$" + simpleName,
             canonicalName = currentTestClass.canonicalName + "." + simpleName,
             simpleName = simpleName
         )

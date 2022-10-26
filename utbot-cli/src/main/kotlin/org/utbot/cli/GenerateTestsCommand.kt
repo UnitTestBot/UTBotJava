@@ -17,8 +17,9 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.isAbstract
+import org.utbot.framework.plugin.api.util.isSynthetic
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.util.isKnownSyntheticMethod
+import org.utbot.framework.util.isKnownImplicitlyDeclaredMethod
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategyDefault
 import java.nio.file.Files
@@ -97,7 +98,9 @@ class GenerateTestsCommand :
             withUtContext(UtContext(classLoader)) {
                 val classIdUnderTest = ClassId(targetClassFqn)
                 val targetMethods = classIdUnderTest.targetMethods()
-                    .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+                    .filterWhen(UtSettings.skipTestGenerationForSyntheticAndImplicitlyDeclaredMethods) {
+                        !it.isSynthetic && !it.isKnownImplicitlyDeclaredMethod
+                    }
                     .filterNot { it.isAbstract }
                 val testCaseGenerator = initializeGenerator(workingDirectory)
 

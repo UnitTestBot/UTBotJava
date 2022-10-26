@@ -29,7 +29,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
-import org.utbot.framework.util.isKnownSyntheticMethod
+import org.utbot.framework.util.isKnownImplicitlyDeclaredMethod
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
@@ -60,6 +60,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
+import org.utbot.framework.plugin.api.util.isSynthetic
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -402,7 +403,9 @@ private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<E
     val classFilteredMethods = methodsToGenerate
         .map { it.executableId }
         .filter { methodNameFilter?.equals(it.name) ?: true }
-        .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+        .filterWhen(UtSettings.skipTestGenerationForSyntheticAndImplicitlyDeclaredMethods) {
+            !it.isSynthetic && !it.isKnownImplicitlyDeclaredMethod
+        }
         .toList()
 
 

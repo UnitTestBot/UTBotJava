@@ -455,7 +455,7 @@ class UtIsGenericTypeExpression(
     override fun <TResult> accept(visitor: UtExpressionVisitor<TResult>): TResult = visitor.visit(this)
 
     override fun toString(): String {
-        return "(generic-is $addr $baseAddr<\$$parameterTypeIndex>)"
+        return "(generic-is $addr baseAddr<ParamTypeIndex>: $baseAddr<\$$parameterTypeIndex>)"
     }
 
     override fun equals(other: Any?): Boolean {

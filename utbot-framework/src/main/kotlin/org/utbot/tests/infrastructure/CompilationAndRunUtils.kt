@@ -61,6 +61,8 @@ fun runTests(
     val classpath = System.getProperty("java.class.path") + File.pathSeparator + buildDirectory
     val executionInvoke = generatedLanguage.executorInvokeCommand
     val additionalArguments = listOf(
+        "--add-opens",
+        "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
         "-ea", // Enable assertions
     )
 

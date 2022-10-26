@@ -717,11 +717,16 @@ class Resolver(
      * Constructs a type for the addr.
      *
      * There are three options here:
+     *
      * * it successfully constructs a type suitable with defaultType and returns it;
+     *
      * * it constructs a type that cannot be assigned in a variable with the [defaultType] and we `touched`
-     * the [addr] during the analysis. In such case the method returns [defaultType] as a result
-     * if the constructed type is not an array, and in case of array it returns the [defaultType] if it has the same
-     * dimensions as the constructed type and its ancestors includes the constructed type, or null otherwise;
+     * the [addr] during the analysis. In such case we have only two options: either this object was aliased with
+     * an object of another type (by solver's decision) and we didn't touch it in fact, or it happened because
+     * of missed connection between an array type and types of its elements. For example, we might case
+     * array to a succ type after we `touched` it's element. In the first scenario null will be returns, in the
+     * second one -- a default type (that will be a subtype of actualType).
+     *
      * * it constructs a type that cannot be assigned in a variable with the [defaultType] and we did **not** `touched`
      * the [addr] during the analysis. It means we can create [UtNullModel] to represent such element. In such case
      * the method returns null as the result.
@@ -816,18 +821,34 @@ class Resolver(
         // as const or store model.
         if (defaultBaseType is PrimType) return null
 
+        // There is no way you have java.lang.Object as a defaultType here, since it'd mean that
+        // some actualType is not an inheritor of it
         require(!defaultType.isJavaLangObject()) {
             "Object type $defaultType is unexpected in fallback to default type"
         }
 
-        if (defaultType.numDimensions == 0) {
-            return defaultType
+        // It might happen only if we have a wrong aliasing here: some object has not been touched
+        // during the execution, and solver returned for him an address of already existed object
+        // with another type. In such case `UtNullModel` should be constructed.
+        if (defaultBaseType.isJavaLangObject() && actualType.numDimensions < defaultType.numDimensions) {
+            return null
+        }
+
+        // All cases with `java.lang.Object` as default base type should have been already processed
+        require(!defaultBaseType.isJavaLangObject()) {
+            "Unexpected `java.lang.Object` as a default base type"
         }
 
         val actualBaseType = actualType.baseType
 
         require(actualBaseType is RefType) { "Expected RefType, but $actualBaseType found" }
         require(defaultBaseType is RefType) { "Expected RefType, but $defaultBaseType found" }
+
+
+        // The same idea about fake aliasing. It might happen only if there have been an aliasing
+        // because of the solver's decision. In fact an object for which we construct type has not been
+        // touched during analysis.
+        if (actualType.numDimensions != defaultType.numDimensions) return null
 
         val ancestors = typeResolver.findOrConstructAncestorsIncludingTypes(defaultBaseType)
 
@@ -840,7 +861,27 @@ class Resolver(
         // when the array is ColoredPoint[], but the first element of it got type Point from the solver.
         // In such case here we'll have ColoredPoint as defaultType and Point as actualType. It is obvious from the example
         // that we can construct ColoredPoint instance instead of it with randomly filled colored-specific fields.
-        return defaultType.takeIf { actualBaseType in ancestors && actualType.numDimensions == defaultType.numDimensions }
+        // Note that it won't solve a problem when this `array[0]` has already been constructed somewhere above,
+        // since a model for it is already presented in cache and will be taken by addr from it.
+        // TODO corresponding issue https://github.com/UnitTestBot/UTBotJava/issues/1232
+        if (actualBaseType in ancestors) return defaultType
+
+        val inheritors = typeResolver.findOrConstructInheritorsIncludingTypes(defaultBaseType)
+
+        // If we have an actual type that is not a subclass of defaultBaseType and isTouched is true,
+        // it means that we have encountered unexpected aliasing between an object for which we resolve its type
+        // and some object in the system. The reason is `isTouched` means that we processed this object
+        // during the analysis, therefore we create correct type constraints for it. Since we have
+        // inappropriate actualType here, these constraints were supposed to define type for another object,
+        // and, in fact, we didn't touch our object.
+        // For example, we have an array of two elements: Integer[] = new Integer[2], and this instance: ThisClass.
+        // During the execution we `touched` only the first element of the array, and we know its type.
+        // During resolving we found that second element of the array has set in true `isTouched` field,
+        // and its actualType is `ThisClass`. So, we have wrong aliasing here and can return `null` to construct
+        // UtNullModel instead.
+        if (actualBaseType !in inheritors) return null
+
+        return null
     }
 
     /**

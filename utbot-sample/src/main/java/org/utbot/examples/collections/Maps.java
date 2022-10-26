@@ -1,5 +1,7 @@
 package org.utbot.examples.collections;
 
+import org.utbot.api.mock.UtMock;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -23,6 +25,36 @@ public class Maps {
         params.put("pageNum", pageNum);
 
         return params.toString();
+    }
+
+    @SuppressWarnings("OverwrittenKey")
+    Integer mapPutAndGet() {
+        Map<Long, Integer> values = new HashMap<>();
+
+        values.put(1L, 2);
+        values.put(1L, 3);
+
+        return values.get(1L);
+    }
+
+    @SuppressWarnings("OverwrittenKey")
+    Integer putInMapFromParameters(Map<Long, Integer> values) {
+        values.put(1L, 2);
+        values.put(1L, 3);
+
+        return values.get(1L);
+    }
+
+    @SuppressWarnings("OverwrittenKey")
+    Integer containsKeyAndPuts(Map<Long, Integer> values) {
+        UtMock.assume(!values.containsKey(1L));
+
+        values.put(1L, 2);
+        values.put(1L, 3);
+
+        UtMock.assume(values.get(1L).equals(3));
+
+        return values.get(1L);
     }
 
     Map<Character, Integer> countChars(String s) {
@@ -260,5 +292,30 @@ public class Maps {
         } else {
             return new ArrayList<>(map.values());
         }
+    }
+
+    public Map<String, Integer> createMapWithString() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("tuesday", 354);
+        map.remove("tuesday");
+
+        return map;
+    }
+    public Map<WorkDays, Integer> createMapWithEnum() {
+        Map<WorkDays, Integer> map = new HashMap<>();
+        map.put(WorkDays.Monday, 112);
+        map.put(WorkDays.Tuesday, 354);
+        map.put(WorkDays.Friday, 567);
+        map.remove(WorkDays.Tuesday);
+
+        return map;
+    }
+
+    public enum WorkDays {
+        Monday,
+        Tuesday,
+        Wednesday,
+        Thursday,
+        Friday
     }
 }

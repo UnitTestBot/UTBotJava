@@ -8,22 +8,24 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ComponentWithBrowseButton
 import com.intellij.openapi.ui.FixedSizeButton
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.util.ui.UIUtil
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
+import com.intellij.util.ui.UIUtil
 import java.io.File
+import java.util.Comparator
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
-import org.jetbrains.kotlin.idea.util.projectStructure.allModules
+import org.jetbrains.kotlin.idea.util.rootManager
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
+import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
@@ -31,8 +33,10 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
     private val SET_TEST_FOLDER = "set test folder"
 
     init {
-        setButtonEnabled(false)
-        UIUtil.findComponentOfType(this, FixedSizeButton::class.java)?.toolTipText = "Please define custom test source root via Gradle"
+        if (model.project.isBuildWithGradle) {
+            setButtonEnabled(false)
+            UIUtil.findComponentOfType(this, FixedSizeButton::class.java)?.toolTipText = "Please define custom test source root via Gradle"
+        }
         childComponent.isEditable = false
         childComponent.renderer = object : ColoredListCellRenderer<Any?>() {
             override fun customizeCellRenderer(
@@ -55,20 +59,42 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
             }
         }
 
-        val suggestedModules =
-            if (model.project.isBuildWithGradle) model.project.allModules() else model.potentialTestModules
+        var commonModuleSourceDirectory = ""
+        for ((i, sourceRoot) in model.srcModule.rootManager.sourceRoots.withIndex()) {
+            commonModuleSourceDirectory = if (i == 0) {
+                sourceRoot.toNioPath().toString()
+            } else {
+                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
+            }
+        }
+        // The first sorting to obtain the best candidate
+        val testRoots = model.getAllTestSourceRoots().distinct().sortedWith(object : Comparator<TestSourceRoot> {
+            override fun compare(o1: TestSourceRoot, o2: TestSourceRoot): Int {
+                // Heuristics: Dirs with language == codegenLanguage should go first
+                val languageOrder = (o1.expectedLanguage == model.codegenLanguage).compareTo(o2.expectedLanguage == model.codegenLanguage)
+                if (languageOrder != 0) return -languageOrder
+                // Heuristics: move root that is 'closer' to module 'common' directory to the first position
+                return -StringUtil.commonPrefixLength(commonModuleSourceDirectory, o1.dir.toNioPath().toString())
+                    .compareTo(StringUtil.commonPrefixLength(commonModuleSourceDirectory, o2.dir.toNioPath().toString()))
+            }
+        }).toMutableList()
 
-        val testRoots = suggestedModules.flatMap {
-            it.suitableTestSourceRoots()
-        }.sortedWith(
-            compareByDescending<TestSourceRoot> {
+        val theBest = if (testRoots.isNotEmpty()) testRoots[0] else null
+
+        // The second sorting to make full list ordered
+        testRoots.sortWith(compareByDescending<TestSourceRoot> {
                 // Heuristics: Dirs with language == codegenLanguage should go first
                 it.expectedLanguage == model.codegenLanguage
             }.thenBy {
-                // Heuristics: User is more likely to choose the shorter path
-                it.dir.path.length
+                // ABC-sorting
+                it.dir.toNioPath()
             }
-        ).toMutableList()
+        )
+        // The best candidate should go first to be pre-selected
+        theBest?.let {
+            testRoots.remove(it)
+            testRoots.add(0, it)
+        }
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)

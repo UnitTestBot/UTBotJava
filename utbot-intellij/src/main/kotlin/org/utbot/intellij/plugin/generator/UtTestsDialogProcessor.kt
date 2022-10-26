@@ -38,9 +38,7 @@ import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.rd.terminateOnException
 import java.io.File
@@ -48,6 +46,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
+import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.utils.*
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
@@ -101,7 +100,16 @@ object UtTestsDialogProcessor {
         // we want to start the child process in the same directory as the test runner
         WorkingDirService.workingDirProvider = PluginWorkingDirProvider(project)
 
-        if (project.isBuildWithGradle && testModules.flatMap { it.suitableTestSourceRoots() }.isEmpty()) {
+        val model = GenerateTestsModel(
+            project,
+            srcModule,
+            testModules,
+            srcClasses,
+            extractMembersFromSrcClasses,
+            focusedMethods,
+            UtSettings.utBotGenerationTimeoutInMillis,
+        )
+        if (model.getAllTestSourceRoots().isEmpty()) {
             val errorMessage = """
                 <html>No test source roots found in the project.<br>
                 Please, <a href="https://www.jetbrains.com/help/idea/testing.html#add-test-root">create or configure</a> at least one test source root.
@@ -110,17 +118,7 @@ object UtTestsDialogProcessor {
             return null
         }
 
-        return GenerateTestsDialogWindow(
-            GenerateTestsModel(
-                project,
-                srcModule,
-                testModules,
-                srcClasses,
-                extractMembersFromSrcClasses,
-                focusedMethods,
-                UtSettings.utBotGenerationTimeoutInMillis,
-            )
-        )
+        return GenerateTestsDialogWindow(model)
     }
 
     private fun createTests(project: Project, model: GenerateTestsModel) {

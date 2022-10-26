@@ -22,6 +22,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
@@ -63,6 +64,8 @@ import org.utbot.intellij.plugin.ui.*
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.sarif.Sarif
@@ -71,8 +74,9 @@ import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
-import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
+import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -430,6 +434,12 @@ object CodeGenerationController {
         return when {
             testPackageName.isNullOrEmpty() -> srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName
             else -> testPackageName
+        }
+    }
+
+    fun GenerateTestsModel.getAllTestSourceRoots() : MutableList<TestSourceRoot> {
+        with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
+            return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
         }
     }
 

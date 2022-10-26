@@ -1,5 +1,3 @@
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle.kts"
-
 configurations {
     mlmodels
 }

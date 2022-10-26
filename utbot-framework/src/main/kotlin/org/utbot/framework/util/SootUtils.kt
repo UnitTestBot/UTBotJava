@@ -183,6 +183,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,
     org.utbot.engine.overrides.collections.List::class,
+    org.utbot.framework.plugin.api.UtStreamConsumingException::class,
     org.utbot.engine.overrides.stream.UtStream::class,
     org.utbot.engine.overrides.stream.UtIntStream::class,
     org.utbot.engine.overrides.stream.UtLongStream::class,

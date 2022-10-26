@@ -8,6 +8,7 @@ import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.FullWithAssumptions
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+import org.utbot.tests.infrastructure.isException
 import kotlin.streams.toList
 
 // TODO 1 instruction is always uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
@@ -39,7 +40,7 @@ class StreamsAsMethodResultExampleTest : UtValueTestCaseChecker(
             eq(3),
             { c, r -> c.isEmpty() && c == r.getOrThrow().toList() },
             { c, r -> c.isNotEmpty() && c.none { it == null } && c.toIntArray().contentEquals(r.getOrThrow().toArray()) },
-            { c, r -> c.isNotEmpty() && c.any { it == null } && r.isNPE() },
+            { c, r -> c.isNotEmpty() && c.any { it == null } && r.isException<UtStreamConsumingException>() },
             coverage = FullWithAssumptions(assumeCallsNumber = 2)
         )
     }
@@ -51,7 +52,7 @@ class StreamsAsMethodResultExampleTest : UtValueTestCaseChecker(
             eq(3),
             { c, r -> c.isEmpty() && c == r.getOrThrow().toList() },
             { c, r -> c.isNotEmpty() && c.none { it == null } && c.map { it.toLong() }.toLongArray().contentEquals(r.getOrThrow().toArray()) },
-            { c, r -> c.isNotEmpty() && c.any { it == null } && r.isNPE() },
+            { c, r -> c.isNotEmpty() && c.any { it == null } && r.isException<UtStreamConsumingException>() },
             coverage = FullWithAssumptions(assumeCallsNumber = 2)
         )
     }
@@ -63,21 +64,8 @@ class StreamsAsMethodResultExampleTest : UtValueTestCaseChecker(
             eq(3),
             { c, r -> c.isEmpty() && c == r.getOrThrow().toList() },
             { c, r -> c.isNotEmpty() && c.none { it == null } && c.map { it.toDouble() }.toDoubleArray().contentEquals(r.getOrThrow().toArray()) },
-            { c, r -> c.isNotEmpty() && c.any { it == null } && r.isNPE() },
+            { c, r -> c.isNotEmpty() && c.any { it == null } && r.isException<UtStreamConsumingException>() },
             coverage = FullWithAssumptions(assumeCallsNumber = 2)
         )
     }
-
-    /**
-     * Checks the result in [NullPointerException] from the engine or
-     * [UtStreamConsumingException] with [NullPointerException] from concrete execution.
-     */
-    private fun Result<*>.isNPE(): Boolean =
-        exceptionOrNull()?.let {
-            if (it is UtStreamConsumingException) {
-                return@let it.innerException is NullPointerException
-            }
-
-            return@let it is NullPointerException
-        } ?: false
 }

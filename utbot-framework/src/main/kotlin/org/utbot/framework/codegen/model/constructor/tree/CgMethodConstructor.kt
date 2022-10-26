@@ -357,7 +357,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun constructExceptionProducingBlock(exceptionFromAnalysis: Throwable): Pair<() -> Unit, Throwable> {
         if (exceptionFromAnalysis is UtStreamConsumingException) {
-            return constructStreamConsumingBlock() to exceptionFromAnalysis.innerException
+            return constructStreamConsumingBlock() to exceptionFromAnalysis.innerExceptionOrAny
         }
 
         return {
@@ -1299,12 +1299,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun processActualInvocationFailure(e: Throwable) {
         when (e) {
-            is UtStreamConsumingException -> processStreamConsumingException(e.innerException)
-            else -> throw e
+            is UtStreamConsumingException -> processStreamConsumingException(e.innerExceptionOrAny)
+            else -> {} // Do nothing for now
         }
     }
 
-    private fun processStreamConsumingException(innerException: Exception) {
+    private fun processStreamConsumingException(innerException: Throwable) {
         val executable = currentExecutable
 
         require((executable is MethodId) && (executable.returnType isSubtypeOf baseStreamClassId)) {

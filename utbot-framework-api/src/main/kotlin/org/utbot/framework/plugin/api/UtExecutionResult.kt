@@ -46,10 +46,17 @@ class TimeoutException(s: String) : Exception(s)
 data class UtTimeoutException(override val exception: TimeoutException) : UtExecutionFailure()
 
 /**
- * Represents an exception that occurs during consuming a stream. Stores it in [innerException].
+ * Represents an exception that occurs during consuming a stream.
+ * [innerException] stores original exception (if possible), null if [UtStreamConsumingException] was constructed by the engine.
  */
-data class UtStreamConsumingException(val innerException: Exception) : RuntimeException() {
-    override fun toString(): String = innerException.toString()
+data class UtStreamConsumingException(private val innerException: Exception?) : RuntimeException() {
+    /**
+     * Returns the original exception [innerException] if possible, and any [RuntimeException] otherwise.
+     */
+    val innerExceptionOrAny: Throwable
+        get() = innerException ?: RuntimeException("Unknown runtime exception during consuming stream")
+
+    override fun toString(): String = innerExceptionOrAny.toString()
 }
 
 /**

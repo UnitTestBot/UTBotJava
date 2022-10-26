@@ -19,3 +19,5 @@ ideVersion=<222.4167.29>
 | IU   | IntelliJ Ultimate    | JVM, Python, JavaScript, AndroidStudio |
 | PC   | PyCharm Community    | Python                                 |
 | PY   | PyCharm Professional | Python, JavaScript                     |
+
+[IntelliJ Platform Plugin SDK documentation](https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html#tasks-runpluginverifier)

@@ -7,8 +7,8 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
+import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 
@@ -45,10 +45,10 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testAddToEntrySet() {
         checkWithException(
             MapEntrySet::addToEntrySet,
-            between(2..4),
+            ignoreExecutionsNumber,
             { map, result -> map == null && result.isException<NullPointerException>() },
             { map, result -> map != null && result.isException<UnsupportedOperationException>() },
-            coverage = DoNotCalculate
+            coverage = AtLeast(75)
         )
     }
 
@@ -56,11 +56,11 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testGetFromEntrySet() {
         check(
             MapEntrySet::getFromEntrySet,
-            between(3..7),
+            ignoreExecutionsNumber,
             { map, _, _, _ -> map == null },
             { map, i, j, result -> map.none { it.key == i && it.value == j } && result == 1 },
             { map, i, j, result -> map.any { it.key == i && it.value == j } && result == 1 },
-            coverage = DoNotCalculate
+            coverage = AtLeast(94) // unreachable branch
         )
     }
 
@@ -68,11 +68,10 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testIteratorHasNext() {
         check(
             MapEntrySet::iteratorHasNext,
-            between(3..4),
+            ignoreExecutionsNumber,
             { map, _ -> map == null },
             { map, result -> map.entries.isEmpty() && result == 0 },
             { map, result -> map.entries.isNotEmpty() && result == map.entries.size },
-            coverage = DoNotCalculate
         )
     }
 
@@ -80,7 +79,7 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testIteratorNext() {
         checkWithException(
             MapEntrySet::iteratorNext,
-            between(3..5),
+            ignoreExecutionsNumber,
             { map, result -> map == null && result.isException<NullPointerException>() },
             { map, result -> map.entries.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for map is LinkedHashMap
@@ -90,7 +89,6 @@ class MapEntrySetTest : UtValueTestCaseChecker(
                 val (resultKey, resultValue) = resultEntry
                 map.entries.isNotEmpty() && entryKey == resultKey && entryValue == resultValue
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -98,7 +96,7 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testIteratorRemove() {
         checkWithException(
             MapEntrySet::iteratorRemove,
-            between(3..4),
+            ignoreExecutionsNumber,
             { map, result -> map == null && result.isException<NullPointerException>() },
             { map, result -> map.entries.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for map is LinkedHashMap
@@ -109,7 +107,6 @@ class MapEntrySetTest : UtValueTestCaseChecker(
                     resultMap.entries.size == map.entries.size - 1 && map.entries.first() !in resultMap.entries
                 map.entries.isNotEmpty() && mapContainsAllEntriesInResult && resultDoesntContainFirstEntry
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -117,7 +114,7 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testIteratorRemoveOnIndex() {
         checkWithException(
             MapEntrySet::iteratorRemoveOnIndex,
-            ge(5),
+            ignoreExecutionsNumber,
             { _, i, result -> i == 0 && result.isSuccess && result.getOrNull() == null },
             { map, _, result -> map == null && result.isException<NullPointerException>() },
             { map, i, result -> map != null && i < 0 && result.isException<IllegalStateException>() },
@@ -130,7 +127,6 @@ class MapEntrySetTest : UtValueTestCaseChecker(
                 val resultDoesntContainIthEntry = map.entries.toList()[i - 1] !in resultMap.entries
                 iInIndexRange && mapContainsAllEntriesInResult && resultDoesntContainIthEntry
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -138,11 +134,10 @@ class MapEntrySetTest : UtValueTestCaseChecker(
     fun testIterateForEach() {
         check(
             MapEntrySet::iterateForEach,
-            between(3..5),
+            ignoreExecutionsNumber,
             { map, _ -> map == null },
             { map, _ -> null in map.values },
             { map, result -> result!![0] == map.keys.sum() && result[1] == map.values.sum() },
-            coverage = DoNotCalculate
         )
     }
 
@@ -168,8 +163,8 @@ class MapEntrySetTest : UtValueTestCaseChecker(
                 { map, result ->
                     val mapIsNotEmptyAndSizeIsEven = map != null && map.isNotEmpty() && map.size % 2 == 0
                     val arrayResult = result.getOrThrow()
-                    val evenKeysSum = map.keys.withIndex().filter { it.index % 2 == 0 }.sumBy { it.value }
-                    val oddValuesSum = map.values.withIndex().filter { it.index % 2 == 0 }.sumBy { it.value }
+                    val evenKeysSum = map.keys.withIndex().filter { it.index % 2 == 0 }.sumOf { it.value }
+                    val oddValuesSum = map.values.withIndex().filter { it.index % 2 == 0 }.sumOf { it.value }
                     mapIsNotEmptyAndSizeIsEven && arrayResult[0] == evenKeysSum && arrayResult[1] == oddValuesSum
                 },
             )

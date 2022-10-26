@@ -21,8 +21,6 @@ include 'utbot-fuzzers'
 //include 'utbot-analytics-torch'
 
 include 'utbot-cli'
-include 'utbot-cli-python'
-include 'utbot-cli-js'
 
 include 'utbot-api'
 include 'utbot-instrumentation'
@@ -35,11 +33,13 @@ include 'utbot-maven'
 //include 'utbot-framework-test'
 include 'utbot-rd'
 
-include 'utbot-python'
-include 'utbot-js'
-
 include 'utbot-ui-commons'
 
+include 'utbot-python'
+include 'utbot-cli-python'
 include 'utbot-intellij-python'
+
+include 'utbot-js'
+include 'utbot-cli-js'
 include 'utbot-intellij-js'
 

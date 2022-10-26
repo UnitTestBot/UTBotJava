@@ -9,7 +9,6 @@ val kotlinPluginVersion: String? by rootProject
 
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
-val goPluginVersion: String? by rootProject
 
 val pythonIde: List<String>? by rootProject
 val jsIde: List<String>? by rootProject

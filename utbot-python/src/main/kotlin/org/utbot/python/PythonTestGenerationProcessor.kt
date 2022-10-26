@@ -262,7 +262,7 @@ object PythonTestGenerationProcessor {
         val missed = mutableSetOf<Set<Int>>()
         testSets.forEach { testSet ->
             testSet.executions.forEach inner@{ execution ->
-                val coverage = execution.coverage as? PythonCoverage ?: return@inner
+                val coverage = execution.coverage ?: return@inner
                 coverage.coveredInstructions.forEach { covered.add(it.lineNumber) }
                 missed.add(coverage.missedInstructions.map { it.lineNumber }.toSet())
             }

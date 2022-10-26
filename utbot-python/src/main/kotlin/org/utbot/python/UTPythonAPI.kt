@@ -1,8 +1,6 @@
 package org.utbot.python
 
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.python.framework.api.python.PythonClassId
@@ -31,8 +29,3 @@ data class PythonTestSet(
     val mypyReport: List<MypyAnnotations.MypyReportLine>,
     val classId: PythonClassId? = null,
 )
-
-class PythonCoverage(
-    coveredInstructions: List<Instruction>,
-    val missedInstructions: List<Instruction>
-) : Coverage(coveredInstructions)

@@ -141,7 +141,7 @@ object PythonTestCaseGenerator {
     ): Set<Int> {
         execution.coverage?.coveredInstructions?.map { instr -> coveredLines.add(instr.lineNumber) }
         val curMissing =
-            (execution.coverage as? PythonCoverage)
+            execution.coverage
                 ?.missedInstructions
                 ?.map { x -> x.lineNumber }?.toSet()
                 ?: emptySet()

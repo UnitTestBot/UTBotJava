@@ -1,6 +1,7 @@
 package org.utbot.python
 
 import com.beust.klaxon.Klaxon
+import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzer.FuzzedValue
@@ -20,7 +21,7 @@ class EvaluationError(val reason: String) : EvaluationResult()
 class EvaluationSuccess(
     private val output: OutputData,
     private val isException: Boolean,
-    val coverage: PythonCoverage
+    val coverage: Coverage
 ) : EvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
@@ -99,8 +100,8 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
     val stmts = Klaxon().parseArray<Int>(output[2])!!
     val missed = Klaxon().parseArray<Int>(output[3])!!
     val covered = stmts.filter { it !in missed }
-    val coverage = PythonCoverage(
-        covered.map {
+    val coverage = Coverage(
+        coveredInstructions=covered.map {
             Instruction(
                 input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,
                 input.method.methodSignature(),
@@ -108,7 +109,8 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
                 it.toLong()
             )
         },
-        missed.map {
+        instructionsCount = null,
+        missedInstructions = missed.map {
             Instruction(
                 input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,
                 input.method.methodSignature(),

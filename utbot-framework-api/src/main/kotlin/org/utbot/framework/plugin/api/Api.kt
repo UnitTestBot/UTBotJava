@@ -1297,7 +1297,8 @@ enum class CodegenLanguage(
             JAVA -> listOf(
                 "-d", buildDirectory,
                 "-cp", classPath,
-                "-XDignore.symbol.file" // to let javac use classes from rt.jar
+                "-XDignore.symbol.file", // to let javac use classes from rt.jar
+                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED"
             ).plus(sourcesFiles)
 
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)

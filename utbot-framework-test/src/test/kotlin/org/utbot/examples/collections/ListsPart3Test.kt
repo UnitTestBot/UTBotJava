@@ -5,11 +5,12 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
 import org.utbot.tests.infrastructure.isException
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.FullWithAssumptions
+import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 
 // TODO failed Kotlin compilation SAT-1332
 internal class ListsPart3Test : UtValueTestCaseChecker(
@@ -27,8 +28,7 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             eq(3),
             { a, _ -> a == null },
             { a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
-            { a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && a.toList() == r.also { println(r) } },
-            coverage = DoNotCalculate
+            { a, r -> a != null && a.isNotEmpty() && !r.isNullOrEmpty() && a.toList() == r.also { println(r) } },
         )
     }
 
@@ -38,7 +38,7 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             Lists::bigListFromParameters,
             eq(1),
             { list, r -> list.size == r && list.size == 11 },
-            coverage = DoNotCalculate
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
 
@@ -46,11 +46,10 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
     fun testGetNonEmptyCollection() {
         check(
             Lists::getNonEmptyCollection,
-            eq(3),
+            ignoreExecutionsNumber,
             { collection, _ -> collection == null },
             { collection, r -> collection.isEmpty() && r == null },
             { collection, r -> collection.isNotEmpty() && collection == r },
-            coverage = DoNotCalculate
         )
     }
 
@@ -63,7 +62,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             { l, _ -> l.isEmpty() },
             { l, r -> l[0] == null && r == null },
             { l, r -> l[0] != null && r is Array<*> && r.isArrayOf<Int>() && r.size == 1 && r[0] == l[0] },
-            coverage = DoNotCalculate
         )
     }
 
@@ -84,7 +82,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
 
                 sizeConstraint && content
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -92,7 +89,7 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
     fun removeElementsTest() {
         checkWithException(
             Lists::removeElements,
-            between(7..8),
+            ignoreExecutionsNumber,
             { list, _, _, r -> list == null && r.isException<NullPointerException>() },
             { list, i, _, r -> list != null && i < 0 && r.isException<IndexOutOfBoundsException>() },
             { list, i, _, r -> list != null && i >= 0 && list.size > i && list[i] == null && r.isException<NullPointerException>() },
@@ -134,7 +131,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
 
                 precondition && postcondition
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -145,7 +141,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             eq(2),
             { x, r -> x % 2 != 0 && r is java.util.LinkedList && r == List(4) { it } },
             { x, r -> x % 2 == 0 && r is java.util.ArrayList && r == List(4) { it } },
-            coverage = DoNotCalculate
         )
     }
 
@@ -158,7 +153,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             { x, r -> x != null && x.isEmpty() && r!!.isEmpty() },
             { x, _ -> x != null && x.isNotEmpty() && x.any { it == null } },
             { x, r -> x != null && x.isNotEmpty() && x.all { it is Int } && r!!.toList() == x },
-            coverage = DoNotCalculate
         )
     }
 
@@ -170,7 +164,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             { x, _ -> x == null },
             { x, r -> x != null && x.isEmpty() && r!!.isEmpty() },
             { x, r -> x != null && x.isNotEmpty() && r!!.containsAll(x.toList()) && r.size == x.size },
-            coverage = DoNotCalculate
         )
     }
 
@@ -182,7 +175,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             { list, _ -> list == null },
             { list, r -> list.size >= 2 && r == emptyList<Int>() },
             { list, r -> list.size < 2 && r == emptyList<Int>() },
-            coverage = DoNotCalculate
         )
     }
 
@@ -198,7 +190,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             { list, i, r ->
                 list != null && list.isNotEmpty() && r != null && r.size == 1 + list.size && r == listOf(i) + list
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -213,7 +204,6 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             { list, i, r ->
                 list != null && i in 0..list.lastIndex && r == list.toMutableList().apply { addAll(i, listOf(0, 1)) }
             },
-            coverage = DoNotCalculate
         )
     }
 

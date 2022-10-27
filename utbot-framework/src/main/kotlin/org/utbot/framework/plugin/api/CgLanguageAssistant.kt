@@ -6,6 +6,8 @@ import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
 import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl
+import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManager
+import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
@@ -39,10 +41,11 @@ abstract class CgLanguageAssistant {
     open fun getNameGeneratorBy(context: CgContext): CgNameGenerator = CgNameGeneratorImpl(context)
     open fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager =
         CgCallableAccessManagerImpl(context)
-
     open fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = CgStatementConstructorImpl(context)
     open fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = CgVariableConstructor(context)
     open fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)
+    open fun getCgFieldStateManager(context: CgContext): CgFieldStateManager = CgFieldStateManagerImpl(context)
+
     abstract fun getLanguageTestFrameworkManager(): LanguageTestFrameworkManager
     abstract fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer
 }

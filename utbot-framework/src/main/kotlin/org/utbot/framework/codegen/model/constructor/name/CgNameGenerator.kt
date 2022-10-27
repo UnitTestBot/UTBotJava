@@ -67,7 +67,7 @@ interface CgNameGenerator {
  * Class that generates names for methods and variables
  * To avoid name collisions it uses existing names information from CgContext
  */
-open class CgNameGeneratorImpl(val context: CgContext)
+class CgNameGeneratorImpl(val context: CgContext)
     : CgNameGenerator, CgContextOwner by context {
 
     override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
@@ -130,7 +130,7 @@ open class CgNameGeneratorImpl(val context: CgContext)
     /**
      * Creates a new indexed variable name by [base] name.
      */
-    fun nextIndexedVarName(base: String): String =
+    private fun nextIndexedVarName(base: String): String =
         infiniteInts()
             .map { "$base$it" }
             .first { it !in existingVariableNames }
@@ -140,12 +140,12 @@ open class CgNameGeneratorImpl(val context: CgContext)
      *
      * @param skipOne shows if we add "1" to first method name or not
      */
-    fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
+    private fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
         infiniteInts()
             .map { if (skipOne && it == 1) base else "$base$it" }
             .first { it !in existingMethodNames }
 
-    fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
+    private fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
         CodegenLanguage.JAVA -> nextIndexedVarName(baseName)
         CodegenLanguage.KOTLIN -> {
             // use backticks for first variable with keyword name and use indexed names for all next such variables
@@ -153,7 +153,7 @@ open class CgNameGeneratorImpl(val context: CgContext)
         }
     }
 
-    fun createExecutableName(executableId: ExecutableId): String {
+    private fun createExecutableName(executableId: ExecutableId): String {
         return when (executableId) {
             is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
             is MethodId -> executableId.name

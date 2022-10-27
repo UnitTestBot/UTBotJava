@@ -186,7 +186,7 @@ interface CgStatementConstructor {
     fun wrapTypeIfRequired(baseType: ClassId): ClassId
 }
 
-class CgStatementConstructorImpl(context: CgContext) :
+internal class CgStatementConstructorImpl(context: CgContext) :
     CgStatementConstructor,
     CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context) {

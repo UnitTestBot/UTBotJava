@@ -22,7 +22,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
@@ -74,9 +73,6 @@ import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import org.jetbrains.kotlin.idea.util.projectStructure.allModules
-import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -850,7 +846,7 @@ object CodeGenerationController {
         }
     }
 
-    fun unblockDocument(project: Project, document: Document) {
+    private fun unblockDocument(project: Project, document: Document) {
         PsiDocumentManager.getInstance(project).apply {
             commitDocument(document)
             doPostponedOperationsAndUnblockDocument(document)

@@ -3,19 +3,61 @@ package org.utbot.python.framework.codegen.model.constructor.name
 import org.utbot.framework.codegen.PythonImport
 import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
+import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
+import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.util.toSnakeCase
 
-class PythonCgNameGenerator(context_: CgContext) : CgNameGeneratorImpl(context_) {
+internal fun infiniteInts(): Sequence<Int> =
+    generateSequence(1) { it + 1 }
+
+class PythonCgNameGenerator(val context: CgContext)
+        : CgNameGenerator, CgContextOwner by context {
+
+    private fun nextIndexedVarName(base: String): String =
+        infiniteInts()
+            .map { "$base$it" }
+            .first { it !in existingVariableNames }
+
+    private fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
+        infiniteInts()
+            .map { if (skipOne && it == 1) base else "$base$it" }
+            .first { it !in existingMethodNames }
+
+    private fun createNameFromKeyword(baseName: String): String =
+        nextIndexedVarName(baseName)
+
+    private fun createExecutableName(executableId: ExecutableId): String {
+        return when (executableId) {
+            is ConstructorId -> executableId.classId.prettifiedName
+            is MethodId -> executableId.name
+        }
+    }
 
     override fun nameFrom(id: ClassId): String =
         when (id) {
             is NormalizedPythonAnnotation -> "var"
             else -> id.simpleName.toSnakeCase()
         }
+
+    override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
+        val baseName = when {
+            isMock -> base + "_mock"
+            isStatic -> base + "_static"
+            else -> base
+        }
+        return when {
+            baseName in existingVariableNames -> nextIndexedVarName(baseName)
+            isLanguageKeyword(baseName, context.cgLanguageAssistant) -> createNameFromKeyword(baseName)
+            else -> baseName
+        }.also {
+            existingVariableNames = existingVariableNames.add(it)
+        }
+    }
 
     override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
         val baseName = base?.toSnakeCase() ?: nameFrom(type)
@@ -43,6 +85,14 @@ class PythonCgNameGenerator(context_: CgContext) : CgNameGeneratorImpl(context_)
         }
         existingMethodNames += name
         return name
+    }
+
+    override fun parameterizedTestMethodName(dataProviderMethodName: String): String {
+        TODO("Not yet implemented")
+    }
+
+    override fun dataProviderMethodNameFor(executableId: ExecutableId): String {
+        TODO("Not yet implemented")
     }
 
     override fun errorMethodNameFor(executableId: ExecutableId): String {

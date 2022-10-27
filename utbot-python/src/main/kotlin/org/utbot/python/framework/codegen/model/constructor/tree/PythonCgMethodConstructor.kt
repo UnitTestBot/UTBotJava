@@ -1,7 +1,6 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.fields.StateModificationInfo
@@ -42,7 +41,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
 
                 val modificationInfo = StateModificationInfo()
-                val fieldStateManager = CgFieldStateManagerImpl(context)
+                val fieldStateManager = context.cgLanguageAssistant.getCgFieldStateManager(context)
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
                     substituteStaticFields(statics)

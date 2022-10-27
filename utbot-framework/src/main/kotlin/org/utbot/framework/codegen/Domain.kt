@@ -101,7 +101,7 @@ fun testFrameworkByName(testFramework: String): TestFramework =
  * This feature allows to enable additional mockito-core settings required for static mocking.
  * It is implemented via adding special file "MockMaker" into test project resources.
  */
-abstract class StaticsMocking(
+sealed class StaticsMocking(
     var isConfigured: Boolean = false,
     override val id: String,
     override val displayName: String,

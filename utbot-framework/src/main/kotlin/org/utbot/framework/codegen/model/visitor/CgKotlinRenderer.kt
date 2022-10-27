@@ -344,7 +344,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         val elementsInLine = arrayElementsInLine(elementType)
 
         if (elementType.isPrimitive) {
-            val prefix = elementType.name.lowercase(Locale.getDefault())
+            val prefix = elementType.name.toLowerCase()
             print("${prefix}ArrayOf(")
             element.values.renderElements(elementsInLine)
             print(")")

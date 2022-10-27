@@ -430,7 +430,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
 
         if (!model.project.isBuildWithGradle && ModuleUtil.findModuleForFile(testRoot.toRealFile(), model.project) == null) {
-            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+            return ValidationInfo("Test source root is located out of any module", testSourceFolderField.childComponent)
         }
 
         membersTable.tableHeader?.background = UIUtil.getTableBackground()

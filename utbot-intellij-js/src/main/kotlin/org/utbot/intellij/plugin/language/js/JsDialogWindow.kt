@@ -21,6 +21,9 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
+import settings.JsTestGenerationSettings.defaultTimeout
 import java.awt.BorderLayout
 import java.io.File
 import java.nio.file.Paths
@@ -28,9 +31,6 @@ import java.util.Locale
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
 import javax.swing.JComponent
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
-import settings.JsTestGenerationSettings.defaultTimeout
 import kotlin.concurrent.thread
 
 class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
@@ -61,6 +61,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
     private val nycSourceFileChooserField = NycSourceFileChooser(model)
+    private val coverageMode = CoverageModeButtons
 
     private var initTestFrameworkPresenceThread: Thread
     private lateinit var panel: DialogPanel
@@ -105,6 +106,12 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
             row("Nyc source path:") {
                 component(nycSourceFileChooserField)
             }
+            row("Coverage mode:") {
+                panelWithHelpTooltip("Fast mode can't find timeouts, but works faster") {
+                    component(coverageMode.fastButton)
+                    component(coverageMode.baseButton)
+                }
+            }
             row("Timeout for Node.js (in seconds):") {
                 panelWithHelpTooltip("The execution timeout") {
                     component(timeoutSpinner)
@@ -143,8 +150,10 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
         model.pathToNYC = nycSourceFileChooserField.text
+        model.coverageMode = coverageMode.mode
         File(testSourceFolderField.text).mkdir()
-        model.testSourceRoot = VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Paths.get(testSourceFolderField.text))
+        model.testSourceRoot =
+            VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Paths.get(testSourceFolderField.text))
         configureTestFrameworkIfRequired()
         super.doOKAction()
     }

@@ -22,7 +22,6 @@ import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import service.CoverageMode
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
@@ -95,13 +94,6 @@ object JsDialogProcessor {
 
     private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor) {
         val normalizedContainingFilePath = containingFilePath.replace("/", File.separator)
-        val settings = JsDynamicSettings(
-            pathToNode = model.pathToNode,
-            pathToNYC = model.pathToNYC,
-            pathToNPM = model.pathToNPM,
-            timeout = model.timeout,
-            coverageMode = CoverageMode.BASIC
-        )
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
@@ -127,7 +119,13 @@ object JsDialogProcessor {
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace("/", File.separator),
                     exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project),
-                    settings = settings
+                    settings = JsDynamicSettings(
+                        pathToNode = model.pathToNode,
+                        pathToNYC = model.pathToNYC,
+                        pathToNPM = model.pathToNPM,
+                        timeout = model.timeout,
+                        coverageMode = model.coverageMode
+                    )
                 )
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)

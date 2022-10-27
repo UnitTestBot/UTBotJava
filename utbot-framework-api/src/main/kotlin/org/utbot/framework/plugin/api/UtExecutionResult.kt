@@ -11,6 +11,13 @@ data class UtExecutionSuccess(val model: UtModel) : UtExecutionResult() {
 
 sealed class UtExecutionFailure : UtExecutionResult() {
     abstract val exception: Throwable
+
+    /**
+     * Represents the most inner exception in the failure.
+     * Often equals to [exception], but is wrapped exception in [UtStreamConsumingException].
+     */
+    open val rootCauseException: Throwable
+        get() = exception
 }
 
 data class UtOverflowFailure(
@@ -22,8 +29,11 @@ data class UtSandboxFailure(
 ) : UtExecutionFailure()
 
 data class UtStreamConsumingFailure(
-    override val exception: Throwable
-) : UtExecutionFailure()
+    override val exception: UtStreamConsumingException,
+) : UtExecutionFailure() {
+    override val rootCauseException: Throwable
+        get() = exception.innerExceptionOrAny
+}
 
 /**
  * unexpectedFail (when exceptions such as NPE, IOBE, etc. appear, but not thrown by a user, applies both for function under test and nested calls )
@@ -46,8 +56,8 @@ class TimeoutException(s: String) : Exception(s)
 data class UtTimeoutException(override val exception: TimeoutException) : UtExecutionFailure()
 
 /**
- * Represents an exception that occurs during consuming a stream.
- * [innerException] stores original exception (if possible), null if [UtStreamConsumingException] was constructed by the engine.
+ * An artificial exception that stores an exception that would be thrown in case of consuming stream by invoking terminal operations.
+ * [innerException] stores this possible exception (null if [UtStreamConsumingException] was constructed by the engine).
  */
 data class UtStreamConsumingException(private val innerException: Exception?) : RuntimeException() {
     /**
@@ -101,7 +111,7 @@ inline fun UtExecutionResult.onSuccess(action: (model: UtModel) -> Unit): UtExec
 }
 
 inline fun UtExecutionResult.onFailure(action: (exception: Throwable) -> Unit): UtExecutionResult {
-    if (this is UtExecutionFailure) action(exception)
+    if (this is UtExecutionFailure) action(rootCauseException)
     return this
 }
 
@@ -111,6 +121,6 @@ fun UtExecutionResult.getOrThrow(): UtModel = when (this) {
 }
 
 fun UtExecutionResult.exceptionOrNull(): Throwable? = when (this) {
-    is UtExecutionFailure -> exception
+    is UtExecutionFailure -> rootCauseException
     is UtExecutionSuccess -> null
 }

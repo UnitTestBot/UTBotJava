@@ -14,7 +14,6 @@ import org.utbot.framework.UtSettings.daysLimitForTempFiles
 import org.utbot.framework.UtSettings.testDisplayName
 import org.utbot.framework.UtSettings.testName
 import org.utbot.framework.UtSettings.testSummary
-import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
@@ -73,9 +72,8 @@ abstract class UtValueTestCaseChecker(
     pipelines: List<TestLastStage> = listOf(
         TestLastStage(CodegenLanguage.JAVA),
         TestLastStage(CodegenLanguage.KOTLIN)
-    ),
-    codeGenerationModes: List<ParametrizedTestSource> = parameterizationModes
-) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines, codeGenerationModes) {
+    )
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, pipelines) {
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
 

@@ -20,7 +20,6 @@ class StreamsAsMethodResultExampleTest : UtValueTestCaseChecker(
         TestLastStage(CodegenLanguage.JAVA),
         TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     ),
-    codeGenerationModes = listOf(ParametrizedTestSource.DO_NOT_PARAMETRIZE) // TODO exception from concrete is passed to arguments list somehow
 ) {
     @Test
     fun testReturningStreamExample() {

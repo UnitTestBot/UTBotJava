@@ -33,8 +33,7 @@ abstract class CodeGenerationIntegrationTest(
     private val languagesLastStages: List<TestLastStage> = listOf(
         TestLastStage(CodegenLanguage.JAVA),
         TestLastStage(CodegenLanguage.KOTLIN)
-    ),
-    private val codeGenerationModes: List<ParametrizedTestSource> = parameterizationModes
+    )
 ) {
     private val testSets: MutableList<UtMethodTestSet> = arrayListOf()
 
@@ -100,7 +99,7 @@ abstract class CodeGenerationIntegrationTest(
 
             // TODO: leave kotlin & parameterized mode configuration alone for now
             val pipelineConfigurations = languages
-                .flatMap { language -> codeGenerationModes.map { mode -> language to mode } }
+                .flatMap { language -> parameterizationModes.map { mode -> language to mode } }
                 .filterNot { it == CodegenLanguage.KOTLIN to ParametrizedTestSource.PARAMETRIZE }
 
             for ((language, parameterizationMode) in pipelineConfigurations) {
@@ -163,7 +162,7 @@ abstract class CodeGenerationIntegrationTest(
 
         private val languages = listOf(CodegenLanguage.JAVA, CodegenLanguage.KOTLIN)
 
-        internal val parameterizationModes = listOf(ParametrizedTestSource.DO_NOT_PARAMETRIZE, ParametrizedTestSource.PARAMETRIZE)
+        private val parameterizationModes = listOf(ParametrizedTestSource.DO_NOT_PARAMETRIZE, ParametrizedTestSource.PARAMETRIZE)
 
         data class CodeGenerationTestCases(
             val testClass: KClass<*>,

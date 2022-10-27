@@ -1,7 +1,9 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
+import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
+import org.utbot.common.workaround
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -146,7 +148,8 @@ import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.UtStreamConsumingException
+import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.doubleStreamClassId
@@ -182,6 +185,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private lateinit var methodType: CgTestMethodType
 
     private val fieldsOfExecutionResults = mutableMapOf<Pair<FieldId, Int>, MutableList<UtModel>>()
+
+    /**
+     * Contains whether [UtStreamConsumingFailure] is in [CgMethodTestSet] for parametrized tests.
+     * See [WorkaroundReason.CONSUME_DIRTY_STREAMS].
+     */
+    private var containsStreamConsumingFailureForParametrizedTests: Boolean = false
 
     private fun setupInstrumentation() {
         if (currentExecution is UtSymbolicExecution) {
@@ -300,28 +309,30 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 emptyLineIfNeeded()
                 val method = currentExecutable as MethodId
                 val currentExecution = currentExecution!!
+                val executionResult = currentExecution.result
+
                 // build assertions
-                currentExecution.result
-                    .onSuccess { result ->
+                executionResult
+                    .onSuccess { resultModel ->
                         methodType = SUCCESSFUL
 
-                        // TODO possible engine bug - void method return type and result not UtVoidModel
-                        if (result.isUnit() || method.returnType == voidClassId) {
+                        // TODO possible engine bug - void method return type and result model not UtVoidModel
+                        if (resultModel.isUnit() || method.returnType == voidClassId) {
                             +thisInstance[method](*methodArguments.toTypedArray())
                         } else {
-                            resultModel = result
-                            val expected = variableConstructor.getOrCreateVariable(result, "expected")
+                            this.resultModel = resultModel
+                            val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
                             assertEquality(expected, actual)
                         }
                     }
-                    .onFailure { exception -> processExecutionFailure(exception) }
+                    .onFailure { exception -> processExecutionFailure(exception, executionResult) }
             }
             else -> {} // TODO: check this specific case
         }
     }
 
-    private fun processExecutionFailure(exceptionFromAnalysis: Throwable) {
-        val (methodInvocationBlock, expectedException) = constructExceptionProducingBlock(exceptionFromAnalysis)
+    private fun processExecutionFailure(exceptionFromAnalysis: Throwable, executionResult: UtExecutionResult) {
+        val (methodInvocationBlock, expectedException) = constructExceptionProducingBlock(exceptionFromAnalysis, executionResult)
 
         when (methodType) {
             SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $expectedException")
@@ -355,9 +366,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun constructExceptionProducingBlock(exceptionFromAnalysis: Throwable): Pair<() -> Unit, Throwable> {
-        if (exceptionFromAnalysis is UtStreamConsumingException) {
-            return constructStreamConsumingBlock() to exceptionFromAnalysis.innerExceptionOrAny
+    private fun constructExceptionProducingBlock(
+        exceptionFromAnalysis: Throwable,
+        executionResult: UtExecutionResult
+    ): Pair<() -> Unit, Throwable> {
+        if (executionResult is UtStreamConsumingFailure) {
+            return constructStreamConsumingBlock() to executionResult.rootCauseException
         }
 
         return {
@@ -461,14 +475,16 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
             is MethodId -> {
                 val method = currentExecutable as MethodId
-                currentExecution!!.result
-                    .onSuccess { result ->
-                        if (result.isUnit()) {
+                val executionResult = currentExecution!!.result
+
+                executionResult
+                    .onSuccess { resultModel ->
+                        if (resultModel.isUnit()) {
                             +thisInstance[method](*methodArguments.toTypedArray())
                         } else {
                             //"generic" expected variable is represented with a wrapper if
                             //actual result is primitive to support cases with exceptions.
-                            resultModel = if (result is UtPrimitiveModel) assemble(result) else result
+                            this.resultModel = if (resultModel is UtPrimitiveModel) assemble(resultModel) else resultModel
 
                             val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
                             val expectedExpression = CgNotNullAssertion(expectedVariable)
@@ -476,7 +492,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             assertEquality(expectedExpression, actual)
                         }
                     }
-                    .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
+                    .onFailure {
+                        workaround(WorkaroundReason.CONSUME_DIRTY_STREAMS) {
+                            if (containsStreamConsumingFailureForParametrizedTests) {
+                                constructStreamConsumingBlock().invoke()
+                            } else {
+                                thisInstance[method](*methodArguments.toTypedArray()).intercepted()
+                            }
+                        }
+                    }
             }
             else -> {} // TODO: check this specific case
         }
@@ -1208,7 +1232,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         // we cannot generate any assertions for constructor testing
         // but we need to generate a constructor call
         val constructorCall = currentExecutableId as ConstructorId
-        currentExecution.result
+        val executionResult = currentExecution.result
+
+        executionResult
             .onSuccess {
                 methodType = SUCCESSFUL
 
@@ -1220,7 +1246,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     constructorCall(*methodArguments.toTypedArray())
                 }
             }
-            .onFailure { exception -> processExecutionFailure(exception) }
+            .onFailure { exception -> processExecutionFailure(exception, executionResult) }
     }
 
     /**
@@ -1241,7 +1267,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
                     else -> ifStatement(
                         CgEqualTo(expected, nullLiteral()),
-                        trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
+                        trueBranch = {
+                            workaround(WorkaroundReason.CONSUME_DIRTY_STREAMS) {
+                                if (containsStreamConsumingFailureForParametrizedTests) {
+                                    constructStreamConsumingBlock().invoke()
+                                } else {
+                                    +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement()
+                                }
+                            }
+                        },
                         falseBranch = {
                             +testFrameworkManager.assertions[testFrameworkManager.assertNotNull](actual).toStatement()
                             generateDeepEqualsAssertion(expected, actual)
@@ -1270,7 +1304,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun recordActualResult() {
-        currentExecution!!.result.onSuccess { result ->
+        val executionResult = currentExecution!!.result
+
+        executionResult.onSuccess { resultModel ->
             when (val executable = currentExecutable) {
                 is ConstructorId -> {
                     // there is nothing to generate for constructors
@@ -1278,13 +1314,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
                 is MethodId -> {
-                    // TODO possible engine bug - void method return type and result not UtVoidModel
-                    if (result.isUnit() || executable.returnType == voidClassId) return
+                    // TODO possible engine bug - void method return type and result model not UtVoidModel
+                    if (resultModel.isUnit() || executable.returnType == voidClassId) return
 
                     emptyLineIfNeeded()
 
                     actual = newVar(
-                        CgClassId(result.classId, isNullable = result is UtNullModel),
+                        CgClassId(resultModel.classId, isNullable = resultModel is UtNullModel),
                         "actual"
                     ) {
                         thisInstance[executable](*methodArguments.toTypedArray())
@@ -1293,13 +1329,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 else -> {} // TODO: check this specific case
             }
         }.onFailure {
-            processActualInvocationFailure(it)
+            processActualInvocationFailure(executionResult)
         }
     }
 
-    private fun processActualInvocationFailure(e: Throwable) {
-        when (e) {
-            is UtStreamConsumingException -> processStreamConsumingException(e.innerExceptionOrAny)
+    private fun processActualInvocationFailure(executionResult: UtExecutionResult) {
+        when (executionResult) {
+            is UtStreamConsumingFailure -> processStreamConsumingException(executionResult.rootCauseException)
             else -> {} // Do nothing for now
         }
     }
@@ -1422,6 +1458,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = chooseGenericExecution(testSet.executions)
+
+        workaround(WorkaroundReason.CONSUME_DIRTY_STREAMS) {
+            containsStreamConsumingFailureForParametrizedTests = testSet.executions.any {
+                it.result is UtStreamConsumingFailure
+            }
+        }
 
         val statics = genericExecution.stateBefore.statics
 

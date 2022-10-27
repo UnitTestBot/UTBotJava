@@ -738,7 +738,7 @@ val Type.classId: ClassId
  */
 open class ClassId @JvmOverloads constructor(
     val name: String,
-    open val elementClassId: ClassId? = null,
+    val elementClassId: ClassId? = null,
     // Treat simple class ids as non-nullable
     open val isNullable: Boolean = false
 ) {

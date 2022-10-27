@@ -14,7 +14,7 @@ open class JsClassId(
     private val constructor: JsConstructorId? = null,
     private val classPackagePath: String = "",
     private val classFilePath: String = "",
-    override val elementClassId: JsClassId? = null
+    elementClassId: JsClassId? = null
 ) : ClassId(jsName, elementClassId) {
     override val simpleName: String
         get() = jsName

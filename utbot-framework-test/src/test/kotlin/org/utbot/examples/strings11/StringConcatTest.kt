@@ -1,4 +1,4 @@
-package org.utbot.examples.strings
+package org.utbot.examples.strings11
 
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage

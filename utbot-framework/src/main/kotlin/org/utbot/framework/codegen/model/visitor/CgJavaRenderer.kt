@@ -43,6 +43,10 @@ import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.util.isFinal
+import org.utbot.framework.plugin.api.util.isPrivate
+import org.utbot.framework.plugin.api.util.isProtected
+import org.utbot.framework.plugin.api.util.isPublic
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 
 internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :

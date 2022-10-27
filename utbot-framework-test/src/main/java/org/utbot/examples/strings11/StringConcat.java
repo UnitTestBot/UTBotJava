@@ -1,4 +1,4 @@
-package org.utbot.examples.strings;
+package org.utbot.examples.strings11;
 
 import org.utbot.api.mock.UtMock;
 

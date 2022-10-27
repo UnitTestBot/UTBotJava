@@ -43,7 +43,9 @@ open class CodeGenerator(
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName,
 ) {
+
     open var context: CgContext = CgContext(
+    private var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
         generateUtilClassFile = generateUtilClassFile,
         paramNames = paramNames,

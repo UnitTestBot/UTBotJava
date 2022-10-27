@@ -15,7 +15,6 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
-import java.lang.reflect.Modifier
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicInteger
@@ -499,25 +498,6 @@ val ExecutableId.isMethod: Boolean
 
 val ExecutableId.isConstructor: Boolean
     get() = this is ConstructorId
-
-val ExecutableId.isPublic: Boolean
-    get() = Modifier.isPublic(modifiers)
-
-val ExecutableId.isProtected: Boolean
-    get() = Modifier.isProtected(modifiers)
-
-val ExecutableId.isPrivate: Boolean
-    get() = Modifier.isPrivate(modifiers)
-
-val ExecutableId.isStatic: Boolean
-    get() = Modifier.isStatic(modifiers)
-
-val ExecutableId.isPackagePrivate: Boolean
-    get() = !(isPublic || isProtected || isPrivate)
-
-val ExecutableId.isAbstract: Boolean
-    get() = Modifier.isAbstract(modifiers)
-
 
 /**
  * Construct MethodId

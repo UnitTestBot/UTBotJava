@@ -54,5 +54,4 @@ dependencies {
     implementation(project(":utbot-api"))
     implementation(project(":utbot-framework"))
     implementation(group = "org.slf4j", name = "slf4j-api", version = "1.7.25")
-    api("com.jetbrains.intellij.idea:ideaIC:$ideVersion")
 }

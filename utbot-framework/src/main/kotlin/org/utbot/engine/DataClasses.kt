@@ -83,22 +83,25 @@ inline fun <R> SymbolicFailure.fold(
 data class Parameter(private val localVariable: LocalVariable, private val type: Type, val value: SymbolicValue)
 
 /**
- * Keeps most common type and possible types, to resolve types in uncertain situations, like virtual invokes.
+ * Contains type information about some object: set of its [possibleConcreteTypes] and their [leastCommonType].
+ * Note that in some situations [leastCommonType] will not present in [possibleConcreteTypes] set, and
+ * it should not be used to encode this type information into a solver.
  *
  * Note: [leastCommonType] might be an interface or abstract type in opposite to the [possibleConcreteTypes]
  * that **usually** contains only concrete types (so-called appropriate). The only way to create [TypeStorage] with
- * inappropriate possibleType is to create it using constructor with the only type.
+ * inappropriate possibleType is to create it using static methods [constructTypeStorageUnsafe] and
+ * [constructTypeStorageWithSingleType].
+ *
+ * The right way to create an instance of TypeStorage is to use methods provided by [TypeResolver], e.g.,
+ * [TypeResolver.constructTypeStorage].
  *
  * @see isAppropriate
+ * @see TypeResolver.constructTypeStorage
  */
-data class TypeStorage(val leastCommonType: Type, val possibleConcreteTypes: Set<Type>) {
+class TypeStorage private constructor(val leastCommonType: Type, val possibleConcreteTypes: Set<Type>) {
     private val hashCode = Objects.hash(leastCommonType, possibleConcreteTypes)
 
-    /**
-     * Construct a type storage with some type. In this case [possibleConcreteTypes] might contains
-     * abstract class or interface. Usually it means such typeStorage represents wrapper object type.
-     */
-    constructor(concreteType: Type) : this(concreteType, setOf(concreteType))
+    private constructor(concreteType: Type) : this(concreteType, setOf(concreteType))
 
     fun isObjectTypeStorage(): Boolean = possibleConcreteTypes.size == objectTypeStorage.possibleConcreteTypes.size
 
@@ -120,6 +123,29 @@ data class TypeStorage(val leastCommonType: Type, val possibleConcreteTypes: Set
         "$leastCommonType"
     } else {
         "(leastCommonType=$leastCommonType, ${possibleConcreteTypes.size} possibleTypes=${possibleConcreteTypes.take(10)})"
+    }
+
+    companion object {
+        /**
+         * Constructs a type storage with particular leastCommonType and set of possibleConcreteTypes.
+         * This method doesn't give any guarantee on correctness of the constructed type storage and
+         * should not be used directly except the situations where you want to create abnormal type storage,
+         * for example, a one that contains interfaces in [possibleConcreteTypes].
+         *
+         * In regular cases you should use [TypeResolver.constructTypeStorage] method instead.
+         */
+        fun constructTypeStorageUnsafe(
+            leastCommonType: Type,
+            possibleConcreteTypes: Set<Type>
+        ): TypeStorage = TypeStorage(leastCommonType, possibleConcreteTypes)
+
+        /**
+         * Constructs a type storage with some type. In this case [possibleConcreteTypes] might contain
+         * an abstract class or an interface. Usually it means such typeStorage represents wrapper object type.
+         */
+        fun constructTypeStorageWithSingleType(
+            leastCommonType: Type
+        ): TypeStorage = TypeStorage(leastCommonType)
     }
 }
 

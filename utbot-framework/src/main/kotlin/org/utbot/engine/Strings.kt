@@ -23,7 +23,6 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.charArrayClassId
@@ -60,7 +59,8 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
     ): List<InvokeResult>? {
         return when (method.subSignature) {
             toStringMethodSignature -> {
-                listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+                val typeStorage = TypeStorage.constructTypeStorageWithSingleType(method.returnType)
+                listOf(MethodResult(wrapper.copy(typeStorage = typeStorage)))
             }
             matchesMethodSignature -> {
                 symbolicMatchesMethodImpl(wrapper, parameters)
@@ -200,7 +200,11 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? {
         if (method.subSignature == asStringBuilderMethodSignature) {
-            return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+            val typeStorage = TypeStorage.constructTypeStorageWithSingleType(method.returnType)
+            val resultingWrapper = wrapper.copy(typeStorage = typeStorage)
+            val methodResult = MethodResult(resultingWrapper)
+
+            return listOf(methodResult)
         }
 
         return null

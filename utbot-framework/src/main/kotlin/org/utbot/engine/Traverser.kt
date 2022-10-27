@@ -899,7 +899,7 @@ class Traverser(
             // Ignores the result of resolve().
             resolve(fieldRef)
             val baseObject = resolve(fieldRef.base) as ObjectValue
-            val typeStorage = TypeStorage(fieldRef.field.declaringClass.type)
+            val typeStorage = TypeStorage.constructTypeStorageWithSingleType(fieldRef.field.declaringClass.type)
             baseObject.copy(typeStorage = typeStorage)
         }
         is StaticFieldRef -> {
@@ -1251,7 +1251,12 @@ class Traverser(
         // It is required because we do not want to have situations when some object might have
         // only artificial classes as their possible, that would cause problems in the type constraints.
         val typeStorage = if (leastCommonType in wrapperToClass.keys) {
-            typeStoragePossiblyWithOverriddenTypes.copy(possibleConcreteTypes = wrapperToClass.getValue(leastCommonType))
+            val possibleConcreteTypes = wrapperToClass.getValue(leastCommonType)
+
+            TypeStorage.constructTypeStorageUnsafe(
+                typeStoragePossiblyWithOverriddenTypes.leastCommonType,
+                possibleConcreteTypes
+            )
         } else {
             typeStoragePossiblyWithOverriddenTypes
         }
@@ -1308,7 +1313,10 @@ class Traverser(
                         createObject(addr, refType, useConcreteType = true)
                     }
                 } else {
-                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all().asHardConstraint()
+                    val typeStorage = TypeStorage.constructTypeStorageWithSingleType(refType)
+                    val typeConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+
+                    queuedSymbolicStateUpdates += typeConstraint
 
                     objectValue(refType, addr, StringWrapper()).also {
                         initStringLiteral(it, constant.value)
@@ -1418,8 +1426,10 @@ class Traverser(
         }
 
     private fun initStringLiteral(stringWrapper: ObjectValue, value: String) {
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(utStringClass.type)
+
         queuedSymbolicStateUpdates += objectUpdate(
-            stringWrapper.copy(typeStorage = TypeStorage(utStringClass.type)),
+            stringWrapper.copy(typeStorage = typeStorage),
             STRING_LENGTH,
             mkInt(value.length)
         )
@@ -1432,7 +1442,7 @@ class Traverser(
             queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, arrayType, defaultValue as UtArrayExpressionBase)
         }
         queuedSymbolicStateUpdates += objectUpdate(
-            stringWrapper.copy(typeStorage = TypeStorage(utStringClass.type)),
+            stringWrapper.copy(typeStorage = typeStorage),
             STRING_VALUE,
             arrayValue.addr
         )
@@ -1720,7 +1730,8 @@ class Traverser(
         val chunkId = typeRegistry.arrayChunkId(type)
         touchMemoryChunk(MemoryChunkDescriptor(chunkId, type, elementType))
 
-        return ArrayValue(TypeStorage(type), addr).also {
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(type)
+        return ArrayValue(typeStorage, addr).also {
             queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, it.typeStorage).all().asHardConstraint()
         }
     }
@@ -2949,7 +2960,9 @@ class Traverser(
 
         val memoryUpdate = MemoryUpdate(touchedChunkDescriptors = persistentSetOf(descriptor))
 
-        val clone = ArrayValue(TypeStorage(array.type), addr)
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(array.type)
+        val clone = ArrayValue(typeStorage, addr)
+
         return MethodResult(clone, constraints.asHardConstraint(), memoryUpdates = memoryUpdate)
     }
 

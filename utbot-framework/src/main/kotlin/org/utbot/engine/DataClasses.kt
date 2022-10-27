@@ -140,8 +140,8 @@ class TypeStorage private constructor(val leastCommonType: Type, val possibleCon
         ): TypeStorage = TypeStorage(leastCommonType, possibleConcreteTypes)
 
         /**
-         * Constructs a type storage with some type. In this case [possibleConcreteTypes] might contains
-         * abstract class or interface. Usually it means such typeStorage represents wrapper object type.
+         * Constructs a type storage with some type. In this case [possibleConcreteTypes] might contain
+         * an abstract class or an interface. Usually it means such typeStorage represents wrapper object type.
          */
         fun constructTypeStorageWithSingleType(
             leastCommonType: Type

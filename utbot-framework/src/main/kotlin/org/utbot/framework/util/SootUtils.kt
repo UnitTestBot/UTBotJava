@@ -3,6 +3,7 @@ package org.utbot.framework.util
 import org.utbot.common.FileUtil
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.pureJavaSignature
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
@@ -93,7 +94,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
         val isUtBotPackage = it.packageName.startsWith(UTBOT_PACKAGE_PREFIX)
 
         // remove our own classes from the soot scene
-        if (isUtBotPackage) {
+        if (UtSettings.removeUtBotClassesFromHierarchy && isUtBotPackage) {
             val isOverriddenPackage = it.packageName.startsWith(UTBOT_OVERRIDDEN_PACKAGE_PREFIX)
             val isExamplesPackage = it.packageName.startsWith(UTBOT_EXAMPLES_PACKAGE_PREFIX)
             val isApiPackage = it.packageName.startsWith(UTBOT_API_PACKAGE_PREFIX)
@@ -106,7 +107,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
         }
 
         // remove soot's classes from the scene, because we don't wont to analyze them
-        if (it.packageName.startsWith(SOOT_PACKAGE_PREFIX)) {
+        if (UtSettings.removeSootClassesFromHierarchy && it.packageName.startsWith(SOOT_PACKAGE_PREFIX)) {
             Scene.v().removeClass(it)
             return@forEach
         }

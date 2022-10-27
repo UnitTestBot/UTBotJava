@@ -6,7 +6,9 @@ import com.jetbrains.rd.util.info
 import org.utbot.common.asPathToFile
 import org.utbot.framework.plugin.api.util.UtContext
 import java.lang.instrument.ClassFileTransformer
+import java.nio.file.Paths
 import java.security.ProtectionDomain
+import kotlin.io.path.absolutePathString
 
 
 private val logger = getLogger("DynamicClassTransformer")
@@ -32,7 +34,7 @@ class DynamicClassTransformer : ClassFileTransformer {
     ): ByteArray? {
         try {
             UtContext.currentContext()?.stopWatch?.stop()
-            val pathToClassfile = protectionDomain.codeSource?.location?.path?.asPathToFile()
+            val pathToClassfile = protectionDomain.codeSource?.location?.toURI()?.let(Paths::get)?.absolutePathString()
             return if (pathToClassfile in pathsToUserClasses ||
                 packsToAlwaysTransform.any(className::startsWith)
             ) {

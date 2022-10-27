@@ -1,6 +1,6 @@
 package org.utbot.summary.comment.customtags.symbolic
 
-import org.utbot.summary.comment.EMPTY_STRING
+import org.utbot.summary.comment.classic.symbolic.EMPTY_STRING
 
 /**
  * Represents a set of plugin's custom JavaDoc tags.

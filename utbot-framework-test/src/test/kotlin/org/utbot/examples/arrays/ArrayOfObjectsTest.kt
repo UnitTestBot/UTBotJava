@@ -103,14 +103,16 @@ internal class ArrayOfObjectsTest : UtValueTestCaseChecker(
 
     @Test
     fun testArrayOfArrays() {
-        check(
-            ArrayOfObjects::arrayOfArrays,
-            between(4..5), // might be two ClassCastExceptions
-            { a, _ -> a.any { it == null } },
-            { a, _ -> a.any { it != null && it !is IntArray } },
-            { a, r -> (a.all { it != null && it is IntArray && it.isEmpty() } || a.isEmpty()) && r == 0 },
-            { a, r -> a.all { it is IntArray } && r == a.sumBy { (it as IntArray).sum() } },
-            coverage = DoNotCalculate
-        )
+        withEnabledTestingCodeGeneration(testCodeGeneration = false) {
+            check(
+                ArrayOfObjects::arrayOfArrays,
+                between(4..5), // might be two ClassCastExceptions
+                { a, _ -> a.any { it == null } },
+                { a, _ -> a.any { it != null && it !is IntArray } },
+                { a, r -> (a.all { it != null && it is IntArray && it.isEmpty() } || a.isEmpty()) && r == 0 },
+                { a, r -> a.all { it is IntArray } && r == a.sumBy { (it as IntArray).sum() } },
+                coverage = DoNotCalculate
+            )
+        }
     }
 }

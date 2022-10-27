@@ -10,9 +10,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.JavaProjectModelModificationService
@@ -272,7 +272,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     null
                 )
             }
-            row { component(parametrizedTestSources) }
             row("Mocking strategy:") {
                 makePanelWithHelpTooltip(
                     mockStrategies,
@@ -281,6 +280,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 )
             }
             row { component(staticsMocking)}
+            row {
+                cell {
+                    component(parametrizedTestSources)
+                    component(ContextHelpLabel.create("Parametrization is not supported in some configurations, e.g. if mocks are used."))
+                }
+            }
             row("Test generation timeout:") {
                 cell {
                     component(timeoutSpinner)
@@ -418,12 +423,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         return null
     }
 
+    private fun VirtualFile.toRealFile():VirtualFile = if (this is FakeVirtualFile)  this.parent else this
+
     override fun doValidate(): ValidationInfo? {
         val testRoot = getTestRoot()
             ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
 
-        if (!model.project.isBuildWithGradle && findReadOnlyContentEntry(testRoot) == null) {
-            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+        if (!model.project.isBuildWithGradle && ModuleUtil.findModuleForFile(testRoot.toRealFile(), model.project) == null) {
+            return ValidationInfo("Test source root is located out of any module", testSourceFolderField.childComponent)
         }
 
         membersTable.tableHeader?.background = UIUtil.getTableBackground()
@@ -601,16 +608,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "Generation error"
         )
 
-    private fun findReadOnlyContentEntry(testSourceRoot: VirtualFile?): ContentEntry? {
-        if (testSourceRoot == null) return null
-        if (testSourceRoot is FakeVirtualFile) {
-            return findReadOnlyContentEntry(testSourceRoot.parent)
-        }
-        return ModuleRootManager.getInstance(model.testModule).contentEntries
-            .filterNot { it.file == null }
-            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
-    }
-
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
         val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
         try {
@@ -644,9 +641,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
 
-        val areMocksSupported = settings.parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
-        mockStrategies.isEnabled = areMocksSupported
-        staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
+        mockStrategies.isEnabled = true
+        staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         codegenLanguages.item = model.codegenLanguage
 
@@ -931,15 +927,19 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 ParametrizedTestSource.DO_NOT_PARAMETRIZE
             }
 
-            val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
-
-            mockStrategies.isEnabled = areMocksSupported
-            staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
-            if (!mockStrategies.isEnabled) {
-                mockStrategies.item = MockStrategyApi.NO_MOCKS
-            }
-            if (!staticsMocking.isEnabled) {
-                staticsMocking.isSelected = false
+            when (parametrizedTestSource) {
+                ParametrizedTestSource.PARAMETRIZE -> {
+                    mockStrategies.item = MockStrategyApi.NO_MOCKS
+                    staticsMocking.isEnabled = false
+                    staticsMocking.isSelected = false
+                }
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                    mockStrategies.isEnabled = true
+                    if (mockStrategies.item != MockStrategyApi.NO_MOCKS) {
+                        staticsMocking.isEnabled = true
+                        staticsMocking.isSelected = true
+                    }
+                }
             }
 
             updateTestFrameworksList(parametrizedTestSource)

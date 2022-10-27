@@ -215,13 +215,17 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
                 createArray(addr, valueType, useConcreteType = false)
             }
 
-            listOf(
-                MethodResult(
-                    SymbolicSuccess(resultObject),
-                    typeRegistry.typeConstraintToGenericTypeParameter(addr, wrapper.addr, i = TYPE_PARAMETER_INDEX)
-                        .asHardConstraint()
-                )
-            )
+            val typeIndex = wrapper.asWrapperOrNull?.getOperationTypeIndex
+                ?: error("Wrapper was expected, got $wrapper")
+            val typeConstraint = typeRegistry.typeConstraintToGenericTypeParameter(
+                addr,
+                wrapper.addr,
+                i = typeIndex
+            ).asHardConstraint()
+
+            val methodResult = MethodResult(SymbolicSuccess(resultObject), typeConstraint)
+
+            listOf(methodResult)
         }
 
     @Suppress("UNUSED_PARAMETER")
@@ -418,16 +422,17 @@ class AssociativeArrayWrapper : WrapperInterface {
             val addr = UtAddrExpression(value)
             val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
 
-            listOf(
-                MethodResult(
-                    SymbolicSuccess(resultObject),
-                    typeRegistry.typeConstraintToGenericTypeParameter(
-                        addr,
-                        wrapper.addr,
-                        TYPE_PARAMETER_INDEX
-                    ).asHardConstraint()
-                )
-            )
+            val typeIndex = wrapper.asWrapperOrNull?.selectOperationTypeIndex
+                ?: error("Wrapper was expected, got $wrapper")
+            val hardConstraints = typeRegistry.typeConstraintToGenericTypeParameter(
+                addr,
+                wrapper.addr,
+                typeIndex
+            ).asHardConstraint()
+
+            val methodResult = MethodResult(SymbolicSuccess(resultObject), hardConstraints)
+
+            listOf(methodResult)
         }
 
     @Suppress("UNUSED_PARAMETER")
@@ -440,21 +445,31 @@ class AssociativeArrayWrapper : WrapperInterface {
         with(traverser) {
             val storageValue = getStorageArrayExpression(wrapper).store(parameters[0].addr, parameters[1].addr)
             val sizeValue = getIntFieldValue(wrapper, sizeField)
+
+            // it is the reason why it's important to use an `oldKey` in `UtHashMap.put` method.
+            // We navigate in the associative array using only this old address, not a new one.
             val touchedValue = getTouchedArrayExpression(wrapper).store(sizeValue, parameters[0].addr)
-            listOf(
-                MethodResult(
-                    SymbolicSuccess(voidValue),
-                    memoryUpdates = arrayUpdateWithValue(
-                        getStorageArrayField(wrapper.addr).addr,
-                        OBJECT_TYPE.arrayType,
-                        storageValue
-                    ) + arrayUpdateWithValue(
-                        getTouchedArrayField(wrapper.addr).addr,
-                        OBJECT_TYPE.arrayType,
-                        touchedValue,
-                    ) + objectUpdate(wrapper, sizeField, Add(sizeValue.toIntValue(), 1.toPrimitiveValue()))
-                )
+            val storageArrayAddr = getStorageArrayField(wrapper.addr).addr
+            val touchedArrayFieldAddr = getTouchedArrayField(wrapper.addr).addr
+
+            val storageArrayUpdate = arrayUpdateWithValue(
+                storageArrayAddr,
+                OBJECT_TYPE.arrayType,
+                storageValue
             )
+
+            val touchedArrayUpdate = arrayUpdateWithValue(
+                touchedArrayFieldAddr,
+                OBJECT_TYPE.arrayType,
+                touchedValue,
+            )
+
+            val sizeUpdate = objectUpdate(wrapper, sizeField, Add(sizeValue.toIntValue(), 1.toPrimitiveValue()))
+
+            val memoryUpdates = storageArrayUpdate + touchedArrayUpdate + sizeUpdate
+            val methodResult = MethodResult(SymbolicSuccess(voidValue), memoryUpdates = memoryUpdates)
+
+            listOf(methodResult)
         }
 
     override val wrappedMethods: Map<String, MethodSymbolicImplementation> = mapOf(
@@ -480,13 +495,13 @@ class AssociativeArrayWrapper : WrapperInterface {
         // construct model values of an array
         val touchedValues = UtArrayModel(
             resolver.holder.concreteAddr(UtAddrExpression(touchedArrayAddr)),
-            objectClassId,
+            objectArrayClassId,
             sizeValue,
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateWithTo(mutableMapOf()) { i ->
                 resolver.resolveModel(
                     ObjectValue(
-                        TypeStorage(OBJECT_TYPE),
+                        TypeStorage.constructTypeStorageWithSingleType(OBJECT_TYPE),
                         UtAddrExpression(touchedArrayExpression.select(mkInt(i)))
                     )
                 )
@@ -504,7 +519,7 @@ class AssociativeArrayWrapper : WrapperInterface {
 
         val storageValues = UtArrayModel(
             resolver.holder.concreteAddr(UtAddrExpression(storageArrayAddr)),
-            objectClassId,
+            objectArrayClassId,
             sizeValue,
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateTo(mutableMapOf()) { i ->
@@ -512,16 +527,18 @@ class AssociativeArrayWrapper : WrapperInterface {
                 val addr = model.getIdOrThrow()
                 addr to resolver.resolveModel(
                     ObjectValue(
-                        TypeStorage(OBJECT_TYPE),
+                        TypeStorage.constructTypeStorageWithSingleType(OBJECT_TYPE),
                         UtAddrExpression(storageArrayExpression.select(mkInt(addr)))
                     )
                 )
             })
 
-        val model = UtCompositeModel(resolver.holder.concreteAddr(wrapper.addr), associativeArrayId, false)
+        val model = UtCompositeModel(resolver.holder.concreteAddr(wrapper.addr), associativeArrayId, isMock = false)
+
         model.fields[sizeField.fieldId] = UtPrimitiveModel(sizeValue)
         model.fields[touchedField.fieldId] = touchedValues
         model.fields[storageField.fieldId] = storageValues
+
         return model
     }
 
@@ -537,7 +554,7 @@ class AssociativeArrayWrapper : WrapperInterface {
     private fun Traverser.getStorageArrayExpression(
         wrapper: ObjectValue
     ): UtExpression = selectArrayExpressionFromMemory(getStorageArrayField(wrapper.addr))
-}
 
-// Arrays and lists have the only type parameter with index zero
-private const val TYPE_PARAMETER_INDEX = 0
+    override val selectOperationTypeIndex: Int
+        get() = 1
+}

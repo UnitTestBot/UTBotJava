@@ -14,6 +14,8 @@ import org.utbot.summary.SummarySentenceConstants.COMMA_SYMBOL
 import org.utbot.summary.SummarySentenceConstants.DOT_SYMBOL
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
 import org.utbot.summary.SummarySentenceConstants.TAB
+import org.utbot.summary.comment.classic.symbolic.SquashedStmtTexts
+import org.utbot.summary.comment.classic.symbolic.StmtType
 
 fun numberWithSuffix(number: Int) = when (number % 10) {
     1 -> "${number}st"

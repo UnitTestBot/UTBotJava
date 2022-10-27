@@ -4,6 +4,11 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.util.isFinal
+import org.utbot.framework.plugin.api.util.isPackagePrivate
+import org.utbot.framework.plugin.api.util.isProtected
+import org.utbot.framework.plugin.api.util.isPublic
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.voidClassId
 
 /**

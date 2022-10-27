@@ -8,13 +8,11 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -32,7 +30,6 @@ import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.api.withReflection
 import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -139,7 +136,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
-        withReflection {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
         }
@@ -231,7 +227,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             }
 
             concreteExecutionResult
-        }
         }
     }
 

@@ -64,4 +64,7 @@ object SummarySentenceConstants {
     const val AT_CODE = "@code"
     const val OPEN_BRACKET = "{"
     const val CLOSE_BRACKET = "}"
+
+    const val JAVA_CLASS_DELIMITER = "$"
+    const val JAVA_DOC_CLASS_DELIMITER = "."
 }

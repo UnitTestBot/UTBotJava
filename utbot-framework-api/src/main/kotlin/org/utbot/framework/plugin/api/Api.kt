@@ -8,11 +8,11 @@
 
 package org.utbot.framework.plugin.api
 
+import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
-import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
+import org.utbot.framework.plugin.api.util.ModifierFactory
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
@@ -24,7 +24,9 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
@@ -33,14 +35,24 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
-import soot.*
+import soot.ArrayType
+import soot.BooleanType
+import soot.ByteType
+import soot.CharType
+import soot.DoubleType
+import soot.FloatType
+import soot.IntType
+import soot.LongType
+import soot.RefType
+import soot.ShortType
+import soot.SootClass
+import soot.Type
+import soot.VoidType
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
-import java.lang.reflect.Modifier
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
-import org.utbot.common.FileUtil
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -730,6 +742,8 @@ open class ClassId @JvmOverloads constructor(
     // Treat simple class ids as non-nullable
     open val isNullable: Boolean = false
 ) {
+    open val modifiers: Int
+        get() = jClass.modifiers
 
     open val canonicalName: String
         get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
@@ -763,27 +777,6 @@ open class ClassId @JvmOverloads constructor(
 
     open val isInDefaultPackage: Boolean
         get() = packageName.isEmpty()
-
-    open val isPublic: Boolean
-        get() = Modifier.isPublic(jClass.modifiers)
-
-    open val isProtected: Boolean
-        get() = Modifier.isProtected(jClass.modifiers)
-
-    open val isPrivate: Boolean
-        get() = Modifier.isPrivate(jClass.modifiers)
-
-    val isPackagePrivate: Boolean
-        get() = !(isPublic || isProtected || isPrivate)
-
-    open val isFinal: Boolean
-        get() = Modifier.isFinal(jClass.modifiers)
-
-    open val isStatic: Boolean
-        get() = Modifier.isStatic(jClass.modifiers)
-
-    open val isAbstract: Boolean
-        get() = Modifier.isAbstract(jClass.modifiers)
 
     open val isAnonymous: Boolean
         get() = jClass.isAnonymousClass
@@ -883,12 +876,12 @@ class BuiltinClassId(
     // by default, we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
     override val isNullable: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
-    override val isStatic: Boolean = false,
-    override val isAbstract: Boolean = false,
+    isPublic: Boolean = true,
+    isProtected: Boolean = false,
+    isPrivate: Boolean = false,
+    isFinal: Boolean = false,
+    isStatic: Boolean = false,
+    isAbstract: Boolean = false,
     override val isAnonymous: Boolean = false,
     override val isLocal: Boolean = false,
     override val isInner: Boolean = false,
@@ -912,6 +905,15 @@ class BuiltinClassId(
     elementClassId = elementClassId,
     isNullable = isNullable,
 ) {
+    override val modifiers: Int = ModifierFactory {
+        public = isPublic
+        protected = isProtected
+        private = isPrivate
+        final = isFinal
+        static = isStatic
+        abstract = isAbstract
+    }
+
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }
@@ -929,10 +931,6 @@ class BuiltinClassId(
         fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
     }
 }
-enum class FieldIdStrategyValues {
-    Reflection,
-    Soot
-}
 
 /**
  * Field id. Contains field name.
@@ -940,38 +938,14 @@ enum class FieldIdStrategyValues {
  * Created to avoid usage String objects as a key.
  */
 open class FieldId(val declaringClass: ClassId, val name: String) {
-
-    object Strategy {
-        var value: FieldIdStrategyValues = FieldIdStrategyValues.Soot
-    }
-
-    private val strategy
-        get() = if (Strategy.value == FieldIdStrategyValues.Soot)
-            FieldIdSootStrategy(declaringClass, this) else FieldIdReflectionStrategy(this)
-
-    open val isPublic: Boolean
-        get() = strategy.isPublic
-
-    open val isProtected: Boolean
-        get() = strategy.isProtected
-
-    open val isPrivate: Boolean
-        get() = strategy.isPrivate
-
-    open val isPackagePrivate: Boolean
-        get() = strategy.isPackagePrivate
-
-    open val isFinal: Boolean
-        get() = strategy.isFinal
-
-    open val isStatic: Boolean
-        get() = strategy.isStatic
+    open val modifiers: Int
+        get() = jField.modifiers
 
     open val isSynthetic: Boolean
-        get() = strategy.isSynthetic
+        get() = jField.isSynthetic
 
     open val type: ClassId
-        get() = strategy.type
+        get() = jField.type.id
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -994,16 +968,6 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
     override fun toString() = safeJField?.toString() ?: "[unresolved] $declaringClass.$name"
 }
 
-inline fun <T> withReflection(block: () -> T): T {
-    val prevStrategy = FieldId.Strategy.value
-    try {
-        FieldId.Strategy.value = FieldIdStrategyValues.Reflection
-        return block()
-    } finally {
-        FieldId.Strategy.value = prevStrategy
-    }
-}
-
 /**
  * The same as [FieldId], except it represents the fields
  * of classes that may not be present on the classpath.
@@ -1017,11 +981,18 @@ class BuiltinFieldId(
     name: String,
     override val type: ClassId,
     // by default we assume that the builtin field is public and non-final
-    override val isPublic: Boolean = true,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
+    isPublic: Boolean = true,
+    isPrivate: Boolean = false,
+    isFinal: Boolean = false,
     override val isSynthetic: Boolean = false,
-) : FieldId(declaringClass, name)
+) : FieldId(declaringClass, name) {
+    override val modifiers = ModifierFactory {
+        public = isPublic
+        private = isPrivate
+        final = isFinal
+    }
+
+}
 
 sealed class StatementId {
     abstract val classId: ClassId
@@ -1113,11 +1084,12 @@ class BuiltinMethodId(
     isProtected: Boolean = false,
     isPrivate: Boolean = false
 ) : MethodId(classId, name, returnType, parameters) {
-    override val modifiers: Int =
-        (if (isStatic) Modifier.STATIC else 0) or
-            (if (isPublic) Modifier.PUBLIC else 0) or
-            (if (isProtected) Modifier.PROTECTED else 0) or
-            (if (isPrivate) Modifier.PRIVATE else 0)
+    override val modifiers: Int = ModifierFactory {
+        static = isStatic
+        public = isPublic
+        private = isPrivate
+        protected = isProtected
+    }
 }
 
 class BuiltinConstructorId(
@@ -1128,10 +1100,11 @@ class BuiltinConstructorId(
     isProtected: Boolean = false,
     isPrivate: Boolean = false
 ) : ConstructorId(classId, parameters) {
-    override val modifiers: Int =
-        (if (isPublic) Modifier.PUBLIC else 0) or
-            (if (isProtected) Modifier.PROTECTED else 0) or
-            (if (isPrivate) Modifier.PRIVATE else 0)
+    override val modifiers: Int = ModifierFactory {
+        public = isPublic
+        private = isPrivate
+        protected = isProtected
+    }
 }
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
@@ -1139,7 +1112,7 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface CodeGenerationSettingItem {
-    val id : String
+    val id: String
     val displayName: String
     val description: String
 }
@@ -1152,7 +1125,7 @@ interface CodeGenerationSettingBox {
 }
 
 enum class MockStrategyApi(
-    override val id : String,
+    override val id: String,
     override val displayName: String,
     override val description: String
 ) : CodeGenerationSettingItem {
@@ -1179,7 +1152,7 @@ enum class MockStrategyApi(
 }
 
 enum class TreatOverflowAsError(
-    override val id : String,
+    override val id: String,
     override val displayName: String,
     override val description: String,
 ) : CodeGenerationSettingItem {
@@ -1297,7 +1270,8 @@ enum class CodegenLanguage(
             JAVA -> listOf(
                 "-d", buildDirectory,
                 "-cp", classPath,
-                "-XDignore.symbol.file" // to let javac use classes from rt.jar
+                "-XDignore.symbol.file", // to let javac use classes from rt.jar
+                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED"
             ).plus(sourcesFiles)
 
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)

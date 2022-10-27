@@ -11,10 +11,10 @@ import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.WhileStmt
 import org.utbot.framework.plugin.api.Step
 import org.utbot.summary.ast.JimpleToASTMap
-import org.utbot.summary.comment.IterationDescription
-import org.utbot.summary.comment.SimpleSentenceBlock
-import org.utbot.summary.comment.StmtDescription
-import org.utbot.summary.comment.StmtType
+import org.utbot.summary.comment.classic.symbolic.IterationDescription
+import org.utbot.summary.comment.classic.symbolic.SimpleSentenceBlock
+import org.utbot.summary.comment.classic.symbolic.StmtDescription
+import org.utbot.summary.comment.classic.symbolic.StmtType
 import org.utbot.summary.comment.getTextIterationDescription
 import org.utbot.summary.comment.getTextTypeIterationDescription
 import org.utbot.summary.comment.numberWithSuffix

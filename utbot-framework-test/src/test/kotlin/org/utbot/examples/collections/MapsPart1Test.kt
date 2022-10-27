@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
+import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.tests.infrastructure.CodeGeneration
 
@@ -82,6 +83,45 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
             eq(1),
             { a, b, c, r -> r == Maps().mapToString(a, b, c) }
         )
+    }
+
+    @Test
+    fun testMapPutAndGet() {
+        withoutConcrete {
+            check(
+                Maps::mapPutAndGet,
+                eq(1),
+                { r -> r == 3 }
+            )
+        }
+    }
+
+    @Test
+    fun testPutInMapFromParameters() {
+        withoutConcrete {
+            check(
+                Maps::putInMapFromParameters,
+                ignoreExecutionsNumber,
+                { values, _ -> values == null },
+                { values, r -> 1 in values.keys && r == 3 },
+                { values, r -> 1 !in values.keys && r == 3 },
+            )
+        }
+    }
+
+    // This test doesn't check anything specific, but the code from MUT
+    // caused errors with NPE as results while debugging `testPutInMapFromParameters`.
+    @Test
+    fun testContainsKeyAndPuts() {
+        withoutConcrete {
+            check(
+                Maps::containsKeyAndPuts,
+                ignoreExecutionsNumber,
+                { values, _ -> values == null },
+                { values, r -> 1 !in values.keys && r == 3 },
+                coverage = DoNotCalculate
+            )
+        }
     }
 
     @Test
@@ -323,5 +363,26 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
             },
             coverage = DoNotCalculate
         )
+    }
+
+    @Test
+    fun testCreateMapWithString() {
+        withoutConcrete {
+            check(
+                Maps::createMapWithString,
+                eq(1),
+                { r -> r!!.isEmpty() }
+            )
+        }
+    }
+    @Test
+    fun testCreateMapWithEnum() {
+        withoutConcrete {
+            check(
+                Maps::createMapWithEnum,
+                eq(1),
+                { r -> r != null && r.size == 2 && r[Maps.WorkDays.Monday] == 112 && r[Maps.WorkDays.Friday] == 567 }
+            )
+        }
     }
 }

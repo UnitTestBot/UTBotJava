@@ -3,6 +3,10 @@ package org.utbot.framework.codegen.model.util
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.util.isPackagePrivate
+import org.utbot.framework.plugin.api.util.isProtected
+import org.utbot.framework.plugin.api.util.isPublic
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray

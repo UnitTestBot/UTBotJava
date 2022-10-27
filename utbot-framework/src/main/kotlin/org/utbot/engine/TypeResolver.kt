@@ -120,15 +120,13 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             return false
         }
 
-        if (baseType.sootClass.packageName.startsWith("org.utbot")) {
-            return true
-        }
-
-        if (baseType.sootClass.packageName.startsWith("soot")) {
-            return true
-        }
-
         val baseSootClass = baseType.sootClass
+
+        // We don't want to have our wrapper's classes as a part of a regular TypeStorage instance
+        // Note that we cannot have here 'isOverridden' since iterators of our wrappers are not wrappers
+        if (wrapperToClass[baseType] != null) {
+            return true
+        }
 
         if (numDimensions == 0 && baseSootClass.isInappropriate) {
             // interface, abstract class, or local, or mock could not be constructed

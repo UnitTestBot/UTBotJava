@@ -3,7 +3,7 @@ package org.utbot.examples.strings11
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.*
 
 class StringConcatTest : UtValueTestCaseChecker(
@@ -16,7 +16,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 ) {
     @Test
     fun testConcatArguments() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 StringConcat::concatArguments,
                 eq(1),
@@ -27,7 +27,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testConcatWithConstants() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 StringConcat::concatWithConstants,
                 eq(4),
@@ -41,7 +41,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testConcatWithPrimitives() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 StringConcat::concatWithPrimitives,
                 eq(1),
@@ -52,7 +52,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testExceptionInToString() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             checkWithException(
                 StringConcat::exceptionInToString,
                 ignoreExecutionsNumber,
@@ -65,7 +65,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testConcatWithField() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             checkWithThis(
                 StringConcat::concatWithField,
                 eq(1),
@@ -76,7 +76,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testConcatWithPrimitiveWrappers() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 StringConcat::concatWithPrimitiveWrappers,
                 ignoreExecutionsNumber,
@@ -89,7 +89,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testSameConcat() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 StringConcat::sameConcat,
                 ignoreExecutionsNumber,
@@ -102,7 +102,7 @@ class StringConcatTest : UtValueTestCaseChecker(
 
     @Test
     fun testConcatStrangeSymbols() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 StringConcat::concatStrangeSymbols,
                 eq(1),

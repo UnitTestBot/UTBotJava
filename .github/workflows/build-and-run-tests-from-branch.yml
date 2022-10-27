@@ -95,10 +95,6 @@ jobs:
           ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
           echo "Please visit ELK to check logs: https://${ELK_HOSTNAME}/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-2h,to:now))&_a=(columns:!(),filters:!(),hideChart:!t,index:'67c90f50-4973-11ed-a65c-811f2c8806be',interval:auto,query:(language:kuery,query:'internal.service:github%20and%20not%20github.log_level:%22INFO%22%20and%20github.env.HOSTNAME:%${HOSTNAME}%22%20and%20github.env.GITHUB_RUN_ID:%${GITHUB_RUN_ID}%22'),sort:!(!('@timestamp',desc)))"
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          sudo: false
       # cache will use the key you provided and contains the files you specify in path.
       #
       # When key matches an existing cache, it's called a cache hit, and the action

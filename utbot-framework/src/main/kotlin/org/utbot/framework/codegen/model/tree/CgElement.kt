@@ -918,7 +918,7 @@ class CgGetLength(val variable: CgVariable) : CgExpression {
 
 // Acquisition of java or kotlin class, e.g. MyClass.class in Java, MyClass::class.java in Kotlin or MyClass::class for Kotlin classes
 
-open class CgGetClass(val classId: ClassId) : CgReferenceExpression {
+sealed class CgGetClass(val classId: ClassId) : CgReferenceExpression {
     override val type: ClassId = Class::class.id
 }
 

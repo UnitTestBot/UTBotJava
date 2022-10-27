@@ -215,14 +215,15 @@ object PythonDialogProcessor {
             Install them?
         """.trimIndent()
         invokeLater {
-            val result = Messages.showYesNoDialog(
+            val result = Messages.showOkCancelDialog(
                 project,
                 message,
                 "Requirements Error",
-                null,
+                "Install",
+                "Cancel",
                 null
             )
-            if (result == Messages.NO)
+            if (result == Messages.CANCEL)
                 return@invokeLater
 
             ProgressManager.getInstance().run(object : Backgroundable(project, "Installing requirements") {
@@ -263,7 +264,7 @@ fun getDirectoriesForSysPath(
     file: PyFile
 ): Pair<Set<String>, String> {
     val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
-    val ancestor = ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(file.virtualFile)
+    val ancestor = ProjectFileIndex.getInstance(file.project).getContentRootForFile(file.virtualFile)
     if (ancestor != null && !sources.contains(ancestor))
         sources.add(ancestor)
 

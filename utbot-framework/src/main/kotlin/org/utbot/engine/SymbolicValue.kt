@@ -51,7 +51,7 @@ data class PrimitiveValue(
     val expr: UtExpression,
     override val concrete: Concrete? = null
 ) : SymbolicValue() {
-    constructor(type: Type, expr: UtExpression) : this(TypeStorage(type), expr)
+    constructor(type: Type, expr: UtExpression) : this(TypeStorage.constructTypeStorageWithSingleType(type), expr)
 
     override val type get() = typeStorage.leastCommonType
 
@@ -179,7 +179,7 @@ fun SymbolicValue.toConcrete(): Any = when (this) {
 
 // TODO: one more constructor?
 fun objectValue(type: RefType, addr: UtAddrExpression, implementation: WrapperInterface) =
-    ObjectValue(TypeStorage(type), addr, Concrete(implementation))
+    ObjectValue(TypeStorage.constructTypeStorageWithSingleType(type), addr, Concrete(implementation))
 
 val voidValue
     get() = PrimitiveValue(VoidType.v(), nullObjectAddr)

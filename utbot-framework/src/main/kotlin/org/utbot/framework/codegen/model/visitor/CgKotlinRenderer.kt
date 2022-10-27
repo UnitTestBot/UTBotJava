@@ -51,6 +51,10 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.util.isFinal
+import org.utbot.framework.plugin.api.util.isPrivate
+import org.utbot.framework.plugin.api.util.isProtected
+import org.utbot.framework.plugin.api.util.isPublic
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive

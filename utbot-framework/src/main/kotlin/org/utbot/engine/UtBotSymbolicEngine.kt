@@ -105,6 +105,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.fuzzer.toFuzzerType
 
 val logger = KotlinLogging.logger {}

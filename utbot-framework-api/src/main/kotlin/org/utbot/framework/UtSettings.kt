@@ -382,6 +382,18 @@ object UtSettings : AbstractSettings(
      * and test generation.
      */
     var useSandbox by getBooleanProperty(true)
+
+    /**
+     * If this options set in true, all soot classes will be removed from a Soot Scene,
+     * therefore, you will be unable to test soot classes.
+     */
+    var removeSootClassesFromHierarchy by getBooleanProperty(true)
+
+    /**
+     * If this options set in true, all UtBot classes will be removed from a Soot Scene,
+     * therefore, you will be unable to test UtBot classes.
+     */
+    var removeUtBotClassesFromHierarchy by getBooleanProperty(true)
 }
 
 /**

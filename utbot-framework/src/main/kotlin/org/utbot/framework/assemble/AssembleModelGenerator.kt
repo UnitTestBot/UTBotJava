@@ -36,7 +36,10 @@ import org.utbot.framework.plugin.api.hasDefaultValue
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.isFinal
+import org.utbot.framework.plugin.api.util.isPrivate
+import org.utbot.framework.plugin.api.util.isPublic
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor

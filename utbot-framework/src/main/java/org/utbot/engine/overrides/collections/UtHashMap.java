@@ -102,6 +102,12 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
         parameter(keys);
         parameter(keys.storage);
 
+        // Following three instructions are required to avoid possible aliasing
+        // between nested arrays
+        assume(keys.storage != values.storage);
+        assume(keys.storage != values.touched);
+        assume(values.storage != values.touched);
+
         assume(values.size == keys.end);
         assume(values.touched.length == keys.end);
         doesntThrow();
@@ -205,11 +211,18 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
         if (index == -1) {
             oldValue = null;
             keys.set(keys.end++, key);
+            values.store(key, value);
         } else {
-            // newKey equals to oldKey so we can use it instead
-            oldValue = values.select(key);
+            K oldKey = keys.get(index);
+            oldValue = values.select(oldKey);
+            values.store(oldKey, value);
         }
-        values.store(key, value);
+
+        // Avoid optimization here. Despite the fact that old key is equal
+        // to a new one in case of `index != -1`, it is important to have
+        // this connection between `index`, `key`, `oldKey` and `value`.
+        // So, do not rewrite it with `values.store(key, value)` extracted from the if instruction
+
         return oldValue;
     }
 

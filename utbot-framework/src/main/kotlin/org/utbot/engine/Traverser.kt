@@ -250,6 +250,8 @@ class Traverser(
     }
     internal fun findNewAddr() = findNewAddr(environment.state.isInsideStaticInitializer).also { touchAddress(it) }
 
+    private val dynamicInvokeResolver: DynamicInvokeResolver = DelegatingDynamicInvokeResolver()
+
     // Counter used for a creation symbolic results of "hashcode" and "equals" methods.
     private var equalsCounter = 0
     private var hashcodeCounter = 0
@@ -1009,7 +1011,6 @@ class Traverser(
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
         val callable = methodUnderTest.executable
         val kCallable = ::updateGenericTypeInfo
-        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
@@ -1888,7 +1889,7 @@ class Traverser(
         return created
     }
 
-    private fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
+    fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
         parameters.zip(types).map { (value, type) -> resolve(value, type) }
 
     private fun applyPreferredConstraints(value: SymbolicValue) {
@@ -2503,12 +2504,19 @@ class Traverser(
     }
 
     private fun TraversalContext.dynamicInvoke(invokeExpr: JDynamicInvokeExpr): List<MethodResult> {
-        workaround(HACK) {
-            // The engine does not yet support JDynamicInvokeExpr, so switch to concrete execution if we encounter it
-            offerState(environment.state.withLabel(StateLabel.CONCRETE))
-            queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
-            return emptyList()
+        val invocation = with(dynamicInvokeResolver) { resolveDynamicInvoke(invokeExpr) }
+
+        if (invocation == null) {
+            workaround(HACK) {
+                logger.warn { "Marking state as a concrete, because of an unknown dynamic invoke instruction: $invokeExpr" }
+                // The engine does not yet support JDynamicInvokeExpr, so switch to concrete execution if we encounter it
+                offerState(environment.state.withLabel(StateLabel.CONCRETE))
+                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+                return emptyList()
+            }
         }
+
+        return commonInvokePart(invocation)
     }
 
     /**

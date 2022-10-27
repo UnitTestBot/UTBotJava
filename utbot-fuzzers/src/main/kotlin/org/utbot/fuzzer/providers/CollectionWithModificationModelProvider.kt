@@ -1,6 +1,7 @@
 package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass

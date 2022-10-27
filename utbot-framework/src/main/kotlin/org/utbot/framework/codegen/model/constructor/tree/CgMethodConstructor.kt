@@ -146,6 +146,7 @@ import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.util.isStatic
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -1253,6 +1254,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
+            if (execution.testMethodName == null) {
+                execution.testMethodName = testMethodName
+            }
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {

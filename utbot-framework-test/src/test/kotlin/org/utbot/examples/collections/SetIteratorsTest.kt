@@ -22,7 +22,7 @@ class SetIteratorsTest : UtValueTestCaseChecker(
     fun testIteratorHasNext() {
         check(
             SetIterators::iteratorHasNext,
-            between(3..4),
+            ignoreExecutionsNumber,
             { set, _ -> set == null },
             { set, result -> set.isEmpty() && result == 0 },
             { set, result -> set.isNotEmpty() && result == set.size },
@@ -33,7 +33,7 @@ class SetIteratorsTest : UtValueTestCaseChecker(
     fun testIteratorNext() {
         checkWithException(
             SetIterators::iteratorNext,
-            between(3..4),
+            ignoreExecutionsNumber,
             { set, result -> set == null && result.isException<NullPointerException>() },
             { set, result -> set != null && set.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for set is LinkedHashSet
@@ -45,7 +45,7 @@ class SetIteratorsTest : UtValueTestCaseChecker(
     fun testIteratorRemove() {
         checkWithException(
             SetIterators::iteratorRemove,
-            between(3..4),
+            ignoreExecutionsNumber,
             { set, result -> set == null && result.isException<NullPointerException>() },
             { set, result -> set.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for set is LinkedHashSet
@@ -62,7 +62,7 @@ class SetIteratorsTest : UtValueTestCaseChecker(
     fun testIteratorRemoveOnIndex() {
         checkWithException(
             SetIterators::iteratorRemoveOnIndex,
-            ge(5),
+            ignoreExecutionsNumber,
             { _, i, result -> i == 0 && result.isSuccess && result.getOrNull() == null },
             { set, _, result -> set == null && result.isException<NullPointerException>() },
             { set, i, result -> set != null && i < 0 && result.isException<IllegalStateException>() },

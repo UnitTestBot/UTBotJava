@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPathSelectorStepsLimit
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.*
 import java.util.OptionalDouble
 import java.util.OptionalInt
@@ -36,7 +36,7 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testReturningStreamAsParameterExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 IntStreamExample::returningStreamAsParameterExample,
                 eq(1),
@@ -316,7 +316,7 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testSummaryStatisticsExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 IntStreamExample::summaryStatisticsExample,
                 ignoreExecutionsNumber,
@@ -497,7 +497,7 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testStreamOfExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 IntStreamExample::streamOfExample,
                 ignoreExecutionsNumber,

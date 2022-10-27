@@ -12,13 +12,13 @@ import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import kotlin.reflect.KClass
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 
 internal class MockStaticFieldExampleTest : UtValueTestCaseChecker(testClass = MockStaticFieldExample::class) {
 
     @Test
     fun testMockStaticField() {
-        withoutConcrete { // TODO JIRA:1420
+        withConcrete(useConcreteExecution = false) { // TODO JIRA:1420
             checkMocks(
                 MockStaticFieldExample::calculate,
                 eq(4), // 2 NPE

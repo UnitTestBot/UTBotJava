@@ -9,7 +9,7 @@ import kotlin.math.sqrt
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.Compilation
 
 // This class is substituted with ComplicatedMethodsSubstitutionsStorage
@@ -51,7 +51,7 @@ internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
 
     @Test
     fun testCreateWithSubstitutedConstructor() {
-        withoutConcrete { // TODO: concrete execution can't handle this
+        withConcrete(useConcreteExecution = false) { // TODO: concrete execution can't handle this
             checkMocksAndInstrumentation(
                 ClassWithComplicatedMethods::createWithSubstitutedConstructor,
                 eq(1),
@@ -73,7 +73,7 @@ internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
 
     @Test
     fun testReturnSubstitutedMethod() {
-        withoutConcrete { // TODO: concrete execution can't handle this
+        withConcrete(useConcreteExecution = false) { // TODO: concrete execution can't handle this
             checkMocksAndInstrumentation(
                 ClassWithComplicatedMethods::returnSubstitutedMethod,
                 eq(1),

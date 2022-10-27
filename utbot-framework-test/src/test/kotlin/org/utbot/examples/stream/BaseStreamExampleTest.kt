@@ -12,7 +12,7 @@ import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.CodeGeneration
 import java.util.Optional
@@ -31,7 +31,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
 ) {
     @Test
     fun testReturningStreamExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 BaseStreamExample::returningStreamExample,
                 eq(2),
@@ -45,7 +45,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testReturningStreamAsParameterExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 BaseStreamExample::returningStreamAsParameterExample,
                 eq(1),
@@ -389,7 +389,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testStreamOfExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 BaseStreamExample::streamOfExample,
                 ignoreExecutionsNumber,

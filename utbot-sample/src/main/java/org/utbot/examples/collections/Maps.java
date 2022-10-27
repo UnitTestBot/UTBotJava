@@ -73,6 +73,7 @@ public class Maps {
         }
     }
 
+    @SuppressWarnings({"SingleStatementInBlock", "ForLoopReplaceableByForEach"})
     Map<Integer, Integer> putElements(Map<Integer, Integer> map, int[] array) {
         if (map.size() > 0 && array.length > 0) {
             for (int i = 0; i < array.length; i++) {
@@ -107,6 +108,7 @@ public class Maps {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     int clearEntries(Map<Integer, Integer> map) {
         if (map.isEmpty()) {
             return 0;
@@ -115,6 +117,8 @@ public class Maps {
         if (map.isEmpty()) {
             return 1;
         }
+
+        // unreachable return
         return 2;
     }
 
@@ -153,12 +157,14 @@ public class Maps {
             return 0;
         } else if (containsKey && !containsValue) {
             if (map.remove(key, value)) {
+                // unreachable branch
                 return 1;
             } else {
                 return -1;
             }
         } else if (!containsKey) {
             if (map.remove(key, value)) {
+                // unreachable branch
                 return 2;
             } else {
                 return -2;
@@ -222,6 +228,7 @@ public class Maps {
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     Map<Integer, Integer> merge(Map<Integer, Integer> map, int key, Integer value) {
         if (map.merge(key, value, Integer::sum) == null) {
             return map;
@@ -271,6 +278,7 @@ public class Maps {
         }
     }
 
+    @SuppressWarnings("RedundantIfStatement")
     CustomClass removeCustomObject(Map<CustomClass, CustomClass> map, int i) {
         CustomClass removed = map.remove(new CustomClass(i));
         if (removed == null) {

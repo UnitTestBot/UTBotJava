@@ -5,12 +5,12 @@ import org.utbot.examples.mock.MockRandomExamples
 import kotlin.reflect.full.functions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 
 internal class CodegenExampleTest : UtValueTestCaseChecker(testClass = CodegenExample::class) {
     @Test
     fun firstExampleTest() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             checkAllCombinations(
                 CodegenExample::firstExample,
             )

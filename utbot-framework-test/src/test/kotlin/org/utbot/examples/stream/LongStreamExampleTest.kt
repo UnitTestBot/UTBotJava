@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPathSelectorStepsLimit
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.*
 import java.util.OptionalDouble
 import java.util.OptionalLong
@@ -36,7 +36,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testReturningStreamAsParameterExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 LongStreamExample::returningStreamAsParameterExample,
                 eq(1),
@@ -320,7 +320,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testSummaryStatisticsExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 LongStreamExample::summaryStatisticsExample,
                 ignoreExecutionsNumber,
@@ -491,7 +491,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testStreamOfExample() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             check(
                 LongStreamExample::streamOfExample,
                 ignoreExecutionsNumber,

@@ -12,12 +12,12 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
     @Test
     fun testOrdinal() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             checkAllCombinations(ClassWithEnum::useOrdinal)
         }
     }

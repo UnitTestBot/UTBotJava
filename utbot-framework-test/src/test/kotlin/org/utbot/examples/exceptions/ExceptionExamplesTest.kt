@@ -7,7 +7,7 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
@@ -112,7 +112,7 @@ internal class ExceptionExamplesTest : UtValueTestCaseChecker(
      */
     @Test
     fun testCatchExceptionAfterOtherPossibleException() {
-        withoutConcrete {
+        withConcrete(useConcreteExecution = false) {
             checkWithException(
                 ExceptionExamples::catchExceptionAfterOtherPossibleException,
                 eq(3),

@@ -99,9 +99,9 @@ inline fun <reified T> withSolverTimeoutInMillis(timeoutInMillis: Int, block: ()
     }
 }
 
-inline fun <reified T> withoutConcrete(block: () -> T): T {
+inline fun <reified T> withConcrete(useConcreteExecution: Boolean, block: () -> T): T {
     val prev = UtSettings.useConcreteExecution
-    UtSettings.useConcreteExecution = false
+    UtSettings.useConcreteExecution = useConcreteExecution
     try {
         return block()
     } finally {

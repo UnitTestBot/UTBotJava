@@ -41,14 +41,14 @@ allprojects {
         withType<KotlinCompile> {
             kotlinOptions {
                 jvmTarget = "1.8"
-                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
+                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
         }
         compileTestKotlin {
             kotlinOptions {
                 jvmTarget = "1.8"
-                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
+                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
         }

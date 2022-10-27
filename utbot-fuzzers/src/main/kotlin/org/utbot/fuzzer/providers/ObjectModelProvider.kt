@@ -16,6 +16,8 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.util.isAbstract
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.dateClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isEnum

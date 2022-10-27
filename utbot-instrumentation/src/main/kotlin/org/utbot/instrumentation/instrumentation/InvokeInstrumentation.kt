@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier
 import java.security.ProtectionDomain
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jField
 
 typealias ArgumentList = List<Any?>

@@ -31,14 +31,7 @@ open class JsClassId(
     override val canonicalName: String
         get() = jsName
 
-    //TODO SEVERE: Check if overrides are correct
-    override val isAbstract: Boolean
-        get() = false
-
     override val isAnonymous: Boolean
-        get() = false
-
-    override val isFinal: Boolean
         get() = false
 
     override val isInDefaultPackage: Boolean
@@ -54,19 +47,6 @@ open class JsClassId(
         get() = false
 
     override val isNullable: Boolean
-        get() = false
-
-    override val isPrivate: Boolean
-        get() = false
-
-    override val isProtected: Boolean
-        get() = false
-
-    override val isPublic: Boolean
-        get() = true
-
-    //TODO SEVERE: isStatic is definitely incorrect!
-    override val isStatic: Boolean
         get() = false
 
     override val isSynthetic: Boolean

@@ -45,7 +45,6 @@ open class CodeGenerator(
 ) {
 
     open var context: CgContext = CgContext(
-    private var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
         generateUtilClassFile = generateUtilClassFile,
         paramNames = paramNames,

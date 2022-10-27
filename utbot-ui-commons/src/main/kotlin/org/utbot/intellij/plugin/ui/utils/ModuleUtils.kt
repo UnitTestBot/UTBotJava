@@ -4,6 +4,8 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.intellij.plugin.ui.CommonErrorNotifier
+import org.utbot.intellij.plugin.ui.UnsupportedJdkNotifier
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
@@ -32,8 +34,6 @@ import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
 import org.jetbrains.kotlin.platform.TargetPlatformVersion
-import org.utbot.intellij.plugin.ui.CommonErrorNotifier
-import org.utbot.intellij.plugin.ui.UnsupportedJdkNotifier
 
 private val logger = KotlinLogging.logger {}
 
@@ -159,16 +159,15 @@ private fun Module.suitableTestSourceFolders(): List<SourceFolder> {
 private val GRADLE_SYSTEM_ID = ProjectSystemId("GRADLE")
 
 val Project.isBuildWithGradle get() =
-         ModuleManager.getInstance(this).modules.any {
-             ExternalSystemApiUtil.isExternalSystemAwareModule(GRADLE_SYSTEM_ID, it)
-         }
+    ModuleManager.getInstance(this).modules.any {
+        ExternalSystemApiUtil.isExternalSystemAwareModule(GRADLE_SYSTEM_ID, it)
+    }
 
 private const val dedicatedTestSourceRootName = "utbot_tests"
 
 fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<TestSourceRoot>, language: CodegenLanguage): VirtualFile? {
     // Don't suggest new test source roots for Gradle project where 'unexpected' test roots won't work
-    //todo we asked Vassiliy to rewrite
-    //if (project.isBuildWithGradle) return null
+    if (project.isBuildWithGradle) return null
     // Dedicated test root already exists
     if (testSourceRoots.any { root -> root.dir.name == dedicatedTestSourceRootName }) return null
 

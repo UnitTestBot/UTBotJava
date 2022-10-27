@@ -146,6 +146,7 @@ import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.util.isStatic
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 

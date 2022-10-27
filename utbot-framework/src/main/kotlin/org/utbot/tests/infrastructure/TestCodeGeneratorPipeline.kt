@@ -260,24 +260,26 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     ): CodeGeneratorResult {
         val params = mutableMapOf<ExecutableId, List<String>>()
 
-        val codeGenerator = with(testFrameworkConfiguration) {
-            CodeGenerator(
-                classUnderTest.id,
-                generateUtilClassFile = generateUtilClassFile,
-                paramNames = params,
-                testFramework = testFramework,
-                staticsMocking = staticsMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = false,
-                codegenLanguage = codegenLanguage,
-                parameterizedTestSource = parametrizedTestSource,
-                runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-                enableTestsTimeout = enableTestsTimeout
-            )
-        }
-        val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
+        withUtContext(UtContext(classUnderTest.java.classLoader)) {
+            val codeGenerator = with(testFrameworkConfiguration) {
+                CodeGenerator(
+                    classUnderTest.id,
+                    generateUtilClassFile = generateUtilClassFile,
+                    paramNames = params,
+                    testFramework = testFramework,
+                    staticsMocking = staticsMocking,
+                    forceStaticMocking = forceStaticMocking,
+                    generateWarningsForStaticMocking = false,
+                    codegenLanguage = codegenLanguage,
+                    parameterizedTestSource = parametrizedTestSource,
+                    runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+                    enableTestsTimeout = enableTestsTimeout
+                )
+            }
+            val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        return codeGenerator.generateAsStringWithTestReport(testSets, testClassCustomName)
+            return codeGenerator.generateAsStringWithTestReport(testSets, testClassCustomName)
+        }
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {

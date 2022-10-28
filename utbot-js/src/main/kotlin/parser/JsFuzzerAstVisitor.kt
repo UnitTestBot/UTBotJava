@@ -14,7 +14,7 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 
 class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
-    private lateinit var lastFuzzedOpGlobal: FuzzedContext
+    private var lastFuzzedOpGlobal: FuzzedContext = FuzzedContext.Unknown
 
     val fuzzedConcreteValues = mutableSetOf<FuzzedConcreteValue>()
     override fun enterCaseNode(caseNode: CaseNode?): Boolean {

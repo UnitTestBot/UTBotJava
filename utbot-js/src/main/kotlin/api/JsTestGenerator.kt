@@ -138,26 +138,31 @@ class JsTestGenerator(
             )
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
-        analyzeCoverage(allCoveredStatements).forEach { paramIndex ->
-            if (executionResults[paramIndex] == "Error:Timeout") {
-                errorsForGenerator["Timeout in generating test for ${fuzzedValues[paramIndex].joinToString { f -> f.model.toString() }} parameters"] = 1
-            } else {
-                val param = fuzzedValues[paramIndex]
-                val result =
-                    getUtModelResult(
-                        execId = execId,
-                        returnText = executionResults[paramIndex]
-                    )
-                val thisInstance = makeThisInstance(execId, classId, concreteValues)
-                val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
-                testsForGenerator.add(
-                    UtFuzzedExecution(
-                        stateBefore = initEnv,
-                        stateAfter = initEnv,
-                        result = result,
-                    )
-                )
+        executionResults.forEachIndexed {index, value ->
+            if (value == "Error:Timeout") {
+                errorsForGenerator["Timeout in generating test for ${
+                    fuzzedValues[index]
+                        .joinToString { f -> f.model.toString() }
+                } parameters"] = 1
             }
+        }
+
+        analyzeCoverage(allCoveredStatements).forEach { paramIndex ->
+            val param = fuzzedValues[paramIndex]
+            val result =
+                getUtModelResult(
+                    execId = execId,
+                    returnText = executionResults[paramIndex]
+                )
+            val thisInstance = makeThisInstance(execId, classId, concreteValues)
+            val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
+            testsForGenerator.add(
+                UtFuzzedExecution(
+                    stateBefore = initEnv,
+                    stateAfter = initEnv,
+                    result = result,
+                )
+            )
         }
         val testSet = CgMethodTestSet(
             execId,

@@ -34,13 +34,16 @@ class BasicCoverageService(
     override fun getCoveredLines(): List<Set<Int>> {
         try {
             val res = testCaseIndices.map { index ->
-                val fileCoverage = getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), index).toSet()
-                val resFile = File("$utbotDirPath/$tempFileName$index.json")
-                val rawResult = resFile.readText()
-                resFile.delete()
-                val json = JSONObject(rawResult)
-                _resultList.add(index to json.get("result").toString())
-                fileCoverage
+                if (index in errors) emptySet() else {
+                    val fileCoverage =
+                        getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), index).toSet()
+                    val resFile = File("$utbotDirPath/$tempFileName$index.json")
+                    val rawResult = resFile.readText()
+                    resFile.delete()
+                    val json = JSONObject(rawResult)
+                    _resultList.add(index to json.get("result").toString())
+                    fileCoverage
+                }
             }
             return res
         } catch (e: Exception) {

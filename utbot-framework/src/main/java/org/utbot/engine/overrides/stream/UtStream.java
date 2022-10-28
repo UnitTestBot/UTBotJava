@@ -579,7 +579,14 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public boolean noneMatch(Predicate<? super E> predicate) {
         preconditionCheckWithClosingStream();
 
-        return !anyMatch(predicate);
+        int size = elementData.end;
+        for (int i = 0; i < size; i++) {
+            if (predicate.test(elementData.get(i))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @NotNull

@@ -30,20 +30,6 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     )
 ) {
     @Test
-    fun testReturningStreamExample() {
-        withoutConcrete {
-            check(
-                BaseStreamExample::returningStreamExample,
-                eq(2),
-                // NOTE: the order of the matchers is important because Stream could be used only once
-                { c, r -> c.isNotEmpty() && c == r!!.toList() },
-                { c, r -> c.isEmpty() && c == r!!.toList() },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
-    }
-
-    @Test
     fun testReturningStreamAsParameterExample() {
         withoutConcrete {
             check(

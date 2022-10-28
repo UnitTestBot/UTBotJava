@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api
 
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import java.io.File
 import java.util.LinkedList
 
@@ -11,6 +12,13 @@ data class UtExecutionSuccess(val model: UtModel) : UtExecutionResult() {
 
 sealed class UtExecutionFailure : UtExecutionResult() {
     abstract val exception: Throwable
+
+    /**
+     * Represents the most inner exception in the failure.
+     * Often equals to [exception], but is wrapped exception in [UtStreamConsumingException].
+     */
+    open val rootCauseException: Throwable
+        get() = exception
 }
 
 data class UtOverflowFailure(
@@ -20,6 +28,13 @@ data class UtOverflowFailure(
 data class UtSandboxFailure(
     override val exception: Throwable
 ) : UtExecutionFailure()
+
+data class UtStreamConsumingFailure(
+    override val exception: UtStreamConsumingException,
+) : UtExecutionFailure() {
+    override val rootCauseException: Throwable
+        get() = exception.innerExceptionOrAny
+}
 
 /**
  * unexpectedFail (when exceptions such as NPE, IOBE, etc. appear, but not thrown by a user, applies both for function under test and nested calls )
@@ -83,7 +98,7 @@ inline fun UtExecutionResult.onSuccess(action: (model: UtModel) -> Unit): UtExec
 }
 
 inline fun UtExecutionResult.onFailure(action: (exception: Throwable) -> Unit): UtExecutionResult {
-    if (this is UtExecutionFailure) action(exception)
+    if (this is UtExecutionFailure) action(rootCauseException)
     return this
 }
 
@@ -93,6 +108,6 @@ fun UtExecutionResult.getOrThrow(): UtModel = when (this) {
 }
 
 fun UtExecutionResult.exceptionOrNull(): Throwable? = when (this) {
-    is UtExecutionFailure -> exception
+    is UtExecutionFailure -> rootCauseException
     is UtExecutionSuccess -> null
 }

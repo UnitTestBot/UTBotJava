@@ -18,6 +18,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import org.jetbrains.kotlin.asJava.findFacadeClass
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
@@ -26,6 +27,7 @@ import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.models.packageName
@@ -218,7 +220,7 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
     }
 
     private fun getAllClasses(directory: PsiDirectory): Set<PsiClass> {
-        val allClasses = directory.files.flatMap { getClassesFromFile(it) }.toMutableSet()
+        val allClasses = directory.files.flatMap { PsiElementHandler.makePsiElementHandler(it).getClassesFromFile(it) }.toMutableSet()
         for (subDir in directory.subdirectories) allClasses += getAllClasses(subDir)
         return allClasses
     }
@@ -231,15 +233,10 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
         if (!dirsArePackages) {
             return emptySet()
         }
-        val allClasses = psiFiles.flatMap { getClassesFromFile(it) }.toMutableSet()
+        val allClasses = psiFiles.flatMap { PsiElementHandler.makePsiElementHandler(it).getClassesFromFile(it) }.toMutableSet()
+        allClasses.addAll(psiFiles.mapNotNull { (it as? KtFile)?.findFacadeClass() })
         for (psiDir in psiDirectories) allClasses += getAllClasses(psiDir)
 
         return allClasses
-    }
-
-    private fun getClassesFromFile(psiFile: PsiFile): List<PsiClass> {
-        val psiElementHandler = PsiElementHandler.makePsiElementHandler(psiFile)
-        return PsiTreeUtil.getChildrenOfTypeAsList(psiFile, psiElementHandler.classClass)
-                .map { psiElementHandler.toPsi(it, PsiClass::class.java) }
     }
 }

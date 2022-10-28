@@ -4,10 +4,15 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.framework.util.nextModelName
+import java.util.stream.BaseStream
+import java.util.stream.DoubleStream
+import java.util.stream.IntStream
+import java.util.stream.LongStream
 
 private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleModelConstructorBase>(
     /**
@@ -27,7 +32,6 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
     java.util.List::class.java to { CollectionConstructor() },
     java.util.concurrent.CopyOnWriteArrayList::class.java to { CollectionConstructor() },
 
-
     /**
      * Queues, deques
      */
@@ -40,7 +44,6 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
     java.util.Queue::class.java to { CollectionConstructor() },
     java.util.Deque::class.java to { CollectionConstructor() },
 
-
     /**
      * Sets
      */
@@ -49,8 +52,6 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
     java.util.LinkedHashSet::class.java to { CollectionConstructor() },
     java.util.AbstractSet::class.java to { CollectionConstructor() },
     java.util.Set::class.java to { CollectionConstructor() },
-
-
 
     /**
      * Maps
@@ -68,7 +69,6 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
      * Hashtables
      */
     java.util.Hashtable::class.java to { MapConstructor() },
-
 
     /**
      * String wrapper
@@ -89,6 +89,14 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
 
 internal fun findUtAssembleModelConstructor(classId: ClassId): UtAssembleModelConstructorBase? =
     predefinedConstructors[classId.jClass]?.invoke()
+
+internal fun findStreamConstructor(stream: BaseStream<*, *>): UtAssembleModelConstructorBase =
+    when (stream) {
+        is IntStream -> IntStreamConstructor()
+        is LongStream -> LongStreamConstructor()
+        is DoubleStream -> DoubleStreamConstructor()
+        else -> BaseStreamConstructor()
+    }
 
 internal abstract class UtAssembleModelConstructorBase {
     fun constructAssembleModel(

@@ -5,6 +5,7 @@ import org.utbot.engine.jimpleBody
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
@@ -98,9 +99,10 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
             val isOverriddenPackage = it.packageName.startsWith(UTBOT_OVERRIDDEN_PACKAGE_PREFIX)
             val isExamplesPackage = it.packageName.startsWith(UTBOT_EXAMPLES_PACKAGE_PREFIX)
             val isApiPackage = it.packageName.startsWith(UTBOT_API_PACKAGE_PREFIX)
+            val isVisiblePackage = it.packageName.startsWith(UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE)
 
-            // remove if it is not a part of the examples (CUT), not a part of our API and not an override
-            if (!isOverriddenPackage && !isExamplesPackage && !isApiPackage) {
+            // remove if it is not a part of the examples (CUT), not a part of our API, not an override and not from visible for soot
+            if (!isOverriddenPackage && !isExamplesPackage && !isApiPackage && !isVisiblePackage) {
                 Scene.v().removeClass(it)
                 return@forEach
             }
@@ -183,6 +185,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,
     org.utbot.engine.overrides.collections.List::class,
+    UtStreamConsumingException::class,
     org.utbot.engine.overrides.stream.UtStream::class,
     org.utbot.engine.overrides.stream.UtIntStream::class,
     org.utbot.engine.overrides.stream.UtLongStream::class,
@@ -200,4 +203,5 @@ private const val UTBOT_PACKAGE_PREFIX = "org.utbot"
 private const val UTBOT_EXAMPLES_PACKAGE_PREFIX = "$UTBOT_PACKAGE_PREFIX.examples"
 private const val UTBOT_API_PACKAGE_PREFIX = "$UTBOT_PACKAGE_PREFIX.api"
 private const val UTBOT_OVERRIDDEN_PACKAGE_PREFIX = "$UTBOT_PACKAGE_PREFIX.engine.overrides"
+internal const val UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE = "$UTBOT_PACKAGE_PREFIX.framework.plugin.api.visible"
 private const val SOOT_PACKAGE_PREFIX = "soot."

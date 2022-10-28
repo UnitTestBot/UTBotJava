@@ -18,19 +18,6 @@ import java.util.stream.DoubleStream;
 
 @SuppressWarnings("IfStatementWithIdenticalBranches")
 public class DoubleStreamExample {
-    DoubleStream returningStreamExample(List<Short> list) {
-        UtMock.assume(list != null);
-
-        final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
-        final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
-
-        if (list.isEmpty()) {
-            return doubles;
-        } else {
-            return doubles;
-        }
-    }
-
     DoubleStream returningStreamAsParameterExample(DoubleStream s) {
         UtMock.assume(s != null);
 

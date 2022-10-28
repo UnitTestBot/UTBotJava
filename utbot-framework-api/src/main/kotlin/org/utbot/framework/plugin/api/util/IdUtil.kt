@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
@@ -23,11 +24,14 @@ import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.extensionReceiverParameter
 import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.internal.impl.load.kotlin.header.KotlinClassHeader
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.jvm.kotlinFunction
 
 // ClassId utils
 
@@ -114,12 +118,20 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
     // unwrap primitive wrappers
     val left = primitiveByWrapper[this] ?: this
     val right = primitiveByWrapper[type] ?: type
+
     if (left == right) {
         return true
     }
+
     val leftClass = this
+    val superTypes = leftClass.allSuperTypes()
+
+    return right in superTypes
+}
+
+fun ClassId.allSuperTypes(): Sequence<ClassId> {
     val interfaces = sequence {
-        var types = listOf(leftClass)
+        var types = listOf(this@allSuperTypes)
         while (types.isNotEmpty()) {
             yieldAll(types)
             types = types
@@ -127,9 +139,10 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
                 .map { it.id }
         }
     }
-    val superclasses = generateSequence(leftClass) { it.superclass?.id }
-    val superTypes = interfaces + superclasses
-    return right in superTypes
+
+    val superclasses = generateSequence(this) { it.superclass?.id }
+
+    return interfaces + superclasses
 }
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)
@@ -176,6 +189,14 @@ val ClassId.isDoubleType: Boolean
 
 val ClassId.isClassType: Boolean
     get() = this == classClassId
+
+/**
+ * Checks if the class is a Kotlin class with kind File (see [Metadata.kind] for more details)
+ */
+val ClassId.isKotlinFile: Boolean
+    get() = jClass.annotations.filterIsInstance<Metadata>().singleOrNull()?.let {
+        KotlinClassHeader.Kind.getById(it.kind) == KotlinClassHeader.Kind.FILE_FACADE
+    } ?: false
 
 val voidClassId = ClassId("void")
 val booleanClassId = ClassId("boolean")
@@ -266,6 +287,17 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
+
+val baseStreamClassId = java.util.stream.BaseStream::class.id
+val streamClassId = java.util.stream.Stream::class.id
+val intStreamClassId = java.util.stream.IntStream::class.id
+val longStreamClassId = java.util.stream.LongStream::class.id
+val doubleStreamClassId = java.util.stream.DoubleStream::class.id
+
+val intStreamToArrayMethodId = methodId(intStreamClassId, "toArray", intArrayClassId)
+val longStreamToArrayMethodId = methodId(longStreamClassId, "toArray", longArrayClassId)
+val doubleStreamToArrayMethodId = methodId(doubleStreamClassId, "toArray", doubleArrayClassId)
+val streamToArrayMethodId = methodId(streamClassId, "toArray", objectArrayClassId)
 
 val dateClassId = java.util.Date::class.id
 
@@ -429,6 +461,12 @@ val MethodId.method: Method
                 ?: error("Can't find method $signature in ${declaringClass.name}")
     }
 
+/**
+ * See [KCallable.extensionReceiverParameter] for more details
+ */
+val MethodId.extensionReceiverParameterIndex: Int?
+    get() = this.method.kotlinFunction?.extensionReceiverParameter?.index
+
 // TODO: maybe cache it somehow in the future
 val ConstructorId.constructor: Constructor<*>
     get() {
@@ -483,6 +521,7 @@ val Method.displayName: String
 
 val KCallable<*>.declaringClazz: Class<*>
     get() = when (this) {
+        is KFunction<*> -> javaMethod?.declaringClass?.kotlin
         is CallableReference -> owner as? KClass<*>
         else -> instanceParameter?.type?.classifier as? KClass<*>
     }?.java ?: tryConstructor(this) ?: error("Can't get parent class for $this")

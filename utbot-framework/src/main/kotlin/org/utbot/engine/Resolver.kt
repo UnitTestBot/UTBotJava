@@ -90,6 +90,8 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -370,6 +372,12 @@ class Resolver(
      */
     private fun SymbolicFailure.resolve(): UtExecutionFailure {
         val exception = concreteException()
+
+        if (exception is UtStreamConsumingException) {
+            // This exception is artificial and is not really thrown
+            return UtStreamConsumingFailure(exception)
+        }
+
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {

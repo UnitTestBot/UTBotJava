@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.Signature
 fun MemberInfo.signature(): Signature =
         (this.member as PsiMethod).signature()
 
+// Note that rules for obtaining signature here should correlate with KFunction<*>.signature()
 private fun PsiMethod.signature() =
     Signature(this.name, this.parameterList.parameters.map {
         it.type.canonicalText

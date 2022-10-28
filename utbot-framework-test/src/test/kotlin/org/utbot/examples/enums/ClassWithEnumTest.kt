@@ -18,9 +18,7 @@ import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
     @Test
     fun testOrdinal() {
-        withConcrete(useConcreteExecution = false) {
-            checkAllCombinations(ClassWithEnum::useOrdinal)
-        }
+        checkAllCombinations(ClassWithEnum::useOrdinal)
     }
 
     @Test

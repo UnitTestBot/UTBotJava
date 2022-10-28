@@ -3,7 +3,6 @@ package org.utbot.examples.strings11
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.*
 
 class StringConcatTest : UtValueTestCaseChecker(
@@ -16,99 +15,83 @@ class StringConcatTest : UtValueTestCaseChecker(
 ) {
     @Test
     fun testConcatArguments() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                StringConcat::concatArguments,
-                eq(1),
-                { a, b, c, r -> "$a$b$c" == r }
-            )
-        }
+        check(
+            StringConcat::concatArguments,
+            eq(1),
+            { a, b, c, r -> "$a$b$c" == r }
+        )
     }
 
     @Test
     fun testConcatWithConstants() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                StringConcat::concatWithConstants,
-                eq(4),
-                { a, r -> a == "head" && r == 1 },
-                { a, r -> a == "body" && r == 2 },
-                { a, r -> a == null && r == 3 },
-                { a, r -> a != "head" && a != "body" && a != null && r == 4 },
-            )
-        }
+        check(
+            StringConcat::concatWithConstants,
+            eq(4),
+            { a, r -> a == "head" && r == 1 },
+            { a, r -> a == "body" && r == 2 },
+            { a, r -> a == null && r == 3 },
+            { a, r -> a != "head" && a != "body" && a != null && r == 4 },
+        )
     }
 
     @Test
     fun testConcatWithPrimitives() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                StringConcat::concatWithPrimitives,
-                eq(1),
-                { a, r -> "$a#4253.0" == r}
-            )
-        }
+        check(
+            StringConcat::concatWithPrimitives,
+            eq(1),
+            { a, r -> "$a#4253.0" == r}
+        )
     }
 
     @Test
     fun testExceptionInToString() {
-        withConcrete(useConcreteExecution = false) {
-            checkWithException(
-                StringConcat::exceptionInToString,
-                ignoreExecutionsNumber,
-                { t, r -> t.x == 42 && r.isException<IllegalArgumentException>() },
-                { t, r -> t.x != 42 && r.getOrThrow() == "Test: x = ${t.x}!" },
-                coverage = DoNotCalculate
-            )
-        }
+        checkWithException(
+            StringConcat::exceptionInToString,
+            ignoreExecutionsNumber,
+            { t, r -> t.x == 42 && r.isException<IllegalArgumentException>() },
+            { t, r -> t.x != 42 && r.getOrThrow() == "Test: x = ${t.x}!" },
+            coverage = DoNotCalculate
+        )
     }
 
     @Test
     fun testConcatWithField() {
-        withConcrete(useConcreteExecution = false) {
-            checkWithThis(
-                StringConcat::concatWithField,
-                eq(1),
-                { o, a, r -> "$a${o.str}#" == r }
-            )
-        }
+        checkWithThis(
+            StringConcat::concatWithField,
+            eq(1),
+            { o, a, r -> "$a${o.str}#" == r }
+        )
     }
 
     @Test
     fun testConcatWithPrimitiveWrappers() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                StringConcat::concatWithPrimitiveWrappers,
-                ignoreExecutionsNumber,
-                { b, c, r -> b.toString().endsWith("4") && c == '2' && r == 1 },
-                { _, c, r -> !c.toString().endsWith("42") && r == 2 },
-                coverage = DoNotCalculate
-            )
-        }
+        check(
+            StringConcat::concatWithPrimitiveWrappers,
+            ignoreExecutionsNumber,
+            { b, c, r -> b.toString().endsWith("4") && c == '2' && r == 1 },
+            { _, c, r -> !c.toString().endsWith("42") && r == 2 },
+            coverage = DoNotCalculate
+        )
     }
 
     @Test
     fun testSameConcat() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                StringConcat::sameConcat,
-                ignoreExecutionsNumber,
-                { a, b, r -> a == b && r == 0 },
-                { a, b, r -> a != b && r == 1 },
-                coverage = DoNotCalculate
-            )
-        }
+        check(
+            StringConcat::sameConcat,
+            ignoreExecutionsNumber,
+            { a, b, r -> a == b && r == 0 },
+            { a, b, r -> a != b && r == 1 },
+            coverage = DoNotCalculate
+        )
     }
 
     @Test
     fun testConcatStrangeSymbols() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                StringConcat::concatStrangeSymbols,
-                eq(1),
-                { r -> r == "\u0000#\u0001!\u0002@\u0012\t" }
-            )
-        }
+        check(
+            StringConcat::concatStrangeSymbols,
+            eq(1),
+            { r -> r == "\u0000#\u0001!\u0002@\u0012\t" }
+        )
     }
 
 }

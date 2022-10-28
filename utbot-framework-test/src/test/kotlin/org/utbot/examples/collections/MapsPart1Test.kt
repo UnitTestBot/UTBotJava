@@ -86,41 +86,35 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
 
     @Test
     fun testMapPutAndGet() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                Maps::mapPutAndGet,
-                eq(1),
-                { r -> r == 3 }
-            )
-        }
+        check(
+            Maps::mapPutAndGet,
+            eq(1),
+            { r -> r == 3 }
+        )
     }
 
     @Test
     fun testPutInMapFromParameters() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                Maps::putInMapFromParameters,
-                ignoreExecutionsNumber,
-                { values, _ -> values == null },
-                { values, r -> 1 in values.keys && r == 3 },
-                { values, r -> 1 !in values.keys && r == 3 },
-            )
-        }
+        check(
+            Maps::putInMapFromParameters,
+            ignoreExecutionsNumber,
+            { values, _ -> values == null },
+            { values, r -> 1 in values.keys && r == 3 },
+            { values, r -> 1 !in values.keys && r == 3 },
+        )
     }
 
     // This test doesn't check anything specific, but the code from MUT
     // caused errors with NPE as results while debugging `testPutInMapFromParameters`.
     @Test
     fun testContainsKeyAndPuts() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                Maps::containsKeyAndPuts,
-                ignoreExecutionsNumber,
-                { values, _ -> values == null },
-                { values, r -> 1 !in values.keys && r == 3 },
-                coverage = FullWithAssumptions(assumeCallsNumber = 2)
-            )
-        }
+        check(
+            Maps::containsKeyAndPuts,
+            ignoreExecutionsNumber,
+            { values, _ -> values == null },
+            { values, r -> 1 !in values.keys && r == 3 },
+            coverage = FullWithAssumptions(assumeCallsNumber = 2)
+        )
     }
 
     @Test
@@ -354,22 +348,18 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
 
     @Test
     fun testCreateMapWithString() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                Maps::createMapWithString,
-                eq(1),
-                { r -> r!!.isEmpty() }
-            )
-        }
+        check(
+            Maps::createMapWithString,
+            eq(1),
+            { r -> r!!.isEmpty() }
+        )
     }
     @Test
     fun testCreateMapWithEnum() {
-        withConcrete(useConcreteExecution = false) {
-            check(
-                Maps::createMapWithEnum,
-                eq(1),
-                { r -> r != null && r.size == 2 && r[Maps.WorkDays.Monday] == 112 && r[Maps.WorkDays.Friday] == 567 }
-            )
-        }
+        check(
+            Maps::createMapWithEnum,
+            eq(1),
+            { r -> r != null && r.size == 2 && r[Maps.WorkDays.Monday] == 112 && r[Maps.WorkDays.Friday] == 567 }
+        )
     }
 }

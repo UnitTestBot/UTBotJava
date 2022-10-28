@@ -7,7 +7,6 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
@@ -112,16 +111,14 @@ internal class ExceptionExamplesTest : UtValueTestCaseChecker(
      */
     @Test
     fun testCatchExceptionAfterOtherPossibleException() {
-        withConcrete(useConcreteExecution = false) {
-            checkWithException(
-                ExceptionExamples::catchExceptionAfterOtherPossibleException,
-                eq(3),
-                { i, r -> i == -1 && r.isException<ArithmeticException>() },
-                { i, r -> i == 0 && r.getOrThrow() == 2 },
-                { i, r -> r.getOrThrow() == 1 },
-                coverage = atLeast(100)
-            )
-        }
+        checkWithException(
+            ExceptionExamples::catchExceptionAfterOtherPossibleException,
+            eq(3),
+            { i, r -> i == -1 && r.isException<ArithmeticException>() },
+            { i, r -> i == 0 && r.getOrThrow() == 2 },
+            { i, r -> r.getOrThrow() == 1 },
+            coverage = atLeast(100)
+        )
     }
 
     /**

@@ -73,11 +73,6 @@ class TestSpecificTestCaseGenerator(
                                             conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
                                 ) {
                                     it.containsMocking = true
-
-                                    conflictTriggers.reset(
-                                        Conflict.ForceMockHappened,
-                                        Conflict.ForceStaticMockHappened
-                                    )
                                 }
                                 executions += it
                             }
@@ -87,6 +82,7 @@ class TestSpecificTestCaseGenerator(
             }
         }
 
+        conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 

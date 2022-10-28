@@ -63,12 +63,14 @@ internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
 
     @Test
     fun testSqrt2() {
-        checkMocksAndInstrumentation(
-            ClassWithComplicatedMethods::sqrt2,
-            eq(1),
-            { mocks, instr, r -> abs(r!! - sqrt(2.0)) < eps && mocks.isEmpty() && instr.isEmpty() },
-            coverage = DoNotCalculate
-        )
+        withConcrete(useConcreteExecution = true) { // the sqrt method is too difficult for symbolic analysis
+            checkMocksAndInstrumentation(
+                ClassWithComplicatedMethods::sqrt2,
+                eq(1),
+                { mocks, instr, r -> abs(r!! - sqrt(2.0)) < eps && mocks.isEmpty() && instr.isEmpty() },
+                coverage = DoNotCalculate
+            )
+        }
     }
 
     @Test

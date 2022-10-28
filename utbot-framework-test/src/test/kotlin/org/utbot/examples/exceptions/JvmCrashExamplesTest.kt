@@ -5,6 +5,7 @@ import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withConcrete
 import org.utbot.testcheckers.withoutSandbox
 
 internal class JvmCrashExamplesTest : UtValueTestCaseChecker(testClass = JvmCrashExamples::class) {
@@ -19,13 +20,15 @@ internal class JvmCrashExamplesTest : UtValueTestCaseChecker(testClass = JvmCras
 
     @Test
     fun testCrash() {
-        withoutSandbox {
-            check(
-                JvmCrashExamples::crash,
-                eq(1), // we expect only one execution after minimization
-                // It seems that we can't calculate coverage when the child JVM has crashed
-                coverage = DoNotCalculate
-            )
+        withConcrete(useConcreteExecution = true) { // JVM crash is possible only with concrete execution
+            withoutSandbox {
+                check(
+                    JvmCrashExamples::crash,
+                    eq(1), // we expect only one execution after minimization
+                    // It seems that we can't calculate coverage when the child JVM has crashed
+                    coverage = DoNotCalculate
+                )
+            }
         }
     }
 

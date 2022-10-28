@@ -80,12 +80,14 @@ internal class CastExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testComplicatedCast() {
-        check(
-            CastExample::complicatedCast,
-            eq(2),
-            { i, a, _ -> i == 0 && a != null && a[i] != null && a[i] !is CastClassFirstSucc },
-            { i, a, r -> i == 0 && a != null && a[i] != null && a[i] is CastClassFirstSucc && r is CastClassFirstSucc },
-            coverage = DoNotCalculate
-        )
+        withEnabledTestingCodeGeneration(testCodeGeneration = false) { // error: package sun.text is not visible
+            check(
+                CastExample::complicatedCast,
+                eq(2),
+                { i, a, _ -> i == 0 && a != null && a[i] != null && a[i] !is CastClassFirstSucc },
+                { i, a, r -> i == 0 && a != null && a[i] != null && a[i] is CastClassFirstSucc && r is CastClassFirstSucc },
+                coverage = DoNotCalculate
+            )
+        }
     }
 }

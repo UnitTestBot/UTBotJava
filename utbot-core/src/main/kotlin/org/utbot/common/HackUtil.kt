@@ -67,4 +67,13 @@ enum class WorkaroundReason {
      * requires thorough [investigation](https://github.com/UnitTestBot/UTBotJava/issues/716).
      */
     IGNORE_STATICS_FROM_TRUSTED_LIBRARIES,
+    /**
+     * Methods that return [java.util.stream.BaseStream] as a result, can return them ”dirty” - consuming of them lead to the exception.
+     * The symbolic engine and concrete execution create UtStreamConsumingFailure executions in such cases. To warn a
+     * user about unsafety of using such “dirty” streams, code generation consumes them (mostly with `toArray` methods)
+     * and asserts exception. Unfortunately, it doesn't work well for parametrized tests - they create assertions relying on
+     * such-called “generic execution”, so resulted tests always contain `deepEquals` for streams, and we cannot easily
+     * construct `toArray` invocation (because streams cannot be consumed twice).
+     */
+    CONSUME_DIRTY_STREAMS,
 }

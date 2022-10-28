@@ -46,7 +46,19 @@ This will generate coverage report from generated tests and print in `StdOut`
   Specifies whether test should be printed out to `StdOut` (default = false)
 - `-t, --timeout <seconds>`
 
-  Timeout for a single test case to generate in seconds (default = 5)
+  Timeout for a single test case to generate in seconds (default = 15)
+- `--coverage-mode <BASIC/FAST>`
+
+  Specifies the coverage mode for test generation. Fast mode can't find timeouts, but works faster (default = FAST)
+- `--path-to-node <path>`
+
+  Sets path to Node.js executable (default = "node")
+- `--path-to-nyc <path>`
+
+  Sets path to nyc executable (default = "nyc")
+- `--path-to-npm <path>`
+
+  Sets path to npm executable (default = "npm")
 
 ## `run_js` options
 
@@ -57,9 +69,9 @@ This will generate coverage report from generated tests and print in `StdOut`
 
   Specifies output of .txt file for test framework result (If empty prints to `StdOut`)
 
-- `-t, --test-framework [mocha]`
+- `-t, --test-framework <name>`
 
-  Test framework of tests to run.
+  Test framework of tests to run. (default = "Mocha")
 
 ## `coverage_js` options
 
@@ -70,3 +82,6 @@ This will generate coverage report from generated tests and print in `StdOut`
 - `-o, --output`
 
   Specifies output .json file for generated tests (If empty prints .json to `StdOut`)
+- `--path-to-nyc <path>`
+
+  Sets path to nyc executable (default = "nyc")

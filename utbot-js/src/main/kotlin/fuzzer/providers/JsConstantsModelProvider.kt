@@ -21,7 +21,7 @@ object JsConstantsModelProvider : ModelProvider {
             .forEach { (_, value, op) ->
                 sequenceOf(
                     JsPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
-                    modifyValue(value, op as FuzzedContext.Comparison)
+                    modifyValue(value, op)
                 )
                     .filterNotNull()
                     .forEach { m ->
@@ -35,7 +35,8 @@ object JsConstantsModelProvider : ModelProvider {
     }
 
     @Suppress("DuplicatedCode")
-    internal fun modifyValue(value: Any, op: FuzzedContext.Comparison): FuzzedValue? {
+    internal fun modifyValue(value: Any, op: FuzzedContext): FuzzedValue? {
+        if (op !is FuzzedContext.Comparison) return null
         val multiplier = if (op == FuzzedContext.Comparison.LT || op == FuzzedContext.Comparison.GE) -1 else 1
         return when (value) {
             is Boolean -> value.not()

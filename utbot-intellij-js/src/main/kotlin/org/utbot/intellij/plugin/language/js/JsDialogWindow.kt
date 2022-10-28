@@ -19,19 +19,16 @@ import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
-import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
-import settings.JsTestGenerationSettings.defaultTimeout
 import java.awt.BorderLayout
 import java.io.File
 import java.nio.file.Paths
-import java.util.Locale
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
 import javax.swing.JComponent
-import kotlin.concurrent.thread
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
+import settings.JsTestGenerationSettings.defaultTimeout
 
 class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
@@ -63,7 +60,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     private val nycSourceFileChooserField = NycSourceFileChooser(model)
     private val coverageMode = CoverageModeButtons
 
-    private var initTestFrameworkPresenceThread: Thread
+//    private var initTestFrameworkPresenceThread: Thread
     private lateinit var panel: DialogPanel
 
     private val timeoutSpinner =
@@ -80,11 +77,11 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         //TODO: fix.
         model.pathToNode = "node"
         title = "Generate Tests with UtBot"
-        initTestFrameworkPresenceThread = thread(start = true) {
-            JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
-                it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()), model)
-            }
-        }
+//        initTestFrameworkPresenceThread = thread(start = true) {
+//            JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
+//                it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()), model)
+//            }
+//        }
         isResizable = false
         init()
     }
@@ -154,7 +151,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         File(testSourceFolderField.text).mkdir()
         model.testSourceRoot =
             VirtualFileManager.getInstance().refreshAndFindFileByNioPath(Paths.get(testSourceFolderField.text))
-        configureTestFrameworkIfRequired()
         super.doOKAction()
     }
 
@@ -175,8 +171,9 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         }
     }
 
+    @Suppress("unused")
     private fun configureTestFrameworkIfRequired() {
-        initTestFrameworkPresenceThread.join()
+//        initTestFrameworkPresenceThread.join()
         val frameworkNotInstalled = !testFrameworks.item.isInstalled
         if (frameworkNotInstalled) {
             Messages.showErrorDialog(

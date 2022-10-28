@@ -23,7 +23,7 @@ class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton(
         addBrowseFolderListener(
             TextBrowseFolderListener(descriptor, model.project)
         )
-        text = replaceSeparator(getFrameworkLibraryPath(JsDynamicSettings().pathToNYC, model) ?: "Nyc does not found")
+        text = replaceSeparator(getFrameworkLibraryPath(JsDynamicSettings().pathToNYC, model) ?: "Nyc was not found")
     }
 
     fun validateNyc(): ValidationInfo? {

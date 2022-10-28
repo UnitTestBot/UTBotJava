@@ -1,9 +1,8 @@
 package org.utbot.examples.stream
 
 import org.junit.jupiter.api.Test
-import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.UtStreamConsumingException
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.FullWithAssumptions

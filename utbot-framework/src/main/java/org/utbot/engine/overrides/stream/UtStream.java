@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
-import org.utbot.framework.plugin.api.UtStreamConsumingException;
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException;
 
 import java.util.Comparator;
 import java.util.Iterator;

@@ -8,6 +8,7 @@ import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkEq
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.util.UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE
 import soot.ArrayType
 import soot.IntType
 import soot.NullType
@@ -192,7 +193,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
     }
 
     /**
-     * Remove wrapper types and, if any other type is available, artificial entities.
+     * Remove wrapper types, classes from the visible for Soot package and, if any other type is available, artificial entities.
      */
     private fun TypeStorage.removeInappropriateTypes(): TypeStorage {
         val leastCommonSootClass = (leastCommonType as? RefType)?.sootClass
@@ -211,9 +212,13 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 return@filter keepArtificialEntities
             }
 
-            // All wrappers should filtered out because they could not be instantiated
+            // All wrappers and classes from the visible for Soot package should be filtered out because they could not be instantiated
             workaround(WorkaroundReason.HACK) {
                 if (leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden) {
+                    return@filter false
+                }
+
+                if (sootClass.packageName == UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE) {
                     return@filter false
                 }
             }

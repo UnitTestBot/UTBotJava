@@ -3,7 +3,7 @@ package org.utbot.engine.overrides.stream;
 import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
-import org.utbot.framework.plugin.api.*;
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException;
 
 import java.util.DoubleSummaryStatistics;
 import java.util.NoSuchElementException;

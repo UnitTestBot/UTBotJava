@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 
 // TODO failed Kotlin compilation SAT-1332
@@ -278,46 +279,48 @@ internal class InstanceOfExampleTest : UtValueTestCaseChecker(
     @Test
     //TODO: fails without concrete execution
     fun testComplicatedInstanceOf() {
-        check(
-            InstanceOfExample::complicatedInstanceOf,
-            eq(8),
-            { _, index, _, result -> index < 0 && result == null },
-            { _, index, _, result -> index > 2 && result == null },
-            { objects, index, _, result -> index in 0..2 && objects == null && result == null },
-            { objects, index, _, result -> index in 0..2 && objects != null && objects.size < index + 2 && result == null },
-            { objects, index, objectExample, result ->
-                require(objects != null && result != null && objectExample is CastClassFirstSucc)
+        withConcrete(useConcreteExecution = true) {
+            check(
+                InstanceOfExample::complicatedInstanceOf,
+                eq(8),
+                { _, index, _, result -> index < 0 && result == null },
+                { _, index, _, result -> index > 2 && result == null },
+                { objects, index, _, result -> index in 0..2 && objects == null && result == null },
+                { objects, index, _, result -> index in 0..2 && objects != null && objects.size < index + 2 && result == null },
+                { objects, index, objectExample, result ->
+                    require(objects != null && result != null && objectExample is CastClassFirstSucc)
 
-                val sizeConstraint = index in 0..2 && objects.size >= index + 2
-                val resultConstraint = result[index].x == objectExample.z
+                    val sizeConstraint = index in 0..2 && objects.size >= index + 2
+                    val resultConstraint = result[index].x == objectExample.z
 
-                sizeConstraint && resultConstraint
-            },
-            { objects, index, objectExample, _ ->
-                index in 0..2 && objects != null && objects.size >= index + 2 && objectExample == null
-            },
-            { objects, index, objectExample, result ->
-                require(objects != null && result != null && result[index] is CastClassSecondSucc)
+                    sizeConstraint && resultConstraint
+                },
+                { objects, index, objectExample, _ ->
+                    index in 0..2 && objects != null && objects.size >= index + 2 && objectExample == null
+                },
+                { objects, index, objectExample, result ->
+                    require(objects != null && result != null && result[index] is CastClassSecondSucc)
 
-                val sizeConstraint = index in 0..2 && objects.size >= index + 2
-                val typeConstraint = objectExample !is CastClassFirstSucc && result[index] is CastClassSecondSucc
-                val resultConstraint = result[index].x == result[index].foo()
+                    val sizeConstraint = index in 0..2 && objects.size >= index + 2
+                    val typeConstraint = objectExample !is CastClassFirstSucc && result[index] is CastClassSecondSucc
+                    val resultConstraint = result[index].x == result[index].foo()
 
-                sizeConstraint && typeConstraint && resultConstraint
-            },
-            { objects, index, objectExample, result ->
-                require(objects != null && result != null)
+                    sizeConstraint && typeConstraint && resultConstraint
+                },
+                { objects, index, objectExample, result ->
+                    require(objects != null && result != null)
 
-                val sizeConstraint = index in 0..2 && objects.size >= index + 2
-                val objectExampleConstraint = objectExample !is CastClassFirstSucc
-                val resultTypeConstraint = result[index] !is CastClassFirstSucc && result[index] !is CastClassSecondSucc
-                val typeConstraint = objectExampleConstraint && resultTypeConstraint
-                val resultConstraint = result[index].x == result[index].foo()
+                    val sizeConstraint = index in 0..2 && objects.size >= index + 2
+                    val objectExampleConstraint = objectExample !is CastClassFirstSucc
+                    val resultTypeConstraint =
+                        result[index] !is CastClassFirstSucc && result[index] !is CastClassSecondSucc
+                    val typeConstraint = objectExampleConstraint && resultTypeConstraint
+                    val resultConstraint = result[index].x == result[index].foo()
 
-                sizeConstraint && typeConstraint && resultConstraint
-            },
-            coverage = DoNotCalculate
-        )
+                    sizeConstraint && typeConstraint && resultConstraint
+                },
+            )
+        }
     }
 
     @Test

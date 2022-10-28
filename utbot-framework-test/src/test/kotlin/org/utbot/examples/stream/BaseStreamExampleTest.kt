@@ -12,7 +12,6 @@ import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
 import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.CodeGeneration
 import java.util.Optional
@@ -31,28 +30,24 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
 ) {
     @Test
     fun testReturningStreamExample() {
-        withoutConcrete {
-            check(
-                BaseStreamExample::returningStreamExample,
-                eq(2),
-                // NOTE: the order of the matchers is important because Stream could be used only once
-                { c, r -> c.isNotEmpty() && c == r!!.toList() },
-                { c, r -> c.isEmpty() && c == r!!.toList() },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
+        check(
+            BaseStreamExample::returningStreamExample,
+            eq(2),
+            // NOTE: the order of the matchers is important because Stream could be used only once
+            { c, r -> c.isNotEmpty() && c == r!!.toList() },
+            { c, r -> c.isEmpty() && c == r!!.toList() },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
     }
 
     @Test
     fun testReturningStreamAsParameterExample() {
-        withoutConcrete {
-            check(
-                BaseStreamExample::returningStreamAsParameterExample,
-                eq(1),
-                { s, r -> s != null && s.toList() == r!!.toList() },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
+        check(
+            BaseStreamExample::returningStreamAsParameterExample,
+            eq(1),
+            { s, r -> s != null && s.toList() == r!!.toList() },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
     }
 
     @Test
@@ -389,16 +384,14 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testStreamOfExample() {
-        withoutConcrete {
-            check(
-                BaseStreamExample::streamOfExample,
-                ignoreExecutionsNumber,
-                // NOTE: the order of the matchers is important because Stream could be used only once
-                { c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
-                { c, r -> c.isEmpty() && Stream.empty<Int>().toArray().contentEquals(r!!.toArray()) },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
+        check(
+            BaseStreamExample::streamOfExample,
+            ignoreExecutionsNumber,
+            // NOTE: the order of the matchers is important because Stream could be used only once
+            { c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
+            { c, r -> c.isEmpty() && Stream.empty<Int>().toArray().contentEquals(r!!.toArray()) },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
     }
 
     @Test

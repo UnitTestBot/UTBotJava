@@ -6,7 +6,7 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.Compilation
 
@@ -24,7 +24,7 @@ internal class ClassWithClassRefTest : UtValueTestCaseChecker(
     // TODO test does not work properly JIRA:1479
     // TODO we don't fail now, but we do not generate correct value as well
     fun testClassRefGetName() {
-        withoutConcrete { // TODO: concrete execution returns "java.lang.Object"
+        withConcrete(useConcreteExecution = false) { // TODO: concrete execution returns "java.lang.Object"
             checkWithThisAndException(
                 ClassWithClassRef::classRefName,
                 eq(2),

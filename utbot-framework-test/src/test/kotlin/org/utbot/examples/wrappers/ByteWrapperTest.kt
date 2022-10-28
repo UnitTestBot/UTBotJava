@@ -4,6 +4,7 @@ import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withConcrete
 
 internal class ByteWrapperTest : UtValueTestCaseChecker(testClass = ByteWrapper::class) {
     @Test
@@ -31,12 +32,14 @@ internal class ByteWrapperTest : UtValueTestCaseChecker(testClass = ByteWrapper:
 
     @Test
     fun equalityTest() {
-        check(
-            ByteWrapper::equality,
-            eq(2),
-            { a, b, result -> a == b && result == 1 },
-            { a, b, result -> a != b && result == 4 },
-            coverage = DoNotCalculate // method under test has unreachable branches because of caching
-        )
+        withConcrete(useConcreteExecution = true) { // Wrappers caches are not supported in symbolic analysis
+            check(
+                ByteWrapper::equality,
+                eq(2),
+                { a, b, result -> a == b && result == 1 },
+                { a, b, result -> a != b && result == 4 },
+                coverage = DoNotCalculate // method under test has unreachable branches because of caching
+            )
+        }
     }
 }

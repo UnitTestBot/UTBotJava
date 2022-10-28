@@ -12,14 +12,13 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
+import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
     @Test
     fun testOrdinal() {
-        withoutConcrete {
-            checkAllCombinations(ClassWithEnum::useOrdinal)
-        }
+        checkAllCombinations(ClassWithEnum::useOrdinal)
     }
 
     @Test
@@ -36,7 +35,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     fun testDifficultIfBranch() {
         check(
             ClassWithEnum::useEnumInDifficultIf,
-            eq(2),
+            ignoreExecutionsNumber,
             { s, r -> s.equals("TRYIF", ignoreCase = true) && r == 1 },
             { s, r -> !s.equals("TRYIF", ignoreCase = true) && r == 2 },
         )
@@ -106,19 +105,21 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
 
     @Test
     fun testChangingStaticWithEnumInit() {
-        checkThisAndStaticsAfter(
-            ClassWithEnum::changingStaticWithEnumInit,
-            eq(1),
-            { t, staticsAfter, r ->
-                // for some reasons x is inaccessible
-                val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
+        withConcrete(useConcreteExecution = true) { // TODO https://github.com/UnitTestBot/UTBotJava/issues/1249
+            checkThisAndStaticsAfter(
+                ClassWithEnum::changingStaticWithEnumInit,
+                eq(1),
+                { t, staticsAfter, r ->
+                    // for some reasons x is inaccessible
+                    val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
 
-                val y = staticsAfter[FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")]!!.value as Int
+                    val y = staticsAfter[FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")]!!.value as Int
 
-                val areStaticsCorrect = x == 1 && y == 11
-                areStaticsCorrect && r == true
-            }
-        )
+                    val areStaticsCorrect = x == 1 && y == 11
+                    areStaticsCorrect && r == true
+                }
+            )
+        }
     }
 
     @Test
@@ -168,7 +169,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
         withPushingStateFromPathSelectorForConcrete {
             check(
                 ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
-                eq(2),
+                ignoreExecutionsNumber,
                 { s, r -> s.equals("SUCCESS", ignoreCase = true) && r == 0 },
                 { s, r -> !s.equals("SUCCESS", ignoreCase = true) && r == 2 },
             )

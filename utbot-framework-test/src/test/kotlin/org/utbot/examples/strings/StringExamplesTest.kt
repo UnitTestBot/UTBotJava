@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.testcheckers.withConcrete
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withoutMinimization
@@ -665,11 +666,13 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     // TODO: This test fails without concrete execution as it uses a symbolic variable
     @Test
     fun testListToString() {
-        check(
-            StringExamples::listToString,
-            eq(1),
-            { r -> r == "[a, b, c]"},
-            coverage = DoNotCalculate
-        )
+        withConcrete(useConcreteExecution = true) {
+            check(
+                StringExamples::listToString,
+                eq(1),
+                { r -> r == "[a, b, c]" },
+                coverage = DoNotCalculate
+            )
+        }
     }
 }

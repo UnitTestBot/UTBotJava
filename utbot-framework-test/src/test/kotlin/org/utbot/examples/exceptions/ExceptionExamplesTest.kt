@@ -7,7 +7,7 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testcheckers.withConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
@@ -75,13 +75,15 @@ internal class ExceptionExamplesTest : UtValueTestCaseChecker(
 
     @Test
     fun testThrowException() {
-        checkWithException(
-            ExceptionExamples::throwException,
-            eq(2),
-            { i, r -> i <= 0 && r.getOrNull() == 101 },
-            { i, r -> i > 0 && r.isException<NullPointerException>() },
-            coverage = atLeast(66) // because of unexpected exception thrown
-        )
+        withConcrete(useConcreteExecution = true) { // native method inside the MUT that throws NPE
+            checkWithException(
+                ExceptionExamples::throwException,
+                eq(2),
+                { i, r -> i <= 0 && r.getOrNull() == 101 },
+                { i, r -> i > 0 && r.isException<NullPointerException>() },
+                coverage = atLeast(66) // because of unexpected exception thrown
+            )
+        }
     }
 
     @Test
@@ -112,16 +114,14 @@ internal class ExceptionExamplesTest : UtValueTestCaseChecker(
      */
     @Test
     fun testCatchExceptionAfterOtherPossibleException() {
-        withoutConcrete {
-            checkWithException(
-                ExceptionExamples::catchExceptionAfterOtherPossibleException,
-                eq(3),
-                { i, r -> i == -1 && r.isException<ArithmeticException>() },
-                { i, r -> i == 0 && r.getOrThrow() == 2 },
-                { i, r -> r.getOrThrow() == 1 },
-                coverage = atLeast(100)
-            )
-        }
+        checkWithException(
+            ExceptionExamples::catchExceptionAfterOtherPossibleException,
+            eq(3),
+            { i, r -> i == -1 && r.isException<ArithmeticException>() },
+            { i, r -> i == 0 && r.getOrThrow() == 2 },
+            { i, r -> r.getOrThrow() == 1 },
+            coverage = atLeast(100)
+        )
     }
 
     /**

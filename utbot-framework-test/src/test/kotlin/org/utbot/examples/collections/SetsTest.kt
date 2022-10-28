@@ -2,14 +2,11 @@ package org.utbot.examples.collections
 
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.AtLeast
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.tests.infrastructure.CodeGeneration
@@ -30,7 +27,7 @@ internal class SetsTest : UtValueTestCaseChecker(
             eq(3),
             { a, _ -> a == null },
             { a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
-            { a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && r.containsAll(a.toList()) },
+            { a, r -> a != null && a.isNotEmpty() && !r.isNullOrEmpty() && r.containsAll(a.toList()) },
         )
     }
 
@@ -92,7 +89,7 @@ internal class SetsTest : UtValueTestCaseChecker(
         val resultFun = { set: Set<Char> -> listOf(' ', '\t', '\r', '\n').intersect(set).size }
         check(
             Sets::removeSpace,
-            ge(3),
+            ignoreExecutionsNumber,
             { set, _ -> set == null },
             { set, res -> ' ' in set && resultFun(set) == res },
             { set, res -> '\t' in set && resultFun(set) == res },
@@ -109,7 +106,7 @@ internal class SetsTest : UtValueTestCaseChecker(
     fun addElementsTest() {
         check(
             Sets::addElements,
-            ge(5),
+            ignoreExecutionsNumber,
             { set, _, _ -> set == null },
             { set, a, _ -> set != null && set.isNotEmpty() && a == null },
             { set, _, r -> set.isEmpty() && r == set },
@@ -124,7 +121,7 @@ internal class SetsTest : UtValueTestCaseChecker(
     fun removeElementsTest() {
         check(
             Sets::removeElements,
-            between(6..8),
+            ignoreExecutionsNumber,
             { set, _, _, _ -> set == null },
             { set, i, j, res -> set != null && i !in set && j !in set && res == -1 },
             { set, i, j, res -> set != null && set.size >= 1 && i !in set && j in set && res == 4 },
@@ -150,7 +147,7 @@ internal class SetsTest : UtValueTestCaseChecker(
         withoutMinimization { // TODO: JIRA:1506
             check(
                 Sets::removeCustomObject,
-                ge(4),
+                ignoreExecutionsNumber,
                 { set, _, _ -> set == null },
                 { set, _, result -> set.isEmpty() && result == 0 },
                 { set, i, result -> set.isNotEmpty() && CustomClass(i) !in set && result == 0 },
@@ -188,7 +185,6 @@ internal class SetsTest : UtValueTestCaseChecker(
                 //TODO: JIRA:1666 -- Engine ignores branches in Wrappers sometimes
                 // TODO: cannot find branch with result == 2
                 // { set, other, result -> !set.containsAll(other) && other.any { it in set } && result == 2 },
-                coverage = DoNotCalculate
             )
         }
     }
@@ -197,7 +193,7 @@ internal class SetsTest : UtValueTestCaseChecker(
     fun testRetainAllElements() {
         check(
             Sets::retainAllElements,
-            ge(4),
+            ignoreExecutionsNumber,
             { set, _, _ -> set == null },
             { set, other, _ -> set != null && other == null },
             { set, other, result -> other.containsAll(set) && result == 1 },
@@ -209,7 +205,7 @@ internal class SetsTest : UtValueTestCaseChecker(
     fun testContainsAllElements() {
         check(
             Sets::containsAllElements,
-            ge(5),
+            ignoreExecutionsNumber,
             { set, _, _ -> set == null },
             { set, other, _ -> set != null && other == null },
             { set, other, result -> set.isEmpty() || other.isEmpty() && result == -1 },
@@ -223,7 +219,7 @@ internal class SetsTest : UtValueTestCaseChecker(
     fun testClearElements() {
         check(
             Sets::clearElements,
-            eq(3),
+            ignoreExecutionsNumber,
             { set, _ -> set == null },
             { set, result -> set.isEmpty() && result == 0 },
             { set, result -> set.isNotEmpty() && result == 1 },
@@ -236,7 +232,7 @@ internal class SetsTest : UtValueTestCaseChecker(
     fun testContainsElement() {
         check(
             Sets::containsElement,
-            between(3..5),
+            ignoreExecutionsNumber,
             { set, _, _ -> set == null },
             { set, i, result -> i !in set && result == 0 },
             { set, i, result -> i in set && result == 1 },

@@ -54,10 +54,10 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testAddToValues() {
         checkWithException(
             MapValues::addToValues,
-            between(2..4),
+            ignoreExecutionsNumber,
             { map, result -> map == null && result.isException<NullPointerException>() },
             { map, result -> map != null && result.isException<UnsupportedOperationException>() },
-            coverage = DoNotCalculate
+            coverage = AtLeast(70) // unreachable return
         )
     }
 
@@ -79,11 +79,10 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testIteratorHasNext() {
         check(
             MapValues::iteratorHasNext,
-            between(3..4),
+            ignoreExecutionsNumber,
             { map, _ -> map == null },
             { map, result -> map.values.isEmpty() && result == 0 },
             { map, result -> map.values.isNotEmpty() && result == map.values.size },
-            coverage = DoNotCalculate
         )
     }
 
@@ -91,7 +90,7 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testIteratorNext() {
         checkWithException(
             MapValues::iteratorNext,
-            between(3..4),
+            ignoreExecutionsNumber,
             { map, result -> map == null && result.isException<NullPointerException>() },
             // We might lose this branch depending on the order of the exploration since
             // we do not register wrappers, and, therefore, do not try to cover all of their branches
@@ -106,7 +105,7 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testIteratorRemove() {
         checkWithException(
             MapValues::iteratorRemove,
-            between(3..4),
+            ignoreExecutionsNumber,
             { map, result -> map == null && result.isException<NullPointerException>() },
             { map, result -> map.values.isEmpty() && result.isException<NoSuchElementException>() },
             // test should work as long as default class for map is LinkedHashMap
@@ -127,7 +126,6 @@ class MapValuesTest : UtValueTestCaseChecker(
 
                 mapContainsAllValuesFromResult && firstValueWasDeleted && keyAssociatedWithFirstValueWasDeleted
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -135,7 +133,7 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testIteratorRemoveOnIndex() {
         checkWithException(
             MapValues::iteratorRemoveOnIndex,
-            ge(5),
+            ignoreExecutionsNumber,
             { _, i, result -> i == 0 && result.isSuccess && result.getOrNull() == null },
             { map, _, result -> map == null && result.isException<NullPointerException>() },
             { map, i, result -> map != null && i < 0 && result.isException<IllegalStateException>() },
@@ -156,7 +154,6 @@ class MapValuesTest : UtValueTestCaseChecker(
 
                 iInIndexRange && mapContainsAllValuesFromResult && ithValueWasDeleted && keyAssociatedWIthIthValueWasDeleted
             },
-            coverage = DoNotCalculate
         )
     }
 
@@ -164,11 +161,10 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testIterateForEach() {
         check(
             MapValues::iterateForEach,
-            between(3..5),
+            ignoreExecutionsNumber,
             { map, _ -> map == null },
             { map, _ -> null in map.values },
             { map, result -> map != null && result == map.values.sum() },
-            coverage = DoNotCalculate
         )
     }
 
@@ -176,11 +172,10 @@ class MapValuesTest : UtValueTestCaseChecker(
     fun testIterateWithIterator() {
         check(
             MapValues::iterateWithIterator,
-            between(3..5),
+            ignoreExecutionsNumber,
             { map, _ -> map == null },
             { map, _ -> null in map.values },
             { map, result -> map != null && result == map.values.sum() },
-            coverage = DoNotCalculate
         )
     }
 }

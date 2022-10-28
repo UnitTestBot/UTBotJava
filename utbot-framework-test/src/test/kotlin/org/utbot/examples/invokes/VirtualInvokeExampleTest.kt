@@ -8,6 +8,7 @@ import org.utbot.tests.infrastructure.isException
 import java.lang.Boolean
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withConcrete
 
 internal class VirtualInvokeExampleTest : UtValueTestCaseChecker(testClass = VirtualInvokeExample::class) {
     @Test
@@ -24,11 +25,13 @@ internal class VirtualInvokeExampleTest : UtValueTestCaseChecker(testClass = Vir
 
     @Test
     fun testVirtualNative() {
-        check(
-            VirtualInvokeExample::virtualNative,
-            eq(1),
-            { r -> r == Boolean::class.java.modifiers }
-        )
+        withConcrete(useConcreteExecution = true) { // native method in the MUT
+            check(
+                VirtualInvokeExample::virtualNative,
+                eq(1),
+                { r -> r == Boolean::class.java.modifiers }
+            )
+        }
     }
 
     @Test

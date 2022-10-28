@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPathSelectorStepsLimit
-import org.utbot.testcheckers.withoutConcrete
 import org.utbot.tests.infrastructure.*
 import java.util.OptionalDouble
 import java.util.OptionalInt
@@ -36,14 +35,12 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testReturningStreamAsParameterExample() {
-        withoutConcrete {
-            check(
-                IntStreamExample::returningStreamAsParameterExample,
-                eq(1),
-                { s, r -> s != null && s.toList() == r!!.toList() },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
+        check(
+            IntStreamExample::returningStreamAsParameterExample,
+            eq(1),
+            { s, r -> s != null && s.toList() == r!!.toList() },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
     }
 
     @Test
@@ -316,41 +313,39 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testSummaryStatisticsExample() {
-        withoutConcrete {
-            check(
-                IntStreamExample::summaryStatisticsExample,
-                ignoreExecutionsNumber,
-                { c, r ->
-                    val sum = r!!.sum
-                    val count = r.count
-                    val min = r.min
-                    val max = r.max
+        check(
+            IntStreamExample::summaryStatisticsExample,
+            ignoreExecutionsNumber,
+            { c, r ->
+                val sum = r!!.sum
+                val count = r.count
+                val min = r.min
+                val max = r.max
 
-                    val allStatisticsAreCorrect = sum == 0L &&
-                            count == 0L &&
-                            min == Int.MAX_VALUE &&
-                            max == Int.MIN_VALUE
+                val allStatisticsAreCorrect = sum == 0L &&
+                        count == 0L &&
+                        min == Int.MAX_VALUE &&
+                        max == Int.MIN_VALUE
 
-                    c.isEmpty() && allStatisticsAreCorrect
-                },
-                { c, r ->
-                    val sum = r!!.sum
-                    val count = r.count
-                    val min = r.min
-                    val max = r.max
+                c.isEmpty() && allStatisticsAreCorrect
+            },
+            { c, r ->
+                val sum = r!!.sum
+                val count = r.count
+                val min = r.min
+                val max = r.max
 
-                    val ints = c.ints()
+                val ints = c.ints()
 
-                    val allStatisticsAreCorrect = sum == ints.sum().toLong() &&
-                            count == ints.size.toLong() &&
-                            min == ints.minOrNull() &&
-                            max == ints.maxOrNull()
+                val allStatisticsAreCorrect = sum == ints.sum().toLong() &&
+                        count == ints.size.toLong() &&
+                        min == ints.minOrNull() &&
+                        max == ints.maxOrNull()
 
-                    c.isNotEmpty() && allStatisticsAreCorrect
-                },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
+                c.isNotEmpty() && allStatisticsAreCorrect
+            },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
     }
 
     @Test
@@ -497,16 +492,14 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testStreamOfExample() {
-        withoutConcrete {
-            check(
-                IntStreamExample::streamOfExample,
-                ignoreExecutionsNumber,
-                // NOTE: the order of the matchers is important because Stream could be used only once
-                { c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
-                { c, r -> c.isEmpty() && IntStream.empty().toArray().contentEquals(r!!.toArray()) },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
-        }
+        check(
+            IntStreamExample::streamOfExample,
+            ignoreExecutionsNumber,
+            // NOTE: the order of the matchers is important because Stream could be used only once
+            { c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
+            { c, r -> c.isEmpty() && IntStream.empty().toArray().contentEquals(r!!.toArray()) },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
     }
 
     @Test

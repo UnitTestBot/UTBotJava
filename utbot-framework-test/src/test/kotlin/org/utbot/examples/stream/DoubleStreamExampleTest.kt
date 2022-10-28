@@ -22,18 +22,6 @@ class DoubleStreamExampleTest : UtValueTestCaseChecker(
     )
 ) {
     @Test
-    fun testReturningStreamExample() {
-        check(
-            DoubleStreamExample::returningStreamExample,
-            ignoreExecutionsNumber,
-            // NOTE: the order of the matchers is important because Stream could be used only once
-            { c, r -> c.isNotEmpty() && c.doubles().contentEquals(r!!.toArray()) },
-            { c, r -> c.isEmpty() && r!!.count() == 0L },
-            coverage = FullWithAssumptions(assumeCallsNumber = 1)
-        )
-    }
-
-    @Test
     fun testReturningStreamAsParameterExample() {
         withoutConcrete {
             check(

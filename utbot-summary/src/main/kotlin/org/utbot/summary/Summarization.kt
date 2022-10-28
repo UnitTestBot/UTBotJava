@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtSandboxFailure
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.jClass
@@ -244,12 +245,13 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 utExecution.summary = testMethodName?.javaDoc
 
                 when (utExecution.result) {
-                    is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtExplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtImplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtOverflowFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtSandboxFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtTimeoutException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtConcreteExecutionFailure,
+                    is UtExplicitlyThrownException,
+                    is UtImplicitlyThrownException,
+                    is UtOverflowFailure,
+                    is UtSandboxFailure,
+                    is UtTimeoutException,
+                    is UtStreamConsumingFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
                     is UtExecutionSuccess -> successfulFuzzerExecutions.add(utExecution)
                 }
             }

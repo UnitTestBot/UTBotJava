@@ -52,7 +52,7 @@ dependencies {
     implementation project(":utbot-framework")
     implementation project(":utbot-analytics")
 
-    implementation "com.github.UnitTestBot:soot:${sootCommitHash}"
+    implementation "org.unittestbot.soot:soot-utbot-fork:${sootVersion}"
     implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.2'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'

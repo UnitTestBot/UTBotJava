@@ -20,19 +20,6 @@ import java.util.stream.LongStream;
 
 @SuppressWarnings("IfStatementWithIdenticalBranches")
 public class LongStreamExample {
-    LongStream returningStreamExample(List<Short> list) {
-        UtMock.assume(list != null);
-
-        final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
-        final LongStream longs = list.stream().mapToLong(shortToLongFunction);
-
-        if (list.isEmpty()) {
-            return longs;
-        } else {
-            return longs;
-        }
-    }
-
     LongStream returningStreamAsParameterExample(LongStream s) {
         UtMock.assume(s != null);
 

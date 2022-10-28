@@ -17,6 +17,7 @@ import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManage
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.Suitable
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.model.constructor.util.arrayInitializer
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.isUtil
@@ -611,6 +612,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 mapsDeepEqualsMethodId,
                 hasCustomEqualsMethodId,
                 getArrayLengthMethodId,
+                consumeBaseStreamMethodId,
                 getLambdaCapturedArgumentTypesMethodId,
                 getLambdaCapturedArgumentValuesMethodId,
                 getInstantiatedMethodTypeMethodId,

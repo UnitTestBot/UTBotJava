@@ -23,6 +23,8 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
@@ -189,7 +191,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
                 utModelConstructor.run {
                     val concreteUtModelResult = concreteResult.fold({
-                        UtExecutionSuccess(construct(it, returnClassId))
+                        try {
+                            val model = construct(it, returnClassId)
+                            UtExecutionSuccess(model)
+                        } catch (e: Exception) {
+                            processExceptionDuringModelConstruction(e)
+                        }
                     }) {
                         sortOutException(it)
                     }
@@ -229,6 +236,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             concreteExecutionResult
         }
     }
+
+    private fun processExceptionDuringModelConstruction(e: Exception): UtExecutionResult =
+        when (e) {
+            is UtStreamConsumingException -> UtStreamConsumingFailure(e)
+            else -> throw e
+        }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->

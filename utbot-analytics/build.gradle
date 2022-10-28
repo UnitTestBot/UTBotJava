@@ -14,7 +14,7 @@ dependencies {
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4Version
 
-    implementation "com.github.UnitTestBot:soot:${sootCommitHash}"
+    implementation "org.unittestbot.soot:soot-utbot-fork:${sootVersion}"
     implementation group: 'com.github.haifengl', name: 'smile-kotlin', version: '2.6.0'
     implementation group: 'com.github.haifengl', name: 'smile-plot', version: '2.6.0'
     implementation group: 'com.github.haifengl', name: 'smile-core', version: '2.6.0'

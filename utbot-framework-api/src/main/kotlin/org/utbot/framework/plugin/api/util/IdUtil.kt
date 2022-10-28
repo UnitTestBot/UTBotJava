@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
@@ -114,12 +115,20 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
     // unwrap primitive wrappers
     val left = primitiveByWrapper[this] ?: this
     val right = primitiveByWrapper[type] ?: type
+
     if (left == right) {
         return true
     }
+
     val leftClass = this
+    val superTypes = leftClass.allSuperTypes()
+
+    return right in superTypes
+}
+
+fun ClassId.allSuperTypes(): Sequence<ClassId> {
     val interfaces = sequence {
-        var types = listOf(leftClass)
+        var types = listOf(this@allSuperTypes)
         while (types.isNotEmpty()) {
             yieldAll(types)
             types = types
@@ -127,9 +136,10 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
                 .map { it.id }
         }
     }
-    val superclasses = generateSequence(leftClass) { it.superclass?.id }
-    val superTypes = interfaces + superclasses
-    return right in superTypes
+
+    val superclasses = generateSequence(this) { it.superclass?.id }
+
+    return interfaces + superclasses
 }
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)
@@ -266,6 +276,17 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
+
+val baseStreamClassId = java.util.stream.BaseStream::class.id
+val streamClassId = java.util.stream.Stream::class.id
+val intStreamClassId = java.util.stream.IntStream::class.id
+val longStreamClassId = java.util.stream.LongStream::class.id
+val doubleStreamClassId = java.util.stream.DoubleStream::class.id
+
+val intStreamToArrayMethodId = methodId(intStreamClassId, "toArray", intArrayClassId)
+val longStreamToArrayMethodId = methodId(longStreamClassId, "toArray", longArrayClassId)
+val doubleStreamToArrayMethodId = methodId(doubleStreamClassId, "toArray", doubleArrayClassId)
+val streamToArrayMethodId = methodId(streamClassId, "toArray", objectArrayClassId)
 
 val dateClassId = java.util.Date::class.id
 

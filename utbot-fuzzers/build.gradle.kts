@@ -1,5 +1,9 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
+val sootVersion: String by rootProject
+val kotlinLoggingVersion: String by rootProject
+val rgxgenVersion: String by rootProject
+
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
@@ -11,14 +15,10 @@ tasks {
     }
 }
 
-val sootCommitHash: String by rootProject
-val kotlinLoggingVersion: String by rootProject
-val rgxgenVersion: String by rootProject
-
 dependencies {
     implementation(project(":utbot-framework-api"))
 
-    implementation("com.github.UnitTestBot:soot:${sootCommitHash}")
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}")
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "com.github.curious-odd-man", name = "rgxgen", version = rgxgenVersion)
 }

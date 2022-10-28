@@ -3,6 +3,7 @@ package org.utbot.engine.overrides.stream;
 import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException;
 
 import java.util.DoubleSummaryStatistics;
 import java.util.NoSuchElementException;
@@ -122,8 +123,13 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         int j = 0;
         for (int i = 0; i < size; i++) {
             double element = elementData.get(i);
-            if (predicate.test(element)) {
-                filtered[j++] = element;
+
+            try {
+                if (predicate.test(element)) {
+                    filtered[j++] = element;
+                }
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
             }
         }
 
@@ -137,7 +143,11 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         int size = elementData.end;
         Double[] mapped = new Double[size];
         for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsDouble(elementData.get(i));
+            try {
+                mapped[i] = mapper.applyAsDouble(elementData.get(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtDoubleStream(mapped, size);
@@ -153,7 +163,11 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         int size = elementData.end;
         Object[] mapped = new Object[size];
         for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.apply(elementData.get(i));
+            try {
+                mapped[i] = mapper.apply(elementData.get(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtStream<>((U[]) mapped, size);
@@ -166,7 +180,11 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         int size = elementData.end;
         Integer[] mapped = new Integer[size];
         for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsInt(elementData.get(i));
+            try {
+                mapped[i] = mapper.applyAsInt(elementData.get(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtIntStream(mapped, size);
@@ -179,7 +197,11 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         int size = elementData.end;
         Long[] mapped = new Long[size];
         for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsLong(elementData.get(i));
+            try {
+                mapped[i] = mapper.applyAsLong(elementData.get(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtLongStream(mapped, size);
@@ -256,7 +278,11 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
         int size = elementData.end;
         for (int i = 0; i < size; i++) {
-            action.accept(elementData.get(i));
+            try {
+                action.accept(elementData.get(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         // returned stream should be opened, so we "reopen" this stream to return it
@@ -315,13 +341,16 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     public void forEach(DoubleConsumer action) {
-        peek(action);
+        try {
+            peek(action);
+        } catch (UtStreamConsumingException e) {
+            // Since this is a terminal operation, we should throw an original exception
+        }
     }
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     public void forEachOrdered(DoubleConsumer action) {
-        peek(action);
+        forEach(action);
     }
 
     @Override

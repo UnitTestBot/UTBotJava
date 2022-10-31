@@ -194,7 +194,7 @@ class ValueConstructor {
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
             // Python, JavaScript are supposed to be here as well
-            else -> UtConcreteValue(null, model.classId.jClass)
+            else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
         }
     }
 

@@ -11,7 +11,7 @@ import org.utbot.cli.getVersion
 import org.utbot.cli.setVerbosity
 import kotlin.system.exitProcess
 
-class UtBotCli : CliktCommand(name = "UnitTestBot JavaScript Command Line Interface") {
+class UtBotJsCli : CliktCommand(name = "UnitTestBot JavaScript Command Line Interface") {
     private val verbosity by option("--verbosity", help = "Changes verbosity level, case insensitive")
         .enum<Level>(ignoreCase = true)
         .default(Level.INFO)
@@ -24,7 +24,7 @@ class UtBotCli : CliktCommand(name = "UnitTestBot JavaScript Command Line Interf
 }
 
 fun main(args: Array<String>) = try {
-    UtBotCli().subcommands(
+    UtBotJsCli().subcommands(
         JsCoverageCommand(),
         JsGenerateTestsCommand(),
         JsRunTestsCommand(),

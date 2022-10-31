@@ -1,4 +1,3 @@
-val sootCommitHash:String by rootProject
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
@@ -38,5 +37,4 @@ dependencies {
     implementation("org.functionaljava:functionaljava-quickcheck:5.0")
     implementation("org.functionaljava:functionaljava-java-core:5.0")
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
-    implementation ("com.github.UnitTestBot:soot:${sootCommitHash}")
 }

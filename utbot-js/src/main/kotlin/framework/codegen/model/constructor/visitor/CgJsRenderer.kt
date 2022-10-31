@@ -28,6 +28,9 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
     override val langPackage: String = "js"
 
+    override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
+        get() = false
+
     override fun visit(element: CgErrorWrapper) {
         element.expression.accept(this)
         print("alert(\"${element.message}\")")

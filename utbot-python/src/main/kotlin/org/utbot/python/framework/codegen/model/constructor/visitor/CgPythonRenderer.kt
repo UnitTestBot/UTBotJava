@@ -35,6 +35,9 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override val langPackage: String = "python"
 
+    override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
+        get() = false
+
     override fun visit(element: CgTestClassFile) {
         renderClassFileImports(element)
 

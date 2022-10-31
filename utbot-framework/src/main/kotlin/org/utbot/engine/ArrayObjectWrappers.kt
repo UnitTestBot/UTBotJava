@@ -501,7 +501,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             stores = (0 until sizeValue).associateWithTo(mutableMapOf()) { i ->
                 resolver.resolveModel(
                     ObjectValue(
-                        TypeStorage(OBJECT_TYPE),
+                        TypeStorage.constructTypeStorageWithSingleType(OBJECT_TYPE),
                         UtAddrExpression(touchedArrayExpression.select(mkInt(i)))
                     )
                 )
@@ -527,7 +527,7 @@ class AssociativeArrayWrapper : WrapperInterface {
                 val addr = model.getIdOrThrow()
                 addr to resolver.resolveModel(
                     ObjectValue(
-                        TypeStorage(OBJECT_TYPE),
+                        TypeStorage.constructTypeStorageWithSingleType(OBJECT_TYPE),
                         UtAddrExpression(storageArrayExpression.select(mkInt(addr)))
                     )
                 )

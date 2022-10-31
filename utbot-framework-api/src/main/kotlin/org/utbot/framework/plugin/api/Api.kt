@@ -1271,10 +1271,12 @@ enum class CodegenLanguage(
                 "-d", buildDirectory,
                 "-cp", classPath,
                 "-XDignore.symbol.file", // to let javac use classes from rt.jar
-                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED"
+                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
+                "--add-exports", "java.base/sun.text=ALL-UNNAMED",
             ).plus(sourcesFiles)
 
-            KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
+            // TODO: -Xskip-prerelease-check is needed to handle #1262, check if this is good enough solution
+            KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath, "-Xskip-prerelease-check").plus(sourcesFiles)
         }
         if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {
             throw RuntimeException("'KOTLIN_HOME' environment variable is not defined. Standard location is {IDEA installation dir}/plugins/Kotlin/kotlinc")

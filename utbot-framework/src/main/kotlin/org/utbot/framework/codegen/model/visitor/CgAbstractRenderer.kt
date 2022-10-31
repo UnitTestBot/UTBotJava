@@ -130,8 +130,13 @@ abstract class CgAbstractRenderer(
         }
     }
 
+    /**
+     * Returns true if one can call methods of this class without specifying a caller (for example if ClassId represents this instance)
+     */
+    protected abstract val ClassId.methodsAreAccessibleAsTopLevel: Boolean
+
     private val MethodId.accessibleByName: Boolean
-        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.generatedClass
+        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId.methodsAreAccessibleAsTopLevel
 
     override fun visit(element: CgElement) {
         val error =
@@ -655,8 +660,10 @@ abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgStaticFieldAccess) {
-        print(element.declaringClass.asString())
-        print(".")
+        if (!element.declaringClass.methodsAreAccessibleAsTopLevel) {
+            print(element.declaringClass.asString())
+            print(".")
+        }
         print(element.fieldName)
     }
 
@@ -708,7 +715,10 @@ abstract class CgAbstractRenderer(
         if (caller != null) {
             // 'this' can be omitted, otherwise render caller
             if (caller !is CgThisInstance) {
+                // TODO: we need parentheses for calls like (-1).inv(), do something smarter here
+                if (caller !is CgVariable) print("(")
                 caller.accept(this)
+                if (caller !is CgVariable) print(")")
                 renderAccess(caller)
             }
         } else {

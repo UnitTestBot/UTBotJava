@@ -21,16 +21,6 @@ import java.util.stream.Stream;
 
 @SuppressWarnings({"IfStatementWithIdenticalBranches", "RedundantOperationOnEmptyContainer"})
 public class BaseStreamExample {
-    Stream<Integer> returningStreamExample(List<Integer> list) {
-        UtMock.assume(list != null);
-
-        if (list.isEmpty()) {
-            return list.stream();
-        } else {
-            return list.stream();
-        }
-    }
-
     Stream<Integer> returningStreamAsParameterExample(Stream<Integer> s) {
         UtMock.assume(s != null);
         return s;

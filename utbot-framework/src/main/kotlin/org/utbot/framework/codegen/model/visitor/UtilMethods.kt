@@ -65,6 +65,7 @@ internal fun UtilMethodProvider.utilMethodTextById(
             mapsDeepEqualsMethodId -> mapsDeepEquals(visibility, codegenLanguage)
             hasCustomEqualsMethodId -> hasCustomEquals(visibility, codegenLanguage)
             getArrayLengthMethodId -> getArrayLength(visibility, codegenLanguage)
+            consumeBaseStreamMethodId -> consumeBaseStream(visibility, codegenLanguage)
             buildStaticLambdaMethodId -> buildStaticLambda(visibility, codegenLanguage)
             buildLambdaMethodId -> buildLambda(visibility, codegenLanguage)
             // the following methods are used only by other util methods, so they can always be private
@@ -828,6 +829,23 @@ private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
             """.trimIndent()
     }
 
+private fun consumeBaseStream(visibility: Visibility, language: CodegenLanguage) =
+    when (language) {
+        CodegenLanguage.JAVA ->
+            """
+                ${visibility by language}static void consumeBaseStream(java.util.stream.BaseStream stream) {
+                    stream.iterator().forEachRemaining(value -> {});
+                }
+            """.trimIndent()
+        CodegenLanguage.KOTLIN -> {
+            """
+                ${visibility by language}fun consumeBaseStream(stream: java.util.stream.BaseStream<*, *>) {
+                    stream.iterator().forEachRemaining {}
+                }
+            """.trimIndent()
+        }
+    }
+
 private fun buildStaticLambda(visibility: Visibility, language: CodegenLanguage) =
     when (language) {
         CodegenLanguage.JAVA ->
@@ -1381,6 +1399,7 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
         }
         hasCustomEqualsMethodId -> emptyList()
         getArrayLengthMethodId -> listOf(java.lang.reflect.Array::class.id)
+        consumeBaseStreamMethodId -> listOf(java.util.stream.BaseStream::class.id)
         buildStaticLambdaMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(
                 MethodHandles::class.id, Method::class.id, MethodType::class.id,

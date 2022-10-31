@@ -57,6 +57,7 @@ import org.utbot.framework.plugin.api.util.isProtected
 import org.utbot.framework.plugin.api.util.isPublic
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isKotlinFile
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.kClass
@@ -73,6 +74,10 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         get() = "or"
 
     override val langPackage: String = "kotlin"
+
+    override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
+        // NB: the order of operands is important as `isKotlinFile` uses reflection and thus can't be called on context.generatedClass
+        get() = (this == context.generatedClass) || isKotlinFile
 
     override fun visit(element: AbstractCgClass<*>) {
         for (annotation in element.annotations) {

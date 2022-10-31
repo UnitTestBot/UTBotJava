@@ -122,8 +122,8 @@ open class CodeGenerator(
  */
 data class CodeGeneratorResult(
     val generatedCode: String,
-    // null if no util class needed, e.g. when we are generating utils directly into test class
     val testsGenerationReport: TestsGenerationReport,
+    // null if no util class needed, e.g. when we are generating utils directly into test class
     val utilClassKind: UtilClassKind? = null,
 )
 

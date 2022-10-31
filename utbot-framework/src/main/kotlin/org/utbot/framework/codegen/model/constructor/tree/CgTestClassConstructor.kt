@@ -34,6 +34,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -206,18 +207,35 @@ open class CgTestClassConstructor(val context: CgContext) :
             )
         }
 
+        regions += CgSimpleRegion(
+            "Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
+            collectAdditionalTestsForParameterizedMode(testSet),
+        )
+    }
+
+    private fun collectAdditionalTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+        val (methodUnderTest, _, _, _) = testSet
+        val testCaseTestMethods = mutableListOf<CgTestMethod>()
+
         // We cannot track mocking in fuzzed executions,
         // so we generate standard tests for each [UtFuzzedExecution].
         // [https://github.com/UnitTestBot/UTBotJava/issues/1137]
-        val testCaseTestMethods = mutableListOf<CgTestMethod>()
-        for (execution in testSet.executions.filterIsInstance<UtFuzzedExecution>()) {
-            testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
-        }
+        testSet.executions
+            .filterIsInstance<UtFuzzedExecution>()
+            .forEach { execution ->
+                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+            }
 
-        regions += CgSimpleRegion(
-            "FUZZER: EXECUTIONS for method ${methodUnderTest.humanReadableName}",
-            testCaseTestMethods,
-        )
+        // Also, we generate standard tests for symbolic executions with force mocking.
+        // [https://github.com/UnitTestBot/UTBotJava/issues/1231]
+        testSet.executions
+            .filterIsInstance<UtSymbolicExecution>()
+            .filter { it.containsMocking }
+            .forEach { execution ->
+                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+            }
+
+        return testCaseTestMethods
     }
 
     /**

@@ -13,7 +13,7 @@ val pythonUltimatePluginVersion: String? by rootProject
 val pythonIde: String? by rootProject
 val jsIde: String? by rootProject
 
-val sootCommitHash: String? by rootProject
+val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
@@ -90,7 +90,6 @@ tasks {
 }
 
 dependencies {
-//    implementation("com.github.UnitTestBot:soot:${sootCommitHash}")
     implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
     implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
     implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
@@ -104,7 +103,7 @@ dependencies {
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
     testApi(project(":utbot-framework"))
-    
+
     implementation(project(":utbot-ui-commons"))
 
     //Family

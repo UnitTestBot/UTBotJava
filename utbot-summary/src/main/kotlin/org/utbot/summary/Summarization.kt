@@ -23,15 +23,6 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtSandboxFailure
-import org.utbot.framework.plugin.api.UtStreamConsumingFailure
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -70,7 +61,10 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
 }
 
 fun UtMethodTestSet.summarize(searchDirectory: Path): UtMethodTestSet =
-    this.summarize(Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory), searchDirectory)
+    this.summarize(
+        Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory),
+        searchDirectory
+    )
 
 
 class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
@@ -219,9 +213,8 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         testSet: UtMethodTestSet
     ): List<UtExecutionCluster> {
         val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
-        val executionsProducedByFuzzer = testSet.executions.filterIsInstance<UtFuzzedExecution>()
-        val successfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
-        val unsuccessfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
+        val testSetWithFuzzedExecutions = prepareTestSetWithFuzzedExecutions(testSet)
+        val executionsProducedByFuzzer = testSetWithFuzzedExecutions.executions as List<UtFuzzedExecution>
 
         if (executionsProducedByFuzzer.isNotEmpty()) {
             executionsProducedByFuzzer.forEach { utExecution ->
@@ -236,44 +229,21 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                         )
                     }.firstOrNull()
                 } catch (t: Throwable) {
-                    logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behavoiur
+                    logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behaviour
                     null
                 }
-
                 utExecution.testMethodName = testMethodName?.testName
                 utExecution.displayName = testMethodName?.displayName
                 utExecution.summary = testMethodName?.javaDoc
-
-                when (utExecution.result) {
-                    is UtConcreteExecutionFailure,
-                    is UtExplicitlyThrownException,
-                    is UtImplicitlyThrownException,
-                    is UtOverflowFailure,
-                    is UtSandboxFailure,
-                    is UtTimeoutException,
-                    is UtStreamConsumingFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtExecutionSuccess -> successfulFuzzerExecutions.add(utExecution)
-                }
             }
 
-            if (successfulFuzzerExecutions.isNotEmpty()) {
-                val clusterHeader = buildFuzzerClusterHeaderForSuccessfulExecutions(testSet)
+            val clusteredExecutions = groupFuzzedExecutions(testSetWithFuzzedExecutions)
 
+            clusteredExecutions.forEach {
                 clustersToReturn.add(
                     UtExecutionCluster(
-                        UtClusterInfo(clusterHeader, null),
-                        successfulFuzzerExecutions
-                    )
-                )
-            }
-
-            if (unsuccessfulFuzzerExecutions.isNotEmpty()) {
-                val clusterHeader = buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet)
-
-                clustersToReturn.add(
-                    UtExecutionCluster(
-                        UtClusterInfo(clusterHeader, null),
-                        unsuccessfulFuzzerExecutions
+                        UtClusterInfo(it.header),
+                        it.executions
                     )
                 )
             }
@@ -282,25 +252,24 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         return clustersToReturn.toList()
     }
 
-    private fun buildFuzzerClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {
-        val commentPrefix = "FUZZER:"
-        val commentPostfix = "for method ${testSet.method.humanReadableName}"
-
-        return "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix"
-    }
-
-    private fun buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet: UtMethodTestSet): String {
-        val commentPrefix = "FUZZER:"
-        val commentPostfix = "for method ${testSet.method.humanReadableName}"
-
-        return "$commentPrefix ${ExecutionGroup.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS} $commentPostfix"
-    }
-
     /** Filter and copies executions with non-empty paths. */
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {
         val executions =
             testSet.executions.filterIsInstance<UtSymbolicExecution>()
                 .filter { it.path.isNotEmpty() }
+
+        return UtMethodTestSet(
+            method = testSet.method,
+            executions = executions,
+            jimpleBody = testSet.jimpleBody,
+            errors = testSet.errors,
+            clustersInfo = testSet.clustersInfo
+        )
+    }
+
+    /** Filter and copies fuzzed executions. */
+    private fun prepareTestSetWithFuzzedExecutions(testSet: UtMethodTestSet): UtMethodTestSet {
+        val executions = testSet.executions.filterIsInstance<UtFuzzedExecution>()
 
         return UtMethodTestSet(
             method = testSet.method,

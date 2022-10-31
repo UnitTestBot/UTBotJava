@@ -15,7 +15,9 @@ dependencies {
     api(project(":utbot-rd"))
     implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
     implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}")
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+        exclude(group="com.google.guava", module="guava")
+    }
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     // TODO do we really need apache commons?
     implementation(group = "org.apache.commons", name = "commons-lang3", version = commonsLangVersion)

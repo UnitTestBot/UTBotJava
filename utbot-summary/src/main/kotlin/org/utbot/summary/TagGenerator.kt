@@ -92,14 +92,7 @@ private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSt
 /**
  * Splits executions with empty paths into clusters.
  *
- * By default, there is 5 types of clusters:
- * - Success
- * - UnexpectedFail
- * - ExpectedCheckedThrow
- * - ExpectedUncheckedThrow
- * - UnexpectedUncheckedThrow
- *
- * @return clustered executions
+ * @return clustered executions.
  */
 fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
@@ -124,14 +117,7 @@ fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionClust
 /**
  * Splits fuzzed executions into clusters.
  *
- * By default, there is 5 types of clusters:
- * - Success
- * - UnexpectedFail
- * - ExpectedCheckedThrow
- * - ExpectedUncheckedThrow
- * - UnexpectedUncheckedThrow
- *
- * @return clustered executions
+ * @return clustered executions.
  */
 fun groupFuzzedExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtFuzzedExecution>()
@@ -154,19 +140,12 @@ fun groupFuzzedExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
 }
 
 /**
- * Splits symbolic executions produced by symbolic execution engine into clusters.
+ * Splits symbolic executions into clusters.
  *
- * By default, there is 5 types of clusters:
- * - Success
- * - UnexpectedFail
- * - ExpectedCheckedThrow
- * - ExpectedUncheckedThrow
- * - UnexpectedUncheckedThrow
+ * If Success cluster has more than [MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING] execution
+ * then clustering algorithm splits those into more clusters.
  *
- * If Success cluster has more than MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING execution
- * then clustering algorithm splits those into more clusters
- *
- * @return clustered executions
+ * @return clustered executions.
  */
 private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()

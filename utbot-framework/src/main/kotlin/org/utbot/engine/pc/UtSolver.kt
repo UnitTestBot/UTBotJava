@@ -8,7 +8,7 @@ import org.utbot.common.md5
 import org.utbot.common.trace
 import org.utbot.engine.Eq
 import org.utbot.engine.PrimitiveValue
-import org.utbot.engine.TypeRegistry
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
 import org.utbot.engine.pc.UtSolverStatusKind.UNKNOWN
 import org.utbot.engine.pc.UtSolverStatusKind.UNSAT

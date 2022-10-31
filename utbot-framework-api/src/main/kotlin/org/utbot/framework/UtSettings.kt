@@ -395,6 +395,35 @@ object UtSettings : AbstractSettings(
      * therefore, you will be unable to test UtBot classes.
      */
     var removeUtBotClassesFromHierarchy by getBooleanProperty(true)
+
+    /**
+     * Use this option to enable calculation and logging of MD5 for dropped states by statistics.
+     * Example of such logging:
+     *     Dropping state (lastStatus=UNDEFINED) by the distance statistics. MD5: 5d0bccc242e87d53578ca0ef64aa5864
+     *
+     * Default value is false.
+     */
+    var enableLoggingForDroppedStates by getBooleanProperty(false)
+
+    /**
+     * If this option set in true, depending on the number of possible types for
+     * a particular object will be used either type system based on conjunction
+     * or on bit vectors.
+     *
+     * @see useBitVecBasedTypeSystem
+     */
+    var useBitVecBasedTypeSystem by getBooleanProperty(true)
+
+    /**
+     * The number of types on which the choice of the type system depends.
+     */
+    var maxTypeNumberForEnumeration by getIntProperty(64)
+
+    /**
+     * The threshold for numbers of types for which they will be encoded into solver.
+     * It is used to do not encode big type storages due to significand performance degradation.
+     */
+    var maxNumberOfTypesToEncode by getIntProperty(512)
 }
 
 /**

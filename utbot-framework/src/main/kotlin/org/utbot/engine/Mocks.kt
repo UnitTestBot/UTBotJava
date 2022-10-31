@@ -18,6 +18,7 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
 import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
+import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.util.isInaccessibleViaReflection
 import soot.BooleanType
@@ -25,7 +26,6 @@ import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
-import kotlin.reflect.KFunction4
 
 /**
  * Generates mock with address provided.

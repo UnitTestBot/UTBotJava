@@ -3,6 +3,7 @@ package org.utbot.framework.plugin.api.util
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import java.lang.reflect.Modifier
 
 class ModifierFactory private constructor(
@@ -76,6 +77,9 @@ val ExecutableId.isPackagePrivate: Boolean
 
 val ExecutableId.isAbstract: Boolean
     get() = Modifier.isAbstract(modifiers)
+
+val ExecutableId.isSynthetic: Boolean
+    get() = (this is MethodId) && method.isSynthetic
 
 // FieldIds
 

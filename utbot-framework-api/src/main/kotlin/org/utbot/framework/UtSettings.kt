@@ -3,6 +3,7 @@ package org.utbot.framework
 import com.jetbrains.rd.util.LogLevel
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
+import java.lang.reflect.Executable
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -361,9 +362,9 @@ object UtSettings : AbstractSettings(
     var singleSelector by getBooleanProperty(true)
 
     /**
-     * Flag that indicates whether tests for synthetic methods (values, valueOf in enums) should be generated, or not
+     * Flag that indicates whether tests for synthetic (see [Executable.isSynthetic]) and implicitly declared methods (like values, valueOf in enums) should be generated, or not
      */
-    var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
+    var skipTestGenerationForSyntheticAndImplicitlyDeclaredMethods by getBooleanProperty(true)
 
     /**
      * Flag that indicates whether should we branch on and set static fields from trusted libraries or not.
@@ -382,6 +383,18 @@ object UtSettings : AbstractSettings(
      * and test generation.
      */
     var useSandbox by getBooleanProperty(true)
+
+    /**
+     * If this options set in true, all soot classes will be removed from a Soot Scene,
+     * therefore, you will be unable to test soot classes.
+     */
+    var removeSootClassesFromHierarchy by getBooleanProperty(true)
+
+    /**
+     * If this options set in true, all UtBot classes will be removed from a Soot Scene,
+     * therefore, you will be unable to test UtBot classes.
+     */
+    var removeUtBotClassesFromHierarchy by getBooleanProperty(true)
 }
 
 /**

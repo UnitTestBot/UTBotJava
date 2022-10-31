@@ -10,6 +10,7 @@ import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtSandboxFailure
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.isCheckedException
@@ -186,6 +187,7 @@ private fun UtExecutionResult.clusterKind() = when (this) {
     is UtExecutionSuccess -> ExecutionGroup.SUCCESSFUL_EXECUTIONS
     is UtImplicitlyThrownException -> if (this.exception.isCheckedException) ExecutionGroup.CHECKED_EXCEPTIONS else ExecutionGroup.ERROR_SUITE
     is UtExplicitlyThrownException -> if (this.exception.isCheckedException) ExecutionGroup.CHECKED_EXCEPTIONS else ExecutionGroup.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS
+    is UtStreamConsumingFailure -> ExecutionGroup.ERROR_SUITE
     is UtOverflowFailure -> ExecutionGroup.OVERFLOWS
     is UtTimeoutException -> ExecutionGroup.TIMEOUTS
     is UtConcreteExecutionFailure -> ExecutionGroup.CRASH_SUITE

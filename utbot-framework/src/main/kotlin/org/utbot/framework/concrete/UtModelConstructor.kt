@@ -14,6 +14,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -33,6 +34,7 @@ import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.framework.util.valueToClassId
 import java.lang.reflect.Modifier
 import java.util.IdentityHashMap
+import java.util.stream.BaseStream
 
 /**
  * Represents common interface for model constructors.
@@ -111,6 +113,7 @@ class UtModelConstructor(
             is Array<*> -> constructFromArray(value)
             is Enum<*> -> constructFromEnum(value)
             is Class<*> -> constructFromClass(value)
+            is BaseStream<*, *> -> constructFromStream(value)
             else -> constructFromAny(value)
         }
     }
@@ -237,6 +240,22 @@ class UtModelConstructor(
             System.err.println("ClassRef: $clazz \t\tClassloader: ${clazz.classLoader}")
             constructedObjects[clazz] = utModel
             utModel
+        }
+
+    private fun constructFromStream(stream: BaseStream<*, *>): UtModel =
+        constructedObjects.getOrElse(stream) {
+            val streamConstructor = findStreamConstructor(stream)
+
+            try {
+                streamConstructor.constructAssembleModel(this, stream, valueToClassId(stream), handleId(stream)) {
+                    constructedObjects[stream] = it
+                }
+            } catch (e: Exception) {
+                // An exception occurs during consuming of the stream -
+                // remove the constructed object and throw this exception as a result
+                constructedObjects.remove(stream)
+                throw UtStreamConsumingException(e)
+            }
         }
 
     /**

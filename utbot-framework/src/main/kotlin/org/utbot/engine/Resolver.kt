@@ -90,6 +90,8 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -370,6 +372,12 @@ class Resolver(
      */
     private fun SymbolicFailure.resolve(): UtExecutionFailure {
         val exception = concreteException()
+
+        if (exception is UtStreamConsumingException) {
+            // This exception is artificial and is not really thrown
+            return UtStreamConsumingFailure(exception)
+        }
+
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
@@ -427,7 +435,7 @@ class Resolver(
         // if the value is Object, we have to construct array or an object depending on the number of dimensions
         // it is possible if we had an object and we casted it into array
         val constructedType = holder.constructTypeOrNull(value.addr, value.type) ?: return UtNullModel(value.type.id)
-        val typeStorage = TypeStorage(constructedType)
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(constructedType)
 
         return if (constructedType is ArrayType) {
             constructArrayModel(ArrayValue(typeStorage, value.addr))
@@ -1034,7 +1042,9 @@ class Resolver(
         val constructedType = holder.constructTypeOrNull(addr, defaultType) ?: return UtNullModel(defaultType.id)
 
         if (defaultType.isJavaLangObject() && constructedType is ArrayType) {
-            return constructArrayModel(ArrayValue(TypeStorage(constructedType), addr))
+            val typeStorage = TypeStorage.constructTypeStorageWithSingleType(constructedType)
+            val arrayValue = ArrayValue(typeStorage, addr)
+            return constructArrayModel(arrayValue)
         } else {
             val concreteType = typeResolver.findAnyConcreteInheritorIncludingOrDefault(
                 constructedType as RefType,

@@ -21,19 +21,6 @@ import java.util.stream.LongStream;
 
 @SuppressWarnings("IfStatementWithIdenticalBranches")
 public class IntStreamExample {
-    IntStream returningStreamExample(List<Short> list) {
-        UtMock.assume(list != null);
-
-        final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
-        final IntStream ints = list.stream().mapToInt(shortToIntFunction);
-
-        if (list.isEmpty()) {
-            return ints;
-        } else {
-            return ints;
-        }
-    }
-
     IntStream returningStreamAsParameterExample(IntStream s) {
         UtMock.assume(s != null);
 

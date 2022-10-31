@@ -10,9 +10,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.JavaProjectModelModificationService
@@ -423,12 +423,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         return null
     }
 
+    private fun VirtualFile.toRealFile():VirtualFile = if (this is FakeVirtualFile)  this.parent else this
+
     override fun doValidate(): ValidationInfo? {
         val testRoot = getTestRoot()
             ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
 
-        if (!model.project.isBuildWithGradle && findReadOnlyContentEntry(testRoot) == null) {
-            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+        if (!model.project.isBuildWithGradle && ModuleUtil.findModuleForFile(testRoot.toRealFile(), model.project) == null) {
+            return ValidationInfo("Test source root is located out of any module", testSourceFolderField.childComponent)
         }
 
         membersTable.tableHeader?.background = UIUtil.getTableBackground()
@@ -605,16 +607,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "Test source root is not configured or is located out of content entry!",
             "Generation error"
         )
-
-    private fun findReadOnlyContentEntry(testSourceRoot: VirtualFile?): ContentEntry? {
-        if (testSourceRoot == null) return null
-        if (testSourceRoot is FakeVirtualFile) {
-            return findReadOnlyContentEntry(testSourceRoot.parent)
-        }
-        return ModuleRootManager.getInstance(model.testModule).contentEntries
-            .filterNot { it.file == null }
-            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
-    }
 
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
         val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel

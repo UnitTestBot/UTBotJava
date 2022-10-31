@@ -16,14 +16,14 @@ object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val testAnnotation = ""
     override val testAnnotationFqn = ""
 
-    override val parameterizedTestAnnotation =
-        throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val parameterizedTestAnnotationFqn =
-        throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val methodSourceAnnotation =
-        throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
-    override val methodSourceAnnotationFqn =
-        throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
+    override val parameterizedTestAnnotation: String
+        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
+    override val parameterizedTestAnnotationFqn: String
+        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
+    override val methodSourceAnnotation: String
+        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
+    override val methodSourceAnnotationFqn: String
+        get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
 
     //TODO MINOR: think
     override val nestedClassesShouldBeStatic: Boolean

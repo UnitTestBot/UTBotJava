@@ -6,7 +6,9 @@ val mockitoVersion: String by rootProject
 
 dependencies {
     implementation(project(":utbot-framework-api"))
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}")
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+        exclude(group="com.google.guava", module="guava")
+    }
     implementation(project(":utbot-fuzzers"))
     implementation(project(":utbot-instrumentation"))
     implementation(group = "com.github.haifengl", name = "smile-kotlin", version = "2.6.0")

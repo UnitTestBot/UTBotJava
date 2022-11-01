@@ -6,7 +6,6 @@ import org.utbot.common.workaround
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
-import org.utbot.framework.codegen.model.tree.AbstractCgClass
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
@@ -32,14 +31,13 @@ import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgRegularClass
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSpread
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
 import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassBody
+import org.utbot.framework.codegen.model.tree.CgClass
+import org.utbot.framework.codegen.model.tree.CgClassBody
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -81,7 +79,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         // NB: the order of operands is important as `isKotlinFile` uses reflection and thus can't be called on context.generatedClass
         get() = (this == context.generatedClass) || isKotlinFile
 
-    override fun visit(element: AbstractCgClass<*>) {
+    override fun visit(element: CgClass) {
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
@@ -91,7 +89,10 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         if (!element.isStatic && element.isNested) {
             print("inner ")
         }
-        print("class ")
+        if (element.id.isKotlinObject)
+            print("object ")
+        else
+            print("class ")
         print(element.simpleName)
 
         if (element.superclass != null || element.interfaces.isNotEmpty()) {
@@ -118,9 +119,11 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         println("}")
     }
 
-    override fun visit(element: CgTestClassBody) {
+    override fun visit(element: CgClassBody) {
+        element.documentation?.accept(this)
+
         // render regions for test methods
-        for ((i, region) in (element.testMethodRegions + element.nestedClassRegions).withIndex()) {
+        for ((i, region) in (element.methodRegions + element.nestedClassRegions).withIndex()) {
             if (i != 0) println()
 
             region.accept(this)
@@ -155,12 +158,19 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
             CgStaticsRegion(region.header, updatedContent)
         }
 
-        renderCompanionObject {
+        fun renderAllStaticRegions() {
             for ((i, staticsRegion) in updatedStaticRegions.withIndex()) {
                 if (i != 0) println()
 
                 staticsRegion.accept(this)
             }
+        }
+
+        // We should generate static methods in companion object iff generated class is not an object
+        if (element.classId.isKotlinObject) {
+            renderAllStaticRegions()
+        } else {
+            renderCompanionObject(::renderAllStaticRegions)
         }
     }
 
@@ -549,12 +559,8 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         }
     }
 
-    override fun renderClassModality(aClass: AbstractCgClass<*>) {
-        when (aClass) {
-            is CgTestClass -> Unit
-            // Kotlin classes are final by default
-            is CgRegularClass -> if (!aClass.id.isFinal) print("open ")
-        }
+    override fun renderClassModality(aClass: CgClass) {
+         if (!aClass.id.isFinal) print("open ")
     }
 
     private fun getKotlinClassString(id: ClassId): String =

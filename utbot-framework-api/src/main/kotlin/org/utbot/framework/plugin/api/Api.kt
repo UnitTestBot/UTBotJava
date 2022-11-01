@@ -27,6 +27,7 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.jField
+import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
@@ -793,6 +794,9 @@ open class ClassId @JvmOverloads constructor(
     open val isSynthetic: Boolean
         get() = jClass.isSynthetic
 
+    open val isKotlinObject: Boolean
+        get() = kClass.objectInstance != null
+
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
      */
@@ -887,6 +891,7 @@ class BuiltinClassId(
     override val isInner: Boolean = false,
     override val isNested: Boolean = false,
     override val isSynthetic: Boolean = false,
+    override val isKotlinObject: Boolean = false,
     override val typeParameters: TypeParameters = TypeParameters(),
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),

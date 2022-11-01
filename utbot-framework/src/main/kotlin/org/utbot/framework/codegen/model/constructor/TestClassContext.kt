@@ -4,10 +4,10 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.framework.codegen.model.tree.CgClass
 
 /**
- * This class stores context information needed to build [CgTestClass].
+ * This class stores context information needed to build [CgClass].
  * Should only be used in [CgContextOwner].
  */
 internal data class TestClassContext(

@@ -22,7 +22,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
@@ -373,7 +372,7 @@ object CodeGenerationController {
 
         val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
 
-        val utUtilsFile = runReadAction {
+        var utUtilsFile = runReadAction {
             PsiFileFactory.getInstance(model.project)
                 .createFileFromText(
                     utUtilsName,
@@ -384,7 +383,8 @@ object CodeGenerationController {
 
         // add UtUtils class file into the utils directory
         runWriteCommandAction(model.project) {
-            utilClassDirectory.add(utUtilsFile)
+            // The file actually added to subdirectory may be the copy of original file -- see [PsiElement.add] docs
+            utUtilsFile = utilClassDirectory.add(utUtilsFile) as PsiFile
         }
 
         return utUtilsFile

@@ -2753,9 +2753,16 @@ class Traverser(
         target: InvocationTarget,
         parameters: List<SymbolicValue>
     ): List<MethodResult> = with(target.method) {
+        // Make results of method invocations at big depth unbounded variables
+        if (isCallGraphTooDeep()) {
+            return treatMethodResultAsUnboundedVariable(name = "${target.method.name}DeepMock", target)
+        }
+
         val substitutedMethod = typeRegistry.findSubstitutionOrNull(this)
 
-        if (isNative && substitutedMethod == null) return processNativeMethod(target)
+        if (isNative && substitutedMethod == null) {
+            return processNativeMethod(target)
+        }
 
         // If we face UtMock.assume call, we should continue only with the branch
         // where the predicate from the parameters is equal true
@@ -3078,9 +3085,8 @@ class Traverser(
         return MethodResult(clone, constraints.asHardConstraint(), memoryUpdates = memoryUpdate)
     }
 
-    // For now, we just create unbounded symbolic variable as a result.
-    private fun processNativeMethod(target: InvocationTarget): List<MethodResult> =
-        listOf(unboundedVariable(name = "nativeConst", target.method))
+    private fun treatMethodResultAsUnboundedVariable(name: String, target: InvocationTarget): List<MethodResult> =
+        listOf(unboundedVariable(name, target.method))
 
     private fun unboundedVariable(name: String, method: SootMethod): MethodResult {
         val value = when (val returnType = method.returnType) {
@@ -3091,6 +3097,17 @@ class Traverser(
 
         return MethodResult(value)
     }
+
+    // For now, we just create unbounded symbolic variable as a result.
+    private fun processNativeMethod(target: InvocationTarget): List<MethodResult> =
+        treatMethodResultAsUnboundedVariable(name = "nativeConst", target)
+
+    private fun isCallGraphTooDeep(): Boolean =
+        UtSettings.callDepthToMock
+            .takeIf { it > 0 }
+            ?.let {
+                environment.state.executionStack.size >= it
+            } ?: false
 
     fun SootClass.findMethodOrNull(subSignature: String): SootMethod? {
         adjustLevel(SootClass.SIGNATURES)

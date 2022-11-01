@@ -4,6 +4,8 @@ import com.jetbrains.rd.util.LogLevel
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
 import java.lang.reflect.Executable
+import kotlin.reflect.KMutableProperty0
+
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -455,6 +457,55 @@ object UtSettings : AbstractSettings(
      * It is used to do not encode big type storages due to significand performance degradation.
      */
     var maxNumberOfTypesToEncode by getIntProperty(512)
+
+    /**
+     * If this value is positive, the symbolic engine will treat results of all method invocations, which depth in call
+     * graph is more than or equals than this value, as unbounded symbolic variables.
+     *
+     * 0 by default (do not "mock" deep methods).
+     */
+    var callDepthToMock by getIntProperty(0)
+
+    /**
+     * Value for [callDepthToMock] in case [useTaintAnalysisMode] is true.
+     */
+    var taintAnalysisCallDepthToMock by getIntProperty(8)
+
+    /**
+     * Be set to true, this option sets some settings to specific for taint analysis values.
+     *
+     * False by default.
+     */
+    var useTaintAnalysisMode by getBooleanProperty(false)
+
+    init {
+        turnOnAnalysisModes()
+    }
+
+    private fun turnOnAnalysisModes() {
+        AnalysisMode.values().forEach {
+            it.applyMode()
+        }
+    }
+}
+
+enum class AnalysisMode(private val triggerOption: KMutableProperty0<Boolean>) {
+    TAINT(UtSettings::useTaintAnalysisMode) {
+        override fun settingsAction(): UtSettings.() -> Unit =
+            {
+                useConcreteExecution = false
+                useSandbox = false
+                callDepthToMock = taintAnalysisCallDepthToMock
+            }
+    };
+
+    abstract fun settingsAction(): UtSettings.() -> Unit
+
+    fun applyMode() {
+        if (triggerOption.get()) {
+            settingsAction().invoke(UtSettings)
+        }
+    }
 }
 
 /**

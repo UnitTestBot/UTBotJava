@@ -871,6 +871,16 @@ class Resolver(
 
         val actualBaseType = actualType.baseType
 
+        // It is a tricky case: we might have a method with a parameter like `List<Integer>`.
+        // Inside we will transform it into a wrapper with internal field `RangeModifiableArray`
+        // with Objects inside. Since we do not support generics for nested fields, it won't
+        // have type information and there will be no type constraints for its elements (because
+        // it contains java.lang.Objects inside). But, during the resolving, we will use type information
+        // from org.utbot.engine.types.TypeRegistry.getTypeStoragesForObjectTypeParameters.
+        // Therefore, we will encounter an object that will try to be resolved as an instance of `Integer`,
+        // but there will be no type constraints for it. Therefore, it might get `actualType` equal to some
+        // primitive type. In this case, we will return the default type (actually, it is not clear whether
+        // we should return null or defaultType, and maybe here some inconsistency exists).
         if (actualType is PrimType && defaultType !is PrimType) {
             return defaultType
         }

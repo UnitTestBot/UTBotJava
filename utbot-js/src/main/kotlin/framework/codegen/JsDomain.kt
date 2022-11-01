@@ -25,7 +25,6 @@ object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val methodSourceAnnotationFqn: String
         get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
 
-    //TODO MINOR: think
     override val nestedClassesShouldBeStatic: Boolean
         get() = false
     override val argListClassId: ClassId

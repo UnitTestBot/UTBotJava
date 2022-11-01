@@ -74,7 +74,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     init {
         model.pathToNode = nodeInterp.interpreterSystemDependentPath.replace("\\", "/")
         model.pathToNPM = model.pathToNode.substringBeforeLast("/") + "/" + "npm"
-        //TODO: fix.
+        //TODO: Find out how to find pathToNode from IDEA settings without extra actions from the user
         model.pathToNode = "node"
         title = "Generate Tests with UtBot"
 //        initTestFrameworkPresenceThread = thread(start = true) {

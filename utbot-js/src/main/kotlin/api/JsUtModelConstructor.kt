@@ -17,7 +17,7 @@ import framework.api.js.util.jsUndefinedClassId
 
 class JsUtModelConstructor : UtModelConstructorInterface {
 
-    // TODO SEVERE: This is a very dirty prototype version. Expand!
+    // TODO SEVERE: Requires substantial expansion to other types
     @Suppress("NAME_SHADOWING")
     override fun construct(value: Any?, classId: ClassId): UtModel {
         val classId = classId as JsClassId

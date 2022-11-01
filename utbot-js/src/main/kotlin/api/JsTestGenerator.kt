@@ -7,9 +7,14 @@ import com.oracle.js.parser.ScriptEnvironment
 import com.oracle.js.parser.Source
 import com.oracle.js.parser.ir.ClassNode
 import com.oracle.js.parser.ir.FunctionNode
+import framework.api.js.JsClassId
+import framework.api.js.JsMethodId
+import framework.api.js.JsMultipleClassId
+import framework.api.js.util.isJsBasic
+import framework.api.js.util.jsErrorClassId
 import fuzzer.JsFuzzer
 import fuzzer.providers.JsObjectModelProvider
-import java.io.File
+import org.graalvm.polyglot.Context
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -20,12 +25,6 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
-import framework.api.js.JsClassId
-import framework.api.js.JsMethodId
-import framework.api.js.JsMultipleClassId
-import framework.api.js.util.isJsBasic
-import framework.api.js.util.jsErrorClassId
-import org.graalvm.polyglot.Context
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -47,6 +46,7 @@ import settings.JsTestGenerationSettings.dummyClassName
 import utils.PathResolver
 import utils.constructClass
 import utils.toJsAny
+import java.io.File
 
 
 class JsTestGenerator(
@@ -103,11 +103,7 @@ class JsTestGenerator(
         val methods = makeMethodsToTest()
         if (methods.isEmpty()) throw IllegalArgumentException("No methods to test were found!")
         methods.forEach { funcNode ->
-            try {
-                makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
-            } catch (e: Exception) {
-                throw e
-            }
+            makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
         }
         val importPrefix = makeImportPrefix()
         val codeGen = JsCodeGenerator(
@@ -140,7 +136,7 @@ class JsTestGenerator(
             )
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
-        executionResults.forEachIndexed {index, value ->
+        executionResults.forEachIndexed { index, value ->
             if (value == "Error:Timeout") {
                 errorsForGenerator["Timeout in generating test for ${
                     fuzzedValues[index]

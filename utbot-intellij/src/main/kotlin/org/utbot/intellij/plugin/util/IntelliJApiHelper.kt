@@ -16,11 +16,16 @@ import org.jetbrains.kotlin.idea.util.application.invokeLater
  * This object is required to encapsulate Android API usage and grant safe access to it.
  */
 object IntelliJApiHelper {
-    private val logger = KotlinLogging.logger {}
+    private val logger = KotlinLogging.logger {"org.utbot.IntelliJApiHelper"}
     enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
-    fun run(target: Target, indicator: ProgressIndicator? = null, runnable: Runnable) {
-        if (indicator != null && indicator.isCanceled) return
+    fun run(target: Target, indicator: ProgressIndicator? = null, logMessage : String, runnable: Runnable) {
+        logger.info { "[${target}]: " + logMessage +
+                if (indicator != null) ", indicator[${indicator.text}; ${(indicator.fraction * 100).toInt()}%]" else "" }
+        if (indicator != null && indicator.isCanceled) {
+            logger.error { "Indicator is already cancelled" }
+            return
+        }
         val wrapper = Runnable {
             try {
                 runnable.run()

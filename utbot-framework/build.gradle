@@ -19,7 +19,10 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 
-    implementation "org.unittestbot.soot:soot-utbot-fork:${sootVersion}"
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+        exclude group:'com.google.guava', module:'guava'
+    }
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVersion
     implementation group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryoVersion
     // this is necessary for serialization of some collections
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryoSerializersVersion

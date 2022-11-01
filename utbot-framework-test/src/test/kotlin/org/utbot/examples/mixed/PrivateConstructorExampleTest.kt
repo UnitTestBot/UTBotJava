@@ -3,9 +3,24 @@ package org.utbot.examples.mixed
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.Compilation
 
-internal class PrivateConstructorExampleTest : UtValueTestCaseChecker(testClass = PrivateConstructorExample::class) {
+// TODO parameterized tests disabled due to https://github.com/UnitTestBot/UTBotJava/issues/1266
+internal class PrivateConstructorExampleTest : UtValueTestCaseChecker(
+    testClass = PrivateConstructorExample::class,
+    pipelines = listOf(
+        TestLastStage(
+            CodegenLanguage.JAVA,
+            parameterizedModeLastStage = Compilation
+        ),
+        TestLastStage(
+            CodegenLanguage.KOTLIN,
+            parameterizedModeLastStage = Compilation
+        )
+    )
+) {
 
     /**
      * Two branches need to be covered:

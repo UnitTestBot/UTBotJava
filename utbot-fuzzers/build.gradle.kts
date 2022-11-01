@@ -18,7 +18,9 @@ tasks {
 dependencies {
     implementation(project(":utbot-framework-api"))
 
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}")
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+        exclude(group="com.google.guava", module="guava")
+    }
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "com.github.curious-odd-man", name = "rgxgen", version = rgxgenVersion)
 }

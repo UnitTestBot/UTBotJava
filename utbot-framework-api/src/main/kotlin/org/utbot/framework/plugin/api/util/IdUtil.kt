@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
@@ -393,6 +392,9 @@ val ClassId.isIterableOrMap: Boolean
 
 val ClassId.isEnum: Boolean
     get() = jClass.isEnum
+
+val ClassId.isData: Boolean
+    get() = kClass.isData
 
 fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
     if (isNotSubtypeOf(fieldId.declaringClass)) {

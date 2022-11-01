@@ -14,7 +14,7 @@ class BasicCoverageService(
     private val context: ServiceContext,
     private val scriptTexts: List<String>,
     private val testCaseIndices: IntRange,
-): ICoverageService {
+) : ICoverageService {
 
     private val errors = mutableListOf<Int>()
     private var baseCoverage = emptyList<Int>()
@@ -46,8 +46,6 @@ class BasicCoverageService(
                 }
             }
             return res
-        } catch (e: Exception) {
-            throw e
         } finally {
             removeTempFiles()
         }

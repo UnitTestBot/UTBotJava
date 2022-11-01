@@ -25,7 +25,6 @@ import org.utbot.engine.types.TypeRegistry.Companion.numberOfTypes
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maxTypeNumberForEnumeration
 import org.utbot.framework.UtSettings.useBitVecBasedTypeSystem
-import polyglot.main.Report.types
 import java.util.IdentityHashMap
 import soot.PrimType
 import soot.RefType
@@ -223,7 +222,11 @@ open class Z3TranslatorVisitor(
         return if (!useBitVecBasedTypeSystem || possibleConcreteTypes.size < maxTypeNumberForEnumeration) {
             z3Context.mkOr(
                 *possibleBaseTypes
-                    .map { z3Context.mkEq(z3Context.mkBV(typeRegistry.findTypeId(it), Int.SIZE_BITS), symType) }
+                    .map {
+                        val typeId = typeRegistry.findTypeId(it)
+                        val typeIdBv = z3Context.mkBV(typeId, Int.SIZE_BITS)
+                        z3Context.mkEq(typeIdBv, symType)
+                    }
                     .toTypedArray()
             )
         } else {

@@ -314,9 +314,9 @@ data class TypeConstraint(
      */
     fun all(): UtBoolExpression {
         // There is no need in constraint for UtMock and UtOverrideMock instances
-        val className = (isConstraint.type as? RefType)?.sootClass?.toString()
+        val sootClass = (isConstraint.type as? RefType)?.sootClass
 
-        if (className == utMockClassName || className == utOverrideMockClassName) {
+        if (sootClass == utMockClass || sootClass == utOverrideMockClass) {
             return UtTrue
         }
 

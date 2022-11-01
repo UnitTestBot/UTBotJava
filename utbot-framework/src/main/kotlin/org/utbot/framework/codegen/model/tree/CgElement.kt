@@ -144,6 +144,7 @@ sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
     abstract val body: T
     abstract val isStatic: Boolean
     abstract val isNested: Boolean
+    abstract val isSingleton: Boolean
 
     val packageName
         get() = id.packageName
@@ -171,7 +172,8 @@ class CgRegularClass(
     override val interfaces: List<ClassId>,
     override val body: CgRegularClassBody,
     override val isStatic: Boolean,
-    override val isNested: Boolean
+    override val isNested: Boolean,
+    override val isSingleton: Boolean
 ) : AbstractCgClass<CgRegularClassBody>()
 
 data class CgTestClass(
@@ -181,7 +183,8 @@ data class CgTestClass(
     override val interfaces: List<ClassId>,
     override val body: CgTestClassBody,
     override val isStatic: Boolean,
-    override val isNested: Boolean
+    override val isNested: Boolean,
+    override val isSingleton: Boolean
 ) : AbstractCgClass<CgTestClassBody>()
 
 

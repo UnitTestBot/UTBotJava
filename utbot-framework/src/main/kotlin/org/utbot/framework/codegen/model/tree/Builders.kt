@@ -39,8 +39,9 @@ class CgRegularClassBuilder : CgBuilder<CgRegularClass> {
     lateinit var body: CgRegularClassBody
     var isStatic: Boolean = false
     var isNested: Boolean = false
+    var isSingleton: Boolean = false
 
-    override fun build() = CgRegularClass(id, annotations, superclass, interfaces, body, isStatic, isNested)
+    override fun build() = CgRegularClass(id, annotations, superclass, interfaces, body, isStatic, isNested, isSingleton)
 }
 
 fun buildRegularClass(init: CgRegularClassBuilder.() -> Unit) = CgRegularClassBuilder().apply(init).build()
@@ -52,9 +53,10 @@ class CgTestClassBuilder : CgBuilder<CgTestClass> {
     val interfaces: MutableList<ClassId> = mutableListOf()
     var isStatic: Boolean = false
     var isNested: Boolean = false
+    var isSingleton: Boolean = false
     lateinit var body: CgTestClassBody
 
-    override fun build() = CgTestClass(id, annotations, superclass, interfaces, body, isStatic, isNested)
+    override fun build() = CgTestClass(id, annotations, superclass, interfaces, body, isStatic, isNested, isSingleton)
 }
 
 fun buildTestClass(init: CgTestClassBuilder.() -> Unit) = CgTestClassBuilder().apply(init).build()

@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgRegularClassFile
+import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildRegularClass
 import org.utbot.framework.codegen.model.tree.buildRegularClassBody
@@ -25,9 +26,10 @@ internal object CgUtilClassConstructor {
                 body = buildRegularClassBody {
                     content += utilClassKind.utilClassVersionComment
                     content += utilClassKind.utilClassKindComment
-                    content += utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) }
+                    content += CgStaticsRegion("Util methods", utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) })
                     content += CgAuxiliaryClass(utilMethodProvider.capturedArgumentClassId)
                 }
+                isSingleton = true
             }
         }
     }

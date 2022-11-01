@@ -91,7 +91,10 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         if (!element.isStatic && element.isNested) {
             print("inner ")
         }
-        print("class ")
+        if (element.isSingleton)
+            print("object ")
+        else
+            print("class ")
         print(element.simpleName)
 
         if (element.superclass != null || element.interfaces.isNotEmpty()) {

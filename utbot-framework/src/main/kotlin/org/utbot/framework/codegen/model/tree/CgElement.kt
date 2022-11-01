@@ -728,6 +728,7 @@ data class CgParameterDeclaration(
  * - exception expected from MUT with the given arguments
  */
 sealed class CgParameterKind {
+    object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
     data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()

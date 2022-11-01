@@ -19,20 +19,21 @@ import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
+import org.utbot.framework.codegen.model.tree.CgMethodsCluster
 import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.framework.codegen.model.tree.CgClass
+import org.utbot.framework.codegen.model.tree.CgRealNestedClassesRegion
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.model.tree.CgUtilEntity
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
-import org.utbot.framework.codegen.model.tree.buildTestClass
-import org.utbot.framework.codegen.model.tree.buildTestClassBody
+import org.utbot.framework.codegen.model.tree.buildClass
+import org.utbot.framework.codegen.model.tree.buildClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ClassId
@@ -69,8 +70,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
-        return buildTestClass {
+    private fun constructTestClass(testClassModel: TestClassModel): CgClass {
+        return buildClass {
             id = currentTestClass
 
             if (currentTestClass != outerMostTestClass) {
@@ -86,9 +87,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
 
-            body = buildTestClassBody {
+            body = buildClassBody(currentTestClass) {
                 for (nestedClass in testClassModel.nestedClasses) {
-                    nestedClassRegions += CgSimpleRegion(
+                    nestedClassRegions += CgRealNestedClassesRegion(
                         "Tests for ${nestedClass.classUnderTest.simpleName}",
                         listOf(
                             withNestedClassScope(nestedClass) { constructTestClass(nestedClass) }
@@ -99,11 +100,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 for (testSet in testClassModel.methodTestSets) {
                     updateCurrentExecutable(testSet.executableId)
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
-                    val executableUnderTestCluster = CgExecutableUnderTestCluster(
+                    val executableUnderTestCluster = CgMethodsCluster(
                         "Test suites for executable $currentExecutable",
                         currentMethodUnderTestRegions
                     )
-                    testMethodRegions += executableUnderTestCluster
+                    methodRegions += executableUnderTestCluster
                 }
 
                 val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods

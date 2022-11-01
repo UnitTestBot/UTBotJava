@@ -3,7 +3,6 @@ package org.utbot.framework.codegen.model.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.model.tree.AbstractCgClass
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
@@ -26,14 +25,13 @@ import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgRegularClass
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgStatement
 import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
 import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassBody
+import org.utbot.framework.codegen.model.tree.CgClass
+import org.utbot.framework.codegen.model.tree.CgClassBody
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -67,7 +65,7 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
         get() = this == context.generatedClass
 
-    override fun visit(element: AbstractCgClass<*>) {
+    override fun visit(element: CgClass) {
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
@@ -93,9 +91,9 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         println("}")
     }
 
-    override fun visit(element: CgTestClassBody) {
+    override fun visit(element: CgClassBody) {
         // render regions for test methods and utils
-        val allRegions = element.testMethodRegions + element.nestedClassRegions + element.staticDeclarationRegions
+        val allRegions = element.methodRegions + element.nestedClassRegions + element.staticDeclarationRegions
         for ((i, region) in allRegions.withIndex()) {
             if (i != 0) println()
 
@@ -366,11 +364,8 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         }
     }
 
-    override fun renderClassModality(aClass: AbstractCgClass<*>) {
-        when (aClass) {
-            is CgTestClass -> Unit
-            is CgRegularClass -> if (aClass.id.isFinal) print("final ")
-        }
+    override fun renderClassModality(aClass: CgClass) {
+        if (aClass.id.isFinal) print("final ")
     }
 
     private fun renderExceptions(method: CgMethod) {

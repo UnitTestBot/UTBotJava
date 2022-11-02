@@ -207,7 +207,7 @@ private fun CoverageInstructionsSet?.getCoverageInfo(classNames: Set<String>): C
     CoverageStatistic(
         coveredInstructions.filter {
             instr -> classNames.contains(instr.className)
-        }.toSet().size,
+        }.map { it.id }.distinct().size,
         totalInstructions.toInt()
     )
 } ?: CoverageStatistic(covered = 0, total = 0)

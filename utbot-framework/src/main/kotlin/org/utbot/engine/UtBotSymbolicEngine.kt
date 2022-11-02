@@ -443,6 +443,8 @@ class UtBotSymbolicEngine(
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
+        val isMinimizationEnabled = UtSettings.fuzzingMinimization
+        var totalLimit = UtSettings.fuzzingTotalLimit.coerceAtLeast(0)
         val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
         if (!hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
             // Currently, fuzzer doesn't work with static methods with empty parameters
@@ -487,7 +489,7 @@ class UtBotSymbolicEngine(
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             if (coveredInstructions.isNotEmpty()) {
                 val coverageKey = coveredInstructionTracker.add(coveredInstructions)
-                if (coverageKey.count > 1) {
+                if (isMinimizationEnabled && coverageKey.count > 1) {
                     if (++attempts >= attemptsLimit) {
                         return@flow
                     }
@@ -520,6 +522,9 @@ class UtBotSymbolicEngine(
                     fuzzedMethodDescription = methodUnderTestDescription
                 )
             )
+            if (--totalLimit == 0) {
+                return@flow
+            }
         }
     }
 

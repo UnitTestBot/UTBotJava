@@ -392,7 +392,7 @@ object CodeGenerationController {
 
         val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
 
-        val utUtilsFile = runReadAction {
+        var utUtilsFile = runReadAction {
             PsiFileFactory.getInstance(model.project)
                 .createFileFromText(
                     utUtilsName,
@@ -403,7 +403,8 @@ object CodeGenerationController {
 
         // add UtUtils class file into the utils directory
         runWriteCommandAction(model.project) {
-            utilClassDirectory.add(utUtilsFile)
+            // The file actually added to subdirectory may be the copy of original file -- see [PsiElement.add] docs
+            utUtilsFile = utilClassDirectory.add(utUtilsFile) as PsiFile
         }
 
         return utUtilsFile

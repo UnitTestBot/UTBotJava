@@ -396,6 +396,9 @@ internal interface CgContextOwner {
     val getArrayLength: MethodId
         get() = utilMethodProvider.getArrayLengthMethodId
 
+    val consumeBaseStream: MethodId
+        get() = utilMethodProvider.consumeBaseStreamMethodId
+
     val buildStaticLambda: MethodId
         get() = utilMethodProvider.buildStaticLambdaMethodId
 
@@ -492,7 +495,8 @@ internal data class CgContext(
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
             canonicalName = name,
-            simpleName = simpleName
+            simpleName = simpleName,
+            isFinal = true,
         )
     }
 
@@ -548,7 +552,8 @@ internal data class CgContext(
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
             canonicalName = currentTestClass.canonicalName + "." + simpleName,
-            simpleName = simpleName
+            simpleName = simpleName,
+            isFinal = true,
         )
     }
 

@@ -112,3 +112,9 @@ val Class<*>.isFinal
 
 val Class<*>.isProtected
     get() = Modifier.isProtected(modifiers)
+
+val Class<*>.nameOfPackage: String
+    get() = `package`?.name?:""
+
+val Class<*>.allNestedClasses: List<Class<*>>
+    get() = listOf(this) + this.declaredClasses.flatMap { it.allNestedClasses }

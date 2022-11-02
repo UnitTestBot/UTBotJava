@@ -1,4 +1,4 @@
-package org.utbot.engine
+package org.utbot.engine.state
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -6,19 +6,22 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.plus
 import org.utbot.common.md5
+import org.utbot.engine.Memory
+import org.utbot.engine.MethodResult
+import org.utbot.engine.SymbolicFailure
 import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusUNDEFINED
+import org.utbot.engine.state.StateLabel.CONCRETE
+import org.utbot.engine.state.StateLabel.INTERMEDIATE
+import org.utbot.engine.state.StateLabel.TERMINAL
+import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.SymbolicState
-import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.Step
 import soot.SootMethod
 import soot.jimple.Stmt
 import java.util.Objects
-import org.utbot.engine.symbolic.Assumption
-import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2
@@ -58,25 +61,6 @@ enum class StateLabel {
     INTERMEDIATE,
     TERMINAL,
     CONCRETE
-}
-
-/**
- * The stack element of the [ExecutionState].
- * Contains properties, that are suitable for specified method in call stack.
- *
- * @param doesntThrow if true, then engine should drop states with throwing exceptions.
- * @param localVariableMemory the local memory associated with the current stack element.
- */
-data class ExecutionStackElement(
-    val caller: Stmt?,
-    val localVariableMemory: LocalVariableMemory = LocalVariableMemory(),
-    val parameters: MutableList<Parameter> = mutableListOf(),
-    val inputArguments: ArrayDeque<SymbolicValue> = ArrayDeque(),
-    val doesntThrow: Boolean = false,
-    val method: SootMethod,
-) {
-    fun update(memoryUpdate: LocalMemoryUpdate, doesntThrow: Boolean = this.doesntThrow) =
-        this.copy(localVariableMemory = localVariableMemory.update(memoryUpdate), doesntThrow = doesntThrow)
 }
 
 /**
@@ -149,14 +133,14 @@ data class ExecutionState(
     val lastMethod: SootMethod? = null,
     val methodResult: MethodResult? = null,
     val exception: SymbolicFailure? = null,
-    val label: StateLabel = StateLabel.INTERMEDIATE,
-    private var stateAnalyticsProperties: StateAnalyticsProperties = StateAnalyticsProperties()
+    val label: StateLabel = INTERMEDIATE,
+    var stateAnalyticsProperties: StateAnalyticsProperties = StateAnalyticsProperties()
 ) : AutoCloseable {
     val solver: UtSolver by symbolicState::solver
 
     val memory: Memory by symbolicState::memory
 
-    private var outgoingEdges = 0
+    var outgoingEdges = 0
 
     fun isInNestedMethod() = executionStack.size > 1
 
@@ -182,144 +166,6 @@ data class ExecutionState(
     val isInsideStaticInitializer
         get() = executionStack.any { it.method.isStaticInitializer }
 
-    fun createExceptionState(
-        exception: SymbolicFailure,
-        update: SymbolicStateUpdate
-    ): ExecutionState {
-        val last = executionStack.last()
-        // go to negative indexing below CALL_DECISION_NUM for exceptions
-        val edge = Edge(stmt, stmt, CALL_DECISION_NUM - (++outgoingEdges))
-        return ExecutionState(
-            stmt = stmt,
-            symbolicState = symbolicState + update,
-            executionStack = executionStack.set(executionStack.lastIndex, last.update(update.localMemoryUpdates)),
-            path = path,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath,
-            decisionPath = decisionPath + edge.decisionNum,
-            edges = edges + edge,
-            stmts = stmts,
-            pathLength = pathLength + 1,
-            lastEdge = edge,
-            lastMethod = executionStack.last().method,
-            exception = exception,
-            label = label,
-            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
-        )
-    }
-
-    fun pop(methodResult: MethodResult): ExecutionState {
-        val caller = executionStack.last().caller!!
-        val edge = Edge(stmt, caller, RETURN_DECISION_NUM)
-
-        val stmtHashcode = stmt.hashCode()
-        val stmtCountInPath = (visitedStatementsHashesToCountInPath[stmtHashcode] ?: 0) + 1
-
-        return ExecutionState(
-            stmt = caller,
-            symbolicState = symbolicState,
-            executionStack = executionStack.removeAt(executionStack.lastIndex),
-            path = path + stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
-                stmtHashcode,
-                stmtCountInPath
-            ),
-            decisionPath = decisionPath + edge.decisionNum,
-            edges = edges + edge,
-            stmts = stmts.putIfAbsent(stmt, pathLength),
-            pathLength = pathLength + 1,
-            lastEdge = edge,
-            lastMethod = executionStack.last().method,
-            methodResult = methodResult,
-            label = label,
-            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
-        )
-    }
-
-    fun push(
-        stmt: Stmt,
-        inputArguments: ArrayDeque<SymbolicValue>,
-        update: SymbolicStateUpdate,
-        method: SootMethod
-    ): ExecutionState {
-        val edge = Edge(this.stmt, stmt, CALL_DECISION_NUM)
-        val stackElement = ExecutionStackElement(
-            this.stmt,
-            localVariableMemory = localVariableMemory.memoryForNestedMethod().update(update.localMemoryUpdates),
-            inputArguments = inputArguments,
-            method = method,
-            doesntThrow = executionStack.last().doesntThrow
-        )
-        outgoingEdges++
-
-        val stmtHashCode = this.stmt.hashCode()
-        val stmtCountInPath = (visitedStatementsHashesToCountInPath[stmtHashCode] ?: 0) + 1
-
-        return ExecutionState(
-            stmt = stmt,
-            symbolicState = symbolicState.stateForNestedMethod() + update,
-            executionStack = executionStack + stackElement,
-            path = path + this.stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
-                stmtHashCode,
-                stmtCountInPath
-            ),
-            decisionPath = decisionPath + edge.decisionNum,
-            edges = edges + edge,
-            stmts = stmts.putIfAbsent(this.stmt, pathLength),
-            pathLength = pathLength + 1,
-            lastEdge = edge,
-            lastMethod = stackElement.method,
-            label = label,
-            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
-        )
-    }
-
-    fun update(
-        stateUpdate: SymbolicStateUpdate
-    ): ExecutionState {
-        val last = executionStack.last()
-        val stackElement = last.update(stateUpdate.localMemoryUpdates)
-        return copy(
-            symbolicState = symbolicState + stateUpdate,
-            executionStack = executionStack.set(executionStack.lastIndex, stackElement)
-        )
-    }
-
-    fun update(
-        edge: Edge,
-        symbolicStateUpdate: SymbolicStateUpdate,
-        doesntThrow: Boolean,
-    ): ExecutionState {
-        val last = executionStack.last()
-        val stackElement = last.update(
-            symbolicStateUpdate.localMemoryUpdates,
-            last.doesntThrow || doesntThrow
-        )
-        outgoingEdges++
-
-        val stmtHashCode = stmt.hashCode()
-        val stmtCountInPath = (visitedStatementsHashesToCountInPath[stmtHashCode] ?: 0) + 1
-
-        return ExecutionState(
-            stmt = edge.dst,
-            symbolicState = symbolicState + symbolicStateUpdate,
-            executionStack = executionStack.set(executionStack.lastIndex, stackElement),
-            path = path + stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
-                stmtHashCode,
-                stmtCountInPath
-            ),
-            decisionPath = decisionPath + edge.decisionNum,
-            edges = edges + edge,
-            stmts = stmts.putIfAbsent(stmt, pathLength),
-            pathLength = pathLength + 1,
-            lastEdge = edge,
-            lastMethod = stackElement.method,
-            label = label,
-            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
-        )
-    }
-
     /**
      * Tell to solver that states with status [UtSolverStatusUNDEFINED] can be created from current state.
      *
@@ -328,8 +174,6 @@ data class ExecutionState(
     fun expectUndefined() {
         solver.expectUndefined = true
     }
-
-    fun withLabel(newLabel: StateLabel) = copy(label = newLabel)
 
     override fun close() {
         solver.close()
@@ -418,7 +262,7 @@ data class ExecutionState(
 
     private val hashCode by lazy {
         Objects.hash(
-            stmt, symbolicState, executionStack, path, visitedStatementsHashesToCountInPath, decisionPath,
+            stmt, executionStack, path, visitedStatementsHashesToCountInPath, decisionPath,
             edges, stmts, pathLength, lastEdge, lastMethod, methodResult, exception
         )
     }

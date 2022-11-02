@@ -14,7 +14,6 @@ import org.utbot.engine.pc.UtFp32Sort
 import org.utbot.engine.pc.UtFp64Sort
 import org.utbot.engine.pc.UtIntSort
 import org.utbot.engine.pc.UtLongSort
-import org.utbot.engine.pc.UtSeqSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
@@ -30,6 +29,7 @@ import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.toSort
+import org.utbot.engine.state.ExecutionState
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.plugin.api.FieldId
@@ -67,6 +67,7 @@ import java.util.Queue
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
+import org.utbot.engine.types.OBJECT_TYPE
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }

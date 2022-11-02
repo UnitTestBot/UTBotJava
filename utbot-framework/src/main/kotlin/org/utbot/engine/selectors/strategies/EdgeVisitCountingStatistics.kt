@@ -1,9 +1,10 @@
 package org.utbot.engine.selectors.strategies
 
-import org.utbot.engine.Edge
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.pathLogger
+import org.utbot.framework.UtSettings.enableLoggingForDroppedStates
 import soot.jimple.Stmt
 import soot.jimple.internal.JReturnStmt
 import soot.jimple.internal.JReturnVoidStmt
@@ -35,9 +36,12 @@ class EdgeVisitCountingStatistics(
         val shouldDrop = state.edges.all { graph.isCoveredWithAllThrowStatements(it) } && state.isComplete()
 
         if (shouldDrop) {
-            pathLogger.debug {
-                "Dropping state (lastStatus=${state.solver.lastStatus}) " +
-                        "by the edge visit counting statistics. MD5: ${state.md5()}"
+            if (enableLoggingForDroppedStates) {
+                pathLogger.debug {
+                    val lastStatus = state.solver.lastStatus
+                    val md5 = state.md5()
+                    "Dropping state (lastStatus=$lastStatus) by the edge visit counting statistics. MD5: $md5"
+                }
             }
         }
 

@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -120,8 +121,13 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int j = 0;
         for (int i = 0; i < size; i++) {
             E element = elementData.get(i);
-            if (predicate.test(element)) {
-                filtered[j++] = element;
+
+            try {
+                if (predicate.test(element)) {
+                    filtered[j++] = element;
+                }
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
             }
         }
 
@@ -136,7 +142,11 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Object[] mapped = new Object[size];
         for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.apply(elementData.get(i));
+           try {
+               mapped[i] = mapper.apply(elementData.get(i));
+           } catch (Exception e) {
+               throw new UtStreamConsumingException(e);
+           }
         }
 
         return new UtStream<>((R[]) mapped, size);
@@ -149,7 +159,11 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Integer[] data = new Integer[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsInt(elementData.getWithoutClassCastExceptionCheck(i));
+            try {
+                data[i] = mapper.applyAsInt(elementData.getWithoutClassCastExceptionCheck(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtIntStream(data, size);
@@ -162,7 +176,11 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Long[] data = new Long[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsLong(elementData.getWithoutClassCastExceptionCheck(i));
+            try {
+                data[i] = mapper.applyAsLong(elementData.getWithoutClassCastExceptionCheck(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtLongStream(data, size);
@@ -175,7 +193,11 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Double[] data = new Double[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsDouble(elementData.getWithoutClassCastExceptionCheck(i));
+            try {
+                data[i] = mapper.applyAsDouble(elementData.getWithoutClassCastExceptionCheck(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         return new UtDoubleStream(data, size);
@@ -319,7 +341,11 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         int size = elementData.end;
         for (int i = 0; i < size; i++) {
-            action.accept(elementData.get(i));
+            try {
+                action.accept(elementData.get(i));
+            } catch (Exception e) {
+                throw new UtStreamConsumingException(e);
+            }
         }
 
         // returned stream should be opened, so we "reopen" this stream to return it
@@ -389,12 +415,16 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
     @Override
     public void forEach(Consumer<? super E> action) {
-        peek(action);
+        try {
+            peek(action);
+        } catch (UtStreamConsumingException e) {
+            // Since this is a terminal operation, we should throw an original exception
+        }
     }
 
     @Override
     public void forEachOrdered(Consumer<? super E> action) {
-        peek(action);
+        forEach(action);
     }
 
     @NotNull

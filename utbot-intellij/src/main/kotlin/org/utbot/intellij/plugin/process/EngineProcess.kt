@@ -238,7 +238,16 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         }
 
     private fun MemberInfo.paramNames(): List<String> =
-        (this.member as PsiMethod).parameterList.parameters.map { it.name }
+        (this.member as PsiMethod).parameterList.parameters.map {
+            if (it.name.startsWith("\$this"))
+                // If member is Kotlin extension function, name of first argument isn't good for further usage,
+                // so we better choose name based on type of receiver.
+                //
+                // There seems no API to check whether parameter is an extension receiver by PSI
+                it.type.presentableText
+            else
+                it.name
+        }
 
     fun generate(
         mockInstalled: Boolean,

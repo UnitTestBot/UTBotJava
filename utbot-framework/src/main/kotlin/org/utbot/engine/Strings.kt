@@ -4,7 +4,6 @@ import com.github.curiousoddman.rgxgen.RgxGen
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
-import org.utbot.engine.pc.RewritingVisitor
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.UtFalse
@@ -18,12 +17,12 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.toConcrete
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.STRING_TYPE
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.charArrayClassId
@@ -60,7 +59,8 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
     ): List<InvokeResult>? {
         return when (method.subSignature) {
             toStringMethodSignature -> {
-                listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+                val typeStorage = TypeStorage.constructTypeStorageWithSingleType(method.returnType)
+                listOf(MethodResult(wrapper.copy(typeStorage = typeStorage)))
             }
             matchesMethodSignature -> {
                 symbolicMatchesMethodImpl(wrapper, parameters)
@@ -121,17 +121,17 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? {
         val arg = parameters[0] as ObjectValue
-        val matchingLengthExpr = getIntFieldValue(arg, STRING_LENGTH).accept(RewritingVisitor())
+        val matchingLengthExpr = getIntFieldValue(arg, STRING_LENGTH).accept(this.simplificator)
 
         if (!matchingLengthExpr.isConcrete) return null
 
         val matchingValueExpr =
-            selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
+            selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(this.simplificator)
         val matchingLength = matchingLengthExpr.toConcrete() as Int
         val matchingValue = CharArray(matchingLength)
 
         for (i in 0 until matchingLength) {
-            val charExpr = matchingValueExpr.select(mkInt(i)).accept(RewritingVisitor())
+            val charExpr = matchingValueExpr.select(mkInt(i)).accept(this.simplificator)
 
             if (!charExpr.isConcrete) return null
 
@@ -200,7 +200,11 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? {
         if (method.subSignature == asStringBuilderMethodSignature) {
-            return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+            val typeStorage = TypeStorage.constructTypeStorageWithSingleType(method.returnType)
+            val resultingWrapper = wrapper.copy(typeStorage = typeStorage)
+            val methodResult = MethodResult(resultingWrapper)
+
+            return listOf(methodResult)
         }
 
         return null

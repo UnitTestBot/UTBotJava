@@ -1,13 +1,38 @@
-package org.utbot.engine
+package org.utbot.engine.types
 
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
+import org.utbot.engine.ArrayValue
+import org.utbot.engine.ChunkId
+import org.utbot.engine.Hierarchy
+import org.utbot.engine.MemoryChunkDescriptor
+import org.utbot.engine.ObjectValue
+import org.utbot.engine.ReferenceValue
+import org.utbot.engine.TypeStorage
+import org.utbot.engine.appropriateClasses
+import org.utbot.engine.baseType
+import org.utbot.engine.findMockAnnotationOrNull
+import org.utbot.engine.isAppropriate
+import org.utbot.engine.isArtificialEntity
+import org.utbot.engine.isInappropriate
+import org.utbot.engine.isJavaLangObject
+import org.utbot.engine.isLambda
+import org.utbot.engine.isLocal
+import org.utbot.engine.isOverridden
+import org.utbot.engine.isUtMock
+import org.utbot.engine.makeArrayType
+import org.utbot.engine.nullObjectAddr
+import org.utbot.engine.numDimensions
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkEq
+import org.utbot.engine.rawType
+import org.utbot.engine.wrapper
+import org.utbot.engine.wrapperToClass
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.util.UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE
 import soot.ArrayType
 import soot.IntType
 import soot.NullType
@@ -112,7 +137,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }
 
-        return TypeStorage(type, concretePossibleTypes).removeInappropriateTypes()
+        return TypeStorage.constructTypeStorageUnsafe(type, concretePossibleTypes).removeInappropriateTypes()
     }
 
     private fun isInappropriateOrArrayOfMocksOrLocals(numDimensions: Int, baseType: Type?): Boolean {
@@ -121,6 +146,12 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         }
 
         val baseSootClass = baseType.sootClass
+
+        // We don't want to have our wrapper's classes as a part of a regular TypeStorage instance
+        // Note that we cannot have here 'isOverridden' since iterators of our wrappers are not wrappers
+        if (wrapperToClass[baseType] != null) {
+            return true
+        }
 
         if (numDimensions == 0 && baseSootClass.isInappropriate) {
             // interface, abstract class, or local, or mock could not be constructed
@@ -152,7 +183,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
      */
     fun constructTypeStorage(type: Type, useConcreteType: Boolean): TypeStorage {
         // create a typeStorage with concreteType even if the type belongs to an interface or an abstract class
-        if (useConcreteType) return TypeStorage(type)
+        if (useConcreteType) return TypeStorage.constructTypeStorageWithSingleType(type)
 
         val baseType = type.baseType
 
@@ -182,11 +213,11 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             else -> error("Unexpected type $type")
         }
 
-        return TypeStorage(type, possibleTypes).removeInappropriateTypes()
+        return TypeStorage.constructTypeStorageUnsafe(type, possibleTypes).removeInappropriateTypes()
     }
 
     /**
-     * Remove wrapper types and, if any other type is available, artificial entities.
+     * Remove wrapper types, classes from the visible for Soot package and, if any other type is available, artificial entities.
      */
     private fun TypeStorage.removeInappropriateTypes(): TypeStorage {
         val leastCommonSootClass = (leastCommonType as? RefType)?.sootClass
@@ -205,9 +236,13 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 return@filter keepArtificialEntities
             }
 
-            // All wrappers should filtered out because they could not be instantiated
+            // All wrappers and classes from the visible for Soot package should be filtered out because they could not be instantiated
             workaround(WorkaroundReason.HACK) {
                 if (leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden) {
+                    return@filter false
+                }
+
+                if (sootClass.packageName == UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE) {
                     return@filter false
                 }
             }
@@ -215,16 +250,20 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             return@filter true
         }.toSet()
 
-        return copy(possibleConcreteTypes = appropriateTypes)
+        return TypeStorage.constructTypeStorageUnsafe(leastCommonType, appropriateTypes)
     }
 
     /**
      * Constructs a nullObject with TypeStorage containing all the inheritors for the given type
      */
-    fun nullObject(type: Type) = when (type) {
-        is RefType, is NullType, is VoidType -> ObjectValue(TypeStorage(type), nullObjectAddr)
-        is ArrayType -> ArrayValue(TypeStorage(type), nullObjectAddr)
-        else -> error("Unsupported nullType $type")
+    fun nullObject(type: Type): ReferenceValue {
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(type)
+
+        return when (type) {
+            is RefType, is NullType, is VoidType -> ObjectValue(typeStorage, nullObjectAddr)
+            is ArrayType -> ArrayValue(typeStorage, nullObjectAddr)
+            else -> error("Unsupported nullType $type")
+        }
     }
 
     fun downCast(arrayValue: ArrayValue, typeToCast: ArrayType): ArrayValue {

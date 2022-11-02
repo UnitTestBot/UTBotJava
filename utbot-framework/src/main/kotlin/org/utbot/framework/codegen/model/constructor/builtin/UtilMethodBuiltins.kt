@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinConstructorId
 import org.utbot.framework.plugin.api.util.classClassId
@@ -48,6 +49,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
             mapsDeepEqualsMethodId,
             hasCustomEqualsMethodId,
             getArrayLengthMethodId,
+            consumeBaseStreamMethodId,
             buildStaticLambdaMethodId,
             buildLambdaMethodId,
             getLookupInMethodId,
@@ -165,6 +167,13 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
             arguments = arrayOf(objectClassId)
         )
 
+    val consumeBaseStreamMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "consumeBaseStream",
+            returnType = voidClassId,
+            arguments = arrayOf(baseStreamClassId)
+        )
+
     val buildStaticLambdaMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "buildStaticLambda",
@@ -271,6 +280,7 @@ internal val utUtilsClassId: ClassId
         canonicalName = "org.utbot.runtime.utils.UtUtils",
         simpleName = "UtUtils",
         isFinal = true,
+        isKotlinObject = true
     )
 
 /**

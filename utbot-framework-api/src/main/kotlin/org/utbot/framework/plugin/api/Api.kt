@@ -27,6 +27,7 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.jField
+import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
@@ -793,6 +794,9 @@ open class ClassId @JvmOverloads constructor(
     open val isSynthetic: Boolean
         get() = jClass.isSynthetic
 
+    open val isKotlinObject: Boolean
+        get() = kClass.objectInstance != null
+
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
      */
@@ -887,6 +891,7 @@ class BuiltinClassId(
     override val isInner: Boolean = false,
     override val isNested: Boolean = false,
     override val isSynthetic: Boolean = false,
+    override val isKotlinObject: Boolean = false,
     override val typeParameters: TypeParameters = TypeParameters(),
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),
@@ -1024,16 +1029,15 @@ sealed class ExecutableId : StatementId() {
             return "$name($args)$retType"
         }
 
+    fun describesSameMethodAs(other: ExecutableId): Boolean {
+        return classId == other.classId && signature == other.signature
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as ExecutableId
-
-        if (classId != other.classId) return false
-        if (signature != other.signature) return false
-
-        return true
+        return describesSameMethodAs(other as ExecutableId)
     }
 
     override fun hashCode(): Int {
@@ -1271,10 +1275,12 @@ enum class CodegenLanguage(
                 "-d", buildDirectory,
                 "-cp", classPath,
                 "-XDignore.symbol.file", // to let javac use classes from rt.jar
-                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED"
+                "--add-exports", "java.base/sun.reflect.generics.repository=ALL-UNNAMED",
+                "--add-exports", "java.base/sun.text=ALL-UNNAMED",
             ).plus(sourcesFiles)
 
-            KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
+            // TODO: -Xskip-prerelease-check is needed to handle #1262, check if this is good enough solution
+            KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath, "-Xskip-prerelease-check").plus(sourcesFiles)
         }
         if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {
             throw RuntimeException("'KOTLIN_HOME' environment variable is not defined. Standard location is {IDEA installation dir}/plugins/Kotlin/kotlinc")

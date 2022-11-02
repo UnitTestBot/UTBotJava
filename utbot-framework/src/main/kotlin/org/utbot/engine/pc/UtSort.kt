@@ -1,6 +1,6 @@
 package org.utbot.engine.pc
 
-import org.utbot.engine.SeqType
+import org.utbot.engine.types.SeqType
 import com.microsoft.z3.Context
 import com.microsoft.z3.Sort
 import java.util.Objects

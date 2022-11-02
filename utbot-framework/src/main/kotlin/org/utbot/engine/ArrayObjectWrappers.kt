@@ -18,6 +18,8 @@ import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -501,7 +503,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             stores = (0 until sizeValue).associateWithTo(mutableMapOf()) { i ->
                 resolver.resolveModel(
                     ObjectValue(
-                        TypeStorage(OBJECT_TYPE),
+                        TypeStorage.constructTypeStorageWithSingleType(OBJECT_TYPE),
                         UtAddrExpression(touchedArrayExpression.select(mkInt(i)))
                     )
                 )
@@ -527,7 +529,7 @@ class AssociativeArrayWrapper : WrapperInterface {
                 val addr = model.getIdOrThrow()
                 addr to resolver.resolveModel(
                     ObjectValue(
-                        TypeStorage(OBJECT_TYPE),
+                        TypeStorage.constructTypeStorageWithSingleType(OBJECT_TYPE),
                         UtAddrExpression(storageArrayExpression.select(mkInt(addr)))
                     )
                 )

@@ -1,5 +1,6 @@
 package org.utbot.examples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.atLeast
@@ -268,10 +269,13 @@ internal class ArrayOfArraysTest : UtValueTestCaseChecker(testClass = ArrayOfArr
     }
 
     @Test
+    @Disabled("https://github.com/UnitTestBot/UTBotJava/issues/1267")
     fun testArrayWithItselfAnAsElement() {
         check(
             ArrayOfArrays::arrayWithItselfAnAsElement,
             eq(2),
+            { a, r -> a !== a[0] && r == null },
+            { a, r -> a === a[0] && a.contentDeepEquals(r) },
             coverage = atLeast(percents = 94)
             // because of the assumption
         )

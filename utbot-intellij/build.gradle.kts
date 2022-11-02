@@ -5,7 +5,7 @@ val jacksonVersion: String? by rootProject
 val ideType: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
-val sootCommitHash: String? by rootProject
+val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
@@ -82,7 +82,6 @@ tasks {
 }
 
 dependencies {
-//    implementation("com.github.UnitTestBot:soot:${sootCommitHash}")
     implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
     implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
     implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)

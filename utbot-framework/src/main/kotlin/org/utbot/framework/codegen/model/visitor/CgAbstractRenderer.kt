@@ -223,7 +223,7 @@ internal abstract class CgAbstractRenderer(
 
         var isLimitExceeded = false
         for (method in content) {
-            if (printer.printedLength() > UtSettings.maxTestFileSize) {
+            if (printer.printedLength > UtSettings.maxTestFileSize) {
                 isLimitExceeded = true
                 break
             }

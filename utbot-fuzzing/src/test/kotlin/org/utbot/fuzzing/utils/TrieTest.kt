@@ -1,10 +1,7 @@
-package org.utbot.framework.plugin.api
+package org.utbot.fuzzing.utils
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.utbot.fuzzer.Trie
-import org.utbot.fuzzer.stringTrieOf
-import org.utbot.fuzzer.trieOf
 
 class TrieTest {
 

@@ -108,18 +108,11 @@ class ConstructorAnalyzer {
         return jimpleLocal.name.first() != '$'
     }
 
-    private val visitedConstructors = mutableSetOf<SootMethod>()
-
     private fun analyze(
         sootConstructor: SootMethod,
         setFields: MutableSet<FieldId>,
         affectedFields: MutableSet<FieldId>,
     ): Map<Int, FieldId> {
-        if (sootConstructor in visitedConstructors) {
-            return emptyMap()
-        }
-        visitedConstructors.add(sootConstructor)
-
         val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return emptyMap()
         analyzeAssignments(jimpleBody, setFields, affectedFields)
 

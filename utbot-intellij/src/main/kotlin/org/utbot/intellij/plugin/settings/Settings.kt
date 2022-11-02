@@ -175,6 +175,9 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     override fun loadState(state: State) {
         this.state = state
+        if (state.codegenLanguage != CodegenLanguage.JAVA) {
+            this.state.enableSummariesGeneration = false
+        }
     }
 
     fun loadStateFromModel(model: GenerateTestsModel) {

@@ -35,7 +35,6 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.predictors.MLPredictorFactoryImpl
-import kotlin.concurrent.thread
 import kotlin.math.min
 
 private val logger = KotlinLogging.logger {}
@@ -47,6 +46,57 @@ private val javaHome = System.getenv("JAVA_HOME")
 
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
+
+private const val triesToCompile = 2
+
+private data class UnnamedPackageInfo(val pack: String, val module: String)
+
+private fun findAllNotExportedPackages(report: String): List<UnnamedPackageInfo> {
+    val regex = """package ([\d\w.]+) is declared in module ([\d\w.]+), which does not export it to the unnamed module""".toRegex()
+    return regex.findAll(report).map {
+        val pack = it.groupValues[1]
+        val module = it.groupValues[2]
+        UnnamedPackageInfo(pack, module)
+    }.toList().distinct()
+}
+
+private fun compileClass(testDir: String, classPath: String, testClass: String): Int {
+    val opens = mutableSetOf<UnnamedPackageInfo>()
+    var exitCode = 0
+    var errors = ""
+
+    repeat(triesToCompile) { tryNumber ->
+        logger.debug { "Compile try ${tryNumber + 1}" }
+        val cmd = arrayOf(
+            javacCmd,
+            *opens.flatMap {
+                listOf("--add-opens", "${it.module}/${it.pack}=ALL-UNNAMED")
+            }.toTypedArray(),
+            "-d", testDir,
+            "-cp", classPath,
+            "-nowarn",
+            "-XDignore.symbol.file",
+            testClass
+        )
+
+        logger.trace { cmd.toText() }
+        val process = Runtime.getRuntime().exec(cmd)
+
+        errors = process.errorStream.reader().buffered().readText()
+
+        exitCode = process.waitFor()
+        if (exitCode == 0) {
+            return 0
+        } else {
+            opens += findAllNotExportedPackages(errors)
+        }
+    }
+
+    if (errors.isNotEmpty())
+        logger.error { "Compilation errors: $errors" }
+
+    return exitCode
+}
 
 fun Array<String>.toText() = joinToString(separator = ",")
 
@@ -116,28 +166,12 @@ enum class Tool {
                 val testClass = cut.generatedTestFile
                 classStats.testClassFile = testClass
 
-                val cmd = arrayOf(
-                    javacCmd,
-                    "-d", compiledTestDir.absolutePath,
-                    "-cp", project.compileClasspathString,
-                    "-nowarn",
-                    "-XDignore.symbol.file",
-                    testClass.absolutePath
-                )
-
                 logger.info().bracket("Compiling class ${testClass.absolutePath}") {
-
-                    logger.trace { cmd.toText() }
-                    val process = Runtime.getRuntime().exec(cmd)
-
-                    thread {
-                        val errors = process.errorStream.reader().buffered().readText()
-                        if (errors.isNotEmpty())
-                            logger.error { "Compilation errors: $errors" }
-                    }.join()
-
-
-                    val exitCode = process.waitFor()
+                    val exitCode = compileClass(
+                        compiledTestDir.absolutePath,
+                        project.compileClasspathString,
+                        testClass.absolutePath
+                    )
                     if (exitCode != 0) {
                         logger.error { "Failed to compile test class ${cut.testClassSimpleName}" }
                         classStats.failedToCompile = true

@@ -234,7 +234,7 @@ object FileUtil {
             bytesInDouble >= 1 shl 30 -> "%.1f GB".format(bytesInDouble / (1 shl 30))
             bytesInDouble >= 1 shl 20 -> "%.1f MB".format(bytesInDouble / (1 shl 20))
             bytesInDouble >= 1 shl 10 -> "%.0f kB".format(bytesInDouble / (1 shl 10))
-            else -> "$bytesInDouble bytes"
+            else -> "$bytes bytes"
         }
     }
 }

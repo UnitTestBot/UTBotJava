@@ -20,8 +20,13 @@ import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
 
-internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
-    CgAbstractRenderer(context, printer), CgPythonVisitor<Unit> {
+internal class CgPythonRenderer(
+    context: CgRendererContext,
+    printer: CgPrinter = CgPrinterImpl()
+) :
+    CgAbstractRenderer(context, printer),
+    CgPythonVisitor<Unit> {
+
     override val regionStart: String = "# region"
     override val regionEnd: String = "# endregion"
 
@@ -38,7 +43,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
     override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
         get() = false
 
-    override fun visit(element: CgTestClassFile) {
+    override fun visit(element: CgClassFile) {
         renderClassFileImports(element)
 
         println()
@@ -47,7 +52,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         element.declaredClass.accept(this)
     }
 
-    override fun visit(element: AbstractCgClass<*>) {
+    override fun visit(element: CgClass) {
         print("class ")
         print(element.simpleName)
         if (element.superclass != null) {
@@ -114,9 +119,9 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         element.expression.accept(this)
     }
 
-    override fun visit(element: CgTestClassBody) {
+    override fun visit(element: CgClassBody) {
         // render regions for test methods
-        for ((i, region) in (element.testMethodRegions + element.nestedClassRegions).withIndex()) {
+        for ((i, region) in (element.methodRegions + element.nestedClassRegions).withIndex()) {
             if (i != 0) println()
 
             region.accept(this)
@@ -233,9 +238,8 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         throw UnsupportedOperationException()
     }
 
-    private fun renderClassFileImports(element: CgTestClassFile) {
+    override fun renderClassFileImports(element: CgClassFile) {
         element.imports
-            .toSet()
             .filterIsInstance<PythonImport>()
             .sortedBy { it.order }
             .forEach { renderPythonImport(it) }
@@ -354,7 +358,7 @@ internal class CgPythonRenderer(context: CgRendererContext, printer: CgPrinter =
         throw UnsupportedOperationException()
     }
 
-    override fun renderClassModality(aClass: AbstractCgClass<*>) {
+    override fun renderClassModality(aClass: CgClass) {
         throw UnsupportedOperationException()
     }
 

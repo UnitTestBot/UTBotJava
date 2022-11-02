@@ -837,7 +837,7 @@ abstract class CgAbstractRenderer(
         }
     }
 
-    protected fun renderClassFileImports(element: CgClassFile) {
+    protected open fun renderClassFileImports(element: CgClassFile) {
         val regularImports = element.imports.filterIsInstance<RegularImport>()
         val staticImports = element.imports.filterIsInstance<StaticImport>()
 

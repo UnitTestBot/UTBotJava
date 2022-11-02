@@ -1,6 +1,7 @@
-package org.utbot.engine.selectors
+package org.utbot.engine.selectors.random
 
 import org.utbot.engine.state.ExecutionState
+import org.utbot.engine.selectors.BasePathSelector
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 import kotlin.random.Random
@@ -12,11 +13,14 @@ import kotlin.random.Random
  * @see BasePathSelector
  * @see PathSelector
  */
-class RandomSelector(choosingStrategy: ChoosingStrategy, stoppingStrategy: StoppingStrategy, seed: Int = 42) :
-    BasePathSelector(choosingStrategy, stoppingStrategy) {
-    private val executionStates = mutableListOf<ExecutionState>()
+open class RandomSelector(
+    choosingStrategy: ChoosingStrategy,
+    stoppingStrategy: StoppingStrategy,
+    seed: Int = 42
+) : BasePathSelector(choosingStrategy, stoppingStrategy) {
+    internal val executionStates = mutableListOf<ExecutionState>()
     private val random = Random(seed)
-    private var currentIndex = -1
+    internal var currentIndex = -1
 
     override fun offerImpl(state: ExecutionState) {
         executionStates += state

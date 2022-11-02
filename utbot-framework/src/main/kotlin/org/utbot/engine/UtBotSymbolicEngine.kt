@@ -101,6 +101,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
+import org.utbot.engine.selectors.randomSelectorWithLoopIterationsThreshold
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.state.StateLabel
@@ -156,6 +157,9 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
             withStepsLimit(pathSelectorStepsLimit)
         }
         PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD -> randomSelectorWithLoopIterationsThreshold(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
     }

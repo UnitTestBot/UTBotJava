@@ -460,7 +460,7 @@ object UtSettings : AbstractSettings(
 
     /**
      * If this value is positive, the symbolic engine will treat results of all method invocations, which depth in call
-     * graph is more than or equals than this value, as unbounded symbolic variables.
+     * stack is more than or equals than this value, as unbounded symbolic variables.
      *
      * 0 by default (do not "mock" deep methods).
      */
@@ -472,7 +472,20 @@ object UtSettings : AbstractSettings(
     var taintAnalysisCallDepthToMock by getIntProperty(8)
 
     /**
-     * Be set to true, this option sets some settings to specific for taint analysis values.
+     * If this value is positive, a path selector for the symbolic engine will strictly drop loop states
+     * if current step is more than this limit.
+     *
+     * 0 by default (do not strictly drop such states).
+     */
+    var loopStepsLimit by getIntProperty(0)
+
+    /**
+     * Value for [loopStepsLimit] in case [useTaintAnalysisMode] is true.
+     */
+    var taintLoopStepsLimit by getIntProperty(3)
+
+    /**
+     * Being set to true, this option sets some settings to specific for taint analysis values.
      *
      * False by default.
      */
@@ -496,6 +509,8 @@ enum class AnalysisMode(private val triggerOption: KMutableProperty0<Boolean>) {
                 useConcreteExecution = false
                 useSandbox = false
                 callDepthToMock = taintAnalysisCallDepthToMock
+                loopStepsLimit = taintLoopStepsLimit
+                pathSelectorType = PathSelectorType.RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD
             }
     };
 
@@ -555,7 +570,12 @@ enum class PathSelectorType {
     /**
      * [RandomPathSelector]
      */
-    RANDOM_PATH_SELECTOR
+    RANDOM_PATH_SELECTOR,
+
+    /**
+     * [RandomSelectorWithLoopIterationsThreshold]
+     */
+    RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD
 }
 
 enum class TestSelectionStrategyType {

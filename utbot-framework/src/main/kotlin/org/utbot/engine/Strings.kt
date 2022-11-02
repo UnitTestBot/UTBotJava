@@ -18,6 +18,7 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.toConcrete
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.STRING_TYPE
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel

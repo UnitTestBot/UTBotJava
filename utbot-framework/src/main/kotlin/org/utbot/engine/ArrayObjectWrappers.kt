@@ -18,6 +18,8 @@ import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtCompositeModel

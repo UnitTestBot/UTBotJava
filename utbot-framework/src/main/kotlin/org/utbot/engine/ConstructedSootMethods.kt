@@ -1,5 +1,7 @@
 package org.utbot.engine
 
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.STRING_TYPE
 import soot.ArrayType
 import soot.IntType
 import soot.PrimType

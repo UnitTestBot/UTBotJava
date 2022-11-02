@@ -280,6 +280,7 @@ internal val utUtilsClassId: ClassId
         canonicalName = "org.utbot.runtime.utils.UtUtils",
         simpleName = "UtUtils",
         isFinal = true,
+        isKotlinObject = true
     )
 
 /**

@@ -74,6 +74,15 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.types.ENUM_ORDINAL
+import org.utbot.engine.types.EQUALS_SIGNATURE
+import org.utbot.engine.types.HASHCODE_SIGNATURE
+import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
+import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.SECURITY_FIELD_SIGNATURE
+import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
@@ -849,8 +858,10 @@ class Traverser(
                 }
                 val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE, arrayPossibleTypes)
 
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(arrayInstance.addr, typeStorage)
-                    .isConstraint().asHardConstraint()
+                queuedSymbolicStateUpdates += typeRegistry
+                    .typeConstraint(arrayInstance.addr, typeStorage)
+                    .isConstraint()
+                    .asHardConstraint()
             }
 
             val elementType = arrayInstance.type.elementType
@@ -3428,6 +3439,7 @@ class Traverser(
         val preferredTypes = typeResolver.findTopRatedTypes(possibleTypes, take = NUMBER_OF_PREFERRED_TYPES)
         val mostCommonType = preferredTypes.singleOrNull() ?: OBJECT_TYPE
         val typeStorage = typeResolver.constructTypeStorage(mostCommonType, preferredTypes)
+
         return typeRegistry.typeConstraint(value.addr, typeStorage).isOrNullConstraint()
     }
 

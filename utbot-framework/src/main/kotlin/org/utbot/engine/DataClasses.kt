@@ -1,16 +1,18 @@
 package org.utbot.engine
 
-import org.utbot.common.WorkaroundReason
-import org.utbot.common.workaround
-import org.utbot.engine.TypeRegistry.Companion.objectTypeStorage
+import org.utbot.api.mock.UtMock
+import org.utbot.engine.overrides.UtOverrideMock
+import org.utbot.engine.types.TypeRegistry.Companion.objectTypeStorage
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
+import org.utbot.engine.pc.UtFalse
 import org.utbot.engine.pc.UtInstanceOfExpression
 import org.utbot.engine.pc.UtIsExpression
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.symbolic.*
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtInstrumentation
 import soot.RefType
@@ -124,6 +126,9 @@ class TypeStorage private constructor(val leastCommonType: Type, val possibleCon
     } else {
         "(leastCommonType=$leastCommonType, ${possibleConcreteTypes.size} possibleTypes=${possibleConcreteTypes.take(10)})"
     }
+
+    operator fun component1(): Type = leastCommonType
+    operator fun component2(): Set<Type> = possibleConcreteTypes
 
     companion object {
         /**
@@ -307,7 +312,16 @@ data class TypeConstraint(
     /**
      * Returns a conjunction of the [isConstraint] and [correctnessConstraint]. Suitable for an object creation.
      */
-    fun all(): UtBoolExpression = mkAnd(isOrNullConstraint(), correctnessConstraint)
+    fun all(): UtBoolExpression {
+        // There is no need in constraint for UtMock and UtOverrideMock instances
+        val sootClass = (isConstraint.type as? RefType)?.sootClass
+
+        if (sootClass == utMockClass || sootClass == utOverrideMockClass) {
+            return UtTrue
+        }
+
+        return mkAnd(isOrNullConstraint(), correctnessConstraint)
+    }
 
     /**
      * Returns a condition that either the object is an instance of the types in [isConstraint], or it is null.
@@ -319,7 +333,13 @@ data class TypeConstraint(
      * For example, it is suitable for instanceof checks or negation of equality with some types.
      * NOTE: for Object we always return UtTrue.
      */
-    fun isConstraint(): UtBoolExpression = if (isConstraint.typeStorage.isObjectTypeStorage()) UtTrue else isConstraint
+    fun isConstraint(): UtBoolExpression {
+        if (isConstraint.typeStorage.possibleConcreteTypes.isEmpty()) {
+            return UtFalse
+        }
+
+        return if (isConstraint.typeStorage.isObjectTypeStorage()) UtTrue else isConstraint
+    }
 
     override fun hashCode(): Int = this.hashcode
 
@@ -344,3 +364,6 @@ data class TypeConstraint(
  * should be initialized. We don't need to initialize fields that are not accessed in the method being tested.
  */
 data class InstanceFieldReadOperation(val addr: UtAddrExpression, val fieldId: FieldId)
+
+private val utMockClassName: String = UtMock::class.java.name
+private val utOverrideMockClassName: String = UtOverrideMock::class.java.name

@@ -7,21 +7,17 @@ import org.utbot.contest.StatsForClass
 @Serializable
 data class MonitoringReport(
     val parameters: MonitoringParameters,
-    val summarised_metrics: SummarisedMetricsReport,
     val targets: List<TargetReport>,
 ) {
-    constructor(parameters: MonitoringParameters, targets: List<TargetReport>): this(
-        parameters,
-        SummarisedMetricsReport(targets),
-        targets
-    )
 
     constructor(parameters: MonitoringParameters, stats: GlobalStats) : this(
         parameters,
-        stats.statsForClasses.map {
+        stats.projectStats.map { projectStats ->
             TargetReport(
-                TargetDescription(it.project, it.className),
-                ClassMetricsReport(it)
+                projectStats.project,
+                projectStats.statsForClasses.map {
+                    ClassReport(it.className, ClassMetricsReport(it))
+                }
             )
         }
     )
@@ -36,14 +32,21 @@ data class MonitoringParameters(
 
 @Serializable
 data class TargetReport(
-    val target: TargetDescription,
-    val metrics: ClassMetricsReport
-)
+    val target: String,
+    val summarised_metrics: SummarisedMetricsReport,
+    val metrics_by_class: List<ClassReport>
+) {
+    constructor(target: String, metrics_by_class: List<ClassReport>): this(
+        target,
+        SummarisedMetricsReport(metrics_by_class),
+        metrics_by_class
+    )
+}
 
 @Serializable
-data class TargetDescription(
-    val project: String,
-    val classname: String
+data class ClassReport(
+    val class_name: String,
+    val metrics: ClassMetricsReport
 )
 
 private fun Int.cover(total: Int): Double =
@@ -100,7 +103,7 @@ data class SummarisedMetricsReport(
     val bytecode_instructions_coverage_by_concolic: Double = covered_bytecode_instructions_by_concolic.cover(total_bytecode_instructions),
     val averaged_bytecode_instruction_coverage_by_classes: Double
 ) {
-    constructor(targets: Collection<TargetReport>) : this(
+    constructor(targets: Collection<ClassReport>) : this(
         total_classes = targets.size,
         testcases_generated = targets.sumOf { it.metrics.testcases_generated },
         classes_failed_to_compile = targets.count { it.metrics.failed_to_compile },

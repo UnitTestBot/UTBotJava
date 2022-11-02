@@ -12,12 +12,15 @@ private fun Double.format(digits: Int) = "%.${digits}f".format(this)
 fun <T> Iterable<T>.printMultiline(printer: (T) -> Any?) = "\n" + joinToString("\n") { "${printer(it)}" } + "\n"
 
 class GlobalStats {
+    val projectStats = mutableListOf<StatsForProject>()
+    var duration: Long? = null
+}
+
+class StatsForProject(val project: String) {
 
     companion object {
         const val PRECISION: Int = 2
     }
-
-    var duration: Long? = null
 
     val statsForClasses = mutableListOf<StatsForClass>()
 

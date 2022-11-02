@@ -21,6 +21,8 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val logger = KotlinLogging.logger {}
 
 fun main(args: Array<String>) {
+    val outputFile = args.getOrNull(0)?.let { File(it) }
+
     logger.info { "Monitoring Settings:\n$MonitoringSettings" }
 
     val methodFilter: String?
@@ -75,7 +77,6 @@ fun main(args: Array<String>) {
     if (measurementResults.isEmpty())
         exitProcess(1)
 
-    val outputFile = args.getOrNull(0)?.let { File(it) }
     outputFile?.let { file ->
         val format = Json { prettyPrint = true }
         val jsonString = format.encodeToString(measurementResults)

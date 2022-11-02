@@ -61,16 +61,14 @@ private fun findAllNotExportedPackages(report: String): List<UnnamedPackageInfo>
 }
 
 private fun compileClass(testDir: String, classPath: String, testClass: String): Int {
-    val opens = mutableSetOf<UnnamedPackageInfo>()
+    val exports = mutableSetOf<UnnamedPackageInfo>()
     var exitCode = 0
-    var errors = ""
 
     repeat(triesToCompile) { tryNumber ->
-        logger.debug { "Compile try ${tryNumber + 1}" }
         val cmd = arrayOf(
             javacCmd,
-            *opens.flatMap {
-                listOf("--add-opens", "${it.module}/${it.pack}=ALL-UNNAMED")
+            *exports.flatMap {
+                listOf("--add-exports", "${it.module}/${it.pack}=ALL-UNNAMED")
             }.toTypedArray(),
             "-d", testDir,
             "-cp", classPath,
@@ -78,22 +76,23 @@ private fun compileClass(testDir: String, classPath: String, testClass: String):
             "-XDignore.symbol.file",
             testClass
         )
+        logger.debug { "Compile try ${tryNumber + 1}" }
 
         logger.trace { cmd.toText() }
+
         val process = Runtime.getRuntime().exec(cmd)
 
-        errors = process.errorStream.reader().buffered().readText()
+        val errors = process.errorStream.reader().buffered().readText()
 
         exitCode = process.waitFor()
         if (exitCode == 0) {
             return 0
         } else {
-            opens += findAllNotExportedPackages(errors)
+            if (errors.isNotEmpty())
+                logger.error { "Compilation errors: $errors" }
+            exports += findAllNotExportedPackages(errors)
         }
     }
-
-    if (errors.isNotEmpty())
-        logger.error { "Compilation errors: $errors" }
 
     return exitCode
 }
@@ -135,7 +134,7 @@ enum class Tool {
             timeLimit: Long,
             fuzzingRatio: Double,
             methodNameFilter: String?,
-            globalStats: GlobalStats,
+            statsForProject: StatsForProject,
             compiledTestDir: File,
             classFqn: String
         ) {
@@ -160,7 +159,7 @@ enum class Tool {
                 return
             }
 
-            globalStats.statsForClasses.add(classStats)
+            statsForProject.statsForClasses.add(classStats)
 
             try {
                 val testClass = cut.generatedTestFile
@@ -206,7 +205,7 @@ enum class Tool {
             timeLimit: Long,
             fuzzingRatio: Double,
             methodNameFilter: String?,
-            globalStats: GlobalStats,
+            statsForProject: StatsForProject,
             compiledTestDir: File,
             classFqn: String
         ) {
@@ -277,7 +276,7 @@ enum class Tool {
         timeLimit: Long,
         fuzzingRatio: Double, // maybe create some specific settings
         methodNameFilter: String?,
-        globalStats: GlobalStats,
+        statsForProject: StatsForProject,
         compiledTestDir: File,
         classFqn: String
     )
@@ -432,6 +431,9 @@ fun runEstimator(
             outer@ for (project in projects) {
                 if (projectFilter != null && project.name !in projectFilter) continue
 
+                val statsForProject = StatsForProject(project.name)
+                globalStats.projectStats.add(statsForProject)
+
                 logger.info { "------------- project [${project.name}] ---- " }
 
                 // take all the classes from the corresponding jar if a list of the specified classes is empty
@@ -453,7 +455,7 @@ fun runEstimator(
 
                     logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
 
-                    tool.run(project, cut, timeLimit, fuzzingRatio, methodNameFilter, globalStats, compiledTestDir, classFqn)
+                    tool.run(project, cut, timeLimit, fuzzingRatio, methodNameFilter, statsForProject, compiledTestDir, classFqn)
                 }
             }
         }

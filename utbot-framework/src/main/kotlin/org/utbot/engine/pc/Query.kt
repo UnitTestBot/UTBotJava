@@ -99,7 +99,7 @@ data class Query(
     private val gts: PersistentMap<UtExpression, Long> = persistentHashMapOf()
 ) : BaseQuery(hard, soft, assumptions, status, lastAdded) {
 
-    val rewriter: Simplificator
+    val simplificator: Simplificator
         get() = Simplificator(eqs, lts, gts)
 
     private fun UtBoolExpression.simplify(visitor: Simplificator): UtBoolExpression =

@@ -41,24 +41,24 @@ typealias SymbolicEnumValuesType = PersistentList<ObjectValue>
 class MemoryUpdateSimplificator(
     private val simplificator: Simplificator
 ) : CachingSimplificatorAdapter<MemoryUpdate>() {
-    override fun simplifyImpl(expression: MemoryUpdate): MemoryUpdate {
-        val stores = simplifyStores(expression.stores)
-        val touchedChunkDescriptors = simplifyTocuhedChunkDescriptors(expression.touchedChunkDescriptors)
-        val concrete = simplifyConcrete(expression.concrete)
-        val mockInfos = simplifyMockInfos(expression.mockInfos)
-        val staticInstanceStorage = simplifyStaticInstanceStorage(expression.staticInstanceStorage)
-        val initializedStaticFields = simplifyInitializedStaticFields(expression.initializedStaticFields)
-        val staticFieldsUpdates = simplifyStaticFieldsUpdates(expression.staticFieldsUpdates)
-        val meaningfulStaticFields = simplifyMeaningfulStaticFields(expression.meaningfulStaticFields)
-        val addrToArrayType = simplifyAddrToArrayType(expression.addrToArrayType)
-        val addrToMockInfo = simplifyAddToMockInfo(expression.addrToMockInfo)
-        val visitedValues = simplifyVisitedValues(expression.visitedValues)
-        val touchedAddresses = simplifyTouchedAddresses(expression.touchedAddresses)
-        val classIdToClearStatics = simplifyClassIdToClearStatics(expression.classIdToClearStatics)
-        val instanceFieldReads = simplifyInstanceFieldReads(expression.instanceFieldReads)
+    override fun simplifyImpl(expression: MemoryUpdate): MemoryUpdate = with(expression) {
+        val stores = simplifyStores(stores)
+        val touchedChunkDescriptors = simplifyTouchedChunkDescriptors(touchedChunkDescriptors)
+        val concrete = simplifyConcrete(concrete)
+        val mockInfos = simplifyMockInfos(mockInfos)
+        val staticInstanceStorage = simplifyStaticInstanceStorage(staticInstanceStorage)
+        val initializedStaticFields = simplifyInitializedStaticFields(initializedStaticFields)
+        val staticFieldsUpdates = simplifyStaticFieldsUpdates(staticFieldsUpdates)
+        val meaningfulStaticFields = simplifyMeaningfulStaticFields(meaningfulStaticFields)
+        val addrToArrayType = simplifyAddrToArrayType(addrToArrayType)
+        val addrToMockInfo = simplifyAddrToMockInfo(addrToMockInfo)
+        val visitedValues = simplifyVisitedValues(visitedValues)
+        val touchedAddresses = simplifyTouchedAddresses(touchedAddresses)
+        val classIdToClearStatics = simplifyClassIdToClearStatics(classIdToClearStatics)
+        val instanceFieldReads = simplifyInstanceFieldReads(instanceFieldReads)
         val speculativelyNotNullAddresses =
-            simplifySpeculativelyNotNullAddresses(expression.speculativelyNotNullAddresses)
-        val symbolicEnumValues = simplifyEnumValues(expression.symbolicEnumValues)
+            simplifySpeculativelyNotNullAddresses(speculativelyNotNullAddresses)
+        val symbolicEnumValues = simplifyEnumValues(symbolicEnumValues)
         return MemoryUpdate(
             stores,
             touchedChunkDescriptors,
@@ -90,7 +90,7 @@ class MemoryUpdateSimplificator(
                 }
             }
 
-    private fun simplifyTocuhedChunkDescriptors(touchedChunkDescriptors: TouchedChunkDescriptorsType): TouchedChunkDescriptorsType =
+    private fun simplifyTouchedChunkDescriptors(touchedChunkDescriptors: TouchedChunkDescriptorsType): TouchedChunkDescriptorsType =
         touchedChunkDescriptors
 
     private fun simplifyConcrete(concrete: ConcreteType): ConcreteType =
@@ -131,7 +131,7 @@ class MemoryUpdateSimplificator(
             .toPersistentMap()
 
 
-    private fun simplifyAddToMockInfo(addrToMockInfo: AddrToMockInfoType): AddrToMockInfoType =
+    private fun simplifyAddrToMockInfo(addrToMockInfo: AddrToMockInfoType): AddrToMockInfoType =
         addrToMockInfo
             .mapKeys { (k, _) -> k.accept(simplificator) as UtAddrExpression }
             .toPersistentMap()

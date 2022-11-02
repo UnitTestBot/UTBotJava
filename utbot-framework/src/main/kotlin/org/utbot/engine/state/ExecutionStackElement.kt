@@ -6,7 +6,6 @@ import org.utbot.engine.LocalMemoryUpdate
 import org.utbot.engine.LocalVariable
 import org.utbot.engine.Parameter
 import org.utbot.engine.SymbolicValue
-//import org.utbot.engine.symbolic.simplificators.LocalMemoryUpdateSimplificator
 import org.utbot.engine.update
 import soot.SootMethod
 import soot.jimple.Stmt
@@ -32,7 +31,7 @@ data class ExecutionStackElement(
 
 /**
  * Represents a memory associated with a certain method call. For now consists only of local variables mapping.
- * TODO: think on other fields later
+ * TODO: think on other fields later: [#339](https://github.com/UnitTestBot/UTBotJava/issues/339) [#340](https://github.com/UnitTestBot/UTBotJava/issues/340)
  *
  * @param [locals] represents a mapping from [LocalVariable]s of a specific method call to [SymbolicValue]s.
  */
@@ -51,8 +50,3 @@ data class LocalVariableMemory(
     val localValues: Set<SymbolicValue>
         get() = locals.values.toSet()
 }
-//
-//context(LocalMemoryUpdateSimplificator)
-//fun updateSimplified(localVariableMemory: LocalVariableMemory, update: LocalMemoryUpdate): LocalVariableMemory {
-//    return localVariableMemory.update(simplify(update))
-//}

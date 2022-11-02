@@ -1,8 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
-import org.utbot.framework.codegen.model.tree.AbstractCgClass
-import org.utbot.framework.codegen.model.tree.AbstractCgClassBody
-import org.utbot.framework.codegen.model.tree.AbstractCgClassFile
+import org.utbot.framework.codegen.model.tree.CgClassFile
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
@@ -36,7 +34,7 @@ import org.utbot.framework.codegen.model.tree.CgEqualTo
 import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
 import org.utbot.framework.codegen.model.tree.CgErrorWrapper
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
+import org.utbot.framework.codegen.model.tree.CgMethodsCluster
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgForLoop
@@ -62,9 +60,6 @@ import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgRegularClass
-import org.utbot.framework.codegen.model.tree.CgRegularClassBody
-import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
@@ -77,9 +72,9 @@ import org.utbot.framework.codegen.model.tree.CgStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
 import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassBody
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
+import org.utbot.framework.codegen.model.tree.CgClass
+import org.utbot.framework.codegen.model.tree.CgClassBody
+import org.utbot.framework.codegen.model.tree.CgNestedClassesRegion
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
 import org.utbot.framework.codegen.model.tree.CgThisInstance
@@ -94,22 +89,18 @@ import org.utbot.framework.codegen.model.tree.CgWhileLoop
 interface CgVisitor<R> {
     fun visit(element: CgElement): R
 
-    fun visit(element: AbstractCgClassFile<*>): R
-    fun visit(element: CgRegularClassFile): R
-    fun visit(element: CgTestClassFile): R
+    fun visit(element: CgClassFile): R
 
-    fun visit(element: AbstractCgClass<*>): R
-    fun visit(element: CgRegularClass): R
-    fun visit(element: CgTestClass): R
+    fun visit(element: CgClass): R
 
-    fun visit(element: AbstractCgClassBody): R
-    fun visit(element: CgRegularClassBody): R
-    fun visit(element: CgTestClassBody): R
+    fun visit(element: CgClassBody): R
 
     fun visit(element: CgStaticsRegion): R
+
+    fun visit(element: CgNestedClassesRegion<*>): R
     fun visit(element: CgSimpleRegion<*>): R
     fun visit(element: CgTestMethodCluster): R
-    fun visit(element: CgExecutableUnderTestCluster): R
+    fun visit(element: CgMethodsCluster): R
 
     fun visit(element: CgAuxiliaryClass): R
     fun visit(element: CgUtilMethod): R

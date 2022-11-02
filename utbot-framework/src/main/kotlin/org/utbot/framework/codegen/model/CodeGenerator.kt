@@ -14,8 +14,7 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgUtilClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
-import org.utbot.framework.codegen.model.tree.AbstractCgClassFile
-import org.utbot.framework.codegen.model.tree.CgRegularClassFile
+import org.utbot.framework.codegen.model.tree.CgClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -23,8 +22,8 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.tree.CgComment
-import org.utbot.framework.codegen.model.tree.CgSingleLineComment
+import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
+import org.utbot.framework.codegen.model.tree.CgDocumentationComment
 
 class CodeGenerator(
     private val classUnderTest: ClassId,
@@ -106,7 +105,7 @@ class CodeGenerator(
         }
     }
 
-    private fun renderClassFile(file: AbstractCgClassFile<*>): String {
+    private fun renderClassFile(file: CgClassFile): String {
         val renderer = CgAbstractRenderer.makeRenderer(context)
         file.accept(renderer)
         return renderer.toString()
@@ -146,28 +145,22 @@ sealed class UtilClassKind(
 ) : Comparable<UtilClassKind> {
 
     /**
+     * Contains comments specifying the version and the kind of util class being generated and
+     */
+    val utilClassDocumentation: CgDocumentationComment
+        get() = CgDocumentationComment(
+            listOf(
+                CgDocRegularStmt(utilClassKindCommentText),
+                CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion}"),
+            )
+        )
+
+    /**
      * The version of util class being generated.
      * For more details see [UtilClassFileMethodProvider.UTIL_CLASS_VERSION].
      */
     val utilClassVersion: String
         get() = UtilClassFileMethodProvider.UTIL_CLASS_VERSION
-
-    /**
-     * The comment specifying the version of util class being generated.
-     *
-     * @see UtilClassFileMethodProvider.UTIL_CLASS_VERSION
-     */
-    val utilClassVersionComment: CgComment
-        get() = CgSingleLineComment("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion}")
-
-
-    /**
-     * The comment specifying the kind of util class being generated.
-     *
-     * @see utilClassKindCommentText
-     */
-    val utilClassKindComment: CgComment
-        get() = CgSingleLineComment(utilClassKindCommentText)
 
     /**
      * The text of comment specifying the kind of util class.
@@ -200,7 +193,7 @@ sealed class UtilClassKind(
     }
 
     /**
-     * Construct an util class file as a [CgRegularClassFile] and render it.
+     * Construct an util class file as a [CgClassFile] and render it.
      * @return the text of the generated util class file.
      */
     fun getUtilClassText(codegenLanguage: CodegenLanguage): String {

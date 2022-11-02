@@ -3,7 +3,6 @@ package org.utbot.engine
 import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
-import org.utbot.engine.pc.RewritingVisitor
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtAddrSort
 import org.utbot.engine.pc.UtArrayExpressionBase
@@ -417,20 +416,20 @@ data class UtNamedStore(
 )
 
 /**
- * Create [UtNamedStore] with simplified [index] and [value] expressions.
+ * Create [UtNamedStore] with unsimplified [index] and [value] expressions.
  *
- * @see RewritingVisitor
+ * @note simplifications occur explicitly in [Traverser]
  */
-fun simplifiedNamedStore(
+fun namedStore(
     chunkDescriptor: MemoryChunkDescriptor,
     index: UtExpression,
     value: UtExpression
-) = RewritingVisitor().let { visitor -> UtNamedStore(chunkDescriptor, index.accept(visitor), value.accept(visitor)) }
+) = UtNamedStore(chunkDescriptor, index, value)
 
 /**
  * Updates persistent map where value = null in update means deletion of original key-value
  */
-private fun <K, V> PersistentMap<K, V>.update(update: Map<K, V?>): PersistentMap<K, V> {
+fun <K, V> PersistentMap<K, V>.update(update: Map<K, V?>): PersistentMap<K, V> {
     if (update.isEmpty()) return this
     val deletions = mutableListOf<K>()
     val updates = mutableMapOf<K, V>()

@@ -151,8 +151,8 @@ data class UtSolver constructor(
     //protection against solver reusage
     private var canBeCloned: Boolean = true
 
-    val rewriter: RewritingVisitor
-        get() = constraints.let { if (it is Query) it.rewriter else RewritingVisitor() }
+    val simplificator: Simplificator
+        get() = constraints.let { if (it is Query) it.rewriter else Simplificator() }
 
     /**
      * Returns the current status of the constraints.

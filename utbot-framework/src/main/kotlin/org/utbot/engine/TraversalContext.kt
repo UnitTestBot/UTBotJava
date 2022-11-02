@@ -1,5 +1,7 @@
 package org.utbot.engine
 
+import org.utbot.engine.state.ExecutionState
+
 /**
  * Represents a mutable _Context_ during the [ExecutionState] traversing. This _Context_ consists of all mutable and
  * immutable properties and fields which are created and updated during analysis of a **single** Jimple instruction.

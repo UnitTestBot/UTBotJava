@@ -385,6 +385,35 @@ object UtSettings : AbstractSettings(
     var useSandbox by getBooleanProperty(true)
 
     /**
+     * Limit for number of generated tests per method
+     */
+    var maxTestsPerMethod by getIntProperty(50)
+
+    /**
+     * Max file length for generated test file
+     */
+    const val DEFAULT_MAX_FILE_SIZE = 1000000
+    var maxTestFileSize by getProperty(DEFAULT_MAX_FILE_SIZE, ::parseFileSize)
+
+
+    fun parseFileSize(s: String): Int {
+        val suffix = StringBuilder()
+        var value = 0
+        for (ch in s) {
+            (ch - '0').let {
+                if (it in 0..9) {
+                    value = value * 10 + it
+                } else suffix.append(ch)
+            }
+        }
+        when (suffix.toString().trim().lowercase()) {
+            "k", "kb" -> value *= 1000
+            "m", "mb" -> value *= 1000000
+        }
+        return if (value > 0) value else DEFAULT_MAX_FILE_SIZE // fallback for incorrect value
+    }
+
+    /**
      * If this options set in true, all soot classes will be removed from a Soot Scene,
      * therefore, you will be unable to test soot classes.
      */

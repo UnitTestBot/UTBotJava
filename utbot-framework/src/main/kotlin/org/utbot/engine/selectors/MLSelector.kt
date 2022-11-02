@@ -2,7 +2,7 @@ package org.utbot.engine.selectors
 
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.selectors.nurs.GreedySearch
 import org.utbot.engine.selectors.strategies.ChoosingStrategy

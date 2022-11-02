@@ -1,8 +1,10 @@
 package org.utbot.framework.codegen.model.visitor
 
 import org.apache.commons.text.StringEscapeUtils
+import org.utbot.common.FileUtil
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
@@ -110,6 +112,7 @@ abstract class CgAbstractRenderer(
 
     protected open val regionStart: String = "///region"
     protected open val regionEnd: String = "///endregion"
+    protected var isInterrupted = false
 
     protected abstract val langPackage: String
 
@@ -185,7 +188,7 @@ abstract class CgAbstractRenderer(
      * Renders the region with a specific rendering for [CgTestMethodCluster.description]
      */
     private fun CgRegion<*>.render(printLineAfterContentEnd: Boolean = false) {
-        if (content.isEmpty()) return
+        if (content.isEmpty() || isInterrupted) return
 
         print(regionStart)
         header?.let { print(" $it") }
@@ -193,7 +196,12 @@ abstract class CgAbstractRenderer(
 
         if (this is CgTestMethodCluster) description?.accept(this@CgAbstractRenderer)
 
+        var isLimitExceeded = false
         for (method in content) {
+            if (printer.printedLength > UtSettings.maxTestFileSize) {
+                isLimitExceeded = true
+                break
+            }
             println()
             method.accept(this@CgAbstractRenderer)
         }
@@ -201,6 +209,12 @@ abstract class CgAbstractRenderer(
         if (printLineAfterContentEnd) println()
 
         println(regionEnd)
+
+        if (isLimitExceeded && !isInterrupted) {
+            visit(CgSingleLineComment("Abrupt generation termination: file size exceeds configured limit (${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())})"))
+            visit(CgSingleLineComment("The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestsFileSize' property"))
+            isInterrupted = true
+        }
     }
 
     override fun visit(element: CgAuxiliaryClass) {

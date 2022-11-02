@@ -2,9 +2,9 @@ package org.utbot.engine.selectors.strategies
 
 import mu.KotlinLogging
 import org.utbot.common.FileUtil.createNewFileWithParentDirectories
-import org.utbot.engine.CALL_DECISION_NUM
-import org.utbot.engine.Edge
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.CALL_DECISION_NUM
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.isLibraryNonOverriddenClass
 import org.utbot.engine.isReturn
@@ -17,7 +17,6 @@ import soot.toolkits.graph.ExceptionalUnitGraph
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.io.FileWriter
-import java.nio.file.Files
 import java.nio.file.Paths
 import org.utbot.common.FileUtil
 

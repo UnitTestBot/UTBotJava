@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
@@ -173,13 +174,26 @@ open class CgTestClassConstructor(val context: CgContext) :
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
             emptyLineIfNeeded()
-            for (i in executionIndices) {
+            val (checkedRange, needLimitExceedingComments) = if (executionIndices.last  - executionIndices.first > UtSettings.maxTestsPerMethod) {
+                IntRange(executionIndices.first, executionIndices.first + (UtSettings.maxTestsPerMethod - 1).coerceAtLeast(0)) to true
+            } else {
+                executionIndices to false
+            }
+
+            for (i in checkedRange) {
                 currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
             }
+
+            val comments = listOf("Actual number of generated tests (${executionIndices.last - executionIndices.first}) exceeds per-method limit (${UtSettings.maxTestsPerMethod})",
+                "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestsPerMethod' property")
+
             val clusterHeader = clusterSummary?.header
-            val clusterContent = clusterSummary?.content
+            var clusterContent = clusterSummary?.content
                 ?.split('\n')
-                ?.let { CgTripleSlashMultilineComment(it) }
+                ?.let { CgTripleSlashMultilineComment(if (needLimitExceedingComments) {it.toMutableList() + comments} else {it}) }
+            if (clusterContent == null && needLimitExceedingComments) {
+                clusterContent = CgTripleSlashMultilineComment(comments)
+            }
             regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
 
             testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)

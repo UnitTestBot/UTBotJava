@@ -1,6 +1,5 @@
 package org.utbot.engine.pc
 
-import org.utbot.common.unreachableBranch
 import org.utbot.engine.Add
 import org.utbot.engine.And
 import org.utbot.engine.Cmp
@@ -44,17 +43,15 @@ import soot.Type
  * UtExpressionVisitor that performs simple rewritings on expressions with concrete values.
  *
  */
-open class RewritingVisitor(
+open class Simplificator(
     private val eqs: Map<UtExpression, UtExpression> = emptyMap(),
     private val lts: Map<UtExpression, Long> = emptyMap(),
     private val gts: Map<UtExpression, Long> = emptyMap()
 ) : UtExpressionVisitor<UtExpression> {
-    val axiomInstantiationVisitor: RewritingVisitor
-        get() = AxiomInstantiationRewritingVisitor(eqs, lts, gts)
+    val axiomInstantiationVisitor: Simplificator
+        get() = AxiomInstantiationSimplificator(eqs, lts, gts)
     protected val selectIndexStack = mutableListOf<PrimitiveValue>()
     private val simplificationCache = IdentityHashMap<UtExpression, UtExpression>()
-
-    private fun allConcrete(vararg exprs: UtExpression) = exprs.all { it.isConcrete }
 
     protected inline fun <reified R> withNewSelect(index: UtExpression, block: () -> R): R {
         selectIndexStack += index.toIntValue()
@@ -103,12 +100,8 @@ open class RewritingVisitor(
                 eqs[expr] ?: block().let { if (substituteResult) eqs[it] ?: it else it }
             }
         }
-        return if (expr.sort is UtArraySort && selectIndexStack.isNotEmpty()) {
+        return simplificationCache.getOrPut(expr) {
             checkSortsEquality(value, expr)
-        } else {
-            simplificationCache.getOrPut(expr) {
-                checkSortsEquality(value, expr)
-            }
         }
     }
 
@@ -1041,15 +1034,15 @@ private fun instantiateArrayAsNewConst(arrayExpression: UtExtendedArrayExpressio
     }
 
 /**
- * Visitor that applies the same simplifications as [RewritingVisitor] and instantiate axioms for extended array theory.
+ * Visitor that applies the same simplifications as [Simplificator] and instantiate axioms for extended array theory.
  *
  * @see UtExtendedArrayExpression
  */
-class AxiomInstantiationRewritingVisitor(
+class AxiomInstantiationSimplificator(
     eqs: Map<UtExpression, UtExpression> = emptyMap(),
     lts: Map<UtExpression, Long> = emptyMap(),
     gts: Map<UtExpression, Long> = emptyMap()
-) : RewritingVisitor(eqs, lts, gts) {
+) : Simplificator(eqs, lts, gts) {
     private val instantiatedAxiomExpressions = mutableListOf<UtBoolExpression>()
 
     /**

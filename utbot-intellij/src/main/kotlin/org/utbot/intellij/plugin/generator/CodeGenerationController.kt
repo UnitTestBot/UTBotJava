@@ -68,7 +68,7 @@ import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
@@ -241,7 +241,7 @@ object CodeGenerationController {
             ?: return // no util class needed
 
         val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
-        val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind)
+        val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind, model.codegenLanguage)
         if (utilClassKind != null) {
             createOrUpdateUtilClass(
                 testDirectory = baseTestDirectory,
@@ -267,17 +267,21 @@ object CodeGenerationController {
      * @param requiredUtilClassKind the kind of the new util class that we attempt to generate.
      * @return an [UtilClassKind] of a new util class that will be created or `null`, if no new util class is needed.
      */
-    private fun newUtilClassKindOrNull(existingUtilClass: PsiFile?, requiredUtilClassKind: UtilClassKind): UtilClassKind? {
+    private fun newUtilClassKindOrNull(
+        existingUtilClass: PsiFile?,
+        requiredUtilClassKind: UtilClassKind,
+        codegenLanguage: CodegenLanguage,
+    ): UtilClassKind? {
         if (existingUtilClass == null) {
             // If no util class exists, then we should create a new one with the given kind.
             return requiredUtilClassKind
         }
 
         val existingUtilClassVersion = existingUtilClass.utilClassVersionOrNull ?: return requiredUtilClassKind
-        val newUtilClassVersion = requiredUtilClassKind.utilClassVersion
+        val newUtilClassVersion = requiredUtilClassKind.utilClassVersion(codegenLanguage)
         val versionIsUpdated = existingUtilClassVersion != newUtilClassVersion
 
-        val existingUtilClassKind = existingUtilClass.utilClassKindOrNull ?: return requiredUtilClassKind
+        val existingUtilClassKind = existingUtilClass.utilClassKindOrNull(codegenLanguage) ?: return requiredUtilClassKind
 
         if (versionIsUpdated) {
             // If an existing util class is out of date, then we must overwrite it with a newer version.
@@ -322,7 +326,7 @@ object CodeGenerationController {
 
         val utUtilsFile = if (existingUtilClass == null) {
             // create a directory to put utils class into
-            val utilClassDirectory = createUtUtilSubdirectories(testDirectory)
+            val utilClassDirectory = createUtUtilSubdirectories(testDirectory, language)
             // create util class file and put it into utils directory
             createNewUtilClass(utilClassDirectory, language, utilClassKind, model)
         } else {
@@ -432,8 +436,8 @@ object CodeGenerationController {
      * Util class must have a comment that specifies its kind.
      * This property obtains the kind specified by this comment if it exists. Otherwise, the property is `null`.
      */
-    private val PsiFile.utilClassKindOrNull: UtilClassKind?
-        get() = runReadAction {
+    private fun PsiFile.utilClassKindOrNull(codegenLanguage: CodegenLanguage): UtilClassKind?
+        = runReadAction {
             val utilClass = (this as? PsiClassOwner)
                 ?.classes
                 ?.firstOrNull()
@@ -441,8 +445,7 @@ object CodeGenerationController {
 
             utilClass.getChildrenOfType<PsiComment>()
                 .map { comment -> comment.text }
-                .mapNotNull { text -> UtilClassKind.utilClassKindByCommentOrNull(text) }
-                .firstOrNull()
+                .firstNotNullOfOrNull { text -> UtilClassKind.utilClassKindByCommentOrNull(text, codegenLanguage) }
         }
 
     /**
@@ -464,14 +467,17 @@ object CodeGenerationController {
     }
 
     private val CodegenLanguage.utilClassFileName: String
-        get() = "$UT_UTILS_CLASS_NAME${this.extension}"
+        get() = "$UT_UTILS_INSTANCE_NAME${this.extension}"
 
     /**
      * @param testDirectory root test directory where we will put our generated tests.
      * @return directory for util class if it exists or null otherwise.
      */
-    private fun getUtilDirectoryOrNull(testDirectory: PsiDirectory): PsiDirectory? {
-        val directoryNames = UtilClassKind.utilsPackages
+    private fun getUtilDirectoryOrNull(
+        testDirectory: PsiDirectory,
+        codegenLanguage: CodegenLanguage,
+    ): PsiDirectory? {
+        val directoryNames = UtilClassKind.utilsPackageNames(codegenLanguage)
         var currentDirectory = testDirectory
         for (name in directoryNames) {
             val subdirectory = runReadAction { currentDirectory.findSubdirectory(name) } ?: return null
@@ -484,9 +490,12 @@ object CodeGenerationController {
      * @param testDirectory root test directory where we will put our generated tests.
      * @return file of util class if it exists or null otherwise.
      */
-    private fun CodegenLanguage.getUtilClassOrNull(testDirectory: PsiDirectory): PsiFile? {
+    private fun CodegenLanguage.getUtilClassOrNull(
+        testDirectory: PsiDirectory,
+        codegenLanguage: CodegenLanguage,
+    ): PsiFile? {
         return runReadAction {
-            val utilDirectory = getUtilDirectoryOrNull(testDirectory)
+            val utilDirectory = getUtilDirectoryOrNull(testDirectory, codegenLanguage)
             utilDirectory?.findFile(this.utilClassFileName)
         }
     }
@@ -508,17 +517,18 @@ object CodeGenerationController {
         }
 
         // return an util class from one of the test source roots or null if no util class was found
-        return testRoots
-            .mapNotNull { testRoot -> getUtilClassOrNull(testRoot) }
-            .firstOrNull()
+        return testRoots.firstNotNullOfOrNull { testRoot -> getUtilClassOrNull(testRoot, this) }
     }
 
     /**
      * Create all package directories for UtUtils class.
      * @return the innermost directory - utils from `org.utbot.runtime.utils`
      */
-    private fun createUtUtilSubdirectories(baseTestDirectory: PsiDirectory): PsiDirectory {
-        val directoryNames = UtilClassKind.utilsPackages
+    private fun createUtUtilSubdirectories(
+        baseTestDirectory: PsiDirectory,
+        codegenLanguage: CodegenLanguage,
+    ): PsiDirectory {
+        val directoryNames = UtilClassKind.utilsPackageNames(codegenLanguage)
         var currentDirectory = baseTestDirectory
         runWriteCommandAction(baseTestDirectory.project) {
             for (name in directoryNames) {

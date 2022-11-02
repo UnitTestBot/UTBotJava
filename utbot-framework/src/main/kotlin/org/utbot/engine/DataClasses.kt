@@ -161,8 +161,6 @@ data class MethodResult(
     val symbolicResult: SymbolicResult,
     val symbolicStateUpdate: SymbolicStateUpdate = SymbolicStateUpdate()
 ) : InvokeResult() {
-    val memoryUpdates by symbolicStateUpdate::memoryUpdates
-
     constructor(
         symbolicResult: SymbolicResult,
         hardConstraints: HardConstraint = emptyHardConstraint(),

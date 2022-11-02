@@ -212,8 +212,6 @@ import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -682,7 +680,7 @@ class Traverser(
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =
-        methodResult != null && id in methodResult.memoryUpdates.staticInstanceStorage
+        methodResult != null && id in methodResult.symbolicStateUpdate.memoryUpdates.staticInstanceStorage
 
     private fun TraversalContext.skipVerticesForThrowableCreation(current: JAssignStmt) {
         val rightType = current.rightOp.type as RefType
@@ -1030,7 +1028,6 @@ class Traverser(
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
         val callable = methodUnderTest.executable
-        val kCallable = ::updateGenericTypeInfo
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
@@ -2359,7 +2356,7 @@ class Traverser(
             MethodResult(
                 mockValue,
                 hardConstraints = additionalConstraint.asHardConstraint(),
-                memoryUpdates = if (isInternalMock) MemoryUpdate() else mockMethodResult.memoryUpdates
+                memoryUpdates = if (isInternalMock) MemoryUpdate() else mockMethodResult.symbolicStateUpdate.memoryUpdates
             )
         )
     }

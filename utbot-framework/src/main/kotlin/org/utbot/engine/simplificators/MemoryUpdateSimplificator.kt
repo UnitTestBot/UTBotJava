@@ -38,8 +38,9 @@ typealias InstanceFieldReadsType = PersistentSet<InstanceFieldReadOperation>
 typealias SpeculativelyNotNullAddressesType = PersistentList<UtAddrExpression>
 typealias SymbolicEnumValuesType = PersistentList<ObjectValue>
 
-context(Simplificator)
-class MemoryUpdateSimplificator : CachingSimplificatorAdapter<MemoryUpdate>() {
+class MemoryUpdateSimplificator(
+    private val simplificator: Simplificator
+) : CachingSimplificatorAdapter<MemoryUpdate>() {
     override fun simplifyImpl(expression: MemoryUpdate): MemoryUpdate {
         val stores = simplifyStores(expression.stores)
         val touchedChunkDescriptors = simplifyTocuhedChunkDescriptors(expression.touchedChunkDescriptors)
@@ -83,8 +84,8 @@ class MemoryUpdateSimplificator : CachingSimplificatorAdapter<MemoryUpdate>() {
             .mutate { prevStores ->
                 prevStores.replaceAll { store ->
                     store.copy(
-                        index = store.index.accept(this@Simplificator),
-                        value = store.value.accept(this@Simplificator)
+                        index = store.index.accept(simplificator),
+                        value = store.value.accept(simplificator)
                     )
                 }
             }
@@ -94,20 +95,22 @@ class MemoryUpdateSimplificator : CachingSimplificatorAdapter<MemoryUpdate>() {
 
     private fun simplifyConcrete(concrete: ConcreteType): ConcreteType =
         concrete
-            .mapKeys { (k, _) -> k.accept(this@Simplificator) as UtAddrExpression }
+            .mapKeys { (k, _) -> k.accept(simplificator) as UtAddrExpression }
             .toPersistentMap()
 
     private fun simplifyMockInfos(mockInfos: MockInfosType): MockInfosType =
         mockInfos.mutate { prevMockInfos ->
             prevMockInfos.replaceAll {
-                simplifyMockInfoEnriched(it)
+                with(simplificator) {
+                    simplifyMockInfoEnriched(it)
+                }
             }
         }
 
 
     private fun simplifyStaticInstanceStorage(staticInstanceStorage: StaticInstanceStorageType): StaticInstanceStorageType =
         staticInstanceStorage.mutate { prevStorage ->
-            prevStorage.replaceAll { _, v -> simplifySymbolicValue(v) as ObjectValue }
+            prevStorage.replaceAll { _, v -> with(simplificator) { simplifySymbolicValue(v) as ObjectValue } }
         }
 
     private fun simplifyInitializedStaticFields(initializedStaticFields: InitializedStaticFieldsType): InitializedStaticFieldsType =
@@ -115,7 +118,7 @@ class MemoryUpdateSimplificator : CachingSimplificatorAdapter<MemoryUpdate>() {
 
     private fun simplifyStaticFieldsUpdates(staticFieldsUpdates: StaticFieldsUpdatesType): StaticFieldsUpdatesType =
         staticFieldsUpdates.mutate { prevUpdates ->
-            prevUpdates.replaceAll { staticFieldMemoryUpdateInfo(it) }
+            prevUpdates.replaceAll { with(simplificator) { staticFieldMemoryUpdateInfo(it) } }
         }
 
     private fun simplifyMeaningfulStaticFields(meaningfulStaticFields: MeaningfulStaticFieldsType): MeaningfulStaticFieldsType =
@@ -124,23 +127,23 @@ class MemoryUpdateSimplificator : CachingSimplificatorAdapter<MemoryUpdate>() {
 
     private fun simplifyAddrToArrayType(addrToArrayType: AddrToArrayTypeType): AddrToArrayTypeType =
         addrToArrayType
-            .mapKeys { (k, _) -> k.accept(this@Simplificator) as UtAddrExpression }
+            .mapKeys { (k, _) -> k.accept(simplificator) as UtAddrExpression }
             .toPersistentMap()
 
 
     private fun simplifyAddToMockInfo(addrToMockInfo: AddrToMockInfoType): AddrToMockInfoType =
         addrToMockInfo
-            .mapKeys { (k, _) -> k.accept(this@Simplificator) as UtAddrExpression }
+            .mapKeys { (k, _) -> k.accept(simplificator) as UtAddrExpression }
             .toPersistentMap()
 
     private fun simplifyVisitedValues(visitedValues: VisitedValuesType): VisitedValuesType =
         visitedValues.mutate { prevValues ->
-            prevValues.replaceAll { it.accept(this@Simplificator) as UtAddrExpression }
+            prevValues.replaceAll { it.accept(simplificator) as UtAddrExpression }
         }
 
     private fun simplifyTouchedAddresses(touchedAddresses: TouchedAddressesType): TouchedAddressesType =
         touchedAddresses.mutate { prevAddresses ->
-            prevAddresses.replaceAll { it.accept(this@Simplificator) as UtAddrExpression }
+            prevAddresses.replaceAll { it.accept(simplificator) as UtAddrExpression }
         }
 
     private fun simplifyClassIdToClearStatics(classIdToClearStatics: ClassIdToClearStaticsType): ClassIdToClearStaticsType =
@@ -148,16 +151,16 @@ class MemoryUpdateSimplificator : CachingSimplificatorAdapter<MemoryUpdate>() {
 
     private fun simplifyInstanceFieldReads(instanceFieldReads: InstanceFieldReadsType): InstanceFieldReadsType =
         instanceFieldReads
-            .map { it.copy(addr = it.addr.accept(this@Simplificator) as UtAddrExpression) }
+            .map { it.copy(addr = it.addr.accept(simplificator) as UtAddrExpression) }
             .toPersistentSet()
 
     private fun simplifySpeculativelyNotNullAddresses(speculativelyNotNullAddresses: SpeculativelyNotNullAddressesType): SpeculativelyNotNullAddressesType =
         speculativelyNotNullAddresses.mutate { prevAddresses ->
-            prevAddresses.replaceAll { it.accept(this@Simplificator) as UtAddrExpression }
+            prevAddresses.replaceAll { it.accept(simplificator) as UtAddrExpression }
         }
 
     private fun simplifyEnumValues(symbolicEnumValues: SymbolicEnumValuesType): SymbolicEnumValuesType =
         symbolicEnumValues.mutate { values ->
-            values.replaceAll { simplifySymbolicValue(it) as ObjectValue }
+            values.replaceAll { with(simplificator) { simplifySymbolicValue(it) as ObjectValue } }
         }
 }

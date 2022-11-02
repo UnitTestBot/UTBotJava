@@ -315,7 +315,7 @@ class Traverser(
     }
 
     internal val simplificator = Simplificator()
-    private val memoryUpdateSimplificator = with(simplificator) { MemoryUpdateSimplificator() }
+    private val memoryUpdateSimplificator = MemoryUpdateSimplificator(simplificator)
 
     private fun TraversalContext.traverseStmt(current: Stmt) {
         if (doPreparatoryWorkIfRequired(current)) return

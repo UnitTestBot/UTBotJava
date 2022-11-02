@@ -1,9 +1,8 @@
 package org.utbot.tests.infrastructure
 
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.utbot.common.runBlockingWithCancellationPredicate
-import org.utbot.common.runIgnoringCancellationException
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -61,32 +60,30 @@ class TestSpecificTestCaseGenerator(
         val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
         val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
 
-        runIgnoringCancellationException {
-            runBlockingWithCancellationPredicate(isCanceled) {
-                val controller = EngineController()
-                controller.job = launch {
-                    super
-                        .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
-                        .collect {
-                            when (it) {
-                                is UtExecution -> {
-                                    if (it is UtSymbolicExecution &&
-                                        (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
-                                                conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
-                                    ) {
-                                        it.containsMocking = true
+        runBlocking {
+            val controller = EngineController()
+            controller.job = launch {
+                super
+                    .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
+                    .collect {
+                        when (it) {
+                            is UtExecution -> {
+                                if (it is UtSymbolicExecution &&
+                                    (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                            conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                                ) {
+                                    it.containsMocking = true
 
-                                        conflictTriggers.reset(
-                                            Conflict.ForceMockHappened,
-                                            Conflict.ForceStaticMockHappened
-                                        )
-                                    }
-                                    executions += it
+                                    conflictTriggers.reset(
+                                        Conflict.ForceMockHappened,
+                                        Conflict.ForceStaticMockHappened
+                                    )
                                 }
-                                is UtError -> errors.merge(it.description, 1, Int::plus)
+                                executions += it
                             }
+                            is UtError -> errors.merge(it.description, 1, Int::plus)
                         }
-                }
+                    }
             }
         }
 

@@ -1,7 +1,7 @@
 package org.utbot.engine.selectors.strategies
 
-import org.utbot.engine.Edge
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.isReturn
 import org.utbot.engine.pathLogger

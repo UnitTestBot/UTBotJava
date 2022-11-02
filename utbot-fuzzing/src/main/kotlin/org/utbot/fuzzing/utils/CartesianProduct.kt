@@ -1,4 +1,4 @@
-package org.utbot.fuzzer
+package org.utbot.fuzzing.utils
 
 import kotlin.jvm.Throws
 import kotlin.random.Random

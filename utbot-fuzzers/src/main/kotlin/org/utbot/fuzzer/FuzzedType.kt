@@ -16,5 +16,5 @@ import org.utbot.framework.plugin.api.ClassId
  */
 class FuzzedType(
     val classId: ClassId,
-    val generics: List<FuzzedType> = emptyList()
+    val generics: List<FuzzedType> = emptyList(),
 )

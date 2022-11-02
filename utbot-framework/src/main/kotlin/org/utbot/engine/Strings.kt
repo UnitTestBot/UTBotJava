@@ -4,7 +4,6 @@ import com.github.curiousoddman.rgxgen.RgxGen
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
-import org.utbot.engine.pc.RewritingVisitor
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.UtFalse
@@ -122,17 +121,17 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? {
         val arg = parameters[0] as ObjectValue
-        val matchingLengthExpr = getIntFieldValue(arg, STRING_LENGTH).accept(RewritingVisitor())
+        val matchingLengthExpr = getIntFieldValue(arg, STRING_LENGTH).accept(this.simplificator)
 
         if (!matchingLengthExpr.isConcrete) return null
 
         val matchingValueExpr =
-            selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
+            selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(this.simplificator)
         val matchingLength = matchingLengthExpr.toConcrete() as Int
         val matchingValue = CharArray(matchingLength)
 
         for (i in 0 until matchingLength) {
-            val charExpr = matchingValueExpr.select(mkInt(i)).accept(RewritingVisitor())
+            val charExpr = matchingValueExpr.select(mkInt(i)).accept(this.simplificator)
 
             if (!charExpr.isConcrete) return null
 

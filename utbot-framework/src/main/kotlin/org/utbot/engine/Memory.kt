@@ -3,7 +3,6 @@ package org.utbot.engine
 import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
-import org.utbot.engine.pc.RewritingVisitor
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtAddrSort
 import org.utbot.engine.pc.UtArrayExpressionBase
@@ -48,28 +47,6 @@ import soot.RefLikeType
 import soot.Scene
 import soot.Type
 
-
-/**
- * Represents a memory associated with a certain method call. For now consists only of local variables mapping.
- * TODO: think on other fields later
- *
- * @param [locals] represents a mapping from [LocalVariable]s of a specific method call to [SymbolicValue]s.
- */
-data class LocalVariableMemory(
-    private val locals: PersistentMap<LocalVariable, SymbolicValue> = persistentHashMapOf()
-) {
-    fun memoryForNestedMethod(): LocalVariableMemory = this.copy(locals = persistentHashMapOf())
-
-    fun update(update: LocalMemoryUpdate): LocalVariableMemory = this.copy(locals = locals.update(update.locals))
-
-    /**
-     * Returns local variable value.
-     */
-    fun local(variable: LocalVariable): SymbolicValue? = locals[variable]
-
-    val localValues: Set<SymbolicValue>
-        get() = locals.values.toSet()
-}
 
 /**
  * Local memory implementation based on arrays.
@@ -439,20 +416,20 @@ data class UtNamedStore(
 )
 
 /**
- * Create [UtNamedStore] with simplified [index] and [value] expressions.
+ * Create [UtNamedStore] with unsimplified [index] and [value] expressions.
  *
- * @see RewritingVisitor
+ * @note simplifications occur explicitly in [Traverser]
  */
-fun simplifiedNamedStore(
+fun namedStore(
     chunkDescriptor: MemoryChunkDescriptor,
     index: UtExpression,
     value: UtExpression
-) = RewritingVisitor().let { visitor -> UtNamedStore(chunkDescriptor, index.accept(visitor), value.accept(visitor)) }
+) = UtNamedStore(chunkDescriptor, index, value)
 
 /**
  * Updates persistent map where value = null in update means deletion of original key-value
  */
-private fun <K, V> PersistentMap<K, V>.update(update: Map<K, V?>): PersistentMap<K, V> {
+fun <K, V> PersistentMap<K, V>.update(update: Map<K, V?>): PersistentMap<K, V> {
     if (update.isEmpty()) return this
     val deletions = mutableListOf<K>()
     val updates = mutableMapOf<K, V>()

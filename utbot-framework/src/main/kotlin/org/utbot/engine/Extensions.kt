@@ -29,6 +29,7 @@ import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.toSort
+import org.utbot.engine.state.ExecutionState
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.plugin.api.FieldId

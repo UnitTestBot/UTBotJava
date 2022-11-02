@@ -1,7 +1,7 @@
 package org.utbot.features
 
 import org.utbot.analytics.FeatureExtractor
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.selectors.strategies.StatementsStatistics
 import org.utbot.engine.selectors.strategies.SubpathStatistics

@@ -1272,7 +1272,7 @@ private fun Traverser.arrayToMethodResult(
     }
 
     val memoryUpdate = MemoryUpdate(
-        stores = persistentListOf(simplifiedNamedStore(descriptor, newAddr, updatedArray)),
+        stores = persistentListOf(namedStore(descriptor, newAddr, updatedArray)),
         touchedChunkDescriptors = persistentSetOf(descriptor),
     )
 

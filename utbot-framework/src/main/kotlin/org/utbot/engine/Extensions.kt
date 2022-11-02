@@ -14,7 +14,6 @@ import org.utbot.engine.pc.UtFp32Sort
 import org.utbot.engine.pc.UtFp64Sort
 import org.utbot.engine.pc.UtIntSort
 import org.utbot.engine.pc.UtLongSort
-import org.utbot.engine.pc.UtSeqSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
@@ -67,6 +66,7 @@ import java.util.Queue
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
+import org.utbot.engine.types.OBJECT_TYPE
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }

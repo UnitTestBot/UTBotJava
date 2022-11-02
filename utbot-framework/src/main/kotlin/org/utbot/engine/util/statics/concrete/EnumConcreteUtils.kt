@@ -9,6 +9,7 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.jField
 import soot.SootClass

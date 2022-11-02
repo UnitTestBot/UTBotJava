@@ -4,7 +4,7 @@ package org.utbot.engine.selectors
 
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.engine.InterProceduralUnitGraph
-import org.utbot.engine.TypeRegistry
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.selectors.StrategyOption.DISTANCE
 import org.utbot.engine.selectors.StrategyOption.VISIT_COUNTING
 import org.utbot.engine.selectors.nurs.CPInstSelector

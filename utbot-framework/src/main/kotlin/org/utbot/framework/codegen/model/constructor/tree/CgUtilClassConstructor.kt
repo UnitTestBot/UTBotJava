@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.UtilClassKind
+import org.utbot.framework.codegen.model.constructor.builtin.selectUtilClassId
 import org.utbot.framework.codegen.model.constructor.builtin.utJavaUtilsClassId
 import org.utbot.framework.codegen.model.constructor.builtin.utKotlinUtilsClassId
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
@@ -24,10 +25,7 @@ internal object CgUtilClassConstructor {
         codegenLanguage: CodegenLanguage,
     ): CgClassFile {
         val utilMethodProvider = utilClassKind.utilMethodProvider
-        val utilsClassId = when (codegenLanguage) {
-            CodegenLanguage.JAVA -> utJavaUtilsClassId
-            CodegenLanguage.KOTLIN -> utKotlinUtilsClassId
-        }
+        val utilsClassId = selectUtilClassId(codegenLanguage)
         return buildClassFile {
             // imports are empty, because we use fully qualified classes and static methods,
             // so they will be imported once IDEA reformatting action has worked

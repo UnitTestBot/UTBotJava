@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.visitor
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.utilsPackageFullName
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.selectUtilClassId
 import org.utbot.framework.codegen.model.constructor.builtin.utJavaUtilsClassId
 import org.utbot.framework.codegen.model.constructor.builtin.utKotlinUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -48,10 +49,7 @@ internal class CgRendererContext(
                 importedClasses = emptySet(),
                 importedStaticMethods = emptySet(),
                 classPackageName = utilsPackageFullName(language),
-                generatedClass = when (language) {
-                    CodegenLanguage.JAVA -> utJavaUtilsClassId
-                    CodegenLanguage.KOTLIN -> utKotlinUtilsClassId
-                },
+                generatedClass = selectUtilClassId(language),
                 utilMethodProvider = utilClassKind.utilMethodProvider,
                 codegenLanguage = language,
                 mockFrameworkUsed = utilClassKind.mockFrameworkUsed,

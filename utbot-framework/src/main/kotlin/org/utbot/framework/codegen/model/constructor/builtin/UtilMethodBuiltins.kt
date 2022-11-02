@@ -261,12 +261,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
  * Content of this util class may be different (due to mocks in deepEquals), but the methods (and their ids) are the same.
  */
 internal class UtilClassFileMethodProvider(language: CodegenLanguage)
-    : UtilMethodProvider(
-    when (language) {
-        CodegenLanguage.JAVA -> utJavaUtilsClassId
-        CodegenLanguage.KOTLIN -> utKotlinUtilsClassId
-    }
-) {
+    : UtilMethodProvider(selectUtilClassId(language)) {
     /**
      * This property contains the current version of util class.
      * This version will be written to the util class file inside a comment.
@@ -283,6 +278,12 @@ internal class UtilClassFileMethodProvider(language: CodegenLanguage)
 }
 
 internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
+
+internal fun selectUtilClassId(codegenLanguage: CodegenLanguage): ClassId =
+    when (codegenLanguage) {
+        CodegenLanguage.JAVA -> utJavaUtilsClassId
+        CodegenLanguage.KOTLIN -> utKotlinUtilsClassId
+    }
 
 internal val utJavaUtilsClassId: ClassId
     get() = BuiltinClassId(

@@ -1,6 +1,6 @@
 package org.utbot.engine.selectors
 
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import java.util.NoSuchElementException
 import kotlin.random.Random
 

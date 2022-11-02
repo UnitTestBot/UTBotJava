@@ -50,28 +50,6 @@ import soot.Type
 
 
 /**
- * Represents a memory associated with a certain method call. For now consists only of local variables mapping.
- * TODO: think on other fields later
- *
- * @param [locals] represents a mapping from [LocalVariable]s of a specific method call to [SymbolicValue]s.
- */
-data class LocalVariableMemory(
-    private val locals: PersistentMap<LocalVariable, SymbolicValue> = persistentHashMapOf()
-) {
-    fun memoryForNestedMethod(): LocalVariableMemory = this.copy(locals = persistentHashMapOf())
-
-    fun update(update: LocalMemoryUpdate): LocalVariableMemory = this.copy(locals = locals.update(update.locals))
-
-    /**
-     * Returns local variable value.
-     */
-    fun local(variable: LocalVariable): SymbolicValue? = locals[variable]
-
-    val localValues: Set<SymbolicValue>
-        get() = locals.values.toSet()
-}
-
-/**
  * Local memory implementation based on arrays.
  *
  * Contains initial and current versions of arrays. Also collects memory updates (stores) and can return them.

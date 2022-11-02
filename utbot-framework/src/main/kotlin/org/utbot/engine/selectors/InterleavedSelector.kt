@@ -1,6 +1,6 @@
 package org.utbot.engine.selectors
 
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 
 /**
  * Retrieves states from different pathSelectors in rotation.

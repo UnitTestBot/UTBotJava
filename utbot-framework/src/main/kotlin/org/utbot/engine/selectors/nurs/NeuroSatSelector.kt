@@ -1,7 +1,7 @@
 package org.utbot.engine.selectors.nurs
 
 import org.utbot.analytics.Predictors
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 

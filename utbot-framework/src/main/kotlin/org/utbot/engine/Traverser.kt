@@ -66,6 +66,15 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
+import org.utbot.engine.state.LocalVariableMemory
+import org.utbot.engine.state.StateLabel
+import org.utbot.engine.state.createExceptionState
+import org.utbot.engine.state.pop
+import org.utbot.engine.state.push
+import org.utbot.engine.state.update
+import org.utbot.engine.state.withLabel
 import org.utbot.engine.symbolic.emptyAssumption
 import org.utbot.engine.symbolic.emptyHardConstraint
 import org.utbot.engine.symbolic.emptySoftConstraint

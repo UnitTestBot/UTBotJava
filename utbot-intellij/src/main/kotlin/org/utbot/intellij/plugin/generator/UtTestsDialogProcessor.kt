@@ -49,6 +49,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
 import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.framework.plugin.api.util.LockFile
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -105,7 +106,7 @@ object UtTestsDialogProcessor {
             focusedMethods,
             UtSettings.utBotGenerationTimeoutInMillis,
         )
-        if (model.getAllTestSourceRoots().isEmpty()) {
+        if (model.getAllTestSourceRoots().isEmpty() && project.isBuildWithGradle) {
             val errorMessage = """
                 <html>No test source roots found in the project.<br>
                 Please, <a href="https://www.jetbrains.com/help/idea/testing.html#add-test-root">create or configure</a> at least one test source root.

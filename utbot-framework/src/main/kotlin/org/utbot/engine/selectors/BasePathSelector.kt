@@ -1,6 +1,6 @@
 package org.utbot.engine.selectors
 
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.isPreconditionCheckMethod
 import org.utbot.engine.pathLogger
 import org.utbot.engine.pc.UtSolver

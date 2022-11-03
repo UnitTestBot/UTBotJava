@@ -105,7 +105,7 @@ class RunConfigurationHelper {
                         ConfigurationContext.SHARED_CONTEXT,
                         myConfigurationContext
                     )
-                    run(IntelliJApiHelper.Target.THREAD_POOL) {
+                    run(IntelliJApiHelper.Target.THREAD_POOL, indicator = null, "Get run configurations from all producers") {
                         val configurations = ApplicationManager.getApplication().runReadAction(Computable {
                             return@Computable RunConfigurationProducer.getProducers(model.project)
                                 .mapNotNull { it.findOrCreateConfigurationFromContext(myConfigurationContext) }
@@ -120,7 +120,7 @@ class RunConfigurationHelper {
                                 //Fallback in case 'Code Coverage for Java' plugin is not enabled
                                 DefaultRunExecutor.getRunExecutorInstance()
                             }
-                            ApplicationManager.getApplication().invokeLater {
+                            run(IntelliJApiHelper.Target.EDT_LATER, null, "Start run configuration with coverage") {
                                 val configuration = settings.configuration
                                 if (configuration is ConfigurationWithCommandLineShortener) {
                                     configuration.shortenCommandLine = ShortenCommandLine.MANIFEST

@@ -45,7 +45,7 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.simplifiedNamedStore
+import org.utbot.engine.namedStore
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.toIntValue
 import org.utbot.engine.toPrimitiveValue
@@ -337,8 +337,8 @@ class TypeRegistry {
         val symNumDimensions = mkInt(numDimensions)
 
         val stores = persistentListOf(
-            simplifiedNamedStore(CLASS_REF_TYPE_DESCRIPTOR, addr, typeId),
-            simplifiedNamedStore(CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR, addr, symNumDimensions)
+            namedStore(CLASS_REF_TYPE_DESCRIPTOR, addr, typeId),
+            namedStore(CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR, addr, symNumDimensions)
         )
 
         val touchedDescriptors = persistentSetOf(CLASS_REF_TYPE_DESCRIPTOR, CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR)

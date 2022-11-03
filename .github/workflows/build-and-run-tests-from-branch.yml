@@ -20,6 +20,9 @@ env:
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
   # Environment variable setting gradle options.
   GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+  PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
+  ELK_HOSTNAME: logs.utbot.org
+  FILEBEAT_DIR: /tmp/filebeat
 
 jobs:
   prepare-matrices:
@@ -59,7 +62,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.framework-tests-matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    container:
+      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
     steps:
       - name: Print environment variables
         run: printenv
@@ -74,10 +81,19 @@ jobs:
           git checkout ${{ github.event.inputs.commit_sha }}
 
       - name: Run monitoring
+        # secret uploaded using base64 encoding to have one-line output:
+        # cat file | base64 -w 0
         run: |
-          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x ./scripts/project/logging.sh 
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
+          echo "Please visit ELK to check logs https://logs.utbot.org/app/discover#/ using the following search pattern: github.env.HOSTNAME:\"${HOSTNAME}\" and github.env.GITHUB_RUN_ID:\"${GITHUB_RUN_ID}\" and not github.log_level:\"INFO\""
 
       # cache will use the key you provided and contains the files you specify in path.
       #
@@ -125,17 +141,21 @@ jobs:
 
   combined-projects:
     # This job does not need to wait for 'prepare-tests-matrix' result.
-    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
+    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them
     # to start execution early.
     needs: prepare-matrices
-    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
+    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices.
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
       # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.combined-projects-matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    container:
+      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
     steps:
       - name: Print environment variables
         run: printenv
@@ -151,9 +171,16 @@ jobs:
 
       - name: Run monitoring
         run: |
-          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x ./scripts/project/logging.sh
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
+          echo "Please visit ELK to check logs https://logs.utbot.org/app/discover#/ using the following search pattern: github.env.HOSTNAME:\"${HOSTNAME}\" and github.env.GITHUB_RUN_ID:\"${GITHUB_RUN_ID}\" and not github.log_level:\"INFO\""
 
       - uses: actions/cache@v3
         with:
@@ -185,14 +212,14 @@ jobs:
         with:
           name: test_report ${{ matrix.projects.second }}
           path: ${{ matrix.projects.second }}/build/reports/tests/test/*
-        
+
 
   single-project:
     # This job does not need to wait for 'prepare-tests-matrix' result.
-    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
+    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them
     # to start execution early.
     needs: prepare-matrices
-    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
+    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices.
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
       # The option forces to execute all jobs even though some of them have failed.
@@ -200,7 +227,11 @@ jobs:
       matrix:
         project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    container:
+      image: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+      volumes:
+        - "/home/runner/runners:/home/runner/runners"
+        - "/tmp/filebeat:/tmp/filebeat"
     steps:
       - name: Print environment variables
         run: printenv
@@ -216,9 +247,16 @@ jobs:
 
       - name: Run monitoring
         run: |
-          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
-          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"
+          echo "Please visit Grafana to check metrics: https://${PUSHGATEWAY_HOSTNAME}/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-1h&to=now&var-service=github&var-instance=${GITHUB_RUN_ID}-${HOSTNAME}&refresh=1m"
+          echo ---
+          printf ${{ secrets.CA_CERT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/ca.crt
+          printf ${{ secrets.CLIENT_CRT }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.crt
+          printf ${{ secrets.CLIENT_KEY }} | base64 -d > ${{ env.FILEBEAT_DIR }}/client.key
+          chmod +x ./scripts/project/logging.sh
+          ./scripts/project/logging.sh "${FILEBEAT_DIR}" "${{ secrets.ELK_HOST }}:5044"
+          echo "Please visit ELK to check logs https://logs.utbot.org/app/discover#/ using the following search pattern: github.env.HOSTNAME:\"${HOSTNAME}\" and github.env.GITHUB_RUN_ID:\"${GITHUB_RUN_ID}\" and not github.log_level:\"INFO\""
 
       - uses: actions/cache@v3
         with:

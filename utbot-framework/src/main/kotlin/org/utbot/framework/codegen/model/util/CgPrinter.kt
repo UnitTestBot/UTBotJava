@@ -8,6 +8,7 @@ interface CgPrinter {
     fun popIndent()
 
     override fun toString(): String
+    var printedLength: Int
 }
 
 class CgPrinterImpl(
@@ -29,6 +30,8 @@ class CgPrinterImpl(
     }
 
     override fun toString(): String = builder.toString()
+
+    override var printedLength: Int = builder.length
 
     override fun print(text: String) {
         if (atLineStart) {

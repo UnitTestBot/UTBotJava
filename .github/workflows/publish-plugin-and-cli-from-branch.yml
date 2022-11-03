@@ -90,13 +90,24 @@ jobs:
           name: utbot-intellij-${{ env.VERSION }}
           path: utbot-intellij/build/distributions/*
 
-      - name: Build UTBot CLI
+      - name: Build UTBot Java CLI
         run: |
           cd utbot-cli
           gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
           
-      - name: Archive UTBot CLI
+      - name: Archive UTBot Java CLI
         uses: actions/upload-artifact@v3
         with:
           name: utbot-cli-${{ env.VERSION }}
           path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar
+
+      - name: Build UTBot Python CLI
+        run: |
+          cd utbot-cli-python
+          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
+          
+      - name: Archive UTBot Python CLI
+        uses: actions/upload-artifact@v3
+        with:
+          name: utbot-cli-python-${{ env.VERSION }}
+          path: utbot-cli-python/build/libs/utbot-cli-python-${{ env.VERSION }}.jar

@@ -321,10 +321,10 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 )
             )
         result.generatedCode to result.utilClassKind?.let {
-            if (UtilClassKind.RegularUtUtils.javaClass.simpleName == it)
-                UtilClassKind.RegularUtUtils
+            if (UtilClassKind.RegularUtUtils(codegenLanguage).javaClass.simpleName == it)
+                UtilClassKind.RegularUtUtils(codegenLanguage)
             else
-                UtilClassKind.UtUtilsWithMockito
+                UtilClassKind.UtUtilsWithMockito(codegenLanguage)
         }
     }
 

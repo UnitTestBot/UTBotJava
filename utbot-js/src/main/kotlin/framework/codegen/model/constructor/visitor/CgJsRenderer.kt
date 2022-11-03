@@ -89,7 +89,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
 
-    override fun visit(element: CgTestClass) {
+    override fun visit(element: CgClass) {
         element.body.accept(this)
     }
 
@@ -162,7 +162,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         element.values.renderElements(elementsInLine)
     }
 
-    override fun visit(element: CgTestClassFile) {
+    override fun visit(element: CgClassFile) {
         element.imports.filterIsInstance<RegularImport>().forEach {
             renderRegularImport(it)
         }
@@ -248,13 +248,9 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         // TODO: Should we render throw statement right here?
     }
 
-    override fun visit(element: AbstractCgClass<*>) {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(element: CgTestClassBody) {
+    override fun visit(element: CgClassBody) {
         // render regions for test methods
-        for ((i, region) in (element.testMethodRegions + element.nestedClassRegions).withIndex()) {
+        for ((i, region) in (element.methodRegions + element.nestedClassRegions).withIndex()) {
             if (i != 0) println()
 
             region.accept(this)
@@ -363,7 +359,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         TODO("Not yet implemented")
     }
 
-    override fun renderClassModality(aClass: AbstractCgClass<*>) {
+    override fun renderClassModality(aClass: CgClass) {
         TODO("Not yet implemented")
     }
 

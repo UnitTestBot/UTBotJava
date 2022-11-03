@@ -499,7 +499,8 @@ data class CgContext(
         )
         BuiltinClassId(
             canonicalName = name,
-            simpleName = simpleName
+            simpleName = simpleName,
+            isFinal = true,
         )
     }
 
@@ -511,7 +512,7 @@ data class CgContext(
      */
     override val utilMethodProvider: UtilMethodProvider
         get() = if (generateUtilClassFile) {
-            UtilClassFileMethodProvider
+            UtilClassFileMethodProvider(codegenLanguage)
         } else {
             TestClassUtilMethodProvider(outerMostTestClass)
         }
@@ -555,7 +556,8 @@ data class CgContext(
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
             canonicalName = currentTestClass.canonicalName + "." + simpleName,
-            simpleName = simpleName
+            simpleName = simpleName,
+            isFinal = true,
         )
     }
 

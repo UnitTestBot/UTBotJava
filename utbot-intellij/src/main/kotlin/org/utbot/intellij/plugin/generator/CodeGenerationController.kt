@@ -8,7 +8,6 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
@@ -23,12 +22,28 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.psi.*
+import com.intellij.psi.JavaDirectoryService
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiClassOwner
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.siyeh.ig.psiutils.ImportUtils
+import java.nio.file.Path
+import java.util.concurrent.CancellationException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.KotlinFileType
@@ -36,6 +51,7 @@ import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.ImportInsertHelperImpl
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -43,14 +59,16 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
+import org.utbot.common.FileUtil
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
@@ -59,20 +77,25 @@ import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
-import org.utbot.intellij.plugin.ui.*
+import org.utbot.intellij.plugin.ui.CommonErrorNotifier
+import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
+import org.utbot.intellij.plugin.ui.SarifReportNotifier
+import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
+import org.utbot.intellij.plugin.ui.TestsReportNotifier
+import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
+import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
-import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.EDT_LATER
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.THREAD_POOL
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.WRITE_ACTION
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.sarif.Sarif
 import org.utbot.sarif.SarifReport
-import java.nio.file.Path
-import java.util.concurrent.CancellationException
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -140,14 +163,14 @@ object CodeGenerationController {
             }
         }
 
-        run(THREAD_POOL, indicator) {
+        run(THREAD_POOL, indicator, "Waiting for per-class Sarif reports") {
             waitForCountDown(latch, indicator = indicator) {
-                run(EDT_LATER, indicator) {
-                    run(WRITE_ACTION, indicator) {
+                run(EDT_LATER, indicator,"Go to EDT for utility class creation") {
+                    run(WRITE_ACTION, indicator, "Need write action for utility class creation") {
                         createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory, indicator)
-                        run(EDT_LATER, indicator) {
+                        run(EDT_LATER, indicator, "Proceed test report") {
                             proceedTestReport(proc, model)
-                            run(THREAD_POOL, indicator) {
+                            run(THREAD_POOL, indicator, "Generate summary Sarif report") {
                                 val sarifReportsPath =
                                     model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
                                 UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Merge Sarif reports", 0.75)
@@ -157,9 +180,9 @@ object CodeGenerationController {
                                     RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                                 }
                                 proc.forceTermination()
-                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 1.0)
+                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generation finished", 1.0)
 
-                                invokeLater {
+                                run(EDT_LATER, null, "Run sarif-based inspections") {
                                     runInspectionsIfNeeded(model, srcClassPathToSarifReport)
                                 }
                             }
@@ -218,7 +241,7 @@ object CodeGenerationController {
             ?: return // no util class needed
 
         val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
-        val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind)
+        val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind, model.codegenLanguage)
         if (utilClassKind != null) {
             createOrUpdateUtilClass(
                 testDirectory = baseTestDirectory,
@@ -244,17 +267,21 @@ object CodeGenerationController {
      * @param requiredUtilClassKind the kind of the new util class that we attempt to generate.
      * @return an [UtilClassKind] of a new util class that will be created or `null`, if no new util class is needed.
      */
-    private fun newUtilClassKindOrNull(existingUtilClass: PsiFile?, requiredUtilClassKind: UtilClassKind): UtilClassKind? {
+    private fun newUtilClassKindOrNull(
+        existingUtilClass: PsiFile?,
+        requiredUtilClassKind: UtilClassKind,
+        codegenLanguage: CodegenLanguage,
+    ): UtilClassKind? {
         if (existingUtilClass == null) {
             // If no util class exists, then we should create a new one with the given kind.
             return requiredUtilClassKind
         }
 
         val existingUtilClassVersion = existingUtilClass.utilClassVersionOrNull ?: return requiredUtilClassKind
-        val newUtilClassVersion = requiredUtilClassKind.utilClassVersion
+        val newUtilClassVersion = requiredUtilClassKind.utilClassVersion(codegenLanguage)
         val versionIsUpdated = existingUtilClassVersion != newUtilClassVersion
 
-        val existingUtilClassKind = existingUtilClass.utilClassKindOrNull ?: return requiredUtilClassKind
+        val existingUtilClassKind = existingUtilClass.utilClassKindOrNull(codegenLanguage) ?: return requiredUtilClassKind
 
         if (versionIsUpdated) {
             // If an existing util class is out of date, then we must overwrite it with a newer version.
@@ -299,7 +326,7 @@ object CodeGenerationController {
 
         val utUtilsFile = if (existingUtilClass == null) {
             // create a directory to put utils class into
-            val utilClassDirectory = createUtUtilSubdirectories(testDirectory)
+            val utilClassDirectory = createUtUtilSubdirectories(testDirectory, language)
             // create util class file and put it into utils directory
             createNewUtilClass(utilClassDirectory, language, utilClassKind, model)
         } else {
@@ -339,8 +366,8 @@ object CodeGenerationController {
 
         val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
 
-        run(EDT_LATER, indicator) {
-            run(WRITE_ACTION, indicator) {
+        run(EDT_LATER, indicator, "Overwrite utility class") {
+            run(WRITE_ACTION, indicator, "Overwrite utility class") {
                 unblockDocument(model.project, utilsClassDocument)
                 executeCommand {
                     utilsClassDocument.setText(utUtilsText.replace("jdk.internal.misc", "sun.misc"))
@@ -369,7 +396,7 @@ object CodeGenerationController {
 
         val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
 
-        val utUtilsFile = runReadAction {
+        var utUtilsFile = runReadAction {
             PsiFileFactory.getInstance(model.project)
                 .createFileFromText(
                     utUtilsName,
@@ -380,7 +407,8 @@ object CodeGenerationController {
 
         // add UtUtils class file into the utils directory
         runWriteCommandAction(model.project) {
-            utilClassDirectory.add(utUtilsFile)
+            // The file actually added to subdirectory may be the copy of original file -- see [PsiElement.add] docs
+            utUtilsFile = utilClassDirectory.add(utUtilsFile) as PsiFile
         }
 
         return utUtilsFile
@@ -408,8 +436,8 @@ object CodeGenerationController {
      * Util class must have a comment that specifies its kind.
      * This property obtains the kind specified by this comment if it exists. Otherwise, the property is `null`.
      */
-    private val PsiFile.utilClassKindOrNull: UtilClassKind?
-        get() = runReadAction {
+    private fun PsiFile.utilClassKindOrNull(codegenLanguage: CodegenLanguage): UtilClassKind?
+        = runReadAction {
             val utilClass = (this as? PsiClassOwner)
                 ?.classes
                 ?.firstOrNull()
@@ -417,8 +445,7 @@ object CodeGenerationController {
 
             utilClass.getChildrenOfType<PsiComment>()
                 .map { comment -> comment.text }
-                .mapNotNull { text -> UtilClassKind.utilClassKindByCommentOrNull(text) }
-                .firstOrNull()
+                .firstNotNullOfOrNull { text -> UtilClassKind.utilClassKindByCommentOrNull(text, codegenLanguage) }
         }
 
     /**
@@ -434,14 +461,17 @@ object CodeGenerationController {
     }
 
     private val CodegenLanguage.utilClassFileName: String
-        get() = "$UT_UTILS_CLASS_NAME${this.extension}"
+        get() = "$UT_UTILS_INSTANCE_NAME${this.extension}"
 
     /**
      * @param testDirectory root test directory where we will put our generated tests.
      * @return directory for util class if it exists or null otherwise.
      */
-    private fun getUtilDirectoryOrNull(testDirectory: PsiDirectory): PsiDirectory? {
-        val directoryNames = UtilClassKind.utilsPackages
+    private fun getUtilDirectoryOrNull(
+        testDirectory: PsiDirectory,
+        codegenLanguage: CodegenLanguage,
+    ): PsiDirectory? {
+        val directoryNames = UtilClassKind.utilsPackageNames(codegenLanguage)
         var currentDirectory = testDirectory
         for (name in directoryNames) {
             val subdirectory = runReadAction { currentDirectory.findSubdirectory(name) } ?: return null
@@ -454,9 +484,12 @@ object CodeGenerationController {
      * @param testDirectory root test directory where we will put our generated tests.
      * @return file of util class if it exists or null otherwise.
      */
-    private fun CodegenLanguage.getUtilClassOrNull(testDirectory: PsiDirectory): PsiFile? {
+    private fun CodegenLanguage.getUtilClassOrNull(
+        testDirectory: PsiDirectory,
+        codegenLanguage: CodegenLanguage,
+    ): PsiFile? {
         return runReadAction {
-            val utilDirectory = getUtilDirectoryOrNull(testDirectory)
+            val utilDirectory = getUtilDirectoryOrNull(testDirectory, codegenLanguage)
             utilDirectory?.findFile(this.utilClassFileName)
         }
     }
@@ -478,17 +511,18 @@ object CodeGenerationController {
         }
 
         // return an util class from one of the test source roots or null if no util class was found
-        return testRoots
-            .mapNotNull { testRoot -> getUtilClassOrNull(testRoot) }
-            .firstOrNull()
+        return testRoots.firstNotNullOfOrNull { testRoot -> getUtilClassOrNull(testRoot, this) }
     }
 
     /**
      * Create all package directories for UtUtils class.
      * @return the innermost directory - utils from `org.utbot.runtime.utils`
      */
-    private fun createUtUtilSubdirectories(baseTestDirectory: PsiDirectory): PsiDirectory {
-        val directoryNames = UtilClassKind.utilsPackages
+    private fun createUtUtilSubdirectories(
+        baseTestDirectory: PsiDirectory,
+        codegenLanguage: CodegenLanguage,
+    ): PsiDirectory {
+        val directoryNames = UtilClassKind.utilsPackageNames(codegenLanguage)
         var currentDirectory = baseTestDirectory
         runWriteCommandAction(baseTestDirectory.project) {
             for (name in directoryNames) {
@@ -510,7 +544,8 @@ object CodeGenerationController {
     private fun waitForCountDown(latch: CountDownLatch, timeout: Long = 5, timeUnit: TimeUnit = TimeUnit.SECONDS, indicator : ProgressIndicator, action: Runnable) {
         try {
             if (!latch.await(timeout, timeUnit)) {
-                run(THREAD_POOL, indicator) { waitForCountDown(latch, timeout, timeUnit, indicator, action) }
+                run(THREAD_POOL, indicator, "Waiting for ${latch.count} sarif report(s) in a loop") {
+                    waitForCountDown(latch, timeout, timeUnit, indicator, action) }
             } else {
                 action.run()
             }
@@ -633,7 +668,7 @@ object CodeGenerationController {
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
-        run(THREAD_POOL, indicator) {
+        run(THREAD_POOL, indicator, "Rendering test code") {
             val (generatedTestsCode, utilClassKind) = try {
                 proc.render(
                     testSetsId,
@@ -658,8 +693,8 @@ object CodeGenerationController {
                 return@run
             }
             utilClassListener.onTestClassGenerated(utilClassKind)
-            run(EDT_LATER, indicator) {
-                run(WRITE_ACTION, indicator) {
+            run(EDT_LATER, indicator, "Writing generation text to documents") {
+                run(WRITE_ACTION, indicator, "Writing generation text to documents") {
                     try {
                         unblockDocument(testClass.project, editor.document)
                         // TODO: JIRA:1246 - display warnings if we rewrite the file
@@ -679,9 +714,9 @@ object CodeGenerationController {
 
                     // reformatting before creating reports due to
                     // SarifReport requires the final version of the generated tests code
-                    run(THREAD_POOL, indicator) {
+//                    run(THREAD_POOL, indicator) {
 //                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
-                        run(EDT_LATER, indicator) {
+                        run(EDT_LATER, indicator, "Tests reformatting") {
                             try {
                                 runWriteCommandAction(filePointer.project, "UtBot tests reformatting", null, {
                                     reformat(model, filePointer, testClassUpdated)
@@ -709,7 +744,7 @@ object CodeGenerationController {
 
                             unblockDocument(testClassUpdated.project, editor.document)
                         }
-                    }
+//                    }
                 }
             }
         }
@@ -719,6 +754,16 @@ object CodeGenerationController {
         val project = model.project
         val codeStyleManager = CodeStyleManager.getInstance(project)
         val file = smartPointer.containingFile?: return
+
+        if (file.virtualFile.length > UtSettings.maxTestFileSize) {
+            CommonErrorNotifier.notify(
+                "Size of ${file.virtualFile.presentableName} exceeds configured limit " +
+                        "(${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())}), reformatting was skipped. " +
+                        "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestFileSize' property",
+                model.project)
+            return
+        }
+
         DumbService.getInstance(model.project).runWhenSmart {
             codeStyleManager.reformat(file)
             when (model.codegenLanguage) {

@@ -2,8 +2,7 @@ package org.utbot.engine.pc
 
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.engine.MAX_STRING_LENGTH_SIZE_BITS
-import org.utbot.engine.TypeRegistry
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.TypeStorage
 import org.utbot.engine.baseType
 import org.utbot.engine.defaultValue
@@ -22,11 +21,11 @@ import com.microsoft.z3.Expr
 import com.microsoft.z3.FPSort
 import com.microsoft.z3.IntExpr
 import com.microsoft.z3.Model
-import com.microsoft.z3.SeqExpr
-import com.microsoft.z3.mkSeqNth
+import org.utbot.engine.types.TypeRegistry.Companion.numberOfTypes
+import org.utbot.framework.UtSettings
+import org.utbot.framework.UtSettings.maxTypeNumberForEnumeration
+import org.utbot.framework.UtSettings.useBitVecBasedTypeSystem
 import java.util.IdentityHashMap
-import soot.ByteType
-import soot.CharType
 import soot.PrimType
 import soot.RefType
 import soot.Type
@@ -153,7 +152,7 @@ open class Z3TranslatorVisitor(
      * @param expr  the type expression
      * @return  the type expression translated into z3 assertions
      * @see UtIsExpression
-     * @see MAX_TYPE_NUMBER_FOR_ENUMERATION
+     * @see UtSettings.maxTypeNumberForEnumeration
      */
     override fun visit(expr: UtIsExpression): Expr = expr.run {
         val symNumDimensions = translate(typeRegistry.symNumDimensions(addr)) as BitVecExpr
@@ -164,33 +163,8 @@ open class Z3TranslatorVisitor(
         // TODO remove it JIRA:1321
         val filteredPossibleTypes = workaround(WorkaroundReason.HACK) { typeStorage.filterInappropriateTypes() }
 
-        // add constraints for typeId
-        if (typeStorage.possibleConcreteTypes.size < MAX_TYPE_NUMBER_FOR_ENUMERATION) {
-            val symType = translate(typeRegistry.symTypeId(addr))
-            val possibleBaseTypes = filteredPossibleTypes.map { it.baseType }
-
-            val typeConstraint = z3Context.mkOr(
-                *possibleBaseTypes
-                    .map { z3Context.mkEq(z3Context.mkBV(typeRegistry.findTypeId(it), Int.SIZE_BITS), symType) }
-                    .toTypedArray()
-            )
-
-            constraints += typeConstraint
-        } else {
-            val shiftedExpression = z3Context.mkBVSHL(
-                z3Context.mkZeroExt(numberOfTypes - 1, z3Context.mkBV(1, 1)),
-                z3Context.mkZeroExt(numberOfTypes - Int.SIZE_BITS, symTypeId)
-            )
-
-            val bitVecString = typeRegistry.constructBitVecString(filteredPossibleTypes)
-            val possibleTypesBitVector = z3Context.mkBV(bitVecString, numberOfTypes)
-
-            val typeConstraint = z3Context.mkEq(
-                z3Context.mkBVAND(shiftedExpression, z3Context.mkBVNot(possibleTypesBitVector)),
-                z3Context.mkBV(0, numberOfTypes)
-            )
-
-            constraints += typeConstraint
+        if (filteredPossibleTypes.size > UtSettings.maxNumberOfTypesToEncode) {
+            return@run z3Context.mkTrue()
         }
 
         val exprBaseType = expr.type.baseType
@@ -201,6 +175,8 @@ open class Z3TranslatorVisitor(
         } else {
             z3Context.mkEq(symNumDimensions, numDimensions)
         }
+
+        constraints += encodePossibleTypes(symTypeId, filteredPossibleTypes)
 
         z3Context.mkAnd(*constraints.toTypedArray())
     }
@@ -227,29 +203,46 @@ open class Z3TranslatorVisitor(
         val constraints = mutableListOf<BoolExpr>()
         for (i in types.indices) {
             val symType = translate(typeRegistry.genericTypeId(addr, i))
+            val possibleConcreteTypes = types[i].possibleConcreteTypes
 
-            if (types[i].leastCommonType.isJavaLangObject()) {
-                 continue
-            }
+            if (possibleConcreteTypes.size > UtSettings.maxNumberOfTypesToEncode) continue
 
-            val possibleBaseTypes = types[i].possibleConcreteTypes.map { it.baseType }
-
-            val typeConstraint = z3Context.mkOr(
-                *possibleBaseTypes.map {
-                    z3Context.mkEq(
-                        z3Context.mkBV(typeRegistry.findTypeId(it), Int.SIZE_BITS),
-                        symType
-                    )
-                }.toTypedArray()
-            )
-
-            constraints += typeConstraint
+            constraints += encodePossibleTypes(symType, possibleConcreteTypes)
         }
 
         z3Context.mkOr(
             z3Context.mkAnd(*constraints.toTypedArray()),
             z3Context.mkEq(translate(expr.addr), translate(nullObjectAddr))
         )
+    }
+
+    private fun encodePossibleTypes(symType: Expr, possibleConcreteTypes: Collection<Type>): BoolExpr {
+        val possibleBaseTypes = possibleConcreteTypes.map { it.baseType }
+
+        return if (!useBitVecBasedTypeSystem || possibleConcreteTypes.size < maxTypeNumberForEnumeration) {
+            z3Context.mkOr(
+                *possibleBaseTypes
+                    .map {
+                        val typeId = typeRegistry.findTypeId(it)
+                        val typeIdBv = z3Context.mkBV(typeId, Int.SIZE_BITS)
+                        z3Context.mkEq(typeIdBv, symType)
+                    }
+                    .toTypedArray()
+            )
+        } else {
+            val shiftedExpression = z3Context.mkBVSHL(
+                z3Context.mkZeroExt(numberOfTypes - 1, z3Context.mkBV(1, 1)),
+                z3Context.mkZeroExt(numberOfTypes - Int.SIZE_BITS, symType as BitVecExpr)
+            )
+
+            val bitVecString = typeRegistry.constructBitVecString(possibleBaseTypes)
+            val possibleTypesBitVector = z3Context.mkBV(bitVecString, numberOfTypes)
+
+            z3Context.mkEq(
+                z3Context.mkBVAND(shiftedExpression, z3Context.mkBVNot(possibleTypesBitVector)),
+                z3Context.mkBV(0, numberOfTypes)
+            )
+        }
     }
 
     override fun visit(expr: UtIsGenericTypeExpression): Expr = expr.run {
@@ -311,10 +304,6 @@ open class Z3TranslatorVisitor(
         } else {
             mkBV2Int(translate(expr) as BitVecExpr, true)
         }
-
-    companion object {
-        const val MAX_TYPE_NUMBER_FOR_ENUMERATION = 64
-    }
 
     override fun visit(expr: UtArrayInsert): Expr = error("translate of UtArrayInsert expression")
 

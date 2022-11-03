@@ -7,7 +7,7 @@ import org.utbot.common.workaround
 import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
-import org.utbot.engine.TypeRegistry.Companion.objectNumDimensions
+import org.utbot.engine.types.TypeRegistry.Companion.objectNumDimensions
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtArrayExpressionBase
 import org.utbot.engine.pc.UtArraySort
@@ -90,6 +90,15 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.engine.types.CLASS_REF_CLASSNAME
+import org.utbot.engine.types.CLASS_REF_CLASS_ID
+import org.utbot.engine.types.CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR
+import org.utbot.engine.types.CLASS_REF_TYPE_DESCRIPTOR
+import org.utbot.engine.types.ENUM_ORDINAL
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.STRING_TYPE
+import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 
@@ -829,9 +838,14 @@ class Resolver(
         // as const or store model.
         if (defaultBaseType is PrimType) return null
 
+        // In case when we have `actualType` equal to `byte` and defaultType is `java.lang.Object`
+        if (defaultType.isJavaLangObject() && actualType is PrimType) {
+            return defaultType
+        }
+
         // There is no way you have java.lang.Object as a defaultType here, since it'd mean that
         // some actualType is not an inheritor of it
-        require(!defaultType.isJavaLangObject()) {
+        require(!defaultType.isJavaLangObject() || actualType is PrimType) {
             "Object type $defaultType is unexpected in fallback to default type"
         }
 
@@ -842,12 +856,34 @@ class Resolver(
             return null
         }
 
+        val baseTypeIsAnonymous = (actualType.baseType as? RefType)?.sootClass?.isAnonymous == true
+        val actualTypeIsArrayOfAnonymous = actualType is ArrayType && baseTypeIsAnonymous
+
+        // There must be no arrays of anonymous classes
+        if (defaultType.isJavaLangObject() && actualTypeIsArrayOfAnonymous) {
+            return defaultType
+        }
+
         // All cases with `java.lang.Object` as default base type should have been already processed
         require(!defaultBaseType.isJavaLangObject()) {
             "Unexpected `java.lang.Object` as a default base type"
         }
 
         val actualBaseType = actualType.baseType
+
+        // It is a tricky case: we might have a method with a parameter like `List<Integer>`.
+        // Inside we will transform it into a wrapper with internal field `RangeModifiableArray`
+        // with Objects inside. Since we do not support generics for nested fields, it won't
+        // have type information and there will be no type constraints for its elements (because
+        // it contains java.lang.Objects inside). But, during the resolving, we will use type information
+        // from org.utbot.engine.types.TypeRegistry.getTypeStoragesForObjectTypeParameters.
+        // Therefore, we will encounter an object that will try to be resolved as an instance of `Integer`,
+        // but there will be no type constraints for it. Therefore, it might get `actualType` equal to some
+        // primitive type. In this case, we will return the default type (actually, it is not clear whether
+        // we should return null or defaultType, and maybe here some inconsistency exists).
+        if (actualType is PrimType && defaultType !is PrimType) {
+            return defaultType
+        }
 
         require(actualBaseType is RefType) { "Expected RefType, but $actualBaseType found" }
         require(defaultBaseType is RefType) { "Expected RefType, but $defaultBaseType found" }
@@ -1236,9 +1272,10 @@ private fun Traverser.arrayToMethodResult(
     }
 
     val memoryUpdate = MemoryUpdate(
-        stores = persistentListOf(simplifiedNamedStore(descriptor, newAddr, updatedArray)),
-        touchedChunkDescriptors = persistentSetOf(descriptor)
+        stores = persistentListOf(namedStore(descriptor, newAddr, updatedArray)),
+        touchedChunkDescriptors = persistentSetOf(descriptor),
     )
+
     return MethodResult(
         ArrayValue(typeStorage, newAddr),
         constraints.asHardConstraint(),

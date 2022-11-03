@@ -2,7 +2,7 @@ package org.utbot.features
 
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.framework.UtSettings
 import soot.jimple.Stmt

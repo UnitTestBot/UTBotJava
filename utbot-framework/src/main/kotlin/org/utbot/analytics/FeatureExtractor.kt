@@ -1,6 +1,6 @@
 package org.utbot.analytics
 
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 
 /**
  * Class that encapsulates work with FeatureExtractor during symbolic execution.

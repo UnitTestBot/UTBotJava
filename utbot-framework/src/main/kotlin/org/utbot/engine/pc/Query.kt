@@ -82,7 +82,7 @@ class UnsatQuery(hard: PersistentSet<UtBoolExpression>) : BaseQuery(
 /**
  * Query of UtExpressions with applying simplifications if [useExpressionSimplification] is true.
  *
- * @see RewritingVisitor
+ * @see Simplificator
  *
  * @param eqs - map that matches symbolic expressions with concrete values.
  * @param lts - map of upper bounds of integral symbolic expressions.
@@ -99,10 +99,10 @@ data class Query(
     private val gts: PersistentMap<UtExpression, Long> = persistentHashMapOf()
 ) : BaseQuery(hard, soft, assumptions, status, lastAdded) {
 
-    val rewriter: RewritingVisitor
-        get() = RewritingVisitor(eqs, lts, gts)
+    val simplificator: Simplificator
+        get() = Simplificator(eqs, lts, gts)
 
-    private fun UtBoolExpression.simplify(visitor: RewritingVisitor): UtBoolExpression =
+    private fun UtBoolExpression.simplify(visitor: Simplificator): UtBoolExpression =
         this.accept(visitor) as UtBoolExpression
 
     private fun simplifyGeneric(expr: UtBoolExpression): UtBoolExpression =
@@ -132,7 +132,7 @@ data class Query(
         eqs: Map<UtExpression, UtExpression> = this@Query.eqs,
         lts: Map<UtExpression, Long> = this@Query.lts,
         gts: Map<UtExpression, Long> = this@Query.gts
-    ) = AxiomInstantiationRewritingVisitor(eqs, lts, gts).let { visitor ->
+    ) = AxiomInstantiationSimplificator(eqs, lts, gts).let { visitor ->
         this.map { it.simplify(visitor) }
             .map { simplifyGeneric(it) }
             .flatMap { splitAnd(it) } + visitor.instantiatedArrayAxioms

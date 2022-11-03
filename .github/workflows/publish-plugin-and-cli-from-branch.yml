@@ -77,6 +77,7 @@ jobs:
         run:
           echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
 
+
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
           gradle clean buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
@@ -90,6 +91,7 @@ jobs:
           name: utbot-intellij-${{ env.VERSION }}
           path: utbot-intellij/build/distributions/*
 
+
       - name: Build UTBot Java CLI
         run: |
           cd utbot-cli
@@ -101,6 +103,7 @@ jobs:
           name: utbot-cli-${{ env.VERSION }}
           path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar
 
+
       - name: Build UTBot Python CLI
         run: |
           cd utbot-cli-python
@@ -111,3 +114,15 @@ jobs:
         with:
           name: utbot-cli-python-${{ env.VERSION }}
           path: utbot-cli-python/build/libs/utbot-cli-python-${{ env.VERSION }}.jar
+
+
+      - name: Build UTBot JavaScript CLI
+        run: |
+          cd utbot-cli-js
+          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
+          
+      - name: Archive UTBot JavaScript CLI
+        uses: actions/upload-artifact@v3
+        with:
+          name: utbot-cli-js-${{ env.VERSION }}
+          path: utbot-cli-js/build/libs/utbot-cli-js-${{ env.VERSION }}.jar

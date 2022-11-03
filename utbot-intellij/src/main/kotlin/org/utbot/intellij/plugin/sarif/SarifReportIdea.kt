@@ -41,7 +41,7 @@ object SarifReportIdea {
         }
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 
-        IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator) {
+        IntelliJApiHelper.run(IntelliJApiHelper.Target.THREAD_POOL, indicator, "Save SARIF report for ${classId.name}") {
             try {
                 val sarifReportAsJson = proc.writeSarif(reportFilePath, testSetsId, generatedTestsCode, sourceFinding)
                 val sarifReport = Sarif.fromJson(sarifReportAsJson)

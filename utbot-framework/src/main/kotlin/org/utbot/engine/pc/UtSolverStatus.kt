@@ -40,16 +40,12 @@ data class UtSolverStatusUNSAT(override val statusKind: UtSolverStatusKind) : Ut
 }
 
 class UtSolverStatusSAT(
-    private val translator: Z3TranslatorVisitor,
+    translator: Z3TranslatorVisitor,
     z3Solver: Solver
 ) : UtSolverStatus(SAT) {
     private val model = z3Solver.model
 
     private val evaluator: Z3EvaluatorVisitor = translator.evaluator(model)
-
-    //TODO put special markers inside expressionTranslationCache for detecting circular dependencies
-    fun translate(expression: UtExpression): Expr =
-        translator.translate(expression)
 
     fun eval(expression: UtExpression): Expr = evaluator.eval(expression)
 

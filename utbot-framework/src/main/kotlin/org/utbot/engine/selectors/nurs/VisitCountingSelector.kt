@@ -1,6 +1,6 @@
 package org.utbot.engine.selectors.nurs
 
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.selectors.strategies.EdgeVisitCountingStatistics
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 

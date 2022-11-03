@@ -1,6 +1,9 @@
 package org.utbot.engine
 
 import org.utbot.engine.selectors.strategies.TraverseGraphStatistics
+import org.utbot.engine.state.CALL_DECISION_NUM
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
 import soot.SootClass
 import soot.SootMethod
 import soot.jimple.Stmt

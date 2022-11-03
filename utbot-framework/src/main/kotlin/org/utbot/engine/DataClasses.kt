@@ -11,6 +11,7 @@ import org.utbot.engine.pc.UtIsExpression
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkOr
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.symbolic.*
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.FieldId
@@ -160,8 +161,6 @@ data class MethodResult(
     val symbolicResult: SymbolicResult,
     val symbolicStateUpdate: SymbolicStateUpdate = SymbolicStateUpdate()
 ) : InvokeResult() {
-    val memoryUpdates by symbolicStateUpdate::memoryUpdates
-
     constructor(
         symbolicResult: SymbolicResult,
         hardConstraints: HardConstraint = emptyHardConstraint(),

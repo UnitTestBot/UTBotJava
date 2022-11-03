@@ -101,6 +101,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
+import org.utbot.engine.state.ExecutionStackElement
+import org.utbot.engine.state.ExecutionState
+import org.utbot.engine.state.StateLabel
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.UtExecutionSuccess

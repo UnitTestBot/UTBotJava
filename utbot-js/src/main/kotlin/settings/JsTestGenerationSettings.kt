@@ -11,9 +11,6 @@ object JsTestGenerationSettings {
     // Name of file under test when importing it.
     const val fileUnderTestAliases = "fileUnderTest"
 
-    // Anchor for obtaining function under test call results. Used in regexes.
-    const val functionCallResultAnchor = "Utbot result:"
-
     // Name of temporary files created.
     const val tempFileName = "temp"
 }

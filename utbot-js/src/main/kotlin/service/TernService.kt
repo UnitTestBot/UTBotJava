@@ -2,18 +2,17 @@ package service
 
 import com.oracle.js.parser.ir.ClassNode
 import com.oracle.js.parser.ir.FunctionNode
-import org.json.JSONException
-import org.json.JSONObject
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
+import java.io.File
+import java.util.Locale
+import org.json.JSONException
+import org.json.JSONObject
 import parser.JsParserUtils
 import utils.JsCmdExec
 import utils.MethodTypes
 import utils.constructClass
-import java.io.File
-import java.nio.charset.Charset
-import java.util.Locale
 
 /*
     NOTE: this approach is quite bad, but we failed to implement alternatives.
@@ -66,12 +65,6 @@ test("${context.filePathToInference}")
     """
 
     init {
-        run()
-    }
-
-    private lateinit var json: JSONObject
-
-    private fun run() {
         with(context) {
             setupTernEnv("$projectPath/$utbotDir")
             installDeps("$projectPath/$utbotDir")
@@ -79,17 +72,19 @@ test("${context.filePathToInference}")
         }
     }
 
+    private lateinit var json: JSONObject
+
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
-            cmd = arrayOf(context.settings.pathToNPM, "install", "tern", "-l")
+            cmd = arrayOf(context.settings.pathToNPM, "i", "tern", "-l")
         )
     }
 
     private fun setupTernEnv(path: String) {
         File(path).mkdirs()
         val ternScriptFile = File("$path/ternScript.js")
-        ternScriptFile.writeText(ternScriptCode(), Charset.defaultCharset())
+        ternScriptFile.writeText(ternScriptCode())
     }
 
     private fun runTypeInferencer() {

@@ -10,10 +10,8 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.Cell
@@ -39,21 +37,11 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         this.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
-    private fun findTestPackageComboValue() = SAME_PACKAGE_LABEL
-
     private val nodeInterp = try {
         NodeJsLocalInterpreterManager.getInstance().interpreters.first()
     } catch (e: NoSuchElementException) {
         throw IllegalStateException("Node.js interpreter is not set in the IDEA settings!")
     }
-
-    private val cbSpecifyTestPackage = CheckBox("Specify destination package", false)
-    private val testPackageField = PackageNameReferenceEditorCombo(
-        findTestPackageComboValue(),
-        model.project,
-        RECENTS_KEY,
-        "Choose Destination Package"
-    )
 
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
@@ -115,12 +103,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
                     component(JBLabel("sec"))
                 }
             }
-            row {
-                component(cbSpecifyTestPackage)
-            }.apply { visible = false }
-            row("Destination package:") {
-                component(testPackageField)
-            }.apply { visible = false }
             row("Generate test methods for:") {}
             row {
                 scrollPane(functionsTable)
@@ -140,8 +122,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
 
     override fun doOKAction() {
-        model.testPackageName =
-            if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
         val selected = functionsTable.selectedMemberInfos.toSet()
         model.selectedMethods = if (selected.any()) selected else emptySet()
         model.testFramework = testFrameworks.item
@@ -203,6 +183,4 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
 
 }
 
-private const val RECENTS_KEY = "org.utbot.recents"
-private const val SAME_PACKAGE_LABEL = "same as for sources"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1

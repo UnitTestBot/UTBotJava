@@ -176,13 +176,12 @@ class JsTestGenerator(
     }
 
     private fun makeImportPrefix(): String {
-        val importPrefix = outputFilePath?.let {
+        return outputFilePath?.let {
             PathResolver.getRelativePath(
                 File(it).parent,
                 File(sourceFilePath).parent,
             )
         } ?: ""
-        return importPrefix
     }
 
     private fun makeThisInstance(
@@ -227,9 +226,8 @@ class JsTestGenerator(
         execId: JsMethodId,
         returnText: String
     ): UtExecutionResult {
-        val utConstructor = JsUtModelConstructor()
         val (returnValue, valueClassId) = returnText.toJsAny(execId.returnType)
-        val result = utConstructor.construct(returnValue, valueClassId)
+        val result = JsUtModelConstructor().construct(returnValue, valueClassId)
         val utExecResult = when (result.classId) {
             jsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
             else -> UtExecutionSuccess(result)
@@ -251,7 +249,7 @@ class JsTestGenerator(
             }
         val fuzzedValues =
             JsFuzzer.jsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
-        return Pair(fuzzerVisitor.fuzzedConcreteValues.toSet(), fuzzedValues)
+        return fuzzerVisitor.fuzzedConcreteValues.toSet() to fuzzedValues
     }
 
     private fun manageExports(
@@ -266,27 +264,25 @@ class JsTestGenerator(
     }
 
     private fun makeMethodsToTest(): List<FunctionNode> {
-        val methods = selectedMethods?.map {
+        return selectedMethods?.map {
             getFunctionNode(
                 focusedMethodName = it,
                 parentClassName = parentClassName,
                 fileText = fileText
             )
         } ?: getMethodsToTest()
-        return methods
     }
 
     private fun makeJsClassId(
         classNode: ClassNode?,
         ternService: TernService
     ): JsClassId {
-        val classId = classNode?.let {
+        return classNode?.let {
             JsClassId(parentClassName!!).constructClass(ternService, classNode)
         } ?: JsClassId("undefined").constructClass(
             ternService = ternService,
             functions = extractToplevelFunctions()
         )
-        return classId
     }
 
     private fun runParser(fileText: String): FunctionNode {

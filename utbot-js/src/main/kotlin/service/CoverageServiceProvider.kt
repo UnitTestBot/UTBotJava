@@ -76,12 +76,12 @@ class CoverageServiceProvider(private val context: ServiceContext) {
         val covFunName = FastCoverageService.instrument(context)
         val tempScriptTexts = fuzzedValues.indices.map {
             makeStringForRunJs(
-                fuzzedValues[it],
-                execId,
-                classNode?.ident?.name,
-                covFunName,
-                it,
-                "${context.projectPath}/${context.utbotDir}/$tempFileName",
+                fuzzedValue = fuzzedValues[it],
+                method = execId,
+                containingClass = classNode?.ident?.name,
+                covFunName = covFunName,
+                index = it,
+                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
                 mode = CoverageMode.FAST
             )
         }
@@ -145,10 +145,10 @@ try {
     res$index = "Error:" + e.message
 }
 ${
-            "json$index.result = res$index\n" +
-                    if (mode == CoverageMode.FAST )"json$index.index = $index\n" +
-                    "json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
-        }            
+"json$index.result = res$index\n" +
+if (mode == CoverageMode.FAST ) "json$index.index = $index\n" +
+"json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
+}            
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             """
     }
@@ -196,6 +196,4 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
                 (this as JsPrimitiveModel).value.quoteWrapIfNecessary()
             }
         }
-
-
 }

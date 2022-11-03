@@ -46,6 +46,8 @@ class BasicCoverageService(
                 }
             }
             return res
+        } catch (e: Exception) {
+            throw Exception("Could not get coverage of test cases!")
         } finally {
             removeTempFiles()
         }

@@ -345,14 +345,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 })
             }
             TAINT -> {
-                require(exception is TaintAnalysisError) {
-                    "Expected ${TaintAnalysisError::class.simpleName} for taint failure but got $exception"
+                require(expectedException is TaintAnalysisError) {
+                    "Expected ${TaintAnalysisError::class.simpleName} for taint failure but got $expectedException"
                 }
 
                 testFrameworkManager.expectException(
                     taintErrorClassId,
                     { methodInvocationBlock() },
-                    message = constructAssertionMessage(exception)
+                    message = constructAssertionMessage(expectedException)
                 )
             }
             TIMEOUT -> {

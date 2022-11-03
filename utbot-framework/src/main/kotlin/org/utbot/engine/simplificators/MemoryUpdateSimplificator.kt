@@ -17,6 +17,8 @@ import org.utbot.engine.UtMockInfo
 import org.utbot.engine.UtNamedStore
 import org.utbot.engine.pc.Simplificator
 import org.utbot.engine.pc.UtAddrExpression
+import org.utbot.engine.pc.UtBoolExpression
+import org.utbot.engine.pc.UtExpression
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import soot.ArrayType
@@ -37,6 +39,8 @@ typealias ClassIdToClearStaticsType = ClassId?
 typealias InstanceFieldReadsType = PersistentSet<InstanceFieldReadOperation>
 typealias SpeculativelyNotNullAddressesType = PersistentList<UtAddrExpression>
 typealias SymbolicEnumValuesType = PersistentList<ObjectValue>
+typealias TaintArrayUpdateType = PersistentList<Pair<UtAddrExpression, UtExpression>>
+typealias TaintAnalysisFoundSomethingType = UtBoolExpression
 
 class MemoryUpdateSimplificator(
     private val simplificator: Simplificator
@@ -59,6 +63,9 @@ class MemoryUpdateSimplificator(
         val speculativelyNotNullAddresses =
             simplifySpeculativelyNotNullAddresses(speculativelyNotNullAddresses)
         val symbolicEnumValues = simplifyEnumValues(symbolicEnumValues)
+        val taintArrayUpdate = simplifyTaintArrayUpdate(taintArrayUpdate)
+        val taintAnalysisFoundSomething = simplifyTaintFoundSomething(taintAnalysisFoundSomething)
+
         return MemoryUpdate(
             stores,
             touchedChunkDescriptors,
@@ -75,6 +82,8 @@ class MemoryUpdateSimplificator(
             classIdToClearStatics,
             instanceFieldReads,
             speculativelyNotNullAddresses,
+            taintArrayUpdate,
+            taintAnalysisFoundSomething,
             symbolicEnumValues
         )
     }
@@ -163,4 +172,20 @@ class MemoryUpdateSimplificator(
         symbolicEnumValues.mutate { values ->
             values.replaceAll { with(simplificator) { simplifySymbolicValue(it) as ObjectValue } }
         }
+
+    private fun simplifyTaintArrayUpdate(taintArrayUpdate: TaintArrayUpdateType): TaintArrayUpdateType =
+        taintArrayUpdate.mutate { values ->
+            values.replaceAll {
+                val simplifiedAddr = it.first.accept(simplificator) as UtAddrExpression
+                val simplifiedExpr = it.second.accept(simplificator)
+
+                simplifiedAddr to simplifiedExpr
+            }
+        }
+
+
+    private fun simplifyTaintFoundSomething(
+        taintAnalysisFoundSomethingType: TaintAnalysisFoundSomethingType
+    ): TaintAnalysisFoundSomethingType =
+        taintAnalysisFoundSomethingType.accept(simplificator) as UtBoolExpression
 }

@@ -9,7 +9,6 @@ import org.utbot.engine.pc.UtArrayExpressionBase
 import org.utbot.engine.pc.UtArraySelectExpression
 import org.utbot.engine.pc.UtArraySort
 import org.utbot.engine.pc.UtBoolSort
-import org.utbot.engine.pc.UtBvLiteral
 import org.utbot.engine.pc.UtConstArrayExpression
 import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.UtFalse
@@ -23,7 +22,6 @@ import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkArrayConst
 import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkLong
-import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
@@ -41,6 +39,8 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
+import org.utbot.engine.pc.UtBoolExpression
+import org.utbot.engine.pc.UtLongSort
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
 import org.utbot.framework.plugin.api.classId

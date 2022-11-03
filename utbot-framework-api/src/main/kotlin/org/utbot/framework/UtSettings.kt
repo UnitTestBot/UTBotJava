@@ -385,9 +385,9 @@ object UtSettings : AbstractSettings(
     var useSandbox by getBooleanProperty(true)
 
     /**
-     * Limit for number of generated tests per method
+     * Limit for number of generated tests per method (in each region)
      */
-    var maxTestsPerMethod by getIntProperty(50)
+    var maxTestsPerMethodInRegion by getIntProperty(50)
 
     /**
      * Max file length for generated test file

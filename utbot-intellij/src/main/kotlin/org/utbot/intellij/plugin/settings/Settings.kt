@@ -32,6 +32,7 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
+import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 @State(
     name = "UtBotSettings",
@@ -175,7 +176,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     override fun loadState(state: State) {
         this.state = state
-        if (state.codegenLanguage != CodegenLanguage.JAVA) {
+        if (!state.codegenLanguage.isSummarizationCompatible()) {
             this.state.enableSummariesGeneration = false
         }
     }

@@ -11,7 +11,7 @@ import com.intellij.ui.layout.LayoutBuilder
 import com.intellij.ui.layout.PropertyBinding
 import com.intellij.ui.layout.labelTable
 import com.intellij.ui.layout.panel
-import com.intellij.ui.layout.selectedValueIs
+import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.ui.layout.slider
 import com.intellij.ui.layout.withValueBinding
 import com.intellij.util.castSafelyTo
@@ -31,6 +31,7 @@ import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import javax.swing.JSlider
+import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -54,7 +55,7 @@ class SettingsWindow(val project: Project) {
                     ContextHelpLabel.create("You can generate test methods in Java or Kotlin regardless of your source code language.")
                 }.component
                 codegenLanguageCombo.addActionListener {
-                    if (codegenLanguageCombo.selectedItem != CodegenLanguage.JAVA) {
+                    if (!codegenLanguageCombo.item.isSummarizationCompatible()) {
                         enableSummarizationGenerationCheckBox.isSelected = false
                     }
                 }
@@ -142,7 +143,7 @@ class SettingsWindow(val project: Project) {
                     .onIsModified {
                         enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration
                     }
-                    .enableIf(codegenLanguageCombo.selectedValueIs(CodegenLanguage.JAVA))
+                    .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
                     .component
             }
         }

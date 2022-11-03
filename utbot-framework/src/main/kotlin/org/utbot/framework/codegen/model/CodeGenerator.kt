@@ -25,6 +25,7 @@ import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
 import org.utbot.framework.codegen.model.tree.CgDocumentationComment
+import java.util.*
 
 open class CodeGenerator(
     val classUnderTest: ClassId,
@@ -149,11 +150,11 @@ sealed class UtilClassKind(
     /**
      * Contains comments specifying the version and the kind of util class being generated and
      */
-    val utilClassDocumentation: CgDocumentationComment
-        get() = CgDocumentationComment(
+    fun utilClassDocumentation(codegenLanguage: CodegenLanguage): CgDocumentationComment
+        = CgDocumentationComment(
             listOf(
                 CgDocRegularStmt(utilClassKindCommentText),
-                CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion}"),
+                CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion(codegenLanguage)}"),
             )
         )
 
@@ -161,8 +162,8 @@ sealed class UtilClassKind(
      * The version of util class being generated.
      * For more details see [UtilClassFileMethodProvider.UTIL_CLASS_VERSION].
      */
-    val utilClassVersion: String
-        get() = UtilClassFileMethodProvider.UTIL_CLASS_VERSION
+    fun utilClassVersion(codegenLanguage: CodegenLanguage): String
+    = UtilClassFileMethodProvider(codegenLanguage).UTIL_CLASS_VERSION
 
     /**
      * The text of comment specifying the kind of util class.
@@ -177,7 +178,12 @@ sealed class UtilClassKind(
     /**
      * A kind of regular UtUtils class. "Regular" here means that this class does not use a mock framework.
      */
-    object RegularUtUtils : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = false, priority = 0) {
+    class RegularUtUtils(val codegenLanguage: CodegenLanguage) :
+        UtilClassKind(
+            UtilClassFileMethodProvider(codegenLanguage),
+            mockFrameworkUsed = false,
+            priority = 0,
+        ) {
         override val utilClassKindCommentText: String
             get() = "This is a regular UtUtils class (without mock framework usage)"
     }
@@ -185,7 +191,8 @@ sealed class UtilClassKind(
     /**
      * A kind of UtUtils class that uses a mock framework. At the moment the framework is Mockito.
      */
-    object UtUtilsWithMockito : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = true, priority = 1) {
+    class UtUtilsWithMockito(val codegenLanguage: CodegenLanguage) :
+        UtilClassKind(UtilClassFileMethodProvider(codegenLanguage), mockFrameworkUsed = true, priority = 1) {
         override val utilClassKindCommentText: String
             get() = "This is UtUtils class with Mockito support"
     }
@@ -199,7 +206,7 @@ sealed class UtilClassKind(
      * @return the text of the generated util class file.
      */
     fun getUtilClassText(codegenLanguage: CodegenLanguage): String {
-        val utilClassFile = CgUtilClassConstructor.constructUtilsClassFile(this)
+        val utilClassFile = CgUtilClassConstructor.constructUtilsClassFile(this, codegenLanguage)
         val renderer = CgAbstractRenderer.makeRenderer(this, codegenLanguage)
         utilClassFile.accept(renderer)
         return renderer.toString()
@@ -214,10 +221,13 @@ sealed class UtilClassKind(
          */
         const val UTIL_CLASS_VERSION_COMMENT_PREFIX = "UtUtils class version: "
 
-        fun utilClassKindByCommentOrNull(comment: String): UtilClassKind? {
+        fun utilClassKindByCommentOrNull(
+            comment: String,
+            codegenLanguage: CodegenLanguage)
+        : UtilClassKind? {
             return when (comment) {
-                RegularUtUtils.utilClassKindCommentText -> RegularUtUtils
-                UtUtilsWithMockito.utilClassKindCommentText -> UtUtilsWithMockito
+                RegularUtUtils(codegenLanguage).utilClassKindCommentText -> RegularUtUtils(codegenLanguage)
+                UtUtilsWithMockito(codegenLanguage).utilClassKindCommentText -> UtUtilsWithMockito(codegenLanguage)
                 else -> null
             }
         }
@@ -230,24 +240,27 @@ sealed class UtilClassKind(
         internal fun fromCgContextOrNull(context: CgContext): UtilClassKind? {
             if (context.requiredUtilMethods.isEmpty()) return null
             if (!context.mockFrameworkUsed) {
-                return RegularUtUtils
+                return RegularUtUtils(context.codegenLanguage)
             }
             return when (context.mockFramework) {
-                MockFramework.MOCKITO -> UtUtilsWithMockito
+                MockFramework.MOCKITO -> UtUtilsWithMockito(context.codegenLanguage)
                 // in case we will add any other mock frameworks, newer Kotlin compiler versions
                 // will report a non-exhaustive 'when', so we will not forget to support them here as well
             }
         }
 
-        const val UT_UTILS_PACKAGE_NAME = "org.utbot.runtime.utils"
-        const val UT_UTILS_CLASS_NAME = "UtUtils"
+        const val UT_UTILS_BASE_PACKAGE_NAME = "org.utbot.runtime.utils"
+        const val UT_UTILS_INSTANCE_NAME = "UtUtils"
         const val PACKAGE_DELIMITER = "."
 
         /**
-         * List of package names of UtUtils class.
-         * See whole package name at [UT_UTILS_PACKAGE_NAME].
+         * List of package name components of UtUtils class.
+         * See whole package name at [UT_UTILS_BASE_PACKAGE_NAME].
          */
-        val utilsPackages: List<String>
-            get() = UT_UTILS_PACKAGE_NAME.split(PACKAGE_DELIMITER)
+        fun utilsPackageNames(codegenLanguage: CodegenLanguage): List<String>
+            = UT_UTILS_BASE_PACKAGE_NAME.split(PACKAGE_DELIMITER) + codegenLanguage.name.lowercase(Locale.getDefault())
+
+        fun utilsPackageFullName(codegenLanguage: CodegenLanguage): String
+         = utilsPackageNames(codegenLanguage).joinToString { PACKAGE_DELIMITER }
     }
 }

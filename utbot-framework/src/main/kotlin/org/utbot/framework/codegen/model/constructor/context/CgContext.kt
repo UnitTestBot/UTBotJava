@@ -512,7 +512,7 @@ data class CgContext(
      */
     override val utilMethodProvider: UtilMethodProvider
         get() = if (generateUtilClassFile) {
-            UtilClassFileMethodProvider
+            UtilClassFileMethodProvider(codegenLanguage)
         } else {
             TestClassUtilMethodProvider(outerMostTestClass)
         }

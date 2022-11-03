@@ -1,6 +1,8 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.codegen.MockitoStaticMocking
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.PACKAGE_DELIMITER
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_BASE_PACKAGE_NAME
 import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
@@ -8,6 +10,7 @@ import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -253,11 +256,12 @@ abstract class UtilMethodProvider(val utilClassId: ClassId) {
 
 /**
  * This provider represents an util class file that is generated and put into the user's test module.
- * The generated class is UtUtils (its id is defined at [utUtilsClassId]).
+ * The generated class is UtUtils (its id is defined at [utJavaUtilsClassId] or [utKotlinUtilsClassId]).
  *
  * Content of this util class may be different (due to mocks in deepEquals), but the methods (and their ids) are the same.
  */
-internal object UtilClassFileMethodProvider : UtilMethodProvider(utUtilsClassId) {
+internal class UtilClassFileMethodProvider(language: CodegenLanguage)
+    : UtilMethodProvider(selectUtilClassId(language)) {
     /**
      * This property contains the current version of util class.
      * This version will be written to the util class file inside a comment.
@@ -270,14 +274,27 @@ internal object UtilClassFileMethodProvider : UtilMethodProvider(utUtilsClassId)
      *
      * **IMPORTANT** if you make any changes to util methods (see [utilMethodTextById]), do not forget to update this version.
      */
-    const val UTIL_CLASS_VERSION = "1.0"
+    val UTIL_CLASS_VERSION = "2.0"
 }
 
 internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
 
-internal val utUtilsClassId: ClassId
+internal fun selectUtilClassId(codegenLanguage: CodegenLanguage): ClassId =
+    when (codegenLanguage) {
+        CodegenLanguage.JAVA -> utJavaUtilsClassId
+        CodegenLanguage.KOTLIN -> utKotlinUtilsClassId
+    }
+
+internal val utJavaUtilsClassId: ClassId
     get() = BuiltinClassId(
-        canonicalName = "org.utbot.runtime.utils.UtUtils",
+        canonicalName = UT_UTILS_BASE_PACKAGE_NAME + PACKAGE_DELIMITER + "java" + PACKAGE_DELIMITER + "UtUtils",
+        simpleName = "UtUtils",
+        isFinal = true,
+    )
+
+internal val utKotlinUtilsClassId: ClassId
+    get() = BuiltinClassId(
+        canonicalName = UT_UTILS_BASE_PACKAGE_NAME + PACKAGE_DELIMITER + "kotlin" + PACKAGE_DELIMITER + "UtUtils",
         simpleName = "UtUtils",
         isFinal = true,
         isKotlinObject = true

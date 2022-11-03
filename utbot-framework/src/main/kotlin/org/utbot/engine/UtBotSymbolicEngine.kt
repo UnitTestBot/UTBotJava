@@ -104,7 +104,12 @@ import kotlinx.coroutines.yield
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.engine.selectors.BasePathSelector
+import org.utbot.engine.selectors.strategies.DistanceStatistics
+import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
+import org.utbot.engine.selectors.taint.TaintSelector
 import org.utbot.engine.selectors.randomSelectorWithLoopIterationsThreshold
+import org.utbot.engine.selectors.taint.NeverDroppingStrategy
+import org.utbot.engine.selectors.taint.NewTaintPathSelector
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.state.StateLabel
@@ -136,7 +141,7 @@ private var stateSelectedCount = 0
 
 private val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
-private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
+fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
     when (pathSelectorType) {
         PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
             withStepsLimit(pathSelectorStepsLimit)
@@ -168,6 +173,12 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         PathSelectorType.RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD -> randomSelectorWithLoopIterationsThreshold(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
+        PathSelectorType.NEW_TAINT_SELECTOR -> NewTaintPathSelector(
+            graph.graphs.first(),
+            emptyMap(),
+            NeverDroppingStrategy(graph),
+            StepsLimitStoppingStrategy(3500, graph)
+        )
     }
 
 class UtBotSymbolicEngine(
@@ -184,9 +195,9 @@ class UtBotSymbolicEngine(
     }.graph()
 
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
-    private val globalGraph = InterProceduralUnitGraph(graph)
-    private val typeRegistry: TypeRegistry = TypeRegistry()
-    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
+    val globalGraph = InterProceduralUnitGraph(graph)
+    val typeRegistry: TypeRegistry = TypeRegistry()
+    lateinit var pathSelector: PathSelector/*pathSelector(globalGraph, typeRegistry)*/
 
     val wasStoppedByStepsLimit: Boolean
         get() = workaround(WorkaroundReason.TAINT) {

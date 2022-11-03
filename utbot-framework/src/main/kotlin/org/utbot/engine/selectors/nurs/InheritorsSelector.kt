@@ -62,7 +62,7 @@ class InheritorsSelector(
     override val name = "NURS:Inheritors"
 
     companion object {
-        private const val REPEATED_STMT_COEFFICIENT: Int = 10
+        const val REPEATED_STMT_COEFFICIENT: Int = 10
         private const val BASE_FOR_INHERITOR_RATING_COEFFICIENT: Double = 100.0
     }
 }

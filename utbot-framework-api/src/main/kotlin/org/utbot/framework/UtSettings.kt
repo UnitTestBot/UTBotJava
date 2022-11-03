@@ -607,7 +607,9 @@ enum class PathSelectorType {
     /**
      * [RandomSelectorWithLoopIterationsThreshold]
      */
-    RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD
+    RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD,
+
+    NEW_TAINT_SELECTOR
 }
 
 enum class TestSelectionStrategyType {

@@ -7,18 +7,27 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.utbot.engine.EngineController
+import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.jimpleBody
 import org.utbot.engine.logger
+import org.utbot.engine.pathSelector
+import org.utbot.engine.selectors.strategies.DistanceStatistics
+import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
+import org.utbot.engine.selectors.taint.NeverDroppingStrategy
+import org.utbot.engine.selectors.taint.NewTaintPathSelector
 import org.utbot.engine.taint.priority.SimpleTaintMethodsAnalysisPrioritizer
 import org.utbot.engine.taint.priority.TaintMethodsAnalysisPrioritizer
 import org.utbot.engine.taint.timeout.SimpleTaintTimeoutStrategy
 import org.utbot.engine.taint.timeout.TaintTimeoutStrategy
 import org.utbot.framework.AnalysisMode
+import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -32,6 +41,8 @@ import org.utbot.framework.plugin.api.defaultTestFlow
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.graph
+import org.utbot.framework.util.sootMethod
 import org.utbot.framework.util.toModel
 import soot.SootMethod
 import soot.jimple.Stmt
@@ -144,6 +155,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     private fun runTaintAnalysisJobs(
         sortedByPriorityTaintMethodsWithTimeouts: List<TaintMethodWithTimeout>,
         mutToSourceSinksPairs: MutableMap<ExecutableId, MutableMap<Stmt, MutableSet<Stmt>>>,
+        taintCandidates: TaintCandidates,
         encounteredMethods: Set<SootMethod>,
         currentUtContext: UtContext,
         mockAlwaysDefaults: Set<ClassId>,
@@ -202,7 +214,18 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                         engine.addMethodsToDoNotMock(encounteredMethods)
 
                         controller.job = currentCoroutineContext().job
-
+                        val graph = method.sootMethod.jimpleBody().graph()
+                        val globalGraph = InterProceduralUnitGraph(graph)
+                        engine.pathSelector = if (UtSettings.pathSelectorType == PathSelectorType.NEW_TAINT_SELECTOR) {
+                            NewTaintPathSelector(
+                                graph,
+                                taintCandidates[method] ?: emptyMap(),
+                                NeverDroppingStrategy(globalGraph),
+                                StepsLimitStoppingStrategy(3500, globalGraph)
+                            )
+                        } else {
+                            pathSelector(engine.globalGraph, engine.typeRegistry)
+                        }
                         runEngine(engine, method, analysisStopReasons, executionsByExecutable, taintsToBeFound)
                     }
                 }
@@ -232,7 +255,9 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val engineFlow = engine.traverse()
         val methodStartTime = System.currentTimeMillis()
 
-        engineFlow.onCompletion { error ->
+        engineFlow.onStart {
+            logger.warn { "Started symbolic analysis of the executable $method" }
+        }.onCompletion { error ->
             if (error != null) {
                 logger.error(error) { "Error in taint flow for $method" }
                 return@onCompletion
@@ -372,6 +397,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val (executionsByExecutable, analysisStopReasons) = runTaintAnalysisJobs(
             sortedByPriorityTaintMethods,
             mutToSourseSinksPairs,
+            taintCandidates,
             encounteredMethods,
             currentUtContext,
             mockAlwaysDefaults,

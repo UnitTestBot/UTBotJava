@@ -25,6 +25,7 @@ import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSo
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
+import org.utbot.intellij.plugin.ui.utils.dedicatedTestSourceRootName
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
@@ -59,42 +60,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
             }
         }
 
-        var commonModuleSourceDirectory = ""
-        for ((i, sourceRoot) in model.srcModule.rootManager.sourceRoots.withIndex()) {
-            commonModuleSourceDirectory = if (i == 0) {
-                sourceRoot.toNioPath().toString()
-            } else {
-                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
-            }
-        }
-        // The first sorting to obtain the best candidate
-        val testRoots = model.getAllTestSourceRoots().distinct().sortedWith(object : Comparator<TestSourceRoot> {
-            override fun compare(o1: TestSourceRoot, o2: TestSourceRoot): Int {
-                // Heuristics: Dirs with language == codegenLanguage should go first
-                val languageOrder = (o1.expectedLanguage == model.codegenLanguage).compareTo(o2.expectedLanguage == model.codegenLanguage)
-                if (languageOrder != 0) return -languageOrder
-                // Heuristics: move root that is 'closer' to module 'common' directory to the first position
-                return -StringUtil.commonPrefixLength(commonModuleSourceDirectory, o1.dir.toNioPath().toString())
-                    .compareTo(StringUtil.commonPrefixLength(commonModuleSourceDirectory, o2.dir.toNioPath().toString()))
-            }
-        }).toMutableList()
-
-        val theBest = if (testRoots.isNotEmpty()) testRoots[0] else null
-
-        // The second sorting to make full list ordered
-        testRoots.sortWith(compareByDescending<TestSourceRoot> {
-                // Heuristics: Dirs with language == codegenLanguage should go first
-                it.expectedLanguage == model.codegenLanguage
-            }.thenBy {
-                // ABC-sorting
-                it.dir.toNioPath()
-            }
-        )
-        // The best candidate should go first to be pre-selected
-        theBest?.let {
-            testRoots.remove(it)
-            testRoots.add(0, it)
-        }
+        val testRoots = model.getSortedTestRoots()
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)
@@ -120,6 +86,71 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
                 }
             }
         }
+    }
+
+    private fun GenerateTestsModel.getSortedTestRoots(): MutableList<TestSourceRoot> {
+        var commonModuleSourceDirectory = ""
+        for ((i, sourceRoot) in srcModule.rootManager.sourceRoots.withIndex()) {
+            commonModuleSourceDirectory = if (i == 0) {
+                sourceRoot.toNioPath().toString()
+            } else {
+                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
+            }
+        }
+        // The first sorting to obtain the best candidate
+        val testRoots = getAllTestSourceRoots().distinct().sortedWith(object : Comparator<TestSourceRoot> {
+            override fun compare(o1: TestSourceRoot, o2: TestSourceRoot): Int {
+                // Heuristics: Dirs with language == codegenLanguage should go first
+                val languageOrder =
+                    (o1.expectedLanguage == model.codegenLanguage).compareTo(o2.expectedLanguage == model.codegenLanguage)
+                if (languageOrder != 0) return -languageOrder
+
+                // Heuristics: move root that is 'closer' to module 'common' directory to the first position
+                val commonPrefixOrder =
+                    StringUtil.commonPrefixLength(commonModuleSourceDirectory, o1.dir.toNioPath().toString())
+                        .compareTo(
+                            StringUtil.commonPrefixLength(
+                                commonModuleSourceDirectory,
+                                o2.dir.toNioPath().toString()
+                            )
+                        )
+                if (commonPrefixOrder != 0) return -commonPrefixOrder
+
+                //Dir with custom name 'utbot_tests' should go first
+                val customNameOrder = (o1.dir.name == dedicatedTestSourceRootName).compareTo(o2.dir.name == dedicatedTestSourceRootName)
+                if (customNameOrder != 0) return -customNameOrder
+                //Fallback
+                return o1.dir.toNioPath().compareTo(o2.dir.toNioPath())
+            }
+        }).toMutableList()
+        val sourceRootsInModule =
+            testRoots.filter { root -> root.dir.toNioPath().toString().startsWith(commonModuleSourceDirectory) }
+                .toMutableList()
+                .sortedWith(compareByDescending { it.dir.toNioPath() })
+
+        val theBest = if (testRoots.isNotEmpty()) testRoots[0] else null
+
+        // The second sorting to make full list ordered
+        testRoots.sortWith(compareByDescending<TestSourceRoot> {
+            // Heuristics: Dirs with language == codegenLanguage should go first
+            it.expectedLanguage == codegenLanguage
+        }.thenBy {
+            // ABC-sorting
+            it.dir.toNioPath()
+        })
+
+        // Test roots from the same module should go first
+        sourceRootsInModule.forEach {
+            testRoots.remove(it)
+            testRoots.add(0, it)
+        }
+
+        // The best candidate should go first to be pre-selected
+        theBest?.let {
+            testRoots.remove(it)
+            testRoots.add(0, it)
+        }
+        return testRoots
     }
 
     private fun chooseTestRoot(model: GenerateTestsModel): VirtualFile? =

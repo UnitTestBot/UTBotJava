@@ -41,6 +41,39 @@
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
+                Generate <b>unit tests</b> with a single action!
+                <br />
+                <br />
+                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
+                <br />
+                <br />
+                The engine finds potential problems in your code:
+                <br />
+                <br />
+                <ul>
+                    <li>exceptions</li>
+                    <li>hangs</li>
+                    <li>overflows</li>
+                    <li>and even native crashes</li>
+                </ul>
+                <br />
+                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
+                <br />
+                <br />
+                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
+                <br />
+                <br />
+                You can <a href="http://utbot.org">try the engine online</a> without installation.
+                <br />
+                <br />
+                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
+                <br />
+                <br />
+                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
+        ]]>
+    </description>
+    <change-notes>
+        <![CDATA[
                 Try out the latest release and get even better test generation experience. Check what we've added to UnitTestBot:
                 <br />
                 <ul>
@@ -80,24 +113,7 @@
                             brand-new built-in SARIF report visualizer <a href="https://github.com/UnitTestBot/UTBotJava/pull/1166">#1166</a><span></li>
                 </ul>
                 <br />
-                <br />
                 Share your <a href="https://github.com/UnitTestBot/UTBotJava/discussions">feedback</a> and feel free to <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">join us.</a>
-        ]]>
-    </description>
-    <change-notes>
-        <![CDATA[
-        In this version we have implemented multiple features and improvements:
-        <ul>
-        <li>Java 11 support.</li>
-        <li>Smart Fuzzer significantly improves test generation results.</li>
-        <li>Generated tests have become even more human-readable and user-friendly.</li>
-        <li>We have enabled Mac OS X platform, give it a try.</li>
-        <li>The UnitTestBot engine generates SARIF reports.</li>
-        <li>We have polished plugin UX.</li>
-        <li>Mocking support is enhanced.</li>
-        <li>Java Streams, better Java Optional support, Java String support is improved, package-private constructors now are used for the test generation.</li>
-        </ul>
-        Discover everything mentioned above and much more in this release.
         ]]>
     </change-notes>
 

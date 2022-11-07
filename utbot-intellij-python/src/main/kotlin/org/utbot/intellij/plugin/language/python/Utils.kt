@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
+import kotlin.random.Random
 
 inline fun <reified T : PsiElement> getContainingElement(
     element: PsiElement,
@@ -19,4 +20,11 @@ inline fun <reified T : PsiElement> getContainingElement(
 fun getContentRoot(project: Project, file: VirtualFile): VirtualFile {
     return ProjectFileIndex.getInstance(project)
         .getContentRootForFile(file) ?: error("Source file lies outside of a module")
+}
+
+fun generateRandomString(length: Int): String {
+    val charPool = ('a'..'z') + ('A'..'Z') + ('0'..'9')
+    return (0..length)
+        .map { Random.nextInt(0, charPool.size).let { charPool[it] } }
+        .joinToString("")
 }

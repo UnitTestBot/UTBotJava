@@ -54,13 +54,8 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
 
     private lateinit var panel: DialogPanel
 
-    @Suppress("UNCHECKED_CAST")
-    private val itemsToHelpTooltip = hashMapOf(
-        (testFrameworks as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-    )
-
     init {
-        title = "Generate tests with UtBot"
+        title = "Generate Tests With UtBot"
         isResizable = false
         init()
     }
@@ -75,21 +70,32 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             row("Test framework:") {
                 makePanelWithHelpTooltip(
                     testFrameworks as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[testFrameworks]
+                    null
                 )
+            }
+            row("Timeout for all selected functions:") {
+                cell {
+                    component(timeoutSpinnerForTotalTimeout)
+                    label("seconds")
+                    component(ContextHelpLabel.create("Set the timeout for all test generation processes."))
+                }
+            }
+            row("Timeout for one function run:") {
+                cell {
+                    component(timeoutSpinnerForOneRun)
+                    label("seconds")
+                    component(ContextHelpLabel.create("Set the timeout for one function execution."))
+                }
             }
             row("Generate test methods for:") {}
             row {
                 scrollPane(functionsTable)
             }
-            row("Timeout for all selected functions:") {
-                component(timeoutSpinnerForTotalTimeout)
-            }
-            row("Timeout for one function run:") {
-                component(timeoutSpinnerForOneRun)
-            }
             row {
-                component(visitOnlySpecifiedSource)
+                cell {
+                    component(visitOnlySpecifiedSource)
+                    component(ContextHelpLabel.create("Find argument types only in this file."))
+                }
             }
         }
 
@@ -102,10 +108,11 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         functions: Collection<PyFunction>
     ): List<PyMemberInfo<PyElement>> {
         val generator = PyElementGenerator.getInstance(project)
+        val fakeClassName = generateRandomString(15)
         val newClass = generator.createFromText(
             LanguageLevel.getDefault(),
             PyClass::class.java,
-            "class __FakeWrapperUtBotClass_ivtdjvrdkgbmpmsclaro__:\npass"
+            "class __FakeWrapperUtBotClass_$fakeClassName:\npass"
         )
         functions.forEach {
             newClass.add(it)

@@ -12,8 +12,22 @@ import parser.ast.PropertyDeclarationNode
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
 import parser.ast.AstNode
+import parser.visitors.TsClassAstVisitor
 
 object TsParserUtils {
+
+//    fun searchForClassDecl(className: String?, fileText: String, strict: Boolean = false): ClassDeclarationNode? {
+//
+//        val visitor = TsClassAstVisitor(className)
+//        fileNode.accept(visitor)
+//        return try {
+//            visitor.targetClassNode
+//        } catch (e: Exception) {
+//            if (!strict && visitor.classNodesCount == 1) {
+//                visitor.atLeastSomeClassNode
+//            } else null
+//        }
+//    }
 
     fun V8Object.getKind(typescript: V8Object): String {
         return try {

@@ -284,6 +284,34 @@ object PythonCodeGenerator {
             )
         )
 
+        val listToJoin = ListExpr(
+            listOf(
+                Atom(Name("str"), listOf(createArguments(listOf(statusName)))),
+                Atom(Name("str"), listOf(createArguments(listOf(jsonDumps)))),
+                Atom(
+                    Name("str"),
+                    listOf(createArguments(listOf(stmtsFilteredWithDefName)))
+                ),
+                Atom(
+                    Name("str"),
+                    listOf(createArguments(listOf(missedFilteredName)))
+                )
+            )
+        )
+
+        val joinedList =
+            Atom(
+                Name("\"\\n\""),
+                listOf(
+                    Attribute(Identifier("join")),
+                    createArguments(
+                        listOf(
+                            listToJoin
+                        )
+                    )
+                )
+            )
+
         val printStmt = With(
             listOf(
                 WithItem(Name("open(\"$fileForOutputName\", \"w\")"), fileName)
@@ -294,30 +322,7 @@ object PythonCodeGenerator {
                     Attribute(Identifier("write")),
                     createArguments(
                         listOf(
-                            Atom(
-                                Name("\"\\n\""),
-                                listOf(
-                                    Attribute(Identifier("join")),
-                                    createArguments(
-                                        listOf(
-                                            ListExpr(
-                                                listOf(
-                                                    Atom(Name("str"), listOf(createArguments(listOf(statusName)))),
-                                                    Atom(Name("str"), listOf(createArguments(listOf(jsonDumps)))),
-                                                    Atom(
-                                                        Name("str"),
-                                                        listOf(createArguments(listOf(stmtsFilteredWithDefName)))
-                                                    ),
-                                                    Atom(
-                                                        Name("str"),
-                                                        listOf(createArguments(listOf(missedFilteredName)))
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
+                            joinedList
                         )
                     )
                 )

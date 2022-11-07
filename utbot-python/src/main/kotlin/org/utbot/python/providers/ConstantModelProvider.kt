@@ -31,6 +31,7 @@ class ConstantModelProvider(recursionDepth: Int) : PythonModelProvider(recursion
     private fun modifyValue(model: PythonPrimitiveModel?, op: FuzzedContext): FuzzedValue? {
         if (op !is FuzzedContext.Comparison || model == null) return null
         val multiplier = if (op == FuzzedContext.Comparison.LT || op == FuzzedContext.Comparison.GE) -1 else 1
+
         return when (val value = model.value) {
             is BigInteger -> value + multiplier.toBigInteger()
             is BigDecimal -> value + multiplier.toBigDecimal()

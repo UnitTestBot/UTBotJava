@@ -12,6 +12,8 @@ private val logger = KotlinLogging.logger {}
 object MypyAnnotations {
     const val TEMPORARY_MYPY_FILE = "<TEMPORARY MYPY FILE>"
 
+    private const val configFilename = "mypy.ini"
+
     data class MypyReportLine(
         val line: Int,
         val type: String,
@@ -35,6 +37,7 @@ object MypyAnnotations {
             directoriesForSysPath,
             moduleToImport
         )
+
         TemporaryFileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
         val configFile = setConfigFile(directoriesForSysPath)
         Cleaner.addFunction { stopMypy(pythonPath) }
@@ -75,6 +78,7 @@ object MypyAnnotations {
                 moduleToImport
             )
             TemporaryFileManager.writeToAssignedFile(fileWithCode, codeWithAnnotations)
+
             val mypyOutputAsString = mypyCheck(pythonPath, fileWithCode, configFile)
             val mypyOutput = getErrorsAndNotes(mypyOutputAsString, codeWithAnnotations, fileWithCode)
             val errorNum = getErrorNumber(mypyOutput)
@@ -86,8 +90,6 @@ object MypyAnnotations {
             }
         }
     }
-
-    private const val configFilename = "mypy.ini"
 
     private fun setConfigFile(directoriesForSysPath: Set<String>): File {
         val file = TemporaryFileManager.assignTemporaryFile(configFilename)

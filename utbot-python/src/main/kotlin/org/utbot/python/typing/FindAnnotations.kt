@@ -15,6 +15,8 @@ object AnnotationFinder {
 
     private const val MAX_CANDIDATES_FOR_PARAM = 100
 
+    private const val EPS = 1e-6
+
     fun findAnnotations(
         argInfoCollector: ArgInfoCollector,
         methodUnderTest: PythonMethod,
@@ -60,8 +62,6 @@ object AnnotationFinder {
         )
         return candidates
     }
-
-    private const val EPS = 1e-6
 
     private fun candidatesMapToRating(candidates: Map<NormalizedPythonAnnotation, Double>) =
         candidates.toList().sortedByDescending { it.second }.map { it.first }

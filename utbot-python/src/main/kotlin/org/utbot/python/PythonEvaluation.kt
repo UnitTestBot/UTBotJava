@@ -16,13 +16,23 @@ import org.utbot.python.utils.startProcess
 import java.io.File
 
 
-sealed class EvaluationResult
-class EvaluationError(val reason: String) : EvaluationResult()
-class EvaluationSuccess(
+sealed class PythonEvaluationResult
+
+class PythonEvaluationError(
+    val status: Int,
+    val message: String,
+    val stackTrace: List<String>
+) : PythonEvaluationResult()
+
+class PythonEvaluationTimeout(
+    val message: String = "Timeout"
+) : PythonEvaluationResult()
+
+class PythonEvaluationSuccess(
     private val output: OutputData,
     private val isException: Boolean,
     val coverage: Coverage
-) : EvaluationResult() {
+) : PythonEvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
     operator fun component3() = coverage
@@ -74,33 +84,9 @@ fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
     )
 }
 
-fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): EvaluationResult {
-    val result = getResult(process.process, timeout = timeout)
-    process.fileWithCode.delete()
-
-    if (result.exitValue != 0)
-        return EvaluationError(
-            if (result.terminatedByTimeout) "Timeout" else "Non-zero exit status: ${result.stderr}"
-        )
-
-    val output = process.fileForOutput.readText().split(System.lineSeparator())
-    process.fileForOutput.delete()
-
-    if (output.size != 4)
-        return EvaluationError("Incorrect format of output")
-
-    val status = output[0]
-
-    if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
-        return EvaluationError("Incorrect format of output")
-
-    val isSuccess = status == PythonCodeGenerator.successStatus
-
-    val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
-    val stmts = Klaxon().parseArray<Int>(output[2])!!
-    val missed = Klaxon().parseArray<Int>(output[3])!!
-    val covered = stmts.filter { it !in missed }
-    val coverage = Coverage(
+fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>, input: EvaluationInput): Coverage {
+    val covered = statements.filter { it !in missedStatements }
+    return Coverage(
         coveredInstructions=covered.map {
             Instruction(
                 input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,
@@ -110,7 +96,7 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
             )
         },
         instructionsCount = null,
-        missedInstructions = missed.map {
+        missedInstructions = missedStatements.map {
             Instruction(
                 input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,
                 input.method.methodSignature(),
@@ -119,8 +105,50 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
             )
         }
     )
+}
 
-    return EvaluationSuccess(
+fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): PythonEvaluationResult {
+    val result = getResult(process.process, timeout = timeout)
+    process.fileWithCode.delete()
+
+    if (result.terminatedByTimeout)
+        return PythonEvaluationTimeout()
+
+    if (result.exitValue != 0)
+        return PythonEvaluationError(
+            result.exitValue,
+            result.stdout,
+            result.stderr.split("\n")
+        )
+
+    val output = process.fileForOutput.readText().split(System.lineSeparator())
+    process.fileForOutput.delete()
+
+    if (output.size != 4)
+        return PythonEvaluationError(
+            0,
+            "Incorrect format of output",
+            emptyList()
+        )
+
+    val status = output[0]
+
+    if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
+        return PythonEvaluationError(
+            0,
+            "Incorrect format of output",
+            emptyList()
+        )
+
+    val isSuccess = status == PythonCodeGenerator.successStatus
+
+    val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
+    val stmts = Klaxon().parseArray<Int>(output[2])!!
+    val missed = Klaxon().parseArray<Int>(output[3])!!
+
+    val coverage = calculateCoverage(stmts, missed, input)
+
+    return PythonEvaluationSuccess(
         OutputData(pythonTree, pythonTree.type),
         !isSuccess,
         coverage

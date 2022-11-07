@@ -6,9 +6,9 @@ import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonClassId
 
 object StubFileFinder {
-    val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()
-    val functionToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()
-    val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = mutableMapOf()
+    private val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()
+    private val functionToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()
+    private val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = mutableMapOf()
     val nameToClassMap: MutableMap<String, StubFileStructures.ClassInfo> = mutableMapOf()
 
     private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
@@ -122,29 +122,5 @@ object StubFileFinder {
             NormalizedPythonAnnotation(it.returns)
         }?.toSet() ?: emptySet()
     }
-}
-
-fun main() {
-    println(StubFileFinder.findTypeWithMethod("__add__"))
-    println(
-        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(
-            "print", "sep"
-        )
-    )
-    println(
-        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(
-            "heapify", argumentPosition = 0
-        )
-    )
-    println(
-        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(
-            "gt"
-        )
-    )
-    println(
-        StubFileFinder.findTypeWithField(
-            "value"
-        )
-    )
 }
 

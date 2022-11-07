@@ -23,7 +23,12 @@ import org.apache.commons.lang3.math.NumberUtils
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.python.PythonMethod
-import org.utbot.python.framework.api.python.*
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.framework.api.python.PythonBoolModel
+import org.utbot.python.framework.api.python.PythonListModel
+import org.utbot.python.framework.api.python.PythonDictModel
+import org.utbot.python.framework.api.python.PythonSetModel
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
@@ -33,13 +38,15 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List<NormalizedPythonAnnotation>) {
-    open class Hint
+    sealed class Hint
+
     class Type(val type: PythonClassId) : Hint()
     data class Method(val name: String) : Hint()
     data class FunctionArg(val name: String, val index: Int) : Hint()
     data class FunctionRet(val name: String) : Hint()
     data class Field(val name: String) : Hint()
     data class Function(val name: String) : Hint()
+
     data class ArgInfoStorage(
         val types: MutableSet<Type> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf(),
@@ -77,7 +84,9 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
     private val paramNames = method.arguments.mapIndexedNotNull { index, param ->
         if (argumentTypes[index] == pythonAnyClassId) param.name else null
     }
+
     private val collectedValues = mutableMapOf<String, ArgInfoStorage>()
+
     private val visitor = MatchVisitor(paramNames, mutableSetOf(), GeneralStorage())
 
     init {

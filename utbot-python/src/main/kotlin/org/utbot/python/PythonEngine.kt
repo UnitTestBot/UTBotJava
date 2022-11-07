@@ -11,10 +11,12 @@ import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
 const val CHUNK_SIZE = 15
+const val TIMEOUT: Long = 10
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -28,27 +30,35 @@ class PythonEngine(
 ) {
 
     private data class JobResult(
-        val evalResult: EvaluationResult,
+        val evalResult: PythonEvaluationResult,
         val values: List<FuzzedValue>,
         val thisObject: UtModel?,
         val modelList: List<UtModel>
     )
 
-    fun fuzzing(): Sequence<UtResult> = sequence {
-        val types = methodUnderTest.arguments.map {
-            selectedTypeMap[it.name] ?: pythonAnyClassId
-        }
+    private fun suggestExecutionName(
+        methodUnderTestDescription: FuzzedMethodDescription,
+        jobResult: JobResult,
+        executionResult: UtExecutionResult
+    ): TestSuggestedInfo? {
+        val nameSuggester = sequenceOf(
+            ModelBasedNameSuggester(),
+            MethodBasedNameSuggester()
+        )
 
-        val methodUnderTestDescription = FuzzedMethodDescription(
-            methodUnderTest.name,
-            pythonAnyClassId,
-            types,
-            fuzzedConcreteValues
-        ).apply {
-            compilableName = methodUnderTest.name // what's the difference with ordinary name?
-            parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
+        val testMethodName = try {
+            nameSuggester
+                .flatMap { it.suggest(methodUnderTestDescription, jobResult.values, executionResult) }
+                .firstOrNull()
+        } catch (t: Throwable) {
+            null
         }
+        return testMethodName
+    }
 
+    private fun createEvaluationInputIterator(
+        methodUnderTestDescription: FuzzedMethodDescription
+    ): Sequence<EvaluationInput> {
         val additionalModules = selectedTypeMap.values.flatMap {
             getModulesFromAnnotation(it)
         }.toSet()
@@ -73,21 +83,87 @@ class PythonEngine(
                 values,
                 additionalModules
             )
-        }.iterator()
+        }
+
+        return evaluationInputIterator
+    }
+
+    private fun handleSuccessResult(
+        types: List<NormalizedPythonAnnotation>,
+        evaluationResult: PythonEvaluationSuccess,
+        methodUnderTestDescription: FuzzedMethodDescription,
+        jobResult: JobResult
+    ): UtResult {
+        val (resultJSON, isException, coverage) = evaluationResult
+
+        val prohibitedExceptions = listOf(
+            "builtins.AttributeError",
+            "builtins.TypeError"
+        )
+
+        if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+            val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
+                types.joinToString { it.name }
+            }. Exception type: ${resultJSON.type.name}"
+
+            logger.info(errorMessage)
+
+            return UtError(errorMessage, Throwable())
+        }
+
+        val executionResult =
+            if (isException)
+                UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false)
+            else {
+                val outputType = resultJSON.type
+                val resultAsModel = PythonTreeModel(
+                    resultJSON.output,
+                    outputType
+                )
+                UtExecutionSuccess(resultAsModel)
+            }
+
+        val testMethodName = suggestExecutionName(methodUnderTestDescription, jobResult, executionResult)
+
+        return UtFuzzedExecution(
+            stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
+            stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
+            result = executionResult,
+            coverage = coverage,
+            testMethodName = testMethodName?.testName?.camelToSnakeCase(),
+            displayName = testMethodName?.displayName,
+        )
+    }
+
+    fun fuzzing(): Sequence<UtResult> = sequence {
+        val types = methodUnderTest.arguments.map {
+            selectedTypeMap[it.name] ?: pythonAnyClassId
+        }
+
+        val methodUnderTestDescription = FuzzedMethodDescription(
+            methodUnderTest.name,
+            pythonAnyClassId,
+            types,
+            fuzzedConcreteValues
+        ).apply {
+            compilableName = methodUnderTest.name // what's the difference with ordinary name?
+            parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
+        }
+
+        val evaluationInputIterator = createEvaluationInputIterator(methodUnderTestDescription)
 
         val coveredLines = initialCoveredLines.toMutableSet()
-        while (evaluationInputIterator.hasNext()) {
-            val chunk = mutableListOf<EvaluationInput>()
-            while (evaluationInputIterator.hasNext() && chunk.size < CHUNK_SIZE)
-                chunk += evaluationInputIterator.next()
-
+        evaluationInputIterator.chunked(CHUNK_SIZE).forEach { chunk ->
             val coveredBefore = coveredLines.size
+
+            // TODO: maybe reuse processes for next chunk?
             val processes = chunk.map { evaluationInput ->
                 startEvaluationProcess(evaluationInput)
             }
             val startedTime = System.currentTimeMillis()
+
             val results = (processes zip chunk).map { (process, evaluationInput) ->
-                val wait = max(10, timeoutForRun - (System.currentTimeMillis() - startedTime))
+                val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
                 val evalResult = getEvaluationResult(evaluationInput, process, wait)
                 JobResult(
                     evalResult,
@@ -96,57 +172,36 @@ class PythonEngine(
                     evaluationInput.modelList
                 )
             }
+
             results.forEach { jobResult ->
-                if (jobResult.evalResult is EvaluationError) {
-                    yield(UtError(jobResult.evalResult.reason, Throwable()))
-                } else {
-                    val (resultJSON, isException, coverage) = jobResult.evalResult as EvaluationSuccess
-
-                    coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
-
-                    val prohibitedExceptions = listOf(
-                        "builtins.AttributeError",
-                        "builtins.TypeError"
-                    )
-                    if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
-                        logger.debug("Evaluation with prohibited exception. Substituted types: ${
-                            types.joinToString { it.name }
-                        }. Exception type: ${resultJSON.type.name}")
-                        return@sequence
-                    }
-
-                    val result =
-                        if (isException)
-                            UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false) // TODO:
-                        else {
-                            val outputType = resultJSON.type
-                            val resultAsModel = PythonTreeModel(
-                                resultJSON.output,
-                                outputType
+                when(val evaluationResult = jobResult.evalResult) {
+                    is PythonEvaluationError -> {
+                        if (evaluationResult.status != 0) {
+                            yield(UtError(
+                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                            ))
+                        } else {
+                            yield(
+                                UtError(
+                                    evaluationResult.message,
+                                    Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                                )
                             )
-                            UtExecutionSuccess(resultAsModel)
                         }
-
-                    val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                    val testMethodName = try {
-                        nameSuggester.flatMap { it.suggest(methodUnderTestDescription, jobResult.values, result) }
-                            .firstOrNull()
-                    } catch (t: Throwable) {
-                        null
                     }
-
-                    yield(
-                        UtFuzzedExecution(
-                            stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
-                            stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
-                            result = result,
-                            coverage = coverage,
-                            testMethodName = testMethodName?.testName?.camelToSnakeCase(),
-                            displayName = testMethodName?.displayName,
+                    is PythonEvaluationSuccess -> {
+                        evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+                        yield(
+                            handleSuccessResult(types, evaluationResult, methodUnderTestDescription, jobResult)
                         )
-                    )
+                    }
+                    is PythonEvaluationTimeout -> {
+                        yield(UtError(evaluationResult.message, Throwable()))
+                    }
                 }
             }
+
             val coveredAfter = coveredLines.size
 
             if (coveredAfter == coveredBefore)

@@ -7,7 +7,6 @@ import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.utbot.python.PythonMethod
 
 class ClassInfoCollector(pyClass: PythonClass) {
-    val pyClass: PythonClass = pyClass
 
     class Storage {
         val fields = mutableSetOf<String>()

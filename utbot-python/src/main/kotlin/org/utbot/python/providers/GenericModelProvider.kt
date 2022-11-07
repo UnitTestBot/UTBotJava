@@ -14,6 +14,8 @@ import org.utbot.python.typing.parseGeneric
 import java.lang.Integer.min
 import kotlin.random.Random
 
+const val MAX_CONTAINER_SIZE = 7
+
 class GenericModelProvider(recursionDepth: Int) : PythonModelProvider(recursionDepth) {
     private val maxGenNum = 10
 
@@ -89,8 +91,6 @@ class GenericModelProvider(recursionDepth: Int) : PythonModelProvider(recursionD
         }
     }
 }
-
-const val MAX_CONTAINER_SIZE = 7
 
 fun Sequence<List<FuzzedValue>>.randomChunked(): Sequence<List<List<FuzzedValue>>> {
     val seq = this

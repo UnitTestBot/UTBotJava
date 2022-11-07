@@ -31,10 +31,10 @@ class PythonClassIdInfo(
 )
 
 object PythonTypesStorage {
-    var projectClasses: List<ProjectClass> = emptyList()
-    var projectModules: List<PythonModule> = emptyList()
-    var pythonPath: String? = null
     private const val PYTHON_NOT_SPECIFIED = "PythonPath in PythonTypeCollector not specified"
+    private var projectClasses: List<ProjectClass> = emptyList()
+    private var projectModules: List<PythonModule> = emptyList()
+    var pythonPath: String? = null
 
     fun findTypeWithMethod(
         methodName: String

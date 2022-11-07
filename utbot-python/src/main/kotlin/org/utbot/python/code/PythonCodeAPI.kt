@@ -31,7 +31,11 @@ import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
-class PythonCode(private val body: Module, val filename: String, val pythonModule: String? = null) {
+class PythonCode(
+    private val body: Module,
+    private val filename: String,
+    private val pythonModule: String? = null
+) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.functionDefs.mapNotNull { functionDef ->
             PythonMethodBody(functionDef, filename)
@@ -77,7 +81,11 @@ data class PythonModule(
     val name: String,
 )
 
-class PythonClass(private val ast: ClassDef, val filename: String? = null, val pythonModule: String? = null) {
+class PythonClass(
+    private val ast: ClassDef,
+    val filename: String? = null,
+    private val pythonModule: String? = null
+) {
     val name: String
         get() = ast.name.name
 
@@ -91,13 +99,17 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
 
     val initSignature: List<PythonArgument>?
         get() {
-            val ordinary = ast.functionDefs?.find { it.name.name == "__init__" }?.let {
-                PythonMethodBody(it, filename ?: "")
-            }
+            val ordinary = ast.functionDefs
+                ?.find { it.name.name == "__init__" }
+                ?.let { PythonMethodBody(it, filename ?: "") }
+
             if (ordinary != null) {
                 return ordinary.arguments.drop(1) // drop 'self' parameter
             }
-            if (ast.decorators.any { it.name.name == "dataclass" }) {
+
+            val isDataclass = ast.decorators.any { it.name.name == "dataclass" }
+
+            if (isDataclass) {
                 return topLevelFields.map {
                     PythonArgument(
                         (it.target as? Name)?.id?.name ?: return null,
@@ -105,9 +117,12 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
                     )
                 }
             }
-            if (ast.decorators.isEmpty() && (ast.arguments == null || !ast.arguments.isPresent)) {
+
+            val noOneArgument = ast.decorators.isEmpty() && (ast.arguments == null || !ast.arguments.isPresent)
+            if (noOneArgument) {
                 return emptyList()
             }
+
             return null
         }
 
@@ -126,9 +141,12 @@ class PythonMethodBody(
     override val returnAnnotation: String?
         get() = annotationToString(ast.returns)
 
-    // TODO: consider cases of default and named arguments
+    // TODO: consider cases of default and keyword arguments
     private val getParams: List<Parameter> =
-        if (ast.parameters.isPresent) ast.parameters.get().params ?: emptyList() else emptyList()
+        if (ast.parameters.isPresent)
+            ast.parameters.get().params ?: emptyList()
+        else
+            emptyList()
 
     override val arguments: List<PythonArgument>
         get() = getParams.map { param ->

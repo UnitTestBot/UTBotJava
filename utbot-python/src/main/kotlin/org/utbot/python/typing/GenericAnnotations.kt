@@ -10,7 +10,6 @@ fun parseGeneric(annotation: NormalizedPythonAnnotation): GenericAnnotation? =
 
 fun isGeneric(annotation: NormalizedPythonAnnotation): Boolean = parseGeneric(annotation) != null
 
-
 sealed class GenericAnnotation {
     abstract val args: List<NormalizedPythonAnnotation>
 
@@ -31,7 +30,7 @@ class ListAnnotation(
     override fun toString(): String = "typing.List[$elemAnnotation]"
 
     companion object {
-        val regex = Regex("typing.List\\[(.*)]")
+        private val regex = Regex("typing.List\\[(.*)]")
 
         fun parse(annotation: NormalizedPythonAnnotation): ListAnnotation? {
             val res = regex.matchEntire(annotation.name)
@@ -55,7 +54,7 @@ class DictAnnotation(
     override fun toString(): String = "typing.Dict[$keyAnnotation, $valueAnnotation]"
 
     companion object {
-        val regex = Regex("typing.Dict\\[(.*), *(.*)]")
+        private val regex = Regex("typing.Dict\\[(.*), *(.*)]")
 
         fun parse(annotation: NormalizedPythonAnnotation): DictAnnotation? {
             val res = regex.matchEntire(annotation.name)
@@ -78,7 +77,7 @@ class SetAnnotation(
     override fun toString(): String = "typing.Set[$elemAnnotation]"
 
     companion object {
-        val regex = Regex("typing.Set\\[(.*)]")
+        private val regex = Regex("typing.Set\\[(.*)]")
 
         fun parse(annotation: NormalizedPythonAnnotation): SetAnnotation? {
             val res = regex.matchEntire(annotation.name)

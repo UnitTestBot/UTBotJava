@@ -10,9 +10,11 @@ class KlaxonPythonTreeParser(
     jsonString: String
 ) {
     private val jsonObject = parseJsonString(jsonString)
+
     private val rawMemory = jsonObject.obj("memory")!!.map {
         it.key.toLong() to it.value as JsonObject
     }.toMap()
+
     private val memory = emptyMap<Long, PythonTree.PythonTreeNode>().toMutableMap()
 
     fun parseJsonToPythonTree(): PythonTree.PythonTreeNode {
@@ -96,10 +98,15 @@ class KlaxonPythonTreeParser(
         return PythonTree.DictNode(items.associate {
             val key = it[0]
             val value = it[1] as JsonObject
-            (if (key is String) PythonTree.PrimitiveNode(
-                PythonClassId("builtins.str"),
-                key
-            ) else parseToPythonTree(key as JsonObject)) to parseToPythonTree(value)
+            (
+                    if (key is String)
+                        PythonTree.PrimitiveNode(
+                            PythonClassId("builtins.str"),
+                            key
+                        )
+                    else
+                        parseToPythonTree(key as JsonObject)
+            ) to parseToPythonTree(value)
         })
     }
 }

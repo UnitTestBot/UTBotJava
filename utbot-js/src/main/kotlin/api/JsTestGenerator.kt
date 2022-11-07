@@ -85,8 +85,7 @@ class JsTestGenerator(
             utbotDir = utbotDir,
             projectPath = projectPath,
             filePathToInference = sourceFilePath,
-            trimmedFileText = fileText,
-            fileText = fileText,
+            parsedFile = parsedFile,
             settings = settings,
         )
         val ternService = TernService(context)
@@ -95,7 +94,7 @@ class JsTestGenerator(
         val classNode =
             JsParserUtils.searchForClassDecl(
                 className = parentClassName,
-                fileText = fileText,
+                parsedFile = parsedFile,
                 strict = selectedMethods?.isNotEmpty() ?: false
             )
         parentClassName = classNode?.ident?.name?.toString()
@@ -347,7 +346,7 @@ class JsTestGenerator(
     private fun getClassMethods(className: String): List<FunctionNode> {
         val visitor = JsClassAstVisitor(className)
         parsedFile.body.accept(visitor)
-        val classNode = JsParserUtils.searchForClassDecl(className, fileText)
+        val classNode = JsParserUtils.searchForClassDecl(className, parsedFile)
         return classNode?.classElements?.filter {
             it.value is FunctionNode
         }?.map { it.value as FunctionNode } ?: throw IllegalStateException("Can't extract methods of class $className")

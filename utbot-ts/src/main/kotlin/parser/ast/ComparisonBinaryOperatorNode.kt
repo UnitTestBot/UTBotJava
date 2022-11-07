@@ -6,7 +6,7 @@ import parser.TsParserUtils.getKind
 class ComparisonBinaryOperatorNode(
     obj: V8Object,
     typescript: V8Object
-): BinaryOperatorNode() {
+): BinaryOperatorNode(obj, typescript) {
 
     companion object {
         val allComparisonOperators = setOf(

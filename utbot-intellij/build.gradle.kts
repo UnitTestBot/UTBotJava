@@ -108,8 +108,8 @@ dependencies {
 
     //Family
     if (pythonIde?.split(',')?.contains(ideType) == true) {
-        implementation(project(":utbot-python"))
-        implementation(project(":utbot-intellij-python"))
+//        implementation(project(":utbot-python"))
+//        implementation(project(":utbot-intellij-python"))
     }
 
     if (jsIde?.split(',')?.contains(ideType) == true) {

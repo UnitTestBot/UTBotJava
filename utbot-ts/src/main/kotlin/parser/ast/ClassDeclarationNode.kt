@@ -16,7 +16,7 @@ class ClassDeclarationNode(
 
     val constructor = obj.getArrayAsList("members")
         .map { it.getAstNodeByKind(typescript) }
-        .find { it is ConstructorNode }
+        .find { it is ConstructorNode } as ConstructorNode?
 
     val methods = obj.getArrayAsList("members")
         .map { it.getAstNodeByKind(typescript) }

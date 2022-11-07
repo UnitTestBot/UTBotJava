@@ -1,5 +1,7 @@
 package parser
 
+import com.eclipsesource.v8.V8Array
+import com.eclipsesource.v8.V8Object
 import parser.ast.BinaryExpressionNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.ConstructorNode
@@ -9,25 +11,23 @@ import parser.ast.IdentifierNode
 import parser.ast.MethodDeclarationNode
 import parser.ast.ParameterNode
 import parser.ast.PropertyDeclarationNode
-import com.eclipsesource.v8.V8Array
-import com.eclipsesource.v8.V8Object
 import parser.ast.AstNode
+import parser.ast.NumericLiteralNode
 import parser.visitors.TsClassAstVisitor
 
 object TsParserUtils {
 
-//    fun searchForClassDecl(className: String?, fileText: String, strict: Boolean = false): ClassDeclarationNode? {
-//
-//        val visitor = TsClassAstVisitor(className)
-//        fileNode.accept(visitor)
-//        return try {
-//            visitor.targetClassNode
-//        } catch (e: Exception) {
-//            if (!strict && visitor.classNodesCount == 1) {
-//                visitor.atLeastSomeClassNode
-//            } else null
-//        }
-//    }
+    fun searchForClassDecl(className: String?, parsedFile: AstNode, strict: Boolean = false): ClassDeclarationNode? {
+        val visitor = TsClassAstVisitor(className)
+        visitor.accept(parsedFile)
+        return try {
+            visitor.targetClassNode
+        } catch (e: Exception) {
+            if (!strict && visitor.classNodesCount == 1) {
+                visitor.atLeastSomeClassNode
+            } else null
+        }
+    }
 
     fun V8Object.getKind(typescript: V8Object): String {
         return try {
@@ -114,6 +114,7 @@ object TsParserUtils {
         "MethodDeclaration" -> MethodDeclarationNode(this, typescript)
         "PropertyDeclaration" -> PropertyDeclarationNode(this, typescript)
         "Constructor" -> ConstructorNode(this, typescript)
+        "NumericLiteral" -> NumericLiteralNode(this)
         else -> DummyNode(this, typescript)
     }
 }

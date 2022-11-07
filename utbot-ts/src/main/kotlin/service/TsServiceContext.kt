@@ -1,12 +1,12 @@
 package service
 
+import parser.ast.AstNode
 import settings.TsDynamicSettings
 
-data class ServiceContext(
+data class TsServiceContext(
     val utbotDir: String,
     val projectPath: String,
     val filePathToInference: String,
-    val trimmedFileText: String,
-    val fileText: String? = null,
+    val parsedFile: AstNode,
     val settings: TsDynamicSettings,
 )

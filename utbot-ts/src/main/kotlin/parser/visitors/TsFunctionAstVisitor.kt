@@ -1,8 +1,8 @@
 package parser.visitors
 
-import parser.ast.AstNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.FunctionDeclarationNode
+import parser.ast.FunctionNode
 import parser.ast.MethodDeclarationNode
 
 class TsFunctionAstVisitor(
@@ -11,7 +11,7 @@ class TsFunctionAstVisitor(
 ): AbstractAstVisitor() {
 
     private var lastVisitedClassName: String = ""
-    lateinit var targetFunctionNode: AstNode
+    lateinit var targetFunctionNode: FunctionNode
 
     override fun visitClassDeclarationNode(node: ClassDeclarationNode): Boolean {
         lastVisitedClassName = node.name

@@ -42,9 +42,9 @@ include("utbot-android-studio")
 include("utbot-ui-commons")
 
 if (pythonIde.split(",").contains(ideType)) {
-    include("utbot-python")
-    include("utbot-cli-python")
-    include("utbot-intellij-python")
+//    include("utbot-python")
+//    include("utbot-cli-python")
+//    include("utbot-intellij-python")
 }
 
 if (jsIde.split(",").contains(ideType)) {
@@ -52,3 +52,4 @@ if (jsIde.split(",").contains(ideType)) {
     include("utbot-cli-js")
     include("utbot-intellij-js")
 }
+include("utbot-ts")

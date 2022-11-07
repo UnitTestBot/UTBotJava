@@ -38,6 +38,9 @@ dependencies {
     // https://mvnrepository.com/artifact/org.json/json
     implementation(group = "org.json", name = "json", version = "20220320")
 
+    // https://mvnrepository.com/artifact/commons-io/commons-io
+    implementation(group = "commons-io", name = "commons-io", version = "2.11.0")
+
 
     implementation("org.functionaljava:functionaljava:5.0")
     implementation("org.functionaljava:functionaljava-quickcheck:5.0")

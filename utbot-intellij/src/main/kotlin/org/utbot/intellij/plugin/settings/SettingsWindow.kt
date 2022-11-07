@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.settings
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBLabel
@@ -10,6 +11,7 @@ import com.intellij.ui.layout.LayoutBuilder
 import com.intellij.ui.layout.PropertyBinding
 import com.intellij.ui.layout.labelTable
 import com.intellij.ui.layout.panel
+import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.ui.layout.slider
 import com.intellij.ui.layout.withValueBinding
 import com.intellij.util.castSafelyTo
@@ -29,26 +31,41 @@ import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import javax.swing.JSlider
+import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
 
     // TODO it is better to use something like SearchEverywhere for classes but it is complicated to implement
+    private lateinit var codegenLanguageCombo: ComboBox<CodegenLanguage>
     private val excludeTable = MockAlwaysClassesTable(project)
     private lateinit var runInspectionAfterTestGenerationCheckBox: JCheckBox
     private lateinit var forceMockCheckBox: JCheckBox
     private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
 
     val panel: JPanel = panel {
+        row("Generated test language:") {
+            cell {
+                codegenLanguageCombo = comboBox(
+                    DefaultComboBoxModel(CodegenLanguage.values()),
+                    getter = { settings.providerNameByServiceLoader(CodegenLanguage::class) as CodegenLanguage },
+                    setter = { settings.setProviderByLoader(CodegenLanguage::class, it as CodeGenerationSettingItem) }
+                ).apply {
+                    component.renderer = CodeGenerationSettingItemRenderer()
+                    ContextHelpLabel.create("You can generate test methods in Java or Kotlin regardless of your source code language.")
+                }.component
+                codegenLanguageCombo.addActionListener {
+                    if (!codegenLanguageCombo.item.isSummarizationCompatible()) {
+                        enableSummarizationGenerationCheckBox.isSelected = false
+                    }
+                }
+            }
+        }
         val valuesComboBox: LayoutBuilder.(KClass<*>, Array<*>) -> Unit = { loader, values ->
             val serviceLabels = mapOf(
-                CodegenLanguage::class to "Generated test language:",
                 RuntimeExceptionTestsBehaviour::class to "Tests with exceptions:",
                 TreatOverflowAsError::class to "Overflow detection:",
                 JavaDocCommentStyle::class to "Javadoc comment style:"
-            )
-            val tooltipLabels = mapOf(
-                CodegenLanguage::class to "You can generate test methods in Java or Kotlin regardless of your source code language."
             )
 
             row(serviceLabels[loader] ?: error("Unknown service loader: $loader")) {
@@ -59,13 +76,10 @@ class SettingsWindow(val project: Project) {
                         setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
                     ).apply {
                         component.renderer = CodeGenerationSettingItemRenderer()
-                        ContextHelpLabel.create(tooltipLabels[loader] ?: return@apply)()
                     }
                 }
             }
         }
-
-        valuesComboBox(CodegenLanguage::class, CodegenLanguage.values())
 
         row("Hanging test timeout:") {
             cell {
@@ -129,6 +143,7 @@ class SettingsWindow(val project: Project) {
                     .onIsModified {
                         enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration
                     }
+                    .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
                     .component
             }
         }

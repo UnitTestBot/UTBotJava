@@ -41,35 +41,47 @@
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
-                Generate <b>unit tests</b> with a single action!
-                <br />
-                <br />
-                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
-                <br />
-                <br />
-                The engine finds potential problems in your code:
-                <br />
+                Try out the latest release and get even better test generation experience. Check what we've added to UnitTestBot:
                 <br />
                 <ul>
-                    <li>exceptions</li>
-                    <li>hangs</li>
-                    <li>overflows</li>
-                    <li>and even native crashes</li>
+                    <li>Engine <a href="https://github.com/UnitTestBot/UTBotJava/pull/1261">#1261</a> and solver <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1265">#1265</a><span> performance improvements — supplemented with fixes to make engine run smoother <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/386">#386</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1228">#1228</a></li>
+                    <li>Enhanced test generation <span>for Kotlin code <a href="https://github.com/UnitTestBot/UTBotJava/issues/1190">#1190</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1191">#1191</a><span> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1200">#1200</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1241">#1241</a>including support for top-level Kotlin functions <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/847">#847</a></li>
+                    <li>Streamlined support for Java streams <a href="https://github.com/UnitTestBot/UTBotJava/pull/1229">#1229</a></li>
+                    <li>Improvements for parameterized test generation <a href="https://github.com/UnitTestBot/UTBotJava/issues/1137">#1137</a><span> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1221">#1221</a><a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1231">#1231</a><span></li>
+                    <li>Fuzzer optimizations for more effective minimization <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1129">#1129</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1225">#1225</a> along with improved
+                        sandboxing<span> <a href="https://github.com/UnitTestBot/UTBotJava/issues/1134">#1134</a></li>
+                    <li>Fixes for generating more accurate test descriptions <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1212">#1212</a></li>
+                    <li>Documentation on custom Javadoc tags feature <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1085">#1085</a></li>
+                    <li>Plugin UX/UI improvements <a href="https://github.com/UnitTestBot/UTBotJava/issues/1017">#1017</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1119">#1119</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1059">#1059</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1149">#1149</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1184">#1184</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1186">#1186</a><span> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1195">#1195</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/issues/1196">#1196</a><span> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1209">#1209</a><span> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1224">#1224</a> <a
+                            href="https://github.com/UnitTestBot/UTBotJava/pull/1226">#1226</a></li>
+                    <li>Better SARIF report generation <a href="https://github.com/UnitTestBot/UTBotJava/pull/1223">#1223</a> and a
+                            brand-new built-in SARIF report visualizer <a href="https://github.com/UnitTestBot/UTBotJava/pull/1166">#1166</a><span></li>
                 </ul>
                 <br />
-                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
                 <br />
-                <br />
-                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
-                <br />
-                <br />
-                You can <a href="http://utbot.org">try the engine online</a> without installation.
-                <br />
-                <br />
-                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
-                <br />
-                <br />
-                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
+                Share your <a href="https://github.com/UnitTestBot/UTBotJava/discussions">feedback</a> and feel free to <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">join us.</a>
         ]]>
     </description>
     <change-notes>

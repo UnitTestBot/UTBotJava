@@ -73,7 +73,7 @@ jobs:
         id: set-matrix
         run: |
           arr=$(echo [$(seq -s , ${{ inputs.runners }})])
-          echo "::set-output name=matrix::$arr"
+          echo "matrix=$arr" >> $GITHUB_OUTPUT
           echo $arr
 
   build_and_collect_statistics:
@@ -120,24 +120,24 @@ jobs:
       - name: Get current date
         id: date
         run: |
-          echo "::set-output name=date::$(date +'%Y-%m-%d-%H-%M-%S')"
-          echo "::set-output name=timestamp::$(date +%s)"
-          echo "::set-output name=last_month::$(date --date='last month' +%s)"
+          echo "date=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+          echo "last_month=$(date --date='last month' +%s)" >> $GITHUB_OUTPUT
 
       - name: Get metadata
         id: metadata
         run: |
-          echo "::set-output name=commit::$(git rev-parse HEAD)"
-          echo "::set-output name=short_commit::$(git rev-parse --short HEAD)"
-          echo "::set-output name=branch::$(git name-rev --name-only HEAD)"
-          echo "::set-output name=build::$(date +'%Y.%-m')"
+          echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "branch=$(git name-rev --name-only HEAD)" >> $GITHUB_OUTPUT
+          echo "build=$(date +'%Y.%-m')" >> $GITHUB_OUTPUT
 
       - name: Insert metadata
         id: insert
         shell: bash
         run: |
           OUT_FILE="$data_path/$date-$branch-$short_commit-${{ matrix.value }}.json"
-          echo "::set-output name=output::$OUT_FILE"
+          echo "output=$OUT_FILE" >> $GITHUB_OUTPUT
 
           INPUTS=($(seq ${{ inputs.run_number }}))
           INPUTS=(${INPUTS[@]/#/stats-})

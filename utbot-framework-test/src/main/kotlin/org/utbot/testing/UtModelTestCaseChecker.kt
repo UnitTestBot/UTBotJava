@@ -1,6 +1,6 @@
 @file:Suppress("NestedLambdaShadowedImplicitParameter")
 
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.ClassLocation
@@ -25,7 +25,6 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.exceptionOrNull
-import org.utbot.framework.plugin.api.getOrThrow
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.declaringClazz
 import org.utbot.framework.plugin.api.util.defaultValueModel
@@ -34,6 +33,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.testcheckers.ExecutionsNumberMatcher
+import org.utbot.testing.conflictTriggers
 import java.nio.file.Path
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction

@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import org.utbot.framework.plugin.api.CodegenLanguage
 import java.io.File
@@ -33,7 +33,7 @@ fun writeTest(
         File(buildDirectory.toFile(), "${testClassName.substringAfterLast(".")}${generatedLanguage.extension}")
     )
 
-    logger.info {
+    org.utbot.testing.logger.info {
         "File size for ${classUnderTest.testClassSimpleName}: ${FileUtil.byteCountToDisplaySize(testContents.length.toLong())}"
     }
     return writeFile(testContents, classUnderTest.generatedTestFile)
@@ -47,9 +47,9 @@ fun compileTests(
     val classpath = System.getProperty("java.class.path")
     val command = generatedLanguage.getCompilationCommand(buildDirectory, classpath, sourcesFiles)
 
-    logger.trace { "Command to compile [${sourcesFiles.joinToString(" ")}]: [${command.joinToString(" ")}]" }
+    org.utbot.testing.logger.trace { "Command to compile [${sourcesFiles.joinToString(" ")}]: [${command.joinToString(" ")}]" }
     val exitCode = execCommandLine(command, "Tests compilation")
-    logger.info { "Compilation exit code: $exitCode" }
+    org.utbot.testing.logger.info { "Compilation exit code: $exitCode" }
 }
 
 fun runTests(
@@ -74,7 +74,7 @@ fun runTests(
         additionalArguments
     )
 
-    logger.trace { "Command to run test: [${command.joinToString(" ")}]" }
+    org.utbot.testing.logger.trace { "Command to run test: [${command.joinToString(" ")}]" }
 
     // We use argument file to pass classpath, so we should just call execCommand.
     // Because of some reason, it is impossible to use the same approach with Junit4 and TestNg, therefore,
@@ -85,7 +85,7 @@ fun runTests(
         setClassPathAndExecCommandLine(command, "Tests execution", classpath)
     }
 
-    logger.info { "Run for [${testsNames.joinToString(" ")}] completed with exit code: $exitCode" }
+    org.utbot.testing.logger.info { "Run for [${testsNames.joinToString(" ")}] completed with exit code: $exitCode" }
 }
 
 /**
@@ -105,13 +105,13 @@ private fun constructProcess(command: List<String>, classpath: String? = null): 
 private fun generateReportByProcess(process: Process, executionName: String, command: List<String>): Int {
     val report = process.inputStream.reader().readText()
 
-    logger.info { "$executionName report: [$report]" }
+    org.utbot.testing.logger.info { "$executionName report: [$report]" }
 
     val exitCode = process.waitFor()
 
     if (exitCode != 0) {
-        logger.warn { "Exit code for process run: $exitCode" }
-        logger.warn { "The command line led to the pipeline failure: [${command.joinToString(" ")}]" }
+        org.utbot.testing.logger.warn { "Exit code for process run: $exitCode" }
+        org.utbot.testing.logger.warn { "The command line led to the pipeline failure: [${command.joinToString(" ")}]" }
         throw RuntimeException("$executionName failed  with non-zero exit code = $exitCode")
     }
 

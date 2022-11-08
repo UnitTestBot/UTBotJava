@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4

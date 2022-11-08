@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.jimpleBody
+import org.utbot.testing.conflictTriggers
 import java.nio.file.Path
 
 /**

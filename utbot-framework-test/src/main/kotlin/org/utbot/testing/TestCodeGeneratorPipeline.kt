@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -22,6 +22,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.testing.TestFrameworkConfiguration
 import java.io.File
 import java.nio.file.Path
 import kotlin.reflect.KClass

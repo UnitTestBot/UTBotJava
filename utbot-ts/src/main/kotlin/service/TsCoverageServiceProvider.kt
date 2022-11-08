@@ -9,10 +9,10 @@ import org.utbot.fuzzer.FuzzedValue
 import parser.ast.ClassDeclarationNode
 import settings.TsTestGenerationSettings
 import settings.TsTestGenerationSettings.tempFileName
-import utils.PathResolver
+import utils.TsPathResolver
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
-class CoverageServiceProvider(private val context: TsServiceContext) {
+class TsCoverageServiceProvider(private val context: TsServiceContext) {
 
     private val importFileUnderTest = "instr/${context.filePathToInference.substringAfterLast("/")}"
 
@@ -20,20 +20,20 @@ class CoverageServiceProvider(private val context: TsServiceContext) {
             "const fs = require(\"fs\")\n\n"
 
     fun get(
-        mode: CoverageMode,
+        mode: TsCoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: TsMethodId,
         classNode: ClassDeclarationNode?
     ): Pair<List<Set<Int>>, List<String>> {
         return when (mode) {
-            CoverageMode.FAST -> runFastCoverageAnalysis(
+            TsCoverageMode.FAST -> runFastCoverageAnalysis(
                 context,
                 fuzzedValues,
                 execId,
                 classNode
             )
 
-            CoverageMode.BASIC -> runBasicCoverageAnalysis(
+            TsCoverageMode.BASIC -> runBasicCoverageAnalysis(
                 context,
                 fuzzedValues,
                 execId,
@@ -49,16 +49,16 @@ class CoverageServiceProvider(private val context: TsServiceContext) {
         classNode: ClassDeclarationNode?,
     ): Pair<List<Set<Int>>, List<String>> {
         val tempScriptTexts = fuzzedValues.indices.map {
-            "const ${TsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
+            "const ${TsTestGenerationSettings.fileUnderTestAliases} = require(\"./${TsPathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
                 containingClass = classNode?.name,
                 index = it,
                 resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
-                mode = CoverageMode.BASIC
+                mode = TsCoverageMode.BASIC
             )
         }
-        val coverageService = BasicCoverageService(
+        val coverageService = TsBasicCoverageService(
             context = context,
             scriptTexts = tempScriptTexts,
             testCaseIndices = fuzzedValues.indices,
@@ -72,7 +72,7 @@ class CoverageServiceProvider(private val context: TsServiceContext) {
         execId: TsMethodId,
         classNode: ClassDeclarationNode?,
     ): Pair<List<Set<Int>>, List<String>> {
-        val covFunName = FastCoverageService.instrument(context)
+        val covFunName = TsFastCoverageService.instrument(context)
         val tempScriptTexts = fuzzedValues.indices.map {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
@@ -81,11 +81,11 @@ class CoverageServiceProvider(private val context: TsServiceContext) {
                 covFunName = covFunName,
                 index = it,
                 resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
-                mode = CoverageMode.FAST
+                mode = TsCoverageMode.FAST
             )
         }
         val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${context.projectPath}/${context.utbotDir}/${tempFileName}Base.json")
-        val coverageService = FastCoverageService(
+        val coverageService = TsFastCoverageService(
             context = context,
             scriptTexts = splitTempScriptsIfNeeded(tempScriptTexts),
             testCaseIndices = fuzzedValues.indices,
@@ -131,7 +131,7 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
         covFunName: String = "",
         index: Int,
         resFilePath: String,
-        mode: CoverageMode,
+        mode: TsCoverageMode,
     ): String {
         val callString = makeCallFunctionString(fuzzedValue, method, containingClass)
         return """
@@ -145,7 +145,7 @@ try {
 }
 ${
 "json$index.result = res$index\n" +
-if (mode == CoverageMode.FAST ) "json$index.index = $index\n" +
+if (mode == TsCoverageMode.FAST ) "json$index.index = $index\n" +
 "json$index.s = ${TsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
 }            
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))

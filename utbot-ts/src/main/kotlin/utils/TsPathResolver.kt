@@ -2,7 +2,7 @@ package utils
 
 import java.nio.file.Paths
 
-object PathResolver {
+object TsPathResolver {
 
     fun getRelativePath(to: String, from: String): String {
         val toPath = Paths.get(to)

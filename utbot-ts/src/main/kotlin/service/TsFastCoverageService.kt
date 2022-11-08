@@ -8,7 +8,7 @@ import org.json.JSONObject
 import settings.TsTestGenerationSettings.tempFileName
 import utils.TsCmdExec
 
-class FastCoverageService(
+class TsFastCoverageService(
     private val context: TsServiceContext,
     private val scriptTexts: List<String>,
     private val testCaseIndices: IntRange,

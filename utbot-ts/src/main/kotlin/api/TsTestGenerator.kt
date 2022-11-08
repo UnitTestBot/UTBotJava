@@ -32,7 +32,7 @@ import parser.visitors.TsClassAstVisitor
 import parser.visitors.TsFunctionAstVisitor
 import parser.visitors.TsFuzzerAstVisitor
 import parser.visitors.TsToplevelFunctionAstVisitor
-import service.CoverageServiceProvider
+import service.TsCoverageServiceProvider
 import service.TsServiceContext
 import settings.TsDynamicSettings
 import settings.TsTestGenerationSettings.dummyClassName
@@ -111,7 +111,7 @@ class TsTestGenerator(
         } ?: throw IllegalStateException()
         val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId)
         val (allCoveredStatements, executionResults) =
-            CoverageServiceProvider(context).get(
+            TsCoverageServiceProvider(context).get(
                 settings.coverageMode,
                 fuzzedValues,
                 execId,

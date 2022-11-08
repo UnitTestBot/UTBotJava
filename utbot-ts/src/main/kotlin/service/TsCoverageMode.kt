@@ -1,6 +1,6 @@
 package service
 
-enum class CoverageMode {
+enum class TsCoverageMode {
     FAST,
     BASIC
 }

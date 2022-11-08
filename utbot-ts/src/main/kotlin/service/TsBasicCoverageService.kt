@@ -10,7 +10,7 @@ import settings.TsTestGenerationSettings.tempFileName
 import utils.TsCmdExec
 
 // TODO: 1. Make searching for file coverage in coverage report more specific, not just by file name.
-class BasicCoverageService(
+class TsBasicCoverageService(
     private val context: TsServiceContext,
     private val scriptTexts: List<String>,
     private val testCaseIndices: IntRange,

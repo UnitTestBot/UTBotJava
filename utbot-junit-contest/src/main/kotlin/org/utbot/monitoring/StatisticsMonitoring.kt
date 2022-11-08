@@ -14,6 +14,7 @@ import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.bracket
 import org.utbot.common.info
 import org.utbot.contest.ContestEstimatorJdkInfoProvider
+import org.utbot.contest.ContextManager
 import org.utbot.contest.GlobalStats
 import org.utbot.contest.Paths
 import org.utbot.contest.Tool
@@ -76,8 +77,7 @@ fun main(args: Array<String>) {
 
         }
 
-        utContext.cancelChildren()
-        utContext.cancel()
+        ContextManager.cancelAll()
         ConcreteExecutor.defaultPool.forceTerminateProcesses()
         System.gc()
     }

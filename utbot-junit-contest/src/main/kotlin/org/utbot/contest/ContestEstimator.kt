@@ -139,7 +139,7 @@ enum class Tool {
             classFqn: String
         ) {
             val classStats: StatsForClass = try {
-                withUtContext(UtContext(project.classloader)) {
+                withUtContext(ContextManager.createNewContext(project.classloader)) {
                     runGeneration(
                         project.name,
                         cut,

@@ -16,7 +16,7 @@ fun testFlow(block: TestFlow.() -> Unit): UtBotSymbolicEngine.() -> Flow<UtResul
  * Creates default flow that uses [UtSettings] for customization.
  */
 fun defaultTestFlow(timeout: Long) = testFlow {
-    isSymbolicEngineEnabled = true
+    isSymbolicEngineEnabled = !UtSettings.disableSymbolicEngine
     generationTimeout = timeout
     isFuzzingEnabled = UtSettings.useFuzzing
     if (generationTimeout > 0) {

@@ -54,9 +54,6 @@ import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.toValueTestCase
 import org.utbot.summary.summarize
 import org.utbot.testcheckers.ExecutionsNumberMatcher
-import org.utbot.testing.TestFrameworkConfiguration
-import org.utbot.testing.allTestFrameworkConfigurations
-import org.utbot.testing.conflictTriggers
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths

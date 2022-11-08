@@ -5,6 +5,10 @@ import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
 
+fun readMypyAnnotationStorage(jsonWithAnnotations: String): MypyAnnotationStorage {
+    return jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
+}
+
 private val moshi = Moshi.Builder()
     .add(
         PolymorphicJsonAdapterFactory.of(PythonAnnotationNode::class.java, "type")
@@ -299,18 +303,4 @@ class UnknownAnnotationNode: PythonAnnotationNode(null, "unknown", AnnotationTyp
     override fun initializeType(): Type {
         return pythonAnyType
     }
-}
-
-fun main() {
-    val sample = MypyAnnotation::class.java.getResource("/mypy/annotation_sample.txt")!!.readText()
-    val obj = jsonAdapter.fromJson(sample)!!
-    println((obj.definitions["builtins"]!!["set"]!!.annotation.node as ConcreteAnnotation).names["__xor__"]!!.annotation.normalizedRepr)
-    println((obj.definitions["typing"]!!["Iterable"]!!.annotation.asUtBotType as PythonCompositeType).namedMembers)
-    val classA = obj.definitions["annotation_tests"]!!["A"]!!.annotation.asUtBotType as PythonCompositeType
-    println(classA.namedMembers)
-    // should be PythonConcreteCompositeType (int)
-    println(((classA.members[1] as PythonCallable).arguments[1] as PythonCompositeType).members[0])
-    // should be int
-    println(((obj.definitions["annotation_tests"]!!["square"]!!.annotation.asUtBotType as PythonCallable).arguments[0].parameters[0] as PythonCompositeType).name.name)
-    val x = obj
 }

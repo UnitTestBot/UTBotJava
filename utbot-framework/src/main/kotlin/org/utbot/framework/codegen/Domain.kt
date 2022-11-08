@@ -307,24 +307,7 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
     override val nestedClassesShouldBeStatic = true
 
     override val argListClassId: ClassId
-        get() {
-            val outerArrayId = Array<Array<Any?>?>::class.id
-            val innerArrayId = BuiltinClassId(
-                simpleName = objectArrayClassId.simpleName,
-                canonicalName = objectArrayClassId.canonicalName,
-                packageName = objectArrayClassId.packageName,
-                elementClassId = objectClassId,
-                typeParameters = TypeParameters(listOf(objectClassId))
-            )
-
-            return BuiltinClassId(
-                simpleName = outerArrayId.simpleName,
-                canonicalName = outerArrayId.canonicalName,
-                packageName = outerArrayId.packageName,
-                elementClassId = innerArrayId,
-                typeParameters = TypeParameters(listOf(innerArrayId))
-            )
-        }
+        get() = Array<Array<Any?>?>::class.id
 
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(

@@ -27,7 +27,7 @@ import java.io.File
 import java.nio.file.Path
 import kotlin.reflect.KClass
 
-private val logger = KotlinLogging.logger {}
+internal val logger = KotlinLogging.logger {}
 
 class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFrameworkConfiguration) {
 

@@ -33,7 +33,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.testcheckers.ExecutionsNumberMatcher
-import org.utbot.testing.conflictTriggers
 import java.nio.file.Path
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction

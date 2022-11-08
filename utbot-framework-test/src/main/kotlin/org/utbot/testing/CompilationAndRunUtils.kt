@@ -4,7 +4,6 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import java.io.File
 import java.nio.file.Path
 import org.utbot.common.FileUtil
-import org.utbot.engine.logger
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestFramework
 
@@ -33,7 +32,7 @@ fun writeTest(
         File(buildDirectory.toFile(), "${testClassName.substringAfterLast(".")}${generatedLanguage.extension}")
     )
 
-    org.utbot.testing.logger.info {
+    logger.info {
         "File size for ${classUnderTest.testClassSimpleName}: ${FileUtil.byteCountToDisplaySize(testContents.length.toLong())}"
     }
     return writeFile(testContents, classUnderTest.generatedTestFile)
@@ -47,9 +46,9 @@ fun compileTests(
     val classpath = System.getProperty("java.class.path")
     val command = generatedLanguage.getCompilationCommand(buildDirectory, classpath, sourcesFiles)
 
-    org.utbot.testing.logger.trace { "Command to compile [${sourcesFiles.joinToString(" ")}]: [${command.joinToString(" ")}]" }
+    logger.trace { "Command to compile [${sourcesFiles.joinToString(" ")}]: [${command.joinToString(" ")}]" }
     val exitCode = execCommandLine(command, "Tests compilation")
-    org.utbot.testing.logger.info { "Compilation exit code: $exitCode" }
+    logger.info { "Compilation exit code: $exitCode" }
 }
 
 fun runTests(
@@ -74,7 +73,7 @@ fun runTests(
         additionalArguments
     )
 
-    org.utbot.testing.logger.trace { "Command to run test: [${command.joinToString(" ")}]" }
+    logger.trace { "Command to run test: [${command.joinToString(" ")}]" }
 
     // We use argument file to pass classpath, so we should just call execCommand.
     // Because of some reason, it is impossible to use the same approach with Junit4 and TestNg, therefore,
@@ -85,7 +84,7 @@ fun runTests(
         setClassPathAndExecCommandLine(command, "Tests execution", classpath)
     }
 
-    org.utbot.testing.logger.info { "Run for [${testsNames.joinToString(" ")}] completed with exit code: $exitCode" }
+    logger.info { "Run for [${testsNames.joinToString(" ")}] completed with exit code: $exitCode" }
 }
 
 /**
@@ -105,13 +104,13 @@ private fun constructProcess(command: List<String>, classpath: String? = null): 
 private fun generateReportByProcess(process: Process, executionName: String, command: List<String>): Int {
     val report = process.inputStream.reader().readText()
 
-    org.utbot.testing.logger.info { "$executionName report: [$report]" }
+    logger.info { "$executionName report: [$report]" }
 
     val exitCode = process.waitFor()
 
     if (exitCode != 0) {
-        org.utbot.testing.logger.warn { "Exit code for process run: $exitCode" }
-        org.utbot.testing.logger.warn { "The command line led to the pipeline failure: [${command.joinToString(" ")}]" }
+        logger.warn { "Exit code for process run: $exitCode" }
+        logger.warn { "The command line led to the pipeline failure: [${command.joinToString(" ")}]" }
         throw RuntimeException("$executionName failed  with non-zero exit code = $exitCode")
     }
 

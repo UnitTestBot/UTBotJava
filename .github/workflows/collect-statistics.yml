@@ -9,7 +9,7 @@ on:
         default: '1'
         type: string
       run_number:
-        description: 'Number of run tries per runner'
+        description: 'Number of run tries per runner (values greater than 1 are not supported with grafana)'
         required: false
         default: '1'
         type: string
@@ -37,7 +37,7 @@ on:
         default: '1'
         type: string
       run_number:
-        description: 'Number of run tries per runner'
+        description: 'Number of run tries per runner (values greater than 1 are not supported with grafana)'
         required: false
         default: '1'
         type: string

@@ -33,13 +33,14 @@ def build_metrics_from_data_array(metrics: List[dict], labels: dict) -> List[dic
     return result
 
 
-def build_metrics_from_target(target: dict) -> List[dict]:
+def build_metrics_from_target(target: dict, runner: str) -> List[dict]:
     result = []
     project = target["target"]
 
     result.extend(build_metrics_from_data_array(
         target["summarised"],
         {
+            "runner": runner,
             "project": project
         }
     ))
@@ -49,6 +50,7 @@ def build_metrics_from_target(target: dict) -> List[dict]:
         result.extend(build_metrics_from_data_array(
             class_item["data"],
             {
+                "runner": runner,
                 "project": project,
                 "class": class_name
             }
@@ -57,10 +59,10 @@ def build_metrics_from_target(target: dict) -> List[dict]:
     return result
 
 
-def build_metrics_from_targets(targets: List[dict]) -> List[dict]:
+def build_metrics_from_targets(targets: List[dict], runner: str) -> List[dict]:
     metrics = []
     for target in targets:
-        metrics.extend(build_metrics_from_target(target))
+        metrics.extend(build_metrics_from_target(target, runner))
     return metrics
 
 
@@ -82,7 +84,8 @@ def get_args():
 def main():
     args = get_args()
     stats = load(args.stats_file)
-    metrics = build_metrics_from_targets(stats["targets"])
+    runner = stats["metadata"]["environment"]["host"]
+    metrics = build_metrics_from_targets(stats["targets"], runner)
     with open(args.output_file, "w") as f:
         json.dump(metrics, f, indent=4)
 

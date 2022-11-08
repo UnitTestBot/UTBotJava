@@ -16,6 +16,7 @@ import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
 import org.utbot.engine.pc.NotBoolExpression
+import org.utbot.engine.pc.Simplificator
 import org.utbot.engine.pc.UtAddNoOverflowExpression
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtAndBoolExpression
@@ -66,6 +67,16 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
+import org.utbot.engine.state.LocalVariableMemory
+import org.utbot.engine.state.StateLabel
+import org.utbot.engine.state.createExceptionState
+import org.utbot.engine.state.pop
+import org.utbot.engine.state.push
+import org.utbot.engine.state.update
+import org.utbot.engine.state.withLabel
+import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.emptyAssumption
 import org.utbot.engine.symbolic.emptyHardConstraint
 import org.utbot.engine.symbolic.emptySoftConstraint
@@ -74,6 +85,18 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.simplificators.MemoryUpdateSimplificator
+import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
+import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.ENUM_ORDINAL
+import org.utbot.engine.types.EQUALS_SIGNATURE
+import org.utbot.engine.types.HASHCODE_SIGNATURE
+import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
+import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.SECURITY_FIELD_SIGNATURE
+import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
@@ -194,8 +217,6 @@ import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -250,6 +271,8 @@ class Traverser(
     }
     internal fun findNewAddr() = findNewAddr(environment.state.isInsideStaticInitializer).also { touchAddress(it) }
 
+    private val dynamicInvokeResolver: DynamicInvokeResolver = DelegatingDynamicInvokeResolver()
+
     // Counter used for a creation symbolic results of "hashcode" and "equals" methods.
     private var equalsCounter = 0
     private var hashcodeCounter = 0
@@ -291,6 +314,9 @@ class Traverser(
         return context.nextStates
     }
 
+    internal val simplificator = Simplificator()
+    private val memoryUpdateSimplificator = MemoryUpdateSimplificator(simplificator)
+
     private fun TraversalContext.traverseStmt(current: Stmt) {
         if (doPreparatoryWorkIfRequired(current)) return
 
@@ -304,10 +330,10 @@ class Traverser(
             is JReturnVoidStmt -> processResult(SymbolicSuccess(voidValue))
             is JRetStmt -> error("This one should be already removed by Soot: $current")
             is JThrowStmt -> traverseThrowStmt(current)
-            is JBreakpointStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
-            is JGotoStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
-            is JNopStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
-            is MonitorStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
+            is JBreakpointStmt -> offerState(updateQueued(globalGraph.succ(current)))
+            is JGotoStmt -> offerState(updateQueued(globalGraph.succ(current)))
+            is JNopStmt -> offerState(updateQueued(globalGraph.succ(current)))
+            is MonitorStmt -> offerState(updateQueued(globalGraph.succ(current)))
             is DefinitionStmt -> TODO("$current")
             else -> error("Unsupported: ${current::class}")
         }
@@ -427,7 +453,7 @@ class Traverser(
             // This branch could be useful if we have a static field, i.e. x = 5 / 0
             is SymbolicFailure -> traverseException(stmt, result.symbolicResult)
             is SymbolicSuccess -> offerState(
-                environment.state.updateQueued(
+                updateQueued(
                     environment.state.lastEdge!!,
                     result.symbolicStateUpdate
                 )
@@ -514,7 +540,7 @@ class Traverser(
         //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
         val edge = environment.state.lastEdge ?: globalGraph.succ(stmt)
 
-        val newState = environment.state.updateQueued(edge, updates)
+        val newState = updateQueued(edge, updates)
         offerState(newState)
 
         return true
@@ -662,7 +688,7 @@ class Traverser(
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =
-        methodResult != null && id in methodResult.memoryUpdates.staticInstanceStorage
+        methodResult != null && id in methodResult.symbolicStateUpdate.memoryUpdates.staticInstanceStorage
 
     private fun TraversalContext.skipVerticesForThrowableCreation(current: JAssignStmt) {
         val rightType = current.rightOp.type as RefType
@@ -674,12 +700,12 @@ class Traverser(
 
         // mark the rest of the path leading to the '<init>' statement as covered
         do {
-            environment.state = environment.state.updateQueued(globalGraph.succ(environment.state.stmt))
+            environment.state = updateQueued(globalGraph.succ(environment.state.stmt))
             globalGraph.visitEdge(environment.state.lastEdge!!)
             globalGraph.visitNode(environment.state)
         } while (!environment.state.stmt.isConstructorCall(currentExceptionJimpleLocal))
 
-        offerState(environment.state.updateQueued(globalGraph.succ(environment.state.stmt)))
+        offerState(updateQueued(globalGraph.succ(environment.state.stmt)))
     }
 
     private fun TraversalContext.traverseAssignStmt(current: JAssignStmt) {
@@ -712,9 +738,9 @@ class Traverser(
                 is SymbolicFailure -> { //exception thrown
                     if (environment.state.executionStack.last().doesntThrow) return@forEach
 
-                    val nextState = environment.state.createExceptionState(
+                    val nextState = createExceptionStateQueued(
                         methodResult.symbolicResult,
-                        queuedSymbolicStateUpdates + methodResult.symbolicStateUpdate
+                        methodResult.symbolicStateUpdate
                     )
                     globalGraph.registerImplicitEdge(nextState.lastEdge!!)
                     offerState(nextState)
@@ -726,7 +752,7 @@ class Traverser(
                         methodResult.symbolicResult.value
                     )
                     offerState(
-                        environment.state.updateQueued(
+                        updateQueued(
                             globalGraph.succ(current),
                             update + methodResult.symbolicStateUpdate
                         )
@@ -847,8 +873,10 @@ class Traverser(
                 }
                 val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE, arrayPossibleTypes)
 
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(arrayInstance.addr, typeStorage)
-                    .isConstraint().asHardConstraint()
+                queuedSymbolicStateUpdates += typeRegistry
+                    .typeConstraint(arrayInstance.addr, typeStorage)
+                    .isConstraint()
+                    .asHardConstraint()
             }
 
             val elementType = arrayInstance.type.elementType
@@ -897,7 +925,7 @@ class Traverser(
             // Ignores the result of resolve().
             resolve(fieldRef)
             val baseObject = resolve(fieldRef.base) as ObjectValue
-            val typeStorage = TypeStorage(fieldRef.field.declaringClass.type)
+            val typeStorage = TypeStorage.constructTypeStorageWithSingleType(fieldRef.field.declaringClass.type)
             baseObject.copy(typeStorage = typeStorage)
         }
         is StaticFieldRef -> {
@@ -971,7 +999,7 @@ class Traverser(
 
                 environment.state.parameters += Parameter(localVariable, identityRef.type, value)
 
-                val nextState = environment.state.updateQueued(
+                val nextState = updateQueued(
                     globalGraph.succ(current),
                     SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value))
                 )
@@ -980,7 +1008,7 @@ class Traverser(
             is JCaughtExceptionRef -> {
                 val value = localVariableMemory.local(CAUGHT_EXCEPTION)
                     ?: error("Exception wasn't caught, stmt: $current, line: ${current.lines}")
-                val nextState = environment.state.updateQueued(
+                val nextState = updateQueued(
                     globalGraph.succ(current),
                     SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null))
                 )
@@ -1008,8 +1036,6 @@ class Traverser(
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
         val callable = methodUnderTest.executable
-        val kCallable = ::updateGenericTypeInfo
-        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
@@ -1114,7 +1140,7 @@ class Traverser(
         if (!isAssumeExpr) {
             positiveCaseEdge?.let { edge ->
                 environment.state.expectUndefined()
-                val positiveCaseState = environment.state.updateQueued(
+                val positiveCaseState = updateQueued(
                     edge,
                     SymbolicStateUpdate(
                         hardConstraints = positiveCasePathConstraint.asHardConstraint(),
@@ -1129,7 +1155,7 @@ class Traverser(
         val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else emptyHardConstraint()
         val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else emptyAssumption()
 
-        val negativeCaseState = environment.state.updateQueued(
+        val negativeCaseState = updateQueued(
             negativeCaseEdge,
             SymbolicStateUpdate(
                 hardConstraints = hardConstraints,
@@ -1159,11 +1185,11 @@ class Traverser(
 
             offerState(
                 when (result.symbolicResult) {
-                    is SymbolicFailure -> environment.state.createExceptionState(
+                    is SymbolicFailure -> createExceptionStateQueued(
                         result.symbolicResult,
-                        queuedSymbolicStateUpdates + result.symbolicStateUpdate
+                        result.symbolicStateUpdate
                     )
-                    is SymbolicSuccess -> environment.state.updateQueued(
+                    is SymbolicSuccess -> updateQueued(
                         globalGraph.succ(current),
                         result.symbolicStateUpdate
                     )
@@ -1201,7 +1227,7 @@ class Traverser(
 
         successors.forEach { (target, expr) ->
             offerState(
-                environment.state.updateQueued(
+                updateQueued(
                     target,
                     SymbolicStateUpdate(hardConstraints = expr.asHardConstraint()),
                 )
@@ -1250,7 +1276,12 @@ class Traverser(
         // It is required because we do not want to have situations when some object might have
         // only artificial classes as their possible, that would cause problems in the type constraints.
         val typeStorage = if (leastCommonType in wrapperToClass.keys) {
-            typeStoragePossiblyWithOverriddenTypes.copy(possibleConcreteTypes = wrapperToClass.getValue(leastCommonType))
+            val possibleConcreteTypes = wrapperToClass.getValue(leastCommonType)
+
+            TypeStorage.constructTypeStorageUnsafe(
+                typeStoragePossiblyWithOverriddenTypes.leastCommonType,
+                possibleConcreteTypes
+            )
         } else {
             typeStoragePossiblyWithOverriddenTypes
         }
@@ -1307,7 +1338,10 @@ class Traverser(
                         createObject(addr, refType, useConcreteType = true)
                     }
                 } else {
-                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all().asHardConstraint()
+                    val typeStorage = TypeStorage.constructTypeStorageWithSingleType(refType)
+                    val typeConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+
+                    queuedSymbolicStateUpdates += typeConstraint
 
                     objectValue(refType, addr, StringWrapper()).also {
                         initStringLiteral(it, constant.value)
@@ -1417,8 +1451,10 @@ class Traverser(
         }
 
     private fun initStringLiteral(stringWrapper: ObjectValue, value: String) {
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(utStringClass.type)
+
         queuedSymbolicStateUpdates += objectUpdate(
-            stringWrapper.copy(typeStorage = TypeStorage(utStringClass.type)),
+            stringWrapper.copy(typeStorage = typeStorage),
             STRING_LENGTH,
             mkInt(value.length)
         )
@@ -1431,7 +1467,7 @@ class Traverser(
             queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, arrayType, defaultValue as UtArrayExpressionBase)
         }
         queuedSymbolicStateUpdates += objectUpdate(
-            stringWrapper.copy(typeStorage = TypeStorage(utStringClass.type)),
+            stringWrapper.copy(typeStorage = typeStorage),
             STRING_VALUE,
             arrayValue.addr
         )
@@ -1440,7 +1476,7 @@ class Traverser(
         }
 
         queuedSymbolicStateUpdates += arrayUpdateWithValue(arrayValue.addr, CharType.v().arrayType, newArray)
-        environment.state = environment.state.update(queuedSymbolicStateUpdates)
+        environment.state = updateQueued(SymbolicStateUpdate())
         queuedSymbolicStateUpdates = queuedSymbolicStateUpdates.copy(memoryUpdates = MemoryUpdate())
     }
 
@@ -1719,18 +1755,11 @@ class Traverser(
         val chunkId = typeRegistry.arrayChunkId(type)
         touchMemoryChunk(MemoryChunkDescriptor(chunkId, type, elementType))
 
-        return ArrayValue(TypeStorage(type), addr).also {
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(type)
+        return ArrayValue(typeStorage, addr).also {
             queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, it.typeStorage).all().asHardConstraint()
         }
     }
-
-    private fun SymbolicValue.simplify(): SymbolicValue =
-        when (this) {
-            is PrimitiveValue -> copy(expr = expr.accept(solver.rewriter))
-            is ObjectValue -> copy(addr = addr.accept(solver.rewriter) as UtAddrExpression)
-            is ArrayValue -> copy(addr = addr.accept(solver.rewriter) as UtAddrExpression)
-        }
-
 
     // Type is needed for null values: we should know, which null do we require.
     // If valueType is NullType, return typelessNullObject. It can happen in a situation,
@@ -1741,7 +1770,7 @@ class Traverser(
     ): SymbolicValue = when (value) {
         is JimpleLocal -> localVariableMemory.local(value.variable) ?: error("${value.name} not found in the locals")
         is Constant -> if (value is NullConstant) typeResolver.nullObject(valueType) else resolveConstant(value)
-        is Expr -> resolve(value, valueType).simplify()
+        is Expr -> resolve(value, valueType)
         is JInstanceFieldRef -> {
             val instance = (resolve(value.base) as ObjectValue)
             recordInstanceFieldRead(instance.addr, value.field)
@@ -1807,6 +1836,8 @@ class Traverser(
         }
         is StaticFieldRef -> readStaticField(value)
         else -> error("${value::class} is not supported")
+    }.also {
+        with(simplificator) { simplifySymbolicValue(it) }
     }
 
     private fun readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
@@ -1888,7 +1919,7 @@ class Traverser(
         return created
     }
 
-    private fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
+    fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
         parameters.zip(types).map { (value, type) -> resolve(value, type) }
 
     private fun applyPreferredConstraints(value: SymbolicValue) {
@@ -2124,7 +2155,7 @@ class Traverser(
             .select(array.addr)
             .store(index.expr, value)
 
-        return MemoryUpdate(persistentListOf(simplifiedNamedStore(descriptor, array.addr, updatedNestedArray)))
+        return MemoryUpdate(persistentListOf(namedStore(descriptor, array.addr, updatedNestedArray)))
     }
 
     fun objectUpdate(
@@ -2134,7 +2165,7 @@ class Traverser(
     ): MemoryUpdate {
         val chunkId = hierarchy.chunkIdForField(instance.type, field)
         val descriptor = MemoryChunkDescriptor(chunkId, instance.type, field.type)
-        return MemoryUpdate(persistentListOf(simplifiedNamedStore(descriptor, instance.addr, value)))
+        return MemoryUpdate(persistentListOf(namedStore(descriptor, instance.addr, value)))
     }
 
     fun arrayUpdateWithValue(
@@ -2147,7 +2178,7 @@ class Traverser(
         val chunkId = typeRegistry.arrayChunkId(type)
         val descriptor = MemoryChunkDescriptor(chunkId, type, type.elementType)
 
-        return MemoryUpdate(persistentListOf(simplifiedNamedStore(descriptor, addr, newValue)))
+        return MemoryUpdate(persistentListOf(namedStore(descriptor, addr, newValue)))
     }
 
     fun selectArrayExpressionFromMemory(
@@ -2208,7 +2239,7 @@ class Traverser(
         val edge = findCatchBlock(current, classId) ?: return false
 
         offerState(
-            environment.state.updateQueued(
+            updateQueued(
                 edge,
                 SymbolicStateUpdate(
                     hardConstraints = conditions.asHardConstraint(),
@@ -2327,7 +2358,7 @@ class Traverser(
             MethodResult(
                 mockValue,
                 hardConstraints = additionalConstraint.asHardConstraint(),
-                memoryUpdates = if (isInternalMock) MemoryUpdate() else mockMethodResult.memoryUpdates
+                memoryUpdates = if (isInternalMock) MemoryUpdate() else mockMethodResult.symbolicStateUpdate.memoryUpdates
             )
         )
     }
@@ -2381,7 +2412,7 @@ class Traverser(
         instance: ObjectValue,
         methodSubSignature: String
     ): List<InvocationTarget> {
-        val visitor = solver.rewriter.axiomInstantiationVisitor
+        val visitor = solver.simplificator.axiomInstantiationVisitor
         val simplifiedAddr = instance.addr.accept(visitor)
         // UtIsExpression for object with address the same as instance.addr
         val instanceOfConstraint = solver.assertions.singleOrNull {
@@ -2503,12 +2534,19 @@ class Traverser(
     }
 
     private fun TraversalContext.dynamicInvoke(invokeExpr: JDynamicInvokeExpr): List<MethodResult> {
-        workaround(HACK) {
-            // The engine does not yet support JDynamicInvokeExpr, so switch to concrete execution if we encounter it
-            offerState(environment.state.withLabel(StateLabel.CONCRETE))
-            queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
-            return emptyList()
+        val invocation = with(dynamicInvokeResolver) { resolveDynamicInvoke(invokeExpr) }
+
+        if (invocation == null) {
+            workaround(HACK) {
+                logger.warn { "Marking state as a concrete, because of an unknown dynamic invoke instruction: $invokeExpr" }
+                // The engine does not yet support JDynamicInvokeExpr, so switch to concrete execution if we encounter it
+                offerState(environment.state.withLabel(StateLabel.CONCRETE))
+                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+                return emptyList()
+            }
         }
+
+        return commonInvokePart(invocation)
     }
 
     /**
@@ -2648,7 +2686,7 @@ class Traverser(
                     assumptions = assumptions.asAssumption()
                 )
 
-                val stateToContinue = environment.state.updateQueued(
+                val stateToContinue = updateQueued(
                     globalGraph.succ(environment.state.stmt),
                     symbolicStateUpdate
                 )
@@ -2695,7 +2733,7 @@ class Traverser(
                 )
             }
             utOverrideMockDoesntThrowMethodName -> {
-                val stateToContinue = environment.state.updateQueued(
+                val stateToContinue = updateQueued(
                     globalGraph.succ(environment.state.stmt),
                     doesntThrow = true
                 )
@@ -2707,7 +2745,7 @@ class Traverser(
                 when (val param = parameters.single() as ReferenceValue) {
                     is ObjectValue -> {
                         val addr = param.addr.toIntValue()
-                        val stateToContinue = environment.state.updateQueued(
+                        val stateToContinue = updateQueued(
                             globalGraph.succ(environment.state.stmt),
                             SymbolicStateUpdate(
                                 hardConstraints = Le(addr, nullObjectAddr.toIntValue()).asHardConstraint()
@@ -2726,7 +2764,7 @@ class Traverser(
 
                         val update = MemoryUpdate(
                             persistentListOf(
-                                simplifiedNamedStore(
+                                namedStore(
                                     descriptor,
                                     addr,
                                     UtArrayApplyForAll(memory.findArray(descriptor).select(addr)) { array, i ->
@@ -2735,7 +2773,7 @@ class Traverser(
                                 )
                             )
                         )
-                        val stateToContinue = environment.state.updateQueued(
+                        val stateToContinue = updateQueued(
                             edge = globalGraph.succ(environment.state.stmt),
                             SymbolicStateUpdate(
                                 hardConstraints = Le(addr.toIntValue(), nullObjectAddr.toIntValue()).asHardConstraint(),
@@ -2941,7 +2979,9 @@ class Traverser(
 
         val memoryUpdate = MemoryUpdate(touchedChunkDescriptors = persistentSetOf(descriptor))
 
-        val clone = ArrayValue(TypeStorage(array.type), addr)
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(array.type)
+        val clone = ArrayValue(typeStorage, addr)
+
         return MethodResult(clone, constraints.asHardConstraint(), memoryUpdates = memoryUpdate)
     }
 
@@ -2985,24 +3025,9 @@ class Traverser(
         globalGraph.join(environment.state.stmt, graph, !isLibraryMethod)
         val parametersWithThis = listOfNotNull(caller) + callParameters
         offerState(
-            environment.state.push(
-                graph.head,
-                inputArguments = ArrayDeque(parametersWithThis),
-                queuedSymbolicStateUpdates + constraints.asHardConstraint(),
-                graph.body.method
-            )
+            pushQueued(graph, parametersWithThis, constraints.asHardConstraint())
         )
     }
-
-    private fun ExecutionState.updateQueued(
-        edge: Edge,
-        update: SymbolicStateUpdate = SymbolicStateUpdate(),
-        doesntThrow: Boolean = false
-    ) = this.update(
-        edge,
-        queuedSymbolicStateUpdates + update,
-        doesntThrow
-    )
 
     private fun TraversalContext.resolveIfCondition(cond: BinopExpr): ResolvedCondition {
         // We add cond.op.type for null values only. If we have condition like "null == r1"
@@ -3332,7 +3357,7 @@ class Traverser(
         // Expected in the parameters baseType is an RefType because it is either an RefType itself or an array of RefType values
         if (baseTypeAfterCast is RefType) {
             // Find parameterized type for the object if it is a parameter of the method under test and it has generic type
-            val newAddr = addr.accept(solver.rewriter) as UtAddrExpression
+            val newAddr = addr.accept(solver.simplificator) as UtAddrExpression
             val parameterizedType = when (newAddr.internal) {
                 is UtArraySelectExpression -> parameterAddrToGenericType[findTheMostNestedAddr(newAddr.internal)]
                 is UtBvConst -> parameterAddrToGenericType[newAddr]
@@ -3382,11 +3407,9 @@ class Traverser(
         val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
-            val nextState = environment.state.createExceptionState(
+            val nextState = createExceptionStateQueued(
                 symException,
-                queuedSymbolicStateUpdates
-                        + conditions.asHardConstraint()
-                        + softConditions.asSoftConstraint()
+                SymbolicStateUpdate(conditions.asHardConstraint(), softConditions.asSoftConstraint())
             )
             globalGraph.registerImplicitEdge(nextState.lastEdge!!)
             offerState(nextState)
@@ -3407,6 +3430,7 @@ class Traverser(
         val preferredTypes = typeResolver.findTopRatedTypes(possibleTypes, take = NUMBER_OF_PREFERRED_TYPES)
         val mostCommonType = preferredTypes.singleOrNull() ?: OBJECT_TYPE
         val typeStorage = typeResolver.constructTypeStorage(mostCommonType, preferredTypes)
+
         return typeRegistry.typeConstraint(value.addr, typeStorage).isOrNullConstraint()
     }
 
@@ -3525,7 +3549,7 @@ class Traverser(
                 MemoryUpdate() // all memory updates are already added in [environment.state]
             }
             val methodResultWithUpdates = methodResult.copy(symbolicStateUpdate = queuedSymbolicStateUpdates + updates)
-            val stateToOffer = environment.state.pop(methodResultWithUpdates)
+            val stateToOffer = pop(methodResultWithUpdates)
             offerState(stateToOffer)
 
             logger.trace { "processResult<${environment.method.signature}> return from nested method" }
@@ -3564,5 +3588,65 @@ class Traverser(
         } finally {
              queuedSymbolicStateUpdates = prevSymbolicStateUpdate
         }
+    }
+
+    private fun createExceptionStateQueued(exception: SymbolicFailure, update: SymbolicStateUpdate): ExecutionState {
+        val simplifiedUpdates = with (memoryUpdateSimplificator) {
+            simplifySymbolicStateUpdate(queuedSymbolicStateUpdates + update)
+        }
+        val simplifiedResult = with(simplificator) {
+            simplifySymbolicValue(exception.symbolic)
+        }
+        return environment.state.createExceptionState(
+            exception.copy(symbolic = simplifiedResult),
+            update = simplifiedUpdates
+        )
+    }
+
+    private fun updateQueued(update: SymbolicStateUpdate): ExecutionState {
+        val symbolicStateUpdate = with(memoryUpdateSimplificator) {
+            simplifySymbolicStateUpdate(queuedSymbolicStateUpdates + update)
+        }
+
+        return environment.state.update(
+            symbolicStateUpdate,
+        )
+    }
+
+    private fun updateQueued(
+        edge: Edge,
+        update: SymbolicStateUpdate = SymbolicStateUpdate(),
+        doesntThrow: Boolean = false
+    ): ExecutionState {
+        val simplifiedUpdates =
+            with(memoryUpdateSimplificator) {
+                simplifySymbolicStateUpdate(queuedSymbolicStateUpdates + update)
+            }
+
+        return environment.state.update(
+            edge,
+            simplifiedUpdates,
+            doesntThrow
+        )
+    }
+
+    private fun pushQueued(
+        graph: ExceptionalUnitGraph,
+        parametersWithThis: List<SymbolicValue>,
+        hardConstraint: HardConstraint
+    ): ExecutionState {
+        val simplifiedUpdates = with(memoryUpdateSimplificator) {
+            simplifySymbolicStateUpdate(queuedSymbolicStateUpdates + hardConstraint)
+        }
+        return environment.state.push(
+            graph.head,
+            inputArguments = ArrayDeque(parametersWithThis),
+            simplifiedUpdates,
+            graph.body.method
+        )
+    }
+
+    private fun pop(methodResultWithUpdates: MethodResult): ExecutionState {
+        return environment.state.pop(methodResultWithUpdates)
     }
 }

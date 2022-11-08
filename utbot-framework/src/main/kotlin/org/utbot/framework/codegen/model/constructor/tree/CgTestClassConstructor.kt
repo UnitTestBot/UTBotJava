@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -19,30 +20,31 @@ import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
+import org.utbot.framework.codegen.model.tree.CgMethodsCluster
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.framework.codegen.model.tree.CgClass
+import org.utbot.framework.codegen.model.tree.CgRealNestedClassesRegion
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.model.tree.CgUtilEntity
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
-import org.utbot.framework.codegen.model.tree.buildTestClass
-import org.utbot.framework.codegen.model.tree.buildTestClassBody
+import org.utbot.framework.codegen.model.tree.buildClass
+import org.utbot.framework.codegen.model.tree.buildClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
+import org.utbot.fuzzer.UtFuzzedExecution
 
 internal class CgTestClassConstructor(val context: CgContext) :
     CgContextOwner by context,
@@ -69,8 +71,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
-        return buildTestClass {
+    private fun constructTestClass(testClassModel: TestClassModel): CgClass {
+        return buildClass {
             id = currentTestClass
 
             if (currentTestClass != outerMostTestClass) {
@@ -86,9 +88,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
 
-            body = buildTestClassBody {
+            body = buildClassBody(currentTestClass) {
                 for (nestedClass in testClassModel.nestedClasses) {
-                    nestedClassRegions += CgSimpleRegion(
+                    nestedClassRegions += CgRealNestedClassesRegion(
                         "Tests for ${nestedClass.classUnderTest.simpleName}",
                         listOf(
                             withNestedClassScope(nestedClass) { constructTestClass(nestedClass) }
@@ -99,11 +101,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 for (testSet in testClassModel.methodTestSets) {
                     updateCurrentExecutable(testSet.executableId)
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
-                    val executableUnderTestCluster = CgExecutableUnderTestCluster(
+                    val executableUnderTestCluster = CgMethodsCluster(
                         "Test suites for executable $currentExecutable",
                         currentMethodUnderTestRegions
                     )
-                    testMethodRegions += executableUnderTestCluster
+                    methodRegions += executableUnderTestCluster
                 }
 
                 val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
@@ -140,45 +142,18 @@ internal class CgTestClassConstructor(val context: CgContext) :
             .filter { it.result is UtExecutionSuccess }
             .map { (it.result as UtExecutionSuccess).model }
 
-        val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
-        val requiredFields = mutableListOf<CgParameterDeclaration>()
 
-        when (context.parametrizedTestSource) {
-            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
-                for ((clusterSummary, executionIndices) in clustersInfo) {
-                    val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
-                    emptyLineIfNeeded()
-                    for (i in executionIndices) {
-                        runCatching {
-                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-                        }.onFailure { e -> processFailure(testSet, e) }
-                    }
-                    val clusterHeader = clusterSummary?.header
-                    val clusterContent = clusterSummary?.content
-                        ?.split('\n')
-                        ?.let { CgTripleSlashMultilineComment(it) }
-                    regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
-
-                    testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
-                }
+        runCatching {
+            when (context.parametrizedTestSource) {
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> createTest(testSet, regions)
+                ParametrizedTestSource.PARAMETRIZE ->
+                    createParametrizedTestAndDataProvider(
+                        testSet,
+                        regions
+                    )
             }
-            ParametrizedTestSource.PARAMETRIZE -> {
-                // Mocks are not supported in parametrized tests, we should exclude them
-                val testSetWithoutMocking = testSet.excludeExecutionsWithMocking()
-
-                for (splitByExecutionTestSet in testSetWithoutMocking.splitExecutionsByResult()) {
-                    for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
-                        createParametrizedTestAndDataProvider(
-                            splitByChangedStaticsTestSet,
-                            requiredFields,
-                            regions,
-                            methodUnderTest
-                        )
-                    }
-                }
-            }
-        }
+        }.onFailure { e -> processFailure(testSet, e) }
 
         val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
@@ -195,29 +170,92 @@ internal class CgTestClassConstructor(val context: CgContext) :
             .merge(failure.description, 1, Int::plus)
     }
 
+    private fun createTest(
+        testSet: CgMethodTestSet,
+        regions: MutableList<CgRegion<CgMethod>>
+    ) {
+        val (methodUnderTest, _, _, clustersInfo) = testSet
+
+        for ((clusterSummary, executionIndices) in clustersInfo) {
+            val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
+            emptyLineIfNeeded()
+            val (checkedRange, needLimitExceedingComments) = if (executionIndices.last  - executionIndices.first >= UtSettings.maxTestsPerMethodInRegion) {
+                IntRange(executionIndices.first, executionIndices.first + (UtSettings.maxTestsPerMethodInRegion - 1).coerceAtLeast(0)) to true
+            } else {
+                executionIndices to false
+            }
+
+            for (i in checkedRange) {
+                currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
+            }
+
+            val comments = listOf("Actual number of generated tests (${executionIndices.last - executionIndices.first}) exceeds per-method limit (${UtSettings.maxTestsPerMethodInRegion})",
+                "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestsPerMethod' property")
+
+            val clusterHeader = clusterSummary?.header
+            var clusterContent = clusterSummary?.content
+                ?.split('\n')
+                ?.let { CgTripleSlashMultilineComment(if (needLimitExceedingComments) {it.toMutableList() + comments} else {it}) }
+            if (clusterContent == null && needLimitExceedingComments) {
+                clusterContent = CgTripleSlashMultilineComment(comments)
+            }
+            regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
+
+            testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
+        }
+    }
+
     private fun createParametrizedTestAndDataProvider(
         testSet: CgMethodTestSet,
-        requiredFields: MutableList<CgParameterDeclaration>,
-        regions: MutableList<CgRegion<CgMethod>>,
-        methodUnderTest: ExecutableId,
+        regions: MutableList<CgRegion<CgMethod>>
     ) {
-        runCatching {
-            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.executableId)
+        val (methodUnderTest, _, _, _) = testSet
+
+        for (preparedTestSet in testSet.prepareTestSetsForParameterizedTestGeneration()) {
+            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(preparedTestSet.executableId)
 
             val parameterizedTestMethod =
-                methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
-
-            requiredFields += parameterizedTestMethod.requiredFields
+                methodConstructor.createParameterizedTestMethod(preparedTestSet, dataProviderMethodName)
 
             testFrameworkManager.addDataProvider(
-                methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+                methodConstructor.createParameterizedTestDataProvider(preparedTestSet, dataProviderMethodName)
             )
 
             regions += CgSimpleRegion(
                 "Parameterized test for method ${methodUnderTest.humanReadableName}",
                 listOf(parameterizedTestMethod),
             )
-        }.onFailure { error -> processFailure(testSet, error) }
+        }
+
+        regions += CgSimpleRegion(
+            "Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
+            collectAdditionalTestsForParameterizedMode(testSet),
+        )
+    }
+
+    private fun collectAdditionalTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+        val (methodUnderTest, _, _, _) = testSet
+        val testCaseTestMethods = mutableListOf<CgTestMethod>()
+
+        // We cannot track mocking in fuzzed executions,
+        // so we generate standard tests for each [UtFuzzedExecution].
+        // [https://github.com/UnitTestBot/UTBotJava/issues/1137]
+        testSet.executions
+            .filterIsInstance<UtFuzzedExecution>()
+            .forEach { execution ->
+                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+            }
+
+        // Also, we generate standard tests for symbolic executions with force mocking.
+        // [https://github.com/UnitTestBot/UTBotJava/issues/1231]
+        testSet.executions
+            .filterIsInstance<UtSymbolicExecution>()
+            .filter { it.containsMocking }
+            .forEach { execution ->
+                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+            }
+
+        return testCaseTestMethods
     }
 
     /**

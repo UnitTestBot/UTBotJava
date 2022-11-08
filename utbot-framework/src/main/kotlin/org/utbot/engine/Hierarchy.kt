@@ -1,5 +1,6 @@
 package org.utbot.engine
 
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.id
 import soot.RefType

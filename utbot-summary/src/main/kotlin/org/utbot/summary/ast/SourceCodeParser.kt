@@ -36,7 +36,6 @@ class SourceCodeParser {
         val methodName = sootMethod.name
         val className = sootMethod.declaredClassName
 
-
         val maxLineNumber =
             if (sootMethod.hasActiveBody())
                 sootMethod.retrieveActiveBody()?.units?.maxOfOrNull { it.javaSourceStartLineNumber }

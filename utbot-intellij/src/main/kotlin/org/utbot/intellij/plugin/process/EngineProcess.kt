@@ -7,7 +7,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.jetbrains.rd.framework.util.asCompletableFuture
+import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
+import org.utbot.framework.UtSettings.runIdeaProcessWithDebug
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.plugin.api.*
@@ -29,7 +30,6 @@ import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.Signature
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
-import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
@@ -38,7 +38,6 @@ import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.rdPortArgument
 import org.utbot.rd.startUtProcessWithRdServer
-import org.utbot.sarif.Sarif
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
 import java.nio.file.Path
@@ -64,6 +63,8 @@ class EngineProcess(parent: Lifetime, val project: Project) {
     private val id = Random.nextLong()
     private var count = 0
     private var configPath: Path? = null
+
+    private val sourceFindingStrategies = ConcurrentHashMap<Long, SourceFindingStrategy>()
 
     private fun getOrCreateLogConfig(): String {
         var realPath = configPath
@@ -95,7 +96,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
     }
 
     private fun debugArgument(): String {
-        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf { Settings.runIdeaProcessWithDebug }
+        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf { runIdeaProcessWithDebug }
             ?: ""
     }
 
@@ -164,6 +165,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                     }
                 }.awaitSignal()
                 current = proc
+                initSourceFindingStrategies()
             }
 
             proc.protocol.engineProcessModel
@@ -236,7 +238,16 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         }
 
     private fun MemberInfo.paramNames(): List<String> =
-        (this.member as PsiMethod).parameterList.parameters.map { it.name }
+        (this.member as PsiMethod).parameterList.parameters.map {
+            if (it.name.startsWith("\$this"))
+                // If member is Kotlin extension function, name of first argument isn't good for further usage,
+                // so we better choose name based on type of receiver.
+                //
+                // There seems no API to check whether parameter is an extension receiver by PSI
+                it.type.presentableText
+            else
+                it.name
+        }
 
     fun generate(
         mockInstalled: Boolean,
@@ -310,10 +321,10 @@ class EngineProcess(parent: Lifetime, val project: Project) {
                 )
             )
         result.generatedCode to result.utilClassKind?.let {
-            if (UtilClassKind.RegularUtUtils.javaClass.simpleName == it)
-                UtilClassKind.RegularUtUtils
+            if (UtilClassKind.RegularUtUtils(codegenLanguage).javaClass.simpleName == it)
+                UtilClassKind.RegularUtUtils(codegenLanguage)
             else
-                UtilClassKind.UtUtilsWithMockito
+                UtilClassKind.UtUtilsWithMockito(codegenLanguage)
         }
     }
 
@@ -323,15 +334,11 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         current?.terminate()
     }
 
-    fun writeSarif(reportFilePath: Path,
-                   testSetsId: Long,
-                   generatedTestsCode: String,
-                   sourceFindingStrategy: SourceFindingStrategy
-    ): String = runBlocking {
+    private fun initSourceFindingStrategies() {
         current!!.protocol.rdSourceFindingStrategy.let {
             it.getSourceFile.set { params ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String?> {
-                    sourceFindingStrategy.getSourceFile(
+                    sourceFindingStrategies[params.testSetId]!!.getSourceFile(
                         params.classFqn,
                         params.extension
                     )?.canonicalPath
@@ -339,18 +346,27 @@ class EngineProcess(parent: Lifetime, val project: Project) {
             }
             it.getSourceRelativePath.set { params ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String> {
-                    sourceFindingStrategy.getSourceRelativePath(
+                    sourceFindingStrategies[params.testSetId]!!.getSourceRelativePath(
                         params.classFqn,
                         params.extension
                     )
                 }
             }
-            it.testsRelativePath.set { _ ->
+            it.testsRelativePath.set { testSetId ->
                 DumbService.getInstance(project).runReadActionInSmartMode<String> {
-                    sourceFindingStrategy.testsRelativePath
+                    sourceFindingStrategies[testSetId]!!.testsRelativePath
                 }
             }
         }
+    }
+
+    fun writeSarif(
+        reportFilePath: Path,
+        testSetsId: Long,
+        generatedTestsCode: String,
+        sourceFindingStrategy: SourceFindingStrategy
+    ): String = runBlocking {
+        sourceFindingStrategies[testSetsId] = sourceFindingStrategy
         engineModel().writeSarifReport.startSuspending(
             WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
         )

@@ -1,8 +1,8 @@
 package org.utbot.engine.selectors.strategies
 
-import org.utbot.engine.CALL_DECISION_NUM
-import org.utbot.engine.Edge
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.CALL_DECISION_NUM
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.framework.UtSettings
 import kotlin.math.pow

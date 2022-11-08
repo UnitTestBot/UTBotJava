@@ -21,6 +21,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
 import org.utbot.framework.util.ConflictTriggers
@@ -36,7 +37,7 @@ import org.utbot.summary.summarize
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
-import kotlin.reflect.full.functions
+import kotlin.reflect.jvm.kotlinFunction
 import kotlin.time.Duration.Companion.seconds
 
 private val messageFromMainTimeoutMillis = 120.seconds
@@ -158,8 +159,8 @@ private fun EngineProcessModel.setup(
     synchronizer.measureExecutionForTermination(findMethodsInClassMatchingSelected) { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
         val selectedSignatures = params.signatures.map { Signature(it.name, it.parametersTypes) }
-        FindMethodsInClassMatchingSelectedResult(kryoHelper.writeObject(classId.jClass.kotlin.allNestedClasses.flatMap { clazz ->
-            clazz.functions.sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
+        FindMethodsInClassMatchingSelectedResult(kryoHelper.writeObject(classId.jClass.allNestedClasses.flatMap { clazz ->
+            clazz.id.allMethods.mapNotNull { it.method.kotlinFunction }.sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
                 .filter { it.signature().normalized() in selectedSignatures }
                 .map { it.executableId }
         }))
@@ -168,7 +169,7 @@ private fun EngineProcessModel.setup(
         val classId = kryoHelper.readObject<ClassId>(params.classId)
         val bySignature = kryoHelper.readObject<Map<Signature, List<String>>>(params.bySignature)
         FindMethodParamNamesResult(kryoHelper.writeObject(
-            classId.jClass.kotlin.allNestedClasses.flatMap { it.functions }
+            classId.jClass.allNestedClasses.flatMap { clazz -> clazz.id.allMethods.mapNotNull { it.method.kotlinFunction } }
                 .mapNotNull { method -> bySignature[method.signature()]?.let { params -> method.executableId to params } }
                 .toMap()
         ))
@@ -179,7 +180,7 @@ private fun EngineProcessModel.setup(
         val sarifReport = SarifReport(
             testSets[params.testSetsId]!!,
             params.generatedTestsCode,
-            RdSourceFindingStrategyFacade(realProtocol.rdSourceFindingStrategy)
+            RdSourceFindingStrategyFacade(params.testSetsId, realProtocol.rdSourceFindingStrategy)
         ).createReport().toJson()
         reportFilePath.toFile().writeText(sarifReport)
         sarifReport

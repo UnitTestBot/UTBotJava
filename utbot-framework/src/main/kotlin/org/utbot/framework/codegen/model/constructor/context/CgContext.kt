@@ -396,6 +396,9 @@ internal interface CgContextOwner {
     val getArrayLength: MethodId
         get() = utilMethodProvider.getArrayLengthMethodId
 
+    val consumeBaseStream: MethodId
+        get() = utilMethodProvider.consumeBaseStreamMethodId
+
     val buildStaticLambda: MethodId
         get() = utilMethodProvider.buildStaticLambdaMethodId
 
@@ -491,9 +494,9 @@ internal data class CgContext(
         val simpleName = testClassCustomName ?: "${classUnderTest.simpleName}Test"
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
-            name = name,
             canonicalName = name,
-            simpleName = simpleName
+            simpleName = simpleName,
+            isFinal = true,
         )
     }
 
@@ -505,7 +508,7 @@ internal data class CgContext(
      */
     override val utilMethodProvider: UtilMethodProvider
         get() = if (generateUtilClassFile) {
-            UtilClassFileMethodProvider
+            UtilClassFileMethodProvider(codegenLanguage)
         } else {
             TestClassUtilMethodProvider(outerMostTestClass)
         }
@@ -548,9 +551,9 @@ internal data class CgContext(
     private fun createClassIdForNestedClass(testClassModel: TestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
-            name = currentTestClass.name + "$" + simpleName,
             canonicalName = currentTestClass.canonicalName + "." + simpleName,
-            simpleName = simpleName
+            simpleName = simpleName,
+            isFinal = true,
         )
     }
 

@@ -35,5 +35,4 @@ data class SymbolicState(
     fun stateForNestedMethod() = copy(
         memory = memory.memoryForNestedMethod()
     )
-
 }

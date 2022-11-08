@@ -101,9 +101,16 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
+import org.utbot.engine.state.ExecutionStackElement
+import org.utbot.engine.state.ExecutionState
+import org.utbot.engine.state.StateLabel
+import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.fuzzer.toFuzzerType
 
 val logger = KotlinLogging.logger {}
@@ -431,6 +438,7 @@ class UtBotSymbolicEngine(
             fuzzerType = { try { toFuzzerType(methodUnderTest.executable.genericParameterTypes[it]) } catch (_: Throwable) { null } }
             shouldMock = { mockStrategy.eligibleToMock(it, classUnderTest) }
         }
+        val errorStackTraceTracker = Trie(StackTraceElement::toString)
         val coveredInstructionTracker = Trie(Instruction::id)
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = 0
@@ -493,6 +501,13 @@ class UtBotSymbolicEngine(
                 coveredInstructionValues[coverageKey] = values
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
+                val result = concreteExecutionResult.result
+                if (result is UtSandboxFailure) {
+                    val stackTraceElements = result.exception.stackTrace.reversed()
+                    if (errorStackTraceTracker.add(stackTraceElements).count > 1) {
+                        return@forEach
+                    }
+                }
             }
 
             emit(

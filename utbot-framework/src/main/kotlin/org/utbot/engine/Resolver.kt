@@ -7,7 +7,7 @@ import org.utbot.common.workaround
 import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
-import org.utbot.engine.TypeRegistry.Companion.objectNumDimensions
+import org.utbot.engine.types.TypeRegistry.Companion.objectNumDimensions
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtArrayExpressionBase
 import org.utbot.engine.pc.UtArraySort
@@ -90,6 +90,17 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.engine.types.CLASS_REF_CLASSNAME
+import org.utbot.engine.types.CLASS_REF_CLASS_ID
+import org.utbot.engine.types.CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR
+import org.utbot.engine.types.CLASS_REF_TYPE_DESCRIPTOR
+import org.utbot.engine.types.ENUM_ORDINAL
+import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.engine.types.STRING_TYPE
+import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -370,6 +381,12 @@ class Resolver(
      */
     private fun SymbolicFailure.resolve(): UtExecutionFailure {
         val exception = concreteException()
+
+        if (exception is UtStreamConsumingException) {
+            // This exception is artificial and is not really thrown
+            return UtStreamConsumingFailure(exception)
+        }
+
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
@@ -427,7 +444,7 @@ class Resolver(
         // if the value is Object, we have to construct array or an object depending on the number of dimensions
         // it is possible if we had an object and we casted it into array
         val constructedType = holder.constructTypeOrNull(value.addr, value.type) ?: return UtNullModel(value.type.id)
-        val typeStorage = TypeStorage(constructedType)
+        val typeStorage = TypeStorage.constructTypeStorageWithSingleType(constructedType)
 
         return if (constructedType is ArrayType) {
             constructArrayModel(ArrayValue(typeStorage, value.addr))
@@ -717,11 +734,16 @@ class Resolver(
      * Constructs a type for the addr.
      *
      * There are three options here:
+     *
      * * it successfully constructs a type suitable with defaultType and returns it;
+     *
      * * it constructs a type that cannot be assigned in a variable with the [defaultType] and we `touched`
-     * the [addr] during the analysis. In such case the method returns [defaultType] as a result
-     * if the constructed type is not an array, and in case of array it returns the [defaultType] if it has the same
-     * dimensions as the constructed type and its ancestors includes the constructed type, or null otherwise;
+     * the [addr] during the analysis. In such case we have only two options: either this object was aliased with
+     * an object of another type (by solver's decision) and we didn't touch it in fact, or it happened because
+     * of missed connection between an array type and types of its elements. For example, we might case
+     * array to a succ type after we `touched` it's element. In the first scenario null will be returns, in the
+     * second one -- a default type (that will be a subtype of actualType).
+     *
      * * it constructs a type that cannot be assigned in a variable with the [defaultType] and we did **not** `touched`
      * the [addr] during the analysis. It means we can create [UtNullModel] to represent such element. In such case
      * the method returns null as the result.
@@ -816,18 +838,61 @@ class Resolver(
         // as const or store model.
         if (defaultBaseType is PrimType) return null
 
-        require(!defaultType.isJavaLangObject()) {
+        // In case when we have `actualType` equal to `byte` and defaultType is `java.lang.Object`
+        if (defaultType.isJavaLangObject() && actualType is PrimType) {
+            return defaultType
+        }
+
+        // There is no way you have java.lang.Object as a defaultType here, since it'd mean that
+        // some actualType is not an inheritor of it
+        require(!defaultType.isJavaLangObject() || actualType is PrimType) {
             "Object type $defaultType is unexpected in fallback to default type"
         }
 
-        if (defaultType.numDimensions == 0) {
+        // It might happen only if we have a wrong aliasing here: some object has not been touched
+        // during the execution, and solver returned for him an address of already existed object
+        // with another type. In such case `UtNullModel` should be constructed.
+        if (defaultBaseType.isJavaLangObject() && actualType.numDimensions < defaultType.numDimensions) {
+            return null
+        }
+
+        val baseTypeIsAnonymous = (actualType.baseType as? RefType)?.sootClass?.isAnonymous == true
+        val actualTypeIsArrayOfAnonymous = actualType is ArrayType && baseTypeIsAnonymous
+
+        // There must be no arrays of anonymous classes
+        if (defaultType.isJavaLangObject() && actualTypeIsArrayOfAnonymous) {
             return defaultType
+        }
+
+        // All cases with `java.lang.Object` as default base type should have been already processed
+        require(!defaultBaseType.isJavaLangObject()) {
+            "Unexpected `java.lang.Object` as a default base type"
         }
 
         val actualBaseType = actualType.baseType
 
+        // It is a tricky case: we might have a method with a parameter like `List<Integer>`.
+        // Inside we will transform it into a wrapper with internal field `RangeModifiableArray`
+        // with Objects inside. Since we do not support generics for nested fields, it won't
+        // have type information and there will be no type constraints for its elements (because
+        // it contains java.lang.Objects inside). But, during the resolving, we will use type information
+        // from org.utbot.engine.types.TypeRegistry.getTypeStoragesForObjectTypeParameters.
+        // Therefore, we will encounter an object that will try to be resolved as an instance of `Integer`,
+        // but there will be no type constraints for it. Therefore, it might get `actualType` equal to some
+        // primitive type. In this case, we will return the default type (actually, it is not clear whether
+        // we should return null or defaultType, and maybe here some inconsistency exists).
+        if (actualType is PrimType && defaultType !is PrimType) {
+            return defaultType
+        }
+
         require(actualBaseType is RefType) { "Expected RefType, but $actualBaseType found" }
         require(defaultBaseType is RefType) { "Expected RefType, but $defaultBaseType found" }
+
+
+        // The same idea about fake aliasing. It might happen only if there have been an aliasing
+        // because of the solver's decision. In fact an object for which we construct type has not been
+        // touched during analysis.
+        if (actualType.numDimensions != defaultType.numDimensions) return null
 
         val ancestors = typeResolver.findOrConstructAncestorsIncludingTypes(defaultBaseType)
 
@@ -840,7 +905,27 @@ class Resolver(
         // when the array is ColoredPoint[], but the first element of it got type Point from the solver.
         // In such case here we'll have ColoredPoint as defaultType and Point as actualType. It is obvious from the example
         // that we can construct ColoredPoint instance instead of it with randomly filled colored-specific fields.
-        return defaultType.takeIf { actualBaseType in ancestors && actualType.numDimensions == defaultType.numDimensions }
+        // Note that it won't solve a problem when this `array[0]` has already been constructed somewhere above,
+        // since a model for it is already presented in cache and will be taken by addr from it.
+        // TODO corresponding issue https://github.com/UnitTestBot/UTBotJava/issues/1232
+        if (actualBaseType in ancestors) return defaultType
+
+        val inheritors = typeResolver.findOrConstructInheritorsIncludingTypes(defaultBaseType)
+
+        // If we have an actual type that is not a subclass of defaultBaseType and isTouched is true,
+        // it means that we have encountered unexpected aliasing between an object for which we resolve its type
+        // and some object in the system. The reason is `isTouched` means that we processed this object
+        // during the analysis, therefore we create correct type constraints for it. Since we have
+        // inappropriate actualType here, these constraints were supposed to define type for another object,
+        // and, in fact, we didn't touch our object.
+        // For example, we have an array of two elements: Integer[] = new Integer[2], and this instance: ThisClass.
+        // During the execution we `touched` only the first element of the array, and we know its type.
+        // During resolving we found that second element of the array has set in true `isTouched` field,
+        // and its actualType is `ThisClass`. So, we have wrong aliasing here and can return `null` to construct
+        // UtNullModel instead.
+        if (actualBaseType !in inheritors) return null
+
+        return null
     }
 
     /**
@@ -993,7 +1078,9 @@ class Resolver(
         val constructedType = holder.constructTypeOrNull(addr, defaultType) ?: return UtNullModel(defaultType.id)
 
         if (defaultType.isJavaLangObject() && constructedType is ArrayType) {
-            return constructArrayModel(ArrayValue(TypeStorage(constructedType), addr))
+            val typeStorage = TypeStorage.constructTypeStorageWithSingleType(constructedType)
+            val arrayValue = ArrayValue(typeStorage, addr)
+            return constructArrayModel(arrayValue)
         } else {
             val concreteType = typeResolver.findAnyConcreteInheritorIncludingOrDefault(
                 constructedType as RefType,
@@ -1185,9 +1272,10 @@ private fun Traverser.arrayToMethodResult(
     }
 
     val memoryUpdate = MemoryUpdate(
-        stores = persistentListOf(simplifiedNamedStore(descriptor, newAddr, updatedArray)),
-        touchedChunkDescriptors = persistentSetOf(descriptor)
+        stores = persistentListOf(namedStore(descriptor, newAddr, updatedArray)),
+        touchedChunkDescriptors = persistentSetOf(descriptor),
     )
+
     return MethodResult(
         ArrayValue(typeStorage, newAddr),
         constraints.asHardConstraint(),

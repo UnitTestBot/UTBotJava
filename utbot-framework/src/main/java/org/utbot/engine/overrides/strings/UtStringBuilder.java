@@ -451,7 +451,7 @@ public class UtStringBuilder implements Appendable, Serializable, CharSequence {
     }
 
     public StringBuilder insert(int offset, boolean b) {
-        return insert(offset, String.valueOf(b));
+        return insert(offset, Boolean.toString(b));
     }
 
     public StringBuilder insert(int offset, char c) {
@@ -464,19 +464,19 @@ public class UtStringBuilder implements Appendable, Serializable, CharSequence {
     }
 
     public StringBuilder insert(int offset, int i) {
-        return insert(offset, String.valueOf(i));
+        return insert(offset, Integer.toString(i));
     }
 
     public StringBuilder insert(int offset, long l) {
-        return insert(offset, String.valueOf(l));
+        return insert(offset, Long.toString(l));
     }
 
     public StringBuilder insert(int offset, float f) {
-        return insert(offset, String.valueOf(f));
+        return insert(offset, Float.toString(f));
     }
 
     public StringBuilder insert(int offset, double d) {
-        return insert(offset, String.valueOf(d));
+        return insert(offset, Double.toString(d));
     }
 
     public int indexOf(String str) {

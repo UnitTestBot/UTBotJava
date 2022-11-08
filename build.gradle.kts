@@ -41,14 +41,14 @@ allprojects {
         withType<KotlinCompile> {
             kotlinOptions {
                 jvmTarget = "1.8"
-                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
+                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
         }
         compileTestKotlin {
             kotlinOptions {
                 jvmTarget = "1.8"
-                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
+                freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
         }
@@ -81,7 +81,7 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven("https://jitpack.io")
+        maven("https://s01.oss.sonatype.org/content/repositories/orgunittestbotsoot-1004/")
         maven("https://plugins.gradle.org/m2")
         maven("https://www.jetbrains.com/intellij-repository/releases")
         maven("https://cache-redirector.jetbrains.com/maven-central")

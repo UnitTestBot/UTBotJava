@@ -15,15 +15,16 @@ object RdInstrumenterAdapter: Ext(EngineProcessProtocolRoot) {
 }
 
 object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
-    val sourceStrategeMethodArgs = structdef {
+    val sourceStrategyMethodArgs = structdef {
+        field("testSetId", PredefinedType.long)
         field("classFqn", PredefinedType.string)
         field("extension", PredefinedType.string.nullable)
     }
 
     init {
-        call("testsRelativePath", PredefinedType.void, PredefinedType.string).async
-        call("getSourceRelativePath", sourceStrategeMethodArgs, PredefinedType.string).async
-        call("getSourceFile", sourceStrategeMethodArgs, PredefinedType.string.nullable).async
+        call("testsRelativePath", PredefinedType.long, PredefinedType.string).async
+        call("getSourceRelativePath", sourceStrategyMethodArgs, PredefinedType.string).async
+        call("getSourceFile", sourceStrategyMethodArgs, PredefinedType.string.nullable).async
     }
 }
 

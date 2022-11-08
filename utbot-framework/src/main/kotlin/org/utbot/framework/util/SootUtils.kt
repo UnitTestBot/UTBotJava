@@ -3,7 +3,9 @@ package org.utbot.framework.util
 import org.utbot.common.FileUtil
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.pureJavaSignature
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
@@ -89,9 +91,32 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
     Scene.v().loadNecessaryClasses()
     PackManager.v().runPacks()
     // we need this to create hierarchy of classes
-    Scene.v().classes.forEach {
-        if (it.resolvingLevel() < SootClass.HIERARCHY)
+    Scene.v().classes.toList().forEach {
+        val isUtBotPackage = it.packageName.startsWith(UTBOT_PACKAGE_PREFIX)
+
+        // remove our own classes from the soot scene
+        if (UtSettings.removeUtBotClassesFromHierarchy && isUtBotPackage) {
+            val isOverriddenPackage = it.packageName.startsWith(UTBOT_OVERRIDDEN_PACKAGE_PREFIX)
+            val isExamplesPackage = it.packageName.startsWith(UTBOT_EXAMPLES_PACKAGE_PREFIX)
+            val isApiPackage = it.packageName.startsWith(UTBOT_API_PACKAGE_PREFIX)
+            val isVisiblePackage = it.packageName.startsWith(UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE)
+
+            // remove if it is not a part of the examples (CUT), not a part of our API, not an override and not from visible for soot
+            if (!isOverriddenPackage && !isExamplesPackage && !isApiPackage && !isVisiblePackage) {
+                Scene.v().removeClass(it)
+                return@forEach
+            }
+        }
+
+        // remove soot's classes from the scene, because we don't wont to analyze them
+        if (UtSettings.removeSootClassesFromHierarchy && it.packageName.startsWith(SOOT_PACKAGE_PREFIX)) {
+            Scene.v().removeClass(it)
+            return@forEach
+        }
+
+        if (it.resolvingLevel() < SootClass.HIERARCHY) {
             it.setResolvingLevel(SootClass.HIERARCHY)
+        }
     }
 }
 
@@ -160,6 +185,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,
     org.utbot.engine.overrides.collections.List::class,
+    UtStreamConsumingException::class,
     org.utbot.engine.overrides.stream.UtStream::class,
     org.utbot.engine.overrides.stream.UtIntStream::class,
     org.utbot.engine.overrides.stream.UtLongStream::class,
@@ -172,3 +198,10 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.LongStream::class,
     org.utbot.engine.overrides.stream.DoubleStream::class,
 ).map { it.java }.toTypedArray()
+
+private const val UTBOT_PACKAGE_PREFIX = "org.utbot"
+private const val UTBOT_EXAMPLES_PACKAGE_PREFIX = "$UTBOT_PACKAGE_PREFIX.examples"
+private const val UTBOT_API_PACKAGE_PREFIX = "$UTBOT_PACKAGE_PREFIX.api"
+private const val UTBOT_OVERRIDDEN_PACKAGE_PREFIX = "$UTBOT_PACKAGE_PREFIX.engine.overrides"
+internal const val UTBOT_FRAMEWORK_API_VISIBLE_PACKAGE = "$UTBOT_PACKAGE_PREFIX.framework.plugin.api.visible"
+private const val SOOT_PACKAGE_PREFIX = "soot."

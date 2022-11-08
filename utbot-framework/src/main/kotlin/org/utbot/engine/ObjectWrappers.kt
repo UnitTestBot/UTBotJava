@@ -244,6 +244,21 @@ interface WrapperInterface {
     }
 
     fun value(resolver: Resolver, wrapper: ObjectValue): UtModel
+
+    /**
+     * It is an index for type parameter corresponding to the result
+     * value of `select` operation. For example, for arrays and lists it's zero,
+     * for associative array it's one.
+     */
+    open val selectOperationTypeIndex: Int
+        get() = 0
+
+    /**
+     * Similar to [selectOperationTypeIndex], it is responsible for type index
+     * of the returning value from `get` operation
+     */
+    open val getOperationTypeIndex: Int
+        get() = 0
 }
 
 // TODO: perhaps we have to have wrapper around concrete value here

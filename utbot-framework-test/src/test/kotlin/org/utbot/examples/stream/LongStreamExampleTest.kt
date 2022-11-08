@@ -23,18 +23,6 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
     )
 ) {
     @Test
-    fun testReturningStreamExample() {
-        check(
-            LongStreamExample::returningStreamExample,
-            ignoreExecutionsNumber,
-            // NOTE: the order of the matchers is important because Stream could be used only once
-            { c, r -> c.isNotEmpty() && c.longs().contentEquals(r!!.toArray()) },
-            { c, r -> c.isEmpty() && r!!.count() == 0L },
-            coverage = FullWithAssumptions(assumeCallsNumber = 1)
-        )
-    }
-
-    @Test
     fun testReturningStreamAsParameterExample() {
         withoutConcrete {
             check(

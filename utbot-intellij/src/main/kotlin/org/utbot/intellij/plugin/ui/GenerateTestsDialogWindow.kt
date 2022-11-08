@@ -10,9 +10,9 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.JavaProjectModelModificationService
@@ -123,7 +123,8 @@ import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
 import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
-import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
+import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
+import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
@@ -140,6 +141,7 @@ import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
+import org.utbot.intellij.plugin.util.findSdkVersion
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -270,7 +272,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     null
                 )
             }
-            row { component(parametrizedTestSources) }
             row("Mocking strategy:") {
                 makePanelWithHelpTooltip(
                     mockStrategies,
@@ -279,6 +280,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 )
             }
             row { component(staticsMocking)}
+            row {
+                cell {
+                    component(parametrizedTestSources)
+                    component(ContextHelpLabel.create("Parametrization is not supported in some configurations, e.g. if mocks are used."))
+                }
+            }
             row("Test generation timeout:") {
                 cell {
                     component(timeoutSpinner)
@@ -314,15 +321,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             label?.let { add(it, BorderLayout.LINE_END) }
         })
 
-    private fun findSdkVersion(): JavaVersion? {
-        val projectSdk = ModuleRootManager.getInstance(model.srcModule).sdk
-        return JavaVersion.tryParse(projectSdk?.versionString)
-    }
-
     override fun createTitlePane(): JComponent? {
-        val sdkVersion = findSdkVersion()
+        val sdkVersion = findSdkVersion(model.srcModule)
         //TODO:SAT-1571 investigate Android Studio specific sdk issues
-        if (sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
+        if (sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
         isOKActionEnabled = false
         return SdkNotificationPanel(model, sdkVersion)
     }
@@ -372,8 +374,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     val isEdited = ShowSettingsUtil.getInstance().editConfigurable(model.project, projectStructure)
                     { projectStructure.select(model.srcModule.name, ClasspathEditor.getName(), true) }
 
-                    val sdkVersion = findSdkVersion()
-                    val sdkFixed = isEdited && sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion
+                    val sdkVersion = findSdkVersion(model.srcModule)
+                    val sdkFixed = isEdited && sdkVersion.feature in minSupportedSdkVersion..maxSupportedSdkVersion
                     if (sdkFixed) {
                         this@SdkNotificationPanel.isVisible = false
                         isOKActionEnabled = true
@@ -421,12 +423,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         return null
     }
 
+    private fun VirtualFile.toRealFile():VirtualFile = if (this is FakeVirtualFile)  this.parent else this
+
     override fun doValidate(): ValidationInfo? {
         val testRoot = getTestRoot()
             ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
 
-        if (!model.project.isBuildWithGradle && findReadOnlyContentEntry(testRoot) == null) {
-            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+        if (!model.project.isBuildWithGradle && ModuleUtil.findModuleForFile(testRoot.toRealFile(), model.project) == null) {
+            return ValidationInfo("Test source root is located out of any module", testSourceFolderField.childComponent)
         }
 
         membersTable.tableHeader?.background = UIUtil.getTableBackground()
@@ -510,6 +514,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         with(settings) {
             model.runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour
             model.hangingTestsTimeout = hangingTestsTimeout
+            model.runInspectionAfterTestGeneration = runInspectionAfterTestGeneration
             model.forceStaticMocking = forceStaticMocking
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
             model.fuzzingValue = fuzzingValue
@@ -603,16 +608,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "Generation error"
         )
 
-    private fun findReadOnlyContentEntry(testSourceRoot: VirtualFile?): ContentEntry? {
-        if (testSourceRoot == null) return null
-        if (testSourceRoot is FakeVirtualFile) {
-            return findReadOnlyContentEntry(testSourceRoot.parent)
-        }
-        return ModuleRootManager.getInstance(model.testModule).contentEntries
-            .filterNot { it.file == null }
-            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
-    }
-
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
         val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
         try {
@@ -646,9 +641,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
         parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
 
-        val areMocksSupported = settings.parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
-        mockStrategies.isEnabled = areMocksSupported
-        staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
+        mockStrategies.isEnabled = true
+        staticsMocking.isEnabled = mockStrategies.item != MockStrategyApi.NO_MOCKS
 
         codegenLanguages.item = model.codegenLanguage
 
@@ -660,7 +654,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         updateTestFrameworksList(settings.parametrizedTestSource)
-        updateParametrizationEnabled(currentFrameworkItem)
+        updateParametrizationEnabled()
 
         updateMockStrategyList()
 
@@ -720,11 +714,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val libraryInProject =
             findFrameworkLibrary(model.project, model.testModule, selectedTestFramework, LibrarySearchScope.Project)
         val versionInProject = libraryInProject?.libraryName?.parseVersion()
+        val sdkVersion = findSdkVersion(model.srcModule).feature
 
         val libraryDescriptor = when (selectedTestFramework) {
             Junit4 -> jUnit4LibraryDescriptor(versionInProject)
             Junit5 -> jUnit5LibraryDescriptor(versionInProject)
-            TestNg -> testNgLibraryDescriptor(versionInProject)
+            TestNg -> when (sdkVersion) {
+                minSupportedSdkVersion -> testNgOldLibraryDescriptor()
+                else -> testNgNewLibraryDescriptor(versionInProject)
+            }
         }
 
         selectedTestFramework.isInstalled = true
@@ -905,6 +903,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             if (!staticsMocking.isEnabled) {
                 staticsMocking.isSelected = false
             }
+
+            updateParametrizationEnabled()
         }
 
         testFrameworks.addActionListener { event ->
@@ -912,25 +912,34 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val item = comboBox.item as TestFramework
 
             currentFrameworkItem = item
-            updateParametrizationEnabled(currentFrameworkItem)
+
+            updateParametrizationEnabled()
         }
 
-        parametrizedTestSources.addActionListener { event ->
+        codegenLanguages.addActionListener { _ ->
+            updateParametrizationEnabled()
+        }
+
+        parametrizedTestSources.addActionListener { _ ->
             val parametrizedTestSource = if (parametrizedTestSources.isSelected) {
                 ParametrizedTestSource.PARAMETRIZE
             } else {
                 ParametrizedTestSource.DO_NOT_PARAMETRIZE
             }
 
-            val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
-
-            mockStrategies.isEnabled = areMocksSupported
-            staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
-            if (!mockStrategies.isEnabled) {
-                mockStrategies.item = MockStrategyApi.NO_MOCKS
-            }
-            if (!staticsMocking.isEnabled) {
-                staticsMocking.isSelected = false
+            when (parametrizedTestSource) {
+                ParametrizedTestSource.PARAMETRIZE -> {
+                    mockStrategies.item = MockStrategyApi.NO_MOCKS
+                    staticsMocking.isEnabled = false
+                    staticsMocking.isSelected = false
+                }
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                    mockStrategies.isEnabled = true
+                    if (mockStrategies.item != MockStrategyApi.NO_MOCKS) {
+                        staticsMocking.isEnabled = true
+                        staticsMocking.isSelected = true
+                    }
+                }
             }
 
             updateTestFrameworksList(parametrizedTestSource)
@@ -953,12 +962,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         var enabledTestFrameworks = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.allItems
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.allItems.filterNot { it == Junit4 }
-        }
-
-        //Will be removed after gradle-intelij-plugin version update upper than 2020.2
-        //TestNg will be reverted after https://github.com/UnitTestBot/UTBotJava/issues/309
-        if (findSdkVersion()?.let { it.feature < 11 } == true) {
-            enabledTestFrameworks = enabledTestFrameworks.filterNot { it == TestNg }
         }
 
         var defaultItem = when (parametrizedTestSource) {
@@ -984,12 +987,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         currentFrameworkItem = testFrameworks.item
     }
 
-    //We would like to disable parametrization options for JUnit4
-    private fun updateParametrizationEnabled(testFramework: TestFramework) {
-        when (testFramework) {
-            Junit4 -> parametrizedTestSources.isEnabled = false
-            Junit5,
-            TestNg -> parametrizedTestSources.isEnabled = true
+    private fun updateParametrizationEnabled() {
+        val languageIsSupported = codegenLanguages.item == CodegenLanguage.JAVA
+        val frameworkIsSupported = currentFrameworkItem == Junit5
+                || currentFrameworkItem == TestNg && findSdkVersion(model.srcModule).feature > minSupportedSdkVersion
+        val mockStrategyIsSupported = mockStrategies.item == MockStrategyApi.NO_MOCKS
+
+        parametrizedTestSources.isEnabled =
+            languageIsSupported && frameworkIsSupported && mockStrategyIsSupported
+
+        if (!parametrizedTestSources.isEnabled) {
+            parametrizedTestSources.isSelected = false
         }
     }
 

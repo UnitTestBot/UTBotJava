@@ -1,7 +1,7 @@
 package org.utbot.engine.selectors.strategies
 
-import org.utbot.engine.Edge
-import org.utbot.engine.ExecutionState
+import org.utbot.engine.state.Edge
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.isReturn
 import org.utbot.engine.pathLogger
@@ -9,6 +9,7 @@ import org.utbot.engine.stmts
 import kotlin.math.min
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
+import org.utbot.framework.UtSettings.enableLoggingForDroppedStates
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
 
@@ -43,8 +44,11 @@ class DistanceStatistics(
         val shouldDrop = state.edges.all { graph.isCoveredWithAllThrowStatements(it) } && distanceToUncovered(state) == Int.MAX_VALUE
 
         if (shouldDrop) {
-            pathLogger.debug {
-                "Dropping state (lastStatus=${state.solver.lastStatus}) by the distance statistics. MD5: ${state.md5()}"
+            if (enableLoggingForDroppedStates) {
+                pathLogger.debug {
+                    val lastStatus = state.solver.lastStatus
+                    "Dropping state (lastStatus=$lastStatus) by the distance statistics. MD5: ${state.md5()}"
+                }
             }
         }
 

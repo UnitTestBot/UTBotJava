@@ -3,6 +3,7 @@ package org.utbot.framework
 import com.jetbrains.rd.util.LogLevel
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
+import java.lang.reflect.Executable
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -281,6 +282,15 @@ object UtSettings : AbstractSettings(
      */
     var logConcreteExecutionErrors by getBooleanProperty(false)
 
+
+    /**
+     * Property useful only for idea
+     * If true - runs engine process with the ability to attach a debugger
+     * @see runChildProcessWithDebug
+     * @see org.utbot.intellij.plugin.process.EngineProcess
+     */
+    var runIdeaProcessWithDebug by getBooleanProperty(false)
+
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
      */
@@ -361,9 +371,9 @@ object UtSettings : AbstractSettings(
     var singleSelector by getBooleanProperty(true)
 
     /**
-     * Flag that indicates whether tests for synthetic methods (values, valueOf in enums) should be generated, or not
+     * Flag that indicates whether tests for synthetic (see [Executable.isSynthetic]) and implicitly declared methods (like values, valueOf in enums) should be generated, or not
      */
-    var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
+    var skipTestGenerationForSyntheticAndImplicitlyDeclaredMethods by getBooleanProperty(true)
 
     /**
      * Flag that indicates whether should we branch on and set static fields from trusted libraries or not.
@@ -382,6 +392,76 @@ object UtSettings : AbstractSettings(
      * and test generation.
      */
     var useSandbox by getBooleanProperty(true)
+
+    /**
+     * Limit for number of generated tests per method (in each region)
+     */
+    var maxTestsPerMethodInRegion by getIntProperty(50)
+
+    /**
+     * Max file length for generated test file
+     */
+    const val DEFAULT_MAX_FILE_SIZE = 1000000
+    var maxTestFileSize by getProperty(DEFAULT_MAX_FILE_SIZE, ::parseFileSize)
+
+
+    fun parseFileSize(s: String): Int {
+        val suffix = StringBuilder()
+        var value = 0
+        for (ch in s) {
+            (ch - '0').let {
+                if (it in 0..9) {
+                    value = value * 10 + it
+                } else suffix.append(ch)
+            }
+        }
+        when (suffix.toString().trim().lowercase()) {
+            "k", "kb" -> value *= 1000
+            "m", "mb" -> value *= 1000000
+        }
+        return if (value > 0) value else DEFAULT_MAX_FILE_SIZE // fallback for incorrect value
+    }
+
+    /**
+     * If this options set in true, all soot classes will be removed from a Soot Scene,
+     * therefore, you will be unable to test soot classes.
+     */
+    var removeSootClassesFromHierarchy by getBooleanProperty(true)
+
+    /**
+     * If this options set in true, all UtBot classes will be removed from a Soot Scene,
+     * therefore, you will be unable to test UtBot classes.
+     */
+    var removeUtBotClassesFromHierarchy by getBooleanProperty(true)
+
+    /**
+     * Use this option to enable calculation and logging of MD5 for dropped states by statistics.
+     * Example of such logging:
+     *     Dropping state (lastStatus=UNDEFINED) by the distance statistics. MD5: 5d0bccc242e87d53578ca0ef64aa5864
+     *
+     * Default value is false.
+     */
+    var enableLoggingForDroppedStates by getBooleanProperty(false)
+
+    /**
+     * If this option set in true, depending on the number of possible types for
+     * a particular object will be used either type system based on conjunction
+     * or on bit vectors.
+     *
+     * @see useBitVecBasedTypeSystem
+     */
+    var useBitVecBasedTypeSystem by getBooleanProperty(true)
+
+    /**
+     * The number of types on which the choice of the type system depends.
+     */
+    var maxTypeNumberForEnumeration by getIntProperty(64)
+
+    /**
+     * The threshold for numbers of types for which they will be encoded into solver.
+     * It is used to do not encode big type storages due to significand performance degradation.
+     */
+    var maxNumberOfTypesToEncode by getIntProperty(512)
 }
 
 /**

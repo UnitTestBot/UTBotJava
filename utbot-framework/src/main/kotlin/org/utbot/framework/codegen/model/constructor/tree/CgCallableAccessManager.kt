@@ -12,9 +12,12 @@ import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.*
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.ReflectionOnly
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.RequiresTypeCast
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.Suitable
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.model.constructor.util.arrayInitializer
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.isUtil
@@ -33,12 +36,12 @@ import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
-import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.canBeReadFrom
+import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -47,10 +50,13 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.exceptions
+import org.utbot.framework.plugin.api.util.extensionReceiverParameterIndex
+import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
@@ -110,7 +116,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
         val resolvedArgs = args.resolve()
         val methodCall = if (method.canBeCalledWith(caller, resolvedArgs)) {
-            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method))
+            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method)).takeCallerFromArgumentsIfNeeded()
         } else {
             method.callWithReflection(caller, resolvedArgs)
         }
@@ -193,6 +199,29 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             this.type isSubtypeOf executable.classId -> true
             else -> false
         }
+
+    /**
+     * For Kotlin extension functions, real caller is one of the arguments in JVM method (and declaration class is omitted),
+     * thus we should move it from arguments to caller
+     *
+     * For example, if we have `Int.f(a: Int)` declared in `Main.kt`, the JVM method signature will be `MainKt.f(Int, Int)`
+     * and in Kotlin we should render this not like `MainKt.f(a, b)` but like `a.f(b)`
+     */
+    private fun CgMethodCall.takeCallerFromArgumentsIfNeeded(): CgMethodCall {
+        if (codegenLanguage == CodegenLanguage.KOTLIN) {
+            // TODO: reflection calls for util and some of mockito methods produce exceptions => here we suppose that
+            //  methods for BuiltinClasses are not extensions by default (which should be true as long as we suppose them to be java methods)
+            if (executableId.classId !is BuiltinClassId) {
+                executableId.extensionReceiverParameterIndex?.let { receiverIndex ->
+                    require(caller == null) { "${executableId.humanReadableName} is an extension function but it already has a non-static caller provided" }
+                    val args = arguments.toMutableList()
+                    return CgMethodCall(args.removeAt(receiverIndex), executableId, args, typeParameters)
+                }
+            }
+        }
+
+        return this
+    }
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
         // TODO: SAT-1210 support generics so that we wouldn't need to check specific cases such as this one
@@ -608,6 +637,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 mapsDeepEqualsMethodId,
                 hasCustomEqualsMethodId,
                 getArrayLengthMethodId,
+                consumeBaseStreamMethodId,
                 getLambdaCapturedArgumentTypesMethodId,
                 getLambdaCapturedArgumentValuesMethodId,
                 getInstantiatedMethodTypeMethodId,

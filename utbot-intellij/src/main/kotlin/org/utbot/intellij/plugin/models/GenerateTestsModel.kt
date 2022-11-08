@@ -67,6 +67,7 @@ data class GenerateTestsModel(
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
+    var runInspectionAfterTestGeneration: Boolean = false
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
@@ -78,14 +79,6 @@ data class GenerateTestsModel(
     }
     var runGeneratedTestsWithCoverage : Boolean = false
     var enableSummariesGeneration : Boolean = true
-
-    val jdkVersion: JavaSdkVersion?
-        get() = try {
-            testModule.jdkVersion()
-        } catch (e: IllegalStateException) {
-            // Just ignore it here, notification will be shown in org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
-            null
-        }
 }
 
 val PsiClass.packageName: String

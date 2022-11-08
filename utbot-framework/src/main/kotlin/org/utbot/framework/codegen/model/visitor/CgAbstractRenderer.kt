@@ -1,22 +1,23 @@
 package org.utbot.framework.codegen.model.visitor
 
 import org.apache.commons.text.StringEscapeUtils
+import org.utbot.common.FileUtil
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.AbstractCgClass
-import org.utbot.framework.codegen.model.tree.AbstractCgClassBody
-import org.utbot.framework.codegen.model.tree.AbstractCgClassFile
+import org.utbot.framework.codegen.model.tree.CgClassFile
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgAssignment
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgBreakStatement
+import org.utbot.framework.codegen.model.tree.CgClass
 import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
 import org.utbot.framework.codegen.model.tree.CgComparison
@@ -37,7 +38,7 @@ import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
 import org.utbot.framework.codegen.model.tree.CgErrorWrapper
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
+import org.utbot.framework.codegen.model.tree.CgMethodsCluster
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgForLoop
@@ -56,13 +57,11 @@ import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.codegen.model.tree.CgMultilineComment
 import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
 import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
+import org.utbot.framework.codegen.model.tree.CgNestedClassesRegion
 import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgRegion
-import org.utbot.framework.codegen.model.tree.CgRegularClass
-import org.utbot.framework.codegen.model.tree.CgRegularClassBody
-import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
@@ -73,8 +72,6 @@ import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
 import org.utbot.framework.codegen.model.tree.CgThisInstance
@@ -114,6 +111,7 @@ internal abstract class CgAbstractRenderer(
 
     protected val regionStart: String = "///region"
     protected val regionEnd: String = "///endregion"
+    protected var isInterrupted = false
 
     protected abstract val language: CodegenLanguage
 
@@ -131,8 +129,13 @@ internal abstract class CgAbstractRenderer(
         }
     }
 
+    /**
+     * Returns true if one can call methods of this class without specifying a caller (for example if ClassId represents this instance)
+     */
+    protected abstract val ClassId.methodsAreAccessibleAsTopLevel: Boolean
+
     private val MethodId.accessibleByName: Boolean
-        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.generatedClass
+        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId.methodsAreAccessibleAsTopLevel
 
     override fun visit(element: CgElement) {
         val error =
@@ -140,47 +143,23 @@ internal abstract class CgAbstractRenderer(
         throw IllegalArgumentException(error)
     }
 
-    override fun visit(element: AbstractCgClassFile<*>) {
+    override fun visit(element: CgClassFile) {
         renderClassPackage(element.declaredClass)
         renderClassFileImports(element)
         element.declaredClass.accept(this)
-    }
-
-    override fun visit(element: CgRegularClassFile) {
-        visit(element as AbstractCgClassFile<*>)
-    }
-
-    override fun visit(element: CgTestClassFile) {
-        visit(element as AbstractCgClassFile<*>)
-    }
-
-    override fun visit(element: CgRegularClass) {
-        visit(element as AbstractCgClass<*>)
-    }
-
-    override fun visit(element: CgTestClass) {
-        visit(element as AbstractCgClass<*>)
-    }
-
-    override fun visit(element: AbstractCgClassBody) {
-        visit(element as CgElement)
-    }
-
-    override fun visit(element: CgRegularClassBody) {
-        val content = element.content
-        for ((index, item) in content.withIndex()) {
-            item.accept(this)
-            println()
-            if (index < content.lastIndex) {
-                println()
-            }
-        }
     }
 
     /**
      * Render the region only if it is not empty.
      */
     override fun visit(element: CgStaticsRegion) {
+        element.render()
+    }
+
+    /**
+     * Render the region only if it is not empty.
+     */
+    override fun visit(element: CgNestedClassesRegion<*>) {
         element.render()
     }
 
@@ -201,7 +180,7 @@ internal abstract class CgAbstractRenderer(
     /**
      * Render the cluster only if it is not empty.
      */
-    override fun visit(element: CgExecutableUnderTestCluster) {
+    override fun visit(element: CgMethodsCluster) {
         // We print the next line after all contained regions to prevent gluing of region ends
         element.render(printLineAfterContentEnd = true)
     }
@@ -210,7 +189,7 @@ internal abstract class CgAbstractRenderer(
      * Renders the region with a specific rendering for [CgTestMethodCluster.description]
      */
     private fun CgRegion<*>.render(printLineAfterContentEnd: Boolean = false) {
-        if (content.isEmpty()) return
+        if (content.isEmpty() || isInterrupted) return
 
         print(regionStart)
         header?.let { print(" $it") }
@@ -218,7 +197,12 @@ internal abstract class CgAbstractRenderer(
 
         if (this is CgTestMethodCluster) description?.accept(this@CgAbstractRenderer)
 
+        var isLimitExceeded = false
         for (method in content) {
+            if (printer.printedLength > UtSettings.maxTestFileSize) {
+                isLimitExceeded = true
+                break
+            }
             println()
             method.accept(this@CgAbstractRenderer)
         }
@@ -226,6 +210,12 @@ internal abstract class CgAbstractRenderer(
         if (printLineAfterContentEnd) println()
 
         println(regionEnd)
+
+        if (isLimitExceeded && !isInterrupted) {
+            visit(CgSingleLineComment("Abrupt generation termination: file size exceeds configured limit (${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())})"))
+            visit(CgSingleLineComment("The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestsFileSize' property"))
+            isInterrupted = true
+        }
     }
 
     override fun visit(element: CgAuxiliaryClass) {
@@ -654,8 +644,10 @@ internal abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgStaticFieldAccess) {
-        print(element.declaringClass.asString())
-        print(".")
+        if (!element.declaringClass.methodsAreAccessibleAsTopLevel) {
+            print(element.declaringClass.asString())
+            print(".")
+        }
         print(element.fieldName)
     }
 
@@ -707,7 +699,10 @@ internal abstract class CgAbstractRenderer(
         if (caller != null) {
             // 'this' can be omitted, otherwise render caller
             if (caller !is CgThisInstance) {
+                // TODO: we need parentheses for calls like (-1).inv(), do something smarter here
+                if (caller !is CgVariable) print("(")
                 caller.accept(this)
+                if (caller !is CgVariable) print(")")
                 renderAccess(caller)
             }
         } else {
@@ -848,14 +843,14 @@ internal abstract class CgAbstractRenderer(
         return if (this.isAccessibleBySimpleName()) simpleNameWithEnclosings else canonicalName
     }
 
-    private fun renderClassPackage(element: AbstractCgClass<*>) {
+    private fun renderClassPackage(element: CgClass) {
         if (element.packageName.isNotEmpty()) {
             println("package ${element.packageName}${statementEnding}")
             println()
         }
     }
 
-    private fun renderClassFileImports(element: AbstractCgClassFile<*>) {
+    private fun renderClassFileImports(element: CgClassFile) {
         val regularImports = element.imports.filterIsInstance<RegularImport>()
         val staticImports = element.imports.filterIsInstance<StaticImport>()
 
@@ -876,7 +871,7 @@ internal abstract class CgAbstractRenderer(
 
     protected abstract fun renderClassVisibility(classId: ClassId)
 
-    protected abstract fun renderClassModality(aClass: AbstractCgClass<*>)
+    protected abstract fun renderClassModality(aClass: CgClass)
 
     private fun renderMethodDocumentation(element: CgMethod) {
         element.documentation.accept(this)

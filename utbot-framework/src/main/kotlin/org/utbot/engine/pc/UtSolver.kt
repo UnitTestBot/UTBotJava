@@ -8,7 +8,7 @@ import org.utbot.common.md5
 import org.utbot.common.trace
 import org.utbot.engine.Eq
 import org.utbot.engine.PrimitiveValue
-import org.utbot.engine.TypeRegistry
+import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
 import org.utbot.engine.pc.UtSolverStatusKind.UNKNOWN
 import org.utbot.engine.pc.UtSolverStatusKind.UNSAT
@@ -151,8 +151,8 @@ data class UtSolver constructor(
     //protection against solver reusage
     private var canBeCloned: Boolean = true
 
-    val rewriter: RewritingVisitor
-        get() = constraints.let { if (it is Query) it.rewriter else RewritingVisitor() }
+    val simplificator: Simplificator
+        get() = constraints.let { if (it is Query) it.simplificator else Simplificator() }
 
     /**
      * Returns the current status of the constraints.

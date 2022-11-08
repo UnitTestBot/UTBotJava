@@ -36,16 +36,15 @@ interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
     fun <R> accept(visitor: CgVisitor<R>): R = visitor.run {
         when (val element = this@CgElement) {
-            is CgRegularClassFile -> visit(element)
             is CgTestClassFile -> visit(element)
-            is CgRegularClass -> visit(element)
-            is CgTestClass -> visit(element)
-            is CgRegularClassBody -> visit(element)
-            is CgTestClassBody -> visit(element)
+            is CgClassFile -> visit(element)
+            is CgClass -> visit(element)
+            is CgClassBody -> visit(element)
             is CgStaticsRegion -> visit(element)
+            is CgNestedClassesRegion<*> -> visit(element)
             is CgSimpleRegion<*> -> visit(element)
             is CgTestMethodCluster -> visit(element)
-            is CgExecutableUnderTestCluster -> visit(element)
+            is CgMethodsCluster -> visit(element)
             is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
@@ -120,31 +119,26 @@ interface CgElement {
 
 // Code entities
 
-sealed class AbstractCgClassFile<T : AbstractCgClass<*>> : CgElement {
-    abstract val imports: List<Import>
-    abstract val declaredClass: T
-}
-
-data class CgRegularClassFile(
-    override val imports: List<Import>,
-    override val declaredClass: CgRegularClass
-) : AbstractCgClassFile<CgRegularClass>()
+open class CgClassFile(
+    open val imports: List<Import>,
+    open val declaredClass: CgClass,
+): CgElement
 
 data class CgTestClassFile(
     override val imports: List<Import>,
-    override val declaredClass: CgTestClass,
+    override val declaredClass: CgClass,
     val testsGenerationReport: TestsGenerationReport
-) : AbstractCgClassFile<CgTestClass>()
+) : CgClassFile(imports, declaredClass)
 
-sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
-    abstract val id: ClassId
-    abstract val annotations: List<CgAnnotation>
-    abstract val superclass: ClassId?
-    abstract val interfaces: List<ClassId>
-    abstract val body: T
-    abstract val isStatic: Boolean
-    abstract val isNested: Boolean
-
+class CgClass(
+    val id: ClassId,
+    val annotations: List<CgAnnotation>,
+    val superclass: ClassId?,
+    val interfaces: List<ClassId>,
+    val body: CgClassBody,
+    val isStatic: Boolean,
+    val isNested: Boolean,
+): CgElement {
     val packageName
         get() = id.packageName
 
@@ -153,56 +147,21 @@ sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
 }
 
 /**
- * This class represents any class that we may want to generate other than the test class.
- * At the moment the only such case is the generation of util class UtUtils.
- *
- * The difference with [CgTestClass] is in the body.
- * The structure of a test class body is fixed (we know what it should contain),
- * whereas an arbitrary class could contain anything.
- * For example, the body of UtUtils class contains a comment with information
- * about the version of UTBot it was generated with, and all the util methods.
- *
- * @see CgUtilClassConstructor
- */
-class CgRegularClass(
-    override val id: ClassId,
-    override val annotations: List<CgAnnotation>,
-    override val superclass: ClassId?,
-    override val interfaces: List<ClassId>,
-    override val body: CgRegularClassBody,
-    override val isStatic: Boolean,
-    override val isNested: Boolean
-) : AbstractCgClass<CgRegularClassBody>()
-
-data class CgTestClass(
-    override val id: ClassId,
-    override val annotations: List<CgAnnotation>,
-    override val superclass: ClassId?,
-    override val interfaces: List<ClassId>,
-    override val body: CgTestClassBody,
-    override val isStatic: Boolean,
-    override val isNested: Boolean
-) : AbstractCgClass<CgTestClassBody>()
-
-
-sealed class AbstractCgClassBody : CgElement
-
-data class CgRegularClassBody(val content: List<CgElement>) : AbstractCgClassBody()
-
-/**
- * Body of the test class.
- * @property testMethodRegions regions containing the test methods
+ * Body of a class.
+ * @property methodRegions regions containing methods
  * @property staticDeclarationRegions regions containing static declarations.
  * This is usually util methods and data providers.
  * In Kotlin all static declarations must be grouped together in a companion object.
  * In Java there is no such restriction, but for uniformity we are grouping
  * Java static declarations together as well. It can also improve code readability.
  */
-data class CgTestClassBody(
-    val testMethodRegions: List<CgExecutableUnderTestCluster>,
+class CgClassBody(
+    val classId: ClassId,
+    val documentation: CgDocumentationComment?,
+    val methodRegions: List<CgMethodsCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
-    val nestedClassRegions: List<CgRegion<CgTestClass>>
-) : AbstractCgClassBody()
+    val nestedClassRegions: List<CgNestedClassesRegion<*>>
+) : CgElement
 
 /**
  * A class representing the IntelliJ IDEA's regions.
@@ -223,13 +182,30 @@ open class CgSimpleRegion<T : CgElement>(
 /**
  * A region that stores some static declarations, e.g. data providers or util methods.
  * There may be more than one static region in a class and they all are stored
- * in a [CgTestClassBody.staticDeclarationRegions].
+ * in a [CgClassBody.staticDeclarationRegions].
  * In case of Kotlin, they all will be rendered inside of a companion object.
  */
 class CgStaticsRegion(
     override val header: String?,
     override val content: List<CgElement>
 ) : CgSimpleRegion<CgElement>(header, content)
+
+/**
+ * A region that stores all nested classes
+ */
+abstract class CgNestedClassesRegion<T: CgElement>(
+    override val header: String?,
+    override val content: List<T>,
+): CgRegion<T>()
+
+class CgRealNestedClassesRegion(header: String? = null, nestedClasses: List<CgClass>):
+    CgNestedClassesRegion<CgClass>(header, nestedClasses)
+
+/**
+ * Regions with nested classes that are represented with [CgAuxiliaryClass], not [CgClass].
+ */
+class CgAuxiliaryNestedClassesRegion(header: String? = null, nestedClasses: List<CgAuxiliaryClass>):
+    CgNestedClassesRegion<CgAuxiliaryClass>(header, nestedClasses)
 
 data class CgTestMethodCluster(
     override val header: String?,
@@ -238,9 +214,10 @@ data class CgTestMethodCluster(
 ) : CgRegion<CgTestMethod>()
 
 /**
- * Stores all clusters (ERROR, successful, timeouts, etc.) for executable under test.
+ * Stores all methods as one cluster
+ * (for e.g. in test class we can store all tests for one executable in such cluster)
  */
-data class CgExecutableUnderTestCluster(
+data class CgMethodsCluster(
     override val header: String?,
     override val content: List<CgRegion<CgMethod>>
 ) : CgRegion<CgRegion<CgMethod>>()
@@ -709,7 +686,6 @@ class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId
         get() = when (val expressionType = expression.type) {
             is BuiltinClassId -> BuiltinClassId(
-                name = expressionType.name,
                 canonicalName = expressionType.canonicalName,
                 simpleName = expressionType.simpleName,
                 isNullable = false,

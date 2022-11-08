@@ -17,7 +17,7 @@ import org.utbot.summary.analysis.ExecutionStructureAnalysis
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.ast.SourceCodeParser
 import org.utbot.summary.comment.cluster.SymbolicExecutionClusterCommentBuilder
-import org.utbot.summary.comment.SimpleCommentBuilder
+import org.utbot.summary.comment.classic.symbolic.SimpleCommentBuilder
 import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
 import java.nio.file.Path
@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtSandboxFailure
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.jClass
@@ -69,7 +70,10 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
 }
 
 fun UtMethodTestSet.summarize(searchDirectory: Path): UtMethodTestSet =
-    this.summarize(Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory), searchDirectory)
+    this.summarize(
+        Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory),
+        searchDirectory
+    )
 
 
 class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
@@ -244,12 +248,13 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 utExecution.summary = testMethodName?.javaDoc
 
                 when (utExecution.result) {
-                    is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtExplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtImplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtOverflowFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtSandboxFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
-                    is UtTimeoutException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtConcreteExecutionFailure,
+                    is UtExplicitlyThrownException,
+                    is UtImplicitlyThrownException,
+                    is UtOverflowFailure,
+                    is UtSandboxFailure,
+                    is UtTimeoutException,
+                    is UtStreamConsumingFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
                     is UtExecutionSuccess -> successfulFuzzerExecutions.add(utExecution)
                 }
             }
@@ -324,32 +329,34 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         )
     }
 
-    /*
-    * asts of invokes also included
-    * */
+    /** ASTs of invokes are also included. */
     private fun sootToAST(
         testSet: UtMethodTestSet
     ): MutableMap<SootMethod, JimpleToASTMap>? {
         val sootToAST = mutableMapOf<SootMethod, JimpleToASTMap>()
         val jimpleBody = testSet.jimpleBody
         if (jimpleBody == null) {
-            logger.info { "No jimple body of method under test" }
-            return null
-        }
-        val methodUnderTestAST = sourceFile?.let {
-            SourceCodeParser(it, testSet).methodAST
-        }
-
-        if (methodUnderTestAST == null) {
-            logger.info { "Couldn't parse source file of method under test" }
+            logger.debug { "No jimple body of method under test ${testSet.method.name}." }
             return null
         }
 
-        sootToAST[jimpleBody.method] = JimpleToASTMap(jimpleBody.units, methodUnderTestAST)
-        invokeDescriptions.forEach {
-            sootToAST[it.sootMethod] = JimpleToASTMap(it.sootMethod.jimpleBody().units, it.ast)
+        if (sourceFile != null && sourceFile.exists()) {
+            val methodUnderTestAST = SourceCodeParser(sourceFile, testSet).methodAST
+
+            if (methodUnderTestAST == null) {
+                logger.debug { "Couldn't parse source file with path ${sourceFile.absolutePath} of method under test ${testSet.method.name}." }
+                return null
+            }
+
+            sootToAST[jimpleBody.method] = JimpleToASTMap(jimpleBody.units, methodUnderTestAST)
+            invokeDescriptions.forEach {
+                sootToAST[it.sootMethod] = JimpleToASTMap(it.sootMethod.jimpleBody().units, it.ast)
+            }
+            return sootToAST
+        } else {
+            logger.debug { "Couldn't find source file of method under test ${testSet.method.name}." }
+            return null
         }
-        return sootToAST
     }
 }
 
@@ -384,6 +391,7 @@ private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
 private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path): List<InvokeDescription> {
     val sootInvokes =
         testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path.invokeJimpleMethods() }.toSet()
+
     return sootInvokes
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }
@@ -393,10 +401,15 @@ private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path):
                 sootMethod.declaringClass.javaPackageName.replace(".", File.separator),
                 searchDirectory
             )
-            val ast = methodFile?.let {
-                SourceCodeParser(sootMethod, it).methodAST
+
+            if (methodFile != null && methodFile.exists()) {
+                val ast = methodFile.let {
+                    SourceCodeParser(sootMethod, it).methodAST
+                }
+                if (ast != null) InvokeDescription(sootMethod, ast) else null
+            } else {
+                null
             }
-            if (ast != null) InvokeDescription(sootMethod, ast) else null
         }
 }
 

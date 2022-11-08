@@ -7,10 +7,10 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 
 // TODO failed Kotlin compilation SAT-1332
 class MapEntrySetTest : UtValueTestCaseChecker(
@@ -152,7 +152,7 @@ class MapEntrySetTest : UtValueTestCaseChecker(
         withPushingStateFromPathSelectorForConcrete {
             checkWithException(
                 MapEntrySet::iterateWithIterator,
-                eq(6),
+                ignoreExecutionsNumber,
                 { map, result -> map == null && result.isException<NullPointerException>() },
                 { map, result -> map.isEmpty() && result.getOrThrow().contentEquals(intArrayOf(0, 0)) },
                 { map, result -> map.size % 2 == 1 && result.isException<NoSuchElementException>() },

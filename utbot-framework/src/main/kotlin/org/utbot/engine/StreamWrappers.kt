@@ -18,16 +18,20 @@ import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.doubleStreamClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.intStreamClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.longArrayClassId
 import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.longStreamClassId
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.streamClassId
 import org.utbot.framework.util.nextModelName
 
 /**
@@ -58,10 +62,10 @@ enum class UtStreamClass {
 
     val overriddenStreamClassId: ClassId
         get() = when (this) {
-            UT_STREAM -> java.util.stream.Stream::class.java.id
-            UT_INT_STREAM -> java.util.stream.IntStream::class.java.id
-            UT_LONG_STREAM -> java.util.stream.LongStream::class.java.id
-            UT_DOUBLE_STREAM -> java.util.stream.DoubleStream::class.java.id
+            UT_STREAM -> streamClassId
+            UT_INT_STREAM -> intStreamClassId
+            UT_LONG_STREAM -> longStreamClassId
+            UT_DOUBLE_STREAM -> doubleStreamClassId
         }
 }
 

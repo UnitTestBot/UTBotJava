@@ -1,16 +1,19 @@
 package org.utbot.engine
 
-import org.utbot.common.WorkaroundReason
-import org.utbot.common.workaround
-import org.utbot.engine.TypeRegistry.Companion.objectTypeStorage
+import org.utbot.api.mock.UtMock
+import org.utbot.engine.overrides.UtOverrideMock
+import org.utbot.engine.types.TypeRegistry.Companion.objectTypeStorage
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
+import org.utbot.engine.pc.UtFalse
 import org.utbot.engine.pc.UtInstanceOfExpression
 import org.utbot.engine.pc.UtIsExpression
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkOr
+import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.symbolic.*
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtInstrumentation
 import soot.RefType
@@ -83,22 +86,25 @@ inline fun <R> SymbolicFailure.fold(
 data class Parameter(private val localVariable: LocalVariable, private val type: Type, val value: SymbolicValue)
 
 /**
- * Keeps most common type and possible types, to resolve types in uncertain situations, like virtual invokes.
+ * Contains type information about some object: set of its [possibleConcreteTypes] and their [leastCommonType].
+ * Note that in some situations [leastCommonType] will not present in [possibleConcreteTypes] set, and
+ * it should not be used to encode this type information into a solver.
  *
  * Note: [leastCommonType] might be an interface or abstract type in opposite to the [possibleConcreteTypes]
  * that **usually** contains only concrete types (so-called appropriate). The only way to create [TypeStorage] with
- * inappropriate possibleType is to create it using constructor with the only type.
+ * inappropriate possibleType is to create it using static methods [constructTypeStorageUnsafe] and
+ * [constructTypeStorageWithSingleType].
+ *
+ * The right way to create an instance of TypeStorage is to use methods provided by [TypeResolver], e.g.,
+ * [TypeResolver.constructTypeStorage].
  *
  * @see isAppropriate
+ * @see TypeResolver.constructTypeStorage
  */
-data class TypeStorage(val leastCommonType: Type, val possibleConcreteTypes: Set<Type>) {
+class TypeStorage private constructor(val leastCommonType: Type, val possibleConcreteTypes: Set<Type>) {
     private val hashCode = Objects.hash(leastCommonType, possibleConcreteTypes)
 
-    /**
-     * Construct a type storage with some type. In this case [possibleConcreteTypes] might contains
-     * abstract class or interface. Usually it means such typeStorage represents wrapper object type.
-     */
-    constructor(concreteType: Type) : this(concreteType, setOf(concreteType))
+    private constructor(concreteType: Type) : this(concreteType, setOf(concreteType))
 
     fun isObjectTypeStorage(): Boolean = possibleConcreteTypes.size == objectTypeStorage.possibleConcreteTypes.size
 
@@ -121,6 +127,32 @@ data class TypeStorage(val leastCommonType: Type, val possibleConcreteTypes: Set
     } else {
         "(leastCommonType=$leastCommonType, ${possibleConcreteTypes.size} possibleTypes=${possibleConcreteTypes.take(10)})"
     }
+
+    operator fun component1(): Type = leastCommonType
+    operator fun component2(): Set<Type> = possibleConcreteTypes
+
+    companion object {
+        /**
+         * Constructs a type storage with particular leastCommonType and set of possibleConcreteTypes.
+         * This method doesn't give any guarantee on correctness of the constructed type storage and
+         * should not be used directly except the situations where you want to create abnormal type storage,
+         * for example, a one that contains interfaces in [possibleConcreteTypes].
+         *
+         * In regular cases you should use [TypeResolver.constructTypeStorage] method instead.
+         */
+        fun constructTypeStorageUnsafe(
+            leastCommonType: Type,
+            possibleConcreteTypes: Set<Type>
+        ): TypeStorage = TypeStorage(leastCommonType, possibleConcreteTypes)
+
+        /**
+         * Constructs a type storage with some type. In this case [possibleConcreteTypes] might contain
+         * an abstract class or an interface. Usually it means such typeStorage represents wrapper object type.
+         */
+        fun constructTypeStorageWithSingleType(
+            leastCommonType: Type
+        ): TypeStorage = TypeStorage(leastCommonType)
+    }
 }
 
 sealed class InvokeResult
@@ -129,8 +161,6 @@ data class MethodResult(
     val symbolicResult: SymbolicResult,
     val symbolicStateUpdate: SymbolicStateUpdate = SymbolicStateUpdate()
 ) : InvokeResult() {
-    val memoryUpdates by symbolicStateUpdate::memoryUpdates
-
     constructor(
         symbolicResult: SymbolicResult,
         hardConstraints: HardConstraint = emptyHardConstraint(),
@@ -281,7 +311,16 @@ data class TypeConstraint(
     /**
      * Returns a conjunction of the [isConstraint] and [correctnessConstraint]. Suitable for an object creation.
      */
-    fun all(): UtBoolExpression = mkAnd(isOrNullConstraint(), correctnessConstraint)
+    fun all(): UtBoolExpression {
+        // There is no need in constraint for UtMock and UtOverrideMock instances
+        val sootClass = (isConstraint.type as? RefType)?.sootClass
+
+        if (sootClass == utMockClass || sootClass == utOverrideMockClass) {
+            return UtTrue
+        }
+
+        return mkAnd(isOrNullConstraint(), correctnessConstraint)
+    }
 
     /**
      * Returns a condition that either the object is an instance of the types in [isConstraint], or it is null.
@@ -293,7 +332,13 @@ data class TypeConstraint(
      * For example, it is suitable for instanceof checks or negation of equality with some types.
      * NOTE: for Object we always return UtTrue.
      */
-    fun isConstraint(): UtBoolExpression = if (isConstraint.typeStorage.isObjectTypeStorage()) UtTrue else isConstraint
+    fun isConstraint(): UtBoolExpression {
+        if (isConstraint.typeStorage.possibleConcreteTypes.isEmpty()) {
+            return UtFalse
+        }
+
+        return if (isConstraint.typeStorage.isObjectTypeStorage()) UtTrue else isConstraint
+    }
 
     override fun hashCode(): Int = this.hashcode
 
@@ -318,3 +363,6 @@ data class TypeConstraint(
  * should be initialized. We don't need to initialize fields that are not accessed in the method being tested.
  */
 data class InstanceFieldReadOperation(val addr: UtAddrExpression, val fieldId: FieldId)
+
+private val utMockClassName: String = UtMock::class.java.name
+private val utOverrideMockClassName: String = UtOverrideMock::class.java.name

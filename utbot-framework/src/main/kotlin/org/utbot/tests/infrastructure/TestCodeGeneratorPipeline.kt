@@ -12,7 +12,7 @@ import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.CodeGeneratorResult
 import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
@@ -171,7 +171,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     }
 
     private fun UtilClassKind.writeUtilClassToFile(buildDirectory: Path, language: CodegenLanguage): File {
-        val utilClassFile = File(buildDirectory.toFile(), "$UT_UTILS_CLASS_NAME${language.extension}")
+        val utilClassFile = File(buildDirectory.toFile(), "$UT_UTILS_INSTANCE_NAME${language.extension}")
         val utilClassText = getUtilClassText(language)
         return writeFile(utilClassText, utilClassFile)
     }
@@ -260,24 +260,26 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     ): CodeGeneratorResult {
         val params = mutableMapOf<ExecutableId, List<String>>()
 
-        val codeGenerator = with(testFrameworkConfiguration) {
-            CodeGenerator(
-                classUnderTest.id,
-                generateUtilClassFile = generateUtilClassFile,
-                paramNames = params,
-                testFramework = testFramework,
-                staticsMocking = staticsMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = false,
-                codegenLanguage = codegenLanguage,
-                parameterizedTestSource = parametrizedTestSource,
-                runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-                enableTestsTimeout = enableTestsTimeout
-            )
-        }
-        val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
+        withUtContext(UtContext(classUnderTest.java.classLoader)) {
+            val codeGenerator = with(testFrameworkConfiguration) {
+                CodeGenerator(
+                    classUnderTest.id,
+                    generateUtilClassFile = generateUtilClassFile,
+                    paramNames = params,
+                    testFramework = testFramework,
+                    staticsMocking = staticsMocking,
+                    forceStaticMocking = forceStaticMocking,
+                    generateWarningsForStaticMocking = false,
+                    codegenLanguage = codegenLanguage,
+                    parameterizedTestSource = parametrizedTestSource,
+                    runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+                    enableTestsTimeout = enableTestsTimeout
+                )
+            }
+            val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        return codeGenerator.generateAsStringWithTestReport(testSets, testClassCustomName)
+            return codeGenerator.generateAsStringWithTestReport(testSets, testClassCustomName)
+        }
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {

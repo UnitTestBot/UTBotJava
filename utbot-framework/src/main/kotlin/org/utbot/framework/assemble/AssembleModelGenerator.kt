@@ -36,7 +36,10 @@ import org.utbot.framework.plugin.api.hasDefaultValue
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.isFinal
+import org.utbot.framework.plugin.api.util.isPrivate
+import org.utbot.framework.plugin.api.util.isPublic
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import java.lang.reflect.Constructor
@@ -251,25 +254,27 @@ class AssembleModelGenerator(private val basePackageName: String) {
                 instantiatedModels[compositeModel] = this
 
                 compositeModel.fields.forEach { (fieldId, fieldModel) ->
+                    //if field value has been filled by constructor or it is default, we suppose that it is already properly initialized
+                    if ((fieldId in constructorInfo.setFields || fieldModel.hasDefaultValue()) && fieldId !in constructorInfo.affectedFields)
+                        return@forEach
+
                     if (fieldId.isStatic) {
                         throw AssembleException("Static field $fieldId can't be set in an object of the class $classId")
                     }
-                    if (fieldId.isFinal) {
-                        throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
-                    }
+
                     if (!fieldId.type.isAccessibleFrom(basePackageName)) {
                         throw AssembleException(
                             "Field $fieldId can't be set in an object of the class $classId because its type is inaccessible"
                         )
                     }
-                    //fill field value if it hasn't been filled by constructor, and it is not default
-                    if (fieldId in constructorInfo.affectedFields ||
-                            (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
-                    ) {
-                        val assembledModel = assembleModel(fieldModel)
-                        val modifierCall = modifierCall(this, fieldId, assembledModel)
-                        callChain.add(modifierCall)
+
+                    if (fieldId.isFinal) {
+                        throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
                     }
+
+                    val assembledModel = assembleModel(fieldModel)
+                    val modifierCall = modifierCall(this, fieldId, assembledModel)
+                    callChain.add(modifierCall)
                 }
 
                 callChain.toList()

@@ -8,13 +8,11 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -25,6 +23,8 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
@@ -32,7 +32,6 @@ import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.api.withReflection
 import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -139,7 +138,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         arguments: ArgumentList,
         parameters: Any?
     ): UtConcreteExecutionResult {
-        withReflection {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
         }
@@ -193,7 +191,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
                 utModelConstructor.run {
                     val concreteUtModelResult = concreteResult.fold({
-                        UtExecutionSuccess(construct(it, returnClassId))
+                        try {
+                            val model = construct(it, returnClassId)
+                            UtExecutionSuccess(model)
+                        } catch (e: Exception) {
+                            processExceptionDuringModelConstruction(e)
+                        }
                     }) {
                         sortOutException(it)
                     }
@@ -232,8 +235,13 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
             concreteExecutionResult
         }
-        }
     }
+
+    private fun processExceptionDuringModelConstruction(e: Exception): UtExecutionResult =
+        when (e) {
+            is UtStreamConsumingException -> UtStreamConsumingFailure(e)
+            else -> throw e
+        }
 
     override fun getStaticField(fieldId: FieldId): Result<UtModel> =
         delegateInstrumentation.getStaticField(fieldId).map { value ->

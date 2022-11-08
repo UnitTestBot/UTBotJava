@@ -32,51 +32,18 @@ data class CgMethodTestSet private constructor(
         executions = from.executions
     }
 
-    /**
-     * Splits [CgMethodTestSet] into separate test sets having
-     * unique result model [ClassId] in each subset.
-     */
-    fun splitExecutionsByResult() : List<CgMethodTestSet> {
-        val successfulExecutions = executions.filter { it.result is UtExecutionSuccess }
-        val failureExecutions = executions.filter { it.result is UtExecutionFailure }
+    fun prepareTestSetsForParameterizedTestGeneration(): List<CgMethodTestSet> {
+        val testSetList = mutableListOf<CgMethodTestSet>()
 
-        val executionsByResult: MutableMap<ClassId, List<UtExecution>> =
-            successfulExecutions
-                .groupBy { (it.result as UtExecutionSuccess).model.classId }.toMutableMap()
-
-        // if we have failure executions, we add them to the first successful executions group
-        val groupClassId = executionsByResult.keys.firstOrNull()
-        if (groupClassId != null) {
-            executionsByResult[groupClassId] = executionsByResult[groupClassId]!! + failureExecutions
-        } else {
-            executionsByResult[objectClassId] = failureExecutions
+        // Mocks are not supported in parametrized tests, so we exclude them
+        val testSetWithoutMocking = this.excludeExecutionsWithMocking()
+        for (splitByExecutionTestSet in testSetWithoutMocking.splitExecutionsByResult()) {
+            for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
+                testSetList += splitByChangedStaticsTestSet
+            }
         }
 
-        return executionsByResult.map{ (_, executions) -> substituteExecutions(executions) }
-    }
-
-    /**
-     * Splits [CgMethodTestSet] test sets by affected static fields statics.
-     *
-     * A separate test set is created for each combination of modified statics.
-     */
-    fun splitExecutionsByChangedStatics(): List<CgMethodTestSet> {
-        val executionsByStaticsUsage: Map<Set<FieldId>, List<UtExecution>> =
-            executions.groupBy { it.stateBefore.statics.keys }
-
-        return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
-    }
-
-    /*
-    * Excludes executions with mocking from [CgMethodTestSet].
-    * */
-    fun excludeExecutionsWithMocking(): CgMethodTestSet {
-        val fuzzedExecutions = executions.filterIsInstance<UtFuzzedExecution>()
-        val symbolicExecutionsWithoutMocking = executions
-            .filterIsInstance<UtSymbolicExecution>()
-            .filter { !it.containsMocking }
-
-        return substituteExecutions(symbolicExecutionsWithoutMocking + fuzzedExecutions)
+        return testSetList
     }
 
     /**
@@ -101,6 +68,56 @@ data class CgMethodTestSet private constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Splits [CgMethodTestSet] into separate test sets having
+     * unique result model [ClassId] in each subset.
+     */
+    private fun splitExecutionsByResult() : List<CgMethodTestSet> {
+        val successfulExecutions = executions.filter { it.result is UtExecutionSuccess }
+        val failureExecutions = executions.filter { it.result is UtExecutionFailure }
+
+        val executionsByResult: MutableMap<ClassId, List<UtExecution>> =
+            successfulExecutions
+                .groupBy { (it.result as UtExecutionSuccess).model.classId }.toMutableMap()
+
+        // if we have failure executions, we add them to the first successful executions group
+        val groupClassId = executionsByResult.keys.firstOrNull()
+        if (groupClassId != null) {
+            executionsByResult[groupClassId] = executionsByResult[groupClassId]!! + failureExecutions
+        } else {
+            executionsByResult[objectClassId] = failureExecutions
+        }
+
+        return executionsByResult.map{ (_, executions) -> substituteExecutions(executions) }
+    }
+
+    /**
+     * Splits [CgMethodTestSet] test sets by affected static fields statics.
+     *
+     * A separate test set is created for each combination of modified statics.
+     */
+    private fun splitExecutionsByChangedStatics(): List<CgMethodTestSet> {
+        val executionsByStaticsUsage: Map<Set<FieldId>, List<UtExecution>> =
+            executions.groupBy { it.stateBefore.statics.keys }
+
+        return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
+    }
+
+    /**
+     * Excludes [UtFuzzedExecution] and [UtSymbolicExecution] with mocking from [CgMethodTestSet].
+     *
+     * It is used in parameterized test generation.
+     * We exclude them because we cannot track force mocking occurrences in fuzzing process
+     * and cannot deal with mocking in parameterized mode properly.
+     */
+    private fun excludeExecutionsWithMocking(): CgMethodTestSet {
+        val symbolicExecutionsWithoutMocking = executions
+            .filterIsInstance<UtSymbolicExecution>()
+            .filter { !it.containsMocking }
+
+        return substituteExecutions(symbolicExecutionsWithoutMocking)
     }
 
     private fun substituteExecutions(newExecutions: List<UtExecution>): CgMethodTestSet =

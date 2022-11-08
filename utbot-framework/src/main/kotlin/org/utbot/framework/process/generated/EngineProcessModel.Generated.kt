@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:30]
+ * #### Generated from [EngineProcessModel.kt:31]
  */
 class EngineProcessModel private constructor(
     private val _setupUtContext: RdCall<SetupContextParams, Unit>,
@@ -180,7 +180,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:99]
+ * #### Generated from [EngineProcessModel.kt:100]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -243,7 +243,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:103]
+ * #### Generated from [EngineProcessModel.kt:104]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -300,7 +300,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:92]
+ * #### Generated from [EngineProcessModel.kt:93]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -363,7 +363,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:96]
+ * #### Generated from [EngineProcessModel.kt:97]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -420,7 +420,7 @@ data class FindMethodsInClassMatchingSelectedResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:42]
+ * #### Generated from [EngineProcessModel.kt:43]
  */
 data class GenerateParams (
     val mockInstalled: Boolean,
@@ -543,7 +543,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:60]
+ * #### Generated from [EngineProcessModel.kt:61]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -606,7 +606,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:111]
+ * #### Generated from [EngineProcessModel.kt:112]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -699,7 +699,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:120]
+ * #### Generated from [EngineProcessModel.kt:121]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -768,7 +768,7 @@ data class GenerateTestReportResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:31]
+ * #### Generated from [EngineProcessModel.kt:32]
  */
 data class JdkInfo (
     val path: String,
@@ -831,7 +831,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:64]
+ * #### Generated from [EngineProcessModel.kt:65]
  */
 data class RenderParams (
     val testSetsId: Long,
@@ -972,7 +972,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:81]
+ * #### Generated from [EngineProcessModel.kt:82]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1035,7 +1035,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:85]
+ * #### Generated from [EngineProcessModel.kt:86]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1092,7 +1092,7 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:88]
+ * #### Generated from [EngineProcessModel.kt:89]
  */
 data class Signature (
     val name: String,
@@ -1155,7 +1155,7 @@ data class Signature (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:36]
+ * #### Generated from [EngineProcessModel.kt:37]
  */
 data class TestGeneratorParams (
     val buildDir: Array<String>,
@@ -1230,7 +1230,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:106]
+ * #### Generated from [EngineProcessModel.kt:107]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

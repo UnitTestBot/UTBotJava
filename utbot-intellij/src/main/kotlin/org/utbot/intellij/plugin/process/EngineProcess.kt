@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
+import org.utbot.framework.UtSettings.runIdeaProcessWithDebug
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.plugin.api.*
@@ -29,7 +30,6 @@ import org.utbot.framework.process.generated.*
 import org.utbot.framework.process.generated.Signature
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
-import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
@@ -96,7 +96,7 @@ class EngineProcess(parent: Lifetime, val project: Project) {
     }
 
     private fun debugArgument(): String {
-        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf { Settings.runIdeaProcessWithDebug }
+        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf { runIdeaProcessWithDebug }
             ?: ""
     }
 

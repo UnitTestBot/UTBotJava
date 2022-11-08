@@ -2,18 +2,20 @@ package org.utbot.summary
 
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.isCheckedException
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.UtSummarySettings.MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING
 import org.utbot.summary.clustering.MatrixUniqueness
 import org.utbot.summary.clustering.SplitSteps
@@ -29,7 +31,7 @@ class TagGenerator {
 
         if (clusteredExecutions.isNotEmpty()) {
             val listOfSplitSteps = clusteredExecutions.map {
-                val mUniqueness = MatrixUniqueness(it.executions)
+                val mUniqueness = MatrixUniqueness(it.executions as List<UtSymbolicExecution>)
                 mUniqueness.splitSteps()
             }
 
@@ -64,7 +66,7 @@ class TagGenerator {
                 traceTagClusters.add(
                     TraceTagCluster(
                         cluster.header,
-                        generateExecutionTags(cluster.executions, splitSteps),
+                        generateExecutionTags(cluster.executions as List<UtSymbolicExecution>, splitSteps),
                         TraceTagWithoutExecution(
                             commonStepsInCluster.toList(),
                             cluster.executions.first().result,
@@ -88,17 +90,14 @@ private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSt
 
 
 /**
- * Splits executions into clusters
- * By default there is 5 types of clusters:
- *      Success, UnexpectedFail, ExpectedCheckedThrow, ExpectedUncheckedThrow, UnexpectedUncheckedThrow
- *      These are split by the type of execution result
+ * Splits executions with empty paths into clusters.
  *
- * @return clustered executions
+ * @return clustered executions.
  */
 fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
-    val commentPrefix =  "OTHER:"
+    val commentPrefix = "OTHER:"
     val commentPostfix = "for method ${testSet.method.humanReadableName}"
 
     val grouped = methodExecutions.groupBy { it.result.clusterKind() }
@@ -106,33 +105,52 @@ fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionClust
     val successfulExecutions = grouped[ExecutionGroup.SUCCESSFUL_EXECUTIONS] ?: emptyList()
     if (successfulExecutions.isNotEmpty()) {
         clusters += SuccessfulExecutionCluster(
-                    "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix",
-                    successfulExecutions.toList())
+            "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix",
+            successfulExecutions.toList()
+        )
     }
 
-    clusters += grouped
-        .filterNot { (kind, _) -> kind == ExecutionGroup.SUCCESSFUL_EXECUTIONS }
-        .map { (suffixId, group) ->
-            FailedExecutionCluster("$commentPrefix ${suffixId.displayName} $commentPostfix", group)
-        }
+    clusters += addClustersOfFailedExecutions(grouped, commentPrefix, commentPostfix)
     return clusters
 }
 
 /**
- * Splits executions produced by symbolic execution engine into clusters
- * By default there is 5 types of clusters:
- *      Success, UnexpectedFail, ExpectedCheckedThrow, ExpectedUncheckedThrow, UnexpectedUncheckedThrow
- *      These are split by the type of execution result
+ * Splits fuzzed executions into clusters.
  *
- * If Success cluster has more than MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING execution
- * then clustering algorithm splits those into more clusters
+ * @return clustered executions.
+ */
+fun groupFuzzedExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
+    val methodExecutions = testSet.executions.filterIsInstance<UtFuzzedExecution>()
+    val clusters = mutableListOf<ExecutionCluster>()
+    val commentPrefix = "FUZZER:"
+    val commentPostfix = "for method ${testSet.method.humanReadableName}"
+
+    val grouped = methodExecutions.groupBy { it.result.clusterKind() }
+
+    val successfulExecutions = grouped[ExecutionGroup.SUCCESSFUL_EXECUTIONS] ?: emptyList()
+    if (successfulExecutions.isNotEmpty()) {
+        clusters += SuccessfulExecutionCluster(
+            "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix",
+            successfulExecutions.toList()
+        )
+    }
+
+    clusters += addClustersOfFailedExecutions(grouped, commentPrefix, commentPostfix)
+    return clusters
+}
+
+/**
+ * Splits symbolic executions into clusters.
  *
- * @return clustered executions
+ * If Success cluster has more than [MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING] execution
+ * then clustering algorithm splits those into more clusters.
+ *
+ * @return clustered executions.
  */
 private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
-    val commentPrefix =  "SYMBOLIC EXECUTION:"
+    val commentPrefix = "SYMBOLIC EXECUTION:"
     val commentPostfix = "for method ${testSet.method.humanReadableName}"
 
     val grouped = methodExecutions.groupBy { it.result.clusterKind() }
@@ -161,11 +179,21 @@ private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster
         }
     }
 
-    clusters += grouped
+    clusters += addClustersOfFailedExecutions(grouped, commentPrefix, commentPostfix)
+    return clusters
+}
+
+private fun addClustersOfFailedExecutions(
+    grouped: Map<ExecutionGroup, List<UtExecution>>,
+    commentPrefix: String,
+    commentPostfix: String
+): List<FailedExecutionCluster> {
+    val clusters = grouped
         .filterNot { (kind, _) -> kind == ExecutionGroup.SUCCESSFUL_EXECUTIONS }
         .map { (suffixId, group) ->
-        FailedExecutionCluster("$commentPrefix ${suffixId.displayName} $commentPostfix", group)
-    }
+            FailedExecutionCluster("$commentPrefix ${suffixId.displayName} $commentPostfix", group)
+        }
+
     return clusters
 }
 
@@ -197,18 +225,18 @@ private fun UtExecutionResult.clusterKind() = when (this) {
 /**
  * Structure used to represent execution cluster with header
  */
-sealed class ExecutionCluster(var header: String, val executions: List<UtSymbolicExecution>)
+sealed class ExecutionCluster(var header: String, val executions: List<UtExecution>)
 
 /**
  * Represents successful execution cluster
  */
-private class SuccessfulExecutionCluster(header: String, executions: List<UtSymbolicExecution>) :
+private class SuccessfulExecutionCluster(header: String, executions: List<UtExecution>) :
     ExecutionCluster(header, executions)
 
 /**
  * Represents failed execution cluster
  */
-private class FailedExecutionCluster(header: String, executions: List<UtSymbolicExecution>) :
+private class FailedExecutionCluster(header: String, executions: List<UtExecution>) :
     ExecutionCluster(header, executions)
 
 /**

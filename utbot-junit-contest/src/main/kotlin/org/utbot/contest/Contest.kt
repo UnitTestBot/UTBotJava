@@ -290,7 +290,7 @@ fun runGeneration(
                     UtSettings.fuzzingTimeoutInMillis = (budgetForMethod * fuzzingRatio).toLong()
 
                     //start controller that will activate symbolic execution
-                    GlobalScope.launch {
+                    GlobalScope.launch(currentContext) {
                         delay(budgetForSymbolicExecution)
 
                         if (methodJob.isActive) {
@@ -371,7 +371,7 @@ fun runGeneration(
         }
 
 
-        val cancellator = GlobalScope.launch {
+        val cancellator = GlobalScope.launch(currentContext) {
             delay(remainingBudget())
             if (engineJob.isActive) {
                 logger.warn { "Cancelling job because timeout $generationTimeout ms elapsed (real cancellation can take time)" }

@@ -195,9 +195,9 @@ We store the collected statistics in our repository. You can find two special br
 
 The `monitoring-data` branch is a storage for raw statistics data as well as metadata.
 
-The filename format: `<yyyy>-<mm>-<dd>-<hh>-<MM>-<ss>-<branch>-<short commit hash>.json`
+The filename format: `<yyyy>-<mm>-<dd>-<hh>-<MM>-<ss>-<branch>-<short commit hash>-<runner number>.json`
 
-### Grafana (in process)
+### Grafana
 
 #### Usage
 
@@ -205,6 +205,15 @@ We can use [Grafana](https://monitoring.utbot.org) for more dynamic and detailed
 
 #### Metrics format
 
+Our goal after collecting statistics is uploading results into grafana. For this we should prepare data and send it to our server.
+
+The `prepare_metrics.py` script is responsible for doing this. To run it you have to specify the following arguments.
+
+To get more information about input arguments call script with option `--help`.
+
+Output format: you get the JSON file, containing array of metrics with some labels.
+
+Output example:
 ```json5
 [
   // summarised

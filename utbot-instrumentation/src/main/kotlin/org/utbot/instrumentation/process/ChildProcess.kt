@@ -121,15 +121,22 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
     synchronizer.measureExecutionForTermination(invokeMethodCommand) { params ->
         logger.debug { "received invokeMethod request: ${params.classname}, ${params.signature}" }
         val clazz = HandlerClassesLoader.loadClass(params.classname)
-        val res = instrumentation.invoke(
-            clazz,
-            params.signature,
-            kryoHelper.readObject(params.arguments),
-            kryoHelper.readObject(params.parameters)
-        )
-
-        logger.debug { "invokeMethod result: $res" }
-        InvokeMethodCommandResult(kryoHelper.writeObject(res))
+        val res = kotlin.runCatching {
+            instrumentation.invoke(
+                clazz,
+                params.signature,
+                kryoHelper.readObject(params.arguments),
+                kryoHelper.readObject(params.parameters)
+            )
+        }
+        res.fold({
+            logger.debug { "invokeMethod success" }
+            InvokeMethodCommandResult(kryoHelper.writeObject(it))
+        }) {
+            logger.debug { "invokeMethod failure" }
+            logger.error(it)
+            throw it
+        }
     }
     synchronizer.measureExecutionForTermination(setInstrumentation) { params ->
         logger.debug { "setInstrumentation request" }

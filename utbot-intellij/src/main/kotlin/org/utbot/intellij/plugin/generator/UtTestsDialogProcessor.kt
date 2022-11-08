@@ -240,7 +240,7 @@ object UtTestsDialogProcessor {
                                             model.chosenClassesToMockAlways,
                                             model.timeout,
                                             model.timeout,
-                                            true,
+                                            !UtSettings.disableSymbolicEngine,
                                             UtSettings.useFuzzing,
                                             project.service<Settings>().fuzzingValue,
                                             searchDirectory.pathString

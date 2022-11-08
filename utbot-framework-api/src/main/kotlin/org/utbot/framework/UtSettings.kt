@@ -216,6 +216,7 @@ object UtSettings : AbstractSettings(
     var testMinimizationStrategyType by getEnumProperty(TestSelectionStrategyType.COVERAGE_STRATEGY)
 
 
+    var disableSymbolicEngine: Boolean by getBooleanProperty(true)
     /**
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */

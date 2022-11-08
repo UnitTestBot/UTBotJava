@@ -1,15 +1,16 @@
 import argparse
 import json
+import re
 import subprocess
+from collections import OrderedDict
 from datetime import datetime
 from os import environ
 from os.path import exists
 from platform import uname
 from time import time
-from typing import Optional
+from typing import Optional, List
 
 from monitoring_settings import JSON_VERSION
-from utils import *
 
 
 def load(json_file: str) -> Optional[any]:
@@ -91,17 +92,142 @@ def build_metadata(args: argparse.Namespace) -> dict:
     return metadata
 
 
+def build_target(target_name: str) -> dict:
+    return {
+        "target": target_name,
+        "summarised": [],
+        "by_class": OrderedDict()
+    }
+
+
+def transform_metrics(metrics: dict) -> dict:
+    """
+    Transform given metrics with calculation coverage
+    :param metrics: given metrics
+    :return: transformed metrics
+    """
+    result = OrderedDict()
+
+    instr_count_prefix = "covered_bytecode_instructions"
+    total_instr_count_prefix = "total_bytecode_instructions"
+
+    coverage_prefix = "total_bytecode_instruction_coverage"
+
+    total_count = 0
+    for metric in metrics:
+        if metric.startswith(total_instr_count_prefix):
+            total_count = metrics[metric]
+            break
+
+    for metric in metrics:
+        if metric.startswith(total_instr_count_prefix):
+            continue
+        if metric.startswith(instr_count_prefix):
+            coverage = metrics[metric] / total_count if total_count > 0 else 0.0
+            result[coverage_prefix + metric.removeprefix(instr_count_prefix)] = coverage
+        else:
+            result[metric] = metrics[metric]
+
+    return result
+
+
+def build_data(parameters: dict, metrics: dict) -> dict:
+    return {
+        "parameters": {
+            **parameters
+        },
+        "metrics": {
+            **transform_metrics(metrics)
+        }
+    }
+
+
+def build_by_class(class_name: str) -> dict:
+    return {
+        "class_name": class_name,
+        "data": []
+    }
+
+
+def update_from_class(by_class: dict, class_item: dict, parameters: dict):
+    """
+    Update class object using given class_item
+    :param by_class: dictionary with classname keys
+    :param class_item: class metrics of current run
+    :param parameters: parameters of current run
+    """
+    class_name = class_item["class_name"]
+    if class_name not in by_class:
+        by_class[class_name] = build_by_class(class_name)
+
+    metrics = class_item["metrics"]
+    by_class[class_name]["data"].append(
+        build_data(parameters, metrics)
+    )
+
+
+def update_from_target(targets: dict, target_item: dict, parameters: dict):
+    """
+    Update targets using given target_item
+    :param targets: dictionary with target keys
+    :param target_item: metrics of current run
+    :param parameters: parameters of current run
+    """
+    target_name = target_item["target"]
+    if target_name not in targets:
+        targets[target_name] = build_target(target_name)
+
+    summarised_metrics = target_item["summarised_metrics"]
+    targets[target_name]["summarised"].append(
+        build_data(parameters, summarised_metrics)
+    )
+
+    for class_item in target_item["metrics_by_class"]:
+        update_from_class(targets[target_name]["by_class"], class_item, parameters)
+
+
+def update_from_stats(targets: dict, stats: dict):
+    """
+    Updates targets using given statistics
+    :param targets: dictionary with target keys
+    :param stats: target object
+    """
+    parameters = stats["parameters"]
+    for target_item in stats["targets"]:
+        update_from_target(targets, target_item, parameters)
+
+
+def postprocess_by_class(by_class: dict) -> List[dict]:
+    """
+    Transform dictionary with classname keys into array with class objects
+    :param by_class: dictionary with classname keys
+    :return: array of class objects
+    """
+    return list(by_class.values())
+
+
+def postprocess_targets(targets: dict) -> List[dict]:
+    """
+    Transform dictionary with target keys into array with target objects
+    :param targets: dictionary with target keys
+    :return: array of targets
+    """
+    result = []
+    for target in targets.values():
+        target["by_class"] = postprocess_by_class(target["by_class"])
+        result.append(target)
+    return result
+
+
 def build_targets(stats_array: List[dict]) -> List[dict]:
     """
     Collect and group statistics by target
     :param stats_array: list of dictionaries with parameters and metrics
     :return: list of metrics and parameters grouped by target
     """
-    result = get_default_metrics_dict()
+    result = OrderedDict()
     for stats in stats_array:
-        target = stats['parameters']['target']
-        del stats['parameters']['target']
-        update_target(result[target], stats)
+        update_from_stats(result, stats)
 
     return postprocess_targets(result)
 

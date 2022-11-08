@@ -20,7 +20,9 @@ RUN apt-get update \
 # Install Kotlin compiler
 
 ENV KOTLIN_COMPILER_VERSION=1.7.0
+ENV KOTLIN_HOME="/opt/kotlin/kotlinc"
+
 RUN wget --no-verbose https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_COMPILER_VERSION}/kotlin-compiler-${KOTLIN_COMPILER_VERSION}.zip -O /tmp/${KOTLIN_COMPILER_VERSION}.zip && \
     unzip -q -d /opt/kotlin /tmp/${KOTLIN_COMPILER_VERSION}.zip
-    
-ENV KOTLIN_HOME="/opt/kotlin/kotlinc"
+
+ENV PATH="${KOTLIN_HOME}/bin:${PATH}"

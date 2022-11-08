@@ -5,24 +5,12 @@ import subprocess
 from collections import OrderedDict
 from datetime import datetime
 from os import environ
-from os.path import exists
 from platform import uname
 from time import time
 from typing import Optional, List
 
 from monitoring_settings import JSON_VERSION
-
-
-def load(json_file: str) -> Optional[any]:
-    """
-    Try load object from json file
-    :param json_file: path to json file
-    :return: object from given json file or None
-    """
-    if exists(json_file):
-        with open(json_file, "r") as f:
-            return json.load(f)
-    return None
+from utils import load
 
 
 def try_get_output(args: str) -> Optional[str]:

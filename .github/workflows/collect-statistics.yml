@@ -47,7 +47,7 @@ on:
         default: manual-run
         type: string
       push_results:
-        description: 'Push metrics into github and grafana'
+        description: 'Push metrics into github'
         required: false
         default: false
         type: boolean

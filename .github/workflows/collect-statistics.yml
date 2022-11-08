@@ -18,8 +18,13 @@ on:
         required: false
         default: manual-run
         type: string
-      aggregate:
-        description: 'Aggregate data'
+      push_results:
+        description: 'Push metrics into github'
+        required: false
+        default: false
+        type: boolean
+      send_to_grafana:
+        description: 'Send metrics to grafana'
         required: false
         default: false
         type: boolean
@@ -41,8 +46,13 @@ on:
         required: false
         default: manual-run
         type: string
-      aggregate:
-        description: 'Aggregate data'
+      push_results:
+        description: 'Push metrics into github and grafana'
+        required: false
+        default: false
+        type: boolean
+      send_to_grafana:
+        description: 'Send metrics to grafana'
         required: false
         default: false
         type: boolean
@@ -50,8 +60,6 @@ on:
 env:
   data_branch: monitoring-data
   data_path: monitoring/data
-  aggregated_data_branch: monitoring-aggregated-data
-  aggregated_data_path: monitoring/aggregated_data
   monitoring_properties: monitoring/monitoring.properties
   push_script: monitoring/push_with_rebase.sh
 
@@ -112,7 +120,7 @@ jobs:
       - name: Get current date
         id: date
         run: |
-          echo "::set-output name=date::$(date +'%Y-%m-%d')"
+          echo "::set-output name=date::$(date +'%Y-%m-%d-%H-%M-%S')"
           echo "::set-output name=timestamp::$(date +%s)"
           echo "::set-output name=last_month::$(date --date='last month' +%s)"
 
@@ -125,14 +133,18 @@ jobs:
           echo "::set-output name=build::$(date +'%Y.%-m')"
 
       - name: Insert metadata
+        id: insert
         shell: bash
         run: |
-          OUT_FILE="$data_path/data-$branch-$date-$timestamp-$short_commit-${{ matrix.value }}.json"
+          OUT_FILE="$data_path/$date-$branch-$short_commit-${{ matrix.value }}.json"
+          echo "::set-output name=output::$OUT_FILE"
+
           INPUTS=($(seq ${{ inputs.run_number }}))
           INPUTS=(${INPUTS[@]/#/stats-})
           INPUTS=(${INPUTS[@]/%/.json})
           INPUTS=${INPUTS[@]}
           echo $INPUTS
+
           python monitoring/insert_metadata.py \
             --stats_file $INPUTS \
             --output_file "$OUT_FILE" \
@@ -151,7 +163,14 @@ jobs:
           build: ${{ steps.metadata.outputs.build }}
           run_id: ${{ github.run_id }}-${{ matrix.value }}
 
+      - name: Upload statistics
+        uses: actions/upload-artifact@v3
+        with:
+          name: statistics-${{ matrix.value }}
+          path: ${{ steps.insert.outputs.output }}
+
       - name: Commit and push statistics
+        if: ${{ inputs.push_results }}
         run: |
           chmod +x $push_script
           ./$push_script
@@ -161,63 +180,17 @@ jobs:
           message: ${{ inputs.message_prefix }}-${{ steps.date.outputs.date }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Send metrics to grafana
+        if: ${{ inputs.send_to_grafana }}
+        run: |
+          python monitoring/prepare_metrics.py --stats_file $stats_file --output_file grafana_metrics.json
+          echo "TODO send metrics to grafana"
+        env:
+          stats_file: ${{ steps.insert.outputs.output }}
+
       - name: Upload logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: logs-${{ matrix.value }}
           path: logs/
-
-  aggregate:
-    needs: build_and_collect_statistics
-    if: ${{ inputs.aggregate }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Checkout monitoring data
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ env.data_branch }}
-          path: ${{ env.data_path }}
-
-      - name: Checkout aggregated monitoring data
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ env.aggregated_data_branch }}
-          path: ${{ env.aggregated_data_path }}
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Get current date
-        id: date
-        run: |
-          echo "::set-output name=date::$(date +'%Y-%m-%d')"
-          echo "::set-output name=timestamp::$(date +%s)"
-          echo "::set-output name=last_month::$(date --date='last month' +%s)"
-
-      - name: Build aggregated data (last month)
-        run: |
-          OUT_FILE=$aggregated_data_path/aggregated-data-$date.json
-          python monitoring/build_aggregated_data.py \
-            --input_data_dir $data_path \
-            --output_file $OUT_FILE \
-            --timestamp_from $timestamp_from \
-            --timestamp_to $timestamp
-        env:
-          date: ${{ steps.date.outputs.date }}
-          timestamp: ${{ steps.date.outputs.timestamp }}
-          timestamp_from: ${{ steps.date.outputs.last_month }}
-
-      - name: Commit and push aggregated statistics
-        run: |
-          chmod +x $push_script
-          ./$push_script
-        env:
-          target_branch: ${{ env.aggregated_data_branch }}
-          target_directory: ${{ env.aggregated_data_path }}
-          message: ${{ inputs.message_prefix }}-${{ steps.date.outputs.date }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}

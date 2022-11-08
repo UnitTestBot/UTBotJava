@@ -163,7 +163,7 @@ val Project.isBuildWithGradle get() =
              ExternalSystemApiUtil.isExternalSystemAwareModule(GRADLE_SYSTEM_ID, it)
          }
 
-private const val dedicatedTestSourceRootName = "utbot_tests"
+const val dedicatedTestSourceRootName = "utbot_tests"
 
 fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<TestSourceRoot>, language: CodegenLanguage): VirtualFile? {
     // Don't suggest new test source roots for Gradle project where 'unexpected' test roots won't work

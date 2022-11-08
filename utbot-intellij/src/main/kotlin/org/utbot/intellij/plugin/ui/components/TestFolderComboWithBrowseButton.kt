@@ -16,7 +16,6 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
 import com.intellij.util.ui.UIUtil
 import java.io.File
-import java.util.Comparator
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.jetbrains.kotlin.idea.util.rootManager
@@ -25,6 +24,7 @@ import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSo
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
+import org.utbot.intellij.plugin.ui.utils.dedicatedTestSourceRootName
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
@@ -59,42 +59,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
             }
         }
 
-        var commonModuleSourceDirectory = ""
-        for ((i, sourceRoot) in model.srcModule.rootManager.sourceRoots.withIndex()) {
-            commonModuleSourceDirectory = if (i == 0) {
-                sourceRoot.toNioPath().toString()
-            } else {
-                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
-            }
-        }
-        // The first sorting to obtain the best candidate
-        val testRoots = model.getAllTestSourceRoots().distinct().sortedWith(object : Comparator<TestSourceRoot> {
-            override fun compare(o1: TestSourceRoot, o2: TestSourceRoot): Int {
-                // Heuristics: Dirs with language == codegenLanguage should go first
-                val languageOrder = (o1.expectedLanguage == model.codegenLanguage).compareTo(o2.expectedLanguage == model.codegenLanguage)
-                if (languageOrder != 0) return -languageOrder
-                // Heuristics: move root that is 'closer' to module 'common' directory to the first position
-                return -StringUtil.commonPrefixLength(commonModuleSourceDirectory, o1.dir.toNioPath().toString())
-                    .compareTo(StringUtil.commonPrefixLength(commonModuleSourceDirectory, o2.dir.toNioPath().toString()))
-            }
-        }).toMutableList()
-
-        val theBest = if (testRoots.isNotEmpty()) testRoots[0] else null
-
-        // The second sorting to make full list ordered
-        testRoots.sortWith(compareByDescending<TestSourceRoot> {
-                // Heuristics: Dirs with language == codegenLanguage should go first
-                it.expectedLanguage == model.codegenLanguage
-            }.thenBy {
-                // ABC-sorting
-                it.dir.toNioPath()
-            }
-        )
-        // The best candidate should go first to be pre-selected
-        theBest?.let {
-            testRoots.remove(it)
-            testRoots.add(0, it)
-        }
+        val testRoots = model.getSortedTestRoots()
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)
@@ -120,6 +85,33 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
                 }
             }
         }
+    }
+
+    private fun GenerateTestsModel.getSortedTestRoots(): MutableList<TestSourceRoot> {
+        var commonModuleSourceDirectory = ""
+        for ((i, sourceRoot) in srcModule.rootManager.sourceRoots.withIndex()) {
+            commonModuleSourceDirectory = if (i == 0) {
+                sourceRoot.toNioPath().toString()
+            } else {
+                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
+            }
+        }
+
+        return getAllTestSourceRoots().distinct().toMutableList().sortedWith(
+            compareByDescending<TestSourceRoot> {
+                // Heuristics: Dirs with proper code language should go first
+                it.expectedLanguage == codegenLanguage
+            }.thenByDescending {
+                // Heuristics: Dirs from within module 'common' directory should go first
+                it.dir.toNioPath().toString().startsWith(commonModuleSourceDirectory)
+            }.thenByDescending {
+                // Heuristics: dedicated test source root named 'utbot_tests' should go first
+                it.dir.name == dedicatedTestSourceRootName
+            }.thenBy {
+                // ABC-sorting
+                it.dir.toNioPath()
+            }
+        ).toMutableList()
     }
 
     private fun chooseTestRoot(model: GenerateTestsModel): VirtualFile? =

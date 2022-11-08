@@ -35,7 +35,7 @@ object TsConstantsModelProvider : ModelProvider {
     }
 
     @Suppress("DuplicatedCode")
-    internal fun modifyValue(value: Any, op: FuzzedContext): FuzzedValue? {
+    private fun modifyValue(value: Any, op: FuzzedContext): FuzzedValue? {
         if (op !is FuzzedContext.Comparison) return null
         val multiplier = if (op == FuzzedContext.Comparison.LT || op == FuzzedContext.Comparison.GE) -1 else 1
         return when (value) {

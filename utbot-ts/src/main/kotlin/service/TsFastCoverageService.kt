@@ -25,25 +25,35 @@ class TsFastCoverageService(
     private var baseCoverage: List<Int>
 
     companion object {
-        fun instrument(context: TsServiceContext): String {
-            val destination = "${context.projectPath}/${context.utbotDir}/instr"
-            val fileName = context.filePathToInference.substringAfterLast("/")
-            with(context) {
+
+        private fun makeConfigFile(projectPath: String, tsNycPath: String) {
+            val configFile = File("$projectPath/.nycrc.json")
+            if (configFile.exists()) return
+            val json = JSONObject()
+            json.append("extends", tsNycPath)
+            json.append("all", true)
+            configFile.writeText(json.toString())
+            configFile.createNewFile()
+        }
+
+        fun instrument(context: TsServiceContext): String = with (context) {
+            makeConfigFile(projectPath, settings.tsNycPath)
+            val destination = "${projectPath}/${utbotDir}/instr"
+            val fileName = filePathToInference.substringAfterLast("/")
                 TsCmdExec.runCommand(
                     cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destination),
-                    dir = context.filePathToInference.substringBeforeLast("/"),
+                    dir = filePathToInference.substringBeforeLast("/"),
                     shouldWait = true,
                     timeout = settings.timeout,
                 )
-            }
 
-            val instrumentedFilePath = "$destination/${context.filePathToInference.substringAfterLast("/")}"
+            val instrumentedFilePath = "$destination/${filePathToInference.substringAfterLast("/")}"
             val instrumentedFileText = File(instrumentedFilePath).readText()
             val covFunRegex = Regex("function (cov_.*)\\(\\).*")
-            val covFunName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value ?: throw IllegalStateException("")
+            val covFunName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
+                ?: throw IllegalStateException("No coverage function was found in instrumented source file!")
             val fixedFileText = "$instrumentedFileText\nexports.$covFunName = $covFunName"
             File(instrumentedFilePath).writeText(fixedFileText)
-
             return covFunName
         }
     }
@@ -71,7 +81,7 @@ class TsFastCoverageService(
     private fun getBaseCoverage(): List<Int> {
         with(context) {
             TsCmdExec.runCommand(
-                cmd = arrayOf(settings.pathToNode, "$utbotDirPath/${tempFileName}Base.js"),
+                cmd = arrayOf(settings.tsNodePath, "$utbotDirPath/${tempFileName}Base.js"),
                 dir = context.projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
@@ -126,7 +136,7 @@ class TsFastCoverageService(
         scriptTexts.indices.toList().parallelStream().forEach { parallelIndex ->
             with(context) {
                 val (_, error) = TsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName$parallelIndex.js"),
+                    cmd = arrayOf(settings.tsNodePath, "$utbotDirPath/$tempFileName$parallelIndex.js"),
                     dir = context.projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,

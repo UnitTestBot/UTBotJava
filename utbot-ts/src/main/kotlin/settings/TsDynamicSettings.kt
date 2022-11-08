@@ -7,4 +7,6 @@ data class TsDynamicSettings (
     val pathToNYC: String = "nyc",
     val timeout: Long = 15L,
     val coverageMode: TsCoverageMode = TsCoverageMode.FAST,
+    val tsNycPath: String = "",
+    val tsNodePath: String = "",
 )

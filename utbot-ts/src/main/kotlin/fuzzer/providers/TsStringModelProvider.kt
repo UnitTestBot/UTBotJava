@@ -29,7 +29,7 @@ object TsStringModelProvider : ModelProvider {
             }
     }
 
-    fun mutate(random: Random, value: String?, op: FuzzedContext): String? {
+    private fun mutate(random: Random, value: String?, op: FuzzedContext): String? {
         if (value.isNullOrEmpty() || op != FuzzedContext.Unknown) return null
         val indexOfMutation = random.nextInt(value.length)
         return value.replaceRange(

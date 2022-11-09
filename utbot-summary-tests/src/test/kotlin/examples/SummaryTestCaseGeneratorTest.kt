@@ -3,8 +3,6 @@ package examples
 import org.junit.jupiter.api.*
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.CoverageMatcher
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -13,7 +11,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
-import org.utbot.tests.infrastructure.TestExecution
+import org.utbot.testing
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 

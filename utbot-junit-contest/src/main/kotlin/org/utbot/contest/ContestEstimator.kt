@@ -29,7 +29,6 @@ import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -47,7 +46,7 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
 
-private const val triesToCompile = 2
+private const val compileAttempts = 2
 
 private data class UnnamedPackageInfo(val pack: String, val module: String)
 
@@ -64,7 +63,7 @@ private fun compileClass(testDir: String, classPath: String, testClass: String):
     val exports = mutableSetOf<UnnamedPackageInfo>()
     var exitCode = 0
 
-    repeat(triesToCompile) { tryNumber ->
+    repeat(compileAttempts) { attemptNumber ->
         val cmd = arrayOf(
             javacCmd,
             *exports.flatMap {
@@ -76,7 +75,7 @@ private fun compileClass(testDir: String, classPath: String, testClass: String):
             "-XDignore.symbol.file",
             testClass
         )
-        logger.debug { "Compile try ${tryNumber + 1}" }
+        logger.debug { "Compile attempt ${attemptNumber + 1}" }
 
         logger.trace { cmd.toText() }
 

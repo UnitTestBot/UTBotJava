@@ -35,14 +35,69 @@ dependencies {
  * The plugin descriptor file is generated automatically by [generatePluginDescriptor].
  */
 
-def pomFile = file("./src/main/resources/pom.xml")
+def generatedPomFile = file("./build/resources/generated/pom.xml")
 def outputDirectory = project.buildDir.toPath().resolve("classes/kotlin/main")
 def pluginDescriptorFile = new File("$outputDirectory/META-INF/maven/plugin.xml")
 
 /**
+ * Generates the pom.xml file and saves it to the [generatedPomFile].
+ */
+task generatePomFile() {
+    def rootNode = new Node(null, "project", [
+        'xmlns': 'http://maven.apache.org/POM/4.0.0',
+        'xsi:schemaLocation': 'http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd',
+        'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance'
+    ])
+
+    rootNode.with {
+        appendNode('modelVersion', '4.0.0')
+        appendNode('groupId', 'org.utbot')
+        appendNode('artifactId', 'utbot-maven')
+        appendNode('version', this.project.version)
+        appendNode('packaging', 'maven-plugin')
+
+        appendNode('build').with {
+            // paths relative to src/main/resources
+            appendNode('directory', '../../../build')
+            appendNode('outputDirectory', '../../../build/classes/kotlin/main')
+        }
+
+        appendNode('dependencies').with {
+            appendNode('dependency').with {
+                appendNode('groupId', 'org.utbot')
+                appendNode('artifactId', 'utbot-framework')
+                appendNode('version', this.project.version)
+                appendNode('scope', 'compile')
+            }
+        }
+    }
+
+    def repositoriesNode = rootNode.appendNode('repositories')
+    project.repositories.indexed().forEach { index, repository ->
+        repositoriesNode.appendNode('repository').with {
+            appendNode('id', "${repository.name}_${index}") // unique id
+            appendNode('url', repository.url)
+        }
+    }
+
+    // creating `generatedPomFile` if it is not exist
+    generatedPomFile.parentFile.mkdirs()
+    generatedPomFile.createNewFile()
+
+    // printing xml content to `generatedPomFile`
+    def printer = new XmlNodePrinter(new PrintWriter(new FileWriter(generatedPomFile)))
+    printer.with {
+        // pretty print
+        preserveWhitespace = true
+        expandEmptyElements = true
+    }
+    printer.print(rootNode)
+}
+
+/**
  * Generates the plugin descriptor file and saves it to the [pluginDescriptorFile].
  */
-task generatePluginDescriptor(type: JavaExec, dependsOn: compileKotlin) {
+task generatePluginDescriptor(type: JavaExec, dependsOn: [compileKotlin, generatePomFile]) {
     inputs.files project.compileKotlin.outputs.files
     outputs.file pluginDescriptorFile
 
@@ -53,7 +108,7 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: compileKotlin) {
     args = [
         '--errors',
         '--batch-mode',
-        '--file', "${pomFile.path}",
+        '--file', "${generatedPomFile.path}",
         'org.apache.maven.plugins:maven-plugin-plugin:3.6.0:descriptor',
         '-Dproject.build.sourceEncoding=UTF-8'
     ]
@@ -77,15 +132,8 @@ publishing {
  * Therefore, we have to override the generated file with our own, stored in resources.
  */
 generatePomFileForPluginMavenPublication.doLast {
-    def ourOwnPomXml = new XmlParser().parse(pomFile)
-    def generatedPomFile = new File("./build/publications/pluginMaven/pom-default.xml")
-    def printer = new XmlNodePrinter(new PrintWriter(new FileWriter(generatedPomFile)))
-    printer.with {
-        // pretty print
-        preserveWhitespace = true
-        expandEmptyElements = true
-    }
-    printer.print(ourOwnPomXml)
+    def pomFileFromMavenPublish = file("./build/publications/pluginMaven/pom-default.xml")
+    pomFileFromMavenPublish.write(generatedPomFile.text)
 }
 
 // the plugin jar file should contain the plugin descriptor file

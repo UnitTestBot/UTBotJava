@@ -282,6 +282,15 @@ object UtSettings : AbstractSettings(
      */
     var logConcreteExecutionErrors by getBooleanProperty(false)
 
+
+    /**
+     * Property useful only for idea
+     * If true - runs engine process with the ability to attach a debugger
+     * @see runChildProcessWithDebug
+     * @see org.utbot.intellij.plugin.process.EngineProcess
+     */
+    var runIdeaProcessWithDebug by getBooleanProperty(false)
+
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
      */
@@ -385,9 +394,9 @@ object UtSettings : AbstractSettings(
     var useSandbox by getBooleanProperty(true)
 
     /**
-     * Limit for number of generated tests per method
+     * Limit for number of generated tests per method (in each region)
      */
-    var maxTestsPerMethod by getIntProperty(50)
+    var maxTestsPerMethodInRegion by getIntProperty(50)
 
     /**
      * Max file length for generated test file

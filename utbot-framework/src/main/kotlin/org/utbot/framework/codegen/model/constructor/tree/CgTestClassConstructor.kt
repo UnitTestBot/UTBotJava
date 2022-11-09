@@ -174,8 +174,8 @@ open class CgTestClassConstructor(val context: CgContext) :
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
             emptyLineIfNeeded()
-            val (checkedRange, needLimitExceedingComments) = if (executionIndices.last  - executionIndices.first > UtSettings.maxTestsPerMethod) {
-                IntRange(executionIndices.first, executionIndices.first + (UtSettings.maxTestsPerMethod - 1).coerceAtLeast(0)) to true
+            val (checkedRange, needLimitExceedingComments) = if (executionIndices.last  - executionIndices.first >= UtSettings.maxTestsPerMethodInRegion) {
+                IntRange(executionIndices.first, executionIndices.first + (UtSettings.maxTestsPerMethodInRegion - 1).coerceAtLeast(0)) to true
             } else {
                 executionIndices to false
             }
@@ -184,7 +184,7 @@ open class CgTestClassConstructor(val context: CgContext) :
                 currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
             }
 
-            val comments = listOf("Actual number of generated tests (${executionIndices.last - executionIndices.first}) exceeds per-method limit (${UtSettings.maxTestsPerMethod})",
+            val comments = listOf("Actual number of generated tests (${executionIndices.last - executionIndices.first}) exceeds per-method limit (${UtSettings.maxTestsPerMethodInRegion})",
                 "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestsPerMethod' property")
 
             val clusterHeader = clusterSummary?.header

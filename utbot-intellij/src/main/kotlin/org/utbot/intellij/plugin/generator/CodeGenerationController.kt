@@ -77,7 +77,7 @@ import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
-import org.utbot.intellij.plugin.ui.CommonErrorNotifier
+import org.utbot.intellij.plugin.ui.CommonLoggingNotifier
 import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
 import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
@@ -754,9 +754,12 @@ object CodeGenerationController {
         val project = model.project
         val codeStyleManager = CodeStyleManager.getInstance(project)
         val file = smartPointer.containingFile?: return
-
-        if (file.virtualFile.length > UtSettings.maxTestFileSize) {
-            CommonErrorNotifier.notify(
+        val fileLength = runReadAction {
+            FileDocumentManager.getInstance().getDocument(file.virtualFile)?.textLength
+                ?: file.virtualFile.length.toInt()
+        }
+        if (fileLength > UtSettings.maxTestFileSize && file.name != model.codegenLanguage.utilClassFileName) {
+            CommonLoggingNotifier().notify(
                 "Size of ${file.virtualFile.presentableName} exceeds configured limit " +
                         "(${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())}), reformatting was skipped. " +
                         "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestFileSize' property",

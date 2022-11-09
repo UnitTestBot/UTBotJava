@@ -1296,6 +1296,8 @@ enum class CodegenLanguage(
         override val allItems: List<CodegenLanguage> = values().toList()
     }
 }
+//TODO #1279
+fun CodegenLanguage?.isSummarizationCompatible() = this == CodegenLanguage.JAVA
 
 // https://docs.oracle.com/javase/7/docs/technotes/tools/windows/javac.html#commandlineargfile
 fun isolateCommandLineArgumentsToArgumentFile(arguments: List<String>): String {

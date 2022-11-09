@@ -19,11 +19,14 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.JBFont
 import java.awt.Point
 import javax.swing.event.HyperlinkEvent
+import mu.KotlinLogging
 
 abstract class Notifier {
+    protected val logger = KotlinLogging.logger {}
+
     protected abstract val notificationType: NotificationType
     protected abstract val displayId: String
-    protected abstract fun content(project: Project?, module: Module?, info: String): String
+    protected open fun content(project: Project?, module: Module?, info: String): String = info
 
     open fun notify(info: String, project: Project? = null, module: Module? = null) {
         notificationGroup
@@ -47,7 +50,7 @@ abstract class WarningNotifier : Notifier() {
 abstract class ErrorNotifier : Notifier() {
     final override val notificationType: NotificationType = NotificationType.ERROR
 
-    final override fun notify(info: String, project: Project?, module: Module?) {
+    override fun notify(info: String, project: Project?, module: Module?) {
         super.notify(info, project, module)
         error(content(project, module, info))
     }
@@ -55,7 +58,20 @@ abstract class ErrorNotifier : Notifier() {
 
 object CommonErrorNotifier : ErrorNotifier() {
     override val displayId: String = "UTBot plugin errors"
-    override fun content(project: Project?, module: Module?, info: String): String = info
+}
+
+class CommonLoggingNotifier(val type :NotificationType = NotificationType.WARNING) : Notifier() {
+    override val displayId: String = "UTBot plugin errors"
+    override val notificationType = type
+
+    override fun notify(info: String, project: Project?, module: Module?) {
+        super.notify(info, project, module)
+        when (notificationType) {
+            NotificationType.WARNING -> logger.warn(content(project, module, info))
+            NotificationType.INFORMATION -> logger.info(content(project, module, info))
+            else -> logger.error(content(project, module, info))
+        }
+    }
 }
 
 object UnsupportedJdkNotifier : ErrorNotifier() {
@@ -113,8 +129,6 @@ object SarifReportNotifier : EventLogNotifier() {
     override val titleText: String = "" // no title
 
     override val urlOpeningListener: NotificationListener = NotificationListener.UrlOpeningListener(false)
-
-    override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
 object TestsReportNotifier : InformationUrlNotifier() {
@@ -123,8 +137,6 @@ object TestsReportNotifier : InformationUrlNotifier() {
     override val titleText: String = "UTBot: unit tests generated successfully"
 
     public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
-
-    override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
 // TODO replace inheritance with decorators
@@ -134,8 +146,6 @@ object WarningTestsReportNotifier : WarningUrlNotifier() {
     override val titleText: String = "UTBot: unit tests generated with warnings"
 
     public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
-
-    override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
 object DetailsTestsReportNotifier : EventLogNotifier() {
@@ -144,8 +154,6 @@ object DetailsTestsReportNotifier : EventLogNotifier() {
     override val titleText: String = "Test report details of the unit tests generation via UtBot"
 
     public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
-
-    override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
 /**

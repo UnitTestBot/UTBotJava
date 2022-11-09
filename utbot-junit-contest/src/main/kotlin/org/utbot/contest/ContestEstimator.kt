@@ -29,13 +29,11 @@ import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.predictors.MLPredictorFactoryImpl
-import kotlin.concurrent.thread
 import kotlin.math.min
 
 private val logger = KotlinLogging.logger {}
@@ -47,6 +45,56 @@ private val javaHome = System.getenv("JAVA_HOME")
 
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
+
+private const val compileAttempts = 2
+
+private data class UnnamedPackageInfo(val pack: String, val module: String)
+
+private fun findAllNotExportedPackages(report: String): List<UnnamedPackageInfo> {
+    val regex = """package ([\d\w.]+) is declared in module ([\d\w.]+), which does not export it to the unnamed module""".toRegex()
+    return regex.findAll(report).map {
+        val pack = it.groupValues[1]
+        val module = it.groupValues[2]
+        UnnamedPackageInfo(pack, module)
+    }.toList().distinct()
+}
+
+private fun compileClass(testDir: String, classPath: String, testClass: String): Int {
+    val exports = mutableSetOf<UnnamedPackageInfo>()
+    var exitCode = 0
+
+    repeat(compileAttempts) { attemptNumber ->
+        val cmd = arrayOf(
+            javacCmd,
+            *exports.flatMap {
+                listOf("--add-exports", "${it.module}/${it.pack}=ALL-UNNAMED")
+            }.toTypedArray(),
+            "-d", testDir,
+            "-cp", classPath,
+            "-nowarn",
+            "-XDignore.symbol.file",
+            testClass
+        )
+        logger.debug { "Compile attempt ${attemptNumber + 1}" }
+
+        logger.trace { cmd.toText() }
+
+        val process = Runtime.getRuntime().exec(cmd)
+
+        val errors = process.errorStream.reader().buffered().readText()
+
+        exitCode = process.waitFor()
+        if (exitCode == 0) {
+            return 0
+        } else {
+            if (errors.isNotEmpty())
+                logger.error { "Compilation errors: $errors" }
+            exports += findAllNotExportedPackages(errors)
+        }
+    }
+
+    return exitCode
+}
 
 fun Array<String>.toText() = joinToString(separator = ",")
 
@@ -83,16 +131,19 @@ enum class Tool {
             project: ProjectToEstimate,
             cut: ClassUnderTest,
             timeLimit: Long,
+            fuzzingRatio: Double,
             methodNameFilter: String?,
-            globalStats: GlobalStats,
+            statsForProject: StatsForProject,
             compiledTestDir: File,
             classFqn: String
         ) {
             val classStats: StatsForClass = try {
-                withUtContext(UtContext(project.classloader)) {
+                withUtContext(ContextManager.createNewContext(project.classloader)) {
                     runGeneration(
+                        project.name,
                         cut,
                         timeLimit,
+                        fuzzingRatio,
                         project.sootClasspathString,
                         runFromEstimator = true,
                         methodNameFilter
@@ -107,34 +158,18 @@ enum class Tool {
                 return
             }
 
-            globalStats.statsForClasses.add(classStats)
+            statsForProject.statsForClasses.add(classStats)
 
             try {
                 val testClass = cut.generatedTestFile
                 classStats.testClassFile = testClass
 
-                val cmd = arrayOf(
-                    javacCmd,
-                    "-d", compiledTestDir.absolutePath,
-                    "-cp", project.compileClasspathString,
-                    "-nowarn",
-                    "-XDignore.symbol.file",
-                    testClass.absolutePath
-                )
-
                 logger.info().bracket("Compiling class ${testClass.absolutePath}") {
-
-                    logger.trace { cmd.toText() }
-                    val process = Runtime.getRuntime().exec(cmd)
-
-                    thread {
-                        val errors = process.errorStream.reader().buffered().readText()
-                        if (errors.isNotEmpty())
-                            logger.error { "Compilation errors: $errors" }
-                    }.join()
-
-
-                    val exitCode = process.waitFor()
+                    val exitCode = compileClass(
+                        compiledTestDir.absolutePath,
+                        project.compileClasspathString,
+                        testClass.absolutePath
+                    )
                     if (exitCode != 0) {
                         logger.error { "Failed to compile test class ${cut.testClassSimpleName}" }
                         classStats.failedToCompile = true
@@ -167,8 +202,9 @@ enum class Tool {
             project: ProjectToEstimate,
             cut: ClassUnderTest,
             timeLimit: Long,
+            fuzzingRatio: Double,
             methodNameFilter: String?,
-            globalStats: GlobalStats,
+            statsForProject: StatsForProject,
             compiledTestDir: File,
             classFqn: String
         ) {
@@ -237,8 +273,9 @@ enum class Tool {
         project: ProjectToEstimate,
         cut: ClassUnderTest,
         timeLimit: Long,
+        fuzzingRatio: Double, // maybe create some specific settings
         methodNameFilter: String?,
-        globalStats: GlobalStats,
+        statsForProject: StatsForProject,
         compiledTestDir: File,
         classFqn: String
     )
@@ -257,6 +294,7 @@ fun main(args: Array<String>) {
     if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
         processedClassesThreshold = 9999 //change to change number of classes to run
         val timeLimit = 20 // increase if you want to debug something
+        val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
 
         // Uncomment it for debug purposes:
         // you can specify method for test generation in format `classFqn.methodName`
@@ -283,12 +321,13 @@ fun main(args: Array<String>) {
             classesLists,
             jarsDir,
             "$timeLimit",
+            "$fuzzingRatio",
             outputDir,
             moduleTestDir
         )
     } else {
-        require(args.size == 6) {
-            "Wrong arguments: <classes dir> <classpath_dir> <time limit (s)> <output dir> <test dir> <junit jar path> expected, but got: ${args.toText()}"
+        require(args.size == 7) {
+            "Wrong arguments: <classes dir> <classpath_dir> <time limit (s)> <fuzzing ratio> <output dir> <test dir> <junit jar path> expected, but got: ${args.toText()}"
         }
         logger.info { "Command line: [${args.joinToString(" ")}]" }
 
@@ -315,8 +354,9 @@ fun runEstimator(
     val classesLists = File(args[0])
     val classpathDir = File(args[1])
     val timeLimit = args[2].toLong()
-    val outputDir = File(args[3])
-    // we don't use it: val moduleTestDir = File(args[4])
+    val fuzzingRatio = args[3].toDouble()
+    val outputDir = File(args[4])
+    // we don't use it: val moduleTestDir = File(args[5])
 
     val testCandidatesDir = File(outputDir, "test_candidates")
     val compiledTestDir = File(outputDir, "compiled")
@@ -390,6 +430,9 @@ fun runEstimator(
             outer@ for (project in projects) {
                 if (projectFilter != null && project.name !in projectFilter) continue
 
+                val statsForProject = StatsForProject(project.name)
+                globalStats.projectStats.add(statsForProject)
+
                 logger.info { "------------- project [${project.name}] ---- " }
 
                 // take all the classes from the corresponding jar if a list of the specified classes is empty
@@ -411,7 +454,7 @@ fun runEstimator(
 
                     logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
 
-                    tool.run(project, cut, timeLimit, methodNameFilter, globalStats, compiledTestDir, classFqn)
+                    tool.run(project, cut, timeLimit, fuzzingRatio, methodNameFilter, statsForProject, compiledTestDir, classFqn)
                 }
             }
         }
@@ -422,10 +465,6 @@ fun runEstimator(
 
     logger.info { globalStats }
     ConcreteExecutor.defaultPool.close()
-
-//    For what?
-//    if (globalStats.statsForClasses.isNotEmpty())
-//        exitProcess(1)
 
     return globalStats
 }

@@ -44,6 +44,7 @@ import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
+import org.utbot.common.Reflection
 import org.utbot.engine.util.lambda.CapturedArgument
 import org.utbot.engine.util.lambda.constructLambda
 import org.utbot.engine.util.lambda.constructStaticLambda
@@ -189,8 +190,7 @@ class MockValueConstructor(
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 
-            val modifiersField = Field::class.java.getDeclaredField("modifiers")
-            modifiersField.isAccessible = true
+            check(Reflection.isModifiersAccessible())
 
             val target = mockTarget(fieldModel) {
                 FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), fieldId.name)

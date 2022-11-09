@@ -1,5 +1,6 @@
 package org.utbot.engine
 
+import org.utbot.common.Reflection
 import org.utbot.common.invokeCatching
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.engine.util.lambda.CapturedArgument
@@ -239,8 +240,7 @@ class ValueConstructor {
             try {
                 declaredField.isAccessible = true
 
-                val modifiersField = Field::class.java.getDeclaredField("modifiers")
-                modifiersField.isAccessible = true
+                check(Reflection.isModifiersAccessible())
 
                 val target = mockTarget(fieldModel) {
                     FieldMockTarget(

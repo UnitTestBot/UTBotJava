@@ -110,7 +110,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
                 val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
                 if (currentTestClassDataProviderMethods.isNotEmpty()) {
-                    staticDeclarationRegions += CgStaticsRegion("Data providers", currentTestClassDataProviderMethods)
+                    staticDeclarationRegions +=
+                        CgStaticsRegion(
+                            "Data provider methods for parametrized tests",
+                            currentTestClassDataProviderMethods,
+                        )
                 }
 
                 if (currentTestClass == outerMostTestClass) {
@@ -228,34 +232,47 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
 
         regions += CgSimpleRegion(
-            "Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
-            collectAdditionalTestsForParameterizedMode(testSet),
+            "Additional tests for symbolic executions for method ${methodUnderTest.humanReadableName}",
+            collectAdditionalSymbolicTestsForParametrizedMode(testSet),
+        )
+
+        regions += CgSimpleRegion(
+            "FUZZER: Tests for method ${methodUnderTest.humanReadableName}",
+            collectFuzzerTestsForParameterizedMode(testSet),
         )
     }
 
-    private fun collectAdditionalTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
-        val (methodUnderTest, _, _, _) = testSet
-        val testCaseTestMethods = mutableListOf<CgTestMethod>()
+    /**
+     * Collects standard tests for fuzzer executions in parametrized mode.
+     * This is a requirement from [https://github.com/UnitTestBot/UTBotJava/issues/1137].
+     */
+    private fun collectFuzzerTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+        val testMethods = mutableListOf<CgTestMethod>()
 
-        // We cannot track mocking in fuzzed executions,
-        // so we generate standard tests for each [UtFuzzedExecution].
-        // [https://github.com/UnitTestBot/UTBotJava/issues/1137]
         testSet.executions
             .filterIsInstance<UtFuzzedExecution>()
             .forEach { execution ->
-                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+                testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
             }
 
-        // Also, we generate standard tests for symbolic executions with force mocking.
-        // [https://github.com/UnitTestBot/UTBotJava/issues/1231]
+        return testMethods
+    }
+
+    /**
+     * Collects standard tests for symbolic executions that can't be included into parametrized tests.
+     * This is a requirement from [https://github.com/UnitTestBot/UTBotJava/issues/1231].
+     */
+    private fun collectAdditionalSymbolicTestsForParametrizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+        val testMethods = mutableListOf<CgTestMethod>()
+
         testSet.executions
             .filterIsInstance<UtSymbolicExecution>()
             .filter { it.containsMocking }
             .forEach { execution ->
-                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+                testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
             }
 
-        return testCaseTestMethods
+        return testMethods
     }
 
     /**

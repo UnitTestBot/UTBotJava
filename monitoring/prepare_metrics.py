@@ -46,6 +46,10 @@ def build_metric_struct(name: str, value: any, labels: dict) -> dict:
     name = update_from_coverage(name, labels)
 
     name = f"utbot_{name}"
+
+    if type(value) == bool:
+        value = int(value)
+
     return {
         "metric": name,
         "labels": labels,

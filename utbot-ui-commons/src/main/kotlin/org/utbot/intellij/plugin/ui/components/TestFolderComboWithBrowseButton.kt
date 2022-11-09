@@ -86,7 +86,7 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
         }
     }
 
-    private fun GenerateTestsModel.getSortedTestRoots(): MutableList<TestSourceRoot> {
+    private fun BaseTestsModel.getSortedTestRoots(): MutableList<TestSourceRoot> {
         var commonModuleSourceDirectory = ""
         for ((i, sourceRoot) in srcModule.rootManager.sourceRoots.withIndex()) {
             commonModuleSourceDirectory = if (i == 0) {
@@ -113,7 +113,7 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
         ).toMutableList()
     }
 
-    private fun chooseTestRoot(model: GenerateTestsModel): VirtualFile? =
+    private fun chooseTestRoot(model: BaseTestsModel): VirtualFile? =
         ReadAction.compute<VirtualFile, RuntimeException> {
             val desc = object:FileChooserDescriptor(false, true, false, false, false, false) {
                 override fun isFileSelectable(file: VirtualFile?): Boolean {

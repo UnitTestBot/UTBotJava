@@ -1,8 +1,11 @@
 package org.utbot.intellij.plugin.language.agnostic
 
+import mu.KotlinLogging
 import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+
+private val logger = KotlinLogging.logger {}
 
 abstract class LanguageAssistant {
 
@@ -35,8 +38,9 @@ private fun loadWithException(language: Language): Class<*>? {
             else -> error("Unknown language id: ${language.id}")
         }
     } catch (e: ClassNotFoundException) {
-        // todo use logger
-        println("Language ${language.id} is disabled")
+        logger.info("Language ${language.id} is disabled")
+    } catch (e: IllegalStateException) {
+        logger.info("Language ${language.id} is not supported")
     }
     return null
 }

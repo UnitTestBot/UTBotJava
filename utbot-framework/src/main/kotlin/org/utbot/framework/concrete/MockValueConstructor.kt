@@ -132,6 +132,8 @@ class MockValueConstructor(
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            // PythonModel, JsUtModel may be here
+            else -> throw UnsupportedOperationException()
         }
     }
 

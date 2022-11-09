@@ -45,10 +45,13 @@ def build_metric_struct(name: str, value: any, labels: dict) -> dict:
     name = update_from_counter_name("methods", name, labels)
     name = update_from_coverage(name, labels)
 
-    name = f"utbot_{name}"
-
     if type(value) == bool:
         value = int(value)
+        name = f"test_generation_{name}"
+    elif type(value) == int:
+        name = f"{name}_total"
+
+    name = f"utbot_{name}"
 
     return {
         "metric": name,

@@ -2,7 +2,7 @@ package org.utbot.examples.primitives
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+
 import org.utbot.testcheckers.eq
 
 @Suppress("ConvertTwoComparisonsToRangeCheck")

@@ -1,17 +1,12 @@
 package org.utbot.examples.mock
 
 import org.junit.jupiter.api.Disabled
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.mock.others.Generator
 import org.utbot.examples.mock.others.Locator
-import org.utbot.tests.infrastructure.mockValue
-import org.utbot.tests.infrastructure.singleMock
-import org.utbot.tests.infrastructure.singleMockOrNull
-import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class MockReturnObjectExampleTest : UtValueTestCaseChecker(testClass = MockReturnObjectExample::class) {
     @Test

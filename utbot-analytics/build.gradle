@@ -33,6 +33,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
 
+    testImplementation project(':utbot-framework-test').sourceSets.main.output
     testImplementation project(':utbot-framework').sourceSets.test.output
 }
 

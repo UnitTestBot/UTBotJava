@@ -3,8 +3,8 @@ package org.utbot.examples.stdlib
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
+
+
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withUsingReflectionForMaximizingCoverage
 import java.util.Date

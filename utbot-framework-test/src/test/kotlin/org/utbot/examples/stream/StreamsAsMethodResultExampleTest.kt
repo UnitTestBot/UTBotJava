@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
-import org.utbot.tests.infrastructure.FullWithAssumptions
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
+
+
+
+
 import kotlin.streams.toList
 
 // TODO 1 instruction is always uncovered https://github.com/UnitTestBot/UTBotJava/issues/193

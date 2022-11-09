@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.tests.infrastructure.*
 
 class StringConcatTest : UtValueTestCaseChecker(
     testClass = StringConcat::class,

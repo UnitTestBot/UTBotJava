@@ -1,7 +1,5 @@
 package org.utbot.examples.math
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.atLeast
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 

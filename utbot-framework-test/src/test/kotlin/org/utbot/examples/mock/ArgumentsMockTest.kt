@@ -1,14 +1,14 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
-import org.utbot.tests.infrastructure.isParameter
+
+
+
+
 import org.utbot.examples.mock.provider.Provider
 import org.utbot.examples.mock.service.impl.ExampleClass
 import org.utbot.examples.mock.service.impl.ServiceWithArguments
-import org.utbot.tests.infrastructure.mocksMethod
-import org.utbot.tests.infrastructure.value
+
+
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq

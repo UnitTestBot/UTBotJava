@@ -1,12 +1,13 @@
 package org.utbot.examples.mock.model
 
-import org.utbot.tests.infrastructure.UtModelTestCaseChecker
+
 import org.utbot.examples.mock.UseNetwork
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtModelTestCaseChecker
 
 internal class UseNetworkModelBasedTest : UtModelTestCaseChecker(testClass = UseNetwork::class) {
     @Test

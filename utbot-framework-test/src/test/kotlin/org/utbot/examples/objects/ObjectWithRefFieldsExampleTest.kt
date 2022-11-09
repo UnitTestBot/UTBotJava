@@ -1,10 +1,5 @@
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.atLeast
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 

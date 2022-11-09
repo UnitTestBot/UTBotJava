@@ -1,8 +1,5 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq

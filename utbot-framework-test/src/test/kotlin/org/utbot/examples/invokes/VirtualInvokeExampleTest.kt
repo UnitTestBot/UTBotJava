@@ -2,9 +2,6 @@
 
 package org.utbot.examples.invokes
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.isException
 import java.lang.Boolean
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq

@@ -1,8 +1,5 @@
 package org.utbot.examples.strings
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
-import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test

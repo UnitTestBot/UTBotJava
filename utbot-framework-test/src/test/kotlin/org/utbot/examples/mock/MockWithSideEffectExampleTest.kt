@@ -1,8 +1,5 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.Test
 import org.utbot.testcheckers.eq

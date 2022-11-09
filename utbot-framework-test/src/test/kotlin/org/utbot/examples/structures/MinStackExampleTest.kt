@@ -1,8 +1,5 @@
 package org.utbot.examples.structures
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
 import kotlin.math.min
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq

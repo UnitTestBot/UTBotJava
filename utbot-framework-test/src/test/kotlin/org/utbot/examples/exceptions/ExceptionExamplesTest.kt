@@ -1,14 +1,9 @@
 package org.utbot.examples.exceptions
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.atLeast
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class ExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ExceptionExamples::class,

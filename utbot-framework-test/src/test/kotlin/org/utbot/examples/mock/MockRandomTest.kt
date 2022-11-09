@@ -1,21 +1,11 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.isParameter
-import org.utbot.tests.infrastructure.mockValues
-import org.utbot.tests.infrastructure.mocksMethod
-import org.utbot.tests.infrastructure.singleMock
-import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import java.util.Random
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
-import org.utbot.tests.infrastructure.Compilation
-import org.utbot.tests.infrastructure.TestExecution
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class MockRandomTest : UtValueTestCaseChecker(

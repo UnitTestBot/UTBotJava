@@ -1,8 +1,5 @@
 package org.utbot.examples.invokes
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.atLeast
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import kotlin.math.ln
 import kotlin.math.sqrt
 import org.junit.jupiter.api.Tag

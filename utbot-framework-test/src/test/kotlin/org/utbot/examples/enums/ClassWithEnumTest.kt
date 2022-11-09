@@ -1,10 +1,7 @@
 package org.utbot.examples.enums
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.READY
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
 import org.junit.jupiter.api.Disabled

@@ -11,7 +11,6 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
-import org.utbot.testing
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 

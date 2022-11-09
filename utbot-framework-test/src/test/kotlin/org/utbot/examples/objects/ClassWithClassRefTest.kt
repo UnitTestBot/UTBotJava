@@ -1,14 +1,9 @@
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.tests.infrastructure.CodeGeneration
-import org.utbot.tests.infrastructure.Compilation
 
 // TODO Kotlin compilation SAT-1332
 // Code generation executions fail due we cannot analyze strings properly for now

@@ -1,9 +1,11 @@
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
+
+
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 internal class PrivateFieldsTest : UtValueTestCaseChecker(testClass = PrivateFields::class) {
     @Test

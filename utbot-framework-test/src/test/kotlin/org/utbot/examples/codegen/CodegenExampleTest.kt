@@ -1,6 +1,5 @@
 package org.utbot.examples.codegen
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.examples.mock.MockRandomExamples
 import kotlin.reflect.full.functions
 import org.junit.jupiter.api.Disabled

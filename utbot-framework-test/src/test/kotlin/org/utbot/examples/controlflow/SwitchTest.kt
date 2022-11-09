@@ -1,8 +1,5 @@
 package org.utbot.examples.controlflow
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.keyContain
-import org.utbot.tests.infrastructure.keyMatch
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt

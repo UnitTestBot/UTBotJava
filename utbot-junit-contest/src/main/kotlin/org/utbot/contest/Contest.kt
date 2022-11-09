@@ -165,6 +165,7 @@ fun main(args: Array<String>) {
 fun setOptions() {
     Settings.defaultConcreteExecutorPoolSize = 1
     UtSettings.useFuzzing = true
+    UtSettings.useGreyBoxFuzzing = false
     UtSettings.classfilesCanChange = false
     // We need to use assemble model generator to increase readability
     UtSettings.useAssembleModelGenerator = true

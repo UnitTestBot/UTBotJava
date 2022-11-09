@@ -11,6 +11,7 @@ import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.engine.MockStrategy.NO_MOCKS
+import org.utbot.engine.greyboxfuzzer.GreyBoxFuzzer
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
@@ -32,7 +33,9 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.util.convertToAssemble
+import org.utbot.framework.concrete.UtConcreteExecutionData
+import org.utbot.framework.concrete.UtConcreteExecutionResult
+import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -415,6 +418,27 @@ class UtBotSymbolicEngine(
             BaseFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
         }
     }
+
+    //Simple fuzzing
+    fun greyBoxFuzzing(until: Long = Long.MAX_VALUE) =
+        flow<UtResult> {
+            GenericsInfoFactory.disableCache()
+            val isFuzzable = methodUnderTest.parameters.all { classId ->
+                classId != Method::class.java.id // causes the child process crash at invocation
+            }
+            if (!isFuzzable) {
+                return@flow
+            }
+
+            try {
+                GreyBoxFuzzer(concreteExecutor.pathsToUserClasses, concreteExecutor.pathsToDependencyClasses, methodUnderTest).fuzz()
+            } catch (e: CancellationException) {
+                logger.debug { "Cancelled by timeout" }
+            } catch (e: Throwable) {
+                emit(UtError("Unexpected fuzzing crash", e))
+            }
+            return@flow
+        }
 
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,

@@ -34,6 +34,10 @@ dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
     implementation group: 'org.apache.commons', name: 'commons-text', version: apacheCommonsTextVersion
+    implementation "org.javaruntype:javaruntype:1.3"
+    implementation "ru.vyarus:generics-resolver:3.0.3"
+    implementation "ognl:ognl:3.3.2"
+
     // we need this for construction mocks from composite models
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
 

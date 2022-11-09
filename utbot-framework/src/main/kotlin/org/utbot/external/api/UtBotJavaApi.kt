@@ -145,6 +145,7 @@ object UtBotJavaApi {
         dependencyClassPath: String,
         mockStrategyApi: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES,
         generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
+        isGreyBoxFuzzing: Boolean = false,
         primitiveValuesSupplier: CustomFuzzerValueSupplier = CustomFuzzerValueSupplier { null }
     ): MutableList<UtMethodTestSet> {
         fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
@@ -182,8 +183,12 @@ object UtBotJavaApi {
                     chosenClassesToMockAlways = emptySet(),
                     generationTimeoutInMillis,
                     generate = { symbolicEngine ->
-                        symbolicEngine.fuzzing { defaultModelProvider ->
-                            customModelProvider.withFallback(defaultModelProvider)
+                        if (isGreyBoxFuzzing) {
+                            symbolicEngine.greyBoxFuzzing()
+                        } else {
+                            symbolicEngine.fuzzing { defaultModelProvider ->
+                                customModelProvider.withFallback(defaultModelProvider)
+                            }
                         }
                     }
                 )

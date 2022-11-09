@@ -190,3 +190,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         return instrumenter.classByteCode
     }
 }
+
+/**
+ * Transforms a list of internal [EtInstruction]s to a list of api [Instruction]s.
+ */
+internal fun List<EtInstruction>.toApiCoverage(instructionsCount: Long? = null): Coverage =
+    Coverage(
+        map { Instruction(it.className, it.methodSignature, it.line, it.id) },
+        instructionsCount
+    )

@@ -76,6 +76,31 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
     /**
      * TODO: JIRA:1405 -- Add assemble constructors for another standard classes as well.
      */
+    java.math.BigInteger::class.java.let { it to { BigNumberConstructor() } },
+    java.math.BigDecimal::class.java.let { it to { BigNumberConstructor() } },
+
+    java.util.BitSet::class.java.let { it to { BitSetConstructor() } },
+    java.util.UUID::class.java.let { it to { UUIDConstructor() } },
+    java.util.Locale::class.java.let { it to { LocaleConstructor() } },
+    java.util.Date::class.java.let { it to { DateConstructor() } },
+    java.util.TimeZone::class.java.let { it to { TimeZoneConstructor() } },
+
+    java.time.Instant::class.java.let { it to { InstantConstructor() } },
+    java.time.Duration::class.java.let { it to { DurationConstructor() } },
+    java.time.ZoneId::class.java.let { it to { ZoneIdConstructor() } },
+    java.time.LocalDate::class.java.let { it to { LocalDateConstructor() } },
+    java.time.LocalTime::class.java.let { it to { LocalTimeConstructor() } },
+    java.time.LocalDateTime::class.java.let { it to { LocalDateTimeConstructor() } },
+    java.time.MonthDay::class.java.let { it to { MonthDayConstructor() } },
+    java.time.Year::class.java.let { it to { YearConstructor() } },
+    java.time.YearMonth::class.java.let { it to { YearMonthConstructor() } },
+    java.time.Period::class.java.let { it to { PeriodConstructor() } },
+    java.time.ZoneOffset::class.java.let { it to { ZoneOffsetConstructor() } },
+    java.time.OffsetTime::class.java.let { it to { OffsetTimeConstructor() } },
+    java.time.OffsetDateTime::class.java.let { it to { OffsetDateTimeConstructor() } },
+    java.time.ZonedDateTime::class.java.let { it to { ZonedDateTimeConstructor() } },
+
+
 ).apply {
     /**
      * Primitive wrappers

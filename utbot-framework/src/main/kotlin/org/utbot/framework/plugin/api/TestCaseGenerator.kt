@@ -17,6 +17,7 @@ import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.greyboxfuzzer.util.GreyBoxFuzzingStatisticPrinter
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.TestSelectionStrategyType
@@ -230,6 +231,9 @@ open class TestCaseGenerator(
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
+        if (UtSettings.useGreyBoxFuzzing) {
+            GreyBoxFuzzingStatisticPrinter.printFuzzingStats(methods)
+        }
         return methods.map { method ->
             UtMethodTestSet(
                 method,

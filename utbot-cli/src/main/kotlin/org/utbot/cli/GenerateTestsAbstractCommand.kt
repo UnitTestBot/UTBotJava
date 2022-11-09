@@ -40,6 +40,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import org.utbot.engine.greyboxfuzzer.util.CustomClassLoader
 
 private const val LONG_GENERATION_TIMEOUT = 1_200_000L
 
@@ -144,8 +145,16 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun getWorkingDirectory(classFqn: String): Path? {
         val classRelativePath = classFqnToPath(classFqn) + ".class"
         val classAbsoluteURL = classLoader.getResource(classRelativePath) ?: return null
-        val classAbsolutePath = replaceSeparator(classAbsoluteURL.toPath().toString())
-            .removeSuffix(classRelativePath)
+        val classAbsolutePath =
+            if (classAbsoluteURL.toURI().scheme == "jar") {
+                replaceSeparator(classAbsoluteURL.file.removePrefix("file:"))
+                    .removeSuffix(classRelativePath)
+                    .removeSuffix("/")
+                    .removeSuffix("!")
+            } else {
+                replaceSeparator(classAbsoluteURL.toPath().toString())
+                    .removeSuffix(classRelativePath)
+            }
         return Paths.get(classAbsolutePath)
     }
 
@@ -155,8 +164,9 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
-    ): List<UtMethodTestSet> =
-        testCaseGenerator.generate(
+    ): List<UtMethodTestSet> {
+        CustomClassLoader.classLoader = classLoader
+        return testCaseGenerator.generate(
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,
@@ -164,6 +174,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         ).map {
             if (sourceCodeFile != null) it.summarize(searchDirectory, sourceCodeFile.toFile()) else it
         }
+    }
 
 
     protected fun withLogger(targetClassFqn: String, block: Runnable) {

@@ -232,7 +232,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
 
         regions += CgSimpleRegion(
-            "Additional tests for symbolic executions for method ${methodUnderTest.humanReadableName}",
+            "SYMBOLIC EXECUTION: additional tests for symbolic executions for method ${methodUnderTest.humanReadableName}",
             collectAdditionalSymbolicTestsForParametrizedMode(testSet),
         )
 

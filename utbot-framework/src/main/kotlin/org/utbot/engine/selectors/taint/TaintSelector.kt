@@ -1,34 +1,18 @@
-/*
 package org.utbot.engine.selectors.taint
 
-import org.utbot.engine.Eq
-import org.utbot.engine.Gt
 import org.utbot.engine.InterProceduralUnitGraph
-import org.utbot.engine.Lt
-import org.utbot.engine.MethodResult
-import org.utbot.engine.ObjectValue
-import org.utbot.engine.SymbolicSuccess
-import org.utbot.engine.TraversalContext
-import org.utbot.engine.fold
+import org.utbot.engine.canRetrieveBody
 import org.utbot.engine.head
 import org.utbot.engine.jimpleBody
-import org.utbot.engine.pc.mkNot
-import org.utbot.engine.pc.mkOr
 import org.utbot.engine.retrieveMethod
 import org.utbot.engine.selectors.BasePathSelector
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
-import org.utbot.engine.state.CALL_DECISION_NUM
 import org.utbot.engine.state.Edge
 import org.utbot.engine.state.ExecutionState
-import org.utbot.engine.state.createExceptionState
-import org.utbot.engine.voidValue
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.util.graph
+import soot.Scene
 import soot.SootMethodRef
-import soot.Value
 import soot.jimple.DefinitionStmt
 import soot.jimple.Expr
 import soot.jimple.MonitorStmt
@@ -53,6 +37,7 @@ import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
+import java.util.Queue
 
 class TaintSelector(
     val graph: ExceptionalUnitGraph,
@@ -61,7 +46,9 @@ class TaintSelector(
 ) : BasePathSelector(choosingStrategy, stoppingStrategy) {
     val start = graph.head
 
-    val globalGraph = InterProceduralUnitGraph(graph)
+    private val globalGraph = InterProceduralUnitGraph(graph)
+    private val stmtsQueue: Queue<Stmt> = mutableListOf()
+    private lateinit var currentStmt: Stmt
 
     init {
         var invokeExpr: Expr? = null
@@ -94,57 +81,39 @@ class TaintSelector(
             is JIfStmt -> traverseIfStmt(current)
             is JInvokeStmt -> traverseInvokeStmt(current)
             is SwitchStmt -> traverseSwitchStmt(current)
-            is JReturnStmt -> {}*/
-/*processResult(symbolicSuccess(current))*//*
-
-            is JReturnVoidStmt -> {}*/
-/*processResult(SymbolicSuccess(voidValue))*//*
-
+            is JReturnStmt -> {}/*processResult(symbolicSuccess(current))*/
+            is JReturnVoidStmt -> {}/*processResult(SymbolicSuccess(voidValue))*/
             is JRetStmt -> error("This one should be already removed by Soot: $current")
             is JThrowStmt -> traverseThrowStmt(current)
-            is JBreakpointStmt -> traverseStmt(globalGraph.succ(current).dst)*/
-/*offerState(updateQueued(globalGraph.succ(current)))*//*
-
-            is JGotoStmt -> traverseStmt(globalGraph.succ(current).dst)*/
-/*offerState(updateQueued(globalGraph.succ(current)))*//*
-
-            is JNopStmt -> traverseStmt(globalGraph.succ(current).dst)*/
-/*offerState(updateQueued(globalGraph.succ(current)))*//*
-
-            is MonitorStmt -> traverseStmt(globalGraph.succ(current).dst)*/
-/*offerState(updateQueued(globalGraph.succ(current)))*//*
-
+            is JBreakpointStmt -> traverseStmt(globalGraph.succ(current).dst)/*offerState(updateQueued(globalGraph.succ(current)))*/
+            is JGotoStmt -> traverseStmt(globalGraph.succ(current).dst)/*offerState(updateQueued(globalGraph.succ(current)))*/
+            is JNopStmt -> traverseStmt(globalGraph.succ(current).dst)/*offerState(updateQueued(globalGraph.succ(current)))*/
+            is MonitorStmt -> traverseStmt(globalGraph.succ(current).dst)/*offerState(updateQueued(globalGraph.succ(current)))*/
             is DefinitionStmt -> TODO("$current")
             else -> error("Unsupported: ${current::class}")
         }
     }
 
     private fun traverseThrowStmt(current: JThrowStmt) {
-        */
-/*val edge = Edge(current, current, CALL_DECISION_NUM)
+        /*val edge = Edge(current, current, CALL_DECISION_NUM)
 
         globalGraph.registerImplicitEdge(edge)
-        traverseStmt()*//*
+        traverseStmt()*/
 
 
-
-        */
-/*val classId = exception.fold(
+        /*val classId = exception.fold(
             { it.javaClass.id },
-            { (exception.symbolic as ObjectValue).type.id }*//*
-
+            { (exception.symbolic as ObjectValue).type.id }*/
 
         // TODO maybe ignore?
     }
 
-    */
-/*private fun findCatchBlock(current: Stmt, classId: ClassId): Edge? {
+    /*private fun findCatchBlock(current: Stmt, classId: ClassId): Edge? {
         val stmtToEdge = globalGraph.exceptionalSuccs(current).associateBy { it.dst }
         return globalGraph.traps.asSequence().mapNotNull { (stmt, exceptionClass) ->
             stmtToEdge[stmt]?.let { it to exceptionClass }
         }.firstOrNull { it.second in hierarchy.ancestors(classId) }?.first
-    }*//*
-
+    }*/
 
     private fun traverseSwitchStmt(current: SwitchStmt) {
         val successors = when (current) {
@@ -175,8 +144,8 @@ class TaintSelector(
     private fun invokeResult(invokeExpr: Expr) {
         when (invokeExpr) {
             is JStaticInvokeExpr -> staticInvoke(invokeExpr)
-            is JInterfaceInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
-            is JVirtualInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
+            is JInterfaceInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.methodRef)
+            is JVirtualInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.methodRef)
             is JSpecialInvokeExpr -> specialInvoke(invokeExpr)
             is JDynamicInvokeExpr -> {}
             else -> error("Unknown class ${invokeExpr::class}")
@@ -184,21 +153,28 @@ class TaintSelector(
     }
 
     private fun specialInvoke(invokeExpr: JSpecialInvokeExpr) {
-        TODO("Not yet implemented")
+        val method = invokeExpr.retrieveMethod()
+        if (method.canRetrieveBody()) {
+            globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
+        }
     }
 
-    private fun virtualAndInterfaceInvoke(base: Value?, methodRef: SootMethodRef?, args: List<Value>) {
-        TODO("Not yet implemented")
+    private fun virtualAndInterfaceInvoke(methodRef: SootMethodRef) {
+        val method = Scene.v().getMethod(methodRef.signature)
+        if (method.canRetrieveBody()) {
+            globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
+        }
     }
 
     private fun staticInvoke(invokeExpr: JStaticInvokeExpr) {
-        TODO("Not yet implemented")
+        val method = invokeExpr.retrieveMethod()
+        if (method.canRetrieveBody()) {
+            globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
+        }
     }
 
-
-
     private fun traverseIfStmt(current: JIfStmt) {
-        TODO("Not yet implemented")
+        val (negativeCaseEdge, positiveCaseEdge) = globalGraph.succs(current).let { it[0] to it.getOrNull(1) }
     }
 
     private fun traverseIdentityStmt(current: JIdentityStmt) {
@@ -244,4 +220,4 @@ class TaintSelector(
     override fun offerImpl(state: ExecutionState) {
         TODO("Not yet implemented")
     }
-}*/
+}

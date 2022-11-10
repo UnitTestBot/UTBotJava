@@ -32,10 +32,6 @@ import org.utbot.quickcheck.generator.GenerationStatus;
 import org.utbot.quickcheck.internal.GeometricDistribution;
 import org.utbot.quickcheck.random.SourceOfRandomness;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 
 /**
  * Provides a generation status that does not track the number of trials
@@ -49,7 +45,6 @@ public class NonTrackingGenerationStatus implements GenerationStatus {
     public static final int MEAN_SIZE = 10;
 
     private final SourceOfRandomness random;
-    private final Map<Key<?>, Object> contextValues = new HashMap<>();
     private final GeometricDistribution geometric = new GeometricDistribution();
 
 
@@ -68,14 +63,4 @@ public class NonTrackingGenerationStatus implements GenerationStatus {
                 " is not supported in guided mode.");
     }
 
-    @Override
-    public <T> GenerationStatus setValue(Key<T> key, T value) {
-        contextValues.put(key, value);
-        return this;
-    }
-
-    @Override
-    public <T> Optional<T> valueOf(Key<T> key) {
-        return Optional.ofNullable(key.cast(contextValues.get(key)));
-    }
 }

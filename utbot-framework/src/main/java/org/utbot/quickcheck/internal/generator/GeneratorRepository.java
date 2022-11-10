@@ -1,49 +1,24 @@
-/*
- The MIT License
 
- Copyright (c) 2010-2021 Paul R. Holser, Jr.
-
- Permission is hereby granted, free of charge, to any person obtaining
- a copy of this software and associated documentation files (the
- "Software"), to deal in the Software without restriction, including
- without limitation the rights to use, copy, modify, merge, publish,
- distribute, sublicense, and/or sell copies of the Software, and to
- permit persons to whom the Software is furnished to do so, subject to
- the following conditions:
-
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
 
 package org.utbot.quickcheck.internal.generator;
 
+import org.javaruntype.type.TypeParameter;
 import org.utbot.quickcheck.generator.*;
 import org.utbot.quickcheck.internal.ParameterTypeContext;
 import org.utbot.quickcheck.internal.Weighted;
 import org.utbot.quickcheck.internal.Zilch;
-import org.utbot.quickcheck.internal.generator.ArrayGenerator;
 import org.utbot.quickcheck.random.SourceOfRandomness;
-import org.javaruntype.type.TypeParameter;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static org.utbot.quickcheck.internal.Items.choose;
-import static org.utbot.quickcheck.internal.Reflection.*;
-import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.utbot.quickcheck.internal.Items.choose;
+import static org.utbot.quickcheck.internal.Reflection.*;
 
 public class GeneratorRepository implements Generators {
     private static final Set<String> NULLABLE_ANNOTATIONS =
@@ -132,31 +107,6 @@ public class GeneratorRepository implements Generators {
         forType.add(generator);
     }
 
-    @Override public Generator<?> field(Class<?> type, String fieldName) {
-        return field(findField(type, fieldName));
-    }
-
-    @Override public <U> Generator<U> constructor(
-        Class<U> type,
-        Class<?>... argumentTypes) {
-
-        Constructor<U> constructor = findConstructor(type, argumentTypes);
-        Ctor<U> ctor = new Ctor<>(constructor);
-        ctor.provide(this);
-        ctor.configure(constructor.getAnnotatedReturnType());
-
-        return ctor;
-    }
-
-    @Override public <U> Generator<U> fieldsOf(Class<U> type) {
-        Fields<U> fields = new Fields<>(type);
-
-        fields.provide(this);
-        fields.configure(type);
-
-        return fields;
-    }
-
     @SuppressWarnings("unchecked")
     @Override public <T> Generator<T> type(
         Class<T> type,
@@ -178,51 +128,6 @@ public class GeneratorRepository implements Generators {
     @Override public Generator<?> field(Field field) {
         return produceGenerator(
             ParameterTypeContext.forField(field).annotate(field));
-    }
-
-    @SafeVarargs
-    @SuppressWarnings("unchecked")
-    @Override public final <T> Generator<T> oneOf(
-        Class<? extends T> first,
-        Class<? extends T>... rest) {
-
-        return oneOf(
-            type(first),
-            Arrays.stream(rest)
-                .map(t -> type(t))
-                .toArray(Generator[]::new));
-    }
-
-    @SafeVarargs
-    @SuppressWarnings("unchecked")
-    @Override public final <T> Generator<T> oneOf(
-        Generator<? extends T> first,
-        Generator<? extends T>... rest) {
-
-        if (rest.length == 0)
-            return (Generator<T>) first;
-
-        List<Generator<? extends T>> gens = new ArrayList<>();
-        gens.add(first);
-        Collections.addAll(gens, rest);
-
-        List<Weighted<Generator<?>>> weightings = gens.stream()
-            .map(g -> new Weighted<Generator<?>>(g, 1))
-            .collect(toList());
-
-        return (Generator<T>) new CompositeGenerator(weightings);
-    }
-
-    @Override public final <T extends Generator<?>> T make(
-        Class<T> genType,
-        Generator<?>... components) {
-
-        T generator = instantiate(genType);
-        generator.provide(this);
-        generator.configure(genType);
-        generator.addComponentGenerators(asList(components));
-
-        return generator;
     }
 
     @Override public final Generators withRandom(SourceOfRandomness other) {

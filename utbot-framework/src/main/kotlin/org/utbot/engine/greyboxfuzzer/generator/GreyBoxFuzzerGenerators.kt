@@ -75,5 +75,8 @@ object GreyBoxFuzzerGenerators {
             it.register(PrimitiveIntGenerator())
             it.register(PrimitiveLongGenerator())
             it.register(PrimitiveShortGenerator())
+            it.register(RFC4122.Version3())
+            it.register(RFC4122.Version4())
+            it.register(RFC4122.Version5())
         }
 }

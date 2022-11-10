@@ -1,27 +1,4 @@
-/*
- The MIT License
 
- Copyright (c) 2010-2021 Paul R. Holser, Jr.
-
- Permission is hereby granted, free of charge, to any person obtaining
- a copy of this software and associated documentation files (the
- "Software"), to deal in the Software without restriction, including
- without limitation the rights to use, copy, modify, merge, publish,
- distribute, sublicense, and/or sell copies of the Software, and to
- permit persons to whom the Software is furnished to do so, subject to
- the following conditions:
-
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
 
 package org.utbot.quickcheck.generator;
 
@@ -35,14 +12,12 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static java.math.BigDecimal.ONE;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.utbot.quickcheck.internal.Reflection.*;
@@ -52,7 +27,7 @@ import static org.utbot.quickcheck.internal.Reflection.*;
  *
  * @param <T> type of property parameter to apply this generator's values to
  */
-public abstract class Generator<T> implements Gen<T>, Shrink<T> {
+public abstract class Generator<T> implements Gen<T> {
     private final List<Class<T>> types = new ArrayList<>();
 
     private Generators repo;
@@ -95,86 +70,6 @@ public abstract class Generator<T> implements Gen<T>, Shrink<T> {
      */
     public boolean canRegisterAsType(Class<?> type) {
         return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Generators first ensure that they {@linkplain #canShrink(Object) can
-     * participate} in shrinking the given value, and if so, they
-     * {@linkplain #doShrink(SourceOfRandomness, Object) produce shrinks}.</p>
-     */
-    @Override public final List<T> shrink(SourceOfRandomness random, Object larger) {
-        if (!canShrink(larger)) {
-            throw new IllegalStateException(
-                getClass() + " not capable of shrinking " + larger);
-        }
-
-        return doShrink(random, narrow(larger));
-    }
-
-    /**
-     * <p>Tells whether this generator is allowed to participate in the
-     * {@link Shrink} process for the given "larger" value.</p>
-     *
-     * <p>Unless overridden, the only criterion for whether a generator is
-     * allowed to participate in shrinking a value is if the value can be
-     * safely cast to the type of values the generator produces.</p>
-     *
-     * @param larger the "larger" value
-     * @return whether this generator can participate in "shrinking" the larger
-     * value
-     */
-    public boolean canShrink(Object larger) {
-        return types().get(0).isInstance(larger);
-    }
-
-    /**
-     * <p>Gives some objects that are "smaller" than a given "larger"
-     * object.</p>
-     *
-     * <p>Unless overridden, a generator will produce an empty list of
-     * "smaller" values.</p>
-     *
-     * @param random source of randomness to use in shrinking, if desired
-     * @param larger the larger object
-     * @return objects that are "smaller" than the larger object. Smaller objects should be provided before bigger objects to make shrinking process faster.
-     */
-    public List<T> doShrink(SourceOfRandomness random, T larger) {
-        return emptyList();
-    }
-
-    /**
-     * <p>Gives a hint to the shrinking process as to the magnitude of the given
-     * value. The shrinking process will prefer trying values of greater
-     * magnitude before values of lesser magnitude. If not overridden, this
-     * implementation returns "one".</p>
-     *
-     * <p><em>Note to generator writers:</em> Do not worry about normalizing
-     * a magnitude to a positive value; the shrinking mechanism will take care
-     * of it.</p>
-     *
-     * @see #narrow(Object)
-     * @param value the value to assess
-     * @return a measure of the given value's magnitude
-     */
-    public BigDecimal magnitude(Object value) {
-        return ONE;
-    }
-
-    /**
-     * <p>Attempts to "narrow" the given object to the type this generator
-     * produces.</p>
-     *
-     * <p>This is intended for use only by junit-quickcheck itself, and not by
-     * creators of custom generators.</p>
-     *
-     * @param wider target of the narrowing
-     * @return narrowed the result of the narrowing
-     * @throws ClassCastException if the narrowing cannot be performed
-     */
-    protected final T narrow(Object wider) {
-        return types().get(0).cast(wider);
     }
 
     /**

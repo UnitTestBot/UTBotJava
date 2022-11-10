@@ -39,12 +39,12 @@ dependencies {
     api(group = "org.functionaljava", name = "functionaljava-quickcheck", version = functionaljavaVersion)
     api(group = "org.functionaljava", name = "functionaljava-java-core", version = functionaljavaVersion)
 
-    implementation(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4") // TODO: will be changed to javacc21
-    implementation("com.beust:klaxon:5.5") // TODO: remove this dependency and use only moshi
+    api(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4") // TODO: will be changed to javacc21
+    api("com.beust:klaxon:5.5") // TODO: remove this dependency and use only moshi
 
-    implementation(group = "com.squareup.moshi", name = "moshi", version = moshiVersion)
-    implementation(group = "com.squareup.moshi", name = "moshi-kotlin", version = moshiVersion)
-    implementation(group = "com.squareup.moshi", name = "moshi-adapters", version = moshiVersion)
+    api(group = "com.squareup.moshi", name = "moshi", version = moshiVersion)
+    api(group = "com.squareup.moshi", name = "moshi-kotlin", version = moshiVersion)
+    api(group = "com.squareup.moshi", name = "moshi-adapters", version = moshiVersion)
 }
 
 repositories {

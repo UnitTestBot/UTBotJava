@@ -1,6 +1,8 @@
 package org.utbot.intellij.plugin.util
 
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.extensions.PluginId
@@ -38,7 +40,7 @@ object IntelliJApiHelper {
             Target.THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit { wrapper.run() }
             Target.READ_ACTION -> runReadAction { wrapper.run() }
             Target.WRITE_ACTION -> runWriteAction { wrapper.run() }
-            Target.EDT_LATER -> invokeLater { wrapper.run() }
+            Target.EDT_LATER -> ApplicationManager.getApplication().invokeLater( wrapper, ModalityState.NON_MODAL )
         }
     }
 

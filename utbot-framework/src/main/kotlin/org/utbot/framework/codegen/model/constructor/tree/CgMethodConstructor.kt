@@ -4,6 +4,7 @@ import org.utbot.common.PathUtil
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
+import org.utbot.engine.taint.TaintAnalysisError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -148,6 +149,8 @@ import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.model.constructor.taint.util.constructAssertionMessage
+import org.utbot.framework.codegen.model.constructor.taint.util.taintErrorClassId
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.util.allSuperTypes
@@ -337,9 +340,20 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         when (methodType) {
             SUCCESSFUL -> error("Unexpected successful without exception method type for execution with exception $expectedException")
             PASSED_EXCEPTION -> {
-                testFrameworkManager.expectException(expectedException::class.id) {
+                testFrameworkManager.expectException(expectedException::class.id, {
                     methodInvocationBlock()
+                })
+            }
+            TAINT -> {
+                require(expectedException is TaintAnalysisError) {
+                    "Expected ${TaintAnalysisError::class.simpleName} for taint failure but got $expectedException"
                 }
+
+                testFrameworkManager.expectException(
+                    taintErrorClassId,
+                    { methodInvocationBlock() },
+                    message = constructAssertionMessage(expectedException)
+                )
             }
             TIMEOUT -> {
                 writeWarningAboutTimeoutExceeding()
@@ -1796,6 +1810,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             .onSuccess { methodType = SUCCESSFUL }
             .onFailure { exception ->
                 methodType = when {
+                    exception is TaintAnalysisError -> TAINT
                     shouldTestPassWithException(currentExecution, exception) -> PASSED_EXCEPTION
                     shouldTestPassWithTimeoutException(currentExecution, exception) -> TIMEOUT
                     else -> when (exception) {

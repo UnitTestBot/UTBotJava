@@ -209,7 +209,9 @@ class UtFailedExecution(
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null
-) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName) {
+    override fun toString(): String = "StateBefore: $stateBefore, result: $result"
+}
 
 open class EnvironmentModels(
     val thisInstance: UtModel?,

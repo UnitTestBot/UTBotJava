@@ -101,11 +101,17 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
+import org.utbot.common.WorkaroundReason
+import org.utbot.common.workaround
+import org.utbot.engine.selectors.BasePathSelector
+import org.utbot.engine.selectors.randomSelectorWithLoopIterationsThreshold
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.state.StateLabel
+import org.utbot.engine.taint.taintAnalysis
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
+import org.utbot.framework.UtSettings.useConcreteExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtSandboxFailure
@@ -158,6 +164,9 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
+        PathSelectorType.RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD -> randomSelectorWithLoopIterationsThreshold(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
     }
 
 class UtBotSymbolicEngine(
@@ -177,6 +186,11 @@ class UtBotSymbolicEngine(
     private val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
     private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
+
+    val wasStoppedByStepsLimit: Boolean
+        get() = workaround(WorkaroundReason.TAINT) {
+            (pathSelector as? BasePathSelector)?.wasStoppedByStepsLimit ?: false
+        }
 
     internal val hierarchy: Hierarchy = Hierarchy(typeRegistry)
 
@@ -206,6 +220,7 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
+        taintAnalysis
     )
 
     //HACK (long strings)
@@ -282,7 +297,7 @@ class UtBotSymbolicEngine(
                             "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}"
                 }
 
-                if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
+                if (useConcreteExecution && (controller.executeConcretely || statesForConcreteExecution.isNotEmpty())) {
                     val state = pathSelector.pollUntilFastSAT()
                         ?: statesForConcreteExecution.pollUntilSat(processUnknownStatesDuringConcreteExecution)
                         ?: break
@@ -365,7 +380,11 @@ class UtBotSymbolicEngine(
                         for (newState in newStates) {
                             when (newState.label) {
                                 StateLabel.INTERMEDIATE -> pathSelector.offer(newState)
-                                StateLabel.CONCRETE -> statesForConcreteExecution.add(newState)
+                                StateLabel.CONCRETE -> if (UtSettings.useTaintAnalysisMode) {
+                                    continue // do not execute concretely states during taint analysis mode
+                                } else {
+                                    statesForConcreteExecution.add(newState)
+                                }
                                 StateLabel.TERMINAL -> consumeTerminalState(newState)
                             }
                         }

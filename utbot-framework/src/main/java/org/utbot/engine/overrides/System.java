@@ -1,6 +1,9 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
+import org.utbot.api.mock.*;
+
+import java.util.*;
 
 @UtClassMock(target = java.lang.System.class, internalUsage = true)
 public class System {
@@ -224,5 +227,18 @@ public class System {
 
             UtArrayMock.arraycopy(srcArray, srcPos, destArray, destPos, length);
         }
+    }
+
+    // TODO probably, we should use nullable version since chinese colleagues expect null values sometimes
+    @SuppressWarnings("unused")
+    public String getenv(String name) {
+        // Prevent null for taint analysis
+        return UtMock.makeSymbolic();
+    }
+
+    @SuppressWarnings("unused")
+    public Map<String, String> getenv() {
+        // Prevent null for taint analysis
+        return UtMock.makeSymbolic();
     }
 }

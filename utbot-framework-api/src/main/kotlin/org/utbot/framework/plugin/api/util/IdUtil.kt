@@ -274,6 +274,11 @@ val floatArrayClassId = ClassId("[F", floatClassId)
 val doubleArrayClassId = ClassId("[D", doubleClassId)
 
 val stringClassId = java.lang.String::class.id
+val stringBuilderClassId = java.lang.StringBuilder::class.id
+val stringBufferClassId = java.lang.StringBuffer::class.id
+val charSequenceClassId: ClassId = java.lang.CharSequence::class.id
+
+val localeClassId: ClassId = java.util.Locale::class.id
 
 val objectClassId = java.lang.Object::class.id
 
@@ -299,6 +304,15 @@ val doubleStreamToArrayMethodId = methodId(doubleStreamClassId, "toArray", doubl
 val streamToArrayMethodId = methodId(streamClassId, "toArray", objectArrayClassId)
 
 val dateClassId = java.util.Date::class.id
+
+val systemCLassId: ClassId = java.lang.System::class.id
+val propertiesClassId: ClassId = java.util.Properties::class.id
+@Suppress("unused")
+val inputStreamClassId: ClassId = java.io.InputStream::class.id
+@Suppress("unused")
+val readerClassId: ClassId = java.io.Reader::class.id
+@Suppress("unused")
+val arraysCLassId: ClassId = java.util.Arrays::class.id
 
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(

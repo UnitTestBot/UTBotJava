@@ -21,6 +21,8 @@ import org.utbot.engine.pc.UtSort
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkArrayConst
 import org.utbot.engine.pc.mkInt
+import org.utbot.engine.pc.mkLong
+import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
 import org.utbot.engine.pc.toSort
@@ -37,6 +39,8 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
+import org.utbot.engine.pc.UtBoolExpression
+import org.utbot.engine.pc.UtLongSort
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
 import org.utbot.framework.plugin.api.classId
@@ -99,6 +103,13 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         UtFalse,
         UtArraySort(UtAddrSort, UtBoolSort)
     ),
+    // const array here is because even in the situation when MUT is marked as a `PassThrough` we will
+    // process this information in a current state, not initial one
+    private var taintArray: UtArrayExpressionBase = UtConstArrayExpression(
+        mkLong(value = 0L),
+        UtArraySort(indexSort = UtAddrSort, itemSort = UtLongSort)
+    ),
+    private val taintAnalysisAlreadyFoundSomething: UtBoolExpression = UtFalse,
     private val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     val chunkIds: Set<ChunkId>
@@ -109,6 +120,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun mocks(): List<MockInfoEnriched> = mockInfos
 
     fun staticFields(): Map<FieldId, FieldStates> = staticFieldsStates.filterKeys { it in meaningfulStaticFields }
+
+    fun doesTaintAnalysisFoundSomething(): UtBoolExpression = taintAnalysisAlreadyFoundSomething
 
     /**
      * Construct the mapping from addresses to sets of fields whose values are read during the code execution
@@ -133,6 +146,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      * Returns symbolic information about whether [addr] corresponds to a final field known to be not null.
      */
     fun isSpeculativelyNotNull(addr: UtAddrExpression): UtArraySelectExpression = speculativelyNotNullAddresses.select(addr)
+
+    fun taintValue(addr: UtAddrExpression): UtArraySelectExpression = taintArray.select(addr)
 
     /**
      * @return ImmutableCollection of the initial values for all the arrays we touched during the execution
@@ -229,9 +244,17 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
-        val updSpeculativelyNotNullAddresses = update.speculativelyNotNullAddresses.fold(speculativelyNotNullAddresses) { acc, addr ->
-            acc.store(addr, UtTrue)
-        }
+        val updSpeculativelyNotNullAddresses = update.speculativelyNotNullAddresses
+            .fold(speculativelyNotNullAddresses) { acc, addr -> acc.store(addr, UtTrue) }
+
+        val updTaintArray = update.taintArrayUpdate
+            .groupBy { it.first }
+            .map {
+                it.key to it.value.fold(mkLong(0).toLongValue()) { acc, value ->
+                    Or(acc, value.second.toLongValue()).toLongValue()
+                }
+            }
+            .fold(taintArray) { acc, upd -> acc.store(upd.first, upd.second.expr) }
 
         return this.copy(
             initial = updInitial,
@@ -250,6 +273,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             touchedAddresses = updTouchedAddresses,
             instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads),
             speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses,
+            taintArray = updTaintArray,
+            taintAnalysisAlreadyFoundSomething = mkOr(taintAnalysisAlreadyFoundSomething, update.taintAnalysisFoundSomething),
             symbolicEnumValues = symbolicEnumValues.addAll(update.symbolicEnumValues)
         )
     }
@@ -349,6 +374,8 @@ data class MemoryUpdate(
     val classIdToClearStatics: ClassId? = null,
     val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
     val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
+    val taintArrayUpdate: PersistentList<Pair<UtAddrExpression, UtExpression>> = persistentListOf(),
+    val taintAnalysisFoundSomething: UtBoolExpression = UtFalse,
     val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =
@@ -368,6 +395,8 @@ data class MemoryUpdate(
             classIdToClearStatics = other.classIdToClearStatics,
             instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads),
             speculativelyNotNullAddresses = speculativelyNotNullAddresses.addAll(other.speculativelyNotNullAddresses),
+            taintArrayUpdate = taintArrayUpdate.addAll(other.taintArrayUpdate),
+            taintAnalysisFoundSomething = mkOr(taintAnalysisFoundSomething, other.taintAnalysisFoundSomething),
             symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
 

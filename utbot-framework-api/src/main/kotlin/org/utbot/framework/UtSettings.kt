@@ -4,6 +4,8 @@ import com.jetbrains.rd.util.LogLevel
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
 import java.lang.reflect.Executable
+import kotlin.reflect.KMutableProperty0
+
 private val logger = KotlinLogging.logger {}
 
 /**
@@ -98,6 +100,8 @@ object UtSettings : AbstractSettings(
      * False by default.
      */
     val copyVisualizationPathToClipboard get() = useDebugVisualization
+
+    var useOnlyTaintAnalysis by getBooleanProperty(false)
 
     /**
      * Set the value to true to show library classes' graphs in visualization.
@@ -477,6 +481,70 @@ object UtSettings : AbstractSettings(
      * It is used to do not encode big type storages due to significand performance degradation.
      */
     var maxNumberOfTypesToEncode by getIntProperty(512)
+
+    /**
+     * If this value is positive, the symbolic engine will treat results of all method invocations, which depth in call
+     * stack is more than or equals than this value, as unbounded symbolic variables.
+     *
+     * 0 by default (do not "mock" deep methods).
+     */
+    var callDepthToMock by getIntProperty(0)
+
+    /**
+     * Value for [callDepthToMock] in case [useTaintAnalysisMode] is true.
+     */
+    var taintAnalysisCallDepthToMock by getIntProperty(8)
+
+    /**
+     * If this value is positive, a path selector for the symbolic engine will strictly drop loop states
+     * if current step is more than this limit.
+     *
+     * 0 by default (do not strictly drop such states).
+     */
+    var loopStepsLimit by getIntProperty(0)
+
+    /**
+     * Value for [loopStepsLimit] in case [useTaintAnalysisMode] is true.
+     */
+    var taintLoopStepsLimit by getIntProperty(3)
+
+    /**
+     * Being set to true, this option sets some settings to specific for taint analysis values.
+     *
+     * False by default.
+     */
+    var useTaintAnalysisMode by getBooleanProperty(false)
+
+    init {
+        turnOnAnalysisModes()
+    }
+
+    private fun turnOnAnalysisModes() {
+        AnalysisMode.values().forEach {
+            it.applyMode()
+        }
+    }
+}
+
+enum class AnalysisMode(private val triggerOption: KMutableProperty0<Boolean>) {
+    TAINT(UtSettings::useTaintAnalysisMode) {
+        override fun settingsAction(): UtSettings.() -> Unit =
+            {
+                useConcreteExecution = false
+                useSandbox = false
+                callDepthToMock = taintAnalysisCallDepthToMock
+                loopStepsLimit = taintLoopStepsLimit
+                pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+            }
+    };
+
+    abstract fun settingsAction(): UtSettings.() -> Unit
+
+    fun applyMode() {
+        if (triggerOption.get()) {
+            settingsAction().invoke(UtSettings)
+        }
+    }
 }
 
 /**
@@ -526,7 +594,12 @@ enum class PathSelectorType {
     /**
      * [RandomPathSelector]
      */
-    RANDOM_PATH_SELECTOR
+    RANDOM_PATH_SELECTOR,
+
+    /**
+     * [RandomSelectorWithLoopIterationsThreshold]
+     */
+    RANDOM_SELECTOR_WITH_LOOP_ITERATIONS_THRESHOLD
 }
 
 enum class TestSelectionStrategyType {

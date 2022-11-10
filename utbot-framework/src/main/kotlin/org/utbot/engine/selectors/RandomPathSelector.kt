@@ -54,8 +54,11 @@ import kotlin.random.Random
  * @see BasePathSelector
  * @see PathSelector
  */
-class RandomPathSelector(choosingStrategy: ChoosingStrategy, stoppingStrategy: StoppingStrategy, seed: Int = 42) :
-    BasePathSelector(choosingStrategy, stoppingStrategy) {
+class RandomPathSelector(
+    choosingStrategy: ChoosingStrategy,
+    stoppingStrategy: StoppingStrategy,
+    seed: Int = 42
+) : BasePathSelector(choosingStrategy, stoppingStrategy) {
     private val tree = PathsTree(Random(seed))
 
     override fun offerImpl(state: ExecutionState) {

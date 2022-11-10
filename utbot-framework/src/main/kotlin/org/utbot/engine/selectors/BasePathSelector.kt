@@ -1,5 +1,7 @@
 package org.utbot.engine.selectors
 
+import org.utbot.common.WorkaroundReason
+import org.utbot.common.workaround
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.isPreconditionCheckMethod
 import org.utbot.engine.pathLogger
@@ -7,6 +9,7 @@ import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
 import org.utbot.engine.pc.UtSolverStatusUNSAT
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
+import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 import org.utbot.framework.UtSettings
 
@@ -29,6 +32,11 @@ abstract class BasePathSelector(
     override val remainingStatesForConcreteExecution: List<ExecutionState>
         // return copy and clear the original
         get() = statesForConcreteExecution.toList().also { statesForConcreteExecution.clear() }
+
+    val wasStoppedByStepsLimit: Boolean
+        get() = workaround(WorkaroundReason.TAINT) {
+            (stoppingStrategy as? StepsLimitStoppingStrategy)?.exceedingStepsLimit ?: false
+        }
 
     protected var current: ExecutionState? = null
 

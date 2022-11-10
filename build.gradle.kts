@@ -109,6 +109,10 @@ subprojects {
     group = rootProject.group
     version = rootProject.version
 
+    java {
+        withSourcesJar()
+    }
+
     publishing {
         publications {
             create<MavenPublication>("jar") {
@@ -137,6 +141,10 @@ configure(
         project(":utbot-summary")
     )
 ) {
+    java {
+        withSourcesJar()
+    }
+
     publishing {
         repositories {
             maven {

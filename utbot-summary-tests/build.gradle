@@ -10,7 +10,7 @@ dependencies {
     implementation(project(':utbot-instrumentation'))
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4Version
-    testImplementation project(':utbot-framework-test').sourceSets.main.output
+    testImplementation project(':utbot-testing')
     testImplementation project(':utbot-framework').sourceSets.test.output
 }
 

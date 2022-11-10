@@ -1,6 +1,6 @@
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = JavaVersion.VERSION_11
         freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
     }
 }
@@ -22,6 +22,7 @@ configurations {
 
 dependencies {
     api project(':utbot-framework-api')
+    testImplementation project(':utbot-testing')
 
     api project(':utbot-fuzzers')
     api project(':utbot-instrumentation')

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtClusterInfo
+import org.utbot.testing.DoNotCalculate
 
 /**
  * It runs test generation for the poor analogue of the Stats.of method ported from the guava-26.0 framework

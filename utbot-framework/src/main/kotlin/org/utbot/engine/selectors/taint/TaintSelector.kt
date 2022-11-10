@@ -15,11 +15,16 @@ import soot.Scene
 import soot.SootMethodRef
 import soot.jimple.DefinitionStmt
 import soot.jimple.Expr
+import soot.jimple.IdentityRef
+import soot.jimple.InvokeExpr
 import soot.jimple.MonitorStmt
+import soot.jimple.ParameterRef
 import soot.jimple.Stmt
 import soot.jimple.SwitchStmt
+import soot.jimple.ThisRef
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JBreakpointStmt
+import soot.jimple.internal.JCaughtExceptionRef
 import soot.jimple.internal.JDynamicInvokeExpr
 import soot.jimple.internal.JGotoStmt
 import soot.jimple.internal.JIdentityStmt
@@ -37,7 +42,6 @@ import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
-import java.util.Queue
 
 class TaintSelector(
     val graph: ExceptionalUnitGraph,
@@ -47,31 +51,20 @@ class TaintSelector(
     val start = graph.head
 
     private val globalGraph = InterProceduralUnitGraph(graph)
-    private val stmtsQueue: Queue<Stmt> = mutableListOf()
+    private val stmtsQueue = ArrayDeque<Stmt>()
     private lateinit var currentStmt: Stmt
 
     init {
-        var invokeExpr: Expr? = null
-
-        val method = when (invokeExpr) {
-            is JInterfaceInvokeExpr -> invokeExpr.methodRef.resolve()
-            is JVirtualInvokeExpr -> invokeExpr.methodRef.resolve()
-            is JSpecialInvokeExpr -> invokeExpr.retrieveMethod()
-            is JStaticInvokeExpr -> invokeExpr.retrieveMethod()
-            is JDynamicInvokeExpr -> null// TODO should we retrieve its body?
-            else -> error("Unknown class ${invokeExpr!!::class}")
-        }
-
-        val body = method!!.jimpleBody()
-        var graph = body.graph()
-
-        globalGraph.join()
-
-        val newStmt = globalGraph.succ()
+        joinAllNonAbstractMethodGraphs()
     }
 
     private fun joinAllNonAbstractMethodGraphs() {
-        traverseStmt(start)
+        stmtsQueue += start
+
+        while (!stmtsQueue.isEmpty()) {
+            currentStmt = stmtsQueue.removeFirst()
+            traverseStmt(currentStmt)
+        }
     }
 
     private fun traverseStmt(current: Stmt) {
@@ -138,7 +131,7 @@ class TaintSelector(
     }
 
     private fun traverseInvokeStmt(current: JInvokeStmt) {
-        TODO("Not yet implemented")
+        invokeResult(current.invokeExpr)
     }
 
     private fun invokeResult(invokeExpr: Expr) {
@@ -147,7 +140,7 @@ class TaintSelector(
             is JInterfaceInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.methodRef)
             is JVirtualInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.methodRef)
             is JSpecialInvokeExpr -> specialInvoke(invokeExpr)
-            is JDynamicInvokeExpr -> {}
+            is JDynamicInvokeExpr -> {} // Dynamic invoke is not fully supported
             else -> error("Unknown class ${invokeExpr::class}")
         }
     }
@@ -156,6 +149,7 @@ class TaintSelector(
         val method = invokeExpr.retrieveMethod()
         if (method.canRetrieveBody()) {
             globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
+            stmtsQueue += globalGraph.succ(currentStmt).dst
         }
     }
 
@@ -163,6 +157,7 @@ class TaintSelector(
         val method = Scene.v().getMethod(methodRef.signature)
         if (method.canRetrieveBody()) {
             globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
+            stmtsQueue += globalGraph.succ(currentStmt).dst
         }
     }
 
@@ -170,19 +165,35 @@ class TaintSelector(
         val method = invokeExpr.retrieveMethod()
         if (method.canRetrieveBody()) {
             globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
+            stmtsQueue += globalGraph.succ(currentStmt).dst
         }
     }
 
     private fun traverseIfStmt(current: JIfStmt) {
         val (negativeCaseEdge, positiveCaseEdge) = globalGraph.succs(current).let { it[0] to it.getOrNull(1) }
+
+        stmtsQueue += negativeCaseEdge.dst
+        positiveCaseEdge?.let { stmtsQueue += it.dst }
     }
 
     private fun traverseIdentityStmt(current: JIdentityStmt) {
-        TODO("Not yet implemented")
+        when (val identityRef = current.rightOp as IdentityRef) {
+            is ParameterRef, is ThisRef, is JCaughtExceptionRef -> {
+                // TODO strange error occurred
+                stmtsQueue += globalGraph.succ(currentStmt).dst
+            }
+            else -> error("Unsupported $identityRef")
+        }
     }
 
     private fun traverseAssignStmt(current: JAssignStmt) {
-        TODO("Not yet implemented")
+        val rightValue = current.rightOp
+
+        if (rightValue is InvokeExpr) {
+            invokeResult(rightValue)
+        }
+
+        stmtsQueue += globalGraph.succ(currentStmt).dst
     }
 
     override fun offer(state: ExecutionState) {
@@ -218,6 +229,17 @@ class TaintSelector(
     }
 
     override fun offerImpl(state: ExecutionState) {
+        TODO("Not yet implemented")
+    }
+
+    override fun isEmpty(): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override val name: String
+        get() = TODO("Not yet implemented")
+
+    override fun close() {
         TODO("Not yet implemented")
     }
 }

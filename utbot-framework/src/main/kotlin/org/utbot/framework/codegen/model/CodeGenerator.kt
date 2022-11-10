@@ -81,11 +81,13 @@ open class CodeGenerator(
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
             val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
-            val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
+            val cgClassConstructor = CgTestClassConstructor(context)
+            val testClassFile = cgClassConstructor.construct(testClassModel)
+
             CodeGeneratorResult(
                 generatedCode = renderClassFile(testClassFile),
                 utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-                testsGenerationReport = testClassFile.testsGenerationReport
+                testsGenerationReport = cgClassConstructor.testsGenerationReport
             )
         }
     }

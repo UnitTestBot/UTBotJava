@@ -21,8 +21,8 @@ import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgClass
+import org.utbot.framework.codegen.model.tree.CgClassFile
 import org.utbot.framework.codegen.model.tree.CgRealNestedClassesRegion
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
@@ -30,7 +30,7 @@ import org.utbot.framework.codegen.model.tree.CgUtilEntity
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildClass
 import org.utbot.framework.codegen.model.tree.buildClassBody
-import org.utbot.framework.codegen.model.tree.buildTestClassFile
+import org.utbot.framework.codegen.model.tree.buildClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
@@ -53,16 +53,15 @@ open class CgTestClassConstructor(val context: CgContext) :
     private val nameGenerator = getNameGeneratorBy(context)
     private val testFrameworkManager = getTestFrameworkManagerBy(context)
 
-    protected val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
+    val testsGenerationReport = TestsGenerationReport()
 
     /**
      * Given a testClass model  constructs CgTestClass
      */
-    open fun construct(testClassModel: TestClassModel): CgTestClassFile {
-        return buildTestClassFile {
+    open fun construct(testClassModel: TestClassModel): CgClassFile {
+        return buildClassFile {
             this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
-            testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }
 

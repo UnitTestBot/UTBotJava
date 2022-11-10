@@ -21,16 +21,6 @@ class CgClassFileBuilder : CgBuilder<CgClassFile> {
 
 fun buildClassFile(init: CgClassFileBuilder.() -> Unit) = CgClassFileBuilder().apply(init).build()
 
-class CgTestClassFileBuilder : CgBuilder<CgTestClassFile> {
-    val imports: MutableList<Import> = mutableListOf()
-    lateinit var declaredClass: CgClass
-    lateinit var testsGenerationReport: TestsGenerationReport
-
-    override fun build() = CgTestClassFile(imports, declaredClass, testsGenerationReport)
-}
-
-fun buildTestClassFile(init: CgTestClassFileBuilder.() -> Unit) = CgTestClassFileBuilder().apply(init).build()
-
 class CgClassBuilder : CgBuilder<CgClass> {
     lateinit var id: ClassId
     val annotations: MutableList<CgAnnotation> = mutableListOf()

@@ -1,7 +1,7 @@
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
-val apacheCommonsTextVersion: String? by rootProject
-val jacksonVersion: String? by rootProject
+val junitJupiterVersion: String? by rootProject
+
 val ideType: String? by rootProject
 val ideVersion: String? by rootProject
 val kotlinPluginVersion: String? by rootProject
@@ -33,8 +33,9 @@ tasks {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = junitJupiterVersion)
+    testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = junitJupiterVersion)
+
     implementation(project(":utbot-ui-commons"))
 
     //Family

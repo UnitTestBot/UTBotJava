@@ -21,7 +21,7 @@ dependencies {
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     // Without this dependency testng tests do not run.
-    implementation group: 'com.beust', name: 'jcommander', version: '1.48'
+    implementation group: 'com.beust', name: 'jcommander', version: jcommanderVersion
     implementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4PlatformVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: cliktVersion

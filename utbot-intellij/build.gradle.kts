@@ -2,6 +2,9 @@ val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
+val rdFrameworkVersion: String? by rootProject
+val apacheHttpClientVersion: String? by rootProject
+val mockServerNettyVersion: String? by rootProject
 
 val ideType: String? by rootProject
 val ideVersion: String? by rootProject
@@ -90,18 +93,18 @@ tasks {
 }
 
 dependencies {
-    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
-    implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdFrameworkVersion)
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdFrameworkVersion)
     implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
-    implementation("org.apache.httpcomponents.client5:httpclient5:5.1")
+    implementation(group = "org.apache.httpcomponents.client5", name = "httpclient5", version = apacheHttpClientVersion)
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = jacksonVersion)
 
     implementation(project(":utbot-framework")) { exclude(group = "org.slf4j", module = "slf4j-api") }
     implementation(project(":utbot-fuzzers"))
     //api(project(":utbot-analytics"))
-    testImplementation("org.mock-server:mockserver-netty:5.4.1")
+    testImplementation(group = "org.mock-server", name = "mockserver-netty", version = mockServerNettyVersion)
     testApi(project(":utbot-framework"))
 
     implementation(project(":utbot-ui-commons"))

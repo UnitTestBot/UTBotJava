@@ -17,9 +17,9 @@ dependencies {
     implementation group: 'org.bytedeco', name: 'javacpp', version: javaCppVersion, classifier: "$classifier"
     implementation group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
 
-    implementation "ai.djl:api:$djlApiVersion"
-    implementation "ai.djl.pytorch:pytorch-engine:$djlApiVersion"
-    implementation "ai.djl.pytorch:pytorch-native-auto:$pytorchNativeVersion"
+    implementation group: 'ai.djl', name: 'api', version: djlApiVersion
+    implementation group: 'ai.djl.pytorch', name: 'pytorch-engine', version: djlApiVersion
+    implementation group: 'ai.djl.pytorch', name: 'pytorch-native-auto', version: pytorchNativeVersion
 
     testImplementation project(':utbot-framework').sourceSets.test.output
 }

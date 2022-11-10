@@ -13,10 +13,10 @@ dependencies {
     shadow localGroovy()
 
     implementation project(":utbot-framework")
-    implementation "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
+    implementation group: "io.github.microutils", name: "kotlin-logging", version: kotlinLoggingVersion
 
-    testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testImplementation "org.mockito:mockito-inline:$mockitoVersion"
+    testImplementation group: "org.mockito", name: "mockito-core", version: mockitoVersion
+    testImplementation group: "org.mockito", name: "mockito-inline", version: mockitoInlineVersion
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 }

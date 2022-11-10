@@ -52,16 +52,16 @@ dependencies {
     implementation project(":utbot-framework")
     implementation project(":utbot-analytics")
 
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+    implementation(group: 'org.unittestbot.soot', name: 'soot-utbot-fork', version: sootVersion) {
         exclude group:'com.google.guava', module:'guava'
     }
-    implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.2'
+    implementation group: 'org.apache.commons', name: 'commons-exec', version: apacheCommonsExecVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
+    implementation group: 'org.jsoup', name: 'jsoup', version: jsoupVersion // prev 1.6.2, now it 1.7.2 and real last version 1.15.3 !
     // need for tests
-    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
-    implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
-    implementation 'junit:junit:4.13.2'
+    implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+    implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
+    implementation group: 'junit', name: 'junit', version: junit4Version
     testImplementation fileTree(dir: 'src/main/resources/projects/', include: '*/*.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-1.2.0.jar')
     testImplementation files('src/main/resources/evosuite/evosuite-standalone-runtime-1.2.0.jar')

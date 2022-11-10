@@ -5,23 +5,23 @@ configurations {
 dependencies {
     implementation project(':utbot-framework')
 
-    implementation "org.apache.maven:maven-core:$mavenPluginApiVersion"
-    implementation "org.apache.maven:maven-plugin-api:$mavenPluginApiVersion"
-    compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:$mavenPluginToolsVersion"
-    implementation "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
+    implementation group: 'org.apache.maven', name: 'maven-core', version: mavenPluginApiVersion
+    implementation group: 'org.apache.maven', name: 'maven-plugin-api', version: mavenPluginApiVersion
+    compileOnly group: 'org.apache.maven.plugin-tools', name: 'maven-plugin-annotations', version: mavenPluginToolsVersion
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
-    implementation "org.eclipse.sisu:org.eclipse.sisu.plexus:$sisuPlexusVersion"
-    testImplementation "org.apache.maven.plugin-testing:maven-plugin-testing-harness:$mavenPluginTestingVersion"
-    testImplementation "org.apache.maven:maven-compat:$mavenPluginApiVersion"
-    testImplementation "org.apache.maven.resolver:maven-resolver-api:$mavenResolverApiVersion"
+    implementation group: 'org.eclipse.sisu', name: 'org.eclipse.sisu.plexus', version: sisuPlexusVersion
+    testImplementation group: 'org.apache.maven.plugin-testing', name: 'maven-plugin-testing-harness', version: mavenPluginTestingVersion
+    testImplementation group: 'org.apache.maven', name: 'maven-compat', version: mavenPluginApiVersion
+    testImplementation group: 'org.apache.maven.resolver', name: 'maven-resolver-api', version: mavenResolverApiVersion
 
-    mavenEmbedder "org.apache.maven:maven-embedder:$mavenPluginApiVersion"
-    mavenEmbedder "org.apache.maven:maven-compat:$mavenPluginApiVersion"
-    mavenEmbedder "org.slf4j:slf4j-simple:$slf4jVersion"
-    mavenEmbedder "org.eclipse.aether:aether-connector-basic:$eclipseAetherVersion"
-    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:$eclipseAetherVersion"
-    mavenEmbedder "org.apache.maven.wagon:wagon-http:$mavenWagonVersion"
-    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:$mavenWagonVersion"
+    mavenEmbedder group: 'org.apache.maven', name: 'maven-embedder', version: mavenPluginApiVersion
+    mavenEmbedder group: 'org.apache.maven', name: 'maven-compat', version: mavenPluginApiVersion
+    mavenEmbedder group: 'org.slf4j', name: 'slf4j-simple', version: slf4jVersion
+    mavenEmbedder group: 'org.eclipse.aether', name: 'aether-connector-basic', version: eclipseAetherVersion
+    mavenEmbedder group: 'org.eclipse.aether', name: 'aether-transport-wagon', version: eclipseAetherVersion
+    mavenEmbedder group: 'org.apache.maven.wagon', name: 'wagon-http', version: mavenWagonVersion
+    mavenEmbedder group: 'org.apache.maven.wagon', name: 'wagon-provider-api', version: mavenWagonVersion
 }
 
 /**

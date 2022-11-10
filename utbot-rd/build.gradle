@@ -48,14 +48,14 @@ sourceSets {
 
 dependencies {
     implementation project(':utbot-core')
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdFrameworkVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdFrameworkVersion
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
     processWithRdServerMockImplementation project(':utbot-rd')
 
-    rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: '2022.3.1'
+    rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: rdFrameworkVersion
 }
 
 task lifetimedProcessMockJar(type: Jar) {

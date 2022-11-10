@@ -5,6 +5,7 @@ val apacheCommonsTextVersion: String? by rootProject
 val apacheCommonsLangVersion: String? by rootProject
 val commonsIoVersion: String? by rootProject
 val moshiVersion: String? by rootProject
+val gsonVersion: String? by rootProject
 val functionaljavaVersion: String? by rootProject
 
 val ideType: String? by rootProject
@@ -35,8 +36,6 @@ dependencies {
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
 
     api(group = "org.functionaljava", name = "functionaljava", version = functionaljavaVersion)
-    api(group = "org.functionaljava", name = "functionaljava-quickcheck", version = functionaljavaVersion)
-    api(group = "org.functionaljava", name = "functionaljava-java-core", version = functionaljavaVersion)
 
     api(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4") // TODO: will be changed to javacc21
     api("com.beust:klaxon:5.5") // TODO: remove this dependency and use only moshi

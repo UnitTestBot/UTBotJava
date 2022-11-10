@@ -57,6 +57,4 @@ dependencies {
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
 
     api(group = "org.functionaljava", name = "functionaljava", version = functionaljavaVersion)
-    api(group = "org.functionaljava", name = "functionaljava-quickcheck", version = functionaljavaVersion)
-    api(group = "org.functionaljava", name = "functionaljava-java-core", version = functionaljavaVersion)
 }

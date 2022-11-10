@@ -24,11 +24,9 @@ data class Instruction(
  *
  * @param coveredInstructions a list of the covered instructions in the order they are visited.
  * @param instructionsCount a number of all instructions in the current class.
- * @param missedInstructions a list of the missed instructions.
  *
  */
 data class Coverage(
     val coveredInstructions: List<Instruction> = emptyList(),
-    val instructionsCount: Long? = null,
-    val missedInstructions: List<Instruction> = emptyList(),
+    val instructionsCount: Long? = null
 )

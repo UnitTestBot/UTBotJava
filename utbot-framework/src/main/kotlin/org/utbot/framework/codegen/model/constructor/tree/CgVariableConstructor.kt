@@ -74,7 +74,7 @@ import org.utbot.framework.plugin.api.util.wrapperByPrimitive
  * Constructs CgValue or CgVariable given a UtModel
  */
 @Suppress("unused")
-open class CgVariableConstructor(val context: CgContext) :
+internal class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
@@ -105,7 +105,7 @@ open class CgVariableConstructor(val context: CgContext) :
      * We use [valueByModelId] for [UtReferenceModel] by id to not create new variable in case state before
      * was not transformed.
      */
-    open fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
+    fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return if (model is UtReferenceModel) valueByModelId.getOrPut(model.id) {
@@ -123,7 +123,6 @@ open class CgVariableConstructor(val context: CgContext) :
                 is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
-                else -> error("Unexpected UtModel: ${model::class}")
             }
         }
     }
@@ -209,7 +208,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
         val instantiationCall = model.instantiationCall
         processInstantiationStatement(model, instantiationCall, baseName)
 

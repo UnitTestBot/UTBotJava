@@ -251,7 +251,7 @@ data class UtError(
  *
  * UtNullModel represents nulls, other models represent not-nullable entities.
  */
-open class UtModel(
+sealed class UtModel(
     open val classId: ClassId
 )
 

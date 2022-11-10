@@ -34,7 +34,7 @@ import java.lang.reflect.Method
  * The class may actually not have some of these methods if they
  * are not required in the process of code generation (this is the case for [TestClassUtilMethodProvider]).
  */
-abstract class UtilMethodProvider(val utilClassId: ClassId) {
+internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
     val utilMethodIds: Set<MethodId>
         get() = setOf(
             getUnsafeInstanceMethodId,

@@ -50,7 +50,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class TestFrameworkManager(val context: CgContext)
+internal abstract class TestFrameworkManager(val context: CgContext)
     : CgContextOwner by context,
         CgCallableAccessManager by getCallableAccessManagerBy(context) {
 

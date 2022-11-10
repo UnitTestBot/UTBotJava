@@ -77,7 +77,6 @@ interface CgElement {
             is CgTryCatch -> visit(element)
             is CgInnerBlock -> visit(element)
             is CgForLoop -> visit(element)
-            is CgForEachLoop -> visit(element)
             is CgWhileLoop -> visit(element)
             is CgDoWhileLoop -> visit(element)
             is CgBreakStatement -> visit(element)

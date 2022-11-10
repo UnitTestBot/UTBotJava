@@ -168,14 +168,14 @@ import org.utbot.framework.plugin.api.util.isStatic
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
-open class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
+internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
     CgStatementConstructor by getStatementConstructorBy(context) {
 
-    protected val nameGenerator = getNameGeneratorBy(context)
-    protected val testFrameworkManager = getTestFrameworkManagerBy(context)
+    private val nameGenerator = getNameGeneratorBy(context)
+    private val testFrameworkManager = getTestFrameworkManagerBy(context)
 
-    protected val variableConstructor = getVariableConstructorBy(context)
+    private val variableConstructor = getVariableConstructorBy(context)
     private val mockFrameworkManager = getMockFrameworkManagerBy(context)
 
     private val floatDelta: Float = 1e-6f
@@ -183,9 +183,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
     // a model for execution result (it is lateinit because execution can fail,
     // and we need it only on assertions generation stage
-    lateinit var resultModel: UtModel
+    private lateinit var resultModel: UtModel
 
-    lateinit var methodType: CgTestMethodType
+    private lateinit var methodType: CgTestMethodType
 
     private val fieldsOfExecutionResults = mutableMapOf<Pair<FieldId, Int>, MutableList<UtModel>>()
 
@@ -195,7 +195,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      */
     private var containsStreamConsumingFailureForParametrizedTests: Boolean = false
 
-    protected fun setupInstrumentation() {
+    private fun setupInstrumentation() {
         if (currentExecution is UtSymbolicExecution) {
             val execution = currentExecution as UtSymbolicExecution
             val instrumentation = execution.instrumentation
@@ -240,7 +240,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      * Thus, this method only caches an actual initial static fields state in order to recover it
      * at the end of the test, and it has nothing to do with the 'before' and 'after' caches.
      */
-    protected fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
+    private fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
@@ -265,7 +265,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    protected fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
+    private fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
@@ -288,7 +288,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    protected fun recoverStaticFields() {
+    private fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
             if (field.canBeSetFrom(context)) {
                 field.declaringClass[field] `=` prevValue
@@ -304,7 +304,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     /**
      * Generates result assertions for unit tests.
      */
-    protected open fun generateResultAssertions() {
+    private fun generateResultAssertions() {
         when (currentExecutable) {
             is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
             is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
@@ -423,7 +423,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return { +actual[streamConsumingMethodId]() }
     }
 
-    protected fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+    private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
@@ -434,11 +434,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return exceptionRequiresAssert || exceptionIsExplicit
     }
 
-    protected fun shouldTestPassWithTimeoutException(execution: UtExecution, exception: Throwable): Boolean {
+    private fun shouldTestPassWithTimeoutException(execution: UtExecution, exception: Throwable): Boolean {
         return execution.result is UtTimeoutException || exception is TimeoutException
     }
 
-    protected fun writeWarningAboutTimeoutExceeding() {
+    private fun writeWarningAboutTimeoutExceeding() {
         +CgMultilineComment(
             listOf(
                 "This execution may take longer than the ${hangingTestsTimeout.timeoutMs} ms timeout",
@@ -447,7 +447,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         )
     }
 
-    protected fun writeWarningAboutFailureTest(exception: Throwable) {
+    private fun writeWarningAboutFailureTest(exception: Throwable) {
         require(currentExecutable is ExecutableId)
         val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
 
@@ -474,7 +474,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r").replace("\\u","\\\\u")
     }
 
-    protected fun writeWarningAboutCrash() {
+    private fun writeWarningAboutCrash() {
         +CgSingleLineComment("This invocation possibly crashes JVM")
     }
 
@@ -525,7 +525,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      *
      * Note: not supported in parameterized tests.
      */
-    protected fun generateFieldStateAssertions() {
+    private fun generateFieldStateAssertions() {
         val thisInstanceCache = statesCache.thisInstance
         for (path in thisInstanceCache.paths) {
             assertStatesByPath(thisInstanceCache, path)
@@ -777,7 +777,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
                 }
-                else -> {}
             }
         }
     }
@@ -1041,7 +1040,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 is UtVoidModel -> {
                     // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
                 }
-                else -> {}
             }
         }
     }
@@ -1083,7 +1081,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             is UtVoidModel -> {
                 // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
             }
-            else -> {}
         }
     }
 
@@ -1155,7 +1152,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return ClassIdArrayInfo(classId, nestedElementClassId, dimensions)
     }
 
-    open fun assertEquality(expected: CgValue, actual: CgVariable) {
+    private fun assertEquality(expected: CgValue, actual: CgVariable) {
         when {
             expected.type.isArray -> {
                 // TODO: How to compare arrays of Float and Double wrappers?
@@ -1320,7 +1317,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         )
     }
 
-    protected fun recordActualResult() {
+    private fun recordActualResult() {
         val executionResult = currentExecution!!.result
 
         executionResult.onSuccess { resultModel ->
@@ -1374,7 +1371,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    open fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             if (execution.testMethodName == null) {
@@ -1730,7 +1727,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return arguments
     }
 
-    protected fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
+    private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
         clearTestMethodScope()
         currentExecution = execution
         determineExecutionType()
@@ -1822,7 +1819,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             }
     }
 
-    protected fun testMethod(
+    private fun testMethod(
         methodName: String,
         displayName: String?,
         params: List<CgParameterDeclaration> = emptyList(),
@@ -1972,7 +1969,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      * in order to wrap these calls in a try-catch block that will handle [InvocationTargetException]
      * that may be thrown by these calls.
      */
-    protected fun CgExecutableCall.intercepted() {
+    private fun CgExecutableCall.intercepted() {
         val executableToWrap = when (executableId) {
             is MethodId -> invoke
             is ConstructorId -> newInstance

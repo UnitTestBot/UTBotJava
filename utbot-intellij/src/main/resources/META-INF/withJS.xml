@@ -1,4 +1,0 @@
-<!--Optional dependency on org.jetbrains.android-->
-<extensions defaultExtensionNs="com.intellij">
-    <depends>JavaScript</depends>
-</extensions>

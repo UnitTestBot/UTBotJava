@@ -34,7 +34,6 @@ import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CgLanguageAssistant
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -63,7 +62,7 @@ import org.utbot.framework.plugin.api.util.jClass
  *
  * @see [CgContextOwner.withNameScope]
  */
-interface CgContextOwner {
+internal interface CgContextOwner {
     // current class under test
     val classUnderTest: ClassId
 
@@ -131,8 +130,6 @@ interface CgContextOwner {
     val generateWarningsForStaticMocking: Boolean
 
     val codegenLanguage: CodegenLanguage
-
-    val cgLanguageAssistant: CgLanguageAssistant
 
     val parametrizedTestSource: ParametrizedTestSource
 
@@ -430,9 +427,9 @@ interface CgContextOwner {
 /**
  * Context with current code generation info
  */
-data class CgContext(
+internal data class CgContext(
     override val classUnderTest: ClassId,
-    val generateUtilClassFile: Boolean = false,
+    val generateUtilClassFile: Boolean,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
@@ -451,7 +448,6 @@ data class CgContext(
     override val forceStaticMocking: ForceStaticMocking,
     override val generateWarningsForStaticMocking: Boolean,
     override val codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    override val cgLanguageAssistant: CgLanguageAssistant,
     override val parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
     override var mockFrameworkUsed: Boolean = false,
     override var currentBlock: PersistentList<CgStatement> = persistentListOf(),
@@ -482,7 +478,7 @@ data class CgContext(
     override val outerMostTestClassContext: TestClassContext
         get() = _outerMostTestClassContext ?: error("Accessing outerMostTestClassInfo out of class file scope")
 
-    private var _outerMostTestClassContext: TestClassContext? = cgLanguageAssistant.outerMostTestClassContent
+    private var _outerMostTestClassContext: TestClassContext? = null
 
     /**
      * This property cannot be accessed outside of test class scope
@@ -494,9 +490,9 @@ data class CgContext(
     private var _currentTestClassContext: TestClassContext? = null
 
     override val outerMostTestClass: ClassId by lazy {
-        val (name, simpleName) = cgLanguageAssistant.testClassName(
-            testClassCustomName, testClassPackageName, classUnderTest
-        )
+        val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
+        val simpleName = testClassCustomName ?: "${classUnderTest.simpleName}Test"
+        val name = "$packagePrefix$simpleName"
         BuiltinClassId(
             canonicalName = name,
             simpleName = simpleName,

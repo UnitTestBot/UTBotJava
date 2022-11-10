@@ -33,7 +33,7 @@ import org.utbot.framework.util.hasThisInstance
 import org.utbot.fuzzer.UtFuzzedExecution
 import java.lang.reflect.Array
 
-interface CgFieldStateManager {
+internal interface CgFieldStateManager {
     fun rememberInitialEnvironmentState(info: StateModificationInfo)
     fun rememberFinalEnvironmentState(info: StateModificationInfo)
 }

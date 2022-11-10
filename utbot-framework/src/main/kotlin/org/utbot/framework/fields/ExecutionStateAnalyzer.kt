@@ -266,7 +266,5 @@ fun <D> UtModel.accept(visitor: UtModelVisitor<D>, data: D) = visitor.run {
         is UtPrimitiveModel -> visit(element, data)
         is UtReferenceModel -> visit(element, data)
         is UtVoidModel -> visit(element, data)
-        // PythonModel, JsUtModel may be here
-        else -> throw UnsupportedOperationException()
     }
 }

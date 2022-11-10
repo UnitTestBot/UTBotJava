@@ -5,12 +5,11 @@
     <name>UnitTestBot</name>
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
 
-    <depends optional="true" config-file="META-INF/withJava.xml">com.intellij.modules.java</depends>
-    <depends optional="true" config-file="META-INF/withLang.xml">com.intellij.modules.lang</depends>
-    <depends optional="true" config-file="META-INF/withKotlin.xml">org.jetbrains.kotlin</depends>
-    <depends optional="true" config-file="META-INF/withPython.xml">com.intellij.modules.python</depends>
-    <depends optional="true" config-file="META-INF/withAndroid.xml">org.jetbrains.android</depends>
+    <!--Optional dependency on org.jetbrains.android-->
+    <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
 
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"

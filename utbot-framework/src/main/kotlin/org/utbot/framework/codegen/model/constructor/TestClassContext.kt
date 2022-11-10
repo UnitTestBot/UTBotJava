@@ -10,7 +10,7 @@ import org.utbot.framework.codegen.model.tree.CgClass
  * This class stores context information needed to build [CgClass].
  * Should only be used in [CgContextOwner].
  */
-data class TestClassContext(
+internal data class TestClassContext(
     // set of interfaces that the test class must inherit
     val collectedTestClassInterfaces: MutableSet<ClassId> = mutableSetOf(),
 

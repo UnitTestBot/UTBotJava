@@ -50,7 +50,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class TestFrameworkManager(val context: CgContext)
+internal abstract class TestFrameworkManager(val context: CgContext)
     : CgContextOwner by context,
         CgCallableAccessManager by getCallableAccessManagerBy(context) {
 
@@ -176,7 +176,7 @@ abstract class TestFrameworkManager(val context: CgContext)
     // JUnit4 requires to add a specific argument to the test method annotation
     // JUnit5 requires using method assertThrows()
     // TestNg allows both approaches, we use similar to JUnit5
-    abstract fun expectException(exception: ClassId, block: () -> Unit)
+    abstract fun expectException(exception: ClassId, block: () -> Unit, message: String? = null)
 
     /**
      * Creates annotations for data provider method in parameterized tests
@@ -282,7 +282,8 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
     override fun getDoubleArrayEqualsAssertion(expected: CgExpression, actual: CgExpression, delta: Any): CgMethodCall =
             super.getDoubleArrayEqualsAssertion(actual, expected, delta)
 
-    override fun expectException(exception: ClassId, block: () -> Unit) {
+    // There is no message argument in TestNg, so ignore it
+    override fun expectException(exception: ClassId, block: () -> Unit, message: String?) {
         require(testFramework is TestNg) { "According to settings, TestNg was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(testFramework.throwingRunnableClassId) { block() }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
@@ -412,7 +413,8 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
 
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
-    override fun expectException(exception: ClassId, block: () -> Unit) {
+    // There is no message argument in JUnit 4, so ignore it
+    override fun expectException(exception: ClassId, block: () -> Unit, message: String?) {
         require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
         require(exception.isAccessibleFrom(testClassPackageName)) {
@@ -484,10 +486,22 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
             return testFramework.assertThrows
         }
 
-    override fun expectException(exception: ClassId, block: () -> Unit) {
+    private val assertThrowsWithMessage: BuiltinMethodId
+        get() {
+            require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
+
+            return testFramework.assertThrowsWithMessage
+        }
+
+    override fun expectException(exception: ClassId, block: () -> Unit, message: String?) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
-        +assertions[assertThrows](exception.toExceptionClass(), lambda)
+
+        if (message != null) {
+            +assertions[assertThrowsWithMessage](exception.toExceptionClass(), lambda, message)
+        } else {
+            +assertions[assertThrows](exception.toExceptionClass(), lambda)
+        }
     }
 
     override fun createDataProviderAnnotations(dataProviderMethodName: String) = mutableListOf<CgAnnotation>()

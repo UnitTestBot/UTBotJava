@@ -1,6 +1,7 @@
 package org.utbot.engine
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.jClass
 
 /**
  * Mock strategies.
@@ -21,6 +22,23 @@ enum class MockStrategy {
             classToMock != classUnderTest && classToMock.packageName.let {
                 it != classUnderTest.packageName && !isSystemPackage(it)
             }
+    },
+
+    THIRD_PARTY_LIBRARY_CLASSES {
+        // see https://stackoverflow.com/a/1983870
+        override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean {
+            val codeSource = runCatching {
+                // In case declaring type is not presented in the classpath
+                classToMock.jClass.protectionDomain.codeSource ?: return false
+            }.onFailure {
+                // An exception here means the class is not in the classpath, so it should be from a third-party library
+                return true
+            }.getOrThrow()
+
+            val location = codeSource.location
+
+            return location.path.endsWith("jar") && !location.path.endsWith("rt.jar") && !location.path.endsWith("jce.jar")
+        }
     },
 
     OTHER_CLASSES {

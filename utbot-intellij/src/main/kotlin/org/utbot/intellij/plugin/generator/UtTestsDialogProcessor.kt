@@ -47,6 +47,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
+import org.utbot.intellij.plugin.generator.CodeGenerationController.getAllTestSourceRoots
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 

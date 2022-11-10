@@ -17,7 +17,6 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CgLanguageAssistant
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
@@ -27,8 +26,8 @@ import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
 import org.utbot.framework.codegen.model.tree.CgDocumentationComment
 import java.util.*
 
-open class CodeGenerator(
-    val classUnderTest: ClassId,
+class CodeGenerator(
+    private val classUnderTest: ClassId,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     generateUtilClassFile: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
@@ -44,14 +43,13 @@ open class CodeGenerator(
     testClassPackageName: String = classUnderTest.packageName,
 ) {
 
-    open var context: CgContext = CgContext(
+    private var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
         generateUtilClassFile = generateUtilClassFile,
         paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = mockFramework,
         codegenLanguage = codegenLanguage,
-        cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
         parametrizedTestSource = parameterizedTestSource,
         staticsMocking = staticsMocking,
         forceStaticMocking = forceStaticMocking,
@@ -95,7 +93,7 @@ open class CodeGenerator(
      * - turns on imports optimization in code generator
      * - passes a custom test class name if there is one
      */
-    fun <R> withCustomContext(testClassCustomName: String? = null, block: () -> R): R {
+    private fun <R> withCustomContext(testClassCustomName: String? = null, block: () -> R): R {
         val prevContext = context
         return try {
             context = prevContext.copy(
@@ -108,7 +106,7 @@ open class CodeGenerator(
         }
     }
 
-    fun renderClassFile(file: CgClassFile): String {
+    private fun renderClassFile(file: CgClassFile): String {
         val renderer = CgAbstractRenderer.makeRenderer(context)
         file.accept(renderer)
         return renderer.toString()
@@ -117,14 +115,14 @@ open class CodeGenerator(
 
 /**
  * @property generatedCode the source code of the test class
- * @property testsGenerationReport some info about test generation process
  * @property utilClassKind the kind of util class if it is required, otherwise - null
+ * @property testsGenerationReport some info about test generation process
  */
 data class CodeGeneratorResult(
     val generatedCode: String,
-    val testsGenerationReport: TestsGenerationReport,
     // null if no util class needed, e.g. when we are generating utils directly into test class
-    val utilClassKind: UtilClassKind? = null,
+    val utilClassKind: UtilClassKind?,
+    val testsGenerationReport: TestsGenerationReport
 )
 
 /**

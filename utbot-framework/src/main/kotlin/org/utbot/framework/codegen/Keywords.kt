@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen
 
-import org.utbot.framework.plugin.api.CgLanguageAssistant
+import org.utbot.framework.plugin.api.CodegenLanguage
 
 private val javaKeywords = setOf(
     "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const",
@@ -29,8 +29,13 @@ private val kotlinModifierKeywords = setOf(
     "private", "protected", "public", "reified", "sealed", "suspend", "tailrec", "vararg"
 )
 
-// For now, we check only hard keywords because others can be used as methods and variables identifiers
+// For now we check only hard keywords because others can be used as methods and variables identifiers
 private val kotlinKeywords = kotlinHardKeywords
 
-fun isLanguageKeyword(word: String, codegenLanguageAssistant: CgLanguageAssistant): Boolean =
-    word in codegenLanguageAssistant.languageKeywords
+private fun getLanguageKeywords(codegenLanguage: CodegenLanguage): Set<String> = when(codegenLanguage) {
+    CodegenLanguage.JAVA -> javaKeywords
+    CodegenLanguage.KOTLIN -> kotlinKeywords
+}
+
+fun isLanguageKeyword(word: String, codegenLanguage: CodegenLanguage): Boolean =
+    word in getLanguageKeywords(codegenLanguage)

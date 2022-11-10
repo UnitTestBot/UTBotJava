@@ -77,7 +77,6 @@ interface CgElement {
             is CgTryCatch -> visit(element)
             is CgInnerBlock -> visit(element)
             is CgForLoop -> visit(element)
-            is CgForEachLoop -> visit(element)
             is CgWhileLoop -> visit(element)
             is CgDoWhileLoop -> visit(element)
             is CgBreakStatement -> visit(element)
@@ -317,6 +316,7 @@ enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
     SUCCESSFUL(displayName = "Successful tests without exceptions", isThrowing = false),
     PASSED_EXCEPTION(displayName = "Thrown exceptions marked as passed", isThrowing = true),
     FAILING(displayName = "Failing tests (with exceptions)", isThrowing = true),
+    TAINT(displayName = "Taint", isThrowing = true),
     TIMEOUT(displayName = "Failing tests (with timeout)", isThrowing = true),
     CRASH(displayName = "Possibly crashing tests", isThrowing = true),
     PARAMETRIZED(displayName = "Parametrized tests", isThrowing = false);

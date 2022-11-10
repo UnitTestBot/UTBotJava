@@ -1,6 +1,8 @@
 package org.utbot.engine
 
+import org.utbot.common.WorkaroundReason
 import org.utbot.common.unreachableBranch
+import org.utbot.common.workaround
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.UtArrayList
 import org.utbot.engine.overrides.collections.UtGenericAssociative
@@ -14,6 +16,7 @@ import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
@@ -92,9 +95,21 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
             ?.let { typeRegistry.findSubstitutionOrNull(it) ?: it }
 
         return if (overriddenMethod == null) {
-            // No overridden method has been found, switch to concrete execution
-            pathLogger.warn("Method ${overriddenClass.name}::${method.subSignature} not found, executing concretely")
-            emptyList()
+
+            // Usually, we'd process such situations concretely, but for taint analysis
+            // we can just `mock` them with an unbounded symbolic variable
+            val messagePrefix = "Method ${overriddenClass.name}::${method.subSignature} not found,"
+
+            if (UtSettings.useTaintAnalysisMode) {
+                pathLogger.warn("$messagePrefix mocking with an unbounded variable")
+                workaround(WorkaroundReason.TAINT) {
+                    treatMethodResultAsUnboundedVariable(name = "nativeConst", method)
+                }
+            } else {
+                // No overridden method has been found, switch to concrete execution
+                pathLogger.warn("$messagePrefix executing concretely")
+                emptyList()
+            }
         } else {
             val jimpleBody = overriddenMethod.jimpleBody()
             val graphResult = GraphResult(jimpleBody.graph())

@@ -76,6 +76,12 @@ fun createSootMethod(
     isStatic: Boolean = true
 ) = SootMethod(name, argsTypes, returnType, if (isStatic) Modifier.STATIC else 0)
     .also {
+        // Note that the order is critical important due to
+        // difference between different versions of Soot.
+        // In the latest versions there is no need to set up
+        // declaring class and graphBody.method by hand.
+        it.declaringClass = declaringClass
         declaringClass.addMethod(it)
+        graphBody.method = it
         it.activeBody = graphBody
     }

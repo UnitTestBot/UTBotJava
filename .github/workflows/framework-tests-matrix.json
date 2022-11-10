@@ -22,7 +22,7 @@
     },
     {
       "PART_NAME": "examples-part2",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\" --tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\""
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\" --tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\" --tests org.utbot.examples.reflection.*\" --tests org.utbot.examples.threads.*\""
     },
     {
       "PART_NAME": "examples-part3",

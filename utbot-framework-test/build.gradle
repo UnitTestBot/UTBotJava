@@ -82,7 +82,8 @@ test {
     useJUnitPlatform() {
         excludeTags 'slow', 'IntegrationTest'
     }
+    jvmArgs '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED'
     if (System.getProperty('DEBUG', 'false') == 'true') {
-        jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
+        jvmArgs += listOf('-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009')
     }
 }

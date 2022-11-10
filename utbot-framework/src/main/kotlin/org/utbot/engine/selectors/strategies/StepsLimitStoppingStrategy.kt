@@ -15,11 +15,14 @@ class StepsLimitStoppingStrategy(
     graph: InterProceduralUnitGraph
 ) : TraverseGraphStatistics(graph), StoppingStrategy {
     private var stepsCounter: Int = 0
+    var exceedingStepsLimit: Boolean = false
+        private set
 
     override fun shouldStop(): Boolean {
         val shouldDrop = stepsCounter > stepsLimit
 
         if (shouldDrop) {
+            exceedingStepsLimit = true
             pathLogger.debug { "Steps limit has been exceeded: current step limit is $stepsLimit" }
         }
 

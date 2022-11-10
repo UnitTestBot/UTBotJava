@@ -7,13 +7,14 @@ import java.util.Comparator;
 import java.util.Locale;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.makeSymbolic;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 import static java.lang.Math.min;
 
-@SuppressWarnings({"ConstantConditions", "unused"})
+@SuppressWarnings("unused")
 public class UtString implements java.io.Serializable, Comparable<String>, CharSequence {
     char[] value;
     int length;
@@ -342,6 +343,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     private boolean contentEqualsZeroOffset(char[] otherValue, int n) {
         //TODO: remove assume
         assume(n <= 25);
+
         for (int i = 0; i < n; i++) {
             if (value[i] != otherValue[i]) {
                 return false;
@@ -353,18 +355,25 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     public boolean equals(Object anObject) {
         preconditionCheck();
+
         if (this == anObject) {
             return true;
         }
-        if (anObject instanceof String) {
-            String anotherString = (String) anObject;
-            int n = length;
-            if (n == anotherString.length()) {
-                char[] v2 = anotherString.toCharArray();
-                return contentEqualsZeroOffset(v2, n);
-            }
+
+        if (!(anObject instanceof String)) {
+            return false;
         }
-        return false;
+
+        String anotherString = (String) anObject;
+        int n = length;
+
+        if (n != anotherString.length()) {
+            return false;
+        }
+
+        char[] v2 = anotherString.toCharArray();
+
+        return contentEqualsZeroOffset(v2, n);
     }
 
     public boolean contentEquals(StringBuffer sb) {
@@ -861,7 +870,21 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     }
 
     public String[] split(String regex) {
-        return splitImpl(regex);
+        if (regex == null) {
+            throw new NullPointerException();
+        }
+
+        // TODO HACK taint analysis
+        final String[] strings = makeSymbolic();
+        // Prevent too big array
+        assume(strings.length <= 3);
+        for (String s : strings) {
+            assume(s != null);
+        }
+        return strings;
+
+        // The commented code below leads to recursive processing of this method
+//        return splitImpl(regex);
     }
 
     public String toLowerCase(Locale locale) {

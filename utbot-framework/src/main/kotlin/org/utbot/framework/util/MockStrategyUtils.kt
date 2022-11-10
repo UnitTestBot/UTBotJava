@@ -8,5 +8,5 @@ fun MockStrategyApi.toModel(): MockStrategy =
         MockStrategyApi.NO_MOCKS -> MockStrategy.NO_MOCKS
         MockStrategyApi.OTHER_PACKAGES -> MockStrategy.OTHER_PACKAGES
         MockStrategyApi.OTHER_CLASSES -> MockStrategy.OTHER_CLASSES
-        else -> error("Cannot map API Mock Strategy model to Engine model: $this")
+        MockStrategyApi.THIRD_PARTY_LIBRARY_CLASSES -> MockStrategy.THIRD_PARTY_LIBRARY_CLASSES
     }

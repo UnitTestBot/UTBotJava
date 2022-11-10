@@ -16,6 +16,7 @@ data class TestsGenerationReport(
     var successfulExecutions: MethodGeneratedTests = mutableMapOf(),
     var timeoutExecutions: MethodGeneratedTests = mutableMapOf(),
     var failedExecutions: MethodGeneratedTests = mutableMapOf(),
+    val taintExecutions: MethodGeneratedTests = mutableMapOf(),
     var crashExecutions: MethodGeneratedTests = mutableMapOf(),
     var errors: MutableMap<ExecutableId, ErrorsCount> = mutableMapOf()
 ) {
@@ -39,6 +40,9 @@ data class TestsGenerationReport(
                 "Failing because of unexpected exception test methods: ${testMethodsStatistic.sumOf { it.failing }}"
             )
             appendHtmlLine(
+                "Failing because of taints: ${testMethodsStatistic.sumOf { it.taints }}"
+            )
+            appendHtmlLine(
                 "Failing because of exceeding timeout test methods: ${testMethodsStatistic.sumOf { it.timeout }}"
             )
             appendHtmlLine(
@@ -59,6 +63,7 @@ data class TestsGenerationReport(
                 when (it.type) {
                     SUCCESSFUL, PASSED_EXCEPTION -> updateExecutions(it, successfulExecutions)
                     FAILING -> updateExecutions(it, failedExecutions)
+                    TAINT -> updateExecutions(it, taintExecutions)
                     TIMEOUT -> updateExecutions(it, timeoutExecutions)
                     CRASH -> updateExecutions(it, crashExecutions)
                     PARAMETRIZED -> {
@@ -91,6 +96,7 @@ data class TestsGenerationReport(
     private fun ExecutableId.countTestMethods(): TestMethodStatistic = TestMethodStatistic(
         testMethodsNumber(successfulExecutions),
         testMethodsNumber(failedExecutions),
+        testMethodsNumber(taintExecutions),
         testMethodsNumber(timeoutExecutions),
         testMethodsNumber(crashExecutions)
     )
@@ -104,7 +110,13 @@ data class TestsGenerationReport(
         executions.getOrPut(this) { mutableSetOf() } += it
     }
 
-    private data class TestMethodStatistic(val successful: Int, val failing: Int, val timeout: Int, val crashes: Int) {
-        val count: Int = successful + failing + timeout + crashes
+    private data class TestMethodStatistic(
+        val successful: Int,
+        val failing: Int,
+        val taints: Int,
+        val timeout: Int,
+        val crashes: Int
+    ) {
+        val count: Int = successful + failing + taints + timeout + crashes
     }
 }

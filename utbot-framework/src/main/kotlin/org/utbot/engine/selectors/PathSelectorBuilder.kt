@@ -17,6 +17,8 @@ import org.utbot.engine.selectors.nurs.NeuroSatSelector
 import org.utbot.engine.selectors.nurs.RPSelector
 import org.utbot.engine.selectors.nurs.SubpathGuidedSelector
 import org.utbot.engine.selectors.nurs.VisitCountingSelector
+import org.utbot.engine.selectors.random.RandomSelector
+import org.utbot.engine.selectors.random.RandomSelectorWithLoopIterationsThreshold
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.DistanceStatistics
 import org.utbot.engine.selectors.strategies.EdgeVisitCountingStatistics
@@ -137,13 +139,22 @@ fun randomPathSelector(
 ) = RandomPathSelectorBuilder(graph, strategy).apply(builder).build()
 
 /**
- * build [RandomSelector] using [RandomPathSelectorBuilder]
+ * build [RandomSelector] using [RandomSelectorBuilder]
  */
 fun randomSelector(
     graph: InterProceduralUnitGraph,
     strategy: StrategyOption,
     builder: RandomSelectorBuilder.() -> Unit
 ) = RandomSelectorBuilder(graph, strategy).apply(builder).build()
+
+/**
+ * build [RandomSelectorWithLoopIterationsThreshold] using [RandomSelectorWithLoopIterationsThresholdBuilder]
+ */
+fun randomSelectorWithLoopIterationsThreshold(
+    graph: InterProceduralUnitGraph,
+    strategy: StrategyOption,
+    builder: RandomSelectorWithLoopIterationsThresholdBuilder.() -> Unit
+) = RandomSelectorWithLoopIterationsThresholdBuilder(graph, strategy).apply(builder).build()
 
 /**
  * build [RPSelector] using [RPSelectorBuilder]
@@ -399,6 +410,26 @@ class RandomSelectorBuilder internal constructor(
 ) : PathSelectorBuilder<RandomSelector>(graph, context) {
     var seed: Int = seedInPathSelector ?: 42
     override fun build() = RandomSelector(
+        withChoosingStrategy(strategy),
+        requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
+        seed
+    )
+}
+
+/**
+ * Builder for [RandomSelectorWithLoopIterationsThreshold]. Used in [randomSelectorWithLoopIterationsThreshold]
+ *
+ * [RandomSelectorWithLoopIterationsThresholdBuilder.seed] is seed for random generator (default [seedInPathSelector] ?: 42)
+ *
+ * @param strategy [StrategyOption] for choosingStrategy for this PathSelector
+ */
+class RandomSelectorWithLoopIterationsThresholdBuilder internal constructor(
+    graph: InterProceduralUnitGraph,
+    val strategy: StrategyOption,
+    context: PathSelectorContext = PathSelectorContext(graph)
+) : PathSelectorBuilder<RandomSelectorWithLoopIterationsThreshold>(graph, context) {
+    var seed: Int = seedInPathSelector ?: 42
+    override fun build() = RandomSelectorWithLoopIterationsThreshold(
         withChoosingStrategy(strategy),
         requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
         seed

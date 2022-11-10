@@ -1,4 +1,0 @@
-mypy==0.971
-astor
-typeshed-client
-coverage

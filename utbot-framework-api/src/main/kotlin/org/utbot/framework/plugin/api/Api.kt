@@ -209,7 +209,9 @@ class UtFailedExecution(
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null
-) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName) {
+    override fun toString(): String = "StateBefore: $stateBefore, result: $result"
+}
 
 open class EnvironmentModels(
     val thisInstance: UtModel?,
@@ -249,7 +251,7 @@ data class UtError(
  *
  * UtNullModel represents nulls, other models represent not-nullable entities.
  */
-open class UtModel(
+sealed class UtModel(
     open val classId: ClassId
 )
 
@@ -1138,6 +1140,11 @@ enum class MockStrategyApi(
         "Other packages: Mockito",
         "Mock everything outside the package",
         "Mock all classes outside the current package except system ones"
+    ),
+    THIRD_PARTY_LIBRARY_CLASSES(
+        "Classes from third-party libraries: Mockito",
+        "Mock all classes from third-party libraries",
+        "Mock all classes from libraries except system ones",
     ),
     OTHER_CLASSES(
         "Other classes: Mockito",

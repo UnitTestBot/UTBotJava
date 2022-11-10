@@ -42,6 +42,9 @@ import soot.Scene
 import soot.SootField
 import soot.Type
 import soot.VoidType
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
 class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy: Hierarchy) {
 
@@ -344,12 +347,26 @@ internal val CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR: MemoryChunkDescriptor
         IntType.v()
     )
 
+internal val CLASS_REF_SOOT_CLASS = Scene.v().getSootClass(CLASS_REF_CLASSNAME)
+
 internal val OBJECT_TYPE: RefType
     get() = Scene.v().getSootClass(Object::class.java.canonicalName).type
 internal val STRING_TYPE: RefType
     get() = Scene.v().getSootClass(String::class.java.canonicalName).type
 internal val CLASS_REF_TYPE: RefType
-    get() = Scene.v().getSootClass(CLASS_REF_CLASSNAME).type
+    get() = CLASS_REF_SOOT_CLASS.type
+internal val THREAD_TYPE: RefType
+    get() = Scene.v().getSootClass(Thread::class.java.canonicalName).type
+internal val THREAD_GROUP_TYPE: RefType
+    get() = Scene.v().getSootClass(ThreadGroup::class.java.canonicalName).type
+internal val COMPLETABLE_FUTURE_TYPE: RefType
+    get() = Scene.v().getSootClass(CompletableFuture::class.java.canonicalName).type
+internal val EXECUTORS_TYPE: RefType
+    get() = Scene.v().getSootClass(Executors::class.java.canonicalName).type
+internal val COUNT_DOWN_LATCH_TYPE: RefType
+    get() = Scene.v().getSootClass(CountDownLatch::class.java.canonicalName).type
+
+internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 
 internal val HASHCODE_SIGNATURE: String =
     Scene.v()

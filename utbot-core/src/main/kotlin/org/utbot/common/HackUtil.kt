@@ -76,4 +76,8 @@ enum class WorkaroundReason {
      * construct `toArray` invocation (because streams cannot be consumed twice).
      */
     CONSUME_DIRTY_STREAMS,
+    /**
+     * Poor quality code in the prototype of taint analysis tool. Should be rewritten before merging to the main product.
+     */
+    TAINT,
 }

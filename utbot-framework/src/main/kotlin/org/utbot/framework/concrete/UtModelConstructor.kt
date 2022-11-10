@@ -39,7 +39,7 @@ import java.util.stream.BaseStream
 /**
  * Represents common interface for model constructors.
  */
-interface UtModelConstructorInterface {
+internal interface UtModelConstructorInterface {
     /**
      * Constructs a UtModel from a concrete [value] with a specific [classId].
      */

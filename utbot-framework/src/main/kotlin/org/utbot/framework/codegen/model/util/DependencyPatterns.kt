@@ -16,13 +16,11 @@ fun TestFramework.patterns(): Patterns {
         Junit4 -> junit4ModulePatterns
         Junit5 -> junit5ModulePatterns
         TestNg -> testNgModulePatterns
-        else -> throw UnsupportedOperationException()
     }
     val libraryPatterns = when (this) {
         Junit4 -> junit4Patterns
         Junit5 -> junit5Patterns
         TestNg -> testNgPatterns
-        else -> throw UnsupportedOperationException()
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)
@@ -34,13 +32,11 @@ fun TestFramework.parametrizedTestsPatterns(): Patterns {
         Junit4 -> emptyList()
         Junit5 -> emptyList()   // emptyList here because JUnit5 module may not be enough for parametrized tests if :junit-jupiter-params: is not installed
         TestNg -> testNgModulePatterns
-        else -> throw UnsupportedOperationException()
     }
     val libraryPatterns = when (this) {
         Junit4 -> emptyList()
         Junit5 -> junit5ParametrizedTestsPatterns
         TestNg -> testNgPatterns
-        else -> throw UnsupportedOperationException()
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)

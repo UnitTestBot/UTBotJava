@@ -17,6 +17,6 @@ class CgExceptionHandlerBuilder {
     }
 }
 
-fun buildExceptionHandler(init: CgExceptionHandlerBuilder.() -> Unit): CgExceptionHandler {
+internal fun buildExceptionHandler(init: CgExceptionHandlerBuilder.() -> Unit): CgExceptionHandler {
     return CgExceptionHandlerBuilder().apply(init).build()
 }

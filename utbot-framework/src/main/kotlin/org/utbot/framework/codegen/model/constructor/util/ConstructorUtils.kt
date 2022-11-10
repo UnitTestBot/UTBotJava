@@ -53,7 +53,7 @@ import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 
-data class EnvironmentFieldStateCache(
+internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
     val arguments: Array<FieldStateCache>,
     val classesWithStaticFields: MutableMap<ClassId, FieldStateCache>
@@ -99,7 +99,7 @@ data class EnvironmentFieldStateCache(
     }
 }
 
-class FieldStateCache {
+internal class FieldStateCache {
     val before: MutableMap<FieldPath, CgFieldState> = mutableMapOf()
     val after: MutableMap<FieldPath, CgFieldState> = mutableMapOf()
 
@@ -125,7 +125,7 @@ class FieldStateCache {
     }
 }
 
-data class CgFieldState(val variable: CgVariable, val model: UtModel)
+internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
 
@@ -213,7 +213,7 @@ internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
     importedClasses.none { it.simpleName == type.simpleName }
 
-fun CgContextOwner.importIfNeeded(type: ClassId) {
+internal fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change
     val underlyingType = type.underlyingType
 

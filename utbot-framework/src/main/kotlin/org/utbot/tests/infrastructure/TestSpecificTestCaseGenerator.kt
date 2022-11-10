@@ -54,7 +54,7 @@ class TestSpecificTestCaseGenerator(
         val executions = mutableListOf<UtExecution>()
         val errors = mutableMapOf<String, Int>()
 
-        val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
+        val mockAlwaysDefaults = Mocker.javaDefaultClassesToMockAlways.mapTo(mutableSetOf()) { it.id }
         val defaultTimeEstimator = ExecutionTimeEstimator(UtSettings.utBotGenerationTimeoutInMillis, 1)
 
         val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)

@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.model.visitor
 
-import java.util.Locale
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
@@ -47,6 +46,7 @@ import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.isFinal
@@ -70,6 +70,8 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override val logicalOr: String
         get() = "or"
+
+    override val language: CodegenLanguage = CodegenLanguage.KOTLIN
 
     override val langPackage: String = "kotlin"
 
@@ -546,7 +548,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.cgLanguageAssistant)) "`$s`" else s
+        if (isLanguageKeyword(s, context.codegenLanguage)) "`$s`" else s
 
     override fun renderClassVisibility(classId: ClassId) {
         when {

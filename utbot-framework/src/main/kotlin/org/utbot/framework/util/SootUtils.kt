@@ -2,10 +2,11 @@ package org.utbot.framework.util
 
 import org.utbot.common.FileUtil
 import org.utbot.engine.jimpleBody
+import org.utbot.engine.overrides.UtAccessController
 import org.utbot.engine.pureJavaSignature
+import org.utbot.engine.taint.TaintAnalysisError
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
@@ -68,10 +69,10 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
         // set true to debug. Disabled because of a bug when two different variables
         // from the source code have the same name in the jimple body.
         setPhaseOption("jb", "use-original-names:false")
-        set_soot_classpath(
-            FileUtil.isolateClassFiles(*classesToLoad).absolutePath
-                    + if (!classpath.isNullOrEmpty()) File.pathSeparator + "$classpath" else ""
-        )
+
+        val classPathFromParameters = if (!classpath.isNullOrEmpty()) File.pathSeparator + "$classpath" else ""
+        set_soot_classpath(extractClassPathForUtBotClasses() + classPathFromParameters)
+
         set_src_prec(Options.src_prec_only_class)
         set_process_dir(buildDirs.map { it.toString() })
         set_keep_line_number(true)
@@ -86,7 +87,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
         set_full_resolver(true)
     }
 
-    addBasicClasses(*classesToLoad)
+    loadUtBotClasses()
 
     Scene.v().loadNecessaryClasses()
     PackManager.v().runPacks()
@@ -120,6 +121,12 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
     }
 }
 
+// Part of the API for integration
+@Suppress("unused")
+fun extractClassPathForUtBotClasses(): String = FileUtil.isolateClassFiles(*classesToLoad).absolutePath
+
+fun loadUtBotClasses() = addBasicClasses(*classesToLoad)
+
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)
 
 val ExecutableId.sootMethod: SootMethod
@@ -152,6 +159,8 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.Long::class,
     org.utbot.engine.overrides.Short::class,
     org.utbot.engine.overrides.System::class,
+    org.utbot.engine.overrides.Throwable::class,
+    org.utbot.engine.overrides.AutoCloseable::class,
     org.utbot.engine.overrides.collections.UtOptional::class,
     org.utbot.engine.overrides.collections.UtOptionalInt::class,
     org.utbot.engine.overrides.collections.UtOptionalLong::class,
@@ -181,11 +190,18 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.strings.UtString::class,
     org.utbot.engine.overrides.strings.UtStringBuilder::class,
     org.utbot.engine.overrides.strings.UtStringBuffer::class,
+    org.utbot.engine.overrides.threads.UtThread::class,
+    org.utbot.engine.overrides.threads.UtThreadGroup::class,
+    org.utbot.engine.overrides.threads.UtCompletableFuture::class,
+    org.utbot.engine.overrides.threads.CompletableFuture::class,
+    org.utbot.engine.overrides.threads.Executors::class,
+    org.utbot.engine.overrides.threads.UtExecutorService::class,
+    org.utbot.engine.overrides.threads.UtCountDownLatch::class,
     org.utbot.engine.overrides.stream.Stream::class,
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,
     org.utbot.engine.overrides.collections.List::class,
-    UtStreamConsumingException::class,
+    org.utbot.framework.plugin.api.visible.UtStreamConsumingException::class,
     org.utbot.engine.overrides.stream.UtStream::class,
     org.utbot.engine.overrides.stream.UtIntStream::class,
     org.utbot.engine.overrides.stream.UtLongStream::class,
@@ -197,6 +213,8 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.IntStream::class,
     org.utbot.engine.overrides.stream.LongStream::class,
     org.utbot.engine.overrides.stream.DoubleStream::class,
+    TaintAnalysisError::class,
+    UtAccessController::class
 ).map { it.java }.toTypedArray()
 
 private const val UTBOT_PACKAGE_PREFIX = "org.utbot"

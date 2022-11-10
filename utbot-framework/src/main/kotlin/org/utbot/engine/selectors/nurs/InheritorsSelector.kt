@@ -22,6 +22,10 @@ class InheritorsSelector(
 
     override val ExecutionState.cost: Double
         get() {
+            if (this.exception != null) {
+                return 0.0
+            }
+
             val distance = choosingStrategy.distanceToUncovered(this).let { d ->
                 if (!edges.all { choosingStrategy.isCovered(it) }) {
                     pathLength.toDouble() / (edges.size + 1)
@@ -58,7 +62,7 @@ class InheritorsSelector(
     override val name = "NURS:Inheritors"
 
     companion object {
-        private const val REPEATED_STMT_COEFFICIENT: Int = 10
+        const val REPEATED_STMT_COEFFICIENT: Int = 10
         private const val BASE_FOR_INHERITOR_RATING_COEFFICIENT: Double = 100.0
     }
 }

@@ -8,7 +8,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.utJavaUtilsClassId
 import org.utbot.framework.codegen.model.constructor.builtin.utKotlinUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CgLanguageAssistant
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
@@ -18,7 +17,7 @@ import org.utbot.framework.plugin.api.MockFramework
  * Not all the information from [CgContext] is required to render a class,
  * so this more lightweight context is created for this purpose.
  */
-class CgRendererContext(
+internal class CgRendererContext(
     val shouldOptimizeImports: Boolean,
     val importedClasses: Set<ClassId>,
     val importedStaticMethods: Set<MethodId>,
@@ -28,7 +27,6 @@ class CgRendererContext(
     val codegenLanguage: CodegenLanguage,
     val mockFrameworkUsed: Boolean,
     val mockFramework: MockFramework,
-    val cgLanguageAssistant: CgLanguageAssistant,
 ) {
     companion object {
         fun fromCgContext(context: CgContext): CgRendererContext {
@@ -40,7 +38,6 @@ class CgRendererContext(
                 generatedClass = context.outerMostTestClass,
                 utilMethodProvider = context.utilMethodProvider,
                 codegenLanguage = context.codegenLanguage,
-                cgLanguageAssistant = context.cgLanguageAssistant,
                 mockFrameworkUsed = context.mockFrameworkUsed,
                 mockFramework = context.mockFramework
             )
@@ -56,8 +53,7 @@ class CgRendererContext(
                 utilMethodProvider = utilClassKind.utilMethodProvider,
                 codegenLanguage = language,
                 mockFrameworkUsed = utilClassKind.mockFrameworkUsed,
-                mockFramework = utilClassKind.mockFramework,
-                cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(language),
+                mockFramework = utilClassKind.mockFramework
             )
         }
     }

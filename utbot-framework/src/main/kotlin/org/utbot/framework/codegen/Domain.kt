@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClas
 import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
@@ -31,11 +32,12 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
 
-abstract class Import(val order: Int) : Comparable<Import> {
+sealed class Import(internal val order: Int) : Comparable<Import> {
     abstract val qualifiedName: String
 
     override fun compareTo(other: Import) = importComparator.compare(this, other)
@@ -169,7 +171,7 @@ object MockitoStaticMocking : StaticsMocking(id = "Mockito static mocking", disp
     )
 }
 
-abstract class TestFramework(
+sealed class TestFramework(
     override val id: String,
     override val displayName: String,
     override val description: String = "Use $displayName as test framework",
@@ -191,9 +193,7 @@ abstract class TestFramework(
     abstract val nestedClassesShouldBeStatic: Boolean
     abstract val argListClassId: ClassId
 
-    open val testSuperClass: ClassId? = null
-
-    open val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
+    val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
     val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }
 
@@ -227,10 +227,10 @@ abstract class TestFramework(
 
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
-    protected open fun assertionId(name: String, vararg params: ClassId): MethodId =
+    protected fun assertionId(name: String, vararg params: ClassId): MethodId =
         builtinStaticMethodId(assertionsClass, name, voidClassId, *params)
     private fun arrayAssertionId(name: String, vararg params: ClassId): MethodId =
-        builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
+            builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
 
     abstract fun getRunTestsCommand(
         executionInvoke: String,
@@ -494,6 +494,18 @@ object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
         arguments = arrayOf(
             Class::class.id,
             executableClassId
+        )
+    )
+
+    val assertThrowsWithMessage: BuiltinMethodId = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertThrows",
+        // TODO: actually the return type is 'T extends java.lang.Throwable'
+        returnType = java.lang.Throwable::class.id,
+        arguments = arrayOf(
+            Class::class.id,
+            executableClassId,
+            stringClassId
         )
     )
 

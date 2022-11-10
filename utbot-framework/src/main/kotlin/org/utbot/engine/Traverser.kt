@@ -9,6 +9,8 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
+import org.utbot.common.WorkaroundReason.TAINT
+import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -29,6 +31,7 @@ import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.UtBoolOpExpression
 import org.utbot.engine.pc.UtBvConst
 import org.utbot.engine.pc.UtBvLiteral
+import org.utbot.engine.pc.UtBvNotExpression
 import org.utbot.engine.pc.UtByteSort
 import org.utbot.engine.pc.UtCastExpression
 import org.utbot.engine.pc.UtCharSort
@@ -63,6 +66,7 @@ import org.utbot.engine.pc.mkEq
 import org.utbot.engine.pc.mkFalse
 import org.utbot.engine.pc.mkFpConst
 import org.utbot.engine.pc.mkInt
+import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
@@ -88,8 +92,14 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.taint.TaintAnalysis
+import org.utbot.engine.taint.TaintAnalysis.Companion.RETURN_VALUE_INDEX
+import org.utbot.engine.taint.TaintAnalysis.Companion.THIS_PARAM_INDEX
+import org.utbot.engine.taint.TaintAnalysisError
+import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
+import org.utbot.engine.types.NEW_INSTANCE_SIGNATURE
 import org.utbot.engine.types.HASHCODE_SIGNATURE
 import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
 import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
@@ -108,6 +118,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.UtSettings.useOnlyTaintAnalysis
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -123,6 +134,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.util.sootMethod
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -160,6 +172,7 @@ import soot.jimple.FieldRef
 import soot.jimple.FloatConstant
 import soot.jimple.IdentityRef
 import soot.jimple.IntConstant
+import soot.jimple.InterfaceInvokeExpr
 import soot.jimple.InvokeExpr
 import soot.jimple.LongConstant
 import soot.jimple.MonitorStmt
@@ -167,11 +180,14 @@ import soot.jimple.NeExpr
 import soot.jimple.NullConstant
 import soot.jimple.ParameterRef
 import soot.jimple.ReturnStmt
+import soot.jimple.SpecialInvokeExpr
 import soot.jimple.StaticFieldRef
+import soot.jimple.StaticInvokeExpr
 import soot.jimple.Stmt
 import soot.jimple.StringConstant
 import soot.jimple.SwitchStmt
 import soot.jimple.ThisRef
+import soot.jimple.VirtualInvokeExpr
 import soot.jimple.internal.JAddExpr
 import soot.jimple.internal.JArrayRef
 import soot.jimple.internal.JAssignStmt
@@ -228,6 +244,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
+    private val taintAnalysis: TaintAnalysis
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -249,6 +266,16 @@ class Traverser(
 
     //HACK (long strings)
     internal var softMaxArraySize = 40
+
+    // HACK FOR TAINTS
+    private val methodsToNotMock: MutableSet<String> = mutableSetOf()
+
+    // HACk FOR TAINTS, subsignature is required since in the provided path
+    // we have not a virtual invoke, but concrete implementation, therefore,
+    // we should check both of them using subsignature
+    internal fun addMethodsToDoNotMock(methods: Set<SootMethod>) {
+        methodsToNotMock += methods.map { it.subSignature }
+    }
 
     /**
      * Contains information about the generic types used in the parameters of the method under test.
@@ -340,7 +367,8 @@ class Traverser(
     }
 
     /**
-     * Handles preparatory work for static initializers and multi-dimensional arrays creation.
+     * Handles preparatory work for static initializers, multi-dimensional arrays creation
+     * and `newInstance` reflection call post-processing.
      *
      * For instance, it could push handmade graph with preparation statements to the path selector.
      *
@@ -356,6 +384,7 @@ class Traverser(
         return when {
             processStaticInitializerIfRequired(current) -> true
             unfoldMultiArrayExprIfRequired(current) -> true
+            pushInitGraphAfterNewInstanceReflectionCall(current) -> true
             else -> false
         }
     }
@@ -412,6 +441,50 @@ class Traverser(
     }
 
     /**
+     * If the previous stms was `newInstance` method invocation,
+     * pushes a graph of the default constructor of the constructed type, if present,
+     * and pushes a state with a [InstantiationException] otherwise.
+     */
+    private fun TraversalContext.pushInitGraphAfterNewInstanceReflectionCall(stmt: JAssignStmt): Boolean {
+        // Check whether the previous stmt was a `newInstance` invocation
+        val lastStmt = environment.state.path.lastOrNull() as? JAssignStmt ?: return false
+        val lastStmtRight = lastStmt.rightOp as? JVirtualInvokeExpr ?: return false
+        val lastMethodInvocation = lastStmtRight.retrieveMethod()
+        if (lastMethodInvocation.subSignature != NEW_INSTANCE_SIGNATURE) {
+            return false
+        }
+
+        // Process the current stmt as cast expression
+        val right = stmt.rightOp as? JCastExpr ?: return false
+        val castType = right.castType as? RefType ?: return false
+        val castedJimpleVariable = right.op as? JimpleLocal ?: return false
+
+        val castedLocalVariable = (localVariableMemory.local(castedJimpleVariable.variable) as? ReferenceValue) ?: return false
+
+        val castSootClass = castType.sootClass
+
+        // This class does not have a default constructor
+        // Since it can be a cast of a class with constructor to the interface (or ot the ancestor without default constructor),
+        // we cannot always throw a `java.lang.InstantiationException`.
+        // So, instead we will just continue the analysis without analysis of <init>.
+        val initMethod = castSootClass.getMethodUnsafe("void <init>()") ?: return false
+
+        if (!initMethod.canRetrieveBody()) {
+            return false
+        }
+
+        val initGraph = ExceptionalUnitGraph(initMethod.activeBody)
+
+        pushToPathSelector(
+            initGraph,
+            castedLocalVariable,
+            callParameters = emptyList(),
+        )
+
+        return true
+    }
+
+    /**
      * Processes static initialization for class.
      *
      * If class is not initialized yet, creates graph for that and pushes to the path selector;
@@ -428,6 +501,13 @@ class Traverser(
     ): Boolean {
         if (shouldProcessStaticFieldConcretely(fieldRef)) {
             return processStaticFieldConcretely(fieldRef, stmt)
+        }
+
+        // If we are in `taint` mode, do not analyze <clinit> symbolically
+        workaround(TAINT) {
+            if (UtSettings.disableClinitSectionsAnalysis) {
+                return false
+            }
         }
 
         val field = fieldRef.field
@@ -553,7 +633,7 @@ class Traverser(
         val jClass = type.id.jClass
 
         // symbolic value for enum class itself
-        val enumClassValue = findOrCreateStaticObject(type)
+        val enumClassValue = findOrCreateStaticObject(type) // TODO resolveInstanceForField???
 
         // values for enum constants
         val enumConstantConcreteValues = jClass.enumConstants.filterIsInstance<Enum<*>>()
@@ -627,7 +707,7 @@ class Traverser(
             MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
         val objectUpdate = objectUpdate(
-            instance = findOrCreateStaticObject(declaringClass.type),
+            instance = findOrCreateStaticObject(declaringClass.type), // TODO  resolveInstanceForField
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
@@ -711,28 +791,57 @@ class Traverser(
     private fun TraversalContext.traverseAssignStmt(current: JAssignStmt) {
         val rightValue = current.rightOp
 
-        workaround(HACK) {
-            val rightType = rightValue.type
-            if (rightValue is JNewExpr && rightType is RefType) {
-                val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
-                val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
+        doNotRun {
+            workaround(HACK) {
+                val rightType = rightValue.type
+                if (rightValue is JNewExpr && rightType is RefType) {
+                    val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
+                    val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
 
-                // skip all the vertices in the CFG between `new` and `<init>` statements
-                if (rightType in throwableInheritors) {
-                    skipVerticesForThrowableCreation(current)
-                    return
+                    // skip all the vertices in the CFG between `new` and `<init>` statements
+                    if (rightType in throwableInheritors) {
+                        skipVerticesForThrowableCreation(current)
+                        return
+                    }
                 }
             }
         }
+
+        var taintAnalysisUpdate = SymbolicStateUpdate()
 
         val rightPartWrappedAsMethodResults = if (rightValue is InvokeExpr) {
             invokeResult(rightValue)
         } else {
             val value = resolve(rightValue, current.leftOp.type)
+
+            if (rightValue is JInstanceFieldRef || rightValue is StaticFieldRef) {
+                taintAnalysisUpdate += processTaintSourceForStatementAndValue(current, value)
+            }
+
             listOf(MethodResult(value))
         }
 
         rightPartWrappedAsMethodResults.forEach { methodResult ->
+             taintAnalysisUpdate += if (rightValue is InvokeExpr) {
+                val base = when (rightValue) {
+                    is StaticInvokeExpr -> null
+                    is SpecialInvokeExpr -> rightValue.base
+                    is VirtualInvokeExpr -> rightValue.base
+                    is InterfaceInvokeExpr -> rightValue.base
+                    else -> null
+                }
+
+                processTaintAnalysis(
+                    rightValue.method.executableId,
+                    rightValue,
+                    methodResult,
+                    base,
+                    rightValue.args
+                )
+            } else {
+                SymbolicStateUpdate()
+            }
+
             when (methodResult.symbolicResult) {
 
                 is SymbolicFailure -> { //exception thrown
@@ -740,7 +849,7 @@ class Traverser(
 
                     val nextState = createExceptionStateQueued(
                         methodResult.symbolicResult,
-                        methodResult.symbolicStateUpdate
+                        methodResult.symbolicStateUpdate + taintAnalysisUpdate
                     )
                     globalGraph.registerImplicitEdge(nextState.lastEdge!!)
                     offerState(nextState)
@@ -751,10 +860,11 @@ class Traverser(
                         current.leftOp,
                         methodResult.symbolicResult.value
                     )
+
                     offerState(
                         updateQueued(
                             globalGraph.succ(current),
-                            update + methodResult.symbolicStateUpdate
+                            update + methodResult.symbolicStateUpdate + taintAnalysisUpdate
                         )
                     )
                 }
@@ -909,7 +1019,12 @@ class Traverser(
                 }
             }
 
-            SymbolicStateUpdate(memoryUpdates = objectUpdate)
+            // We need to associate this field with the created symbolic value to not lose an information about its type.
+            // For example, if field's declared type is Runnable but at the current state it is a specific lambda,
+            // we have to save this lambda as a type of this field to be able to retrieve it in the future.
+            val fieldValuesUpdate = fieldUpdate(left.field, instanceForField.addr, value)
+
+            SymbolicStateUpdate(memoryUpdates = objectUpdate + fieldValuesUpdate)
         }
         is JimpleLocal -> SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(left.variable to value))
         is InvokeExpr -> TODO("Not implemented: $left")
@@ -966,6 +1081,8 @@ class Traverser(
                         }
                     }
                 } else {
+                    require(!environment.state.isInNestedMethod()) { "There are no parameters provided into a nested method" }
+
                     val suffix = if (identityRef is ParameterRef) "${identityRef.index}" else "_this"
                     val pName = "p$suffix"
                     val mockInfoGenerator = parameterMockInfoGenerator(identityRef)
@@ -980,7 +1097,8 @@ class Traverser(
 
                     if (createdValue is ReferenceValue) {
                         // Update generic type info for method under test' parameters
-                        updateGenericTypeInfo(identityRef, createdValue)
+                        val index = (identityRef as? ParameterRef)?.index?.plus(1) ?: 0
+                        updateGenericTypeInfoFromMethod(methodUnderTest, createdValue, index)
 
                         if (isNonNullable) {
                             queuedSymbolicStateUpdates += mkNot(
@@ -990,6 +1108,8 @@ class Traverser(
                                 )
                             ).asHardConstraint()
                         }
+
+                        queuedSymbolicStateUpdates += processTaintSourceForStatementAndValue(current, createdValue)
                     }
                     if (preferredCexOption) {
                         applyPreferredConstraints(createdValue)
@@ -1008,10 +1128,14 @@ class Traverser(
             is JCaughtExceptionRef -> {
                 val value = localVariableMemory.local(CAUGHT_EXCEPTION)
                     ?: error("Exception wasn't caught, stmt: $current, line: ${current.lines}")
+                val taintUpdate = processTaintSourceForStatementAndValue(current, value)
+                val localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null)
+
                 val nextState = updateQueued(
                     globalGraph.succ(current),
-                    SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null))
+                    SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdates)  + taintUpdate
                 )
+
                 offerState(nextState)
             }
             else -> error("Unsupported $identityRef")
@@ -1031,78 +1155,97 @@ class Traverser(
         return UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(type.id, mockAddr) }
     }
 
+    private fun updateGenericTypeInfoFromMethod(method: ExecutableId, value: ReferenceValue, parameterIndex: Int) {
+        val type = extractParameterizedType(method, parameterIndex)
+        if (type !is ParameterizedType) {
+            return
+        }
+
+        updateGenericTypeInfo(type, value)
+    }
+
     /**
      * Stores information about the generic types used in the parameters of the method under test.
      */
-    private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.executable
-        val type = if (identityRef is ThisRef) {
+    private fun updateGenericTypeInfo(type: ParameterizedType, value: ReferenceValue) {
+        val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
+            when (actualTypeArgument) {
+                is WildcardType -> {
+                    val upperBounds = actualTypeArgument.upperBounds
+                    val lowerBounds = actualTypeArgument.lowerBounds
+                    val allTypes = upperBounds + lowerBounds
+
+                    if (allTypes.any { it is GenericArrayType }) {
+                        val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
+                        TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
+                    }
+
+                    val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
+                    val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
+
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
+                }
+                is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
+                    val upperBounds = actualTypeArgument.bounds
+
+                    if (upperBounds.any { it is GenericArrayType }) {
+                        val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
+                        TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
+                    }
+
+                    val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
+
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
+                }
+                is GenericArrayType -> {
+                    // TODO bug with T[][], because there is no such time T JIRA:1446
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
+                }
+                is ParameterizedType, is Class<*> -> {
+                    val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
+
+                    typeResolver.constructTypeStorage(sootType, useConcreteType = false)
+                }
+                else -> error("Unsupported argument type ${actualTypeArgument::class}")
+            }
+        }
+
+        queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
+        parameterAddrToGenericType += value.addr to type
+
+        typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
+    }
+
+    private fun extractParameterizedType(
+        method: ExecutableId,
+        index: Int
+    ): java.lang.reflect.Type? {
+        val callable = runCatching {
+            method.executable
+        }.onFailure {
+            // In case declaring class is not presented in the classpath
+            return null
+        }.getOrThrow()
+
+        val type = if (index == 0) {
             // TODO: for ThisRef both methods don't return parameterized type
-            if (methodUnderTest.isConstructor) {
+            if (method.isConstructor) {
                 callable.annotatedReturnType?.type
             } else {
                 callable.declaringClass // same as it was, but it isn't parametrized type
-                    ?: error("No instanceParameter for ${callable} found")
+                    ?: error("No instanceParameter for $callable found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
-                val index = (identityRef as ParameterRef).index
                 val valueParameters = callable.genericParameterTypes
 
-                if (index > valueParameters.lastIndex) return
-                valueParameters[index]
+                if (index - 1 > valueParameters.lastIndex) return null
+                valueParameters[index - 1]
             }
         }
 
-        if (type is ParameterizedType) {
-            val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
-                when (actualTypeArgument) {
-                    is WildcardType -> {
-                        val upperBounds = actualTypeArgument.upperBounds
-                        val lowerBounds = actualTypeArgument.lowerBounds
-                        val allTypes = upperBounds + lowerBounds
-
-                        if (allTypes.any { it is GenericArrayType }) {
-                            val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
-                            TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
-                        }
-
-                        val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
-                        val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
-
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
-                    }
-                    is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
-                        val upperBounds = actualTypeArgument.bounds
-
-                        if (upperBounds.any { it is GenericArrayType }) {
-                            val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
-                            TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
-                        }
-
-                        val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
-
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
-                    }
-                    is GenericArrayType -> {
-                        // TODO bug with T[][], because there is no such time T JIRA:1446
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
-                    }
-                    is ParameterizedType, is Class<*> -> {
-                        val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
-
-                        typeResolver.constructTypeStorage(sootType, useConcreteType = false)
-                    }
-                    else -> error("Unsupported argument type ${actualTypeArgument::class}")
-                }
-            }
-
-            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
-            parameterAddrToGenericType += value.addr to type
-
-            typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
-        }
+        return type
     }
 
     private fun TraversalContext.traverseIfStmt(current: JIfStmt) {
@@ -1177,6 +1320,7 @@ class Traverser(
 
     private fun TraversalContext.traverseInvokeStmt(current: JInvokeStmt) {
         val results = invokeResult(current.invokeExpr)
+        val methodId = current.invokeExpr.method.executableId
 
         results.forEach { result ->
             if (result.symbolicResult is SymbolicFailure && environment.state.executionStack.last().doesntThrow) {
@@ -1249,6 +1393,8 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
+        val eqToNull = mkEq(addr, nullObjectAddr)
+
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
 
@@ -1261,7 +1407,8 @@ class Traverser(
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
                 queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-                queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+                val isMockConstraints = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+                queuedSymbolicStateUpdates += mkOr(isMockConstraints, eqToNull).asHardConstraint()
 
                 return mockedObject
             }
@@ -1291,7 +1438,11 @@ class Traverser(
             return it
         }
 
-        if (typeStorage.possibleConcreteTypes.isEmpty()) {
+        val isEmptyTypes = typeStorage.possibleConcreteTypes.isEmpty()
+        val refType = typeStorage.possibleConcreteTypes.singleOrNull() as? RefType
+        val isTheOnlyTypeCannotBeInstantiated = refType?.sootClass?.isInappropriate
+
+        if (isEmptyTypes || isTheOnlyTypeCannotBeInstantiated == true) {
             requireNotNull(mockInfoGenerator) {
                 "An object with $addr and $type doesn't have concrete possible types," +
                         "but there is no mock info generator provided to construct a mock value."
@@ -1304,7 +1455,8 @@ class Traverser(
 
             // add typeConstraint for mocked object. It's a declared type of the object.
             queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-            queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+            val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+            queuedSymbolicStateUpdates += mkOr(isMockConstraint, eqToNull).asHardConstraint()
 
             return mockedObject
         }
@@ -1315,7 +1467,8 @@ class Traverser(
         val concreteImplementation = wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
-        queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(addr), UtFalse).asHardConstraint()
+        val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, eqToNull).asHardConstraint()
 
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
@@ -1840,10 +1993,10 @@ class Traverser(
         with(simplificator) { simplifySymbolicValue(it) }
     }
 
-    private fun readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
+    private fun TraversalContext.readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
         val field = fieldRef.field
         val declaringClassType = field.declaringClass.type
-        val staticObject = findOrCreateStaticObject(declaringClassType)
+        val staticObject = resolveInstanceForField(fieldRef)
 
         val generator = (field.type as? RefType)?.let { refType ->
             UtMockInfoGenerator { mockAddr ->
@@ -1875,7 +2028,7 @@ class Traverser(
 
     /**
      * For now the field is `meaningful` if it is safe to set, that is, it is not an internal system field nor a
-     * synthetic field. This filter is needed to prohibit changing internal fields, which can break up our own
+     * synthetic field or a wrapper's field. This filter is needed to prohibit changing internal fields, which can break up our own
      * code and which are useless for the user.
      *
      * @return `true` if the field is meaningful, `false` otherwise.
@@ -1884,6 +2037,8 @@ class Traverser(
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields that cannot be set via reflection anyway
             !field.fieldId.isInaccessibleViaReflection &&
+            // we should not set static fields from wrappers
+            !field.declaringClass.isOverridden &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
                 ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
@@ -1919,8 +2074,11 @@ class Traverser(
         return created
     }
 
-    fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
-        parameters.zip(types).map { (value, type) -> resolve(value, type) }
+    fun TraversalContext. resolveParameters(
+        parameters: List<Value>,
+        types: List<Type>
+    ): List<SymbolicValue> = parameters.zip(types).map { (value, type) -> resolve(value, type) }
+
 
     private fun applyPreferredConstraints(value: SymbolicValue) {
         when (value) {
@@ -1995,6 +2153,9 @@ class Traverser(
         field: SootField,
         mockInfoGenerator: UtMockInfoGenerator?
     ): SymbolicValue {
+        memory.fieldValue(field, addr)?.let {
+            return it
+        }
         val chunkId = hierarchy.chunkIdForField(objectType, field)
         val createdField = createField(objectType, addr, field.type, chunkId, mockInfoGenerator)
 
@@ -2005,6 +2166,17 @@ class Traverser(
 
             // See docs/SpeculativeFieldNonNullability.md for details
             checkAndMarkLibraryFieldSpeculativelyNotNull(field, createdField)
+        }
+
+        runCatching {
+            if (createdField !is ReferenceValue) return@runCatching
+
+            val jClass = field.declaringClass.id.jClass
+            val fields = (jClass.fields + jClass.declaredFields).toSet()
+            val requiredField = fields.singleOrNull { it.name == field.name } ?: return@runCatching
+            val genericInfo = requiredField.genericType as? ParameterizedType ?: return@runCatching
+
+            updateGenericTypeInfo(genericInfo, createdField)
         }
 
         return createdField
@@ -2168,6 +2340,20 @@ class Traverser(
         return MemoryUpdate(persistentListOf(namedStore(descriptor, instance.addr, value)))
     }
 
+    /**
+     * Creates a [MemoryUpdate] with [MemoryUpdate.fieldValues] containing [fieldValue] associated with the non-staitc [field]
+     * of the object instance with the specified [instanceAddr].
+     */
+    private fun fieldUpdate(
+        field: SootField,
+        instanceAddr: UtAddrExpression,
+        fieldValue: SymbolicValue
+    ): MemoryUpdate {
+        val fieldValuesUpdate = persistentHashMapOf(field to persistentHashMapOf(instanceAddr to fieldValue))
+
+        return MemoryUpdate(fieldValues = fieldValuesUpdate)
+    }
+
     fun arrayUpdateWithValue(
         addr: UtAddrExpression,
         type: ArrayType,
@@ -2203,6 +2389,47 @@ class Traverser(
         queuedSymbolicStateUpdates += MemoryUpdate(speculativelyNotNullAddresses = persistentListOf(addr))
     }
 
+    private fun markAsTaint(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+        if (flags.isEmpty()) return SymbolicStateUpdate()
+
+        val taintedBv = taintAnalysis.constructTaintedVector(flags)
+        val memoryUpdates = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to taintedBv))
+
+        return SymbolicStateUpdate(memoryUpdates = memoryUpdates)
+    }
+
+    private fun clearTaintMark(addr: UtAddrExpression, flags: Set<String>): SymbolicStateUpdate {
+        if (flags.isEmpty()) return SymbolicStateUpdate()
+
+        val taintBv = taintAnalysis.constructTaintedVector(flags)
+        val negatedTaintBv = UtBvNotExpression(taintBv.toLongValue()).toLongValue()
+        val actualTaintBv = memory.taintValue(addr).toLongValue()
+
+        val updTaintBv = And(negatedTaintBv, actualTaintBv)
+
+        val memoryUpdate = MemoryUpdate(taintArrayUpdate = persistentListOf(addr to updTaintBv))
+
+        return SymbolicStateUpdate(memoryUpdates = memoryUpdate)
+    }
+
+    private fun assignTaintMark(
+        sourceAddr: UtAddrExpression,
+        targetAddr: UtAddrExpression,
+        flags: Set<String>,
+    ): SymbolicStateUpdate {
+        val taintBv = taintAnalysis.constructTaintedVector(flags)
+        val sourceTaintBv = memory.taintValue(sourceAddr).toLongValue()
+        val intersection = And(taintBv.toLongValue(), sourceTaintBv).toLongValue()
+
+        val actTaintBv = memory.taintValue(targetAddr).toLongValue()
+        val updTaintBv = Or(actTaintBv, intersection)
+
+        // TODO there is an error here, it should not be that simple (not just or)
+        val memoryUpdate = MemoryUpdate(taintArrayUpdate = persistentListOf(targetAddr to updTaintBv))
+
+        return SymbolicStateUpdate(memoryUpdates = memoryUpdate)
+    }
+
     /**
      * Add a memory update to reflect that a field was read.
      *
@@ -2232,35 +2459,74 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
-        val classId = exception.fold(
-            { it.javaClass.id },
-            { (exception.symbolic as ObjectValue).type.id }
-        )
-        val edge = findCatchBlock(current, classId) ?: return false
+        if (exception.concrete is TaintAnalysisError) {
+            return false
+        }
 
-        offerState(
-            updateQueued(
-                edge,
-                SymbolicStateUpdate(
-                    hardConstraints = conditions.asHardConstraint(),
-                    localMemoryUpdates = localMemoryUpdate(CAUGHT_EXCEPTION to exception.symbolic)
+        val possibleTypesClassId = exception.fold(
+            { listOf(it.javaClass.id) },
+            { (exception.symbolic as ObjectValue).possibleConcreteTypes.map { it.classId } }
+        )
+        val edges = findCatchBlocks(current, possibleTypesClassId)
+
+        if (edges.isEmpty()) {
+            return false
+        }
+
+        edges.forEach { edge ->
+            offerState(
+                updateQueued(
+                    edge,
+                    SymbolicStateUpdate(
+                        hardConstraints = conditions.asHardConstraint(),
+                        localMemoryUpdates = localMemoryUpdate(CAUGHT_EXCEPTION to exception.symbolic)
+                    )
                 )
             )
-        )
+        }
         return true
     }
 
-    private fun findCatchBlock(current: Stmt, classId: ClassId): Edge? {
+    // TODO TAINT I'm not sure that this is right implementation, should be refactored and reconsidered in the future
+    private fun findCatchBlocks(current: Stmt, classIds: List<ClassId>): List<Edge> {
         val stmtToEdge = globalGraph.exceptionalSuccs(current).associateBy { it.dst }
-        return globalGraph.traps.asSequence().mapNotNull { (stmt, exceptionClass) ->
-            stmtToEdge[stmt]?.let { it to exceptionClass }
-        }.firstOrNull { it.second in hierarchy.ancestors(classId) }?.first
+        val traps = globalGraph.traps
+        val edgeToExceptionClass = traps.mapNotNull { (stmt, exceptionClass) -> stmtToEdge[stmt]?.let { it to exceptionClass } }
+
+        val exceptionAncestors = classIds.fold(mutableSetOf<SootClass>()) { acc, elem ->
+            acc.addAll(hierarchy.ancestors(elem))
+            acc
+        }
+
+        val reachableAncestors = edgeToExceptionClass.filter { it.second in exceptionAncestors }
+        return reachableAncestors.map { it.first }
+
     }
 
-    private fun TraversalContext.invokeResult(invokeExpr: Expr): List<MethodResult> =
-        environment.state.methodResult?.let {
-            listOf(it)
-        } ?: when (invokeExpr) {
+    private fun TraversalContext.invokeResult(invokeExpr: InvokeExpr): List<MethodResult> {
+        val methodResult = environment.state.methodResult
+
+        if (methodResult != null) {
+            val base = when (invokeExpr) {
+                is JInterfaceInvokeExpr -> invokeExpr.base
+                is VirtualInvokeExpr -> invokeExpr.base
+                is SpecialInvokeExpr -> invokeExpr.base
+                else -> null
+            }
+            val taintAnalysisUpdate = processTaintAnalysis(
+                invokeExpr.method.executableId,
+                invokeExpr,
+                methodResult,
+                base,
+                invokeExpr.args
+            )
+
+            return listOf(
+                methodResult.copy(symbolicStateUpdate = methodResult.symbolicStateUpdate + taintAnalysisUpdate)
+            )
+        }
+
+        return when (invokeExpr) {
             is JStaticInvokeExpr -> staticInvoke(invokeExpr)
             is JInterfaceInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
             is JVirtualInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
@@ -2268,6 +2534,7 @@ class Traverser(
             is JDynamicInvokeExpr -> dynamicInvoke(invokeExpr)
             else -> error("Unknown class ${invokeExpr::class}")
         }
+    }
 
     /**
      * Returns a [MethodResult] containing a mock for a static method call
@@ -2365,6 +2632,13 @@ class Traverser(
 
     private fun TraversalContext.staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
+
+        processTaintSink(
+            invokeExpr.method.executableId,
+            base = null,
+            parameters
+        )
+
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
 
         if (result != null) return result
@@ -2391,8 +2665,15 @@ class Traverser(
 
         if (instance.isNullObject()) return emptyList() // Nothing to call
 
+
         val method = methodRef.resolve()
         val resolvedParameters = resolveParameters(parameters, method.parameterTypes)
+
+        processTaintSink(
+            method.executableId,
+            instance,
+            resolvedParameters
+        )
 
         val invocation = Invocation(instance, method, resolvedParameters) {
             when (instance) {
@@ -2517,6 +2798,17 @@ class Traverser(
     }
 
     private fun TraversalContext.specialInvoke(invokeExpr: JSpecialInvokeExpr): List<MethodResult> {
+        workaround(TAINT) { // skip an exception's init
+            val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
+            val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
+            if (invokeExpr.method.isConstructor && invokeExpr.method.declaringClass.type in throwableInheritors) {
+                globalGraph.visitEdge(environment.state.lastEdge!!)
+                globalGraph.visitNode(environment.state)
+                offerState(updateQueued(globalGraph.succ(environment.state.stmt)))
+                return emptyList()
+            }
+        }
+
         val instance = resolve(invokeExpr.base)
         if (instance !is ReferenceValue) error("We cannot run ${invokeExpr.methodRef} on $instance")
 
@@ -2525,7 +2817,11 @@ class Traverser(
         if (instance.isNullObject()) return emptyList() // Nothing to call
 
         val method = invokeExpr.retrieveMethod()
+
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
+
+        processTaintSink(method.executableId, instance, parameters)
+
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
 
         // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
@@ -2555,6 +2851,22 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
+        val method = invocation.method.executableId
+
+        invocation.parameters.mapIndexed { index, param ->
+            if (param !is ReferenceValue) return@mapIndexed
+
+            runCatching {
+                updateGenericTypeInfoFromMethod(method, param, parameterIndex = index + 1)
+            }
+        }
+
+        if (invocation.instance != null) {
+            runCatching {
+                updateGenericTypeInfoFromMethod(method, invocation.instance, parameterIndex = 0)
+            }
+        }
+
         /**
          * First, check if there is override for the invocation itself, not for the targets.
          *
@@ -2662,7 +2974,9 @@ class Traverser(
     ): List<MethodResult> = with(target.method) {
         val substitutedMethod = typeRegistry.findSubstitutionOrNull(this)
 
-        if (isNative && substitutedMethod == null) return processNativeMethod(target)
+        if (isNative && substitutedMethod == null) {
+            return processNativeMethod(target)
+        }
 
         // If we face UtMock.assume call, we should continue only with the branch
         // where the predicate from the parameters is equal true
@@ -2702,9 +3016,15 @@ class Traverser(
             declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
             isUtMockForbidClassCastException -> isUtMockDisableClassCastExceptionCheckInvoke(parameters)
             else -> {
-                val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
-                pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
-                emptyList()
+                // Make results of method invocations at big depth unbounded variables
+                // HACK FOR TAINTS
+                if (isCallGraphTooDeep() || (UtSettings.mockAllMethodsButRelatedToTaintAnalysis && target.method.subSignature !in methodsToNotMock && !target.method.name.contains("bootstrap\$"))) {
+                    treatMethodResultAsUnboundedVariable(name = "${target.method.name}DeepMock", target.method)
+                } else {
+                    val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
+                    pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
+                    emptyList()
+                }
             }
         }
     }
@@ -2884,7 +3204,8 @@ class Traverser(
         // If we try to override invocation itself, the target is null, and we have to process
         // the instance from the invocation, otherwise take the one from the target
         val instance = if (target == null) invocation.instance else target.instance
-        val subSignature = invocation.method.subSignature
+        val method = invocation.method
+        val subSignature = method.subSignature
 
         if (subSignature == "java.lang.Class getClass()") {
             return when (instance) {
@@ -2901,6 +3222,21 @@ class Traverser(
             }
         }
 
+        // Return an unbounded symbolic variable for any `forName` overloading
+        if (instance == null && method.name == "forName") {
+            val forNameResult = unboundedVariable(name = "classForName", method)
+
+            return OverrideResult(success = true, forNameResult)
+        }
+
+        // Return an unbounded symbolic variable for the `newInstance` method invocation,
+        // and at the next traversing step push <init> graph of the resulted type
+        if (instance?.type == CLASS_REF_TYPE && subSignature == NEW_INSTANCE_SIGNATURE) {
+            val getInstanceResult = unboundedVariable(name = "newInstance", method)
+
+            return OverrideResult(success = true, getInstanceResult)
+        }
+
         val instanceAsWrapperOrNull = instance?.asWrapperOrNull
 
         if (instanceAsWrapperOrNull is UtMockWrapper && subSignature == HASHCODE_SIGNATURE) {
@@ -2914,28 +3250,27 @@ class Traverser(
         }
 
         // we cannot mock synthetic methods and methods that have private or protected arguments
-        val impossibleToMock =
-            invocation.method.isSynthetic || invocation.method.isProtected || parametersContainPrivateAndProtectedTypes(
-                invocation.method
-            )
+        val impossibleToMock = method.isSynthetic
+                || method.isProtected
+                || parametersContainPrivateAndProtectedTypes(method)
 
         if (instanceAsWrapperOrNull is UtMockWrapper && impossibleToMock) {
             // TODO temporary we return unbounded symbolic variable with a wrong name.
             // TODO Probably it'll lead us to the path divergence
             workaround(HACK) {
-                val result = unboundedVariable("unbounded", invocation.method)
+                val result = unboundedVariable("unbounded", method)
                 return OverrideResult(success = true, result)
             }
         }
 
-        if (instance is ArrayValue && invocation.method.name == "clone") {
+        if (instance is ArrayValue && method.name == "clone") {
             return OverrideResult(success = true, cloneArray(instance))
         }
 
         instanceAsWrapperOrNull?.run {
             // For methods with concrete implementation (for example, RangeModifiableUnlimitedArray.toCastedArray)
             // we should not return successful override result.
-            if (!isWrappedMethod(invocation.method)) {
+            if (!isWrappedMethod(method)) {
                 return OverrideResult(success = false)
             }
 
@@ -2985,19 +3320,40 @@ class Traverser(
         return MethodResult(clone, constraints.asHardConstraint(), memoryUpdates = memoryUpdate)
     }
 
-    // For now, we just create unbounded symbolic variable as a result.
-    private fun processNativeMethod(target: InvocationTarget): List<MethodResult> =
-        listOf(unboundedVariable(name = "nativeConst", target.method))
+    internal fun treatMethodResultAsUnboundedVariable(name: String, method: SootMethod): List<MethodResult> =
+        listOf(unboundedVariable(name, method))
 
     private fun unboundedVariable(name: String, method: SootMethod): MethodResult {
         val value = when (val returnType = method.returnType) {
-            is RefType -> createObject(findNewAddr(), returnType, useConcreteType = true)
-            is ArrayType -> createArray(findNewAddr(), returnType, useConcreteType = true)
+            is RefType -> {
+                val addr = UtAddrExpression(mkBVConst("$name${unboundedConstCounter++}", UtIntSort).toIntValue().expr)
+                createObject(
+                    addr,
+                    returnType,
+                    useConcreteType = false,
+                    UtMockInfoGenerator { UtObjectMockInfo(returnType.id, addr) }
+                )
+            }
+            is ArrayType -> {
+                val addr = UtAddrExpression(mkBVConst("$name${unboundedConstCounter++}", UtIntSort).toIntValue().expr)
+                createArray(addr, returnType, useConcreteType = false)
+            }
             else -> createConst(returnType, "$name${unboundedConstCounter++}")
         }
 
         return MethodResult(value)
     }
+
+    // For now, we just create unbounded symbolic variable as a result.
+    private fun processNativeMethod(target: InvocationTarget): List<MethodResult> =
+        treatMethodResultAsUnboundedVariable(name = "nativeConst", target.method)
+
+    private fun isCallGraphTooDeep(): Boolean =
+        UtSettings.callDepthToMock
+            .takeIf { it > 0 }
+            ?.let {
+                environment.state.executionStack.size >= it
+            } ?: false
 
     fun SootClass.findMethodOrNull(subSignature: String): SootMethod? {
         adjustLevel(SootClass.SIGNATURES)
@@ -3186,8 +3542,27 @@ class Traverser(
         val notMarked = mkEq(memory.isSpeculativelyNotNull(addr), mkFalse())
         val notMarkedAndNull = mkAnd(notMarked, canBeNull)
 
-        if (environment.method.checkForNPE(environment.state.executionStack.size)) {
-            implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
+        if (!useOnlyTaintAnalysis) {
+            if (environment.method.checkForNPE(environment.state.executionStack.size)) {
+                implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
+            }
+        }
+
+        // case for NPE because of the nullness of `this` argument
+        val nullnessFlagName = "NULLNESS"
+        if (taintAnalysis.containsFlag(nullnessFlagName)) {
+            val baseValue = memory.taintValue(addr)
+            val taintedBv = taintAnalysis.constructTaintedVector(setOf(nullnessFlagName))
+            val taintNullnessCondition = mkNot(mkEq(And(taintedBv.toLongValue(), baseValue.toLongValue()), mkLong(0)))
+            val nullnessConstraint = mkEq(addr, nullObjectAddr)
+
+            implicitlyThrowException(
+                TaintAnalysisError(
+                    "Null value was passed into method as `this` instance",
+                    environment.state.stmt
+                ),
+                setOf(taintNullnessCondition, nullnessConstraint)
+            )
         }
 
         queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()
@@ -3195,8 +3570,296 @@ class Traverser(
 
     private fun TraversalContext.divisionByZeroCheck(denom: PrimitiveValue) {
         val equalsToZero = Eq(denom, 0)
-        implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
+        }
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
+    }
+
+    private fun TraversalContext.processTaintAnalysis(
+        methodId: ExecutableId,
+        rightValue: InvokeExpr,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate {
+        var result = SymbolicStateUpdate()
+
+        result += processTaintSourceForInvocation(methodId, methodResult, base, args)
+        result += processTaintSanitizer(methodId, methodResult, base, args)
+        result += processTaintPassThrough(methodId, methodResult, base, args)
+
+        return result
+    }
+
+    private fun processTaintSourceForStatementAndValue(
+        stmt: Stmt,
+        value: SymbolicValue
+    ): SymbolicStateUpdate {
+        if (value !is ReferenceValue) return SymbolicStateUpdate()
+        val taintKinds = taintAnalysis.getTaintKindsByStatement(stmt) ?: return SymbolicStateUpdate()
+
+        return markAsTaint(value.addr, taintKinds.kindsToAdd)
+    }
+
+    private fun TraversalContext.processTaintSourceForInvocation(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate {
+        val sourceInfos = taintAnalysis.getSourceInfo(methodId)
+
+        return sourceInfos.fold(SymbolicStateUpdate()) { acc, sourceInfo ->
+            val condition = sourceInfo.condition
+
+            // TODO process kindsToRemove too, in benchmark project there are no such instances
+            val flagsToAdd = sourceInfo.taintOut.associateWith { sourceInfo.taintKinds.kindsToAdd }
+
+            val symbolicResult = methodResult.symbolicResult
+
+            val thisParameter = base?.let {
+                resolve(it, methodId.sootMethod.declaringClass.type) to flagsToAdd[THIS_PARAM_INDEX]
+            }?.takeIf { THIS_PARAM_INDEX in sourceInfo.taintOut }
+
+            val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
+                .asSequence()
+                .withIndex()
+                .filter { it.value is ReferenceValue && it.index + 1 in sourceInfo.taintOut }
+                .map { it.value to flagsToAdd[it.index + 1] }
+
+            val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+                val value: ReferenceValue = symbolicResult.value
+
+                if (condition != null) {
+                    val taintValue = memory.taintValue(value.addr).toLongValue()
+                    queuedSymbolicStateUpdates += condition.toBoolExpr(
+                        this,
+                        taintValue,
+                        thisParameter?.first,
+                        parameters.mapTo(mutableListOf()) { it.first },
+                        value
+                    ).asHardConstraint()
+                }
+
+                value.addr to flagsToAdd[RETURN_VALUE_INDEX]
+            } else {
+                null
+            }?.takeIf { RETURN_VALUE_INDEX in sourceInfo.taintOut }
+
+
+            val allArgs = mutableListOf<Pair<UtAddrExpression, Set<String>?>>().apply {
+                if (thisParameter != null) add(thisParameter.first.addr to thisParameter.second)
+                addAll(parameters.map { it.first.addr to it.second })
+                if (resultTaint != null) add(resultTaint)
+            }
+
+            acc + allArgs.fold(SymbolicStateUpdate()) { nestedAcc, addrToFlags ->
+                nestedAcc + markAsTaint(addrToFlags.first, addrToFlags.second ?: emptySet())
+            }
+        }
+    }
+
+    private fun TraversalContext.processTaintSink(
+        methodId: ExecutableId,
+        base: SymbolicValue?,
+        args: List<SymbolicValue>
+    ) {
+        // Note that we do not check arguments separatly to improve performance and aboid
+        // duplicating states. Probably, we should add additional checks and information
+        // to be able determine in the future which of the arguments causes taint error
+        val condition = mutableListOf<UtBoolExpression>()
+
+        for (parameterIndex in 0..args.size) {
+            val symbolicValue = if (parameterIndex == THIS_PARAM_INDEX) base else args[parameterIndex - 1]
+
+            if (symbolicValue !is ReferenceValue) continue
+
+            val sinkInfos = taintAnalysis.getSinkInfo(methodId)
+
+            sinkInfos.forEach { sinkInfo ->
+                val taintValue = memory.taintValue(symbolicValue.addr)
+
+                val taintCondition = sinkInfo.taintSinks[parameterIndex] ?: return@forEach
+                val taintBoolCondition = taintCondition.toBoolExpr(
+                    this,
+                    taintValue.toLongValue(),
+                    base,
+                    args,
+                    returnValue = null
+                )
+
+                condition += mkAnd(taintBoolCondition)
+            }
+        }
+
+        val taintCondition = mkOr(condition)
+
+        implicitlyThrowException(
+            TaintAnalysisError(
+                "Tainted data was passed into ${methodId.name} method",
+                environment.state.stmt,
+            ),
+            setOf(taintCondition)
+        )
+
+        // Note that we do not add negation of the condition leading to an exception.
+        // It is required to find further usages of the same `tainted` data in the following instructions
+        val memoryUpdate = MemoryUpdate(taintAnalysisFoundSomething = mkAnd(taintCondition))
+        queuedSymbolicStateUpdates += SymbolicStateUpdate(memoryUpdates = memoryUpdate)
+    }
+
+    private fun TraversalContext.processTaintSanitizer(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate {
+        val sanitizers = taintAnalysis.getSanitizerInfo(methodId)
+
+        return sanitizers.fold(SymbolicStateUpdate()) { oldAcc, sanitizer ->
+            val symbolicResult = methodResult.symbolicResult
+
+            val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+                symbolicResult.value.addr
+            } else {
+                null
+            }?.takeIf { RETURN_VALUE_INDEX in sanitizer.taintOut }
+
+            val thisParameter = base?.let {
+                resolve(it, methodId.sootMethod.declaringClass.type).addr
+            }?.takeIf { THIS_PARAM_INDEX in sanitizer.taintOut }
+
+            val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
+                .asSequence()
+                .withIndex()
+                .filter { it.value is ReferenceValue && it.index + 1 in sanitizer.taintOut }
+                .map { it.value.addr }
+
+            val allArgs = mutableListOf<UtAddrExpression>().apply {
+                if (thisParameter != null) add(thisParameter)
+                addAll(parameters.toList())
+                if (resultTaint != null) add(resultTaint)
+            }
+
+            if (sanitizer.taintKinds.kindsToAdd.isNotEmpty()) {
+                logger.warn { "Kinds to add are not supported in sanitizers yet" }
+            }
+
+            oldAcc + allArgs.fold(SymbolicStateUpdate()) { acc, addr ->
+                acc + clearTaintMark(addr, sanitizer.taintKinds.kindsToRemove)
+            }
+        }
+    }
+
+    private fun TraversalContext.processTaintPassThrough(
+        methodId: ExecutableId,
+        methodResult: MethodResult,
+        base: Value?,
+        args: List<Value>
+    ): SymbolicStateUpdate {
+        // return if there are no flags for the methodId as a taint source
+        val passThroughInformations = taintAnalysis.getPassThroughInfo(methodId)
+
+        return passThroughInformations.fold(SymbolicStateUpdate()) { acc, passThroughInformation ->
+
+//        logger.warn { "PassThrough information found: $passThroughInformation" }
+
+            val condition = passThroughInformation.condition
+            if (condition != null) {
+                // TODO support with ITE stored in the array
+                logger.warn { "Condition in passthrough is not supported, please, take a look on it" }
+            }
+
+            val instance = base?.let { resolve(base, methodId.sootMethod.declaringClass.type) }
+            val arguments = resolveParameters(args, methodId.sootMethod.parameterTypes)
+
+            val symbolicResult = methodResult.symbolicResult
+
+            val resultValue = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+                symbolicResult.value
+            } else {
+                null
+            }
+
+            var update = SymbolicStateUpdate()
+            with(passThroughInformation) {
+                taintIn.forEach { sourceIndex ->
+                    val sourceValue = when (sourceIndex) {
+                        RETURN_VALUE_INDEX -> resultValue
+                        THIS_PARAM_INDEX -> instance
+                        else -> {
+                            if (sourceIndex - 1 in arguments.indices) {
+                                arguments[sourceIndex - 1]
+                            } else {
+                                return@forEach
+                            }
+                        }
+                    } ?: return@forEach
+
+                    sourceValue as? ReferenceValue ?: run {
+//                    logger.warn {
+//                        "Source index: $sourceIndex, instance: $instance, result: $resultValue, " +
+//                                "arguments: $arguments, method: $methodId, " +
+//                                "passThrough info: $passThroughInformation"
+//                    }
+                        return@forEach
+                    }
+
+                    taintOut.forEach innerForeach@{ targetIndex ->
+                        val targetValue = when (targetIndex) {
+                            RETURN_VALUE_INDEX -> resultValue
+                            THIS_PARAM_INDEX -> instance
+                            else -> run {
+                                if (targetIndex - 1 in arguments.indices) {
+                                    arguments[targetIndex - 1]
+                                } else {
+                                    return@innerForeach
+                                }
+                            }
+                        } ?: return@innerForeach
+
+                        targetValue as? ReferenceValue ?: run {
+//                        logger.warn {
+//                            "Target index: $targetIndex, arguments: $arguments, instance: $instance, result: $resultValue, " +
+//                                    "method: $methodId, passThrough info: $passThroughInformation"
+//                        }
+                            return@innerForeach
+                        }
+
+                        // TODO support kindToRemove
+                        update += assignTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToAdd)
+
+//                        if (taintKinds.kindsToRemove.isNotEmpty()) {
+//                            logger.warn { "Kinds to remove are not supported in passThrough instructions yet" }
+//                        }
+                        update += clearTaintMark(targetValue.addr, taintKinds.kindsToRemove)
+                    }
+                }
+            }
+
+            acc + update
+        }
+
+        /*return passThroughInformation.entries.fold(SymbolicStateUpdate()) { acc, information ->
+            val (sourceIndex, passInformation) = information
+            val (targetIndex, flags) = passInformation
+
+            val sourceValue = when (sourceIndex) {
+                TaintAnalysis.RETURN_VALUE_INDEX -> resultValue
+                TaintAnalysis.THIS_PARAM_INDEX -> instance
+                else -> arguments[sourceIndex - 1]
+            } as? ReferenceValue ?: error("TODO message")
+
+            val targetValue = when (targetIndex) {
+                TaintAnalysis.RETURN_VALUE_INDEX -> resultValue
+                TaintAnalysis.THIS_PARAM_INDEX -> instance
+                else -> arguments[targetIndex - 1]
+            } as? ReferenceValue ?: error("TODO message")
+
+
+            acc + assignTaintMark(sourceValue.addr, targetValue.addr, flags)
+        }*/
     }
 
     // Use cast to Int and cmp with min/max for Byte and Short.
@@ -3322,17 +3985,23 @@ class Traverser(
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            if (!useOnlyTaintAnalysis) {
+                implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            }
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
 
     private fun TraversalContext.indexOutOfBoundsChecks(index: PrimitiveValue, length: PrimitiveValue) {
         val ltZero = Lt(index, 0)
-        implicitlyThrowException(IndexOutOfBoundsException("Less than zero"), setOf(ltZero))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(IndexOutOfBoundsException("Less than zero"), setOf(ltZero))
+        }
 
         val geLength = Ge(index, length)
-        implicitlyThrowException(IndexOutOfBoundsException("Greater or equal than length"), setOf(geLength))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(IndexOutOfBoundsException("Greater or equal than length"), setOf(geLength))
+        }
 
         queuedSymbolicStateUpdates += mkNot(ltZero).asHardConstraint()
         queuedSymbolicStateUpdates += mkNot(geLength).asHardConstraint()
@@ -3340,7 +4009,9 @@ class Traverser(
 
     private fun TraversalContext.negativeArraySizeCheck(vararg sizes: PrimitiveValue) {
         val ltZero = mkOr(sizes.map { Lt(it, 0) })
-        implicitlyThrowException(NegativeArraySizeException("Less than zero"), setOf(ltZero))
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(NegativeArraySizeException("Less than zero"), setOf(ltZero))
+        }
         queuedSymbolicStateUpdates += mkNot(ltZero).asHardConstraint()
     }
 
@@ -3388,23 +4059,25 @@ class Traverser(
 
         val classCastExceptionAllowed = mkEq(UtTrue, typeRegistry.isClassCastExceptionAllowed(addr))
 
-        implicitlyThrowException(
-            ClassCastException("The object with type ${valueToCast.type} can not be casted to $typeAfterCast"),
-            setOf(notIsExpression, notNull, classCastExceptionAllowed),
-            setOf(constructConstraintForType(valueToCast, preferredTypesForCastException))
-        )
+        if (!useOnlyTaintAnalysis) {
+            implicitlyThrowException(
+                ClassCastException("The object with type ${valueToCast.type} can not be casted to $typeAfterCast"),
+                setOf(notIsExpression, notNull, classCastExceptionAllowed),
+                setOf(constructConstraintForType(valueToCast, preferredTypesForCastException))
+            )
+        }
 
         queuedSymbolicStateUpdates += mkOr(isExpression, nullEqualityConstraint).asHardConstraint()
     }
 
     private fun TraversalContext.implicitlyThrowException(
-        exception: Exception,
+        throwable: Throwable,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(throwable, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(
@@ -3471,28 +4144,30 @@ class Traverser(
 
         // we assign unbounded symbolic variables for every non-final meaningful field of the class
         // fields from predefined library classes are excluded, because there are not meaningful
-        typeResolver
-            .findFields(declaringClass.type)
-            .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
-            .forEach {
-                // remove updates from clinit, because we'll replace those values
-                // with new unbounded symbolic variable
-                staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
+        if (UtSettings.resetStaticAfterInitializer) {
+            typeResolver
+                .findFields(declaringClass.type)
+                .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
+                .forEach {
+                    // remove updates from clinit, because we'll replace those values
+                    // with new unbounded symbolic variable
+                    staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
 
-                val value = createConst(it.type, it.name)
-                val valueToStore = if (value is ReferenceValue) {
-                    value.addr
-                } else {
-                    (value as PrimitiveValue).expr
+                    val value = createConst(it.type, it.name)
+                    val valueToStore = if (value is ReferenceValue) {
+                        value.addr
+                    } else {
+                        (value as PrimitiveValue).expr
+                    }
+
+                    // we always know that this instance exists because we've just returned from its clinit method
+                    // in which we had to create such instance
+                    val staticObject = updates.staticInstanceStorage.getValue(declaringClassId)
+                    staticFieldsUpdates += StaticFieldMemoryUpdateInfo(it.fieldId, value)
+
+                    objectUpdates += objectUpdate(staticObject, it, valueToStore).stores
                 }
-
-                // we always know that this instance exists because we've just returned from its clinit method
-                // in which we had to create such instance
-                val staticObject = updates.staticInstanceStorage.getValue(declaringClassId)
-                staticFieldsUpdates += StaticFieldMemoryUpdateInfo(it.fieldId, value)
-
-                objectUpdates += objectUpdate(staticObject, it, valueToStore).stores
-            }
+        }
 
         return updates.copy(
             stores = updates.stores.addAll(objectUpdates),
@@ -3523,17 +4198,22 @@ class Traverser(
             queuedSymbolicStateUpdates += mkNot(mkEq(symbolicResult.value.addr, nullObjectAddr)).asHardConstraint()
         }
 
+        // usage of the following code causes hanging when we have
+        // a producer of states (for example, a cycle) and, then,
+        // the only reason to finish is timeout or step limit
+        doNotRun {
+            if (!environment.state.isInNestedMethod()) {
+                val isSuccess = if (symbolicResult is SymbolicSuccess) UtTrue else UtFalse
+                val taintHasBeenFound = mkNot(memory.doesTaintAnalysisFoundSomething())
+
+                queuedSymbolicStateUpdates += mkOr(taintHasBeenFound, mkNot(isSuccess)).asHardConstraint()
+            }
+        }
+
         val symbolicState = environment.state.symbolicState + queuedSymbolicStateUpdates
         val memory = symbolicState.memory
         val solver = symbolicState.solver
 
-        //no need to respect soft constraints in NestedMethod
-        val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
-
-        if (holder !is UtSolverStatusSAT) {
-            logger.trace { "processResult<${environment.method.signature}> UNSAT" }
-            return
-        }
         val methodResult = MethodResult(symbolicResult)
 
         //execution frame from level 2 or above
@@ -3553,6 +4233,13 @@ class Traverser(
             offerState(stateToOffer)
 
             logger.trace { "processResult<${environment.method.signature}> return from nested method" }
+            return
+        }
+
+        val holder = solver.check(respectSoft = true)
+
+        if (holder !is UtSolverStatusSAT) {
+            logger.trace { "processResult<${environment.method.signature}> UNSAT" }
             return
         }
 

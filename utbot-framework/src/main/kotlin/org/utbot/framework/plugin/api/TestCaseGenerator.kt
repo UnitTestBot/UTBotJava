@@ -121,7 +121,7 @@ open class TestCaseGenerator(
         controller: EngineController,
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
-        chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
+        chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClassesToMockAlways.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
         try {
@@ -138,7 +138,7 @@ open class TestCaseGenerator(
     fun generate(
         methods: List<ExecutableId>,
         mockStrategy: MockStrategyApi,
-        chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
+        chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClassesToMockAlways.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
     ): List<UtMethodTestSet> {

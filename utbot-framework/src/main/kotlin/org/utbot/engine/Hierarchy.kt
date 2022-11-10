@@ -1,5 +1,8 @@
 package org.utbot.engine
 
+import org.utbot.common.WorkaroundReason
+import org.utbot.common.workaround
+import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.id
@@ -31,7 +34,14 @@ class Hierarchy(private val typeRegistry: TypeRegistry) {
         val realType = typeRegistry.findRealType(type) as RefType
         val realFieldDeclaringType = typeRegistry.findRealType(field.declaringClass.type) as RefType
 
-        if (realFieldDeclaringType.sootClass !in ancestors(realType.sootClass.id)) {
+        // java.lang.Thread class has package-private fields, that can be used outside the class.
+        // Since wrapper UtThread does not inherit java.lang.Thread, we cannot use this inheritance condition only
+        val realTypeHasFieldByName = workaround(WorkaroundReason.TAINT){
+            realType.sootClass.getFieldByNameUnsafe(field.name) != null
+        }
+        val realTypeIsInheritor = realFieldDeclaringType.sootClass in ancestors(realType.sootClass.id)
+
+        if (!realTypeIsInheritor && !realTypeHasFieldByName) {
             error("No such field ${field.subSignature} found in ${realType.sootClass.name}")
         }
         return ChunkId("$realFieldDeclaringType", field.name)
@@ -54,14 +64,20 @@ class Hierarchy(private val typeRegistry: TypeRegistry) {
 
 private fun findAncestors(id: ClassId) =
     with(Scene.v().getSootClass(id.name)) {
+        val superClasses = mutableListOf<SootClass>()
+        val superInterfaces = mutableListOf<SootClass>()
+
         if (this.isInterface) {
-            Scene.v().activeHierarchy.getSuperinterfacesOfIncluding(this)
+            superClasses += OBJECT_TYPE.sootClass
+            superInterfaces += Scene.v().activeHierarchy.getSuperinterfacesOfIncluding(this)
         } else {
-            Scene.v().activeHierarchy.getSuperclassesOfIncluding(this) +
-                    this.interfaces.flatMap {
-                        Scene.v().activeHierarchy.getSuperinterfacesOfIncluding(it)
-                    }
+            superClasses += Scene.v().activeHierarchy.getSuperclassesOfIncluding(this)
+            superInterfaces += superClasses
+                .flatMap { it.interfaces }
+                .flatMap { Scene.v().activeHierarchy.getSuperinterfacesOfIncluding(it) }
         }
+
+        superClasses + superInterfaces
     }
 
 private fun findInheritors(id: ClassId) =

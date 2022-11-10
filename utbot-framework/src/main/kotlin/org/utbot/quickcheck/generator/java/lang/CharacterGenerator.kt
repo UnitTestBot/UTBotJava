@@ -1,48 +1,43 @@
+package org.utbot.quickcheck.generator.java.lang
 
-package org.utbot.quickcheck.generator.java.lang;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.Collections;
-
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getCharWrapperClassId;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.charWrapperClassId
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * Produces values of type {@code char} or {@link Character}.
+ * Produces values of type `char` or [Character].
  */
-public class CharacterGenerator extends Generator<Character> {
-    private char min = (Character) defaultValueOf(InRange.class, "minChar");
-    private char max = (Character) defaultValueOf(InRange.class, "maxChar");
-
-    public CharacterGenerator() {
-        super(Collections.singletonList(Character.class));
-    }
+class CharacterGenerator : Generator(
+    listOf(
+        Char::class.java
+    )
+) {
+    private var min = Reflection.defaultValueOf(InRange::class.java, "minChar") as Char
+    private var max = Reflection.defaultValueOf(InRange::class.java, "maxChar") as Char
 
     /**
      * Tells this generator to produce values within a specified minimum and/or
      * maximum, inclusive, with uniform distribution.
      *
-     * {@link InRange#min} and {@link InRange#max} take precedence over
-     * {@link InRange#minChar()} and {@link InRange#maxChar()}, if non-empty.
+     * [InRange.min] and [InRange.max] take precedence over
+     * [InRange.minChar] and [InRange.maxChar], if non-empty.
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        min = range.min().isEmpty() ? range.minChar() : range.min().charAt(0);
-        max = range.max().isEmpty() ? range.maxChar() : range.max().charAt(0);
+    fun configure(range: InRange) {
+        min = if (range.min.isEmpty()) range.minChar else range.min[0]
+        max = if (range.max.isEmpty()) range.maxChar else range.max[0]
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(random.nextChar(min, max), getCharWrapperClassId());
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(random.nextChar(min, max), charWrapperClassId)
     }
-
 }

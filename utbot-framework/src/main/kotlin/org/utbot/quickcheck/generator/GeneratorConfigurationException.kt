@@ -1,20 +1,16 @@
-
-package org.utbot.quickcheck.generator;
+package org.utbot.quickcheck.generator
 
 /**
  * Raised if a problem arises when attempting to configure a generator with
  * annotations from a property parameter.
  *
- * @see Generator#configure(java.lang.reflect.AnnotatedType)
+ * @see Generator.configure
  */
-public class GeneratorConfigurationException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
+class GeneratorConfigurationException : RuntimeException {
+    constructor(message: String) : super(message)
+    constructor(message: String, cause: Throwable?) : super(message, cause)
 
-    public GeneratorConfigurationException(String message) {
-        super(message);
-    }
-
-    public GeneratorConfigurationException(String message, Throwable cause) {
-        super(message, cause);
+    companion object {
+        private const val serialVersionUID = 1L
     }
 }

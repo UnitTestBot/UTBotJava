@@ -1,89 +1,81 @@
+package org.utbot.quickcheck.generator.java.time
 
-
-package org.utbot.quickcheck.generator.java.time;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.internal.Ranges;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.math.BigInteger;
-import java.time.Period;
-import java.time.Year;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.internal.Ranges
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.math.BigInteger
+import java.time.Period
+import java.time.Year
 
 /**
- * Produces values of type {@link Period}.
+ * Produces values of type [Period].
  */
-public class PeriodGenerator extends Generator<Period> {
-    private static final BigInteger TWELVE = BigInteger.valueOf(12);
-    private static final BigInteger THIRTY_ONE = BigInteger.valueOf(31);
-
-    private Period min = Period.of(Year.MIN_VALUE, -12, -31);
-    private Period max = Period.of(Year.MAX_VALUE, 12, 31);
-
-    public PeriodGenerator() {
-        super(Period.class);
-    }
+class PeriodGenerator : Generator(Period::class.java) {
+    private var min = Period.of(Year.MIN_VALUE, -12, -31)
+    private var max = Period.of(Year.MAX_VALUE, 12, 31)
 
     /**
-     * <p>Tells this generator to produce values within a specified
-     * {@linkplain InRange#min() minimum} and/or {@linkplain InRange#max()
-     * maximum}, inclusive, with uniform distribution.</p>
      *
-     * <p>If an endpoint of the range is not specified, the generator will use
-     * Periods with values of either {@code Period(Year#MIN_VALUE, -12, -31)}
-     * or {@code Period(Year#MAX_VALUE, 12, 31)} as appropriate.</p>
+     * Tells this generator to produce values within a specified
+     * [minimum][InRange.min] and/or [ maximum][InRange.max], inclusive, with uniform distribution.
      *
-     * <p>{@linkplain InRange#format()} is ignored.  Periods are always parsed
-     * using formats based on the ISO-8601 period formats {@code PnYnMnD} and
-     * {@code PnW}.</p>
      *
-     * @see Period#parse(CharSequence)
+     * If an endpoint of the range is not specified, the generator will use
+     * Periods with values of either `Period(Year#MIN_VALUE, -12, -31)`
+     * or `Period(Year#MAX_VALUE, 12, 31)` as appropriate.
+     *
+     *
+     * [InRange.format] is ignored.  Periods are always parsed
+     * using formats based on the ISO-8601 period formats `PnYnMnD` and
+     * `PnW`.
+     *
+     * @see Period.parse
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        if (!defaultValueOf(InRange.class, "min").equals(range.min()))
-            min = Period.parse(range.min());
-        if (!defaultValueOf(InRange.class, "max").equals(range.max()))
-            max = Period.parse(range.max());
-
-        if (toBigInteger(min).compareTo(toBigInteger(max)) > 0) {
-            throw new IllegalArgumentException(
-                String.format("bad range, %s > %s", min, max));
-        }
+    fun configure(range: InRange) {
+        if (Reflection.defaultValueOf(InRange::class.java, "min") != range.min) min = Period.parse(range.min)
+        if (Reflection.defaultValueOf(InRange::class.java, "max") != range.max) max = Period.parse(range.max)
+        require(toBigInteger(min) <= toBigInteger(max)) { String.format("bad range, %s > %s", min, max) }
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(fromBigInteger(
-            Ranges.choose(random, toBigInteger(min), toBigInteger(max))), classIdForType(Period.class));
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            fromBigInteger(
+                Ranges.choose(random, toBigInteger(min), toBigInteger(max))
+            ),
+            Period::class.id
+        )
     }
 
-    private BigInteger toBigInteger(Period period) {
-        return BigInteger.valueOf(period.getYears())
+    private fun toBigInteger(period: Period): BigInteger {
+        return BigInteger.valueOf(period.years.toLong())
             .multiply(TWELVE)
-            .add(BigInteger.valueOf(period.getMonths()))
+            .add(BigInteger.valueOf(period.months.toLong()))
             .multiply(THIRTY_ONE)
-            .add(BigInteger.valueOf(period.getDays()));
+            .add(BigInteger.valueOf(period.days.toLong()))
     }
 
-    private Period fromBigInteger(BigInteger period) {
-        BigInteger[] monthsAndDays =
-            period.divideAndRemainder(THIRTY_ONE);
-        BigInteger[] yearsAndMonths =
-            monthsAndDays[0].divideAndRemainder(TWELVE);
-
+    private fun fromBigInteger(period: BigInteger): Period {
+        val monthsAndDays = period.divideAndRemainder(THIRTY_ONE)
+        val yearsAndMonths = monthsAndDays[0].divideAndRemainder(TWELVE)
         return Period.of(
             yearsAndMonths[0].intValueExact(),
             yearsAndMonths[1].intValueExact(),
-            monthsAndDays[1].intValueExact());
+            monthsAndDays[1].intValueExact()
+        )
+    }
+
+    companion object {
+        private val TWELVE = BigInteger.valueOf(12)
+        private val THIRTY_ONE = BigInteger.valueOf(31)
     }
 }

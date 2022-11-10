@@ -25,9 +25,9 @@ import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
 import java.lang.reflect.*
 
 
-fun Generator<*>.getAllComponents(): List<Generator<*>> {
-    val queue = ArrayDeque<Generator<*>>()
-    val res = mutableListOf<Generator<*>>()
+fun Generator.getAllComponents(): List<Generator> {
+    val queue = ArrayDeque<Generator>()
+    val res = mutableListOf<Generator>()
     this.getComponents().forEach { queue.add(it) }
     while (queue.isNotEmpty()) {
         val comp = queue.removeFirst()
@@ -37,9 +37,9 @@ fun Generator<*>.getAllComponents(): List<Generator<*>> {
     return res
 }
 
-fun Generator<*>.getComponents(): List<Generator<*>> =
+fun Generator.getComponents(): List<Generator> =
     when (this) {
-        is ComponentizedGenerator<*> -> this.componentGenerators()
+        is ComponentizedGenerator -> this.componentGenerators()
         is ArrayGenerator -> listOf(this.component)
         else -> emptyList()
     }
@@ -58,19 +58,19 @@ fun GeneratorRepository.produceUserClassGenerator(
     return userClassGenerator
 }
 
-fun GeneratorRepository.getOrProduceGenerator(field: Field, depth: Int = 0): Generator<*>? =
+fun GeneratorRepository.getOrProduceGenerator(field: Field, depth: Int = 0): Generator? =
     getOrProduceGenerator(ParameterTypeContext.forField(field), depth)
 
-fun GeneratorRepository.getOrProduceGenerator(param: Parameter, parameterIndex: Int, depth: Int = 0): Generator<*>? =
+fun GeneratorRepository.getOrProduceGenerator(param: Parameter, parameterIndex: Int, depth: Int = 0): Generator? =
     getOrProduceGenerator(param.createParameterTypeContext(parameterIndex), depth)
 
-fun GeneratorRepository.getOrProduceGenerator(clazz: Class<*>, depth: Int = 0): Generator<*>? =
+fun GeneratorRepository.getOrProduceGenerator(clazz: Class<*>, depth: Int = 0): Generator? =
     getOrProduceGenerator(clazz.createParameterTypeContext(), depth)
 
 fun GeneratorRepository.getOrProduceGenerator(
     parameterTypeContext: ParameterTypeContext,
     depth: Int
-): Generator<*>? {
+): Generator? {
     val producedUserClassesGenerators = mutableListOf<UserClassGenerator>()
     parameterTypeContext.getAllSubParameterTypeContexts(GreyBoxFuzzerGenerators.sourceOfRandomness).reversed()
         .forEach { typeContext ->

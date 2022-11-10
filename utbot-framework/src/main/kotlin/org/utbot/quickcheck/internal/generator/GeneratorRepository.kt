@@ -1,348 +1,285 @@
+package org.utbot.quickcheck.internal.generator
 
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.Generators
+import org.utbot.quickcheck.generator.NullAllowed
+import org.utbot.quickcheck.internal.Items.choose
+import org.utbot.quickcheck.internal.ParameterTypeContext
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.internal.Weighted
+import org.utbot.quickcheck.internal.Zilch
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.lang.reflect.AnnotatedElement
+import java.lang.reflect.Field
+import java.lang.reflect.Parameter
+import java.lang.reflect.Type
+import java.lang.annotation.Annotation as JavaAnnotation
 
-package org.utbot.quickcheck.internal.generator;
+open class GeneratorRepository private constructor(
+    private val random: SourceOfRandomness,
+    private val generators: MutableMap<Class<*>, MutableSet<Generator>>
+) : Generators {
+    constructor(random: SourceOfRandomness) : this(random, hashMapOf())
 
-import org.javaruntype.type.TypeParameter;
-import org.utbot.quickcheck.generator.*;
-import org.utbot.quickcheck.internal.ParameterTypeContext;
-import org.utbot.quickcheck.internal.Weighted;
-import org.utbot.quickcheck.internal.Zilch;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.stream.Stream;
-
-import static java.util.Collections.unmodifiableSet;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
-import static org.utbot.quickcheck.internal.Items.choose;
-import static org.utbot.quickcheck.internal.Reflection.*;
-
-public class GeneratorRepository implements Generators {
-    private static final Set<String> NULLABLE_ANNOTATIONS =
-        unmodifiableSet(
-            Stream.of(
-                "javax.annotation.Nullable", // JSR-305
-                NullAllowed.class.getCanonicalName())
-                .collect(toSet()));
-
-    private final SourceOfRandomness random;
-
-    private final Map<Class<?>, Set<Generator<?>>> generators;
-
-    public GeneratorRepository(SourceOfRandomness random) {
-        this(random, new HashMap<>());
+    fun getGenerators(): Map<Class<*>, MutableSet<Generator>> {
+        return generators
     }
 
-    private GeneratorRepository(
-        SourceOfRandomness random,
-        Map<Class<?>, Set<Generator<?>>> generators) {
-
-        this.random = random;
-        this.generators = generators;
+    fun addUserClassGenerator(forClass: Class<*>, source: Generator) {
+        generators[forClass] = mutableSetOf(source)
     }
 
-    public Map<Class<?>, Set<Generator<?>>> getGenerators() {
-        return generators;
+    fun removeGenerator(forClass: Class<*>) {
+        generators.remove(forClass)
     }
 
-    public void addUserClassGenerator(Class<?> forClass, Generator<?> source) {
-        generators.put(forClass, Set.of(source));
+    fun removeGeneratorForObjectClass() {
+        generators.remove(Any::class.java)
     }
 
-    public void removeGenerator(Class<?> forClass) {
-        generators.remove(forClass);
+    fun register(source: Generator): GeneratorRepository {
+        registerTypes(source)
+        return this
     }
 
-    public void removeGeneratorForObjectClass() {
-        generators.remove(Object.class);
+    fun register(source: Iterable<Generator>): GeneratorRepository {
+        for (each in source) registerTypes(each)
+        return this
     }
 
-    public GeneratorRepository register(Generator<?> source) {
-        registerTypes(source);
-        return this;
+    private fun registerTypes(generator: Generator) {
+        for (each in generator.types()) registerHierarchy(each, generator)
     }
 
-    public GeneratorRepository register(Iterable<Generator<?>> source) {
-        for (Generator<?> each : source)
-            registerTypes(each);
-
-        return this;
-    }
-
-    private void registerTypes(Generator<?> generator) {
-        for (Class<?> each : generator.types())
-            registerHierarchy(each, generator);
-    }
-
-    private void registerHierarchy(Class<?> type, Generator<?> generator) {
-        maybeRegisterGeneratorForType(type, generator);
-
-        if (type.getSuperclass() != null)
-            registerHierarchy(type.getSuperclass(), generator);
-        else if (type.isInterface())
-            registerHierarchy(Object.class, generator);
-
-        for (Class<?> each : type.getInterfaces())
-            registerHierarchy(each, generator);
-    }
-
-    private void maybeRegisterGeneratorForType(
-        Class<?> type,
-        Generator<?> generator) {
-
-        if (generator.canRegisterAsType(type))
-            registerGeneratorForType(type, generator);
-    }
-
-    private void registerGeneratorForType(
-        Class<?> type,
-        Generator<?> generator) {
-
-        Set<Generator<?>> forType =
-            generators.computeIfAbsent(type, k -> new LinkedHashSet<>());
-
-        forType.add(generator);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override public <T> Generator<T> type(
-        Class<T> type,
-        Class<?>... componentTypes) {
-
-        Generator<T> generator =
-            (Generator<T>) produceGenerator(
-                ParameterTypeContext.forClass(type));
-        generator.addComponentGenerators(
-            Arrays.stream(componentTypes).map(c -> type(c)).collect(toList()));
-        return generator;
-    }
-
-    @Override public Generator<?> parameter(Parameter parameter) {
-        return produceGenerator(
-            ParameterTypeContext.forParameter(parameter).annotate(parameter));
-    }
-
-    @Override public Generator<?> field(Field field) {
-        return produceGenerator(
-            ParameterTypeContext.forField(field).annotate(field));
-    }
-
-    @Override public final Generators withRandom(SourceOfRandomness other) {
-        return new GeneratorRepository(other, this.generators);
-    }
-
-    public Generator<?> produceGenerator(ParameterTypeContext parameter) {
-        Generator<?> generator = generatorFor(parameter);
-
-        if (!isPrimitiveType(parameter.annotatedType().getType())
-            && hasNullableAnnotation(parameter.annotatedElement())) {
-
-            generator = new NullableGenerator<>(generator);
+    private fun registerHierarchy(type: Class<*>, generator: Generator) {
+        maybeRegisterGeneratorForType(type, generator)
+        when {
+            type.superclass != null -> registerHierarchy(type.superclass, generator)
+            type.isInterface -> registerHierarchy(Any::class.java, generator)
         }
-
-        generator.provide(this);
-        generator.configure(parameter.annotatedType());
-        if (parameter.topLevel())
-            generator.configure(parameter.annotatedElement());
-
-        return generator;
+        for (each in type.interfaces) registerHierarchy(each, generator)
     }
 
-    public Generator<?> generatorFor(ParameterTypeContext parameter) {
-        if (!parameter.explicitGenerators().isEmpty())
-            return composeWeighted(parameter, parameter.explicitGenerators());
-        if (parameter.isArray())
-            return generatorForArrayType(parameter);
-        if (parameter.isEnum())
-            return new EnumGenerator(parameter.getRawClass());
-
-        return compose(parameter, matchingGenerators(parameter));
+    private fun maybeRegisterGeneratorForType(type: Class<*>, generator: Generator) {
+        if (generator.canRegisterAsType(type)) {
+            registerGeneratorForType(type, generator)
+        }
     }
 
-    private Generator<?> generatorForArrayType(
-        ParameterTypeContext parameter) {
-
-        ParameterTypeContext component = parameter.arrayComponentContext();
-        return new ArrayGenerator(
-            component.getRawClass(),
-            generatorFor(component));
+    private fun registerGeneratorForType(type: Class<*>, generator: Generator) {
+        val forType = generators.getOrPut(type) { mutableSetOf() }
+        forType.add(generator)
     }
 
-    private List<Generator<?>> matchingGenerators(
-        ParameterTypeContext parameter) {
+    override fun <T> type(type: Class<T>, vararg componentTypes: Class<*>): Generator {
+        val generator = produceGenerator(
+            ParameterTypeContext.forClass(type)
+        )
+        generator.addComponentGenerators(componentTypes.map { type(it) })
+        return generator
+    }
 
-        List<Generator<?>> matches = new ArrayList<>();
+    override fun parameter(parameter: Parameter): Generator {
+        return produceGenerator(
+            ParameterTypeContext.forParameter(parameter).annotate(parameter)
+        )
+    }
 
+    override fun field(field: Field): Generator {
+        return produceGenerator(
+            ParameterTypeContext.forField(field).annotate(field)
+        )
+    }
+
+    override fun withRandom(other: SourceOfRandomness): Generators {
+        return GeneratorRepository(other, generators)
+    }
+
+    fun produceGenerator(parameter: ParameterTypeContext): Generator {
+        var generator = generatorFor(parameter)
+        if (!isPrimitiveType(parameter.annotatedType().type)
+            && hasNullableAnnotation(parameter.annotatedElement())
+        ) {
+            generator = NullableGenerator(generator)
+        }
+        generator.provide(this)
+        generator.configure(parameter.annotatedType())
+        if (parameter.topLevel()) generator.configure(parameter.annotatedElement())
+        return generator
+    }
+
+    open fun generatorFor(parameter: ParameterTypeContext): Generator {
+        return when {
+            parameter.explicitGenerators().isNotEmpty() -> composeWeighted(parameter, parameter.explicitGenerators())
+            parameter.isArray -> generatorForArrayType(parameter)
+            else -> if (parameter.isEnum) {
+                EnumGenerator(parameter.rawClass)
+            } else {
+                compose(parameter, matchingGenerators(parameter))
+            }
+        }
+    }
+
+    private fun generatorForArrayType(
+        parameter: ParameterTypeContext
+    ): Generator {
+        val component = parameter.arrayComponentContext()
+        return ArrayGenerator(component.rawClass, generatorFor(component))
+    }
+
+    private fun matchingGenerators(
+        parameter: ParameterTypeContext
+    ): List<Generator> {
+        val matches = mutableListOf<Generator>()
         if (!hasGeneratorsFor(parameter)) {
-            maybeAddGeneratorByNamingConvention(parameter, matches);
-            maybeAddLambdaGenerator(parameter, matches);
-            maybeAddMarkerInterfaceGenerator(parameter, matches);
+            maybeAddGeneratorByNamingConvention(parameter, matches)
+            maybeAddLambdaGenerator(parameter, matches)
+            maybeAddMarkerInterfaceGenerator(parameter, matches)
         } else {
-            maybeAddGeneratorsFor(parameter, matches);
+            maybeAddGeneratorsFor(parameter, matches)
         }
-        if (matches.isEmpty()) {
-            throw new IllegalArgumentException(
-                "Cannot find generator for " + parameter.name()
-                + " of type " + parameter.type().getTypeName());
+        require(matches.isNotEmpty()) {
+            ("Cannot find generator for " + parameter.name()
+                    + " of type " + parameter.type().typeName)
         }
-
-        return matches;
+        return matches
     }
 
-    private void maybeAddGeneratorByNamingConvention(
-        ParameterTypeContext parameter,
-        List<Generator<?>> matches) {
-
-        Class<?> genClass;
-        try {
-            genClass =
-                Class.forName(parameter.getRawClass().getName() + "Gen");
-        } catch (ClassNotFoundException noGenObeyingConvention) {
-            return;
+    private fun maybeAddGeneratorByNamingConvention(
+        parameter: ParameterTypeContext,
+        matches: MutableList<Generator>
+    ) {
+        val genClass = try {
+            Class.forName(parameter.rawClass.name + "Gen")
+        } catch (noGenObeyingConvention: ClassNotFoundException) {
+            return
         }
-
-        if (Generator.class.isAssignableFrom(genClass)) {
+        if (Generator::class.java.isAssignableFrom(genClass)) {
             try {
-                Generator<?> generator = (Generator<?>) genClass.newInstance();
-                if (generator.types().contains(parameter.getRawClass())) {
-                    matches.add(generator);
+                val generator = genClass.newInstance() as Generator
+                if (generator.types().contains(parameter.rawClass)) {
+                    matches += generator
                 }
-            } catch (IllegalAccessException | InstantiationException e) {
-                throw new IllegalStateException(
-                    "Cannot instantiate " + genClass.getName()
-                        + " using default constructor");
+            } catch (e: IllegalAccessException) {
+                throw IllegalStateException(
+                    "Cannot instantiate " + genClass.name
+                            + " using default constructor"
+                )
+            } catch (e: InstantiationException) {
+                throw IllegalStateException(
+                    "Cannot instantiate " + genClass.name
+                            + " using default constructor"
+                )
             }
         }
     }
 
-    private void maybeAddLambdaGenerator(
-        ParameterTypeContext parameter,
-        List<Generator<?>> matches) {
-
-        Method method = singleAbstractMethodOf(parameter.getRawClass());
+    private fun maybeAddLambdaGenerator(
+        parameter: ParameterTypeContext,
+        matches: MutableList<Generator>
+    ) {
+        val method = Reflection.singleAbstractMethodOf(parameter.rawClass)
         if (method != null) {
-            ParameterTypeContext returnType =
-                parameter.methodReturnTypeContext(method);
-            Generator<?> returnTypeGenerator = generatorFor(returnType);
-
-            matches.add(
-                new LambdaGenerator<>(
-                    parameter.getRawClass(),
-                    returnTypeGenerator));
+            val returnType = parameter.methodReturnTypeContext(method)
+            val returnTypeGenerator = generatorFor(returnType)
+            matches += LambdaGenerator(parameter.rawClass, returnTypeGenerator)
         }
     }
 
-    private void maybeAddMarkerInterfaceGenerator(
-        ParameterTypeContext parameter,
-        List<Generator<?>> matches) {
-
-        Class<?> rawClass = parameter.getRawClass();
-        if (isMarkerInterface(rawClass)) {
-            matches.add(
-                new MarkerInterfaceGenerator<>(parameter.getRawClass()));
+    private fun maybeAddMarkerInterfaceGenerator(
+        parameter: ParameterTypeContext,
+        matches: MutableList<Generator>
+    ) {
+        val rawClass = parameter.rawClass
+        if (Reflection.isMarkerInterface(rawClass)) {
+            matches += MarkerInterfaceGenerator(parameter.rawClass)
         }
     }
 
-    private void maybeAddGeneratorsFor(
-        ParameterTypeContext parameter,
-        List<Generator<?>> matches) {
-
-        List<Generator<?>> candidates = generatorsFor(parameter);
-        List<TypeParameter<?>> typeParameters = parameter.getTypeParameters();
-
+    private fun maybeAddGeneratorsFor(
+        parameter: ParameterTypeContext,
+        matches: MutableList<Generator>
+    ) {
+        val candidates = generatorsFor(parameter)
+        val typeParameters = parameter.typeParameters
         if (typeParameters.isEmpty()) {
-            matches.addAll(candidates);
+            matches.addAll(candidates)
         } else {
-            for (Generator<?> each : candidates) {
-                if (each.canGenerateForParametersOfTypes(typeParameters))
-                    matches.add(each);
+            for (each in candidates) {
+                if (each.canGenerateForParametersOfTypes(typeParameters)) matches.add(each)
             }
         }
     }
 
-    private Generator<?> compose(
-        ParameterTypeContext parameter,
-        List<Generator<?>> matches) {
-
-        List<Weighted<Generator<?>>> weightings =
-            matches.stream()
-                .map(g -> new Weighted<Generator<?>>(g, 1))
-                .collect(toList());
-
-        return composeWeighted(parameter, weightings);
+    private fun compose(
+        parameter: ParameterTypeContext,
+        matches: List<Generator>
+    ): Generator {
+        val weightings = matches.map { Weighted(it, 1) }
+        return composeWeighted(parameter, weightings)
     }
 
-    private Generator<?> composeWeighted(
-        ParameterTypeContext parameter,
-        List<Weighted<Generator<?>>> matches) {
-
-        List<Generator<?>> forComponents = new ArrayList<>();
-        for (ParameterTypeContext c : parameter.typeParameterContexts(random))
-            forComponents.add(generatorFor(c));
-
-        for (Weighted<Generator<?>> each : matches)
-            applyComponentGenerators(each.item, forComponents);
-
-        return matches.size() == 1
-            ? matches.get(0).item
-            : new CompositeGenerator(matches);
+    private fun composeWeighted(
+        parameter: ParameterTypeContext,
+        matches: List<Weighted<Generator>>
+    ): Generator {
+        val forComponents = mutableListOf<Generator>()
+        for (c in parameter.typeParameterContexts(random)) forComponents.add(generatorFor(c))
+        for (each in matches) applyComponentGenerators(each.item, forComponents)
+        return if (matches.size == 1) matches[0].item else CompositeGenerator(matches)
     }
 
-    private void applyComponentGenerators(
-        Generator<?> generator,
-        List<Generator<?>> componentGenerators) {
-
-        if (!generator.hasComponents())
-            return;
-
+    private fun applyComponentGenerators(
+        generator: Generator,
+        componentGenerators: List<Generator>
+    ) {
+        if (!generator.hasComponents()) return
         if (componentGenerators.isEmpty()) {
-            List<Generator<?>> substitutes = new ArrayList<>();
-            Generator<?> zilch =
-                generatorFor(
-                    ParameterTypeContext.forClass(Zilch.class)
-                        .allowMixedTypes(true));
-            for (int i = 0; i < generator.numberOfNeededComponents(); ++i) {
-                substitutes.add(zilch);
+            val substitutes = mutableListOf<Generator>()
+            val zilch = generatorFor(
+                ParameterTypeContext.forClass(Zilch::class.java)
+                    .allowMixedTypes(true)
+            )
+            for (i in 0 until generator.numberOfNeededComponents()) {
+                substitutes.add(zilch)
             }
-
-            generator.addComponentGenerators(substitutes);
+            generator.addComponentGenerators(substitutes)
         } else {
-            generator.addComponentGenerators(componentGenerators);
+            generator.addComponentGenerators(componentGenerators)
         }
     }
 
-    private List<Generator<?>> generatorsFor(ParameterTypeContext parameter) {
-        Set<Generator<?>> matches = generators.get(parameter.getRawClass());
-
+    private fun generatorsFor(parameter: ParameterTypeContext): List<Generator> {
+        var matches = generators[parameter.rawClass]
+            ?: error("No generator for type: ${parameter.rawClass}")
         if (!parameter.allowMixedTypes()) {
-            Generator<?> match = choose(matches, random);
-            matches = new HashSet<>();
-            matches.add(match);
+            val match = choose(matches, random)
+            matches = mutableSetOf(match)
+        }
+        return matches.map { it.copy() }
+    }
+
+    private fun hasGeneratorsFor(parameter: ParameterTypeContext): Boolean {
+        return generators[parameter.rawClass] != null
+    }
+
+    companion object {
+        private val NULLABLE_ANNOTATIONS = setOf(
+            "javax.annotation.Nullable",  // JSR-305
+            NullAllowed::class.java.canonicalName
+        )
+
+
+        private fun isPrimitiveType(type: Type): Boolean {
+            return type is Class<*> && type.isPrimitive
         }
 
-        List<Generator<?>> copies = new ArrayList<>();
-        for (Generator<?> each : matches) {
-            copies.add(each.copy());
+        private fun hasNullableAnnotation(element: AnnotatedElement?): Boolean {
+            if (element == null) return false
+            return element.annotations.map { it as JavaAnnotation }
+                .map { it.annotationType() }
+                .map { it.canonicalName }
+                .any { NULLABLE_ANNOTATIONS.contains(it) }
         }
-        return copies;
-    }
-
-    private boolean hasGeneratorsFor(ParameterTypeContext parameter) {
-        return generators.get(parameter.getRawClass()) != null;
-    }
-
-    private static boolean isPrimitiveType(Type type) {
-        return type instanceof Class<?> && ((Class<?>) type).isPrimitive();
-    }
-
-    private static boolean hasNullableAnnotation(AnnotatedElement element) {
-        return element != null
-            && Arrays.stream(element.getAnnotations())
-                .map(Annotation::annotationType)
-                .map(Class::getCanonicalName)
-                .anyMatch(NULLABLE_ANNOTATIONS::contains);
     }
 }

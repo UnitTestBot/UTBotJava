@@ -1,32 +1,28 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.Locale;
-
-import static java.util.Locale.getAvailableLocales;
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.Locale
 
 /**
- * Produces values of type {@link Locale}.
+ * Produces values of type [Locale].
  */
-public class LocaleGenerator extends Generator<Locale> {
-    private static final Locale[] AVAILABLE_LOCALES = getAvailableLocales();
-
-    public LocaleGenerator() {
-        super(Locale.class);
+class LocaleGenerator : Generator(Locale::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            random.choose(AVAILABLE_LOCALES),
+            classIdForType(Locale::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(random.choose(AVAILABLE_LOCALES), classIdForType(Locale.class));
+    companion object {
+        private val AVAILABLE_LOCALES = Locale.getAvailableLocales()
     }
 }

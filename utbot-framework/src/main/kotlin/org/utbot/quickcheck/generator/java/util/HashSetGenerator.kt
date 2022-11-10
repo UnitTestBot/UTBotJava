@@ -1,16 +1,6 @@
-
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.quickcheck.generator.java.util.SetGenerator;
-
-import java.util.HashSet;
+package org.utbot.quickcheck.generator.java.util
 
 /**
- * Produces values of type {@link HashSet}.
+ * Produces values of type [HashSet].
  */
-public class HashSetGenerator extends SetGenerator<HashSet> {
-    public HashSetGenerator() {
-        super(HashSet.class);
-    }
-}
+class HashSetGenerator : SetGenerator(HashSet::class.java)

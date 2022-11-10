@@ -1,28 +1,18 @@
+package org.utbot.quickcheck.internal.generator
 
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.internal.GeometricDistribution
+import org.utbot.quickcheck.random.SourceOfRandomness
 
-package org.utbot.quickcheck.internal.generator;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.internal.GeometricDistribution;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-abstract class AbstractGenerationStatus implements GenerationStatus {
-    private final GeometricDistribution distro;
-    private final SourceOfRandomness random;
-
-    AbstractGenerationStatus(
-        GeometricDistribution distro,
-        SourceOfRandomness random) {
-
-        this.distro = distro;
-        this.random = random;
+abstract class AbstractGenerationStatus(
+    private val distro: GeometricDistribution,
+    private val random: SourceOfRandomness
+) : GenerationStatus {
+    override fun size(): Int {
+        return distro.sampleWithMean((attempts() + 1).toDouble(), random)
     }
 
-    @Override public int size() {
-        return distro.sampleWithMean(attempts() + 1, random);
-    }
-
-    protected final SourceOfRandomness random() {
-        return random;
+    protected fun random(): SourceOfRandomness {
+        return random
     }
 }

@@ -1,41 +1,34 @@
+package org.utbot.quickcheck.generator.java.util.function
 
-
-package org.utbot.quickcheck.generator.java.util.function;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.function.DoubleFunction;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.function.DoubleFunction
 
 /**
- * Produces values of type {@link DoubleFunction}.
+ * Produces values of type [DoubleFunction].
  *
  * @param <R> return type of produced function
- */
-public class DoubleFunctionGenerator<R>
-    extends ComponentizedGenerator<DoubleFunction> {
-
-    public DoubleFunctionGenerator() {
-        super(DoubleFunction.class);
+</R> */
+class DoubleFunctionGenerator<R> : ComponentizedGenerator(DoubleFunction::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                DoubleFunction::class.java,
+                componentGenerators()[0],
+                status
+            ), classIdForType(DoubleFunction::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(
-            DoubleFunction.class,
-            componentGenerators().get(0),
-            status), classIdForType(DoubleFunction.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 1;
+    override fun numberOfNeededComponents(): Int {
+        return 1
     }
 }

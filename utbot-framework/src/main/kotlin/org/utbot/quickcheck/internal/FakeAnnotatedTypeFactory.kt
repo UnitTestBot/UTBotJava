@@ -1,90 +1,73 @@
+package org.utbot.quickcheck.internal
 
+import java.lang.reflect.AnnotatedArrayType
+import java.lang.reflect.AnnotatedType
+import java.lang.reflect.Type
 
-package org.utbot.quickcheck.internal;
+object FakeAnnotatedTypeFactory {
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedArrayType;
-import java.lang.reflect.AnnotatedType;
-import java.lang.reflect.Type;
-
-final class FakeAnnotatedTypeFactory {
-    private FakeAnnotatedTypeFactory() {
-        throw new UnsupportedOperationException();
-    }
-
-    static AnnotatedType makeFrom(Class<?> clazz) {
-        return clazz.isArray() ? makeArrayType(clazz) : makePlainType(clazz);
-    }
-
-    private static AnnotatedArrayType makeArrayType(Class<?> type) {
-        return new FakeAnnotatedArrayType(type);
-    }
-
-    private static AnnotatedType makePlainType(Class<?> type) {
-        return new FakeAnnotatedType(type);
-    }
-
-    private static final class FakeAnnotatedArrayType
-        implements AnnotatedArrayType {
-
-        private final Class<?> type;
-
-        FakeAnnotatedArrayType(Class<?> type) {
-            this.type = type;
-        }
-
-        @Override public AnnotatedType getAnnotatedGenericComponentType() {
-            return makeFrom(type.getComponentType());
+    private class FakeAnnotatedArrayType(private val type: Class<*>) : AnnotatedArrayType {
+        override fun getAnnotatedGenericComponentType(): AnnotatedType {
+            return makeFrom(type.componentType)
         }
 
         // Not introduced until JDK 9 -- not marking as...
         // @Override
-        public AnnotatedType getAnnotatedOwnerType() {
-            return null;
+        override fun getAnnotatedOwnerType(): AnnotatedType? {
+            return null
         }
 
-        @Override public Type getType() {
-            return type;
+        override fun getType(): Type {
+            return type
         }
 
-        @Override public <T extends Annotation> T getAnnotation(
-            Class<T> annotationClass) {
-
-            return null;
+        override fun <T : Annotation?> getAnnotation(
+            annotationClass: Class<T>
+        ): T? {
+            return null
         }
 
-        @Override public Annotation[] getAnnotations() {
-            return new Annotation[0];
+        override fun getAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
         }
 
-        @Override public Annotation[] getDeclaredAnnotations() {
-            return new Annotation[0];
+        override fun getDeclaredAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
+        }
+    }
+
+    private class FakeAnnotatedType(private val type: Class<*>) : AnnotatedType {
+        override fun getType(): Type {
+            return type
+        }
+
+        override fun <T : Annotation?> getAnnotation(
+            annotationClass: Class<T>
+        ): T? {
+            return null
+        }
+
+        override fun getAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
+        }
+
+        override fun getDeclaredAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
         }
     }
 
-    private static final class FakeAnnotatedType implements AnnotatedType {
-        private final Class<?> type;
 
-        FakeAnnotatedType(Class<?> type) {
-            this.type = type;
-        }
-
-        @Override public Type getType() {
-            return type;
-        }
-
-        @Override public <T extends Annotation> T getAnnotation(
-            Class<T> annotationClass) {
-
-            return null;
-        }
-
-        @Override public Annotation[] getAnnotations() {
-            return new Annotation[0];
-        }
-
-        @Override public Annotation[] getDeclaredAnnotations() {
-            return new Annotation[0];
-        }
+    @JvmStatic
+    fun makeFrom(clazz: Class<*>): AnnotatedType {
+        return if (clazz.isArray) makeArrayType(clazz) else makePlainType(clazz)
     }
+
+    private fun makeArrayType(type: Class<*>): AnnotatedArrayType {
+        return FakeAnnotatedArrayType(type)
+    }
+
+    private fun makePlainType(type: Class<*>): AnnotatedType {
+        return FakeAnnotatedType(type)
+    }
+
 }

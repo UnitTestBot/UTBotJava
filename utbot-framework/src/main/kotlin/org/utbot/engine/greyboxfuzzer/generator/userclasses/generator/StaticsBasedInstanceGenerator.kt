@@ -13,7 +13,7 @@ open class StaticsBasedInstanceGenerator(
     private val generationStatus: GenerationStatus,
     private val depth: Int
 ) : InstanceGenerator {
-    override fun generate(): UtModel? {
+    override fun generate(): UtModel {
         val staticMethodBasedGenerator =
             StaticsMethodBasedInstanceGenerator(clazz, gctx, sourceOfRandomness, generationStatus, depth)
         val staticFieldBasedGenerator =

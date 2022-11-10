@@ -1,121 +1,101 @@
-package org.utbot.quickcheck.internal.generator;
+package org.utbot.quickcheck.internal.generator
 
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.GeneratorConfigurationException;
-import org.utbot.quickcheck.generator.Generators;
-import org.utbot.quickcheck.internal.Items;
-import org.utbot.quickcheck.internal.Weighted;
-import org.utbot.quickcheck.random.SourceOfRandomness;
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.GeneratorConfigurationException
+import org.utbot.quickcheck.generator.Generators
+import org.utbot.quickcheck.internal.Items
+import org.utbot.quickcheck.internal.Weighted
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.lang.reflect.AnnotatedElement
+import java.lang.reflect.AnnotatedType
 
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.AnnotatedType;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+class CompositeGenerator(composed: List<Weighted<Generator>>) : Generator(Any::class.java) {
+    private val composed: MutableList<Weighted<Generator>>
 
-import static java.util.stream.Collectors.toList;
-
-public class CompositeGenerator extends Generator<Object> {
-    private final List<Weighted<Generator<?>>> composed;
-
-    CompositeGenerator(List<Weighted<Generator<?>>> composed) {
-        super(Object.class);
-
-        this.composed = new ArrayList<>(composed);
+    init {
+        this.composed = ArrayList(composed)
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        Generator<?> choice = Items.chooseWeighted(composed, random);
-        return choice.generate(random, status);
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val choice = Items.chooseWeighted(composed, random)
+        return choice.generate(random, status)
     }
 
-    Generator<?> composed(int index) {
-        return composed.get(index).item;
+    fun composed(index: Int): Generator {
+        return composed[index].item
     }
 
-    int numberOfComposedGenerators() {
-        return composed.size();
+    fun numberOfComposedGenerators(): Int {
+        return composed.size
     }
 
-    @Override public void provide(Generators provided) {
-        super.provide(provided);
-
-        for (Weighted<Generator<?>> each : composed)
-            each.item.provide(provided);
+    override fun provide(provided: Generators) {
+        super.provide(provided)
+        for (each in composed) each.item.provide(provided)
     }
 
-    @Override public void configure(AnnotatedType annotatedType) {
-        List<Weighted<Generator<?>>> candidates = new ArrayList<>(composed);
-
-        for (Iterator<Weighted<Generator<?>>> it = candidates.iterator();
-            it.hasNext();) {
-
+    override fun configure(annotatedType: AnnotatedType?) {
+        val candidates = composed.mapNotNull {
             try {
-                it.next().item.configure(annotatedType);
-            } catch (GeneratorConfigurationException e) {
-                it.remove();
+                it.item.configure(annotatedType)
+                it
+            } catch (e: GeneratorConfigurationException) {
+                null
             }
         }
-
-        installCandidates(candidates, annotatedType);
+        installCandidates(candidates, annotatedType)
     }
 
-    @Override public void configure(AnnotatedElement element) {
-        List<Weighted<Generator<?>>> candidates = new ArrayList<>(composed);
-
-        for (Iterator<Weighted<Generator<?>>> it = candidates.iterator();
-            it.hasNext();) {
-
+    override fun configure(element: AnnotatedElement?) {
+        val candidates = composed.mapNotNull {
             try {
-                it.next().item.configure(element);
-            } catch (GeneratorConfigurationException e) {
-                it.remove();
+                it.item.configure(element)
+                it
+            } catch (e: GeneratorConfigurationException) {
+                null
             }
         }
-
-        installCandidates(candidates, element);
+        installCandidates(candidates, element)
     }
 
-    @Override public void addComponentGenerators(List<Generator<?>> newComponents) {
-        for (Weighted<Generator<?>> each : composed) {
-            each.item.addComponentGenerators(newComponents);
+    override fun addComponentGenerators(newComponents: List<Generator>) {
+        for (each in composed) {
+            each.item.addComponentGenerators(newComponents)
         }
     }
 
-    private void installCandidates(
-        List<Weighted<Generator<?>>> candidates,
-        AnnotatedElement element) {
-
+    private fun installCandidates(
+        candidates: List<Weighted<Generator>>,
+        element: AnnotatedElement?
+    ) {
+        if (element == null) return
         if (candidates.isEmpty()) {
-            throw new GeneratorConfigurationException(
+            throw GeneratorConfigurationException(
                 String.format(
                     "None of the candidate generators %s"
-                        + " understands all of the configuration annotations %s",
+                            + " understands all of the configuration annotations %s",
                     candidateGeneratorDescriptions(),
-                    configurationAnnotationNames(element)));
+                    configurationAnnotationNames(element)
+                )
+            )
         }
-
-        composed.clear();
-        composed.addAll(candidates);
+        composed.clear()
+        composed.addAll(candidates)
     }
 
-    private String candidateGeneratorDescriptions() {
-        return composed.stream()
-            .map(w -> w.item.getClass().getName())
-            .collect(toList())
-            .toString();
+    private fun candidateGeneratorDescriptions(): String {
+        return composed.joinToString { it.item.javaClass.name }
     }
 
-    private static List<String> configurationAnnotationNames(
-        AnnotatedElement element) {
-
-        return configurationAnnotationsOn(element).stream()
-            .map(a -> a.annotationType().getName())
-            .collect(toList());
+    companion object {
+        private fun configurationAnnotationNames(
+            element: AnnotatedElement
+        ): List<String> = configurationAnnotationsOn(element)
+            .map { a -> a.annotationType().name }
     }
 }

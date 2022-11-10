@@ -1,46 +1,41 @@
+package org.utbot.quickcheck.generator.java.util.function
 
-
-package org.utbot.quickcheck.generator.java.util.function;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.Generators;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.function.Predicate;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.Generators
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.function.Predicate
 
 /**
- * Produces values of type {@link Predicate}.
+ * Produces values of type [Predicate].
  *
  * @param <T> type of parameter of produced predicate
- */
-public class PredicateGenerator<T> extends ComponentizedGenerator<Predicate> {
-    private Generator<Boolean> generator;
-
-    public PredicateGenerator() {
-        super(Predicate.class);
+</T> */
+class PredicateGenerator<T> : ComponentizedGenerator(Predicate::class.java) {
+    private var generator: Generator? = null
+    override fun provide(provided: Generators) {
+        super.provide(provided)
+        generator = gen()!!.type(Boolean::class.javaPrimitiveType!!)
     }
 
-    @Override public void provide(Generators provided) {
-        super.provide(provided);
-
-        generator = gen().type(boolean.class);
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                Predicate::class.java, generator!!, status
+            ),
+            classIdForType(Predicate::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(Predicate.class, generator, status), classIdForType(Predicate.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 1;
+    override fun numberOfNeededComponents(): Int {
+        return 1
     }
 }

@@ -1,54 +1,43 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.generator.java.lang.DoubleGenerator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.OptionalDouble;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.generator.java.lang.DoubleGenerator
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.OptionalDouble
 
 /**
- * Produces values of type {@link OptionalDouble}.
+ * Produces values of type [OptionalDouble].
  */
-public class OptionalDoubleGenerator extends Generator<OptionalDouble> {
-    private final DoubleGenerator doubles = new DoubleGenerator();
-
-    public OptionalDoubleGenerator() {
-        super(OptionalDouble.class);
-    }
+class OptionalDoubleGenerator : Generator(OptionalDouble::class.java) {
+    private val doubles = DoubleGenerator()
 
     /**
      * Tells this generator to produce values, when
-     * {@link OptionalDouble#isPresent() present}, within a specified minimum
+     * [present][OptionalDouble.isPresent], within a specified minimum
      * (inclusive) and/or maximum (exclusive) with uniform distribution.
      *
-     * {@link InRange#min} and {@link InRange#max} take precedence over
-     * {@link InRange#minDouble()} and {@link InRange#maxDouble()},
+     * [InRange.min] and [InRange.max] take precedence over
+     * [InRange.minDouble] and [InRange.maxDouble],
      * if non-empty.
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        doubles.configure(range);
+    fun configure(range: InRange?) {
+        doubles.configure(range!!)
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        double trial = random.nextDouble();
-        final OptionalDouble generated = trial < 0.25 ?
-                OptionalDouble.empty()
-                : OptionalDouble.of(doubles.generateValue(random, status));
-
-        return UtModelGenerator.getUtModelConstructor().construct(generated, classIdForType(OptionalDouble.class));
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val trial = random.nextDouble()
+        val generated =
+            if (trial < 0.25) OptionalDouble.empty() else OptionalDouble.of(doubles.generateValue(random, status))
+        return utModelConstructor.construct(generated, classIdForType(OptionalDouble::class.java))
     }
-
 }

@@ -1,43 +1,37 @@
+package org.utbot.quickcheck.generator.java.util.function
 
-
-package org.utbot.quickcheck.generator.java.util.function;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.function.BiFunction;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.function.BiFunction
 
 /**
- * Produces values of type {@link BiFunction}.
+ * Produces values of type [BiFunction].
  *
  * @param <T> type of first parameter of produced function
  * @param <U> type of second parameter of produced function
  * @param <R> return type of produced function
- */
-public class BiFunctionGenerator<T, U, R>
-    extends ComponentizedGenerator<BiFunction> {
-
-    public BiFunctionGenerator() {
-        super(BiFunction.class);
+</R></U></T> */
+class BiFunctionGenerator<T, U, R> : ComponentizedGenerator(BiFunction::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                BiFunction::class.java,
+                componentGenerators()[2],
+                status
+            ),
+            classIdForType(BiFunction::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(
-            BiFunction.class,
-            componentGenerators().get(2),
-            status), classIdForType(BiFunction.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 3;
+    override fun numberOfNeededComponents(): Int {
+        return 3
     }
 }

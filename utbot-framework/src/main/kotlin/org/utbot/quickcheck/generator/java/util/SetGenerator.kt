@@ -1,27 +1,14 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.quickcheck.generator.Size;
-import org.utbot.quickcheck.generator.java.util.CollectionGenerator;
-
-import java.util.Set;
+import org.utbot.quickcheck.generator.Size
 
 /**
- * Base class for generators of {@link Set}s.
+ * Base class for generators of [Set]s.
  *
- * @param <T> the type of set generated
- */
-public abstract class SetGenerator<T extends Set>
-    extends CollectionGenerator<T> {
-
-    protected SetGenerator(Class<T> type) {
-        super(type);
-    }
-
-    @Override public void configure(Size size) {
-        super.configure(size);
-
-        setDistinct(true);
+ * */
+abstract class SetGenerator constructor(type: Class<*>) : CollectionGenerator(type) {
+    override fun configure(size: Size) {
+        super.configure(size)
+        setDistinct(true)
     }
 }

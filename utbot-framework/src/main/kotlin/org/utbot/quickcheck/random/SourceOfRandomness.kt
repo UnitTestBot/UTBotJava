@@ -1,32 +1,26 @@
+package org.utbot.quickcheck.random
 
-
-package org.utbot.quickcheck.random;
-
-import org.utbot.quickcheck.internal.Items;
-import org.utbot.quickcheck.internal.Ranges;
-
-import java.io.*;
-import java.math.BigInteger;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Random;
-
-import static org.utbot.quickcheck.internal.Ranges.checkRange;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import org.utbot.quickcheck.internal.Items
+import org.utbot.quickcheck.internal.Ranges
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import java.math.BigInteger
+import java.time.Duration
+import java.time.Instant
+import java.util.Random
+import java.util.concurrent.TimeUnit
 
 /**
  * A source of randomness, fed to
- * {@linkplain org.utbot.quickcheck.generator.Generator generators}
+ * [generators][org.utbot.quickcheck.generator.Generator]
  * so they can produce random values for property parameters.
  */
-public class SourceOfRandomness {
-    private static final BigInteger NANOS_PER_SECOND =
-        BigInteger.valueOf(SECONDS.toNanos(1));
-
-    private final Random delegate;
-
-    private long seed;
+class SourceOfRandomness(delegate: Random) {
+    private val delegate: Random
+    private var seed: Long
 
     /**
      * Makes a new source of randomness.
@@ -34,54 +28,50 @@ public class SourceOfRandomness {
      * @param delegate a JDK source of randomness, to which the new instance
      * will delegate
      */
-    
-    public SourceOfRandomness(Random delegate) {
-        seed = delegate.nextLong();
-        this.delegate = delegate;
-        delegate.setSeed(seed);
+    init {
+        seed = delegate.nextLong()
+        this.delegate = delegate
+        delegate.setSeed(seed)
     }
 
     /**
-     * <p>Gives a JDK source of randomness, with the same internal state as
-     * this source of randomness.</p>
+     *
+     * Gives a JDK source of randomness, with the same internal state as
+     * this source of randomness.
      *
      * @return a JDK "clone" of self
      */
-    public Random toJDKRandom() {
-        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-
-        try (ObjectOutputStream objectOut = new ObjectOutputStream(bytesOut)) {
-            objectOut.writeObject(delegate);
-        } catch (IOException ex) {
-            throw new IllegalStateException(ex);
+    fun toJDKRandom(): Random {
+        val bytesOut = ByteArrayOutputStream()
+        try {
+            ObjectOutputStream(bytesOut).use { objectOut -> objectOut.writeObject(delegate) }
+        } catch (ex: IOException) {
+            throw IllegalStateException(ex)
         }
-
-        ByteArrayInputStream bytesIn =
-            new ByteArrayInputStream(bytesOut.toByteArray());
-
-        try (ObjectInputStream objectIn = new ObjectInputStream(bytesIn)) {
-            return (Random) objectIn.readObject();
-        } catch (IOException ex) {
-            throw new IllegalStateException(ex);
-        } catch (ClassNotFoundException shouldNeverHappen) {
-            throw new AssertionError(shouldNeverHappen);
+        val bytesIn = ByteArrayInputStream(bytesOut.toByteArray())
+        try {
+            ObjectInputStream(bytesIn).use { objectIn -> return objectIn.readObject() as Random }
+        } catch (ex: IOException) {
+            throw IllegalStateException(ex)
+        } catch (shouldNeverHappen: ClassNotFoundException) {
+            throw AssertionError(shouldNeverHappen)
         }
     }
 
     /**
      * @return a uniformly distributed boolean value
-     * @see Random#nextBoolean()
+     * @see Random.nextBoolean
      */
-    public boolean nextBoolean() {
-        return delegate.nextBoolean();
+    fun nextBoolean(): Boolean {
+        return delegate.nextBoolean()
     }
 
     /**
      * @param bytes a byte array to fill with random values
-     * @see Random#nextBytes(byte[])
+     * @see Random.nextBytes
      */
-    public void nextBytes(byte[] bytes) {
-        delegate.nextBytes(bytes);
+    fun nextBytes(bytes: ByteArray?) {
+        delegate.nextBytes(bytes)
     }
 
     /**
@@ -89,238 +79,232 @@ public class SourceOfRandomness {
      *
      * @param count the desired length of the random byte array
      * @return random bytes
-     * @see Random#nextBytes(byte[])
+     * @see Random.nextBytes
      */
-    public byte[] nextBytes(int count) {
-        byte[] buffer = new byte[count];
-        delegate.nextBytes(buffer);
-        return buffer;
+    fun nextBytes(count: Int): ByteArray {
+        val buffer = ByteArray(count)
+        delegate.nextBytes(buffer)
+        return buffer
     }
 
     /**
-     * @return a uniformly distributed random {@code double} value in the
-     * interval {@code [0.0, 1.0)}
-     * @see Random#nextDouble()
+     * @return a uniformly distributed random `double` value in the
+     * interval `[0.0, 1.0)`
+     * @see Random.nextDouble
      */
-    public double nextDouble() {
-        return delegate.nextDouble();
+    fun nextDouble(): Double {
+        return delegate.nextDouble()
     }
 
     /**
-     * @return a uniformly distributed random {@code float} value in the
-     * interval {@code [0.0, 1.0)}
-     * @see Random#nextFloat()
+     * @return a uniformly distributed random `float` value in the
+     * interval `[0.0, 1.0)`
+     * @see Random.nextFloat
      */
-    public float nextFloat() {
-        return delegate.nextFloat();
+    fun nextFloat(): Float {
+        return delegate.nextFloat()
     }
 
     /**
      * @return a Gaussian-distributed random double value
-     * @see Random#nextGaussian()
+     * @see Random.nextGaussian
      */
-    public double nextGaussian() {
-        return delegate.nextGaussian();
+    fun nextGaussian(): Double {
+        return delegate.nextGaussian()
     }
 
     /**
-     * @return a uniformly distributed random {@code int} value
-     * @see Random#nextInt()
+     * @return a uniformly distributed random `int` value
+     * @see Random.nextInt
      */
-    public int nextInt() {
-        return delegate.nextInt();
+    fun nextInt(): Int {
+        return delegate.nextInt()
     }
 
     /**
      * @param n upper bound
-     * @return a uniformly distributed random {@code int} value in the interval
-     * {@code [0, n)}
-     * @see Random#nextInt(int)
+     * @return a uniformly distributed random `int` value in the interval
+     * `[0, n)`
+     * @see Random.nextInt
      */
-    public int nextInt(int n) {
-        return delegate.nextInt(n);
+    fun nextInt(n: Int): Int {
+        return delegate.nextInt(n)
     }
 
     /**
-     * @return a uniformly distributed random {@code long} value
-     * @see Random#nextLong()
+     * @return a uniformly distributed random `long` value
+     * @see Random.nextLong
      */
-    public long nextLong() {
-        return delegate.nextLong();
+    fun nextLong(): Long {
+        return delegate.nextLong()
     }
 
     /**
      * @param seed value with which to seed this source of randomness
-     * @see Random#setSeed(long)
+     * @see Random.setSeed
      */
-    public void setSeed(long seed) {
-        this.seed = seed;
-        delegate.setSeed(seed);
+    fun setSeed(seed: Long) {
+        this.seed = seed
+        delegate.setSeed(seed)
     }
 
     /**
      * @return the value used to initially seed this source of randomness
      */
-    public long seed() {
-        return seed;
+    fun seed(): Long {
+        return seed
     }
 
     /**
-     * Gives a random {@code byte} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     * Gives a random `byte` value, uniformly distributed across the
+     * interval `[min, max]`.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public byte nextByte(byte min, byte max) {
-        return (byte) nextLong(min, max);
+    fun nextByte(min: Byte, max: Byte): Byte {
+        return nextLong(min.toLong(), max.toLong()).toByte()
     }
 
     /**
-     * Gives a random {@code char} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     * Gives a random `char` value, uniformly distributed across the
+     * interval `[min, max]`.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public char nextChar(char min, char max) {
-        checkRange(Ranges.Type.CHARACTER, min, max);
-
-        return (char) nextLong(min, max);
+    fun nextChar(min: Char, max: Char): Char {
+        Ranges.checkRange(Ranges.Type.CHARACTER, min, max)
+        return Char(nextLong(min.code.toLong(), max.code.toLong()).toUShort())
     }
 
     /**
-     * <p>Gives a random {@code double} value in the interval
-     * {@code [min, max)}.</p>
      *
-     * <p>This naive implementation takes a random {@code double} value from
-     * {@link Random#nextDouble()} and scales/shifts the value into the desired
-     * interval. This may give surprising results for large ranges.</p>
+     * Gives a random `double` value in the interval
+     * `[min, max)`.
+     *
+     *
+     * This naive implementation takes a random `double` value from
+     * [Random.nextDouble] and scales/shifts the value into the desired
+     * interval. This may give surprising results for large ranges.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public double nextDouble(double min, double max) {
-        int comparison = checkRange(Ranges.Type.FLOAT, min, max);
-        return comparison == 0 ? min : min + (max - min) * nextDouble();
+    fun nextDouble(min: Double, max: Double): Double {
+        val comparison = Ranges.checkRange(Ranges.Type.FLOAT, min, max)
+        return if (comparison == 0) min else min + (max - min) * nextDouble()
     }
 
     /**
-     * <p>Gives a random {@code float} value in the interval
-     * {@code [min, max)}.</p>
      *
-     * <p>This naive implementation takes a random {@code float} value from
-     * {@link Random#nextFloat()} and scales/shifts the value into the desired
-     * interval. This may give surprising results for large ranges.</p>
+     * Gives a random `float` value in the interval
+     * `[min, max)`.
      *
-     * @param min lower bound of the desired interval
-     * @param max upper bound of the desired interval
-     * @return a random value
-     */
-    public float nextFloat(float min, float max) {
-        int comparison = checkRange(Ranges.Type.FLOAT, min, max);
-        return comparison == 0 ? min : min + (max - min) * nextFloat();
-    }
-
-    /**
-     * Gives a random {@code int} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     *
+     * This naive implementation takes a random `float` value from
+     * [Random.nextFloat] and scales/shifts the value into the desired
+     * interval. This may give surprising results for large ranges.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public int nextInt(int min, int max) {
-        return (int) nextLong(min, max);
+    fun nextFloat(min: Float, max: Float): Float {
+        val comparison = Ranges.checkRange(Ranges.Type.FLOAT, min, max)
+        return if (comparison == 0) min else min + (max - min) * nextFloat()
     }
 
     /**
-     * Gives a random {@code long} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     * Gives a random `int` value, uniformly distributed across the
+     * interval `[min, max]`.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public long nextLong(long min, long max) {
-        int comparison = checkRange(Ranges.Type.INTEGRAL, min, max);
-        if (comparison == 0)
-            return min;
-
-        return Ranges.choose(this, min, max);
+    fun nextInt(min: Int, max: Int): Int {
+        return nextLong(min.toLong(), max.toLong()).toInt()
     }
 
     /**
-     * Gives a random {@code short} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     * Gives a random `long` value, uniformly distributed across the
+     * interval `[min, max]`.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public short nextShort(short min, short max) {
-        return (short) nextLong(min, max);
+    fun nextLong(min: Long, max: Long): Long {
+        val comparison = Ranges.checkRange(Ranges.Type.INTEGRAL, min, max)
+        return if (comparison == 0) min else Ranges.choose(this, min, max)
     }
 
     /**
-     * Gives a random {@code BigInteger} representable by the given number
+     * Gives a random `short` value, uniformly distributed across the
+     * interval `[min, max]`.
+     *
+     * @param min lower bound of the desired interval
+     * @param max upper bound of the desired interval
+     * @return a random value
+     */
+    fun nextShort(min: Short, max: Short): Short {
+        return nextLong(min.toLong(), max.toLong()).toShort()
+    }
+
+    /**
+     * Gives a random `BigInteger` representable by the given number
      * of bits.
      *
      * @param numberOfBits the desired number of bits
-     * @return a random {@code BigInteger}
-     * @see BigInteger#BigInteger(int, Random)
+     * @return a random `BigInteger`
+     * @see BigInteger.BigInteger
      */
-    public BigInteger nextBigInteger(int numberOfBits) {
-        return new BigInteger(numberOfBits, delegate);
+    fun nextBigInteger(numberOfBits: Int): BigInteger {
+        return BigInteger(numberOfBits, delegate)
     }
 
     /**
-     * Gives a random {@code Instant} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     * Gives a random `Instant` value, uniformly distributed across the
+     * interval `[min, max]`.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public Instant nextInstant(Instant min, Instant max) {
-        int comparison = checkRange(Ranges.Type.STRING, min, max);
-        if (comparison == 0)
-            return min;
-
-        long[] next =
-            nextSecondsAndNanos(
-                min.getEpochSecond(),
-                min.getNano(),
-                max.getEpochSecond(),
-                max.getNano());
-
-        return Instant.ofEpochSecond(next[0], next[1]);
+    fun nextInstant(min: Instant, max: Instant): Instant {
+        val comparison = Ranges.checkRange(Ranges.Type.STRING, min, max)
+        if (comparison == 0) return min
+        val next = nextSecondsAndNanos(
+            min.epochSecond,
+            min.nano.toLong(),
+            max.epochSecond,
+            max.nano.toLong()
+        )
+        return Instant.ofEpochSecond(next[0], next[1])
     }
 
     /**
-     * Gives a random {@code Duration} value, uniformly distributed across the
-     * interval {@code [min, max]}.
+     * Gives a random `Duration` value, uniformly distributed across the
+     * interval `[min, max]`.
      *
      * @param min lower bound of the desired interval
      * @param max upper bound of the desired interval
      * @return a random value
      */
-    public Duration nextDuration(Duration min, Duration max) {
-        int comparison = checkRange(Ranges.Type.STRING, min, max);
-        if (comparison == 0)
-            return min;
-
-        long[] next =
-            nextSecondsAndNanos(
-                min.getSeconds(),
-                min.getNano(),
-                max.getSeconds(),
-                max.getNano());
-
-        return Duration.ofSeconds(next[0], next[1]);
+    fun nextDuration(min: Duration, max: Duration): Duration {
+        val comparison = Ranges.checkRange(Ranges.Type.STRING, min, max)
+        if (comparison == 0) return min
+        val next = nextSecondsAndNanos(
+            min.seconds,
+            min.nano.toLong(),
+            max.seconds,
+            max.nano.toLong()
+        )
+        return Duration.ofSeconds(next[0], next[1])
     }
 
     /**
@@ -329,9 +313,9 @@ public class SourceOfRandomness {
      * @param <T> type of items in the collection
      * @param items a collection
      * @return a randomly chosen element from the collection
-     */
-    public <T> T choose(Collection<T> items) {
-        return Items.choose(items, this);
+    </T> */
+    fun <T> choose(items: Collection<T>): T {
+        return Items.choose(items, this)
     }
 
     /**
@@ -340,9 +324,9 @@ public class SourceOfRandomness {
      * @param <T> type of items in the array
      * @param items an array
      * @return a randomly chosen element from the array
-     */
-    public <T> T choose(T[] items) {
-        return items[nextInt(items.length)];
+    </T> */
+    fun <T> choose(items: Array<T>): T {
+        return items[nextInt(items.size)]
     }
 
     /**
@@ -351,29 +335,28 @@ public class SourceOfRandomness {
      *
      * @return the JDK-random delegate
      */
-    protected final Random delegate() {
-        return delegate;
+    protected fun delegate(): Random {
+        return delegate
     }
 
-    private long[] nextSecondsAndNanos(
-        long minSeconds,
-        long minNanos,
-        long maxSeconds,
-        long maxNanos) {
+    private fun nextSecondsAndNanos(
+        minSeconds: Long,
+        minNanos: Long,
+        maxSeconds: Long,
+        maxNanos: Long
+    ): LongArray {
+        val nanoMin = BigInteger.valueOf(minSeconds)
+            .multiply(NANOS_PER_SECOND)
+            .add(BigInteger.valueOf(minNanos))
+        val nanoMax = BigInteger.valueOf(maxSeconds)
+            .multiply(NANOS_PER_SECOND)
+            .add(BigInteger.valueOf(maxNanos))
+        val generated = Ranges.choose(this, nanoMin, nanoMax)
+            .divideAndRemainder(NANOS_PER_SECOND)
+        return longArrayOf(generated[0].toLong(), generated[1].toLong())
+    }
 
-        BigInteger nanoMin =
-            BigInteger.valueOf(minSeconds)
-                .multiply(NANOS_PER_SECOND)
-                .add(BigInteger.valueOf(minNanos));
-        BigInteger nanoMax =
-            BigInteger.valueOf(maxSeconds)
-                .multiply(NANOS_PER_SECOND)
-                .add(BigInteger.valueOf(maxNanos));
-
-        BigInteger[] generated =
-            Ranges.choose(this, nanoMin, nanoMax)
-                .divideAndRemainder(NANOS_PER_SECOND);
-
-        return new long[] { generated[0].longValue(), generated[1].longValue() };
+    companion object {
+        private val NANOS_PER_SECOND = BigInteger.valueOf(TimeUnit.SECONDS.toNanos(1))
     }
 }

@@ -1,307 +1,274 @@
+package org.utbot.quickcheck.internal
 
+import org.javaruntype.type.Type
+import java.lang.reflect.AnnotatedArrayType
+import java.lang.reflect.AnnotatedElement
+import java.lang.reflect.AnnotatedParameterizedType
+import java.lang.reflect.AnnotatedType
+import java.lang.reflect.AnnotatedWildcardType
+import java.lang.reflect.Constructor
+import java.lang.reflect.Field
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.security.AccessController
+import java.security.PrivilegedAction
+import java.util.Arrays
+import java.lang.annotation.Annotation as JavaAnnotation
 
-package org.utbot.quickcheck.internal;
+object Reflection {
+    private val PRIMITIVES = HashMap<Class<*>, Class<*>>(16)
 
-import org.javaruntype.type.Type;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
-import java.security.PrivilegedAction;
-import java.util.*;
-
-import static java.lang.reflect.Modifier.isAbstract;
-import static java.security.AccessController.doPrivileged;
-import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-
-public final class Reflection {
-    private static final Map<Class<?>, Class<?>> PRIMITIVES =
-        new HashMap<>(16);
-
-    static {
-        PRIMITIVES.put(Boolean.TYPE, Boolean.class);
-        PRIMITIVES.put(Byte.TYPE, Byte.class);
-        PRIMITIVES.put(Character.TYPE, Character.class);
-        PRIMITIVES.put(Double.TYPE, Double.class);
-        PRIMITIVES.put(Float.TYPE, Float.class);
-        PRIMITIVES.put(Integer.TYPE, Integer.class);
-        PRIMITIVES.put(Long.TYPE, Long.class);
-        PRIMITIVES.put(Short.TYPE, Short.class);
+    init {
+        PRIMITIVES[java.lang.Boolean.TYPE] = Boolean::class.java
+        PRIMITIVES[java.lang.Byte.TYPE] = Byte::class.java
+        PRIMITIVES[Character.TYPE] = Char::class.java
+        PRIMITIVES[java.lang.Double.TYPE] = Double::class.java
+        PRIMITIVES[java.lang.Float.TYPE] = Float::class.java
+        PRIMITIVES[Integer.TYPE] = Int::class.java
+        PRIMITIVES[java.lang.Long.TYPE] = Long::class.java
+        PRIMITIVES[java.lang.Short.TYPE] = Short::class.java
     }
 
-    private Reflection() {
-        throw new UnsupportedOperationException();
+    fun maybeWrap(clazz: Class<*>): Class<*> {
+        val wrapped = PRIMITIVES[clazz]
+        return wrapped ?: clazz
     }
 
-    public static Class<?> maybeWrap(Class<?> clazz) {
-        Class<?> wrapped = PRIMITIVES.get(clazz);
-        return wrapped == null ? clazz : wrapped;
+    fun <T> findConstructor(
+        type: Class<T>,
+        vararg parameterTypes: Class<*>?
+    ): Constructor<T> {
+        return try {
+            type.getConstructor(*parameterTypes)
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
     }
 
-    public static <T> Constructor<T> findConstructor(
-        Class<T> type,
-        Class<?>... parameterTypes) {
+    fun <T> findDeclaredConstructor(
+        type: Class<T>,
+        vararg parameterTypes: Class<*>?
+    ): Constructor<T> {
+        return try {
+            val ctor = type.getDeclaredConstructor(*parameterTypes)
+            ctor.isAccessible = true
+            ctor
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
+    }
 
+    fun <T> singleAccessibleConstructor(
+        type: Class<T>
+    ): Constructor<T> {
+        val constructors = type.constructors
+        if (constructors.size != 1) {
+            throw ReflectionException(
+                "$type needs a single accessible constructor"
+            )
+        }
+        return constructors[0] as Constructor<T>
+    }
+
+    fun <T> instantiate(clazz: Class<T>): T {
+        return try {
+            clazz.newInstance()
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
+    }
+
+    fun <T> instantiate(ctor: Constructor<T>, vararg args: Any?): T {
+        return try {
+            ctor.newInstance(*args)
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
+    }
+
+    fun supertypes(bottom: Type<*>): Set<Type<*>> {
+        val supertypes: MutableSet<Type<*>> = HashSet()
+        supertypes.add(bottom)
+        supertypes.addAll(bottom.allTypesAssignableFromThis)
+        return supertypes
+    }
+
+    fun defaultValueOf(
+        annotationType: Class<out Annotation?>,
+        attribute: String
+    ): Any {
+        return try {
+            annotationType.getMethod(attribute).defaultValue
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
+    }
+
+    fun allAnnotations(e: AnnotatedElement): List<JavaAnnotation> {
+        val thisAnnotations = nonSystemAnnotations(e)
+        val annotations = ArrayList<JavaAnnotation>()
+        for (each in thisAnnotations) {
+            annotations.add(each)
+            annotations.addAll(allAnnotations(each.annotationType()))
+        }
+        return annotations
+    }
+
+    fun <T : Annotation?> allAnnotationsByType(
+        e: AnnotatedElement,
+        type: Class<T>?
+    ): List<T> {
+        val annotations = ArrayList<T>(e.getAnnotationsByType(type).toList())
+        val thisAnnotations = nonSystemAnnotations(e)
+        for (each in thisAnnotations) {
+            annotations.addAll(allAnnotationsByType(each.annotationType(), type))
+        }
+        return annotations
+    }
+
+    fun findMethod(
+        target: Class<*>,
+        methodName: String,
+        vararg argTypes: Class<*>?
+    ): Method {
+        return try {
+            target.getMethod(methodName, *argTypes)
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
+    }
+
+    operator fun invoke(method: Method, target: Any?, vararg args: Any?): Any {
+        return try {
+            method.invoke(target, *args)
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
+        }
+    }
+
+    fun findField(type: Class<*>, fieldName: String): Field {
+        return try {
+            type.getDeclaredField(fieldName)
+        } catch (ex: NoSuchFieldException) {
+            throw reflectionException(ex)
+        }
+    }
+
+    fun allDeclaredFieldsOf(type: Class<*>?): List<Field> {
+        val allFields = ArrayList<Field>()
+        var c = type
+        while (c != null) {
+            allFields.addAll(c.declaredFields)
+            c = c.superclass
+        }
+        val results = allFields.filter { !it.isSynthetic }
+        results.forEach { it.isAccessible = true }
+        return results
+    }
+
+    fun setField(
+        field: Field,
+        target: Any?,
+        value: Any?,
+        suppressProtection: Boolean
+    ) {
+        AccessController.doPrivileged(PrivilegedAction<Void?> {
+            field.isAccessible = suppressProtection
+            null
+        })
         try {
-            return type.getConstructor(parameterTypes);
-        } catch (Exception ex) {
-            throw reflectionException(ex);
+            field[target] = value
+        } catch (ex: Exception) {
+            throw reflectionException(ex)
         }
     }
 
-    static <T> Constructor<T> findDeclaredConstructor(
-        Class<T> type,
-        Class<?>... parameterTypes) {
-
-        try {
-            Constructor<T> ctor = type.getDeclaredConstructor(parameterTypes);
-            ctor.setAccessible(true);
-            return ctor;
-        } catch (Exception ex) {
-            throw reflectionException(ex);
+    fun jdk9OrBetter(): Boolean {
+        return try {
+            Runtime::class.java.getMethod("version")
+            true
+        } catch (e: NoSuchMethodException) {
+            false
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> Constructor<T> singleAccessibleConstructor(
-        Class<T> type) {
-
-        Constructor<?>[] constructors = type.getConstructors();
-        if (constructors.length != 1) {
-            throw new org.utbot.quickcheck.internal.ReflectionException(
-                type + " needs a single accessible constructor");
-        }
-
-        return (Constructor<T>) constructors[0];
-    }
-
-    
-    public static <T> T instantiate(Class<T> clazz) {
-        try {
-            return clazz.newInstance();
-        } catch (Exception ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    public static <T> T instantiate(Constructor<T> ctor, Object... args) {
-        try {
-            return ctor.newInstance(args);
-        } catch (Exception ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    public static Set<Type<?>> supertypes(Type<?> bottom) {
-        Set<Type<?>> supertypes = new HashSet<>();
-        supertypes.add(bottom);
-        supertypes.addAll(bottom.getAllTypesAssignableFromThis());
-        return supertypes;
-    }
-
-    public static Object defaultValueOf(
-        Class<? extends Annotation> annotationType,
-        String attribute) {
-
-        try {
-            return annotationType.getMethod(attribute).getDefaultValue();
-        } catch (Exception ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    public static List<Annotation> allAnnotations(AnnotatedElement e) {
-        List<Annotation> thisAnnotations = nonSystemAnnotations(e);
-
-        List<Annotation> annotations = new ArrayList<>();
-        for (Annotation each : thisAnnotations) {
-            annotations.add(each);
-            annotations.addAll(allAnnotations(each.annotationType()));
-        }
-
-        return annotations;
-    }
-
-    static <T extends Annotation> List<T> allAnnotationsByType(
-        AnnotatedElement e,
-        Class<T> type) {
-
-        List<T> annotations = new ArrayList<>();
-        Collections.addAll(annotations, e.getAnnotationsByType(type));
-
-        List<Annotation> thisAnnotations = nonSystemAnnotations(e);
-
-        for (Annotation each : thisAnnotations) {
-            annotations.addAll(
-                allAnnotationsByType(each.annotationType(), type));
-        }
-
-        return annotations;
-    }
-
-    public static Method findMethod(
-        Class<?> target,
-        String methodName,
-        Class<?>... argTypes) {
-
-        try {
-            return target.getMethod(methodName, argTypes);
-        } catch (Exception ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    public static Object invoke(Method method, Object target, Object... args) {
-        try {
-            return method.invoke(target, args);
-        } catch (Exception ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    public static Field findField(Class<?> type, String fieldName) {
-        try {
-            return type.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    public static List<Field> allDeclaredFieldsOf(Class<?> type) {
-        List<Field> allFields = new ArrayList<>();
-
-        for (Class<?> c = type; c != null; c = c.getSuperclass()) {
-            Collections.addAll(allFields, c.getDeclaredFields());
-        }
-
-        List<Field> results =
-            allFields.stream()
-                .filter(f -> !f.isSynthetic())
-                .collect(toList());
-        results.forEach(f -> f.setAccessible(true));
-
-        return results;
-    }
-
-    public static void setField(
-        Field field,
-        Object target,
-        Object value,
-        boolean suppressProtection) {
-
-        doPrivileged((PrivilegedAction<Void>) () -> {
-            field.setAccessible(suppressProtection);
-            return null;
-        });
-
-        try {
-            field.set(target, value);
-        } catch (Exception ex) {
-            throw reflectionException(ex);
-        }
-    }
-
-    static boolean jdk9OrBetter() {
-        try {
-            Runtime.class.getMethod("version");
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
-        }
-    }
-
-    public static Method singleAbstractMethodOf(Class<?> rawClass) {
-        if (!rawClass.isInterface())
-            return null;
-
-        int abstractCount = 0;
-        Method singleAbstractMethod = null;
-        for (Method each : rawClass.getMethods()) {
-            if (isAbstract(each.getModifiers())
-                && !overridesJavaLangObjectMethod(each)) {
-
-                singleAbstractMethod = each;
-                ++abstractCount;
+    fun singleAbstractMethodOf(rawClass: Class<*>): Method? {
+        if (!rawClass.isInterface) return null
+        var abstractCount = 0
+        var singleAbstractMethod: Method? = null
+        for (each in rawClass.methods) {
+            if (Modifier.isAbstract(each.modifiers)
+                && !overridesJavaLangObjectMethod(each)
+            ) {
+                singleAbstractMethod = each
+                ++abstractCount
             }
         }
-
-        return abstractCount == 1 ? singleAbstractMethod : null;
+        return if (abstractCount == 1) singleAbstractMethod else null
     }
 
-    public static boolean isMarkerInterface(Class<?> clazz) {
-        if (!clazz.isInterface())
-            return false;
-
-        return Arrays.stream(clazz.getMethods())
-            .filter(m -> !m.isDefault())
-            .allMatch(Reflection::overridesJavaLangObjectMethod);
+    fun isMarkerInterface(clazz: Class<*>): Boolean {
+        return if (!clazz.isInterface) false else Arrays.stream(clazz.methods)
+            .filter { m: Method -> !m.isDefault }
+            .allMatch { method: Method -> overridesJavaLangObjectMethod(method) }
     }
 
-    private static boolean overridesJavaLangObjectMethod(Method method) {
-        return isEquals(method) || isHashCode(method) || isToString(method);
+    private fun overridesJavaLangObjectMethod(method: Method): Boolean {
+        return isEquals(method) || isHashCode(method) || isToString(method)
     }
 
-    private static boolean isEquals(Method method) {
-        return "equals".equals(method.getName())
-            && method.getParameterTypes().length == 1
-            && Object.class.equals(method.getParameterTypes()[0]);
+    private fun isEquals(method: Method): Boolean {
+        return "equals" == method.name && method.parameterTypes.size == 1 && Any::class.java == method.parameterTypes[0]
     }
 
-    private static boolean isHashCode(Method method) {
-        return "hashCode".equals(method.getName())
-            && method.getParameterTypes().length == 0;
+    private fun isHashCode(method: Method): Boolean {
+        return "hashCode" == method.name && method.parameterTypes.size == 0
     }
 
-    private static boolean isToString(Method method) {
-        return "toString".equals(method.getName())
-            && method.getParameterTypes().length == 0;
+    private fun isToString(method: Method): Boolean {
+        return "toString" == method.name && method.parameterTypes.size == 0
     }
 
-    public static RuntimeException reflectionException(Exception ex) {
-        if (ex instanceof InvocationTargetException) {
-            return new org.utbot.quickcheck.internal.ReflectionException(
-                ((InvocationTargetException) ex).getTargetException());
+    fun reflectionException(ex: Exception?): RuntimeException {
+        if (ex is InvocationTargetException) {
+            return ReflectionException(
+                ex.targetException
+            )
         }
-        if (ex instanceof RuntimeException)
-            return (RuntimeException) ex;
-
-        return new ReflectionException(ex);
+        return if (ex is RuntimeException) ex else ReflectionException(
+            ex!!
+        )
     }
 
-    private static List<Annotation> nonSystemAnnotations(AnnotatedElement e) {
-        return stream(e.getAnnotations())
-            .filter(a ->
-                !a.annotationType().getName().startsWith(
-                    "java.lang.annotation."))
-            .filter(a -> !a.annotationType().getName().startsWith("kotlin."))
-            .collect(toList());
+    private fun nonSystemAnnotations(e: AnnotatedElement): List<JavaAnnotation> {
+        return e.annotations.map { it as JavaAnnotation }
+            .filter { !it.annotationType().name.startsWith("java.lang.annotation.") }
+            .filter { !it.annotationType().name.startsWith("kotlin.") }
     }
 
-    public static List<AnnotatedType> annotatedComponentTypes(
-        AnnotatedType annotatedType) {
-
-        if (annotatedType instanceof AnnotatedParameterizedType) {
-            return asList(
-                ((AnnotatedParameterizedType) annotatedType)
-                    .getAnnotatedActualTypeArguments());
+    fun annotatedComponentTypes(
+        annotatedType: AnnotatedType?
+    ): List<AnnotatedType> {
+        if (annotatedType is AnnotatedParameterizedType) {
+            return Arrays.asList(
+                *annotatedType
+                    .annotatedActualTypeArguments
+            )
         }
-        if (annotatedType instanceof AnnotatedArrayType) {
-            return singletonList(
-                ((AnnotatedArrayType) annotatedType)
-                    .getAnnotatedGenericComponentType());
+        if (annotatedType is AnnotatedArrayType) {
+            return listOf(
+                annotatedType
+                    .annotatedGenericComponentType
+            )
         }
-        if (annotatedType instanceof AnnotatedWildcardType) {
-            AnnotatedWildcardType wildcard =
-                (AnnotatedWildcardType) annotatedType;
-            if (wildcard.getAnnotatedLowerBounds().length > 0)
-                return singletonList(wildcard.getAnnotatedLowerBounds()[0]);
-
-            return asList(wildcard.getAnnotatedUpperBounds());
+        if (annotatedType is AnnotatedWildcardType) {
+            val wildcard = annotatedType
+            return if (wildcard.annotatedLowerBounds.size > 0) listOf(wildcard.annotatedLowerBounds[0]) else Arrays.asList(
+                *wildcard.annotatedUpperBounds
+            )
         }
-
-        return emptyList();
+        return emptyList()
     }
+
 }

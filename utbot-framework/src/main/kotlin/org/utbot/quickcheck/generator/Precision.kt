@@ -1,23 +1,18 @@
-package org.utbot.quickcheck.generator;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+package org.utbot.quickcheck.generator
 
 /**
- * <p>Mark a parameter of a
+ *
+ * Mark a parameter of a
  * method with this annotation to constrain the values generated for the
- * parameter to a given precision.</p>
+ * parameter to a given precision.
  */
-@Target({ PARAMETER, FIELD, ANNOTATION_TYPE, TYPE_USE })
-@Retention(RUNTIME)
+@Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FIELD, AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
 @GeneratorConfiguration
-public @interface Precision {
+annotation class Precision(
     /**
-     * @return desired {@linkplain java.math.BigDecimal#scale() scale} of the
+     * @return desired [scale][java.math.BigDecimal.scale] of the
      * generated values
      */
-    int scale();
-}
+    val scale: Int
+)

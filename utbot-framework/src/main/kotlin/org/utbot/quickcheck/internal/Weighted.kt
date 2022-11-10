@@ -1,18 +1,12 @@
+package org.utbot.quickcheck.internal
 
+class Weighted<T>(item: T, weight: Int) {
+    val item: T
+    val weight: Int
 
-package org.utbot.quickcheck.internal;
-
-public final class Weighted<T> {
-    public final T item;
-    public final int weight;
-
-    public Weighted(T item, int weight) {
-        if (weight <= 0) {
-            throw new IllegalArgumentException(
-                "non-positive weight: " + weight);
-        }
-
-        this.item = item;
-        this.weight = weight;
+    init {
+        require(weight > 0) { "non-positive weight: $weight" }
+        this.item = item
+        this.weight = weight
     }
 }

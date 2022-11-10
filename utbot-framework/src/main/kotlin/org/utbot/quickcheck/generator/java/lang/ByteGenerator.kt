@@ -1,61 +1,40 @@
+package org.utbot.quickcheck.generator.java.lang
 
-
-package org.utbot.quickcheck.generator.java.lang;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.generator.IntegralGenerator;
-import org.utbot.quickcheck.internal.Comparables;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.Collections;
-import java.util.function.Predicate;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.byteWrapperClassId
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.generator.IntegralGenerator
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * Produces values of type {@code byte} or {@link Byte}.
+ * Produces values of type `byte` or [Byte].
  */
-public class ByteGenerator extends IntegralGenerator<Byte> {
-    private byte min = (Byte) defaultValueOf(InRange.class, "minByte");
-    private byte max = (Byte) defaultValueOf(InRange.class, "maxByte");
-
-    public ByteGenerator() {
-        super(Collections.singletonList(Byte.class));
-    }
+class ByteGenerator : IntegralGenerator(listOf(Byte::class.java)) {
+    private var min = Reflection.defaultValueOf(InRange::class.java, "minByte") as Byte
+    private var max = Reflection.defaultValueOf(InRange::class.java, "maxByte") as Byte
 
     /**
      * Tells this generator to produce values within a specified minimum and/or
      * maximum, inclusive, with uniform distribution.
      *
-     * {@link InRange#min} and {@link InRange#max} take precedence over
-     * {@link InRange#minByte()} and {@link InRange#maxByte()}, if non-empty.
+     * [InRange.min] and [InRange.max] take precedence over
+     * [InRange.minByte] and [InRange.maxByte], if non-empty.
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        min =
-            range.min().isEmpty()
-                ? range.minByte()
-                : Byte.parseByte(range.min());
-        max =
-            range.max().isEmpty()
-                ? range.maxByte()
-                : Byte.parseByte(range.max());
+    fun configure(range: InRange) {
+        min = if (range.min.isEmpty()) range.minByte else range.min.toByte()
+        max = if (range.max.isEmpty()) range.maxByte else range.max.toByte()
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(random.nextByte(min, max), classIdForType(Byte.class));
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(random.nextByte(min, max), byteWrapperClassId)
     }
-
-    @Override protected Predicate<Byte> inRange() {
-        return Comparables.inRange(min, max);
-    }
-
 }

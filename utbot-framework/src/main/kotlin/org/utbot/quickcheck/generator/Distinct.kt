@@ -1,26 +1,20 @@
-
-
-package org.utbot.quickcheck.generator;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+package org.utbot.quickcheck.generator
 
 /**
- * <p>Mark a parameter of a {@link org.utbot.quickcheck.Property}
+ *
+ * Mark a parameter of a
  * method with this annotation to make values generated for the parameter
- * distinct from each other.</p>
+ * distinct from each other.
  *
- * <p>This annotation is recognized on array parameters and parameters of type
- * {@link java.util.Collection} and {@link java.util.Map}.</p>
  *
- * <p>Using this annotation with {@link Size} on {@link java.util.Set} or
- * {@link java.util.Map} leads to strict size constraint.</p>
+ * This annotation is recognized on array parameters and parameters of type
+ * [java.util.Collection] and [java.util.Map].
+ *
+ *
+ * Using this annotation with [Size] on [java.util.Set] or
+ * [java.util.Map] leads to strict size constraint.
  */
-@Target({ PARAMETER, FIELD, ANNOTATION_TYPE, TYPE_USE })
-@Retention(RUNTIME)
+@Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FIELD, AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
 @GeneratorConfiguration
-public @interface Distinct {
-}
+annotation class Distinct

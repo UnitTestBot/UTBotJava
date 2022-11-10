@@ -1,16 +1,6 @@
-
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.quickcheck.generator.java.util.MapGenerator;
-
-import java.util.HashMap;
+package org.utbot.quickcheck.generator.java.util
 
 /**
- * Produces values of type {@link HashMap}.
+ * Produces values of type [HashMap].
  */
-public class HashMapGenerator extends MapGenerator<HashMap> {
-    public HashMapGenerator() {
-        super(HashMap.class);
-    }
-}
+class HashMapGenerator : MapGenerator(HashMap::class.java)

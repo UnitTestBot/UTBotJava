@@ -1,30 +1,23 @@
-package org.utbot.quickcheck.generator;
+package org.utbot.quickcheck.generator
 
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.framework.plugin.api.UtNullModel;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import static java.util.Arrays.asList;
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * Produces values for property parameters of type {@code void} or
- * {@link Void}.
+ * Produces values for property parameters of type `void` or
+ * [Void].
  */
-public class VoidGenerator extends Generator<Void> {
-    public VoidGenerator() {
-        super(asList(Void.class, void.class));
+class VoidGenerator : Generator(listOf(Void::class.java, Void.TYPE)) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return UtNullModel(classIdForType(Void::class.java))
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return new UtNullModel(classIdForType(Void.class));
-    }
-
-    @Override
-    public boolean canRegisterAsType(Class<?> type) {
-        return !Object.class.equals(type);
+    override fun canRegisterAsType(type: Class<*>): Boolean {
+        return Any::class.java != type
     }
 }

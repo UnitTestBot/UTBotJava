@@ -17,14 +17,14 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.id
 import java.lang.reflect.*
 
-class UserClassGenerator : ComponentizedGenerator<Any>(Any::class.java) {
+class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
 
     var clazz: Class<*>? = null
     var parameterTypeContext: ParameterTypeContext? = null
     var depth = 0
     var generationMethod = GenerationMethod.ANY
 
-    override fun copy(): Generator<Any> {
+    override fun copy(): Generator {
         return UserClassGenerator().also {
             it.clazz = clazz
             it.depth = depth
@@ -32,7 +32,7 @@ class UserClassGenerator : ComponentizedGenerator<Any>(Any::class.java) {
         }
     }
 
-    override fun canGenerateForParametersOfTypes(typeParameters: MutableList<TypeParameter<*>>?): Boolean {
+    override fun canGenerateForParametersOfTypes(typeParameters: List<TypeParameter<*>>): Boolean {
         return true
     }
 
@@ -45,15 +45,12 @@ class UserClassGenerator : ComponentizedGenerator<Any>(Any::class.java) {
         return generate(random, status)
     }
 
-    override fun generate(random: SourceOfRandomness, status: GenerationStatus): UtModel? {
+    override fun generate(random: SourceOfRandomness, status: GenerationStatus): UtModel {
         logger.debug { "Trying to generate ${parameterTypeContext!!.resolved}. Current depth depth: $depth" }
-        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return UtNullModel(clazz!!.id)
+        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return TODO("null")
         val immutableClazz = clazz!!
-        when (immutableClazz) {
-            Any::class.java -> return ObjectGenerator(parameterTypeContext!!, random, status).generate()
-            Class::class.java -> return ReflectionClassGenerator(parameterTypeContext!!).generate()
-            Type::class.java -> return ReflectionTypeGenerator(parameterTypeContext!!).generate()
-        }
+        if (immutableClazz == Any::class.java) return ObjectGenerator(random, status).generate()
+        if (immutableClazz == Class::class.java) return ReflectionClassGenerator(parameterTypeContext!!).generate()
         //TODO! generate inner classes instances
         if (immutableClazz.declaringClass != null && !immutableClazz.hasModifiers(Modifier.STATIC)) {
             return UtNullModel(immutableClazz.id)

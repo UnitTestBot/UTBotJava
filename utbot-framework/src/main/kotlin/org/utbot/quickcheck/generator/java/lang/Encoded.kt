@@ -1,28 +1,22 @@
+package org.utbot.quickcheck.generator.java.lang
 
-
-package org.utbot.quickcheck.generator.java.lang;
-
-import org.utbot.quickcheck.generator.GeneratorConfiguration;
-import org.utbot.quickcheck.generator.java.lang.strings.CodePoints;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-import java.nio.charset.Charset;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import org.utbot.quickcheck.generator.GeneratorConfiguration
+import org.utbot.quickcheck.generator.java.lang.strings.CodePoints
+import org.utbot.quickcheck.generator.java.lang.strings.CodePoints.Companion.forCharset
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.nio.charset.Charset
 
 /**
- * <p>Produces {@link String}s whose code points correspond to code points in
- * a given {@link Charset}
- * ({@link Charset#defaultCharset() by default}).</p>
+ *
+ * Produces [String]s whose code points correspond to code points in
+ * a given [Charset]
+ * ([by default][Charset.defaultCharset]).
  */
-public class Encoded extends AbstractStringGenerator {
-    private CodePoints charsetPoints;
+class Encoded : AbstractStringGenerator() {
+    private var charsetPoints: CodePoints? = null
 
-    public Encoded() {
-        initialize(Charset.defaultCharset());
+    init {
+        initialize(Charset.defaultCharset())
     }
 
     /**
@@ -31,25 +25,23 @@ public class Encoded extends AbstractStringGenerator {
      * @param charset a charset to use as the source for characters of
      * generated strings
      */
-    public void configure(InCharset charset) {
-        initialize(Charset.forName(charset.value()));
+    fun configure(charset: InCharset) {
+        initialize(Charset.forName(charset.value))
     }
 
-    private void initialize(Charset charset) {
-        charsetPoints = CodePoints.forCharset(charset);
+    private fun initialize(charset: Charset) {
+        charsetPoints = forCharset(charset)
     }
 
-    @Override protected int nextCodePoint(SourceOfRandomness random) {
-        return charsetPoints.at(random.nextInt(0, charsetPoints.size() - 1));
+    override fun nextCodePoint(random: SourceOfRandomness): Int {
+        return charsetPoints!!.at(random.nextInt(0, charsetPoints!!.size() - 1))
     }
 
     /**
-     * Names a {@link Charset}.
+     * Names a [Charset].
      */
-    @Target({ PARAMETER, FIELD, ANNOTATION_TYPE, TYPE_USE })
-    @Retention(RUNTIME)
+    @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FIELD, AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.TYPE)
+    @Retention(AnnotationRetention.RUNTIME)
     @GeneratorConfiguration
-    public @interface InCharset {
-        String value();
-    }
+    annotation class InCharset(val value: String)
 }

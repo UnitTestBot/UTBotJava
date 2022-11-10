@@ -46,7 +46,7 @@ object DataGenerator {
     }
 
     fun generate(
-        generator: Generator<*>?,
+        generator: Generator?,
         parameter: Parameter,
         random: SourceOfRandomness,
         status: GenerationStatus,

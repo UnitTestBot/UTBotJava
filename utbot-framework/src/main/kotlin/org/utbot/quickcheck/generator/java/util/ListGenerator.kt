@@ -1,20 +1,8 @@
-
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.quickcheck.generator.java.util.CollectionGenerator;
-
-import java.util.List;
+package org.utbot.quickcheck.generator.java.util
 
 /**
- * Base class for generators of {@link List}s.
+ * Base class for generators of [List]s.
  *
  * @param <T> the type of list generated
- */
-public abstract class ListGenerator<T extends List>
-    extends CollectionGenerator<T> {
-
-    protected ListGenerator(Class<T> type) {
-        super(type);
-    }
-}
+</T> */
+abstract class ListGenerator protected constructor(type: Class<*>) : CollectionGenerator(type)

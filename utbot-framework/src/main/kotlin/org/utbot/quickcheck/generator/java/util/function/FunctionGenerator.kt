@@ -1,40 +1,35 @@
+package org.utbot.quickcheck.generator.java.util.function
 
-
-package org.utbot.quickcheck.generator.java.util.function;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.function.Function;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.function.Function
 
 /**
- * Produces values of type {@link Function}.
+ * Produces values of type [Function].
  *
  * @param <T> type of parameter of produced function
  * @param <R> return type of produced function
- */
-public class FunctionGenerator<T, R> extends ComponentizedGenerator<Function> {
-    public FunctionGenerator() {
-        super(Function.class);
+</R></T> */
+class FunctionGenerator<T, R> : ComponentizedGenerator(Function::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                Function::class.java,
+                componentGenerators()[1],
+                status
+            ), classIdForType(Function::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(
-            Function.class,
-            componentGenerators().get(1),
-            status), classIdForType(Function.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 2;
+    override fun numberOfNeededComponents(): Int {
+        return 2
     }
 }

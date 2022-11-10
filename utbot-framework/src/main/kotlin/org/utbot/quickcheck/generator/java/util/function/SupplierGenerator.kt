@@ -1,39 +1,34 @@
+package org.utbot.quickcheck.generator.java.util.function
 
-
-package org.utbot.quickcheck.generator.java.util.function;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.function.Supplier;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.function.Supplier
 
 /**
- * Produces values of type {@code Supplier}.
+ * Produces values of type `Supplier`.
  *
  * @param <T> the type of the values produced by the generated instances
- */
-public class SupplierGenerator<T> extends ComponentizedGenerator<Supplier> {
-    public SupplierGenerator() {
-        super(Supplier.class);
+</T> */
+class SupplierGenerator<T> : ComponentizedGenerator(Supplier::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                Supplier::class.java,
+                componentGenerators()[0],
+                status
+            ), classIdForType(Supplier::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(
-            Supplier.class,
-            componentGenerators().get(0),
-            status), classIdForType(Supplier.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 1;
+    override fun numberOfNeededComponents(): Int {
+        return 1
     }
 }

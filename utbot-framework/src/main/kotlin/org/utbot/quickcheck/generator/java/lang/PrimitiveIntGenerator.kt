@@ -1,65 +1,46 @@
+package org.utbot.quickcheck.generator.java.lang
 
-
-package org.utbot.quickcheck.generator.java.lang;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.generator.IntegralGenerator;
-import org.utbot.quickcheck.internal.Comparables;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.Collections;
-import java.util.function.Predicate;
-
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getIntClassId;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.generator.IntegralGenerator
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * Produces values of type {@code int} or {@link Integer}.
+ * Produces values of type `int` or [Integer].
  */
-public class PrimitiveIntGenerator extends IntegralGenerator<Integer> {
-    private int min = (Integer) defaultValueOf(InRange.class, "minInt");
-    private int max = (Integer) defaultValueOf(InRange.class, "maxInt");
-
-    public PrimitiveIntGenerator() {
-        super(Collections.singletonList(int.class));
-    }
+class PrimitiveIntGenerator : IntegralGenerator(listOf(Int::class.javaPrimitiveType!!)) {
+    private var min = Reflection.defaultValueOf(InRange::class.java, "minInt") as Int
+    private var max = Reflection.defaultValueOf(InRange::class.java, "maxInt") as Int
 
     /**
      * Tells this generator to produce values within a specified minimum and/or
      * maximum, inclusive, with uniform distribution.
      *
-     * {@link InRange#min} and {@link InRange#max} take precedence over
-     * {@link InRange#minInt()} and {@link InRange#maxInt()}, if non-empty.
+     * [InRange.min] and [InRange.max] take precedence over
+     * [InRange.minInt] and [InRange.maxInt], if non-empty.
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        min =
-                range.min().isEmpty()
-                        ? range.minInt()
-                        : Integer.parseInt(range.min());
-        max =
-                range.max().isEmpty()
-                        ? range.maxInt()
-                        : Integer.parseInt(range.max());
+    fun configure(range: InRange) {
+        min = if (range.min.isEmpty()) range.minInt else range.min.toInt()
+        max = if (range.max.isEmpty()) range.maxInt else range.max.toInt()
     }
 
-    @Override public UtModel generate(
-            SourceOfRandomness random,
-            GenerationStatus status) {
-        return UtModelGenerator.getUtModelConstructor().construct(generateValue(random, status), getIntClassId());
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(generateValue(random, status), intClassId)
     }
 
-    public int generateValue(SourceOfRandomness random,
-                             GenerationStatus status) {
-        return random.nextInt(min, max);
+    fun generateValue(
+        random: SourceOfRandomness,
+        status: GenerationStatus?
+    ): Int {
+        return random.nextInt(min, max)
     }
-
-    @Override protected Predicate<Integer> inRange() {
-        return Comparables.inRange(min, max);
-    }
-
 }

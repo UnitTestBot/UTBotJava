@@ -22,8 +22,8 @@ class ConstructorBasedInstanceGenerator(
     private val depth: Int
 ): InstanceGenerator {
 
-    override fun generate(): UtModel? {
-        val constructor = chooseRandomConstructor(clazz) ?: return null
+    override fun generate(): UtModel {
+        val constructor = chooseRandomConstructor(clazz) ?: return TODO("null")
         val resolvedConstructor =
             //In case if we can not resolve constructor
             gctx.constructor(constructor).let {

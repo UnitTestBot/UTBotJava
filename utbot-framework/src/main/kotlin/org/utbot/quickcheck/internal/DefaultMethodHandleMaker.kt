@@ -1,55 +1,48 @@
-package org.utbot.quickcheck.internal;
+package org.utbot.quickcheck.internal
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.invoke.MethodType;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
 
-import static org.utbot.quickcheck.internal.Reflection.findDeclaredConstructor;
-import static org.utbot.quickcheck.internal.Reflection.jdk9OrBetter;
-
-public final class DefaultMethodHandleMaker {
-    private static volatile Constructor<Lookup> methodLookupCtorJDK8;
-
-    private static Constructor<Lookup> methodLookupCtorJDK8() {
-        if (methodLookupCtorJDK8 == null) {
-            methodLookupCtorJDK8 =
-                findDeclaredConstructor(Lookup.class, Class.class, int.class);
-        }
-
-        return methodLookupCtorJDK8;
+class DefaultMethodHandleMaker {
+    fun handleForSpecialMethod(method: Method): MethodHandle {
+        return if (Reflection.jdk9OrBetter()) jdk9OrBetterMethodHandle(method) else jdk8MethodHandleForDefault(method)
     }
 
-    public MethodHandle handleForSpecialMethod(Method method)
-        throws Exception {
-
-        return jdk9OrBetter()
-            ? jdk9OrBetterMethodHandle(method)
-            : jdk8MethodHandleForDefault(method);
-    }
-
-    private MethodHandle jdk9OrBetterMethodHandle(Method method)
-        throws Exception {
-
+    private fun jdk9OrBetterMethodHandle(method: Method): MethodHandle {
         return MethodHandles.lookup()
             .findSpecial(
-                method.getDeclaringClass(),
-                method.getName(),
+                method.declaringClass,
+                method.name,
                 MethodType.methodType(
-                    method.getReturnType(),
-                    method.getParameterTypes()),
-                method.getDeclaringClass());
+                    method.returnType,
+                    method.parameterTypes
+                ),
+                method.declaringClass
+            )
     }
 
-    private MethodHandle jdk8MethodHandleForDefault(Method method)
-        throws Exception {
+    private fun jdk8MethodHandleForDefault(method: Method): MethodHandle {
+        val lookup = methodLookupCtorJDK8()!!
+            .newInstance(
+                method.declaringClass,
+                MethodHandles.Lookup.PRIVATE
+            )
+        return lookup.unreflectSpecial(method, method.declaringClass)
+    }
 
-        Lookup lookup =
-            methodLookupCtorJDK8().newInstance(
-                method.getDeclaringClass(),
-                Lookup.PRIVATE);
-        return lookup.unreflectSpecial(method, method.getDeclaringClass());
+    companion object {
+        @Volatile
+        private var methodLookupCtorJDK8: Constructor<MethodHandles.Lookup>? = null
+        private fun methodLookupCtorJDK8(): Constructor<MethodHandles.Lookup>? {
+            if (methodLookupCtorJDK8 == null) {
+                methodLookupCtorJDK8 = Reflection.findDeclaredConstructor(
+                    MethodHandles.Lookup::class.java, Class::class.java, Int::class.javaPrimitiveType
+                )
+            }
+            return methodLookupCtorJDK8
+        }
     }
 }

@@ -1,20 +1,12 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.quickcheck.generator.java.util.MapGenerator;
-
-import java.util.Hashtable;
+import java.util.Hashtable
 
 /**
- * Produces values of type {@link Hashtable}.
+ * Produces values of type [Hashtable].
  */
-public class HashtableGenerator extends MapGenerator<Hashtable> {
-    public HashtableGenerator() {
-        super(Hashtable.class);
-    }
-
-    @Override protected boolean okToAdd(Object key, Object value) {
-        return key != null && value != null;
+class HashtableGenerator : MapGenerator(Hashtable::class.java) {
+    override fun okToAdd(key: Any?, value: Any?): Boolean {
+        return key != null && value != null
     }
 }

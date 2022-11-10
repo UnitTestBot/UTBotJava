@@ -1,81 +1,66 @@
+package org.utbot.quickcheck.generator.java.math
 
-
-package org.utbot.quickcheck.generator.java.math;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.generator.IntegralGenerator;
-import org.utbot.quickcheck.internal.Comparables;
-import org.utbot.quickcheck.internal.Ranges;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.math.BigInteger;
-import java.util.function.Predicate;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Ranges.checkRange;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
-import static java.math.BigInteger.TEN;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.generator.IntegralGenerator
+import org.utbot.quickcheck.internal.Ranges
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.math.BigInteger
 
 /**
- * <p>Produces values of type {@link BigInteger}.</p>
  *
- * <p>With no additional configuration, the generated values are chosen from
+ * Produces values of type [BigInteger].
+ *
+ *
+ * With no additional configuration, the generated values are chosen from
  * a range with a magnitude decided by
- * {@link GenerationStatus#size()}.</p>
+ * [GenerationStatus.size].
  */
-public class BigIntegerGenerator extends IntegralGenerator<BigInteger> {
-    private BigInteger min;
-    private BigInteger max;
-
-    public BigIntegerGenerator() {
-        super(BigInteger.class);
-    }
+class BigIntegerGenerator : IntegralGenerator(BigInteger::class.java) {
+    private var min: BigInteger? = null
+    private var max: BigInteger? = null
 
     /**
-     * <p>Tells this generator to produce values within a specified
-     * {@linkplain InRange#min() minimum} and/or
-     * {@linkplain InRange#max() maximum} inclusive, with uniform
-     * distribution.</p>
      *
-     * <p>If an endpoint of the range is not specified, its value takes on
+     * Tells this generator to produce values within a specified
+     * [minimum][InRange.min] and/or
+     * [maximum][InRange.max] inclusive, with uniform
+     * distribution.
+     *
+     *
+     * If an endpoint of the range is not specified, its value takes on
      * a magnitude influenced by
-     * {@link GenerationStatus#size()}.</p>
-
+     * [GenerationStatus.size].
+     *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        if (!defaultValueOf(InRange.class, "min").equals(range.min()))
-            min = new BigInteger(range.min());
-        if (!defaultValueOf(InRange.class, "max").equals(range.max()))
-            max = new BigInteger(range.max());
-        if (min != null && max != null)
-            checkRange(Ranges.Type.INTEGRAL, min, max);
+    fun configure(range: InRange) {
+        if (Reflection.defaultValueOf(InRange::class.java, "min") != range.min) min = BigInteger(range.min)
+        if (Reflection.defaultValueOf(InRange::class.java, "max") != range.max) max = BigInteger(range.max)
+        if (min != null && max != null) Ranges.checkRange(Ranges.Type.INTEGRAL, min, max)
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        int numberOfBits = status.size() + 1;
-
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val numberOfBits = status.size() + 1
         if (min == null && max == null)
-            return UtModelGenerator.getUtModelConstructor().construct(random.nextBigInteger(numberOfBits), classIdForType(BigInteger.class));
+            return utModelConstructor.construct(
+                random.nextBigInteger(numberOfBits),
+                BigInteger::class.id
+            )
 
-        BigInteger minToUse = min;
-        BigInteger maxToUse = max;
-        if (minToUse == null)
-            minToUse = maxToUse.subtract(TEN.pow(numberOfBits));
-        else if (maxToUse == null)
-            maxToUse = minToUse.add(TEN.pow(numberOfBits));
-
-        return UtModelGenerator.getUtModelConstructor().construct(Ranges.choose(random, minToUse, maxToUse), classIdForType(BigInteger.class));
-    }
-
-    @Override protected Predicate<BigInteger> inRange() {
-        return Comparables.inRange(min, max);
+        val minToUse = min ?: max!!.subtract(BigInteger.TEN.pow(numberOfBits))
+        val maxToUse = max ?: minToUse.add(BigInteger.TEN.pow(numberOfBits))
+        return utModelConstructor.construct(
+            Ranges.choose(random, minToUse, maxToUse),
+            BigInteger::class.id
+        )
     }
 
 }

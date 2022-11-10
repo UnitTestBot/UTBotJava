@@ -1,56 +1,51 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.concrete.UtModelConstructor;
-import org.utbot.framework.plugin.api.*;
-import org.utbot.quickcheck.generator.*;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.*;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getObjectClassId;
-import static org.utbot.framework.plugin.api.util.IdUtilKt.methodId;
-import static org.utbot.quickcheck.internal.Ranges.Type.INTEGRAL;
-import static org.utbot.quickcheck.internal.Ranges.checkRange;
-import static org.utbot.quickcheck.internal.Reflection.findConstructor;
-import static org.utbot.quickcheck.internal.Reflection.instantiate;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.Distinct
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Size
+import org.utbot.quickcheck.internal.Ranges
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * <p>Base class for generators of {@link Map}s.</p>
  *
- * <p>The generated map has a number of entries limited by
- * {@link GenerationStatus#size()}, or else by the attributes of a {@link Size}
+ * Base class for generators of [Map]s.
+ *
+ *
+ * The generated map has a number of entries limited by
+ * [GenerationStatus.size], or else by the attributes of a [Size]
  * marking. The individual keys and values will have types corresponding to the
- * property parameter's type arguments.</p>
+ * property parameter's type arguments.
  *
  * @param <T> the type of map generated
- */
-public abstract class MapGenerator<T extends Map>
-    extends ComponentizedGenerator<T> {
-
-    private Size sizeRange;
-    private boolean distinct;
-
-    protected MapGenerator(Class<T> type) {
-        super(type);
-    }
+</T> */
+abstract class MapGenerator protected constructor(type: Class<*>) : ComponentizedGenerator(type) {
+    private var sizeRange: Size? = null
+    private var distinct = false
 
     /**
-     * <p>Tells this generator to add key-value pairs to the generated map a
-     * number of times within a specified minimum and/or maximum, inclusive,
-     * chosen with uniform distribution.</p>
      *
-     * <p>Note that maps disallow duplicate keys, so the number of pairs added
-     * may not be equal to the map's {@link Map#size()}.</p>
+     * Tells this generator to add key-value pairs to the generated map a
+     * number of times within a specified minimum and/or maximum, inclusive,
+     * chosen with uniform distribution.
+     *
+     *
+     * Note that maps disallow duplicate keys, so the number of pairs added
+     * may not be equal to the map's [Map.size].
      *
      * @param size annotation that gives the size constraints
      */
-    public void configure(Size size) {
-        this.sizeRange = size;
-        checkRange(INTEGRAL, size.min(), size.max());
+    fun configure(size: Size) {
+        sizeRange = size
+        Ranges.checkRange(Ranges.Type.INTEGRAL, size.min, size.max)
     }
 
     /**
@@ -60,63 +55,49 @@ public abstract class MapGenerator<T extends Map>
      * @param distinct Keys of generated entries will be distinct if this
      * param is not null
      */
-    public void configure(Distinct distinct) {
-        this.distinct = distinct != null;
+    fun configure(distinct: Distinct?) {
+        this.distinct = distinct != null
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val size = size(random, status)
+        val classId = types().single().id
+        val keyGenerator = componentGenerators()[0]
+        val valueGenerator = componentGenerators()[1]
 
-        int size = size(random, status);
-
-        final UtModelConstructor modelConstructor = UtModelGenerator.getUtModelConstructor();
-        final ClassId classId = classIdForType(types().get(0));
-        final Generator<?> keyGenerator = componentGenerators().get(0);
-        final Generator<?> valueGenerator = componentGenerators().get(1);
-
-        final ExecutableId constructorId = new ConstructorId(classId, List.of());
-        final int generatedModelId = modelConstructor.computeUnusedIdAndUpdate();
-
-        final UtAssembleModel generatedModel = new UtAssembleModel(
-                generatedModelId,
-                classId,
-                constructorId.getName() + "#" + generatedModelId,
-                new UtExecutableCallModel(null, constructorId, List.of()),
-                null,
-                (a) -> {
-                    final List<UtStatementModel> modificationChain = new ArrayList<>();
-                    final ExecutableId putMethodId = methodId(classId, "put", getObjectClassId(), getObjectClassId(), getObjectClassId());
-
-                    int i = 0;
-                    while (i < size) {
-                        final UtModel key = keyGenerator.generate(random, status);
-                        final UtModel value = valueGenerator.generate(random, status);
-                        if (!okToAdd(key, value)) continue;
-                        i++;
-                        modificationChain.add(new UtExecutableCallModel(a, putMethodId, List.of(key, value)));
-                    }
-                    return modificationChain;
-                }
-        );
-
-
-
-        return generatedModel;
+        val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val constructorId = ConstructorId(classId, emptyList())
+        return UtAssembleModel(
+            generatedModelId,
+            classId,
+            constructorId.name + "#" + generatedModelId,
+            UtExecutableCallModel(null, constructorId, emptyList()),
+        ) {
+            val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))
+            generateSequence {
+                val key = keyGenerator.generate(random, status)
+                val value = valueGenerator.generate(random, status)
+                key to value
+            }.filter { (key, value) ->
+                okToAdd(key, value)
+            }.map { (key, value) ->
+                UtExecutableCallModel(this, putMethodId, listOf(key, value))
+            }.take(size).toList()
+        }
     }
 
-    @Override public int numberOfNeededComponents() {
-        return 2;
+    override fun numberOfNeededComponents(): Int {
+        return 2
     }
 
-    protected boolean okToAdd(Object key, Object value) {
-        return true;
+    protected open fun okToAdd(key: Any?, value: Any?): Boolean {
+        return true
     }
 
-    private int size(SourceOfRandomness random, GenerationStatus status) {
-        return sizeRange != null
-            ? random.nextInt(sizeRange.min(), sizeRange.max())
-            : status.size();
+    private fun size(random: SourceOfRandomness, status: GenerationStatus): Int {
+        return if (sizeRange != null) random.nextInt(sizeRange!!.min, sizeRange!!.max) else status.size()
     }
-
 }

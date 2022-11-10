@@ -11,7 +11,7 @@ data class FField(
     val field: Field?,
     val value: Any?,
     val resolvedType: Type,
-    val generator: Generator<*>?,
+    val generator: Generator?,
     val classId: ClassId,
     val subFields: List<FField>,
     var isBlocked: Boolean,
@@ -21,7 +21,7 @@ data class FField(
         field: Field?,
         value: Any?,
         resolvedType: Type,
-        generator: Generator<*>?,
+        generator: Generator?,
         subFields: List<FField>,
         isBlocked: Boolean
     ) : this(
@@ -38,7 +38,7 @@ data class FField(
         field: Field?,
         value: Any?,
         resolvedType: Type,
-        generator: Generator<*>?,
+        generator: Generator?,
         subFields: List<FField>,
     ) : this(
         field,
@@ -54,7 +54,7 @@ data class FField(
         field: Field?,
         value: Any?,
         resolvedType: Type,
-        generator: Generator<*>?,
+        generator: Generator?,
     ) : this(
         field,
         value,

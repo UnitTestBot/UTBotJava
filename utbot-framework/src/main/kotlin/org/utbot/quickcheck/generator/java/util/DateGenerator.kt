@@ -1,73 +1,60 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-
-
-package org.utbot.quickcheck.generator.java.util;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Date
 
 /**
- * Produces values of type {@link Date}.
+ * Produces values of type [Date].
  */
-public class DateGenerator extends Generator<Date> {
-    private Date min = new Date(Integer.MIN_VALUE);
-    private Date max = new Date(Long.MAX_VALUE);
-
-    public DateGenerator() {
-        super(Date.class);
-    }
+class DateGenerator : Generator(Date::class.java) {
+    private var min: Date = Date(Long.MIN_VALUE)
+    private var max = Date(Long.MAX_VALUE)
 
     /**
-     * <p>Tells this generator to produce values within a specified
-     * {@linkplain InRange#min() minimum} and/or {@linkplain InRange#max()
-     * maximum}, inclusive, with uniform distribution, down to the
-     * millisecond.</p>
      *
-     * <p>If an endpoint of the range is not specified, the generator will use
+     * Tells this generator to produce values within a specified
+     * [minimum][InRange.min] and/or [ maximum][InRange.max], inclusive, with uniform distribution, down to the
+     * millisecond.
+     *
+     *
+     * If an endpoint of the range is not specified, the generator will use
      * dates with milliseconds-since-the-epoch values of either
-     * {@link Integer#MIN_VALUE} or {@link Long#MAX_VALUE} as appropriate.</p>
+     * [Integer.MIN_VALUE] or [Long.MAX_VALUE] as appropriate.
      *
-     * <p>{@link InRange#format()} describes
-     * {@linkplain SimpleDateFormat#parse(String) how the generator is to
-     * interpret the range's endpoints}.</p>
+     *
+     * [InRange.format] describes
+     * [how the generator is to][SimpleDateFormat.parse].
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        SimpleDateFormat formatter = new SimpleDateFormat(range.format());
-        formatter.setLenient(false);
-
+    fun configure(range: InRange) {
+        val formatter = SimpleDateFormat(range.format)
+        formatter.isLenient = false
         try {
-            if (!defaultValueOf(InRange.class, "min").equals(range.min()))
-                min = formatter.parse(range.min());
-            if (!defaultValueOf(InRange.class, "max").equals(range.max()))
-                max = formatter.parse(range.max());
-        } catch (ParseException e) {
-            throw new IllegalArgumentException(e);
+            if (Reflection.defaultValueOf(InRange::class.java, "min") != range.min) min = formatter.parse(range.min)
+            if (Reflection.defaultValueOf(InRange::class.java, "max") != range.max) max = formatter.parse(range.max)
+        } catch (e: ParseException) {
+            throw IllegalArgumentException(e)
         }
-
-        if (min.getTime() > max.getTime()) {
-            throw new IllegalArgumentException(
-                String.format("bad range, %s > %s", min, max));
-        }
+        require(min.time <= max.time) { String.format("bad range, %s > %s", min, max) }
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(new Date(random.nextLong(min.getTime(), max.getTime())), classIdForType(Date.class));
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            Date(random.nextLong(min.time, max.time)),
+            classIdForType(Date::class.java)
+        )
     }
 }

@@ -1,31 +1,19 @@
+package org.utbot.quickcheck.internal.generator
 
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.random.SourceOfRandomness
 
-package org.utbot.quickcheck.internal.generator;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-
-public class EnumGenerator extends Generator<Enum> {
-    private final Class<?> enumType;
-
-    EnumGenerator(Class<?> enumType) {
-        super(Enum.class);
-
-        this.enumType = enumType;
+class EnumGenerator(private val enumType: Class<*>) : Generator(Enum::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val values = enumType.enumConstants
+        val index = random.nextInt(0, values.size - 1)
+        return utModelConstructor.construct(values[index], Enum::class.id)
     }
-
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        Object[] values = enumType.getEnumConstants();
-        int index = random.nextInt(0, values.length - 1);
-        return UtModelGenerator.getUtModelConstructor().construct(values[index], classIdForType(Enum.class));
-    }
-
 }

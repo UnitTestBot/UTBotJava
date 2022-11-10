@@ -1,41 +1,34 @@
+package org.utbot.quickcheck.generator.java.util.function
 
-
-package org.utbot.quickcheck.generator.java.util.function;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.function.BinaryOperator;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.function.BinaryOperator
 
 /**
- * Produces values of type {@link BinaryOperator}.
+ * Produces values of type [BinaryOperator].
  *
  * @param <T> parameters type and return type of produced operator
- */
-public class BinaryOperatorGenerator<T>
-    extends ComponentizedGenerator<BinaryOperator> {
-
-    public BinaryOperatorGenerator() {
-        super(BinaryOperator.class);
+</T> */
+class BinaryOperatorGenerator<T> : ComponentizedGenerator(BinaryOperator::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                BinaryOperator::class.java,
+                componentGenerators()[0],
+                status
+            ), classIdForType(BinaryOperator::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(
-            BinaryOperator.class,
-            componentGenerators().get(0),
-            status), classIdForType(BinaryOperator.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 1;
+    override fun numberOfNeededComponents(): Int {
+        return 1
     }
 }

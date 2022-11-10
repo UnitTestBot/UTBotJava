@@ -1,169 +1,137 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.framework.plugin.api.UtNullModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.GeneratorConfiguration;
-import org.utbot.quickcheck.generator.java.lang.StringGenerator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.UUID;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.GeneratorConfiguration
+import org.utbot.quickcheck.generator.java.lang.StringGenerator
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+import java.util.UUID
 
 /**
- * Home for machinery to produce {@link UUID}s according to
- * <a href="http://www.ietf.org/rfc/rfc4122.txt">RFC 4122</a>.
+ * Home for machinery to produce [UUID]s according to
+ * [RFC 4122](http://www.ietf.org/rfc/rfc4122.txt).
  */
-public final class RFC4122 {
-    private RFC4122() {
-        throw new UnsupportedOperationException();
-    }
+object RFC4122 {
 
-    private abstract static class AbstractUUIDGenerator
-        extends Generator<UUID> {
-
-        protected AbstractUUIDGenerator() {
-            super(UUID.class);
+    abstract class AbstractUUIDGenerator : Generator(UUID::class.java) {
+        protected fun setVersion(bytes: ByteArray, mask: Byte) {
+            bytes[6] = (bytes[6].toInt() and 0x0F).toByte()
+            bytes[6] = (bytes[6].toInt() or mask.toInt()).toByte()
         }
 
-        protected final void setVersion(byte[] bytes, byte mask) {
-            bytes[6] &= 0x0F;
-            bytes[6] |= mask;
+        protected fun setVariant(bytes: ByteArray) {
+            bytes[8] = (bytes[8].toInt() and 0x3F).toByte()
+            bytes[8] = (bytes[8].toInt() or 0x80).toByte()
         }
 
-        protected final void setVariant(byte[] bytes) {
-            bytes[8] &= 0x3F;
-            bytes[8] |= 0x80;
-        }
-
-        protected final UUID newUUID(byte[] bytes) {
-            ByteBuffer bytesIn = ByteBuffer.wrap(bytes);
-            return new UUID(bytesIn.getLong(), bytesIn.getLong());
+        protected fun newUUID(bytes: ByteArray?): UUID {
+            val bytesIn = ByteBuffer.wrap(bytes)
+            return UUID(bytesIn.long, bytesIn.long)
         }
     }
 
-    private abstract static class NameBasedUUIDGenerator
-        extends AbstractUUIDGenerator {
+    abstract class NameBasedUUIDGenerator(hashAlgorithmName: String?, private val versionMask: Int) :
+        AbstractUUIDGenerator() {
+        private val strings = StringGenerator()
+        private val digest: MessageDigest
+        private var namespace: Namespace? = null
 
-        private final StringGenerator strings = new StringGenerator();
-        private final int versionMask;
-        private final MessageDigest digest;
-        private Namespace namespace;
-
-        protected NameBasedUUIDGenerator(
-            String hashAlgorithmName,
-            int versionMask) {
-
-            this.versionMask = versionMask;
-            digest = MessageDigests.get(hashAlgorithmName);
+        init {
+            digest = MessageDigests[hashAlgorithmName]
         }
 
-        @Override public UtModel generate(
-            SourceOfRandomness random,
-            GenerationStatus status) {
-
-            digest.reset();
-
-            Namespaces namespaces =
-                namespace == null ? Namespaces.URL : namespace.value();
-            digest.update(namespaces.bytes);
+        override fun generate(
+            random: SourceOfRandomness,
+            status: GenerationStatus
+        ): UtModel {
+            digest.reset()
+            val namespaces = if (namespace == null) Namespaces.URL else namespace!!.value
+            digest.update(namespaces.bytes)
             digest.update(
                 strings.generateValue(random, status)
-                    .getBytes(StandardCharsets.UTF_8));
-
-            byte[] hash = digest.digest();
-            setVersion(hash, (byte) versionMask);
-            setVariant(hash);
-            final UUID generatedUUID = newUUID(hash);
-            return UtModelGenerator.getUtModelConstructor().construct(generatedUUID, classIdForType(UUID.class));
+                    .toByteArray(StandardCharsets.UTF_8)
+            )
+            val hash = digest.digest()
+            setVersion(hash, versionMask.toByte())
+            setVariant(hash)
+            val generatedUUID = newUUID(hash)
+            return utModelConstructor.construct(generatedUUID, classIdForType(UUID::class.java))
         }
 
-        protected void setNamespace(Namespace namespace) {
-            this.namespace = namespace;
+        protected fun setNamespace(namespace: Namespace?) {
+            this.namespace = namespace
         }
     }
 
-    static final class MessageDigests {
-        private MessageDigests() {
-            throw new UnsupportedOperationException();
+    internal class MessageDigests private constructor() {
+        init {
+            throw UnsupportedOperationException()
         }
 
-        static MessageDigest get(String algorithmName) {
-            try {
-                return MessageDigest.getInstance(algorithmName);
-            } catch (NoSuchAlgorithmException shouldNeverHappen) {
-                throw new IllegalStateException(shouldNeverHappen);
+        companion object {
+            operator fun get(algorithmName: String?): MessageDigest {
+                return try {
+                    MessageDigest.getInstance(algorithmName)
+                } catch (shouldNeverHappen: NoSuchAlgorithmException) {
+                    throw IllegalStateException(shouldNeverHappen)
+                }
             }
         }
     }
 
     /**
-     * Produces values of type {@link UUID} that are RFC 4122 Version 3
+     * Produces values of type [UUID] that are RFC 4122 Version 3
      * identifiers.
      */
-    public static class Version3 extends NameBasedUUIDGenerator {
-        public Version3() {
-            super("MD5", 0x30);
-        }
-
+    class Version3 : NameBasedUUIDGenerator("MD5", 0x30) {
         /**
          * Tells this generator to prepend the given "namespace" UUID to the
          * names it generates for UUID production.
          *
          * @param namespace a handle for a "namespace" UUID
          */
-        public void configure(Namespace namespace) {
-            setNamespace(namespace);
+        fun configure(namespace: Namespace?) {
+            setNamespace(namespace)
         }
     }
 
     /**
-     * Produces values of type {@link UUID} that are RFC 4122 Version 4
+     * Produces values of type [UUID] that are RFC 4122 Version 4
      * identifiers.
      */
-    public static class Version4 extends AbstractUUIDGenerator {
-        @Override public UtModel generate(
-            SourceOfRandomness random,
-            GenerationStatus status) {
-
-            byte[] bytes = random.nextBytes(16);
-            setVersion(bytes, (byte) 0x40);
-            setVariant(bytes);
-            final UUID generatedUUID = newUUID(bytes);
-            return UtModelGenerator.getUtModelConstructor().construct(generatedUUID, classIdForType(UUID.class));
+    class Version4 : AbstractUUIDGenerator() {
+        override fun generate(
+            random: SourceOfRandomness,
+            status: GenerationStatus
+        ): UtModel {
+            val bytes = random.nextBytes(16)
+            setVersion(bytes, 0x40.toByte())
+            setVariant(bytes)
+            val generatedUUID = newUUID(bytes)
+            return utModelConstructor.construct(generatedUUID, classIdForType(UUID::class.java))
         }
     }
 
     /**
-     * Produces values of type {@link UUID} that are RFC 4122 Version 5
+     * Produces values of type [UUID] that are RFC 4122 Version 5
      * identifiers.
      */
-    public static class Version5 extends NameBasedUUIDGenerator {
-        public Version5() {
-            super("SHA-1", 0x50);
-        }
-
+    class Version5 : NameBasedUUIDGenerator("SHA-1", 0x50) {
         /**
          * Tells this generator to prepend the given "namespace" UUID to the
          * names it generates for UUID production.
          *
          * @param namespace a handle for a "namespace" UUID
          */
-        public void configure(Namespace namespace) {
-            setNamespace(namespace);
+        fun configure(namespace: Namespace?) {
+            setNamespace(namespace)
         }
     }
 
@@ -171,41 +139,45 @@ public final class RFC4122 {
      * Used in version 3 and version 5 UUID generation to specify a
      * "namespace" UUID for use in generation.
      */
-    @Target({ PARAMETER, FIELD, ANNOTATION_TYPE, TYPE_USE })
-    @Retention(RUNTIME)
+    @Target(
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.FIELD,
+        AnnotationTarget.ANNOTATION_CLASS,
+        AnnotationTarget.TYPE
+    )
+    @Retention(AnnotationRetention.RUNTIME)
     @GeneratorConfiguration
-    public @interface Namespace {
+    annotation class Namespace(
         /**
          * @return a handle on a "namespace" UUID to use in generation
          */
-        Namespaces value() default Namespaces.URL;
-    }
+        val value: Namespaces = Namespaces.URL
+    )
 
     /**
      * Well-known "namespace" UUIDs.
      */
-    public enum Namespaces {
-        /** Fully-qualified DNS name. */
+    enum class Namespaces(difference: Int) {
+        /** Fully-qualified DNS name.  */
         DNS(0x10),
 
-        /** URL. */
+        /** URL.  */
         URL(0x11),
 
-        /** ISO object identifier. */
+        /** ISO object identifier.  */
         ISO_OID(0x12),
 
-        /** X.500 distinguished name. */
+        /** X.500 distinguished name.  */
         X500_DN(0x14);
 
-        final byte[] bytes;
+        val bytes: ByteArray
 
-        Namespaces(int difference) {
-            this.bytes = new byte[] {
-                0x6B, (byte) 0xA7, (byte) 0xB8, (byte) difference,
-                (byte) 0x9D, (byte) 0xAD,
-                0x11, (byte) 0xD1,
-                (byte) 0x80, (byte) 0xB4,
-                0x00, (byte) 0xC0, 0x4F, (byte) 0xD4, 0x30, (byte) 0xC8 };
+        init {
+            bytes = byteArrayOf(
+                0x6B, 0xA7.toByte(), 0xB8.toByte(), difference.toByte(), 0x9D.toByte(), 0xAD.toByte(),
+                0x11, 0xD1.toByte(), 0x80.toByte(), 0xB4.toByte(),
+                0x00, 0xC0.toByte(), 0x4F, 0xD4.toByte(), 0x30, 0xC8.toByte()
+            )
         }
     }
 }

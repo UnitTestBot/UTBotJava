@@ -1,53 +1,41 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.generator.java.lang.LongGenerator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.*;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.generator.java.lang.LongGenerator
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.OptionalLong
 
 /**
- * Produces values of type {@link OptionalLong}.
+ * Produces values of type [OptionalLong].
  */
-public class    OptionalLongGenerator extends Generator<OptionalLong> {
-    private final LongGenerator longs = new LongGenerator();
-
-    public OptionalLongGenerator() {
-        super(OptionalLong.class);
-    }
+class OptionalLongGenerator : Generator(OptionalLong::class.java) {
+    private val longs = LongGenerator()
 
     /**
      * Tells this generator to produce values, when
-     * {@link OptionalLong#isPresent() present}, within a specified minimum
+     * [present][OptionalLong.isPresent], within a specified minimum
      * and/or maximum, inclusive, with uniform distribution.
      *
-     * {@link InRange#min} and {@link InRange#max} take precedence over
-     * {@link InRange#minLong()} and {@link InRange#maxLong()}, if non-empty.
+     * [InRange.min] and [InRange.max] take precedence over
+     * [InRange.minLong] and [InRange.maxLong], if non-empty.
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        longs.configure(range);
+    fun configure(range: InRange?) {
+        longs.configure(range!!)
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        double trial = random.nextDouble();
-        final OptionalLong generated = trial < 0.25 ?
-                OptionalLong.empty()
-                : OptionalLong.of(longs.generateValue(random, status));
-
-        return UtModelGenerator.getUtModelConstructor().construct(generated, classIdForType(OptionalLong.class));
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val trial = random.nextDouble()
+        val generated = if (trial < 0.25) OptionalLong.empty() else OptionalLong.of(longs.generateValue(random, status))
+        return utModelConstructor.construct(generated, classIdForType(OptionalLong::class.java))
     }
-
 }

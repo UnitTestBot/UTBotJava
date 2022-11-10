@@ -1,135 +1,108 @@
+package org.utbot.quickcheck.generator.java.math
 
-
-package org.utbot.quickcheck.generator.java.math;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.DecimalGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.generator.Precision;
-import org.utbot.quickcheck.internal.Comparables;
-import org.utbot.quickcheck.internal.Ranges;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.function.Predicate;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Ranges.checkRange;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
-import static java.lang.Math.max;
-import static java.math.BigDecimal.TEN;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.DecimalGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.generator.Precision
+import org.utbot.quickcheck.internal.Ranges
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.math.BigDecimal
+import java.math.BigInteger
 
 /**
- * <p>Produces values of type {@link BigDecimal}.</p>
  *
- * <p>With no additional configuration, the generated values are chosen from
+ * Produces values of type [BigDecimal].
+ *
+ *
+ * With no additional configuration, the generated values are chosen from
  * a range with a magnitude decided by
- * {@link GenerationStatus#size()}.</p>
+ * [GenerationStatus.size].
  */
-public class BigDecimalGenerator extends DecimalGenerator<BigDecimal> {
-    private BigDecimal min;
-    private BigDecimal max;
-    private Precision precision;
-
-    public BigDecimalGenerator() {
-        super(BigDecimal.class);
-    }
+class BigDecimalGenerator : DecimalGenerator(BigDecimal::class.java) {
+    private var min: BigDecimal? = null
+    private var max: BigDecimal? = null
+    private var precision: Precision? = null
 
     /**
-     * <p>Tells this generator to produce values within a specified
-     * {@linkplain InRange#min() minimum} (inclusive) and/or
-     * {@linkplain InRange#max() maximum} (exclusive), with uniform
-     * distribution.</p>
      *
-     * <p>If an endpoint of the range is not specified, its value takes on
+     * Tells this generator to produce values within a specified
+     * [minimum][InRange.min] (inclusive) and/or
+     * [maximum][InRange.max] (exclusive), with uniform
+     * distribution.
+     *
+     *
+     * If an endpoint of the range is not specified, its value takes on
      * a magnitude influenced by
-     * {@link GenerationStatus#size()}.</p>
+     * [GenerationStatus.size].
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        if (!defaultValueOf(InRange.class, "min").equals(range.min()))
-            min = new BigDecimal(range.min());
-        if (!defaultValueOf(InRange.class, "max").equals(range.max()))
-            max = new BigDecimal(range.max());
-
-        if (min != null && max != null)
-            checkRange(Ranges.Type.FLOAT, min, max);
+    fun configure(range: InRange) {
+        if (Reflection.defaultValueOf(InRange::class.java, "min") != range.min) min = BigDecimal(range.min)
+        if (Reflection.defaultValueOf(InRange::class.java, "max") != range.max) max = BigDecimal(range.max)
+        if (min != null && max != null) Ranges.checkRange(Ranges.Type.FLOAT, min, max)
     }
 
     /**
-     * <p>Tells this generator to produce values that have a specified
-     * {@linkplain Precision#scale() scale}.</p>
      *
-     * <p>With no precision constraint and no {@linkplain #configure(InRange)
-     * min/max constraint}, the scale of the generated values is
-     * unspecified.</p>
+     * Tells this generator to produce values that have a specified
+     * [scale][Precision.scale].
      *
-     * <p>Otherwise, the scale of the generated values is set as
-     * {@code max(0, precision.scale, range.min.scale, range.max.scale)}.</p>
+     *
+     * With no precision constraint and no [ min/max constraint][.configure], the scale of the generated values is
+     * unspecified.
+     *
+     *
+     * Otherwise, the scale of the generated values is set as
+     * `max(0, precision.scale, range.min.scale, range.max.scale)`.
      *
      * @param configuration annotation that gives the desired scale of the
-     *                      generated values
+     * generated values
      */
-    public void configure(Precision configuration) {
-        precision = configuration;
+    fun configure(configuration: Precision?) {
+        precision = configuration
     }
 
-    @Override
-    public UtModel generate(
-            SourceOfRandomness random,
-            GenerationStatus status) {
-
-        BigDecimal minToUse = min;
-        BigDecimal maxToUse = max;
-        int power = status.size() + 1;
-
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        var minToUse = min
+        var maxToUse = max
+        val power = status.size() + 1
         if (minToUse == null && maxToUse == null) {
-            maxToUse = TEN.pow(power);
-            minToUse = maxToUse.negate();
+            maxToUse = BigDecimal.TEN.pow(power)
+            minToUse = maxToUse.negate()
         }
-
-        if (minToUse == null)
-            minToUse = maxToUse.subtract(TEN.pow(power));
-        else if (maxToUse == null)
-            maxToUse = minToUse.add(TEN.pow(power));
-
-        int scale = decideScale();
-
-        BigDecimal minShifted = minToUse.movePointRight(scale);
-        BigDecimal maxShifted = maxToUse.movePointRight(scale);
-        BigInteger range =
-                maxShifted.toBigInteger().subtract(minShifted.toBigInteger());
-
-        BigInteger generated;
+        when {
+            minToUse == null -> minToUse = maxToUse!!.subtract(BigDecimal.TEN.pow(power))
+            maxToUse == null -> maxToUse = minToUse.add(BigDecimal.TEN.pow(power))
+        }
+        val scale = decideScale()
+        val minShifted = minToUse!!.movePointRight(scale)
+        val maxShifted = maxToUse!!.movePointRight(scale)
+        val range = maxShifted.toBigInteger().subtract(minShifted.toBigInteger())
+        var generated: BigInteger
         do {
-            generated = random.nextBigInteger(range.bitLength());
-        } while (generated.compareTo(range) >= 0);
+            generated = random.nextBigInteger(range.bitLength())
+        } while (generated >= range)
 
-
-        return UtModelGenerator.getUtModelConstructor().construct(minShifted.add(new BigDecimal(generated))
-                .movePointLeft(scale), classIdForType(BigDecimal.class));
+        return utModelConstructor.construct(
+            minShifted.add(BigDecimal(generated)).movePointLeft(scale),
+            BigDecimal::class.id
+        )
     }
 
-    private int decideScale() {
-        int scale = Integer.MIN_VALUE;
-
-        if (min != null)
-            scale = max(scale, min.scale());
-        if (max != null)
-            scale = max(scale, max.scale());
-        if (precision != null)
-            scale = max(scale, precision.scale());
-
-        return max(scale, 0);
-    }
-
-    @Override
-    protected Predicate<BigDecimal> inRange() {
-        return Comparables.inRange(min, max);
+    private fun decideScale(): Int {
+        var scale = Int.MIN_VALUE
+        if (min != null) scale = scale.coerceAtLeast(min!!.scale())
+        if (max != null) scale = scale.coerceAtLeast(max!!.scale())
+        if (precision != null) scale = scale.coerceAtLeast(precision!!.scale)
+        return scale.coerceAtLeast(0)
     }
 
 }

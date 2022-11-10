@@ -15,7 +15,7 @@ data class FParameter(
     val parameter: Parameter,
     val value: Any?,
     var utModel: UtModel,
-    val generator: Generator<*>?,
+    val generator: Generator?,
     val classId: ClassId,
     val fields: List<FField>
 ) {
@@ -24,14 +24,14 @@ data class FParameter(
         parameter: Parameter,
         value: Any?,
         utModel: UtModel,
-        generator: Generator<*>?
+        generator: Generator?
     ) : this(parameter, value, utModel, generator, classIdForType(parameter.type), emptyList())
 
     constructor(
         parameter: Parameter,
         value: Any?,
         utModel: UtModel,
-        generator: Generator<*>?,
+        generator: Generator?,
         fields: List<FField>
     ) : this(parameter, value, utModel, generator, classIdForType(parameter.type), fields)
 

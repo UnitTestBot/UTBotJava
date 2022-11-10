@@ -1,41 +1,33 @@
+package org.utbot.quickcheck.internal.generator
 
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.booleanArrayClassId
+import org.utbot.framework.plugin.api.util.byteArrayClassId
+import org.utbot.framework.plugin.api.util.charArrayClassId
+import org.utbot.framework.plugin.api.util.defaultValueModel
+import org.utbot.framework.plugin.api.util.doubleArrayClassId
+import org.utbot.framework.plugin.api.util.floatArrayClassId
+import org.utbot.framework.plugin.api.util.intArrayClassId
+import org.utbot.framework.plugin.api.util.longArrayClassId
+import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.shortArrayClassId
+import org.utbot.quickcheck.generator.Distinct
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.Generators
+import org.utbot.quickcheck.generator.Size
+import org.utbot.quickcheck.internal.Ranges
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.lang.reflect.AnnotatedType
 
-package org.utbot.quickcheck.internal.generator;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.concrete.UtModelConstructor;
-import org.utbot.framework.plugin.api.ClassId;
-import org.utbot.framework.plugin.api.UtArrayModel;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.framework.plugin.api.util.IdUtilKt;
-import org.utbot.quickcheck.generator.*;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.lang.reflect.AnnotatedType;
-import java.util.*;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Ranges.Type.INTEGRAL;
-import static org.utbot.quickcheck.internal.Ranges.checkRange;
-import static org.utbot.quickcheck.internal.Reflection.annotatedComponentTypes;
-
-public class ArrayGenerator extends Generator<Object> {
-    private final Class<?> componentType;
-    private final Generator<?> component;
-
-    private Size lengthRange;
-    private boolean distinct;
-
-    ArrayGenerator(Class<?> componentType, Generator<?> component) {
-        super(Object.class);
-
-        this.componentType = componentType;
-        this.component = component;
-    }
-
-    public Generator<?> getComponent() {
-        return component;
-    }
+class ArrayGenerator(private val componentType: Class<*>, val component: Generator) : Generator(Any::class.java) {
+    private var lengthRange: Size? = null
+    private var distinct = false
 
     /**
      * Tells this generator to produce values with a length within a specified
@@ -43,9 +35,9 @@ public class ArrayGenerator extends Generator<Object> {
      *
      * @param size annotation that gives the length constraints
      */
-    public void configure(Size size) {
-        this.lengthRange = size;
-        checkRange(INTEGRAL, size.min(), size.max());
+    fun configure(size: Size) {
+        lengthRange = size
+        Ranges.checkRange(Ranges.Type.INTEGRAL, size.min, size.max)
     }
 
     /**
@@ -55,72 +47,52 @@ public class ArrayGenerator extends Generator<Object> {
      * @param distinct Generated values will be distinct if this param is not
      * null.
      */
-    public void configure(Distinct distinct) {
-        this.distinct = distinct != null;
+    fun configure(distinct: Distinct?) {
+        this.distinct = distinct != null
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        int length = length(random, status);
-        final ClassId componentTypeId = classIdForType(componentType);
-
-        final UtModelConstructor modelConstructor = UtModelGenerator.getUtModelConstructor();
-        final int modelId = modelConstructor.computeUnusedIdAndUpdate();
-        final Map<Integer, UtModel> stores = new HashMap<>();
-        final UtModel generatedModel = new UtArrayModel(
-                modelId, getClassIdForArrayType(componentType), length, IdUtilKt.defaultValueModel(componentTypeId), stores
-        );
-
-        for (int i = 0; i < length; ++i) {
-            final UtModel item = component.generate(random, status);
-            stores.put(i, item);
-        }
-
-        return generatedModel;
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val length = length(random, status)
+        val componentTypeId = classIdForType(componentType)
+        val modelId = utModelConstructor.computeUnusedIdAndUpdate()
+        return UtArrayModel(
+            modelId,
+            getClassIdForArrayType(componentType),
+            length,
+            componentTypeId.defaultValueModel(),
+            (0 until length).associateWithTo(hashMapOf()) { component.generate(random, status) }
+        )
     }
-    private ClassId getClassIdForArrayType(Class<?> componentType) {
-        if (int.class.equals(componentType)) {
-            return new ClassId("[i", classIdForType(int.class));
-        } else if (boolean.class.equals(componentType)) {
-            return new ClassId("[z", classIdForType(boolean.class));
-        } else if (byte.class.equals(componentType)) {
-            return new ClassId("[b", classIdForType(byte.class));
-        } else if (char.class.equals(componentType)) {
-            return new ClassId("[c", classIdForType(char.class));
-        } else if (double.class.equals(componentType)) {
-            return new ClassId("[d", classIdForType(double.class));
-        } else if (float.class.equals(componentType)) {
-            return new ClassId("[f", classIdForType(float.class));
-        } else if (long.class.equals(componentType)) {
-            return new ClassId("[j", classIdForType(long.class));
-        } else if (short.class.equals(componentType)) {
-            return new ClassId("[s", classIdForType(short.class));
-        } else {
-            return new ClassId("[L", classIdForType(componentType));
+
+    private fun getClassIdForArrayType(componentType: Class<*>): ClassId = when (componentType) {
+        Int::class.javaPrimitiveType -> intArrayClassId
+        Boolean::class.javaPrimitiveType -> booleanArrayClassId
+        Byte::class.javaPrimitiveType -> byteArrayClassId
+        Char::class.javaPrimitiveType -> charArrayClassId
+        Double::class.javaPrimitiveType -> doubleArrayClassId
+        Float::class.javaPrimitiveType -> floatArrayClassId
+        Long::class.javaPrimitiveType -> longArrayClassId
+        Short::class.javaPrimitiveType -> shortArrayClassId
+        else -> objectArrayClassId
+    }
+
+    override fun provide(provided: Generators) {
+        super.provide(provided)
+        component.provide(provided)
+    }
+
+    override fun configure(annotatedType: AnnotatedType?) {
+        super.configure(annotatedType)
+        val annotated = Reflection.annotatedComponentTypes(annotatedType)
+        if (annotated.isNotEmpty()) {
+            component.configure(annotated[0])
         }
     }
 
-    @Override public void provide(Generators provided) {
-        super.provide(provided);
-
-        component.provide(provided);
+    private fun length(random: SourceOfRandomness, status: GenerationStatus): Int {
+        return if (lengthRange != null) random.nextInt(lengthRange!!.min, lengthRange!!.max) else status.size()
     }
-
-    @Override public void configure(AnnotatedType annotatedType) {
-        super.configure(annotatedType);
-
-        List<AnnotatedType> annotated = annotatedComponentTypes(annotatedType);
-        if (!annotated.isEmpty()) {
-            component.configure(annotated.get(0));
-        }
-    }
-
-    private int length(SourceOfRandomness random, GenerationStatus status) {
-        return lengthRange != null
-            ? random.nextInt(lengthRange.min(), lengthRange.max())
-            : status.size();
-    }
-
 }

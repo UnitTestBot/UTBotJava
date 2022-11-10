@@ -21,10 +21,10 @@ internal class StaticsFieldBasedInstanceGenerator(
     private val clazz: Class<*>,
     private val gctx: GenericsContext
 ) : InstanceGenerator {
-    override fun generate(): UtModel? =
+    override fun generate(): UtModel =
         getRandomStaticToProduceInstanceUsingSoot()?.let { fieldToProvideInstance ->
             createUtModelForStaticFieldInvocation(UtModelGenerator.utModelConstructor, fieldToProvideInstance)
-        }
+        } ?: TODO("null")
 
     //In case of no Soot
     private fun getStaticFieldToProduceInstance(): Field? {

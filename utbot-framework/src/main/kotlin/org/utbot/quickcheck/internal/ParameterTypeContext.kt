@@ -1,182 +1,53 @@
+package org.utbot.quickcheck.internal
 
+import org.javaruntype.type.ExtendsTypeParameter
+import org.javaruntype.type.StandardTypeParameter
+import org.javaruntype.type.Type
+import org.javaruntype.type.TypeParameter
+import org.javaruntype.type.Types
+import org.javaruntype.type.WildcardTypeParameter
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory.makeFrom
+import org.utbot.quickcheck.internal.Items.choose
+import org.utbot.quickcheck.random.SourceOfRandomness
+import ru.vyarus.java.generics.resolver.GenericsResolver
+import ru.vyarus.java.generics.resolver.context.GenericsContext
+import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
+import java.lang.reflect.AnnotatedArrayType
+import java.lang.reflect.AnnotatedElement
+import java.lang.reflect.AnnotatedType
+import java.lang.reflect.Constructor
+import java.lang.reflect.Executable
+import java.lang.reflect.Field
+import java.lang.reflect.Method
+import java.lang.reflect.Parameter
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.TypeVariable
 
-package org.utbot.quickcheck.internal;
+class ParameterTypeContext(
+    private val parameterName: String,
+    private val parameterType: AnnotatedType,
+    private val declarerName: String,
+    val resolved: Type<*>,
+    val generics: GenericsContext,
+    private val parameterIndex: Int = -1
+) {
+    private val explicits = mutableListOf<Weighted<Generator>>()
+    private var annotatedElement: AnnotatedElement? = null
+    private var allowMixedTypes = false
 
-import org.javaruntype.type.*;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-import ru.vyarus.java.generics.resolver.GenericsResolver;
-import ru.vyarus.java.generics.resolver.context.ConstructorGenericsContext;
-import ru.vyarus.java.generics.resolver.context.GenericsContext;
-import ru.vyarus.java.generics.resolver.context.MethodGenericsContext;
-
-import java.lang.reflect.Type;
-import java.lang.reflect.*;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import static java.util.Collections.unmodifiableList;
-import static org.javaruntype.type.Types.arrayComponentOf;
-import static org.utbot.quickcheck.internal.Items.choose;
-import static org.utbot.quickcheck.internal.Reflection.*;
-
-public class ParameterTypeContext {
-    private static final String EXPLICIT_GENERATOR_TYPE_MISMATCH_MESSAGE =
-        "The generator %s named in @%s on parameter %s does not produce a type-compatible object";
-    private static org.utbot.quickcheck.internal.Zilch zilch;
-
-    private final String parameterName;
-    private final AnnotatedType parameterType;
-    private final String declarerName;
-    private final org.javaruntype.type.Type<?> resolved;
-    private final List<org.utbot.quickcheck.internal.Weighted<Generator<?>>> explicits = new ArrayList<>();
-    private final GenericsContext generics;
-    private final int parameterIndex;
-
-    private AnnotatedElement annotatedElement;
-    private boolean allowMixedTypes;
-
-    public GenericsContext getGenerics() {
-        return generics;
-    }
-    public org.javaruntype.type.Type<?> getResolved() {
-        return resolved;
-    }
-    public static ParameterTypeContext forClass(Class<?> clazz) {
-        return new ParameterTypeContext(
-            clazz.getTypeName(),
-            org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory.makeFrom(clazz),
-            clazz.getTypeName(),
-            Types.forJavaLangReflectType(clazz),
-            GenericsResolver.resolve(clazz));
+    fun annotate(element: AnnotatedElement?): ParameterTypeContext {
+        annotatedElement = element
+        return this
     }
 
-    public static ParameterTypeContext forField(Field field) {
-        GenericsContext generics =
-            GenericsResolver.resolve(field.getDeclaringClass());
-
-        return new ParameterTypeContext(
-            field.getName(),
-            field.getAnnotatedType(),
-            field.getDeclaringClass().getName(),
-            Types.forJavaLangReflectType(generics.resolveFieldType(field)),
-            generics);
+    fun allowMixedTypes(value: Boolean): ParameterTypeContext {
+        allowMixedTypes = value
+        return this
     }
 
-    public static ParameterTypeContext forParameter(Parameter parameter) {
-        Executable exec = parameter.getDeclaringExecutable();
-        Class<?> clazz = exec.getDeclaringClass();
-        String declarerName = clazz.getName() + '.' + exec.getName();
-        int parameterIndex = parameterIndex(exec, parameter);
-
-        GenericsContext generics;
-        org.javaruntype.type.Type<?> resolved;
-
-        if (exec instanceof Method) {
-            Method method = (Method) exec;
-            MethodGenericsContext methodGenerics =
-                GenericsResolver.resolve(clazz).method(method);
-            resolved =
-                Types.forJavaLangReflectType(
-                    methodGenerics.resolveParameterType(parameterIndex));
-            generics = methodGenerics;
-        } else if (exec instanceof Constructor<?>) {
-            Constructor<?> ctor = (Constructor<?>) exec;
-            ConstructorGenericsContext constructorGenerics =
-                GenericsResolver.resolve(clazz).constructor(ctor);
-            resolved =
-                Types.forJavaLangReflectType(
-                    constructorGenerics.resolveParameterType(parameterIndex));
-            generics = constructorGenerics;
-        } else {
-            throw new IllegalStateException("Unrecognized subtype of Executable");
-        }
-
-        return new ParameterTypeContext(
-            parameter.getName(),
-            parameter.getAnnotatedType(),
-            declarerName,
-            resolved,
-            generics,
-            parameterIndex);
-    }
-
-    public static ParameterTypeContext forParameter(
-        Parameter parameter,
-        MethodGenericsContext generics) {
-
-        Executable exec = parameter.getDeclaringExecutable();
-        Class<?> clazz = exec.getDeclaringClass();
-        String declarerName = clazz.getName() + '.' + exec.getName();
-        int parameterIndex = parameterIndex(exec, parameter);
-
-        return new ParameterTypeContext(
-            parameter.getName(),
-            parameter.getAnnotatedType(),
-            declarerName,
-            Types.forJavaLangReflectType(
-                generics.resolveParameterType(parameterIndex)),
-            generics,
-            parameterIndex);
-    }
-
-    private static int parameterIndex(Executable exec, Parameter parameter) {
-        Parameter[] parameters = exec.getParameters();
-        for (int i = 0; i < parameters.length; ++i) {
-            if (parameters[i].equals(parameter))
-                return i;
-        }
-
-        throw new IllegalStateException(
-            "Cannot find parameter " + parameter + " on " + exec);
-    }
-
-    public ParameterTypeContext(
-        String parameterName,
-        AnnotatedType parameterType,
-        String declarerName,
-        org.javaruntype.type.Type<?> resolvedType,
-        GenericsContext generics) {
-
-        this(
-            parameterName,
-            parameterType,
-            declarerName,
-            resolvedType,
-            generics,
-            -1);
-    }
-
-     public ParameterTypeContext(
-        String parameterName,
-        AnnotatedType parameterType,
-        String declarerName,
-        org.javaruntype.type.Type<?> resolvedType,
-        GenericsContext generics,
-        int parameterIndex) {
-
-        this.parameterName = parameterName;
-        this.parameterType = parameterType;
-        this.declarerName = declarerName;
-        this.resolved = resolvedType;
-        this.generics = generics;
-        this.parameterIndex = parameterIndex;
-    }
-
-    public ParameterTypeContext annotate(AnnotatedElement element) {
-        this.annotatedElement = element;
-        return this;
-    }
-
-    public ParameterTypeContext allowMixedTypes(boolean value) {
-        this.allowMixedTypes = value;
-        return this;
-    }
-
-    public boolean allowMixedTypes() {
-        return allowMixedTypes;
+    fun allowMixedTypes(): Boolean {
+        return allowMixedTypes
     }
 
     /**
@@ -185,257 +56,329 @@ public class ParameterTypeContext {
      * @param method method whose return type we want to resolve
      * @return an associated parameter context
      */
-    public ParameterTypeContext methodReturnTypeContext(Method method) {
-        if (!(generics instanceof MethodGenericsContext)) {
-            throw new IllegalStateException(
-                "invoking methodReturnTypeContext in present of " + generics);
-        }
-
-        MethodGenericsContext testMethodGenerics =
-            (MethodGenericsContext) generics;
-        MethodGenericsContext argMethodGenerics =
-            testMethodGenerics.parameterType(parameterIndex).method(method);
-
-        return new ParameterTypeContext(
+    fun methodReturnTypeContext(method: Method): ParameterTypeContext {
+        check(generics is MethodGenericsContext) { "invoking methodReturnTypeContext in present of $generics" }
+        val argMethodGenerics = generics.parameterType(parameterIndex).method(method)
+        return ParameterTypeContext(
             "return value",
-            method.getAnnotatedReturnType(),
-            method.getName(),
+            method.annotatedReturnType,
+            method.name,
             Types.forJavaLangReflectType(argMethodGenerics.resolveReturnType()),
-            argMethodGenerics);
+            argMethodGenerics
+        )
     }
 
-    private Generator<?> makeGenerator(
-        Class<? extends Generator> generatorType) {
-
-        Constructor<? extends Generator> ctor;
-
-        try {
+    private fun makeGenerator(
+        generatorType: Class<out Generator>
+    ): Generator {
+        val ctor = try {
             // for Ctor/Fields
-            ctor = findConstructor(generatorType, Class.class);
-        } catch (ReflectionException ex) {
-            return instantiate(generatorType);
+            Reflection.findConstructor(generatorType, Class::class.java)
+        } catch (ex: ReflectionException) {
+            return Reflection.instantiate(generatorType)
         }
-
-        return instantiate(ctor, rawParameterType());
+        return Reflection.instantiate(ctor, rawParameterType())
     }
 
-    private Class<?> rawParameterType() {
-        if (type() instanceof ParameterizedType)
-            return resolved.getRawClass();
-        if (type() instanceof TypeVariable<?>)
-            return resolved.getRawClass();
-
-        return (Class<?>) type();
+    private fun rawParameterType(): Class<*> {
+        return when {
+            type() is ParameterizedType -> resolved.rawClass
+            type() is TypeVariable<*> -> resolved.rawClass
+            else -> type() as Class<*>
+        }
     }
 
-    public String name() {
-        return declarerName + ':' + parameterName;
+    fun name(): String {
+        return "$declarerName:$parameterName"
     }
 
-    public AnnotatedType annotatedType() {
-        return parameterType;
+    fun annotatedType(): AnnotatedType {
+        return parameterType
     }
 
-    public Type type() {
-        return parameterType.getType();
+    fun type(): java.lang.reflect.Type {
+        return parameterType.type
     }
 
     /**
-     * @deprecated This will likely go away when languages whose compilers
-     * and interpreters produce class files that support annotations on type
-     * uses.
-     * @see <a href="https://github.com/pholser/junit-quickcheck/issues/77">
-     * this issue</a>
+     * @see [
+     * this issue](https://github.com/pholser/junit-quickcheck/issues/77)
+     *
      * @return the annotated program element this context represents
      */
-    @Deprecated
-    public AnnotatedElement annotatedElement() {
-        return annotatedElement;
+    @Deprecated(
+        """This will likely go away when languages whose compilers
+      and interpreters produce class files that support annotations on type
+      uses.
+      """
+    )
+    fun annotatedElement(): AnnotatedElement? {
+        return annotatedElement
     }
 
     /**
-     * @deprecated This will likely go away when languages whose compilers
-     * and interpreters produce class files that support annotations on type
-     * uses.
-     * @see <a href="https://github.com/pholser/junit-quickcheck/issues/77">
-     * this issue</a>
+     * @see [
+     * this issue](https://github.com/pholser/junit-quickcheck/issues/77)
+     *
      * @return the annotated program element this context represents
      */
-    @Deprecated
-    public boolean topLevel() {
-        return annotatedElement instanceof Parameter
-            || annotatedElement instanceof Field;
+    @Deprecated(
+        """This will likely go away when languages whose compilers
+      and interpreters produce class files that support annotations on type
+      uses.
+      """
+    )
+    fun topLevel(): Boolean {
+        return (annotatedElement is Parameter || annotatedElement is Field)
     }
 
-    public List<Weighted<Generator<?>>> explicitGenerators() {
-        return unmodifiableList(explicits);
+    fun explicitGenerators(): List<Weighted<Generator>> {
+        return explicits
     }
 
-    private void addParameterTypeContextToDeque(ArrayDeque<ParameterTypeContext> deque, ParameterTypeContext ptx) {
-        if (ptx.resolved.getName().equals(Zilch.class.getName())) return;
-        deque.add(ptx);
+    private fun addParameterTypeContextToDeque(deque: ArrayDeque<ParameterTypeContext>, ptx: ParameterTypeContext) {
+        if (ptx.resolved.name == Zilch::class.java.name) return
+        deque.add(ptx)
     }
-    public List<ParameterTypeContext> getAllSubParameterTypeContexts(SourceOfRandomness sourceOfRandomness) {
-        ArrayList<ParameterTypeContext> res = new ArrayList<>();
-        res.add(this);
-        ArrayDeque<ParameterTypeContext> deque = new ArrayDeque<>();
-        if (isArray()) {
-            addParameterTypeContextToDeque(deque, arrayComponentContext());
-            deque.add(arrayComponentContext());
+
+    fun getAllSubParameterTypeContexts(sourceOfRandomness: SourceOfRandomness?): List<ParameterTypeContext> {
+        val res = mutableListOf(this)
+        val deque = ArrayDeque<ParameterTypeContext>()
+        if (isArray) {
+            addParameterTypeContextToDeque(deque, arrayComponentContext())
+            deque.add(arrayComponentContext())
         }
-        typeParameterContexts(sourceOfRandomness).forEach(ptx -> addParameterTypeContextToDeque(deque, ptx));
+        typeParameterContexts(sourceOfRandomness).forEach { ptx: ParameterTypeContext ->
+            addParameterTypeContextToDeque(deque, ptx)
+        }
         while (!deque.isEmpty()) {
-            ParameterTypeContext ptx = deque.removeFirst();
-            res.add(ptx);
-            if (ptx.isArray()) {
-                addParameterTypeContextToDeque(deque, ptx.arrayComponentContext());
+            val ptx = deque.removeFirst()
+            res.add(ptx)
+            if (ptx.isArray) {
+                addParameterTypeContextToDeque(deque, ptx.arrayComponentContext())
             }
-            ptx.typeParameterContexts(sourceOfRandomness).forEach(ptxNested -> addParameterTypeContextToDeque(deque, ptxNested));
+            ptx.typeParameterContexts(sourceOfRandomness).forEach { ptxNested: ParameterTypeContext ->
+                addParameterTypeContextToDeque(deque, ptxNested)
+            }
         }
-        return res;
+        return res
     }
-    public ParameterTypeContext arrayComponentContext() {
-        @SuppressWarnings("unchecked")
-        org.javaruntype.type.Type<?> component =
-            arrayComponentOf((org.javaruntype.type.Type<Object[]>) resolved);
-        AnnotatedType annotatedComponent = annotatedArrayComponent(component);
-        return new ParameterTypeContext(
-            annotatedComponent.getType().getTypeName(),
+
+    fun arrayComponentContext(): ParameterTypeContext {
+        val component = Types.arrayComponentOf(resolved as Type<Array<Any>>)
+        val annotatedComponent = annotatedArrayComponent(component)
+        return ParameterTypeContext(
+            annotatedComponent.type.typeName,
             annotatedComponent,
-            parameterType.getType().getTypeName(),
+            parameterType.type.typeName,
             component,
-            generics)
-            .annotate(annotatedComponent)
-            .allowMixedTypes(true);
+            generics
+        ).annotate(annotatedComponent).allowMixedTypes(true)
     }
 
-    private AnnotatedType annotatedArrayComponent(
-        org.javaruntype.type.Type<?> component) {
-
-        return parameterType instanceof AnnotatedArrayType
-            ? ((AnnotatedArrayType) parameterType).getAnnotatedGenericComponentType()
-            : org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory.makeFrom(component.getComponentClass());
+    private fun annotatedArrayComponent(component: Type<*>): AnnotatedType {
+        return if (parameterType is AnnotatedArrayType) {
+            parameterType.annotatedGenericComponentType
+        } else {
+            makeFrom(component.componentClass)
+        }
     }
 
-    public boolean isArray() {
-        return resolved.isArray();
-    }
+    val isArray: Boolean
+        get() = resolved.isArray
+    val rawClass: Class<*>
+        get() = resolved.rawClass
+    val isEnum: Boolean
+        get() = rawClass.isEnum
+    val typeParameters: List<TypeParameter<*>>
+        get() = resolved.typeParameters
 
-    public Class<?> getRawClass() {
-        return resolved.getRawClass();
-    }
-
-    public boolean isEnum() {
-        return getRawClass().isEnum();
-    }
-
-    public List<TypeParameter<?>> getTypeParameters() {
-        return resolved.getTypeParameters();
-    }
-
-    public List<ParameterTypeContext> typeParameterContexts(
-        SourceOfRandomness random) {
-
-        List<ParameterTypeContext> typeParamContexts = new ArrayList<>();
-        List<TypeParameter<?>> typeParameters = getTypeParameters();
-        List<AnnotatedType> annotatedTypeParameters =
-            annotatedComponentTypes(annotatedType());
-
-        for (int i = 0; i < typeParameters.size(); ++i) {
-            TypeParameter<?> p = typeParameters.get(i);
-            AnnotatedType a =
-                annotatedTypeParameters.size() > i
-                    ? annotatedTypeParameters.get(i)
-                    : zilch();
-
-            if (p instanceof StandardTypeParameter<?>)
-                addStandardTypeParameterContext(typeParamContexts, p, a);
-            else if (p instanceof WildcardTypeParameter)
-                addWildcardTypeParameterContext(typeParamContexts, a);
-            else if (p instanceof ExtendsTypeParameter<?>)
-                addExtendsTypeParameterContext(typeParamContexts, p, a);
-            else {
-                // must be "? super X"
-                addSuperTypeParameterContext(random, typeParamContexts, p, a);
+    fun typeParameterContexts(random: SourceOfRandomness?): List<ParameterTypeContext> {
+        val typeParamContexts = mutableListOf<ParameterTypeContext>()
+        val typeParameters = typeParameters
+        val annotatedTypeParameters = Reflection.annotatedComponentTypes(annotatedType())
+        for (i in typeParameters.indices) {
+            val p = typeParameters[i]
+            val a = if (annotatedTypeParameters.size > i) annotatedTypeParameters[i] else zilch()
+            when (p) {
+                is StandardTypeParameter<*> -> addStandardTypeParameterContext(typeParamContexts, p, a)
+                is WildcardTypeParameter -> addWildcardTypeParameterContext(typeParamContexts, a)
+                is ExtendsTypeParameter<*> -> addExtendsTypeParameterContext(typeParamContexts, p, a)
+                else -> {
+                    // must be "? super X"
+                    addSuperTypeParameterContext(random, typeParamContexts, p, a)
+                }
             }
         }
-
-        return typeParamContexts;
+        return typeParamContexts
     }
 
-    private void addStandardTypeParameterContext(
-        List<ParameterTypeContext> typeParameterContexts,
-        TypeParameter<?> p,
-        AnnotatedType a) {
-
+    private fun addStandardTypeParameterContext(
+        typeParameterContexts: MutableList<ParameterTypeContext>,
+        p: TypeParameter<*>,
+        a: AnnotatedType
+    ) {
         typeParameterContexts.add(
-            new ParameterTypeContext(
-                p.getType().getName(),
+            ParameterTypeContext(
+                p.type.name,
                 a,
-                annotatedType().getType().getTypeName(),
-                p.getType(),
-                generics)
-            .allowMixedTypes(!(a instanceof TypeVariable))
-            .annotate(a));
+                annotatedType().type.typeName,
+                p.type,
+                generics
+            ).allowMixedTypes(a !is TypeVariable<*>).annotate(a)
+        )
     }
 
-    private void addWildcardTypeParameterContext(
-        List<ParameterTypeContext> typeParameterContexts,
-        AnnotatedType a) {
-
+    private fun addWildcardTypeParameterContext(
+        typeParameterContexts: MutableList<ParameterTypeContext>,
+        a: AnnotatedType
+    ) {
         typeParameterContexts.add(
-            new ParameterTypeContext(
+            ParameterTypeContext(
                 "Zilch",
                 a,
-                annotatedType().getType().getTypeName(),
-                Types.forJavaLangReflectType(org.utbot.quickcheck.internal.Zilch.class),
-                GenericsResolver.resolve(Zilch.class))
-                .allowMixedTypes(true)
-                .annotate(a));
+                annotatedType().type.typeName,
+                Types.forJavaLangReflectType(Zilch::class.java),
+                GenericsResolver.resolve(Zilch::class.java)
+            ).allowMixedTypes(true).annotate(a)
+        )
     }
 
-    private void addExtendsTypeParameterContext(
-        List<ParameterTypeContext> typeParameterContexts,
-        TypeParameter<?> p,
-        AnnotatedType a) {
-
+    private fun addExtendsTypeParameterContext(
+        typeParameterContexts: MutableList<ParameterTypeContext>,
+        p: TypeParameter<*>,
+        a: AnnotatedType
+    ) {
         typeParameterContexts.add(
-            new ParameterTypeContext(
-                p.getType().getName(),
-                annotatedComponentTypes(a).get(0),
-                annotatedType().getType().getTypeName(),
-                p.getType(),
-                generics)
-                .allowMixedTypes(false)
-                .annotate(a));
+            ParameterTypeContext(
+                p.type.name,
+                Reflection.annotatedComponentTypes(a)[0],
+                annotatedType().type.typeName,
+                p.type,
+                generics
+            ).allowMixedTypes(false).annotate(a)
+        )
     }
 
-    private void addSuperTypeParameterContext(
-        SourceOfRandomness random,
-        List<ParameterTypeContext> typeParameterContexts,
-        TypeParameter<?> p,
-        AnnotatedType a) {
-
-        Set<org.javaruntype.type.Type<?>> supertypes = supertypes(p.getType());
-        org.javaruntype.type.Type<?> choice = choose(supertypes, random);
-
+    private fun addSuperTypeParameterContext(
+        random: SourceOfRandomness?,
+        typeParameterContexts: MutableList<ParameterTypeContext>,
+        p: TypeParameter<*>,
+        a: AnnotatedType
+    ) {
+        val supertypes = Reflection.supertypes(p.type)
+        val choice = choose(supertypes, random!!)
         typeParameterContexts.add(
-            new ParameterTypeContext(
-                p.getType().getName(),
-                annotatedComponentTypes(a).get(0),
-                annotatedType().getType().getTypeName(),
+            ParameterTypeContext(
+                p.type.name,
+                Reflection.annotatedComponentTypes(a)[0],
+                annotatedType().type.typeName,
                 choice,
-                generics)
-                .allowMixedTypes(false)
-                .annotate(a));
+                generics
+            ).allowMixedTypes(false).annotate(a)
+        )
     }
 
-    private static AnnotatedType zilch() {
-        try {
-            return ParameterTypeContext.class.getDeclaredField("zilch")
-                .getAnnotatedType();
-        } catch (NoSuchFieldException e) {
-            throw new AssertionError(e);
+    companion object {
+        @Suppress("unused")
+        @JvmStatic
+        private val zilch: Zilch = Zilch
+
+        fun forClass(clazz: Class<*>): ParameterTypeContext {
+            return ParameterTypeContext(
+                clazz.typeName,
+                makeFrom(clazz),
+                clazz.typeName,
+                Types.forJavaLangReflectType(clazz),
+                GenericsResolver.resolve(clazz)
+            )
+        }
+
+        fun forField(field: Field): ParameterTypeContext {
+            val generics = GenericsResolver.resolve(field.declaringClass)
+            return ParameterTypeContext(
+                field.name,
+                field.annotatedType,
+                field.declaringClass.name,
+                Types.forJavaLangReflectType(generics.resolveFieldType(field)),
+                generics
+            )
+        }
+
+        fun forParameter(parameter: Parameter): ParameterTypeContext {
+            val exec = parameter.declaringExecutable
+            val clazz = exec.declaringClass
+            val declarerName = clazz.name + '.' + exec.name
+            val parameterIndex = parameterIndex(exec, parameter)
+            val generics: GenericsContext
+            val resolved: Type<*>
+            when (exec) {
+                is Method -> {
+                    val methodGenerics = GenericsResolver.resolve(clazz).method(exec)
+                    resolved = Types.forJavaLangReflectType(
+                        methodGenerics.resolveParameterType(parameterIndex)
+                    )
+                    generics = methodGenerics
+                }
+
+                is Constructor<*> -> {
+                    val constructorGenerics = GenericsResolver.resolve(clazz).constructor(exec)
+                    resolved = Types.forJavaLangReflectType(
+                        constructorGenerics.resolveParameterType(parameterIndex)
+                    )
+                    generics = constructorGenerics
+                }
+
+                else -> {
+                    throw IllegalStateException("Unrecognized subtype of Executable")
+                }
+            }
+            return ParameterTypeContext(
+                parameter.name,
+                parameter.annotatedType,
+                declarerName,
+                resolved,
+                generics,
+                parameterIndex
+            )
+        }
+
+        fun forParameter(
+            parameter: Parameter,
+            generics: MethodGenericsContext
+        ): ParameterTypeContext {
+            val exec = parameter.declaringExecutable
+            val clazz = exec.declaringClass
+            val declarerName = clazz.name + '.' + exec.name
+            val parameterIndex = parameterIndex(exec, parameter)
+            return ParameterTypeContext(
+                parameter.name,
+                parameter.annotatedType,
+                declarerName,
+                Types.forJavaLangReflectType(
+                    generics.resolveParameterType(parameterIndex)
+                ),
+                generics,
+                parameterIndex
+            )
+        }
+
+        private fun parameterIndex(exec: Executable, parameter: Parameter): Int {
+            val parameters = exec.parameters
+            for (i in parameters.indices) {
+                if (parameters[i] == parameter) return i
+            }
+            throw IllegalStateException(
+                "Cannot find parameter $parameter on $exec"
+            )
+        }
+
+        private fun zilch(): AnnotatedType {
+            return try {
+                Companion::class.java.getDeclaredField("zilch").annotatedType
+            } catch (e: NoSuchFieldException) {
+                throw AssertionError(e)
+            }
         }
     }
 }

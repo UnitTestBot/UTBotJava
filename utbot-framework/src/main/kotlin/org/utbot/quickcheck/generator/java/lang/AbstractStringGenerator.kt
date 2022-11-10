@@ -1,39 +1,36 @@
-package org.utbot.quickcheck.generator.java.lang;
+package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getStringClassId;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * <p>Base class for generators of values of type {@link String}.</p>
  *
- * <p>The generated values will have {@linkplain String#length()} decided by
- * {@link GenerationStatus#size()}.</p>
+ * Base class for generators of values of type [String].
+ *
+ *
+ * The generated values will have [String.length] decided by
+ * [GenerationStatus.size].
  */
-public abstract class AbstractStringGenerator extends Generator<String> {
-    protected AbstractStringGenerator() {
-        super(String.class);
+abstract class AbstractStringGenerator : Generator(String::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(generateValue(random, status), stringClassId)
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-        return UtModelGenerator.getUtModelConstructor().construct(generateValue(random, status), getStringClassId());
+    fun generateValue(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): String {
+        val codePoints = IntArray(status.size())
+        for (i in codePoints.indices) codePoints[i] = nextCodePoint(random)
+        return String(codePoints, 0, codePoints.size)
     }
 
-    public String generateValue( SourceOfRandomness random,
-                                 GenerationStatus status){
-        int[] codePoints = new int[status.size()];
-
-        for (int i = 0; i < codePoints.length; ++i)
-            codePoints[i] = nextCodePoint(random);
-        return new String(codePoints, 0, codePoints.length);
-    }
-
-    protected abstract int nextCodePoint(SourceOfRandomness random);
-
+    protected abstract fun nextCodePoint(random: SourceOfRandomness): Int
 }

@@ -1,39 +1,35 @@
+package org.utbot.quickcheck.generator.java.util.concurrent
 
-
-package org.utbot.quickcheck.generator.java.util.concurrent;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.ComponentizedGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.concurrent.Callable;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.generator.Lambdas.makeLambda;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.ComponentizedGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Lambdas.Companion.makeLambda
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.concurrent.Callable
 
 /**
- * Produces values of type {@code Callable}.
+ * Produces values of type `Callable`.
  *
  * @param <V> the type of the values produced by the generated instances
- */
-public class CallableGenerator<V> extends ComponentizedGenerator<Callable> {
-    public CallableGenerator() {
-        super(Callable.class);
+</V> */
+class CallableGenerator<V> : ComponentizedGenerator(Callable::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            makeLambda(
+                Callable::class.java,
+                componentGenerators()[0],
+                status
+            ),
+            Callable::class.id
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(makeLambda(
-            Callable.class,
-            componentGenerators().get(0),
-            status), classIdForType(CallableGenerator.class));
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return 1;
+    override fun numberOfNeededComponents(): Int {
+        return 1
     }
 }

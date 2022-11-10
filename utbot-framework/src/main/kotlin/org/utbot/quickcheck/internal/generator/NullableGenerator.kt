@@ -1,88 +1,75 @@
+package org.utbot.quickcheck.internal.generator
 
-package org.utbot.quickcheck.internal.generator;
+import org.javaruntype.type.TypeParameter
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.Generators
+import org.utbot.quickcheck.generator.NullAllowed
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.lang.reflect.AnnotatedElement
+import java.lang.reflect.AnnotatedType
+import java.util.Optional
 
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.framework.plugin.api.UtNullModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.Generators;
-import org.utbot.quickcheck.generator.NullAllowed;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-import org.javaruntype.type.TypeParameter;
-
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.AnnotatedType;
-import java.util.List;
-import java.util.Optional;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
-
-class NullableGenerator<T> extends Generator<T> {
-    private final Generator<T> delegate;
-    private double probabilityOfNull =
-        (Double) defaultValueOf(NullAllowed.class, "probability");
-
-    NullableGenerator(Generator<T> delegate) {
-        super(delegate.types());
-
-        this.delegate = delegate;
-    }
-
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return random.nextFloat(0, 1) < probabilityOfNull
-            ? new UtNullModel(classIdForType(types().get(0)))
-            : delegate.generate(random, status);
-    }
-
-    @Override public boolean canRegisterAsType(Class<?> type) {
-        return delegate.canRegisterAsType(type);
-    }
-
-    @Override public boolean hasComponents() {
-        return delegate.hasComponents();
-    }
-
-    @Override public int numberOfNeededComponents() {
-        return delegate.numberOfNeededComponents();
-    }
-
-    @Override public void addComponentGenerators(
-        List<Generator<?>> newComponents) {
-
-        delegate.addComponentGenerators(newComponents);
-    }
-
-    @Override public boolean canGenerateForParametersOfTypes(
-        List<TypeParameter<?>> typeParameters) {
-
-        return delegate.canGenerateForParametersOfTypes(typeParameters);
-    }
-
-    @Override public void configure(AnnotatedType annotatedType) {
-        Optional.ofNullable(annotatedType.getAnnotation(NullAllowed.class))
-            .ifPresent(this::configure);
-
-        delegate.configure(annotatedType);
-    }
-
-    @Override public void configure(AnnotatedElement element) {
-        delegate.configure(element);
-    }
-
-    @Override public void provide(Generators provided) {
-        delegate.provide(provided);
-    }
-
-    private void configure(NullAllowed allowed) {
-        if (allowed.probability() >= 0 && allowed.probability() <= 1) {
-            this.probabilityOfNull = allowed.probability();
+internal class NullableGenerator(private val delegate: Generator) : Generator(delegate.types()) {
+    private var probabilityOfNull = Reflection.defaultValueOf(NullAllowed::class.java, "probability") as Double
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return if (random.nextFloat(0f, 1f) < probabilityOfNull) {
+            UtNullModel(classIdForType(types()[0]))
         } else {
-            throw new IllegalArgumentException(
-                "NullAllowed probability must be in the range [0, 1]");
+            delegate.generate(random, status)
+        }
+    }
+
+    override fun canRegisterAsType(type: Class<*>): Boolean {
+        return delegate.canRegisterAsType(type)
+    }
+
+    override fun hasComponents(): Boolean {
+        return delegate.hasComponents()
+    }
+
+    override fun numberOfNeededComponents(): Int {
+        return delegate.numberOfNeededComponents()
+    }
+
+    override fun addComponentGenerators(
+        newComponents: List<Generator>
+    ) {
+        delegate.addComponentGenerators(newComponents)
+    }
+
+    override fun canGenerateForParametersOfTypes(typeParameters: List<TypeParameter<*>>): Boolean {
+        return delegate.canGenerateForParametersOfTypes(typeParameters)
+    }
+
+    override fun configure(annotatedType: AnnotatedType?) {
+        Optional.ofNullable(annotatedType!!.getAnnotation(NullAllowed::class.java))
+            .ifPresent { allowed: NullAllowed -> this.configure(allowed) }
+        delegate.configure(annotatedType)
+    }
+
+    override fun configure(element: AnnotatedElement?) {
+        delegate.configure(element)
+    }
+
+    override fun provide(provided: Generators) {
+        delegate.provide(provided)
+    }
+
+    private fun configure(allowed: NullAllowed) {
+        if (allowed.probability >= 0 && allowed.probability <= 1) {
+            probabilityOfNull = allowed.probability
+        } else {
+            throw IllegalArgumentException(
+                "NullAllowed probability must be in the range [0, 1]"
+            )
         }
     }
 }

@@ -7,7 +7,6 @@ import org.utbot.quickcheck.generator.java.util.CollectionGenerator
 import org.utbot.quickcheck.generator.java.util.MapGenerator
 import org.utbot.quickcheck.internal.generator.ArrayGenerator
 import org.utbot.engine.greyboxfuzzer.util.getTrue
-import org.utbot.engine.greyboxfuzzer.util.setFieldValue
 import org.utbot.quickcheck.generator.java.lang.*
 import kotlin.random.Random
 
@@ -66,13 +65,13 @@ object GeneratorConfigurator {
         inRangeAnnotationInstance = InRange::class.constructors.first().callBy(inRangeAnnotationParams)
     }
 
-    fun configureGenerator(generator: Generator<*>, prob: Int) {
+    fun configureGenerator(generator: Generator, prob: Int) {
         (listOf(generator) + generator.getAllComponents()).forEach {
             if (Random.getTrue(prob)) handleGenerator(it)
         }
     }
 
-    private fun handleGenerator(generator: Generator<*>) =
+    private fun handleGenerator(generator: Generator) =
         when (generator) {
             is IntegerGenerator -> generator.configure(inRangeAnnotationInstance)
             is ByteGenerator -> generator.configure(inRangeAnnotationInstance)
@@ -88,7 +87,7 @@ object GeneratorConfigurator {
             is PrimitiveFloatGenerator -> generator.configure(inRangeAnnotationInstance)
             is PrimitiveDoubleGenerator -> generator.configure(inRangeAnnotationInstance)
             is PrimitiveLongGenerator -> generator.configure(inRangeAnnotationInstance)
-            is CollectionGenerator<*> -> generator.configure(sizeAnnotationInstance)
+            is CollectionGenerator -> generator.configure(sizeAnnotationInstance)
             is ArrayGenerator -> generator.configure(sizeAnnotationInstance)
             is MapGenerator -> generator.configure(sizeAnnotationInstance)
             else -> Unit

@@ -1,86 +1,66 @@
-package org.utbot.quickcheck.generator.java.util;
+package org.utbot.quickcheck.generator.java.util
 
-
-
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.concrete.UtModelConstructor;
-import org.utbot.framework.plugin.api.*;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.java.lang.AbstractStringGenerator;
-import org.utbot.quickcheck.generator.java.lang.Encoded;
-import org.utbot.quickcheck.generator.java.lang.StringGenerator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.*;
-
-import static java.util.Arrays.asList;
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getObjectClassId;
-import static org.utbot.framework.plugin.api.util.IdUtilKt.methodId;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.methodId
+import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.java.lang.AbstractStringGenerator
+import org.utbot.quickcheck.generator.java.lang.Encoded
+import org.utbot.quickcheck.generator.java.lang.Encoded.InCharset
+import org.utbot.quickcheck.generator.java.lang.StringGenerator
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.Dictionary
+import java.util.Hashtable
+import java.util.Properties
 
 /**
- * Produces values of type {@link Properties}.
+ * Produces values of type [Properties].
  */
-public class PropertiesGenerator extends Generator<Properties> {
-    private AbstractStringGenerator stringGenerator = new StringGenerator();
-
-    public PropertiesGenerator() {
-        super(Properties.class);
+class PropertiesGenerator : Generator(Properties::class.java) {
+    private var stringGenerator: AbstractStringGenerator = StringGenerator()
+    fun configure(charset: InCharset?) {
+        val encoded = Encoded()
+        encoded.configure(charset!!)
+        stringGenerator = encoded
     }
 
-    public void configure(Encoded.InCharset charset) {
-        Encoded encoded = new Encoded();
-        encoded.configure(charset);
-        stringGenerator = encoded;
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val size = status.size()
+        val classId = Properties::class.id
+
+        val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val constructorId = ConstructorId(classId, emptyList())
+        return UtAssembleModel(
+            generatedModelId,
+            classId,
+            constructorId.name + "#" + generatedModelId,
+            UtExecutableCallModel(null, constructorId, emptyList()),
+        ) {
+            val setPropertyMethodId = methodId(classId, "setProperty", objectClassId, objectClassId, objectClassId)
+            (0..size).map {
+                val key = stringGenerator.generate(random, status)
+                val value = stringGenerator.generate(random, status)
+                UtExecutableCallModel(this, setPropertyMethodId, listOf(key, value))
+            }
+        }
     }
 
-    @Override
-    public UtModel generate(
-            SourceOfRandomness random,
-            GenerationStatus status) {
-
-        int size = status.size();
-
-        final UtModelConstructor modelConstructor = UtModelGenerator.getUtModelConstructor();
-        final ClassId classId = classIdForType(Properties.class);
-
-        final ExecutableId constructorId = new ConstructorId(classId, List.of());
-        final int generatedModelId = modelConstructor.computeUnusedIdAndUpdate();
-
-        final UtAssembleModel generatedModel = new UtAssembleModel(
-                generatedModelId,
-                classId,
-                constructorId.getName() + "#" + generatedModelId,
-                new UtExecutableCallModel(null, constructorId, List.of()),
-                null,
-                (a) -> {
-                    final List<UtStatementModel> modificationChain = new ArrayList<>();
-                    final ExecutableId setPropertyMethodId = methodId(classId, "setProperty", getObjectClassId(), getObjectClassId(), getObjectClassId());
-
-                    for (int i = 0; i < size; i++) {
-                        final UtModel key = stringGenerator.generate(random, status);
-                        final UtModel value = stringGenerator.generate(random, status);
-                        modificationChain.add(new UtExecutableCallModel(a, setPropertyMethodId, List.of(key, value)));
-                    }
-                    return modificationChain;
-                }
-        );
-
-        return generatedModel;
+    override fun canRegisterAsType(type: Class<*>): Boolean {
+        val exclusions = setOf(
+            Any::class.java,
+            Hashtable::class.java,
+            MutableMap::class.java,
+            Dictionary::class.java
+        )
+        return !exclusions.contains(type)
     }
-
-    @Override public boolean canRegisterAsType(Class<?> type) {
-        Set<Class<?>> exclusions =
-            new HashSet<>(
-                asList(
-                    Object.class,
-                    Hashtable.class,
-                    Map.class,
-                    Dictionary.class));
-        return !exclusions.contains(type);
-    }
-
 }

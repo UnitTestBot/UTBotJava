@@ -1,73 +1,62 @@
+package org.utbot.quickcheck.generator.java.time
 
-
-package org.utbot.quickcheck.generator.java.time;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.time.LocalDate;
-import java.time.MonthDay;
-import java.time.format.DateTimeFormatter;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.time.LocalDate
+import java.time.MonthDay
+import java.time.format.DateTimeFormatter
 
 /**
- * Produces values of type {@link MonthDay}.
+ * Produces values of type [MonthDay].
  */
-public class MonthDayGenerator extends Generator<MonthDay> {
-    private MonthDay min = MonthDay.of(1, 1);
-    private MonthDay max = MonthDay.of(12, 31);
-
-    public MonthDayGenerator() {
-        super(MonthDay.class);
-    }
+class MonthDayGenerator : Generator(MonthDay::class.java) {
+    private var min = MonthDay.of(1, 1)
+    private var max = MonthDay.of(12, 31)
 
     /**
-     * <p>Tells this generator to produce values within a specified
-     * {@linkplain InRange#min() minimum} and/or {@linkplain InRange#max()
-     * maximum}, inclusive, with uniform distribution.</p>
      *
-     * <p>If an endpoint of the range is not specified, the generator will use
-     * dates with values of either {@code MonthDay(1, 1)} or
-     * {@code MonthDay(12, 31)} as appropriate.</p>
+     * Tells this generator to produce values within a specified
+     * [minimum][InRange.min] and/or [ maximum][InRange.max], inclusive, with uniform distribution.
      *
-     * <p>{@link InRange#format()} describes
-     * {@linkplain DateTimeFormatter#ofPattern(String) how the generator is to
-     * interpret the range's endpoints}.</p>
+     *
+     * If an endpoint of the range is not specified, the generator will use
+     * dates with values of either `MonthDay(1, 1)` or
+     * `MonthDay(12, 31)` as appropriate.
+     *
+     *
+     * [InRange.format] describes
+     * [how the generator is to][DateTimeFormatter.ofPattern].
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        DateTimeFormatter formatter =
-            DateTimeFormatter.ofPattern(range.format());
-
-        if (!defaultValueOf(InRange.class, "min").equals(range.min()))
-            min = MonthDay.parse(range.min(), formatter);
-        if (!defaultValueOf(InRange.class, "max").equals(range.max()))
-            max = MonthDay.parse(range.max(), formatter);
-
-        if (min.compareTo(max) > 0) {
-            throw new IllegalArgumentException(
-                String.format("bad range, %s > %s", min, max));
-        }
+    fun configure(range: InRange) {
+        val formatter = DateTimeFormatter.ofPattern(range.format)
+        if (Reflection.defaultValueOf(InRange::class.java, "min") != range.min) min =
+            MonthDay.parse(range.min, formatter)
+        if (Reflection.defaultValueOf(InRange::class.java, "max") != range.max) max =
+            MonthDay.parse(range.max, formatter)
+        require(min <= max) { String.format("bad range, %s > %s", min, max) }
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
 
         /* Project the MonthDay to a LocalDate for easy long-based generation.
            Any leap year will do here. */
-        long minEpochDay = min.atYear(2000).toEpochDay();
-        long maxEpochDay = max.atYear(2000).toEpochDay();
-        LocalDate date =
-            LocalDate.ofEpochDay(random.nextLong(minEpochDay, maxEpochDay));
-
-        return UtModelGenerator.getUtModelConstructor().construct(MonthDay.of(date.getMonthValue(), date.getDayOfMonth()), classIdForType(MonthDay.class));
+        val minEpochDay = min.atYear(2000).toEpochDay()
+        val maxEpochDay = max.atYear(2000).toEpochDay()
+        val date = LocalDate.ofEpochDay(random.nextLong(minEpochDay, maxEpochDay))
+        return utModelConstructor.construct(
+            MonthDay.of(date.monthValue, date.dayOfMonth),
+            MonthDay::class.id
+        )
     }
 }

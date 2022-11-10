@@ -1,78 +1,68 @@
+package org.utbot.quickcheck.generator.java.time
 
-
-package org.utbot.quickcheck.generator.java.time;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.time.LocalTime;
-import java.time.OffsetTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.time.LocalTime
+import java.time.OffsetTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 /**
- * Produces values of type {@link OffsetTime}.
+ * Produces values of type [OffsetTime].
  */
-public class OffsetTimeGenerator extends Generator<OffsetTime> {
-    private OffsetTime min = OffsetTime.MIN;
-    private OffsetTime max = OffsetTime.MAX;
-
-    public OffsetTimeGenerator() {
-        super(OffsetTime.class);
-    }
+class OffsetTimeGenerator : Generator(OffsetTime::class.java) {
+    private var min = OffsetTime.MIN
+    private var max = OffsetTime.MAX
 
     /**
-     * <p>Tells this generator to produce values within a specified
-     * {@linkplain InRange#min() minimum} and/or {@linkplain InRange#max()
-     * maximum}, inclusive, with uniform distribution, down to the
-     * nanosecond.</p>
      *
-     * <p>If an endpoint of the range is not specified, the generator will use
-     * times with values of either {@link OffsetTime#MIN} or
-     * {@link OffsetTime#MAX} as appropriate.</p>
+     * Tells this generator to produce values within a specified
+     * [minimum][InRange.min] and/or [ maximum][InRange.max], inclusive, with uniform distribution, down to the
+     * nanosecond.
      *
-     * <p>{@link InRange#format()} describes
-     * {@linkplain DateTimeFormatter#ofPattern(String) how the generator is to
-     * interpret the range's endpoints}.</p>
+     *
+     * If an endpoint of the range is not specified, the generator will use
+     * times with values of either [OffsetTime.MIN] or
+     * [OffsetTime.MAX] as appropriate.
+     *
+     *
+     * [InRange.format] describes
+     * [how the generator is to][DateTimeFormatter.ofPattern].
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        DateTimeFormatter formatter =
-            DateTimeFormatter.ofPattern(range.format());
-
-        if (!defaultValueOf(InRange.class, "min").equals(range.min()))
-            min = OffsetTime.parse(range.min(), formatter);
-        if (!defaultValueOf(InRange.class, "max").equals(range.max()))
-            max = OffsetTime.parse(range.max(), formatter);
-
-        if (min.compareTo(max) > 0) {
-            throw new IllegalArgumentException(
-                String.format("bad range, %s > %s", min, max));
-        }
+    fun configure(range: InRange) {
+        val formatter = DateTimeFormatter.ofPattern(range.format)
+        if (Reflection.defaultValueOf(InRange::class.java, "min") != range.min) min =
+            OffsetTime.parse(range.min, formatter)
+        if (Reflection.defaultValueOf(InRange::class.java, "max") != range.max) max =
+            OffsetTime.parse(range.max, formatter)
+        require(min <= max) { String.format("bad range, %s > %s", min, max) }
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        LocalTime time =
-            LocalTime.ofNanoOfDay(
-                random.nextLong(
-                    min.withOffsetSameInstant(ZoneOffset.UTC)
-                        .toLocalTime()
-                        .toNanoOfDay(),
-                    max.withOffsetSameInstant(ZoneOffset.UTC)
-                        .toLocalTime()
-                        .toNanoOfDay()));
-
-        return UtModelGenerator.getUtModelConstructor().construct(OffsetTime.of(time, ZoneOffset.UTC), classIdForType(OffsetTime.class));
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val time = LocalTime.ofNanoOfDay(
+            random.nextLong(
+                min.withOffsetSameInstant(ZoneOffset.UTC)
+                    .toLocalTime()
+                    .toNanoOfDay(),
+                max.withOffsetSameInstant(ZoneOffset.UTC)
+                    .toLocalTime()
+                    .toNanoOfDay()
+            )
+        )
+        return utModelConstructor.construct(
+            OffsetTime.of(time, ZoneOffset.UTC),
+            OffsetTime::class.id
+        )
     }
 }

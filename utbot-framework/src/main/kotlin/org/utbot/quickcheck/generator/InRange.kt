@@ -1,111 +1,91 @@
-package org.utbot.quickcheck.generator;
-
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+package org.utbot.quickcheck.generator
 
 /**
- * <p>Mark a parameter of a
- * method with this annotation to constrain the values generated for the
- * parameter to a given range.</p>
  *
- * <p>Different generators may use different min/max attribute pairs.
+ * Mark a parameter of a
+ * method with this annotation to constrain the values generated for the
+ * parameter to a given range.
+ *
+ *
+ * Different generators may use different min/max attribute pairs.
  * Generators that produce primitive values or values of their wrapper types
  * will likely want to use the attribute pairs of corresponding type.
- * Otherwise, a generator can use {@link #min()} and {@link #max()}, and
+ * Otherwise, a generator can use [.min] and [.max], and
  * take on the responsibility of converting their string values to values of
- * the desired type.</p>
+ * the desired type.
  */
-@Target({ PARAMETER, FIELD, ANNOTATION_TYPE, TYPE_USE })
-@Retention(RUNTIME)
+@Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FIELD, AnnotationTarget.ANNOTATION_CLASS, AnnotationTarget.TYPE)
+@Retention(AnnotationRetention.RUNTIME)
 @GeneratorConfiguration
-public @interface InRange {
+annotation class InRange(
     /**
-     * @return a minimum {@code byte} value
+     * @return a minimum `byte` value
      */
-    byte minByte() default Byte.MIN_VALUE;
-
+    val minByte: Byte = Byte.MIN_VALUE,
     /**
-     * @return a maximum {@code byte} value
+     * @return a maximum `byte` value
      */
-    byte maxByte() default Byte.MAX_VALUE;
-
+    val maxByte: Byte = Byte.MAX_VALUE,
     /**
-     * @return a minimum {@code short} value
+     * @return a minimum `short` value
      */
-    short minShort() default Short.MIN_VALUE;
-
+    val minShort: Short = Short.MIN_VALUE,
     /**
-     * @return a maximum {@code short} value
+     * @return a maximum `short` value
      */
-    short maxShort() default Short.MAX_VALUE;
-
+    val maxShort: Short = Short.MAX_VALUE,
     /**
-     * @return a minimum {@code char} value
+     * @return a minimum `char` value
      */
-    char minChar() default Character.MIN_VALUE;
-
+    val minChar: Char = Character.MIN_VALUE,
     /**
-     * @return a maximum {@code char} value
+     * @return a maximum `char` value
      */
-    char maxChar() default Character.MAX_VALUE;
-
+    val maxChar: Char = Character.MAX_VALUE,
     /**
-     * @return a minimum {@code int} value
+     * @return a minimum `int` value
      */
-    int minInt() default Integer.MIN_VALUE;
-
+    val minInt: Int = Int.MIN_VALUE,
     /**
-     * @return a maximum {@code int} value
+     * @return a maximum `int` value
      */
-    int maxInt() default Integer.MAX_VALUE;
-
+    val maxInt: Int = Int.MAX_VALUE,
     /**
-     * @return a minimum {@code long} value
+     * @return a minimum `long` value
      */
-    long minLong() default Long.MIN_VALUE;
-
+    val minLong: Long = Long.MIN_VALUE,
     /**
-     * @return a maximum {@code long} value
+     * @return a maximum `long` value
      */
-    long maxLong() default Long.MAX_VALUE;
-
+    val maxLong: Long = Long.MAX_VALUE,
     /**
-     * @return a minimum {@code float} value
+     * @return a minimum `float` value
      */
-    float minFloat() default 0F;
-
+    val minFloat: Float = 0f,
     /**
-     * @return a maximum {@code float} value
+     * @return a maximum `float` value
      */
-    float maxFloat() default 1F;
-
+    val maxFloat: Float = 1f,
     /**
-     * @return a minimum {@code double} value
+     * @return a minimum `double` value
      */
-    double minDouble() default 0D;
-
+    val minDouble: Double = 0.0,
     /**
-     * @return a maximum {@code double} value
+     * @return a maximum `double` value
      */
-    double maxDouble() default 1D;
-
+    val maxDouble: Double = 1.0,
     /**
      * @return a minimum value, represented in string form
      */
-    String min() default "";
-
+    val min: String = "",
     /**
      * @return a maximum value, represented in string form
      */
-    String max() default "";
-
+    val max: String = "",
     /**
      * @return a formatting hint, such as a
-     * {@linkplain java.text.SimpleDateFormat date format string}, that
+     * [date format string][java.text.SimpleDateFormat], that
      * generators can use when converting values from strings
      */
-    String format() default "";
-}
+    val format: String = ""
+)

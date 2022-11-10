@@ -1,67 +1,48 @@
+package org.utbot.quickcheck.generator.java.lang
 
-package org.utbot.quickcheck.generator.java.lang;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.DecimalGenerator;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.InRange;
-import org.utbot.quickcheck.internal.Comparables;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.Collections;
-import java.util.function.Predicate;
-
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getDoubleClassId;
-import static org.utbot.quickcheck.internal.Reflection.defaultValueOf;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.quickcheck.generator.DecimalGenerator
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.InRange
+import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * Produces values for property parameters of type {@code double} or
- * {@link Double}.
+ * Produces values for property parameters of type `double` or
+ * [Double].
  */
-public class PrimitiveDoubleGenerator extends DecimalGenerator<Double> {
-    private double min = (Double) defaultValueOf(InRange.class, "minDouble");
-    private double max = (Double) defaultValueOf(InRange.class, "maxDouble");
-
-    public PrimitiveDoubleGenerator() {
-        super(Collections.singletonList(double.class));
-    }
+class PrimitiveDoubleGenerator : DecimalGenerator(listOf(Double::class.javaPrimitiveType!!)) {
+    private var min = Reflection.defaultValueOf(InRange::class.java, "minDouble") as Double
+    private var max = Reflection.defaultValueOf(InRange::class.java, "maxDouble") as Double
 
     /**
      * Tells this generator to produce values within a specified minimum
      * (inclusive) and/or maximum (exclusive) with uniform distribution.
      *
-     * {@link InRange#min} and {@link InRange#max} take precedence over
-     * {@link InRange#minDouble()} and {@link InRange#maxDouble()},
+     * [InRange.min] and [InRange.max] take precedence over
+     * [InRange.minDouble] and [InRange.maxDouble],
      * if non-empty.
      *
      * @param range annotation that gives the range's constraints
      */
-    public void configure(InRange range) {
-        min =
-                range.min().isEmpty()
-                        ? range.minDouble()
-                        : Double.parseDouble(range.min());
-        max =
-                range.max().isEmpty()
-                        ? range.maxDouble()
-                        : Double.parseDouble(range.max());
+    fun configure(range: InRange) {
+        min = if (range.min.isEmpty()) range.minDouble else range.min.toDouble()
+        max = if (range.max.isEmpty()) range.maxDouble else range.max.toDouble()
     }
 
-    @Override public UtModel generate(
-            SourceOfRandomness random,
-            GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(generateValue(random, status), getDoubleClassId());
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(generateValue(random, status), doubleClassId)
     }
 
-    public double generateValue(SourceOfRandomness random,
-                                GenerationStatus status) {
-        return random.nextDouble(min, max);
+    fun generateValue(
+        random: SourceOfRandomness,
+        status: GenerationStatus?
+    ): Double {
+        return random.nextDouble(min, max)
     }
-
-    @Override protected Predicate<Double> inRange() {
-        return Comparables.inRange(min, max);
-    }
-
 }

@@ -1,33 +1,28 @@
+package org.utbot.quickcheck.generator.java.util
 
-
-package org.utbot.quickcheck.generator.java.util;
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import java.util.TimeZone;
-
-import static java.util.TimeZone.getAvailableIDs;
-import static java.util.TimeZone.getTimeZone;
-import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.random.SourceOfRandomness
+import java.util.TimeZone
 
 /**
- * Produces values of type {@link TimeZone}.
+ * Produces values of type [TimeZone].
  */
-public class TimeZoneGenerator extends Generator<TimeZone> {
-    private static final String[] AVAILABLE_IDS = getAvailableIDs();
-
-    public TimeZoneGenerator() {
-        super(TimeZone.class);
+class TimeZoneGenerator : Generator(TimeZone::class.java) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(
+            TimeZone.getTimeZone(random.choose(AVAILABLE_IDS)),
+            classIdForType(TimeZone::class.java)
+        )
     }
 
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(getTimeZone(random.choose(AVAILABLE_IDS)), classIdForType(TimeZone.class));
+    companion object {
+        private val AVAILABLE_IDS = TimeZone.getAvailableIDs()
     }
 }

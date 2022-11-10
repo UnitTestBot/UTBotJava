@@ -1,28 +1,24 @@
+package org.utbot.quickcheck.generator.java.lang
 
-package org.utbot.quickcheck.generator.java.lang;
-
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator;
-import org.utbot.framework.plugin.api.UtModel;
-import org.utbot.quickcheck.generator.GenerationStatus;
-import org.utbot.quickcheck.generator.Generator;
-import org.utbot.quickcheck.random.SourceOfRandomness;
-
-import static java.util.Collections.singletonList;
-import static org.utbot.framework.plugin.api.util.IdUtilKt.getBooleanWrapperClassId;
+import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.booleanWrapperClassId
+import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
- * Produces values of type {@code boolean} or {@link Boolean}.
+ * Produces values of type `boolean` or [Boolean].
  */
-public class BooleanGenerator extends Generator<Boolean> {
-    public BooleanGenerator() {
-        super(singletonList(Boolean.class));
+class BooleanGenerator : Generator(
+    listOf(
+        Boolean::class.java
+    )
+) {
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        return utModelConstructor.construct(random.nextBoolean(), booleanWrapperClassId)
     }
-
-    @Override public UtModel generate(
-        SourceOfRandomness random,
-        GenerationStatus status) {
-
-        return UtModelGenerator.getUtModelConstructor().construct(random.nextBoolean(), getBooleanWrapperClassId());
-    }
-
 }

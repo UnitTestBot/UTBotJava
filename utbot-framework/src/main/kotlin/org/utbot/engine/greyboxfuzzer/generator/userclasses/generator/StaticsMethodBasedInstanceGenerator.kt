@@ -20,7 +20,7 @@ internal class StaticsMethodBasedInstanceGenerator(
     private val generationStatus: GenerationStatus,
     private val depth: Int
 ) : InstanceGenerator {
-    override fun generate(): UtModel? =
+    override fun generate(): UtModel =
         getRandomStaticToProduceInstanceUsingSoot()?.let { methodToProvideInstance ->
             val resolvedMethodContext =
                 try {
@@ -37,7 +37,7 @@ internal class StaticsMethodBasedInstanceGenerator(
                 generationStatus,
                 depth
             ).invoke()
-        }
+        } ?: TODO("null")
 
     //In case of no Soot
     private fun getRandomStaticToProduceInstance(): Method? =

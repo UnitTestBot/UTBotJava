@@ -1,16 +1,6 @@
-
-
-package org.utbot.quickcheck.generator.java.util;
-
-import org.utbot.quickcheck.generator.java.util.ListGenerator;
-
-import java.util.ArrayList;
+package org.utbot.quickcheck.generator.java.util
 
 /**
- * Produces values of type {@link ArrayList}.
+ * Produces values of type [ArrayList].
  */
-public class ArrayListGenerator extends ListGenerator<ArrayList> {
-    public ArrayListGenerator() {
-        super(ArrayList.class);
-    }
-}
+class ArrayListGenerator : ListGenerator(ArrayList::class.java)

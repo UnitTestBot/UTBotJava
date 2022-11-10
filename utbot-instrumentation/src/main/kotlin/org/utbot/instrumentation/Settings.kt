@@ -14,29 +14,5 @@ object Settings {
 
     const val TRACE_ARRAY_SIZE: Int = 1 shl 20
 
-    // TODO: maybe add this guide to confluence?
-    /**
-     * If true, runs the child process with the ability to attach a debugger.
-     *
-     * To debug the child process, set the breakpoint in the childProcessRunner.start() line
-     * and in the child process's main function and run the main process.
-     * Then run the remote JVM debug configuration in IDEA.
-     * If you see the message in console about successful connection, then
-     * the debugger is attached successfully.
-     * Now you can put the breakpoints in the child process and debug
-     * both processes simultaneously.
-     *
-     * @see [org.utbot.instrumentation.process.ChildProcessRunner.cmds]
-     */
-    const val runChildProcessWithDebug = false
-
-    /**
-     * Property useful only for idea
-     * If true - runs engine process with the ability to attach a debugger
-     * @see runChildProcessWithDebug
-     * @see org.utbot.intellij.plugin.process.EngineProcess
-     */
-    const val runIdeaProcessWithDebug = false
-
     var defaultConcreteExecutorPoolSize = 10
 }

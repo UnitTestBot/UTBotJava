@@ -12,4 +12,5 @@ jobs:
       runners: 3
       run_number: 1
       message_prefix: night-monitoring
-      aggregate: true
+      push_results: true
+      send_to_grafana: true

@@ -282,6 +282,30 @@ object UtSettings : AbstractSettings(
      */
     var logConcreteExecutionErrors by getBooleanProperty(false)
 
+
+    /**
+     * Property useful only for idea
+     * If true - runs engine process with the ability to attach a debugger
+     * @see runChildProcessWithDebug
+     * @see org.utbot.intellij.plugin.process.EngineProcess
+     */
+    var runIdeaProcessWithDebug by getBooleanProperty(false)
+
+    /**
+     * If true, runs the child process with the ability to attach a debugger.
+     *
+     * To debug the child process, set the breakpoint in the childProcessRunner.start() line
+     * and in the child process's main function and run the main process.
+     * Then run the remote JVM debug configuration in IDEA.
+     * If you see the message in console about successful connection, then
+     * the debugger is attached successfully.
+     * Now you can put the breakpoints in the child process and debug
+     * both processes simultaneously.
+     *
+     * @see [org.utbot.instrumentation.process.ChildProcessRunner.cmds]
+     */
+    var runChildProcessWithDebug by getBooleanProperty(false)
+
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
      */

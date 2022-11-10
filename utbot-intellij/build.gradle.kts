@@ -2,9 +2,17 @@ val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
+
 val ideType: String? by rootProject
+val ideVersion: String? by rootProject
+val kotlinPluginVersion: String? by rootProject
+
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
+
+val pythonIde: String? by rootProject
+val jsIde: String? by rootProject
+
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
 val semVer: String? by rootProject
@@ -23,7 +31,7 @@ intellij {
 
     val jvmPlugins = mutableListOf(
         "java",
-        "org.jetbrains.kotlin:222-1.7.20-release-201-IJ4167.29"
+        "org.jetbrains.kotlin:$kotlinPluginVersion"
     )
 
     androidStudioPath?.let { jvmPlugins += androidPlugins }
@@ -37,7 +45,7 @@ intellij {
     )
 
     val jsPlugins = listOf(
-        "JavaScriptLanguage"
+        "JavaScript"
     )
 
     plugins.set(
@@ -45,12 +53,12 @@ intellij {
             "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
             "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
             "PC" -> pythonCommunityPlugins
-            "PU" -> pythonUltimatePlugins // something else, JS?
+            "PY" -> pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
         }
     )
 
-    version.set("222.4167.29")
+    version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
 }
 
@@ -95,6 +103,19 @@ dependencies {
     //api(project(":utbot-analytics"))
     testImplementation("org.mock-server:mockserver-netty:5.4.1")
     testApi(project(":utbot-framework"))
+
+    implementation(project(":utbot-ui-commons"))
+
+    //Family
+    if (pythonIde?.split(',')?.contains(ideType) == true) {
+        implementation(project(":utbot-python"))
+        implementation(project(":utbot-intellij-python"))
+    }
+
+    if (jsIde?.split(',')?.contains(ideType) == true) {
+        implementation(project(":utbot-js"))
+        implementation(project(":utbot-intellij-js"))
+    }
 
     implementation(project(":utbot-android-studio"))
 }

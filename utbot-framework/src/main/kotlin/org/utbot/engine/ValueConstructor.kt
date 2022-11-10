@@ -1,5 +1,6 @@
 package org.utbot.engine
 
+import org.utbot.common.Reflection
 import org.utbot.common.invokeCatching
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.engine.util.lambda.CapturedArgument
@@ -193,6 +194,8 @@ class ValueConstructor {
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            // Python, JavaScript are supposed to be here as well
+            else -> throw UnsupportedOperationException("UtModel $model cannot construct UtConcreteValue")
         }
     }
 
@@ -237,8 +240,7 @@ class ValueConstructor {
             try {
                 declaredField.isAccessible = true
 
-                val modifiersField = Field::class.java.getDeclaredField("modifiers")
-                modifiersField.isAccessible = true
+                check(Reflection.isModifiersAccessible())
 
                 val target = mockTarget(fieldModel) {
                     FieldMockTarget(

@@ -128,6 +128,9 @@ abstract class AbstractSettings(
     protected fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
     protected inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
         getProperty(defaultValue) { enumValueOf(it) }
-
+    protected fun getListProperty(defaultValue: List<String>) =
+        getProperty(defaultValue) { it.split(';') }
+    protected inline fun <reified T> getListProperty(defaultValue: List<T>, crossinline elementTransform: (String) -> T) =
+        getProperty(defaultValue) { it.split(';').map(elementTransform) }
     override fun toString(): String = container.toString()
 }

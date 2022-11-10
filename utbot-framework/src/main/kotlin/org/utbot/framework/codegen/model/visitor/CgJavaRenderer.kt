@@ -39,7 +39,6 @@ import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.util.isFinal
 import org.utbot.framework.plugin.api.util.isPrivate
@@ -57,8 +56,6 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
 
     override val logicalOr: String
         get() = "||"
-
-    override val language: CodegenLanguage = CodegenLanguage.JAVA
 
     override val langPackage: String = "java.lang"
 

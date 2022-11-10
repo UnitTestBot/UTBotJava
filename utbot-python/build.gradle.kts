@@ -29,7 +29,6 @@ dependencies {
     api(project(":utbot-fuzzers"))
     api(project(":utbot-framework"))
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation(group = "commons-io", name = "commons-io", version = commonsIoVersion)
     implementation(group = "org.apache.commons", name = "commons-lang3", version = apacheCommonsLangVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)

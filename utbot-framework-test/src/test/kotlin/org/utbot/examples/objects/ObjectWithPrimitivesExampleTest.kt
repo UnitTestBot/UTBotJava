@@ -3,6 +3,7 @@ package org.utbot.examples.objects
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class ObjectWithPrimitivesExampleTest : UtValueTestCaseChecker(testClass = ObjectWithPrimitivesExample::class) {
     @Test

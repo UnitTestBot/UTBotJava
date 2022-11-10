@@ -3,6 +3,10 @@ package org.utbot.examples.casts
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 // TODO failed Kotlin compilation SAT-1332
 internal class CastExampleTest : UtValueTestCaseChecker(

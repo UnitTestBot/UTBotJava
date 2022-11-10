@@ -2,6 +2,8 @@ package org.utbot.examples.wrappers
 
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class BooleanWrapperTest : UtValueTestCaseChecker(testClass = BooleanWrapper::class) {
     @Test

@@ -6,6 +6,10 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.keyContain
+import org.utbot.testing.keyMatch
 
 internal class ConditionsTest : UtValueTestCaseChecker(testClass = Conditions::class) {
     @Test

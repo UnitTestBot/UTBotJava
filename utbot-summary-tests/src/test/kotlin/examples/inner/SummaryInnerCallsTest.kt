@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 
 import org.utbot.examples.inner.InnerCalls
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.testing.DoNotCalculate
 
 class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     InnerCalls::class,

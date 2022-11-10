@@ -3,6 +3,7 @@ package org.utbot.examples.collections
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
+import org.utbot.testing.*
 
 // TODO failed Kotlin compilation SAT-1332
 class SetIteratorsTest : UtValueTestCaseChecker(

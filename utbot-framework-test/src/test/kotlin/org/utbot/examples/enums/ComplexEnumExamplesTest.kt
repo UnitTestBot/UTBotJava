@@ -8,6 +8,9 @@ import org.utbot.examples.enums.ComplexEnumExamples.Color.GREEN
 import org.utbot.examples.enums.ComplexEnumExamples.Color.RED
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 
 class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     testClass = ComplexEnumExamples::class,

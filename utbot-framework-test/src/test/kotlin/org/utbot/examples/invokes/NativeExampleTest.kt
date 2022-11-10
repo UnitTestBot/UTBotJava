@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
+import org.utbot.testing.ignoreExecutionsNumber
 
 internal class NativeExampleTest : UtValueTestCaseChecker(testClass = NativeExample::class) {
     @Test

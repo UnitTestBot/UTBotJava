@@ -3,6 +3,8 @@ package org.utbot.examples.mock.aliasing
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class AliasingInParamsExampleTest : UtValueTestCaseChecker(testClass = AliasingInParamsExample::class) {
     @Test

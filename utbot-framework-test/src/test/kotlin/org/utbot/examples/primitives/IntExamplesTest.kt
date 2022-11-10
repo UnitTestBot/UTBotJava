@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 @Suppress("ConvertTwoComparisonsToRangeCheck")
 internal class IntExamplesTest : UtValueTestCaseChecker(testClass = IntExamples::class) {

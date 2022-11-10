@@ -1,6 +1,8 @@
 package org.utbot.examples.structures
 
 import org.junit.jupiter.api.Test
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 
 internal class HeapTest : UtValueTestCaseChecker(testClass = Heap::class) {
     @Test

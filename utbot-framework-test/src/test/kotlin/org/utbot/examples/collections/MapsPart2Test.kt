@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 // TODO failed Kotlin compilation ($ in names, generics) SAT-1220 SAT-1332
 internal class MapsPart2Test : UtValueTestCaseChecker(

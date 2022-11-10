@@ -5,6 +5,7 @@ import kotlin.reflect.full.functions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class CodegenExampleTest : UtValueTestCaseChecker(testClass = CodegenExample::class) {
     @Test

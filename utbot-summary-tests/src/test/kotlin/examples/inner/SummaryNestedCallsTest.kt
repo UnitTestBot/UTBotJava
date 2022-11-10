@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 
 import org.utbot.examples.inner.NestedCalls
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.testing.DoNotCalculate
 
 class SummaryNestedCallsTest : SummaryTestCaseGeneratorTest(
     NestedCalls::class,

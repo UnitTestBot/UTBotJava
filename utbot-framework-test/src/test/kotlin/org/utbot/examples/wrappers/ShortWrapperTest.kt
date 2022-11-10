@@ -3,6 +3,8 @@ package org.utbot.examples.wrappers
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class ShortWrapperTest : UtValueTestCaseChecker(testClass = ShortWrapper::class) {
     @Test

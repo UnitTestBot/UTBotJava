@@ -4,6 +4,8 @@ import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction3
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class ObjectWithPrimitivesClassTest : UtValueTestCaseChecker(testClass = ObjectWithPrimitivesClass::class) {
     @Test

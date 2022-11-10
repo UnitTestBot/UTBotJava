@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class CyclesTest : UtValueTestCaseChecker(testClass = Cycles::class) {
     @Test

@@ -12,6 +12,7 @@ import org.utbot.examples.mock.service.impl.ServiceWithArguments
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class ArgumentsMockTest : UtValueTestCaseChecker(testClass = ServiceWithArguments::class) {
     @Test

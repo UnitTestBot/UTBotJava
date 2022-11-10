@@ -3,6 +3,9 @@ package org.utbot.examples.algorithms
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
 
 internal class GraphTest : UtValueTestCaseChecker(testClass = GraphExample::class) {
     @Test

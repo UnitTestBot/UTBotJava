@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class FieldMockTest : UtValueTestCaseChecker(
     testClass = ServiceWithField::class,

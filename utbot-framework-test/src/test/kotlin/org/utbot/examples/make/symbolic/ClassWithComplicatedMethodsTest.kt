@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testing.Compilation
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 // This class is substituted with ComplicatedMethodsSubstitutionsStorage
 // but we cannot do in code generation.

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
+import org.utbot.testing.*
 
 // TODO failed Kotlin compilation SAT-1332
 class MapEntrySetTest : UtValueTestCaseChecker(

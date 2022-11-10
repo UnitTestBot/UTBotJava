@@ -5,6 +5,9 @@ package org.utbot.examples.invokes
 import java.lang.Boolean
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 internal class VirtualInvokeExampleTest : UtValueTestCaseChecker(testClass = VirtualInvokeExample::class) {
     @Test

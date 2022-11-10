@@ -5,6 +5,10 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import kotlin.math.min
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 
 // TODO failed Kotlin compilation (generics) SAT-1332
 internal class ListIteratorsTest : UtValueTestCaseChecker(

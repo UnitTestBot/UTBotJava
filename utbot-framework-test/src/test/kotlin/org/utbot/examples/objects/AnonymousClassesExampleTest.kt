@@ -3,6 +3,7 @@ package org.utbot.examples.objects
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 class AnonymousClassesExampleTest : UtValueTestCaseChecker(
     testClass = AnonymousClassesExample::class,

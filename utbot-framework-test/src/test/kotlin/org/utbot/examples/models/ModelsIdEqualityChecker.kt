@@ -8,6 +8,8 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtModelTestCaseChecker
 
 // TODO failed Kotlin compilation SAT-1332
 internal class ModelsIdEqualityChecker : UtModelTestCaseChecker(

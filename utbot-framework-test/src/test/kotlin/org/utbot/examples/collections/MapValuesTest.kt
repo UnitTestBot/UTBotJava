@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withoutMinimization
+import org.utbot.testing.*
 
 // TODO failed Kotlin compilation SAT-1332
 class MapValuesTest : UtValueTestCaseChecker(

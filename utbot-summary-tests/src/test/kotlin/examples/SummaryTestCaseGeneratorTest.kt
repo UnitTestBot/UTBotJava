@@ -11,10 +11,11 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
+import org.utbot.testing.CoverageMatcher
+import org.utbot.testing.TestExecution
+import org.utbot.testing.UtValueTestCaseChecker
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import org.utbot.testing.DoNotCalculate
-import org.utbot.testing.TestLastStage
 
 private const val NEW_LINE = "\n"
 private const val POINT_IN_THE_LIST = "  * "

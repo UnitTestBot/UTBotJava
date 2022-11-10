@@ -5,7 +5,10 @@ import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.junit.jupiter.api.Test
+import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
+import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,

@@ -10,6 +10,8 @@ import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
 
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtModelTestCaseChecker
+import org.utbot.testing.primitiveValue
 
 internal class FieldMockChecker : UtModelTestCaseChecker(testClass = ServiceWithField::class) {
     @Test

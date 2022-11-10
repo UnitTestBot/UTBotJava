@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 
 internal class CustomerExamplesTest: UtValueTestCaseChecker(
     testClass = CustomerExamples::class,

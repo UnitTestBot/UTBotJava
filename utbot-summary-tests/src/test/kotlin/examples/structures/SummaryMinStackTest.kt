@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 
 import org.utbot.examples.structures.MinStack
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.testing.DoNotCalculate
 
 @ExtendWith(CustomJavaDocTagsEnabler::class)
 class SummaryMinStackTest : SummaryTestCaseGeneratorTest(

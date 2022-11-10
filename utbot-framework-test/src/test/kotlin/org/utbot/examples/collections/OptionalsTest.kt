@@ -3,6 +3,7 @@ package org.utbot.examples.collections
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.*
 import java.util.*
 
 class OptionalsTest : UtValueTestCaseChecker(

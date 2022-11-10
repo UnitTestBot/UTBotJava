@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test
 
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withUsingReflectionForMaximizingCoverage
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 import java.util.Date
 
 @Disabled("Java 11 transition -- these tests seems to take too much time and memory")

@@ -8,6 +8,10 @@ import org.utbot.examples.mock.service.impl.ServiceWithStaticField
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.mocksMethod
+import org.utbot.testing.value
 
 internal class StaticFieldMockTest : UtValueTestCaseChecker(testClass = ServiceWithStaticField::class) {
 

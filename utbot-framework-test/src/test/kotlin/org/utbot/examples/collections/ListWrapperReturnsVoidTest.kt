@@ -4,6 +4,10 @@ import org.junit.jupiter.api.Disabled
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 // TODO failed Kotlin compilation ($ in function names, generics) SAT-1220 SAT-1332
 @Disabled("Java 11 transition")

@@ -71,6 +71,13 @@ class TypeVarNode(AnnotationNode):
         self.def_id: str = self.namespace.fullname_to_node_id[type_var.id.namespace]
         type_vars_of_node[self.def_id].append(id_)
         self.upper_bound: Annotation = get_annotation(type_var.upper_bound, self.namespace)
+        self.variance: str
+        if type_var.variance == mypy.nodes.COVARIANT:
+            self.variance = "COVARIANT"
+        elif type_var.variance == mypy.nodes.CONTRAVARIANT:
+            self.variance = "CONTRAVARIANT"
+        else:
+            self.variance = "INVARIANT"
 
     def encode(self):
         superclass_dict = super().encode()
@@ -78,7 +85,8 @@ class TypeVarNode(AnnotationNode):
             "varName": self.name,
             "values": [x.encode() for x in self.values],
             "upperBound": self.upper_bound.encode(),
-            "def": self.def_id
+            "def": self.def_id,
+            "variance": self.variance
         }
         return dict(superclass_dict, **subclass_dict)
 
@@ -171,7 +179,7 @@ class Annotation:
 def get_annotation_node(mypy_type: mypy.types.Type, namespace: Namespace) -> AnnotationNode:
     if isinstance(mypy_type, mypy.types.Instance):
         id_ = str(id(mypy_type.type))
-    elif isinstance(mypy_type, mypy.types.TypeVarLikeType):
+    elif isinstance(mypy_type, mypy.types.TypeVarType):
         if mypy_type.id.namespace not in namespace.fullname_to_node_id.keys():
             id_ = '0'
             mypy_type = mypy.types.Type()

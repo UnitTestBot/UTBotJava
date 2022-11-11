@@ -35,6 +35,7 @@ class TypeSubstitutionProvider(
                 ) {
                     it to TypeParameter(this).let { newParam ->
                         newParam.constraints = substituteConstraints(it.constraints, provider, rawParams)
+                        newParam.meta = it.meta
                         newParam
                     }
                 } else {

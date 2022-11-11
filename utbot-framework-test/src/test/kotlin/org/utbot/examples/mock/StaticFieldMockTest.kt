@@ -10,7 +10,6 @@ import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.mocksMethod
 import org.utbot.testing.value
-
 internal class StaticFieldMockTest : UtValueTestCaseChecker(testClass = ServiceWithStaticField::class) {
 
     @Test

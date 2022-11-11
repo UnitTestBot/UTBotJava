@@ -190,10 +190,19 @@ val ClassId.isClassType: Boolean
     get() = this == classClassId
 
 /**
+ * Returns [Metadata] annotation if this is a Kotlin class, null otherwise
+ */
+val ClassId.kotlinMetadata: Metadata?
+    get() = jClass.annotations.filterIsInstance<Metadata>().singleOrNull()
+
+val ClassId.isFromKotlin: Boolean
+    get() = kotlinMetadata != null
+
+/**
  * Checks if the class is a Kotlin class with kind File (see [Metadata.kind] for more details)
  */
 val ClassId.isKotlinFile: Boolean
-    get() = jClass.annotations.filterIsInstance<Metadata>().singleOrNull()?.let {
+    get() = kotlinMetadata?.let {
         KotlinClassHeader.Kind.getById(it.kind) == KotlinClassHeader.Kind.FILE_FACADE
     } ?: false
 

@@ -5,24 +5,23 @@ interface Type {
     val meta: TypeMetaData
 }
 
-interface NamedType: Type {
-    val name: Name
-}
-
+// arguments and returnValue of FunctionType instance can recursively refer to it and its parameters
 interface FunctionType: Type {
     val arguments: List<Type>
     val returnValue: Type
 }
 
-interface StatefulType: NamedType {
+interface StatefulType: Type {
     val members: List<Type>
 }
 
+// members and supertypes of CompositeType instance can recursively refer to it and its parameters
 interface CompositeType: StatefulType {
     val supertypes: Collection<Type>
 }
 
 open class TypeMetaData
+open class TypeMetaDataWithName(val name: Name): TypeMetaData()
 
 class TypeParameter(val definedAt: Type): Type {
     // tricky case with cyclic dependency; constraints may be changed after substitution

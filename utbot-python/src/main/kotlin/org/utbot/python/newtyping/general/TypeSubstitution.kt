@@ -17,22 +17,22 @@ abstract class SubstitutionProvider<I : Type, O: Type> {
 }
 
 class TypeSubstitutionProvider(
-    val provider: SubstitutionProvider<Type, Type>
+    private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<Type, Type>() {
     override fun substitute(type: Type, params: Map<TypeParameter, Type>): Type {
         return Substitution(type, params, provider)
     }
     open class Substitution(
-        originForBoundedParameters: Type,
+        originForInitialization: Type,
         rawParams: Map<TypeParameter, Type>,
         provider: SubstitutionProvider<Type, Type>
     ): Type, TypeSubstitution {
         val newBoundedTypeParameters: Map<TypeParameter, TypeParameter> =
-            originForBoundedParameters.parameters.mapNotNull {
+            originForInitialization.parameters.mapNotNull {
                 if (
                     it is TypeParameter &&
                     !rawParams.keys.contains(it) &&
-                    it.definedAt === originForBoundedParameters
+                    it.definedAt == originForInitialization
                 ) {
                     it to TypeParameter(this).let { newParam ->
                         newParam.constraints = substituteConstraints(it.constraints, provider, rawParams)
@@ -42,18 +42,20 @@ class TypeSubstitutionProvider(
                     null
                 }
             }.associate { it }
-        override val rawOrigin: Type = originForBoundedParameters
+        override val rawOrigin: Type = originForInitialization
         override val params: Map<TypeParameter, Type> = rawParams
         override val parameters: List<Type> by lazy {
             rawOrigin.parameters.map {
                 provider.substitute(it, params + newBoundedTypeParameters)
             }
         }
+        override val meta: TypeMetaData
+            get() = rawOrigin.meta
     }
 }
 
 class NamedTypeSubstitutionProvider(
-    val provider: SubstitutionProvider<Type, Type>
+    private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<NamedType, NamedType>() {
     override fun substitute(type: NamedType, params: Map<TypeParameter, Type>): NamedType {
         return Substitution(type, params, provider)
@@ -69,7 +71,7 @@ class NamedTypeSubstitutionProvider(
 }
 
 class FunctionTypeSubstitutionProvider(
-    val provider: SubstitutionProvider<Type, Type>
+    private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<FunctionType, FunctionType>() {
     override fun substitute(type: FunctionType, params: Map<TypeParameter, Type>): FunctionType {
         return Substitution(type, params, provider)
@@ -89,7 +91,7 @@ class FunctionTypeSubstitutionProvider(
 }
 
 class StatefulTypeSubstitutionProvider(
-    val provider: SubstitutionProvider<Type, Type>
+    private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<StatefulType, StatefulType>() {
     override fun substitute(type: StatefulType, params: Map<TypeParameter, Type>): StatefulType {
         return Substitution(type, params, provider)
@@ -106,7 +108,7 @@ class StatefulTypeSubstitutionProvider(
 }
 
 class CompositeTypeSubstitutionProvider(
-    val provider: SubstitutionProvider<Type, Type>
+    private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<CompositeType, CompositeType>() {
     override fun substitute(type: CompositeType, params: Map<TypeParameter, Type>): CompositeType {
         return Substitution(type, params, provider)
@@ -123,7 +125,7 @@ class CompositeTypeSubstitutionProvider(
 }
 
 class TypeParameterSubstitutionProvider(
-    val provider: SubstitutionProvider<Type, Type>
+    private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<TypeParameter, Type>() {
     override fun substitute(type: TypeParameter, params: Map<TypeParameter, Type>): Type {
         return params[type] ?: run {

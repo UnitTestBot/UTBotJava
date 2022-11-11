@@ -8,7 +8,6 @@ import org.utbot.examples.exceptions.ExceptionExamples
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.testing.DoNotCalculate
 
-
 @ExtendWith(CustomJavaDocTagsEnabler::class)
 class SummaryExceptionExampleTest : SummaryTestCaseGeneratorTest(
     ExceptionExamples::class

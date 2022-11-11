@@ -5,7 +5,10 @@ import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.ge
-import org.utbot.testing.*
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.singleMock
+import org.utbot.testing.value
 
 internal class MockFinalClassTest : UtValueTestCaseChecker(
     testClass = MockFinalClassExample::class,

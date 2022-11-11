@@ -3,7 +3,6 @@ package org.utbot.examples.mixed
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.StaticInitializerExample
-
 import org.utbot.testcheckers.eq
 import org.utbot.testing.UtValueTestCaseChecker
 

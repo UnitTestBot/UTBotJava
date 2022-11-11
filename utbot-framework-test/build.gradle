@@ -49,8 +49,8 @@ dependencies {
 
     // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
     // testImplementation group: 'junit', name: 'junit', version: '4.13.1'
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
 
     // used for testing code generation
     testImplementation group: 'commons-io', name: 'commons-io', version: commonsIoVersion

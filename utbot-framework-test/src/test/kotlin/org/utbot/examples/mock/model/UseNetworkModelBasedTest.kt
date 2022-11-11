@@ -1,6 +1,5 @@
 package org.utbot.examples.mock.model
 
-
 import org.utbot.examples.mock.UseNetwork
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtCompositeModel

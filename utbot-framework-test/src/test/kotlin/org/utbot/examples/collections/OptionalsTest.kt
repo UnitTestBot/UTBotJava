@@ -3,7 +3,12 @@ package org.utbot.examples.collections
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
 import java.util.*
 
 class OptionalsTest : UtValueTestCaseChecker(

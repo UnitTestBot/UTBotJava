@@ -3,8 +3,6 @@ package org.utbot.examples.mock
 import org.utbot.examples.mock.provider.Provider
 import org.utbot.examples.mock.service.impl.ExampleClass
 import org.utbot.examples.mock.service.impl.ServiceWithStaticField
-
-
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq

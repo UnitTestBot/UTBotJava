@@ -8,7 +8,14 @@ import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withoutMinimization
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
+import org.utbot.testing.between
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
+import org.utbot.testing.keyMatch
 
 internal class StringExamplesTest : UtValueTestCaseChecker(
     testClass = StringExamples::class,

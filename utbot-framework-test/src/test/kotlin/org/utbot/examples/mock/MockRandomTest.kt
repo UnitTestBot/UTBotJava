@@ -6,7 +6,15 @@ import java.util.Random
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.TestExecution
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isParameter
+import org.utbot.testing.mockValues
+import org.utbot.testing.mocksMethod
+import org.utbot.testing.singleMock
+import org.utbot.testing.value
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class MockRandomTest : UtValueTestCaseChecker(

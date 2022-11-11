@@ -5,7 +5,6 @@ import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.utbot.testing.DoNotCalculate
-
 import org.utbot.examples.exceptions.ExceptionClusteringExamples
 import org.utbot.framework.plugin.api.MockStrategyApi
 

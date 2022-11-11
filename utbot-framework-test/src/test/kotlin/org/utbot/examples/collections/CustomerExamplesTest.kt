@@ -5,7 +5,11 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.TestExecution
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 
 internal class CustomerExamplesTest: UtValueTestCaseChecker(
     testClass = CustomerExamples::class,

@@ -8,8 +8,6 @@ import org.utbot.testing.CodeGeneration
 import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
-
-
 import kotlin.streams.toList
 
 // TODO 1 instruction is always uncovered https://github.com/UnitTestBot/UTBotJava/issues/193

@@ -4,7 +4,11 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.Compilation
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 // TODO Kotlin compilation SAT-1332
 // Code generation executions fail due we cannot analyze strings properly for now

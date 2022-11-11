@@ -1,7 +1,5 @@
 package org.utbot.examples.objects
 
-
-
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testing.UtValueTestCaseChecker

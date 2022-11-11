@@ -10,7 +10,11 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.keyContain
+import org.utbot.testing.keyMatch
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,

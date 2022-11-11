@@ -1,7 +1,6 @@
 package org.utbot.examples.objects
 
 import org.junit.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker

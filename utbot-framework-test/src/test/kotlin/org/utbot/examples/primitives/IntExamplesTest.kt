@@ -2,7 +2,6 @@ package org.utbot.examples.primitives
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-
 import org.utbot.testcheckers.eq
 import org.utbot.testing.UtValueTestCaseChecker
 

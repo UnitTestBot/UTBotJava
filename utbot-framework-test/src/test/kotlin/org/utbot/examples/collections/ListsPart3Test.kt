@@ -5,7 +5,11 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
+import org.utbot.testing.isException
 
 // TODO failed Kotlin compilation SAT-1332
 internal class ListsPart3Test : UtValueTestCaseChecker(

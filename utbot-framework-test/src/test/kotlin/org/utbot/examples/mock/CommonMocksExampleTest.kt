@@ -1,7 +1,5 @@
 package org.utbot.examples.mock
 
-
-
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq

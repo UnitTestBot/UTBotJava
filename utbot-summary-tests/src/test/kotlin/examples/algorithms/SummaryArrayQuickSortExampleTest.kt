@@ -4,7 +4,6 @@ import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.examples.algorithms.ArraysQuickSort
-
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.testing.DoNotCalculate

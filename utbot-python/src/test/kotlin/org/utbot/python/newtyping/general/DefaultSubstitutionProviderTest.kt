@@ -9,13 +9,15 @@ internal class DefaultSubstitutionProviderTest {
         val provider = DefaultSubstitutionProvider
         val set = CompositeTypeCreator.create(
             Name(listOf("builtins"), "set"),
-            numberOfParameters = 1
+            numberOfParameters = 1,
+            TypeMetaData()
         ) { set ->
             val T = set.parameters.first()
             CompositeTypeCreator.InitializationData(
                 members = listOf(
                     FunctionTypeCreator.create(
-                        numberOfParameters = 1
+                        numberOfParameters = 1,
+                        TypeMetaData()
                     ) { self ->
                         val S = self.parameters.first()
                         FunctionTypeCreator.InitializationData(
@@ -26,15 +28,15 @@ internal class DefaultSubstitutionProviderTest {
                                     T to StatefulTypeCreator.create(
                                         emptyList(),
                                         Name(listOf("typing"), "Union"),
-                                        listOf(T, S)
+                                        listOf(T, S),
+                                        TypeMetaData()
                                     )
                                 )
                             )
                         )
                     }
                 ),
-                supertypes = emptyList(),
-                typeParameterConstraints = emptyMap()
+                supertypes = emptyList()
             )
         }
         assertTrue(set.members[0] is FunctionType)
@@ -57,7 +59,7 @@ internal class DefaultSubstitutionProviderTest {
         val T = set.parameters.first() as TypeParameter
         val setOfInt = compositeTypeDescriptor.substitute(
             set,
-            mapOf(T to NamedTypeCreator.create(emptyList(), Name(emptyList(), "int")))
+            mapOf(T to NamedTypeCreator.create(emptyList(), Name(emptyList(), "int"), TypeMetaData()))
         )
         assertTrue(setOfInt.members[0] is FunctionType)
         val unionMethod1 = setOfInt.members[0] as FunctionType
@@ -78,16 +80,19 @@ internal class DefaultSubstitutionProviderTest {
         var classA: CompositeType? = null
         val classB = CompositeTypeCreator.create(
             Name(emptyList(), "B"),
-            1
+            1,
+            TypeMetaData()
         ) { classB ->
             classA = CompositeTypeCreator.create(
                 Name(emptyList(), "A"),
-                0
+                0,
+                TypeMetaData()
             ) {
                 CompositeTypeCreator.InitializationData(
                     members = listOf(
                         FunctionTypeCreator.create(
-                            numberOfParameters = 0
+                            numberOfParameters = 0,
+                            TypeMetaData()
                         ) {
                             FunctionTypeCreator.InitializationData(
                                 arguments = emptyList(),
@@ -95,15 +100,18 @@ internal class DefaultSubstitutionProviderTest {
                             )
                         }
                     ),
-                    supertypes = emptyList(),
-                    typeParameterConstraints = emptyMap()
+                    supertypes = emptyList()
                 )
             }
             val paramT = classB.parameters.first()
+            paramT.constraints = setOf(
+                TypeParameterConstraint(TypeRelation(":"), classA!!)
+            )
             CompositeTypeCreator.InitializationData(
                 members = listOf(
                     FunctionTypeCreator.create(
-                        numberOfParameters = 0
+                        numberOfParameters = 0,
+                        TypeMetaData()
                     ) {
                         FunctionTypeCreator.InitializationData(
                             arguments = emptyList(),
@@ -111,12 +119,7 @@ internal class DefaultSubstitutionProviderTest {
                         )
                     }
                 ),
-                supertypes = setOf(classA!!),
-                typeParameterConstraints = mapOf(
-                    paramT to setOf(
-                        TypeParameterConstraint(TypeRelation(":"), classA!!)
-                    )
-                )
+                supertypes = setOf(classA!!)
             )
         }
 
@@ -137,12 +140,12 @@ internal class DefaultSubstitutionProviderTest {
 
         val classC = CompositeTypeCreator.create(
             name = Name(emptyList(), "C"),
-            numberOfParameters = 0
+            numberOfParameters = 0,
+            TypeMetaData()
         ) {
             CompositeTypeCreator.InitializationData(
                 members = emptyList(),
                 supertypes = setOf(bOfA),
-                typeParameterConstraints = emptyMap()
             )
         }
         assertTrue(classC.supertypes.size == 1)
@@ -151,23 +154,23 @@ internal class DefaultSubstitutionProviderTest {
 
     @Test
     fun testSubstitutionInConstraint() {
-        val int = NamedTypeCreator.create(emptyList(), Name(emptyList(), "int"))
+        val int = NamedTypeCreator.create(emptyList(), Name(emptyList(), "int"), TypeMetaData())
         lateinit var classA: Type
         val dummyFunction = FunctionTypeCreator.create(
-            numberOfParameters = 1
+            numberOfParameters = 1,
+            TypeMetaData()
         ) { dummyFunction ->
             val typeVarT = dummyFunction.parameters.first()
             classA = CompositeTypeCreator.create(
                 Name(emptyList(), "A"),
-                numberOfParameters = 1
+                numberOfParameters = 1,
+                TypeMetaData()
             ) { classA ->
                 val param = classA.parameters.first()
+                param.constraints = setOf(TypeParameterConstraint(TypeRelation(":"), typeVarT))
                 CompositeTypeCreator.InitializationData(
                     members = emptyList(),
-                    supertypes = emptyList(),
-                    typeParameterConstraints = mapOf(
-                        param to setOf(TypeParameterConstraint(TypeRelation(":"), typeVarT))
-                    )
+                    supertypes = emptyList()
                 )
             }
             FunctionTypeCreator.InitializationData(arguments = emptyList(), returnValue = classA)

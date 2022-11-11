@@ -118,7 +118,7 @@ class MypyAnnotation(
                 assert(origin.parameters.size == args.size)
                 assert(origin.parameters.all { it is TypeParameter })
                 val argTypes = args.map { it.asUtBotType }
-                return PythonTypeSubstitutionProvider.substitute(
+                return DefaultSubstitutionProvider.substitute(
                     origin,
                     (origin.parameters.map { it as TypeParameter } zip argTypes).toMap()
                 )
@@ -154,18 +154,14 @@ sealed class CompositeAnnotationNode(
         (typeVars zip self.parameters).forEach { (node, typeParam) ->
             val typeVar = node.node as TypeVarNode
             storage.nodeToUtBotType[typeVar] = typeParam
-            typeParam.meta = PythonTypeVarMetaData(typeVar.varName)
+            typeParam.meta = PythonTypeVarDescription(typeVar.varName)
+            typeParam.constraints = typeVar.constraints
         }
         val members = names.values.mapNotNull { def ->
             (def as? VarDefinition)?.annotation?.asUtBotType  // for now ignore inner types
         }
         val baseTypes = bases.map { it.asUtBotType }
-        val typeParameterConstraints = typeVars.map { (it.node as TypeVarNode).constraints }
-        return CompositeTypeCreator.InitializationData(
-            members,
-            baseTypes,
-            (self.parameters zip typeParameterConstraints).associate { it }
-        )
+        return CompositeTypeCreator.InitializationData(members, baseTypes)
     }
 }
 
@@ -178,7 +174,7 @@ class ConcreteAnnotation(
 ): CompositeAnnotationNode(module, simpleName, AnnotationType.Concrete, names, typeVars, bases) {
     override fun initializeType(): Type {
         assert(storage.nodeToUtBotType[this] == null)
-        return PythonConcreteCompositeTypeCreator.create(
+        return createPythonConcreteCompositeType(
             Name(module.split('.'), simpleName),
             typeVars.size,
             names.entries.mapNotNull {
@@ -197,7 +193,7 @@ class Protocol(
     bases: List<MypyAnnotation>
 ): CompositeAnnotationNode(module, simpleName, AnnotationType.Protocol, names, typeVars, bases) {
     override fun initializeType(): Type {
-        return PythonProtocolCreator.create(
+        return createPythonProtocol(
             Name(module.split('.'), simpleName),
             typeVars.size,
             names.entries.mapNotNull {
@@ -219,15 +215,15 @@ class FunctionNode(
     override val children: List<MypyAnnotation>
         get() = super.children + positional + listOf(returnType)
     override fun initializeType(): Type {
-        return PythonCallableCreator.create(
+        return createPythonCallableType(
             typeVars.size,
-            positional.map { PythonCallable.ArgKind.Positional }
+            positional.map { PythonCallableTypeDescription.ArgKind.Positional }
         ) { self ->
             storage.nodeToUtBotType[this] = self
             (typeVars zip self.parameters).forEach { (nodeId, typeParam) ->
                 val typeVar = storage.nodeStorage[nodeId] as TypeVarNode
                 storage.nodeToUtBotType[typeVar] = typeParam
-                typeParam.meta = PythonTypeVarMetaData(typeVar.varName)
+                typeParam.meta = PythonTypeVarDescription(typeVar.varName)
             }
             FunctionTypeCreator.InitializationData(
                 arguments = positional.map { it.asUtBotType },

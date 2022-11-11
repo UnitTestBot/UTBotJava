@@ -62,6 +62,9 @@ env:
   data_path: monitoring/data
   monitoring_properties: monitoring/monitoring.properties
   push_script: monitoring/push_with_rebase.sh
+  PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
+  PUSHGATEWAY_ADDITIONAL_PATH: /pushgateway-custom
+  PROM_ADDITIONAL_LABELS: /service/github
 
 jobs:
   setup_matrix:
@@ -184,7 +187,8 @@ jobs:
         if: ${{ inputs.send_to_grafana }}
         run: |
           python monitoring/prepare_metrics.py --stats_file $stats_file --output_file grafana_metrics.json
-          echo "TODO send metrics to grafana"
+          chmod +x scripts/project/json_to_prometheus.py
+          python3 scripts/project/json_to_prometheus.py grafana_metrics.json | curl -u "${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }}" --data-binary @- https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway-custom/instance/nightly-statistics${PROM_ADDITIONAL_LABELS}
         env:
           stats_file: ${{ steps.insert.outputs.output }}
 

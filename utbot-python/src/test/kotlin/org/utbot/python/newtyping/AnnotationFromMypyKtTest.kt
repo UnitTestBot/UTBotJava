@@ -42,7 +42,7 @@ internal class AnnotationFromMypyKtTest {
         assertTrue(setOfUnion.getPythonAttributes().find { it.name == "__or__" }!!.type.parameters.size == 1)
 
         val unionType = setOfUnion.parameters[0] as StatefulType
-        assert(unionType.name == pythonUnionName)
+        assert(unionType.pythonDescription().name == pythonUnionName)
 
         val s = unionType.members[1] as TypeParameter
         val paramOfUnionMethod = setOfUnion.getPythonAttributes().find { it.name == "__or__" }!!.type.parameters[0] as TypeParameter
@@ -69,7 +69,7 @@ internal class AnnotationFromMypyKtTest {
         assertTrue((classA.parameters[0] as TypeParameter).definedAt === classA)
         assertTrue(
             (classA.parameters[0] as TypeParameter).constraints.any {
-                (it.boundary as? CompositeType)?.name == classA.name && it.relation == exactTypeRelation
+                it.boundary.pythonDescription().name == classA.pythonDescription().name && it.relation == exactTypeRelation
             }
         )
     }
@@ -78,6 +78,6 @@ internal class AnnotationFromMypyKtTest {
     fun testUserFunction() {
         val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType as CompositeType
         val square = storage.definitions["annotation_tests"]!!["square"]!!.annotation.asUtBotType as FunctionType
-        assertTrue((square.arguments[0].parameters[0] as CompositeType).name == int.name)
+        assertTrue(square.arguments[0].parameters[0].pythonDescription().name == int.pythonDescription().name)
     }
 }

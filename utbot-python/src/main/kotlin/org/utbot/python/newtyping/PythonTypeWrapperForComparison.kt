@@ -15,8 +15,10 @@ class PythonTypeWrapperForComparison private constructor(
     override fun equals(other: Any?): Boolean {
         if (other !is PythonTypeWrapperForComparison)
             return false
-        when (type) {
-            is TypeParameter -> {
+        val otherMeta = other.type.pythonDescription()
+        val selfMeta = type.pythonDescription()
+        when (selfMeta) {
+            is PythonTypeVarDescription -> {
                 if (type == other.type as? TypeParameter)
                     return true
                 val selfIndex = bounded.indexOf(type as? TypeParameter)
@@ -26,8 +28,8 @@ class PythonTypeWrapperForComparison private constructor(
                 return selfIndex == otherIndex
             }
             is PythonCompositeTypeDescription -> {
-                return other.type is PythonCompositeTypeDescription &&
-                        other.type.name == type.name &&
+                return otherMeta is PythonCompositeTypeDescription &&
+                        otherMeta.name == type.name &&
                         equalParameters(other)
             }
             is PythonCallable -> {
@@ -53,7 +55,6 @@ class PythonTypeWrapperForComparison private constructor(
                 return type.name == (other.type as? NamedType)?.name
             }
         }
-        error("Some Python type wasn't considered in equals() of PythonTypeWrapperForComparison")
     }
 
     override fun hashCode(): Int {

@@ -105,11 +105,6 @@ class MypyAnnotation(
     @Transient lateinit var storage: MypyAnnotationStorage
     val node: PythonAnnotationNode
         get() = storage.nodeStorage[nodeId]!!
-    val normalizedRepr: String
-        get() {
-            val children = args ?: return node.fullName
-            return node.fullName + "[" + children.joinToString { it.normalizedRepr } + "]"
-        }
     val asUtBotType: Type
         get() {
             assert(initialized)
@@ -127,26 +122,19 @@ class MypyAnnotation(
     }
 }
 
-sealed class PythonAnnotationNode(
-    open val module: String?,
-    val simpleName: String,
-    val type: AnnotationType
-) {
+sealed class PythonAnnotationNode() {
     @Transient lateinit var storage: MypyAnnotationStorage
-    open val fullName: String
-        get() = if (module == null) simpleName else "$module.$simpleName"
     open val children: List<MypyAnnotation> = emptyList()
     abstract fun initializeType(): Type
 }
 
 sealed class CompositeAnnotationNode(
-    override val module: String,
-    simpleName: String,
-    type: AnnotationType,
+    val module: String,
+    val simpleName: String,
     val names: Map<String, Definition>,
     val typeVars: List<MypyAnnotation>,
     val bases: List<MypyAnnotation>
-): PythonAnnotationNode(module, simpleName, type) {
+): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + names.values.map { it.annotation } + typeVars + bases
     fun getInitData(self: CompositeTypeCreator.Original): CompositeTypeCreator.InitializationData {
@@ -154,7 +142,7 @@ sealed class CompositeAnnotationNode(
         (typeVars zip self.parameters).forEach { (node, typeParam) ->
             val typeVar = node.node as TypeVarNode
             storage.nodeToUtBotType[typeVar] = typeParam
-            typeParam.meta = PythonTypeVarDescription(typeVar.varName)
+            typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName))
             typeParam.constraints = typeVar.constraints
         }
         val members = names.values.mapNotNull { def ->
@@ -166,12 +154,12 @@ sealed class CompositeAnnotationNode(
 }
 
 class ConcreteAnnotation(
-    override val module: String,
+    module: String,
     simpleName: String,
     names: Map<String, Definition>,
     typeVars: List<MypyAnnotation>,
     bases: List<MypyAnnotation>
-): CompositeAnnotationNode(module, simpleName, AnnotationType.Concrete, names, typeVars, bases) {
+): CompositeAnnotationNode(module, simpleName, names, typeVars, bases) {
     override fun initializeType(): Type {
         assert(storage.nodeToUtBotType[this] == null)
         return createPythonConcreteCompositeType(
@@ -186,12 +174,12 @@ class ConcreteAnnotation(
 
 class Protocol(
     val protocolMembers: List<String>,
-    override val module: String,
+    module: String,
     simpleName: String,
     names: Map<String, Definition>,
     typeVars: List<MypyAnnotation>,
     bases: List<MypyAnnotation>
-): CompositeAnnotationNode(module, simpleName, AnnotationType.Protocol, names, typeVars, bases) {
+): CompositeAnnotationNode(module, simpleName, names, typeVars, bases) {
     override fun initializeType(): Type {
         return createPythonProtocol(
             Name(module.split('.'), simpleName),
@@ -208,10 +196,7 @@ class FunctionNode(
     val positional: List<MypyAnnotation>,  // for now ignore other argument kinds
     val returnType: MypyAnnotation,
     val typeVars: List<String>
-): PythonAnnotationNode("typing", "Callable", AnnotationType.Function) {
-    override val fullName: String
-        get() =
-            "${super.fullName}[[${positional.joinToString { it.normalizedRepr }}], ${returnType.normalizedRepr}]"
+): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + positional + listOf(returnType)
     override fun initializeType(): Type {
@@ -223,7 +208,7 @@ class FunctionNode(
             (typeVars zip self.parameters).forEach { (nodeId, typeParam) ->
                 val typeVar = storage.nodeStorage[nodeId] as TypeVarNode
                 storage.nodeToUtBotType[typeVar] = typeParam
-                typeParam.meta = PythonTypeVarDescription(typeVar.varName)
+                typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName))
             }
             FunctionTypeCreator.InitializationData(
                 arguments = positional.map { it.asUtBotType },
@@ -238,7 +223,7 @@ class TypeVarNode(
     val values: List<MypyAnnotation>,
     val upperBound: MypyAnnotation?,
     val def: String
-): PythonAnnotationNode("typing", "TypeVar", AnnotationType.TypeVar) {
+): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + values + (upperBound?.let { listOf(it) } ?: emptyList())
     override fun initializeType() =
@@ -253,7 +238,7 @@ class TypeVarNode(
 
 class PythonTuple(
     val items: List<MypyAnnotation>
-): PythonAnnotationNode("builtins", "tuple", AnnotationType.Tuple) {
+): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + items
     override fun initializeType(): Type {
@@ -261,7 +246,7 @@ class PythonTuple(
     }
 }
 
-class PythonAny: PythonAnnotationNode("typing", "Any", AnnotationType.Any) {
+class PythonAny: PythonAnnotationNode() {
     override fun initializeType(): Type {
         return pythonAnyType
     }
@@ -271,7 +256,7 @@ class PythonAny: PythonAnnotationNode("typing", "Any", AnnotationType.Any) {
 
 class PythonUnion(
     val items: List<MypyAnnotation>
-): PythonAnnotationNode("typing", "Union", AnnotationType.Union) {
+): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + items
     override fun initializeType(): Type {
@@ -279,7 +264,7 @@ class PythonUnion(
     }
 }
 
-class PythonNoneType: PythonAnnotationNode(null, "None", AnnotationType.NoneType) {
+class PythonNoneType: PythonAnnotationNode() {
     override fun initializeType(): Type {
         return pythonNoneType
     }
@@ -287,7 +272,7 @@ class PythonNoneType: PythonAnnotationNode(null, "None", AnnotationType.NoneType
 
 class OverloadedFunction(
     val items: List<MypyAnnotation>
-): PythonAnnotationNode(null, "Overloaded", AnnotationType.Overloaded) {
+): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + items
     override fun initializeType(): Type {
@@ -295,7 +280,7 @@ class OverloadedFunction(
     }
 }
 
-class UnknownAnnotationNode: PythonAnnotationNode(null, "unknown", AnnotationType.Unknown) {
+class UnknownAnnotationNode: PythonAnnotationNode() {
     override fun initializeType(): Type {
         return pythonAnyType
     }

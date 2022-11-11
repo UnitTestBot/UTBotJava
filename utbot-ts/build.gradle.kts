@@ -31,7 +31,7 @@ dependencies {
     api(project(":utbot-framework"))
     implementation(project(":utbot-fuzzers"))
     // https://mvnrepository.com/artifact/com.eclipsesource.j2v8/j2v8
-    implementation("com.eclipsesource.j2v8:j2v8:6.2.1")
+//    implementation("com.eclipsesource.j2v8:j2v8:6.2.1")
     // https://mvnrepository.com/artifact/com.eclipsesource.j2v8/j2v8_win32_x86_64
     implementation("com.eclipsesource.j2v8:j2v8_win32_x86_64:4.6.0")
 

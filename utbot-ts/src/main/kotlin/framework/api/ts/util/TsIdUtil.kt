@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 
 val tsUndefinedClassId = TsClassId("undefined")
-val tsNumberClassId = TsClassId("number")
+val tsNumberClassId = TsClassId("numberkeyword")
 val tsBooleanClassId = TsClassId("bool")
 val tsDoubleClassId = TsClassId("double")
 val tsStringClassId = TsClassId("string")

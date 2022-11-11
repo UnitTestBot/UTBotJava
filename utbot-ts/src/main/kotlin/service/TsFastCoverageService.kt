@@ -26,18 +26,7 @@ class TsFastCoverageService(
 
     companion object {
 
-        private fun makeConfigFile(projectPath: String, tsNycPath: String) {
-            val configFile = File("$projectPath/.nycrc.json")
-            if (configFile.exists()) return
-            val json = JSONObject()
-            json.append("extends", tsNycPath)
-            json.append("all", true)
-            configFile.writeText(json.toString())
-            configFile.createNewFile()
-        }
-
         fun instrument(context: TsServiceContext): String = with (context) {
-            makeConfigFile(projectPath, settings.tsNycPath)
             val destination = "${projectPath}/${utbotDir}/instr"
             val fileName = filePathToInference.substringAfterLast("/")
                 TsCmdExec.runCommand(

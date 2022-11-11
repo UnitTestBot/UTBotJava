@@ -11,7 +11,7 @@ class PropertyDeclarationNode(
 
     override val children: List<AstNode> = obj.getChildren().map { it.getAstNodeByKind(typescript) }
 
-    val name = (obj.get("name") as V8Object).getAstNodeByKind(typescript)
+    val name: String = (obj.get("name") as V8Object).getString("escapedText")
 
     val type = (obj.get("type") as V8Object).getTypeNode(typescript)
 }

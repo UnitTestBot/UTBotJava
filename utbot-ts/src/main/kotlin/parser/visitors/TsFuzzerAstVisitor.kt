@@ -4,6 +4,7 @@ import framework.api.ts.util.tsNumberClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 import parser.ast.AstNode
+import parser.ast.BinaryExpressionNode
 import parser.ast.ComparisonBinaryOperatorNode
 import parser.ast.LiteralNode
 import parser.ast.NumericLiteralNode
@@ -14,14 +15,12 @@ class TsFuzzerAstVisitor: AbstractAstVisitor() {
 
     val fuzzedConcreteValues = mutableSetOf<FuzzedConcreteValue>()
 
-    override fun visitComparisonBinaryOperationNode(node: ComparisonBinaryOperatorNode): Boolean {
-        val compOp = """>=|<=|>|<|==|!=""".toRegex()
-        val curOp = compOp.find(node.toString())?.value
-        val currentFuzzedOp = FuzzedContext.Comparison.values().find { curOp == it.sign } ?: FuzzedContext.Unknown
-        lastFuzzedOpGlobal = currentFuzzedOp
-        validateNode(node.left)
+    override fun visitBinaryExpressionNode(node: BinaryExpressionNode): Boolean {
+        val curOp = node.binaryOperator as? ComparisonBinaryOperatorNode ?: return true
+        lastFuzzedOpGlobal = curOp.toFuzzedContext()
+        validateNode(node.leftOperand)
         lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison) (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
-        validateNode(node.right)
+        validateNode(node.rightOperand)
         return true
     }
 
@@ -49,7 +48,7 @@ class TsFuzzerAstVisitor: AbstractAstVisitor() {
 //            }
 
             is NumericLiteralNode -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(tsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(tsNumberClassId, literalNode.value, FuzzedContext.Comparison.valueOf("")))
             }
         }
     }

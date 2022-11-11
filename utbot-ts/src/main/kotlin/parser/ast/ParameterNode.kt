@@ -13,5 +13,5 @@ class ParameterNode(
 
     val type = (obj.get("type") as V8Object).getTypeNode(typescript)
 
-    val name = (obj.get("name") as V8Object).getAstNodeByKind(typescript)
+    val name = (obj.get("name") as V8Object).getString("escapedText")
 }

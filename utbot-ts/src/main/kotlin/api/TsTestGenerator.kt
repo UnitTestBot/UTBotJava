@@ -41,7 +41,6 @@ import utils.toTsAny
 
 
 class TsTestGenerator(
-    private val fileText: String,
     private var sourceFilePath: String,
     private var projectPath: String = sourceFilePath.substringBeforeLast("/"),
     private val selectedMethods: List<String>? = null,
@@ -55,6 +54,10 @@ class TsTestGenerator(
     private val utbotDir = "utbotTs"
 
     init {
+        println("My source file path: $sourceFilePath")
+        println("My project path: $projectPath")
+        println("My output file path: $outputFilePath")
+
         fixPathDelims()
     }
 
@@ -68,7 +71,7 @@ class TsTestGenerator(
      * Returns String representation of generated tests.
      */
     fun run(): String {
-        parsedFile = TsParser(File("")).parse(fileText)
+        parsedFile = TsParser(File(settings.tsModulePath)).parse(File(sourceFilePath).readText())
         val context = TsServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,

@@ -2,6 +2,7 @@ package parser
 
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
+import parser.ast.AstNode
 import parser.ast.BinaryExpressionNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.ConstructorNode
@@ -9,10 +10,9 @@ import parser.ast.DummyNode
 import parser.ast.FunctionDeclarationNode
 import parser.ast.IdentifierNode
 import parser.ast.MethodDeclarationNode
+import parser.ast.NumericLiteralNode
 import parser.ast.ParameterNode
 import parser.ast.PropertyDeclarationNode
-import parser.ast.AstNode
-import parser.ast.NumericLiteralNode
 import parser.visitors.TsClassAstVisitor
 
 object TsParserUtils {
@@ -44,7 +44,7 @@ object TsParserUtils {
      * However, the numbers are not unique, and at the end of this object some names occupy
      * Already existing numbers. Those names seem like utility ones, but when we access "SyntaxKind" through
      * J2V8, if the passed number is used more than once, we get the last entry of this number. That's why
-     * Remap is necessary not to get "FirstAssignment" from "=" token.
+     * Remap is necessary not to get, for example, "FirstAssignment" from "=" token.
      */
     private fun remapIfNecessary(rawKind: String): String {
         val map = mapOf(
@@ -79,7 +79,7 @@ object TsParserUtils {
             "LastJSDocNode" to "JSDocPropertyTag",
             "FirstJSDocTagNode" to "JSDocTag",
             "LastJSDocTagNode" to "JSDocPropertyTag",
-            )
+        )
         return map.getOrDefault(rawKind, rawKind)
     }
 
@@ -93,6 +93,7 @@ object TsParserUtils {
                         acc.add(array[j] as V8Object)
                     }
                 }
+
                 else -> acc
             }
         }
@@ -105,16 +106,22 @@ object TsParserUtils {
         }
     }
 
-    fun V8Object.getAstNodeByKind(typescript: V8Object): AstNode = when (this.getKind(typescript)) {
-        "FunctionDeclaration" -> FunctionDeclarationNode(this, typescript)
-        "Parameter" -> ParameterNode(this, typescript)
-        "Identifier" -> IdentifierNode(this)
-        "BinaryExpression" -> BinaryExpressionNode(this, typescript)
-        "ClassDeclaration" -> ClassDeclarationNode(this, typescript)
-        "MethodDeclaration" -> MethodDeclarationNode(this, typescript)
-        "PropertyDeclaration" -> PropertyDeclarationNode(this, typescript)
-        "Constructor" -> ConstructorNode(this, typescript)
-        "NumericLiteral" -> NumericLiteralNode(this)
-        else -> DummyNode(this, typescript)
+    fun V8Object.getAstNodeByKind(typescript: V8Object): AstNode {
+        val node =  when (this.getKind(typescript)) {
+            "FunctionDeclaration" -> FunctionDeclarationNode(this, typescript)
+            "Parameter" -> ParameterNode(this, typescript)
+            "Identifier" -> IdentifierNode(this)
+            "BinaryExpression" -> {
+                val kek = BinaryExpressionNode(this, typescript)
+                kek
+            }
+            "ClassDeclaration" -> ClassDeclarationNode(this, typescript)
+            "MethodDeclaration" -> MethodDeclarationNode(this, typescript)
+            "PropertyDeclaration" -> PropertyDeclarationNode(this, typescript)
+            "Constructor" -> ConstructorNode(this, typescript)
+            "NumericLiteral" -> NumericLiteralNode(this)
+            else -> DummyNode(this, typescript)
+       }
+        return node
     }
 }

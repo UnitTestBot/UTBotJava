@@ -6,7 +6,7 @@ import parser.TsParserUtils.getKind
 class MathBinaryOperatorNode(
     obj: V8Object,
     typescript: V8Object
-): BinaryOperatorNode(obj, typescript) {
+): BinaryOperatorNode() {
 
     companion object {
         val allMathOperators = setOf(

@@ -2,6 +2,8 @@ package service
 
 import framework.api.ts.TsMethodId
 import framework.api.ts.TsPrimitiveModel
+import java.io.File
+import org.json.JSONObject
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
@@ -19,6 +21,19 @@ class TsCoverageServiceProvider(private val context: TsServiceContext) {
     private val imports = "const ${TsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
             "const fs = require(\"fs\")\n\n"
 
+    init {
+        makeConfigFile(context.projectPath, context.settings.tsNycModulePath)
+    }
+
+    private fun makeConfigFile(projectPath: String, tsNycPath: String) {
+        val configFile = File("$projectPath/.nycrc.json")
+        if (configFile.exists()) return
+        val json = JSONObject()
+        json.put("extends", tsNycPath)
+        json.put("all", true)
+        configFile.writeText(json.toString())
+        configFile.createNewFile()
+    }
     fun get(
         mode: TsCoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,

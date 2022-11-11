@@ -11,7 +11,7 @@ import kotlin.random.Random
 
 object TsStringModelProvider : ModelProvider {
 
-    internal val random = Random(72923L)
+    private val random = Random(72923L)
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues

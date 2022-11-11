@@ -29,7 +29,7 @@ object TsPrimitivesModelProvider : ModelProvider {
         }
     }
 
-    internal fun matchClassId(classId: TsClassId): List<FuzzedValue> {
+    private fun matchClassId(classId: TsClassId): List<FuzzedValue> {
         val fuzzedValues = when (classId) {
             tsBooleanClassId -> listOf(
                 TsPrimitiveModel(false).fuzzed { summary = "%var% = false" },
@@ -62,7 +62,7 @@ object TsPrimitivesModelProvider : ModelProvider {
         return fuzzedValues
     }
 
-    internal fun primitivesForString() = listOf(
+    private fun primitivesForString() = listOf(
         TsPrimitiveModel("").fuzzed { summary = "%var% = empty string" },
         TsPrimitiveModel("   ").fuzzed { summary = "%var% = blank string" },
         TsPrimitiveModel("string").fuzzed { summary = "%var% != empty string" },

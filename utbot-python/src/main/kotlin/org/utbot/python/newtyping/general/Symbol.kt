@@ -2,6 +2,7 @@ package org.utbot.python.newtyping.general
 
 interface Type {
     val parameters: List<Type>
+    val meta: TypeMetaData
 }
 
 interface NamedType: Type {
@@ -21,12 +22,12 @@ interface CompositeType: StatefulType {
     val supertypes: Collection<Type>
 }
 
-open class TypeParameterMetaData
+open class TypeMetaData
 
 class TypeParameter(val definedAt: Type): Type {
     // tricky case with cyclic dependency; constraints may be changed after substitution
     var constraints: Set<TypeParameterConstraint> = emptySet()
-    var meta: TypeParameterMetaData = TypeParameterMetaData()
+    override var meta: TypeMetaData = TypeMetaData()
     override val parameters: List<Type> = emptyList()
 }
 

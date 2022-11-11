@@ -241,7 +241,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
             val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
 
             val constructorId = findBestConstructorOrNull(compositeModel)
-                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.id}")
+                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.classId}")
 
             val constructorInfo = constructorAnalyzer.analyze(constructorId)
 

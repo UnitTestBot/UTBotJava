@@ -1,6 +1,7 @@
 package org.utbot.python.newtyping
 
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.adapters.EnumJsonAdapter
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
@@ -29,6 +30,7 @@ private val moshi = Moshi.Builder()
             .withSubtype(TypeDefinition::class.java, DefinitionType.Type.name)
             .withSubtype(VarDefinition::class.java, DefinitionType.Var.name)
     )
+    .add(PythonTypeVarDescription.Variance::class.java, EnumJsonAdapter.create(PythonTypeVarDescription.Variance::class.java))
     .addLast(KotlinJsonAdapterFactory())
     .build()
 
@@ -142,7 +144,7 @@ sealed class CompositeAnnotationNode(
         (typeVars zip self.parameters).forEach { (node, typeParam) ->
             val typeVar = node.node as TypeVarNode
             storage.nodeToUtBotType[typeVar] = typeParam
-            typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName))
+            typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance)
             typeParam.constraints = typeVar.constraints
         }
         val members = names.values.mapNotNull { def ->
@@ -208,7 +210,7 @@ class FunctionNode(
             (typeVars zip self.parameters).forEach { (nodeId, typeParam) ->
                 val typeVar = storage.nodeStorage[nodeId] as TypeVarNode
                 storage.nodeToUtBotType[typeVar] = typeParam
-                typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName))
+                typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance)
             }
             FunctionTypeCreator.InitializationData(
                 arguments = positional.map { it.asUtBotType },
@@ -222,7 +224,8 @@ class TypeVarNode(
     val varName: String,
     val values: List<MypyAnnotation>,
     val upperBound: MypyAnnotation?,
-    val def: String
+    val def: String,
+    val variance: PythonTypeVarDescription.Variance
 ): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + values + (upperBound?.let { listOf(it) } ?: emptyList())

@@ -7,7 +7,6 @@ object DefaultSubstitutionProvider: SubstitutionProvider<Type, Type>() {
             is FunctionType -> FunctionTypeSubstitutionProvider(this).substitute(type, params)
             is CompositeType -> CompositeTypeSubstitutionProvider(this).substitute(type, params)
             is StatefulType -> StatefulTypeSubstitutionProvider(this).substitute(type, params)
-            is NamedType -> NamedTypeSubstitutionProvider(this).substitute(type, params)
             else -> TypeSubstitutionProvider(this).substitute(type, params)
         }
 }
@@ -54,22 +53,6 @@ class TypeSubstitutionProvider(
     }
 }
 
-class NamedTypeSubstitutionProvider(
-    private val provider: SubstitutionProvider<Type, Type>
-): SubstitutionProvider<NamedType, NamedType>() {
-    override fun substitute(type: NamedType, params: Map<TypeParameter, Type>): NamedType {
-        return Substitution(type, params, provider)
-    }
-    open class Substitution(
-        override val rawOrigin: NamedType,
-        override val params: Map<TypeParameter, Type>,
-        provider: SubstitutionProvider<Type, Type>
-    ): NamedType, TypeSubstitutionProvider.Substitution(rawOrigin, params, provider) {
-        override val name: Name
-            get() = rawOrigin.name
-    }
-}
-
 class FunctionTypeSubstitutionProvider(
     private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<FunctionType, FunctionType>() {
@@ -100,7 +83,7 @@ class StatefulTypeSubstitutionProvider(
         override val rawOrigin: StatefulType,
         override val params: Map<TypeParameter, Type>,
         provider: SubstitutionProvider<Type, Type>
-    ): StatefulType, NamedTypeSubstitutionProvider.Substitution(rawOrigin, params, provider) {
+    ): StatefulType, TypeSubstitutionProvider.Substitution(rawOrigin, params, provider) {
         override val members: List<Type> by lazy {
             rawOrigin.members.map { provider.substitute(it, newBoundedTypeParameters + params) }
         }

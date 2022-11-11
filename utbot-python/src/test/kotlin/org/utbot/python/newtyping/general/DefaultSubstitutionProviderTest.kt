@@ -8,9 +8,8 @@ internal class DefaultSubstitutionProviderTest {
     fun test1() {
         val provider = DefaultSubstitutionProvider
         val set = CompositeTypeCreator.create(
-            Name(listOf("builtins"), "set"),
             numberOfParameters = 1,
-            TypeMetaData()
+            TypeMetaDataWithName(Name(listOf("builtins"), "set"))
         ) { set ->
             val T = set.parameters.first()
             CompositeTypeCreator.InitializationData(
@@ -27,9 +26,8 @@ internal class DefaultSubstitutionProviderTest {
                                 mapOf(
                                     T to StatefulTypeCreator.create(
                                         emptyList(),
-                                        Name(listOf("typing"), "Union"),
                                         listOf(T, S),
-                                        TypeMetaData()
+                                        TypeMetaDataWithName(Name(listOf("typing"), "Union"))
                                     )
                                 )
                             )
@@ -59,13 +57,14 @@ internal class DefaultSubstitutionProviderTest {
         val T = set.parameters.first() as TypeParameter
         val setOfInt = compositeTypeDescriptor.substitute(
             set,
-            mapOf(T to NamedTypeCreator.create(emptyList(), Name(emptyList(), "int"), TypeMetaData()))
+            mapOf(T to TypeCreator.create(emptyList(), TypeMetaDataWithName(Name(emptyList(), "int"))))
         )
         assertTrue(setOfInt.members[0] is FunctionType)
         val unionMethod1 = setOfInt.members[0] as FunctionType
-        assertTrue(((unionMethod1.returnValue as CompositeType).parameters[0] as StatefulType).members.size == 2)
-        assertTrue(((unionMethod1.returnValue as CompositeType).parameters[0] as StatefulType).members[0] is NamedType)
-        assertTrue(((unionMethod1.returnValue as CompositeType).parameters[0] as StatefulType).members[1] is TypeParameter)
+        val innerUnionType = (unionMethod1.returnValue as CompositeType).parameters[0] as StatefulType
+        assertTrue(innerUnionType.members.size == 2)
+        assertTrue(((innerUnionType.members[0].meta as TypeMetaDataWithName).name.name == "int"))
+        assertTrue(innerUnionType.members[1] is TypeParameter)
 
         val setOfSets = compositeTypeDescriptor.substitute(set, mapOf(T to setOfInt))
         assertTrue(setOfSets.members[0] is FunctionType)
@@ -79,14 +78,12 @@ internal class DefaultSubstitutionProviderTest {
     fun testCyclicParameter() {
         var classA: CompositeType? = null
         val classB = CompositeTypeCreator.create(
-            Name(emptyList(), "B"),
             1,
-            TypeMetaData()
+            TypeMetaDataWithName(Name(emptyList(), "B"))
         ) { classB ->
             classA = CompositeTypeCreator.create(
-                Name(emptyList(), "A"),
                 0,
-                TypeMetaData()
+                TypeMetaDataWithName(Name(emptyList(), "A"))
             ) {
                 CompositeTypeCreator.InitializationData(
                     members = listOf(
@@ -139,9 +136,8 @@ internal class DefaultSubstitutionProviderTest {
         assertTrue((bOfA.members[0] as FunctionType).returnValue == classA)
 
         val classC = CompositeTypeCreator.create(
-            name = Name(emptyList(), "C"),
             numberOfParameters = 0,
-            TypeMetaData()
+            TypeMetaDataWithName(Name(emptyList(), "C"))
         ) {
             CompositeTypeCreator.InitializationData(
                 members = emptyList(),
@@ -154,7 +150,7 @@ internal class DefaultSubstitutionProviderTest {
 
     @Test
     fun testSubstitutionInConstraint() {
-        val int = NamedTypeCreator.create(emptyList(), Name(emptyList(), "int"), TypeMetaData())
+        val int = TypeCreator.create(emptyList(), TypeMetaDataWithName(Name(emptyList(), "int")))
         lateinit var classA: Type
         val dummyFunction = FunctionTypeCreator.create(
             numberOfParameters = 1,
@@ -162,9 +158,8 @@ internal class DefaultSubstitutionProviderTest {
         ) { dummyFunction ->
             val typeVarT = dummyFunction.parameters.first()
             classA = CompositeTypeCreator.create(
-                Name(emptyList(), "A"),
                 numberOfParameters = 1,
-                TypeMetaData()
+                TypeMetaDataWithName(Name(emptyList(), "A"))
             ) { classA ->
                 val param = classA.parameters.first()
                 param.constraints = setOf(TypeParameterConstraint(TypeRelation(":"), typeVarT))

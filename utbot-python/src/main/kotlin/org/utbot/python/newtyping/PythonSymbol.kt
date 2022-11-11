@@ -38,7 +38,12 @@ sealed class PythonCompositeTypeDescription(
 
 sealed class PythonSpecialAnnotation(name: Name): PythonTypeDescription(name)
 
-class PythonTypeVarDescription(name: Name): PythonTypeDescription(name)
+class PythonTypeVarDescription(name: Name): PythonTypeDescription(name) {
+    override fun castToCompatibleTypeApi(type: Type): TypeParameter {
+        return type as? TypeParameter
+            ?: error("Got unexpected type PythonTypeVarDescription: $type")
+    }
+}
 
 // Composite types
 class PythonConcreteCompositeTypeDescription(
@@ -51,7 +56,25 @@ class PythonProtocolDescription(
     val protocolMemberNames: List<String>
 ): PythonCompositeTypeDescription(name, memberNames)
 
-// Special annotations
+class PythonCallableTypeDescription(val argumentKinds: List<ArgKind>): PythonTypeDescription(pythonCallableName) {
+    override fun castToCompatibleTypeApi(type: Type): FunctionType {
+        return type as? FunctionType
+            ?: error("Got unexpected type PythonCallableTypeDescription: $type")
+    }
+    override fun getNamedMembers(type: Type): List<PythonAttribute> {
+        val functionType = castToCompatibleTypeApi(type)
+        return listOf(PythonAttribute("__call__", functionType))
+    }
+    override fun getAnnotationParameters(type: Type): List<Type> {
+        val functionType = castToCompatibleTypeApi(type)
+        return functionType.arguments + listOf(functionType.returnValue)
+    }
+    enum class ArgKind {
+        Positional
+    }
+}
+
+// Special Python annotations
 object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName)
 
 object PythonNoneTypeDescription: PythonSpecialAnnotation(pythonNoneName) {
@@ -68,35 +91,30 @@ object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
         val statefulType = castToCompatibleTypeApi(type)
         TODO("Not yet implemented")
     }
-    override fun getAnnotationParameters(type: Type): List<Type> {
-        val statefulType = castToCompatibleTypeApi(type)
-        return statefulType.members
-    }
+    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
 }
 
 object PythonOverloadTypeDescription: PythonSpecialAnnotation(overloadName) {
-    // TODO: add logic
+    override fun castToCompatibleTypeApi(type: Type): StatefulType {
+        return type as? StatefulType
+            ?: error("Got unexpected type PythonOverloadTypeDescription: $type")
+    }
+    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
+    override fun getNamedMembers(type: Type): List<PythonAttribute> {
+        val statefulType = castToCompatibleTypeApi(type)
+        TODO("Not yet implemented")
+    }
 }
 
 object PythonTupleTypeDescription: PythonSpecialAnnotation(pythonTupleName) {
-    // TODO: add logic
-}
-
-class PythonCallableTypeDescription(val argumentKinds: List<ArgKind>): PythonSpecialAnnotation(pythonCallableName) {
-    override fun castToCompatibleTypeApi(type: Type): FunctionType {
-        return type as? FunctionType
-            ?: error("Got unexpected type PythonCallableTypeDescription: $type")
+    override fun castToCompatibleTypeApi(type: Type): StatefulType {
+        return type as? StatefulType
+            ?: error("Got unexpected type PythonTupleTypeDescription: $type")
     }
+    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
     override fun getNamedMembers(type: Type): List<PythonAttribute> {
-        val functionType = castToCompatibleTypeApi(type)
-        return listOf(PythonAttribute("__call__", functionType))
-    }
-    override fun getAnnotationParameters(type: Type): List<Type> {
-        val functionType = castToCompatibleTypeApi(type)
-        return functionType.arguments + listOf(functionType.returnValue)
-    }
-    enum class ArgKind {
-        Positional
+        val statefulType = castToCompatibleTypeApi(type)
+        TODO("Not yet implemented")
     }
 }
 

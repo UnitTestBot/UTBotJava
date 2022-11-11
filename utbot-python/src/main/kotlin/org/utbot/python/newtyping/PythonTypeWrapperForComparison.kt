@@ -2,22 +2,20 @@ package org.utbot.python.newtyping
 
 import org.utbot.python.newtyping.general.*
 
-/*
-class PythonTypeWrapperForComparison private constructor(
+class PythonTypeWrapperForComparison(
     val type: Type,
     private val bounded: List<TypeParameter> = emptyList()
 ) {
     init {
         if (!type.isPythonType())
-            error("Trying to create PythonTypeWrapperForComparison not of Python type")
+            error("Trying to create PythonTypeWrapperForComparison for non-Python type $type")
     }
 
     override fun equals(other: Any?): Boolean {
         if (other !is PythonTypeWrapperForComparison)
             return false
         val otherMeta = other.type.pythonDescription()
-        val selfMeta = type.pythonDescription()
-        when (selfMeta) {
+        when (val selfMeta = type.pythonDescription()) {
             is PythonTypeVarDescription -> {
                 if (type == other.type as? TypeParameter)
                     return true
@@ -29,62 +27,47 @@ class PythonTypeWrapperForComparison private constructor(
             }
             is PythonCompositeTypeDescription -> {
                 return otherMeta is PythonCompositeTypeDescription &&
-                        otherMeta.name == type.name &&
+                        otherMeta.name == selfMeta.name &&
                         equalParameters(other)
             }
-            is PythonCallable -> {
-                return other.type is PythonCallable &&
-                        other.type.argumentKinds == type.argumentKinds &&
+            is PythonCallableTypeDescription -> {
+                if (otherMeta !is PythonCallableTypeDescription)
+                    return false
+                return selfMeta.argumentKinds == otherMeta.argumentKinds &&
                         equalParameters(other) &&
                         equalChildren(
-                            type.arguments + listOf(type.returnValue),
-                            other.type.arguments + listOf(other.type.returnValue),
+                            selfMeta.getAnnotationParameters(type),
+                            otherMeta.getAnnotationParameters(other.type),
                             other
                         )
             }
-            is StatefulType -> {
-                return other.type is StatefulType &&
-                        type.name == other.type.name &&
+            is PythonSpecialAnnotation -> {
+                if (otherMeta !is PythonSpecialAnnotation)
+                    return false
+                return selfMeta.name == otherMeta.name &&
                         equalChildren(
-                            type.members,
-                            other.type.members,
+                            selfMeta.getAnnotationParameters(type),
+                            otherMeta.getAnnotationParameters(other.type),
                             other
                         )
-            }
-            is NamedType -> {
-                return type.name == (other.type as? NamedType)?.name
             }
         }
     }
 
     override fun hashCode(): Int {
-        return when (type) {
-            is TypeParameter -> {
+        return when (val selfMeta = type.pythonDescription()) {
+            is PythonTypeVarDescription -> {
                 val selfIndex = bounded.indexOf(type as? TypeParameter)
                 if (selfIndex == -1)
                     type.hashCode()
                 else
                     return selfIndex
             }
-            is PythonCompositeTypeDescription -> {
-                (listOf(type.name.hashCode()) + type.parameters.map {
+            else -> {
+                (listOf(selfMeta.name.hashCode()) + selfMeta.getAnnotationParameters(type).map {
                     getChildWrapper(it).hashCode()
                 }).hashCode()
             }
-            is PythonCallable -> {
-                (type.arguments + listOf(type.returnValue)).map {
-                    getChildWrapper(it).hashCode()
-                }.hashCode()
-            }
-            is StatefulType -> {
-                (listOf(type.name.hashCode()) + type.members.map {
-                    getChildWrapper(it).hashCode()
-                }).hashCode()
-            }
-            is NamedType -> {
-                type.name.hashCode()
-            }
-            else -> error("Some Python type wasn't considered in hashCode() of PythonTypeWrapperForComparison")
         }
     }
 
@@ -148,4 +131,3 @@ fun Type.getBoundedParameters(): List<TypeParameter> =
             null
         }
     }
- */

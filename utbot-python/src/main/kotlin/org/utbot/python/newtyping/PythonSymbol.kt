@@ -14,13 +14,16 @@ fun Type.getPythonAttributes(): List<PythonAttribute> {
     return pythonDescription().getNamedMembers(this)
 }
 
-sealed class PythonTypeDescription: TypeMetaData() {
+sealed class PythonTypeDescription(name: Name): TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: Type): Type = type
     open fun getNamedMembers(type: Type): List<PythonAttribute> = emptyList()
     open fun getAnnotationParameters(type: Type): List<Type> = emptyList()
 }
 
-sealed class PythonCompositeTypeDescription(val memberNames: List<String>): PythonTypeDescription() {
+sealed class PythonCompositeTypeDescription(
+    name: Name,
+    private val memberNames: List<String>
+): PythonTypeDescription(name) {
     override fun castToCompatibleTypeApi(type: Type): CompositeType {
         return type as? CompositeType
             ?: error("Got unexpected type PythonCompositeTypeDescription: $type")
@@ -33,26 +36,30 @@ sealed class PythonCompositeTypeDescription(val memberNames: List<String>): Pyth
     override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
 }
 
-sealed class PythonSpecialAnnotation: PythonTypeDescription()
+sealed class PythonSpecialAnnotation(name: Name): PythonTypeDescription(name)
 
-class PythonTypeVarDescription(val name: String): PythonTypeDescription()
+class PythonTypeVarDescription(name: Name): PythonTypeDescription(name)
 
 // Composite types
-class PythonConcreteCompositeTypeDescription(memberNames: List<String>): PythonCompositeTypeDescription(memberNames)
+class PythonConcreteCompositeTypeDescription(
+    name: Name,
+    memberNames: List<String>
+): PythonCompositeTypeDescription(name, memberNames)
 class PythonProtocolDescription(
+    name: Name,
     memberNames: List<String>,
     val protocolMemberNames: List<String>
-): PythonCompositeTypeDescription(memberNames)
+): PythonCompositeTypeDescription(name, memberNames)
 
 // Special annotations
-object PythonAnyTypeDescription: PythonSpecialAnnotation()
+object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName)
 
-object PythonNoneTypeDescription: PythonSpecialAnnotation() {
+object PythonNoneTypeDescription: PythonSpecialAnnotation(pythonNoneName) {
     override fun getNamedMembers(type: Type): List<PythonAttribute> =
         emptyList() // TODO: add None attributes
 }
 
-object PythonUnionTypeDescription: PythonSpecialAnnotation() {
+object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
     override fun castToCompatibleTypeApi(type: Type): StatefulType {
         return type as? StatefulType
             ?: error("Got unexpected type PythonUnionTypeDescription: $type")
@@ -67,16 +74,15 @@ object PythonUnionTypeDescription: PythonSpecialAnnotation() {
     }
 }
 
-object PythonOverloadTypeDescription: PythonSpecialAnnotation() {
+object PythonOverloadTypeDescription: PythonSpecialAnnotation(overloadName) {
     // TODO: add logic
 }
 
-object PythonTupleTypeDescription: PythonSpecialAnnotation() {
+object PythonTupleTypeDescription: PythonSpecialAnnotation(pythonTupleName) {
     // TODO: add logic
 }
 
-class PythonCallableTypeDescription(val argumentKinds: List<ArgKind>): PythonSpecialAnnotation() {
-    val name = pythonCallableName
+class PythonCallableTypeDescription(val argumentKinds: List<ArgKind>): PythonSpecialAnnotation(pythonCallableName) {
     override fun castToCompatibleTypeApi(type: Type): FunctionType {
         return type as? FunctionType
             ?: error("Got unexpected type PythonCallableTypeDescription: $type")
@@ -101,17 +107,17 @@ val pythonTupleName = Name(listOf("typing"), "Tuple")
 val pythonCallableName = Name(listOf("typing"), "Callable")
 val overloadName = Name(emptyList(), "Overload")
 
-val pythonAnyType = NamedTypeCreator.create(emptyList(), pythonAnyName, PythonAnyTypeDescription)
-val pythonNoneType = NamedTypeCreator.create(emptyList(), pythonNoneName, PythonNoneTypeDescription)
+val pythonAnyType = TypeCreator.create(emptyList(), PythonAnyTypeDescription)
+val pythonNoneType = TypeCreator.create(emptyList(), PythonNoneTypeDescription)
 
 fun createPythonUnionType(members: List<Type>): StatefulType =
-    StatefulTypeCreator.create(emptyList(), pythonUnionName, members, PythonUnionTypeDescription)
+    StatefulTypeCreator.create(emptyList(), members, PythonUnionTypeDescription)
 
 fun createOverloadedFunctionType(members: List<Type>): StatefulType =
-    StatefulTypeCreator.create(emptyList(), overloadName, members, PythonOverloadTypeDescription)
+    StatefulTypeCreator.create(emptyList(), members, PythonOverloadTypeDescription)
 
 fun createPythonTupleType(members: List<Type>): StatefulType =
-    StatefulTypeCreator.create(emptyList(), pythonTupleName, members, PythonTupleTypeDescription)
+    StatefulTypeCreator.create(emptyList(), members, PythonTupleTypeDescription)
 
 fun createPythonConcreteCompositeType(
     name: Name,
@@ -119,7 +125,7 @@ fun createPythonConcreteCompositeType(
     memberNames: List<String>,
     initialization: (CompositeTypeCreator.Original) -> CompositeTypeCreator.InitializationData
 ): CompositeType =
-    CompositeTypeCreator.create(name, numberOfParameters, PythonConcreteCompositeTypeDescription(memberNames), initialization)
+    CompositeTypeCreator.create(numberOfParameters, PythonConcreteCompositeTypeDescription(name, memberNames), initialization)
 
 fun createPythonProtocol(
     name: Name,
@@ -128,7 +134,7 @@ fun createPythonProtocol(
     protocolMemberNames: List<String>,
     initialization: (CompositeTypeCreator.Original) -> CompositeTypeCreator.InitializationData
 ): CompositeType =
-    CompositeTypeCreator.create(name, numberOfParameters, PythonProtocolDescription(memberNames, protocolMemberNames), initialization)
+    CompositeTypeCreator.create(numberOfParameters, PythonProtocolDescription(name, memberNames, protocolMemberNames), initialization)
 
 fun createPythonCallableType(
     numberOfParameters: Int,

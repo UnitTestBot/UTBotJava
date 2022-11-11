@@ -12,7 +12,7 @@ internal class PythonTypeWrapperForComparisonTest {
     lateinit var storage: MypyAnnotationStorage
     @BeforeAll
     fun setup() {
-        val sample = AnnotationFromMypyKtTest::class.java.getResource("/annotation_sample.txt")!!.readText()
+        val sample = AnnotationFromMypyKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
     }
 

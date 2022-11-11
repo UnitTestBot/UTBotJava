@@ -38,10 +38,15 @@ sealed class PythonCompositeTypeDescription(
 
 sealed class PythonSpecialAnnotation(name: Name): PythonTypeDescription(name)
 
-class PythonTypeVarDescription(name: Name): PythonTypeDescription(name) {
+class PythonTypeVarDescription(name: Name, val variance: Variance): PythonTypeDescription(name) {
     override fun castToCompatibleTypeApi(type: Type): TypeParameter {
         return type as? TypeParameter
             ?: error("Got unexpected type PythonTypeVarDescription: $type")
+    }
+    enum class Variance {
+        INVARIANT,
+        COVARIANT,
+        CONTRAVARIANT
     }
 }
 
@@ -173,15 +178,6 @@ val exactTypeRelation = TypeRelation("=")
 val upperBoundRelation = TypeRelation("<")
 
 /*
-interface PythonCallable: FunctionType {
-    val name: Name
-        get() = pythonCallableName
-    val argumentKinds: List<ArgKind>
-    enum class ArgKind {
-        Positional
-    }
-}
-
 interface PythonCompositeType: CompositeType {
     val memberNames: List<String>
     val namedMembers: List<PythonAttribute>
@@ -196,19 +192,4 @@ interface PythonCompositeType: CompositeType {
         }
      */
 }
-
- */
-
-/*
-interface PythonConcreteCompositeType: PythonCompositeType
-
-
-interface PythonProtocol: PythonCompositeType {
-    val protocolMemberNames: List<String>
-}
-
-class PythonTypeVarMetaData(
-    val name: String
-): TypeParameterMetaData()
-
  */

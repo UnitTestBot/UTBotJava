@@ -73,6 +73,7 @@ import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.methodClassId
 import org.utbot.framework.plugin.api.util.denotableType
+import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -484,7 +485,13 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         }
 
     override fun wrapTypeIfRequired(baseType: ClassId): ClassId =
-        if (baseType.isAccessibleFrom(testClassPackageName)) baseType else objectClassId
+        when {
+            baseType.isAccessibleFrom(testClassPackageName) -> baseType
+            baseType.isAnonymous && baseType.supertypeOfAnonymousClass.isAccessibleFrom(testClassPackageName) ->
+                baseType.supertypeOfAnonymousClass
+
+            else -> objectClassId
+        }
 
     // utils
 

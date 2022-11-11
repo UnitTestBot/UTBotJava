@@ -6,7 +6,12 @@ import org.utbot.examples.mock.others.Locator
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.mockValue
+import org.utbot.testing.singleMock
+import org.utbot.testing.singleMockOrNull
+import org.utbot.testing.value
 
 internal class MockReturnObjectExampleTest : UtValueTestCaseChecker(testClass = MockReturnObjectExample::class) {
     @Test

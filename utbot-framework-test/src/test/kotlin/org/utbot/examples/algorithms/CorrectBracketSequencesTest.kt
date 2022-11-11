@@ -8,7 +8,11 @@ import org.junit.jupiter.api.Test
 import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
 import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
 import org.utbot.testcheckers.eq
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
+import org.utbot.testing.keyMatch
 
 internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,

@@ -10,7 +10,13 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
-import org.utbot.testing.*
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
+import org.utbot.testing.between
+import org.utbot.testing.isException
+import org.utbot.testing.keyContain
+import org.utbot.testing.keyMatch
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class RecursionTest : UtValueTestCaseChecker(

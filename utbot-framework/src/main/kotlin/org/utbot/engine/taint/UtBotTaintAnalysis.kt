@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator.ExecutionTimeEstimator
+import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtSymbolicExecution
@@ -89,10 +90,11 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val timeEstimator: ExecutionTimeEstimator
     )
 
-    private enum class AnalysisEndReason(val explanation: String) {
+    private enum class AnalysisStopReason(val explanation: String) {
         COVERAGE("All covered"),
         TIMEOUT("Timeout exceeding"),
-        STEPS("Step limit ${UtSettings.pathSelectorStepsLimit} exceeding");
+        STEPS("Step limit ${UtSettings.pathSelectorStepsLimit} exceeding"),
+        ERRORS("Errors during analysis occurred");
 
         override fun toString(): String = explanation
     }
@@ -127,7 +129,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         }
 
         // Concurrent seems to be required here
-        val analysisStopReasons = concurrentMapOf<ExecutableId, AnalysisEndReason>()
+        val analysisStopReasons = concurrentMapOf<ExecutableId, AnalysisStopReason>()
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
@@ -164,16 +166,20 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                     }
 
                                     if (engine.wasStoppedByStepsLimit) {
-                                        analysisStopReasons.putIfAbsent(method, AnalysisEndReason.STEPS)
+                                        analysisStopReasons.getOrPut(method) {
+                                            logger.warn {
+                                                "Taint analysis of the executable $method was stopped due to exceeding steps limit"
+                                            }
 
-                                        logger.warn {
-                                            "Taint analysis of the executable $method was stopped due to exceeding steps limit"
+                                            AnalysisStopReason.STEPS
                                         }
                                     } else {
-                                        analysisStopReasons.putIfAbsent(method, AnalysisEndReason.COVERAGE)
+                                        analysisStopReasons.getOrPut(method) {
+                                            logger.warn {
+                                                "Taint analysis of the executable $method ended due to full coverage"
+                                            }
 
-                                        logger.warn {
-                                            "Taint analysis of the executable $method ended due to full coverage"
+                                            AnalysisStopReason.COVERAGE
                                         }
                                     }
                                 }
@@ -186,7 +192,11 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                             executionsByExecutable[method]?.add(it)
                                             logger.warn { "Method: ${method}, executions: $it" }
                                         }
-                                        else -> logger.error { "Failed to analyze for taint: $it" }
+                                        is UtError -> {
+                                            analysisStopReasons.putIfAbsent(method, AnalysisStopReason.ERRORS)
+                                            logger.error(it.error) { "Failed to analyze for taint: $it" }
+                                        }
+                                        else -> logger.error { "Unexpected taint execution $it" }
                                 }
                             }
                         } catch (e: CancellationException) {
@@ -222,7 +232,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                 if (timePassed > totalTimeoutMs) {
                                     method2controller.values.forEach { it.controller.job!!.cancel("Timeout") }
                                     cancel("Timeout")
-                                    analysisStopReasons.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisEndReason.TIMEOUT) }
+                                    analysisStopReasons.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisStopReason.TIMEOUT) }
                                     logger.warn { "Total timeout $totalTimeoutMs (ms) exceeded, analysis is canceled" }
                                 }
 
@@ -231,7 +241,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
                             if (job.isActive) {
                                 val method = methodWithTimeout.method
-                                analysisStopReasons[method] = AnalysisEndReason.TIMEOUT
+                                analysisStopReasons[method] = AnalysisStopReason.TIMEOUT
                                 logger.warn { "Analysis of executable $method was interrupted due to exceeding it's timeout ${timeEstimator.userTimeout}" }
                             }
                         }

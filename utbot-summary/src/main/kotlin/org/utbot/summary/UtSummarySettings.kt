@@ -2,27 +2,27 @@ package org.utbot.summary
 
 object UtSummarySettings {
     /**
-     * If True test comments will be generated
+     * If True test comments will be generated.
      */
     var GENERATE_COMMENTS = true
 
     /**
-     * If True cluster comments will be generated
+     * If True cluster comments will be generated.
      */
     var GENERATE_CLUSTER_COMMENTS = true
 
     /**
-     * If True names for tests will be generated
+     * If True names for tests will be generated.
      */
     var GENERATE_NAMES = true
 
     /**
-     * If True display names for tests will be generated
+     * If True display names for tests will be generated.
      */
     var GENERATE_DISPLAY_NAMES = true
 
     /**
-     *  generate display name in from -> to style
+     *  If True display name in from -> to style will be generated.
      */
     var GENERATE_DISPLAYNAME_FROM_TO_STYLE = true
 
@@ -34,19 +34,21 @@ object UtSummarySettings {
 
     /**
      * Sets minimum number of successful execution
-     * for applying the clustering algorithm
+     * for applying the clustering algorithm.
      */
     const val MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING: Int = 4
 
     /**
-     * DBSCAN hyperparameter
-     * Sets minimum number of executions to form a cluster
+     * DBSCAN hyperparameter.
+     *
+     * Sets minimum number of executions to form a cluster.
      */
     var MIN_EXEC_DBSCAN: Int = 2
 
     /**
-     * DBSCAN hyperparameter
-     * Sets radius of search for algorithm
+     * DBSCAN hyperparameter.
+     *
+     * Sets radius of search for algorithm.
      */
     var RADIUS_DBSCAN: Float = 5.0f
 }

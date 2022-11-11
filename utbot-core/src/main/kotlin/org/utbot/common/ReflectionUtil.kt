@@ -37,6 +37,10 @@ object Reflection {
     fun setModifiers(field: Field, modifiers: Int) {
         modifiersField.set(field, modifiers)
     }
+
+    fun isModifiersAccessible(): Boolean {
+        return modifiersField.isAccessible
+    }
 }
 
 inline fun <R> AccessibleObject.withAccessibility(block: () -> R): R {

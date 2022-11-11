@@ -1,3 +1,6 @@
+plugins {
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.7.20'
+}
 apply plugin: 'jacoco'
 
 configurations {
@@ -58,6 +61,7 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.2'
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
     // need for tests
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'

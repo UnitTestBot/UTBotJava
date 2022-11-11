@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.util.isArray
 /**
  * Interface for method and variable name generators
  */
-internal interface CgNameGenerator {
+interface CgNameGenerator {
     /**
      * Generate a variable name given a [base] name.
      * @param isMock denotes whether a variable represents a mock object or not
@@ -67,7 +67,7 @@ internal interface CgNameGenerator {
  * Class that generates names for methods and variables
  * To avoid name collisions it uses existing names information from CgContext
  */
-internal class CgNameGeneratorImpl(private val context: CgContext)
+class CgNameGeneratorImpl(val context: CgContext)
     : CgNameGenerator, CgContextOwner by context {
 
     override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
@@ -78,7 +78,7 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         }
         return when {
             baseName in existingVariableNames -> nextIndexedVarName(baseName)
-            isLanguageKeyword(baseName, codegenLanguage) -> createNameFromKeyword(baseName)
+            isLanguageKeyword(baseName, context.cgLanguageAssistant) -> createNameFromKeyword(baseName)
             else -> baseName
         }.also {
             existingVariableNames = existingVariableNames.add(it)

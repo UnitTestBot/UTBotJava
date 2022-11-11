@@ -68,11 +68,20 @@ inline fun <T> LoggerWithLogMethod.bracket(
     }
 }
 
-inline fun <T> KLogger.catch(block: () -> T): T? {
+inline fun <T> KLogger.catchException(block: () -> T): T? {
     return try {
         block()
     } catch (e: Throwable) {
         this.error(e) { "Isolated" }
         null
+    }
+}
+
+inline fun <T> KLogger.logException(block: () -> T): T {
+    return try {
+        block()
+    } catch (e: Throwable) {
+        this.error("Exception occurred", e)
+        throw e
     }
 }

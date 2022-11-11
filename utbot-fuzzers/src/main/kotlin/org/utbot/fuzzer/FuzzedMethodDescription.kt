@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.ExecutableId
  * @param concreteValues any concrete values to be processed by fuzzer
  *
  */
-class FuzzedMethodDescription(
+open class FuzzedMethodDescription(
     val name: String,
     val returnType: ClassId,
     val parameters: List<ClassId>,

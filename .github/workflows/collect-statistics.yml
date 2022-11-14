@@ -189,6 +189,7 @@ jobs:
           python monitoring/prepare_metrics.py --stats_file $stats_file --output_file grafana_metrics.json
           chmod +x scripts/project/json_to_prometheus.py
           python3 scripts/project/json_to_prometheus.py grafana_metrics.json | curl -u "${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }}" --data-binary @- https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway-custom/instance/nightly-statistics${PROM_ADDITIONAL_LABELS}
+          echo "Please visit Grafana to check metrics: https://monitoring.utbot.org/d/m6bagaD4z/utbot-nightly-statistic"
         env:
           stats_file: ${{ steps.insert.outputs.output }}
 

@@ -87,17 +87,50 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
     data class ControllerWithTimeEstimator(
         val controller: EngineController,
-        val timeEstimator: ExecutionTimeEstimator
+        val timeEstimator: TaintTimeEstimator
     )
 
-    private enum class AnalysisStopReason(val explanation: String) {
-        COVERAGE("All covered"),
-        TIMEOUT("Timeout exceeding"),
-        STEPS("Step limit ${UtSettings.pathSelectorStepsLimit} exceeding"),
-        ERRORS("Errors during analysis occurred");
+    sealed class AnalysisStopReason(val elapsedTimeMs: Long, private val explanation: String) {
 
-        override fun toString(): String = explanation
+        override fun toString(): String = "$explanation, elapsed time $elapsedTimeMs (ms)"
+
+        class COVERAGE(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "All covered")
+        class TIMEOUT(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "Timeout exceeding")
+        class STEPS(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "Step limit ${UtSettings.pathSelectorStepsLimit} exceeding")
+        class ERRORS(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "Errors during analysis occurred")
     }
+
+    data class TaintTimeEstimator(val initialTimeBudgetMs: Long) {
+        private var additionalTimeBudgetMs: Long = 0
+        private var startTimeMs: Long = System.currentTimeMillis()
+
+        fun setStart() {
+            startTimeMs = System.currentTimeMillis()
+        }
+
+        fun addTimeBudget(timeBudgetMs: Long) {
+            additionalTimeBudgetMs += timeBudgetMs.coerceAtLeast(0)
+        }
+
+        val totalTimeBudgetMs: Long
+            get() = initialTimeBudgetMs + additionalTimeBudgetMs
+
+        val elapsedTimeMs: Long
+            get() = System.currentTimeMillis() - startTimeMs
+
+        val remainingTimeBudgetMs: Long
+            get() = totalTimeBudgetMs - elapsedTimeMs
+
+        fun isTimeElapsed(): Boolean = remainingTimeBudgetMs <= 0
+    }
+
+    private fun getUpdatedSolverCheckTimeoutMs(totalTimeBudgetMs: Long): Int =
+        if (totalTimeBudgetMs < UtSettings.checkSolverTimeoutMillis) {
+            totalTimeBudgetMs.toInt()
+        } else {
+            UtSettings.checkSolverTimeoutMillis
+        }
+
 
     // TODO mostly copy-paste from org.utbot.framework.plugin.api.TestCaseGenerator#generate, perhaps it could be simplified
     @OptIn(DelicateCoroutinesApi::class)
@@ -108,15 +141,15 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         classPath: String,
         dependencyPaths: String,
         totalTimeoutMs: Long
-    ): MutableMap<ExecutableId, MutableList<UtSymbolicExecution>> {
-        disableCoroutinesDebug();
+    ): Pair<MutableMap<ExecutableId, MutableList<UtSymbolicExecution>>, MutableMap<ExecutableId, AnalysisStopReason>> {
+        disableCoroutinesDebug()
 
         val executionStartInMillis = System.currentTimeMillis()
 
         val method2controller = sortedByPriorityTaintMethodsWithTimeouts.associateWith {
             ControllerWithTimeEstimator(
                 EngineController(),
-                ExecutionTimeEstimator(it.timeoutMs, methodsUnderTestNumber = 1)
+                TaintTimeEstimator(it.timeoutMs)
             )
         }
         val isCanceled = { false }
@@ -133,6 +166,8 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
+                var extraTimeBudgetMs = 0L
+
                 for ((methodWithTimeout, controllerWithTimeEstimator) in method2controller) {
                     val (controller, timeEstimator) = controllerWithTimeEstimator
 
@@ -153,13 +188,15 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                 dependencyPaths,
                                 mockStrategy = mockStrategy.toModel(),
                                 chosenClassesToMockAlways = mockAlwaysDefaults,
-                                solverTimeoutInMillis = timeEstimator.updatedSolverCheckTimeoutMillis
+                                solverTimeoutInMillis = getUpdatedSolverCheckTimeoutMs(methodWithTimeout.timeoutMs)
                             )
 
-                            val resultFlow = defaultTestFlow(engine, timeEstimator.userTimeout)
+                            val resultFlow = defaultTestFlow(engine, timeEstimator.totalTimeBudgetMs)
 
                             resultFlow
                                 .onCompletion {
+                                    extraTimeBudgetMs += timeEstimator.remainingTimeBudgetMs
+
                                     if (it != null) {
                                         logger.error(it) { "Error in taint flow for $method" }
                                         return@onCompletion
@@ -168,18 +205,18 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                     if (engine.wasStoppedByStepsLimit) {
                                         analysisStopReasons.getOrPut(method) {
                                             logger.warn {
-                                                "Taint analysis of the executable $method was stopped due to exceeding steps limit"
+                                                "Taint analysis of the executable $method was stopped due to exceeding steps limit, elapsed time ${timeEstimator.elapsedTimeMs} (ms)"
                                             }
 
-                                            AnalysisStopReason.STEPS
+                                            AnalysisStopReason.STEPS(timeEstimator.elapsedTimeMs)
                                         }
                                     } else {
                                         analysisStopReasons.getOrPut(method) {
                                             logger.warn {
-                                                "Taint analysis of the executable $method ended due to full coverage"
+                                                "Taint analysis of the executable $method ended due to full coverage, elapsed time ${timeEstimator.elapsedTimeMs} (ms)"
                                             }
 
-                                            AnalysisStopReason.COVERAGE
+                                            AnalysisStopReason.COVERAGE(timeEstimator.elapsedTimeMs)
                                         }
                                     }
                                 }
@@ -193,7 +230,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                             logger.warn { "Method: ${method}, executions: $it" }
                                         }
                                         is UtError -> {
-                                            analysisStopReasons.putIfAbsent(method, AnalysisStopReason.ERRORS)
+                                            analysisStopReasons.putIfAbsent(method, AnalysisStopReason.ERRORS(timeEstimator.elapsedTimeMs))
                                             logger.error(it.error) { "Failed to analyze for taint: $it" }
                                         }
                                         else -> logger.error { "Unexpected taint execution $it" }
@@ -213,6 +250,10 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                         var activeCount = 0
                         for ((methodWithTimeout, controllerWithTimeEstimator) in method2controller) {
                             val (controller, timeEstimator) = controllerWithTimeEstimator
+                            timeEstimator.setStart()
+                            timeEstimator.addTimeBudget(extraTimeBudgetMs)
+                            extraTimeBudgetMs = 0L
+
                             val job = controller.job
 
                             if (!job!!.isActive) {
@@ -223,16 +264,13 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                             method2controller.values.forEach { it.controller.paused = true }
                             controller.paused = false
 
-                            val startTime = System.currentTimeMillis()
-                            while (job.isActive &&
-                                (System.currentTimeMillis() - startTime) < timeEstimator.userTimeout
-                            ) {
+                            while (job.isActive && !timeEstimator.isTimeElapsed()) {
                                 val timePassed = System.currentTimeMillis() - executionStartInMillis
 
                                 if (timePassed > totalTimeoutMs) {
                                     method2controller.values.forEach { it.controller.job!!.cancel("Timeout") }
                                     cancel("Timeout")
-                                    analysisStopReasons.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisStopReason.TIMEOUT) }
+                                    analysisStopReasons.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisStopReason.TIMEOUT(timeEstimator.elapsedTimeMs)) }
                                     logger.warn { "Total timeout $totalTimeoutMs (ms) exceeded, analysis is canceled" }
                                 }
 
@@ -241,8 +279,8 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
                             if (job.isActive) {
                                 val method = methodWithTimeout.method
-                                analysisStopReasons[method] = AnalysisStopReason.TIMEOUT
-                                logger.warn { "Analysis of executable $method was interrupted due to exceeding it's timeout ${timeEstimator.userTimeout}" }
+                                analysisStopReasons[method] = AnalysisStopReason.TIMEOUT(timeEstimator.elapsedTimeMs)
+                                logger.warn { "Analysis of executable $method was interrupted due to exceeding it's timeout ${timeEstimator.totalTimeBudgetMs}" }
                             }
                         }
 
@@ -262,15 +300,15 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
             }
         }
 
-        return executionsByExecutable
+        return executionsByExecutable to analysisStopReasons
     }
 
     fun runTaintAnalysis(
         taintCandidates: TaintCandidates,
         totalTimeoutMs: Long,
         classPath: String
-    ): List<ConfirmedTaint> {
-        disableCoroutinesDebug();
+    ): MutableMap<ExecutableId, Pair<List<ConfirmedTaint>, AnalysisStopReason>> {
+        disableCoroutinesDebug()
 
         val timeouts = timeoutStrategy.splitTimeout(totalTimeoutMs, taintCandidates)
         val taintsWithTimeout = timeouts.map { (method, timeout) ->
@@ -292,7 +330,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
         val mockAlwaysDefaults = Mocker.javaDefaultClassesToMockAlways.mapTo(mutableSetOf()) { it.id }
         val (classpathForEngine, dependencyPaths) = retrieveClassPaths()
-        val confirmedTaints = mutableListOf<ConfirmedTaint>()
+        val executableTaints = mutableMapOf<ExecutableId, Pair<List<ConfirmedTaint>, AnalysisStopReason>>()
 
         taintAnalysis.setConfiguration(taintConfiguration)
 
@@ -309,7 +347,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         )*/
 
         val currentUtContext = UtContext(classLoader)
-        val executionsByExecutable = runTaintAnalysisJobs(
+        val (executionsByExecutable, analysisStopReasons) = runTaintAnalysisJobs(
             sortedByPriorityTaintMethods,
             currentUtContext,
             mockAlwaysDefaults,
@@ -319,6 +357,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         )
 
         executionsByExecutable.forEach { (executable, executions) ->
+            val taints = mutableListOf<ConfirmedTaint>()
             for (execution in executions) {
                 if (execution.result !is UtExplicitlyThrownException) {
                     continue
@@ -340,11 +379,13 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                     path = retrievePath(path, source, sink)
                 )
 
-                confirmedTaints += confirmedTaint
+                taints += confirmedTaint
             }
+
+            executableTaints[executable] = taints to (analysisStopReasons[executable] ?: AnalysisStopReason.ERRORS(timeouts[executable]!!))
         }
 
-        return confirmedTaints
+        return executableTaints
     }
 
     // Old version, does not respect timeout

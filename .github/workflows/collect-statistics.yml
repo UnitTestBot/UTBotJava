@@ -139,7 +139,7 @@ jobs:
         id: insert
         shell: bash
         run: |
-          OUT_FILE="$data_path/$date-$branch-$short_commit-${{ matrix.value }}.json"
+          OUT_FILE="$data_path/$date-$short_commit-${{ matrix.value }}.json"
           echo "output=$OUT_FILE" >> $GITHUB_OUTPUT
 
           INPUTS=($(seq ${{ inputs.run_number }}))

@@ -20,7 +20,7 @@ class ChildProcessRunner {
     private val id = Random.nextLong()
     private var processSeqN = 0
     private val cmds: List<String> by lazy {
-        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug })
+        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runChildProcessWithDebug })
         val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
         val pathToJava = JdkInfoService.provide().path
 

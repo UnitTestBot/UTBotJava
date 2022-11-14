@@ -7,18 +7,11 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.Compilation
 
-// TODO parameterized tests disabled due to https://github.com/UnitTestBot/UTBotJava/issues/1266
 internal class PrivateConstructorExampleTest : UtValueTestCaseChecker(
     testClass = PrivateConstructorExample::class,
     pipelines = listOf(
-        TestLastStage(
-            CodegenLanguage.JAVA,
-            parameterizedModeLastStage = Compilation
-        ),
-        TestLastStage(
-            CodegenLanguage.KOTLIN,
-            parameterizedModeLastStage = Compilation
-        )
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN)
     )
 ) {
 

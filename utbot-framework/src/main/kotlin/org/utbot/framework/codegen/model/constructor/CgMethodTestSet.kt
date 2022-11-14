@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.UtFuzzedExecution
 import soot.jimple.JimpleBody
 
-data class CgMethodTestSet private constructor(
+data class CgMethodTestSet constructor(
     val executableId: ExecutableId,
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
@@ -30,6 +30,34 @@ data class CgMethodTestSet private constructor(
         from.clustersInfo
     ) {
         executions = from.executions
+    }
+    /**
+     * For JavaScript purposes.
+     */
+    constructor(
+        executableId: ExecutableId,
+        execs: List<UtExecution> = emptyList(),
+        errors: Map<String, Int> = emptyMap()
+    ) : this(
+        executableId,
+        null,
+        errors,
+        listOf(null to execs.indices)
+    ) {
+        executions = execs
+    }
+
+    constructor(
+        executableId: ExecutableId,
+        executions: List<UtExecution> = emptyList(),
+    ) : this(
+        executableId,
+        null,
+        emptyMap(),
+
+        listOf(null to executions.indices)
+    ) {
+        this.executions = executions
     }
 
     fun prepareTestSetsForParameterizedTestGeneration(): List<CgMethodTestSet> {
@@ -99,10 +127,14 @@ data class CgMethodTestSet private constructor(
      * A separate test set is created for each combination of modified statics.
      */
     private fun splitExecutionsByChangedStatics(): List<CgMethodTestSet> {
-        val executionsByStaticsUsage: Map<Set<FieldId>, List<UtExecution>> =
-            executions.groupBy { it.stateBefore.statics.keys }
+        val executionsByStaticsUsage = executions.groupBy { it.stateBefore.statics.keys }
 
-        return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
+        val executionsByStaticsUsageAndTheirTypes = executionsByStaticsUsage
+            .flatMap { (_, executions) ->
+                executions.groupBy { it.stateBefore.statics.values.map { model -> model.classId } }.values
+            }
+
+        return executionsByStaticsUsageAndTheirTypes.map { executions -> substituteExecutions(executions) }
     }
 
     /**

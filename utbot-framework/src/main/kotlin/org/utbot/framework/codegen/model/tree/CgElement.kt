@@ -77,6 +77,7 @@ interface CgElement {
             is CgTryCatch -> visit(element)
             is CgInnerBlock -> visit(element)
             is CgForLoop -> visit(element)
+            is CgForEachLoop -> visit(element)
             is CgWhileLoop -> visit(element)
             is CgDoWhileLoop -> visit(element)
             is CgBreakStatement -> visit(element)
@@ -727,6 +728,7 @@ data class CgParameterDeclaration(
  * - exception expected from MUT with the given arguments
  */
 sealed class CgParameterKind {
+    object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
     data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()

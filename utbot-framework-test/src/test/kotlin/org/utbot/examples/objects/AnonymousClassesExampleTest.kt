@@ -12,8 +12,8 @@ import org.utbot.tests.infrastructure.TestExecution
 class AnonymousClassesExampleTest : UtValueTestCaseChecker(
     testClass = AnonymousClassesExample::class,
     pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
-        TestLastStage(CodegenLanguage.KOTLIN, lastStage = TestExecution)
+        TestLastStage(CodegenLanguage.JAVA),
+        TestLastStage(CodegenLanguage.KOTLIN)
     )
 ) {
     @Test

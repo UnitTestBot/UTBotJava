@@ -16,7 +16,7 @@ internal class CustomerExamplesTest: UtValueTestCaseChecker(
     testClass = CustomerExamples::class,
     testCodeGeneration = true,
     pipelines = listOf(
-        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution, parameterizedModeLastStage = Compilation),
+        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution),
         TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
     )
 ) {

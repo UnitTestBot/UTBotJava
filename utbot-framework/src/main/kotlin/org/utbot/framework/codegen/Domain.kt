@@ -35,7 +35,7 @@ import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
 
-sealed class Import(internal val order: Int) : Comparable<Import> {
+abstract class Import(val order: Int) : Comparable<Import> {
     abstract val qualifiedName: String
 
     override fun compareTo(other: Import) = importComparator.compare(this, other)
@@ -169,7 +169,7 @@ object MockitoStaticMocking : StaticsMocking(id = "Mockito static mocking", disp
     )
 }
 
-sealed class TestFramework(
+abstract class TestFramework(
     override val id: String,
     override val displayName: String,
     override val description: String = "Use $displayName as test framework",
@@ -191,7 +191,9 @@ sealed class TestFramework(
     abstract val nestedClassesShouldBeStatic: Boolean
     abstract val argListClassId: ClassId
 
-    val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
+    open val testSuperClass: ClassId? = null
+
+    open val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
     val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }
 
@@ -225,10 +227,10 @@ sealed class TestFramework(
 
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
-    protected fun assertionId(name: String, vararg params: ClassId): MethodId =
+    protected open fun assertionId(name: String, vararg params: ClassId): MethodId =
         builtinStaticMethodId(assertionsClass, name, voidClassId, *params)
     private fun arrayAssertionId(name: String, vararg params: ClassId): MethodId =
-            builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
+        builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
 
     abstract fun getRunTestsCommand(
         executionInvoke: String,
@@ -307,24 +309,7 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
     override val nestedClassesShouldBeStatic = true
 
     override val argListClassId: ClassId
-        get() {
-            val outerArrayId = Array<Array<Any?>?>::class.id
-            val innerArrayId = BuiltinClassId(
-                simpleName = objectArrayClassId.simpleName,
-                canonicalName = objectArrayClassId.canonicalName,
-                packageName = objectArrayClassId.packageName,
-                elementClassId = objectClassId,
-                typeParameters = TypeParameters(listOf(objectClassId))
-            )
-
-            return BuiltinClassId(
-                simpleName = outerArrayId.simpleName,
-                canonicalName = outerArrayId.canonicalName,
-                packageName = outerArrayId.packageName,
-                elementClassId = innerArrayId,
-                typeParameters = TypeParameters(listOf(innerArrayId))
-            )
-        }
+        get() = Array<Array<Any?>?>::class.id
 
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(

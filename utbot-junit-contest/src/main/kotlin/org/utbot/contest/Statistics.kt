@@ -12,12 +12,15 @@ private fun Double.format(digits: Int) = "%.${digits}f".format(this)
 fun <T> Iterable<T>.printMultiline(printer: (T) -> Any?) = "\n" + joinToString("\n") { "${printer(it)}" } + "\n"
 
 class GlobalStats {
+    val projectStats = mutableListOf<StatsForProject>()
+    var duration: Long? = null
+}
+
+class StatsForProject(val project: String) {
 
     companion object {
         const val PRECISION: Int = 2
     }
-
-    var duration: Long? = null
 
     val statsForClasses = mutableListOf<StatsForClass>()
 
@@ -109,7 +112,7 @@ class GlobalStats {
             avgCoverage.format(PRECISION) + " %"
 }
 
-class StatsForClass {
+class StatsForClass(val project: String, val className: String) {
     val testedClassNames: MutableSet<String> = ConcurrentSkipListSet()
 
     var methodsCount: Int = -1
@@ -126,15 +129,15 @@ class StatsForClass {
     var fuzzedCoverage = CoverageInstructionsSet()
     var concolicCoverage = CoverageInstructionsSet()
 
-    /**
-     * Add class [className] to respect coverage from this class.
-     */
-    fun addTestedClass(className: String) {
-        testedClassNames.add(className)
-    }
-
     private fun CoverageInstructionsSet.prettyInfo(): String =
         getCoverageInfo(testedClassNames).run { "$covered/$total" }
+
+    fun getCoverageInfo(): CoverageStatistic =
+        coverage.getCoverageInfo(testedClassNames)
+    fun getFuzzedCoverageInfo(): CoverageStatistic =
+        fuzzedCoverage.getCoverageInfo(testedClassNames)
+    fun getConcolicCoverageInfo(): CoverageStatistic =
+        concolicCoverage.getCoverageInfo(testedClassNames)
 
     override fun toString(): String = "\n<StatsForClass> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
@@ -207,7 +210,7 @@ private fun CoverageInstructionsSet?.getCoverageInfo(classNames: Set<String>): C
     CoverageStatistic(
         coveredInstructions.filter {
             instr -> classNames.contains(instr.className)
-        }.toSet().size,
+        }.map { it.id }.distinct().size,
         totalInstructions.toInt()
     )
 } ?: CoverageStatistic(covered = 0, total = 0)

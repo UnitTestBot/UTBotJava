@@ -1,24 +1,19 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
-import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.clearContextRelatedStorage
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getMethodConstructorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
 import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgMethodsCluster
 import org.utbot.framework.codegen.model.tree.CgMethod
@@ -46,7 +41,7 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.fuzzer.UtFuzzedExecution
 
-internal class CgTestClassConstructor(val context: CgContext) :
+open class CgTestClassConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgStatementConstructor by getStatementConstructorBy(context) {
 
@@ -58,12 +53,12 @@ internal class CgTestClassConstructor(val context: CgContext) :
     private val nameGenerator = getNameGeneratorBy(context)
     private val testFrameworkManager = getTestFrameworkManagerBy(context)
 
-    private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
+    protected val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
      * Given a testClass model  constructs CgTestClass
      */
-    fun construct(testClassModel: TestClassModel): CgTestClassFile {
+    open fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
             this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
@@ -71,7 +66,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructTestClass(testClassModel: TestClassModel): CgClass {
+    open fun constructTestClass(testClassModel: TestClassModel): CgClass {
         return buildClass {
             id = currentTestClass
 
@@ -110,7 +105,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
                 val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
                 if (currentTestClassDataProviderMethods.isNotEmpty()) {
-                    staticDeclarationRegions += CgStaticsRegion("Data providers", currentTestClassDataProviderMethods)
+                    staticDeclarationRegions +=
+                        CgStaticsRegion(
+                            "Data provider methods for parametrized tests",
+                            currentTestClassDataProviderMethods,
+                        )
                 }
 
                 if (currentTestClass == outerMostTestClass) {
@@ -132,7 +131,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }
@@ -228,34 +227,47 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
 
         regions += CgSimpleRegion(
-            "Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
-            collectAdditionalTestsForParameterizedMode(testSet),
+            "SYMBOLIC EXECUTION: additional tests for symbolic executions for method ${methodUnderTest.humanReadableName}",
+            collectAdditionalSymbolicTestsForParametrizedMode(testSet),
+        )
+
+        regions += CgSimpleRegion(
+            "FUZZER: Tests for method ${methodUnderTest.humanReadableName}",
+            collectFuzzerTestsForParameterizedMode(testSet),
         )
     }
 
-    private fun collectAdditionalTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
-        val (methodUnderTest, _, _, _) = testSet
-        val testCaseTestMethods = mutableListOf<CgTestMethod>()
+    /**
+     * Collects standard tests for fuzzer executions in parametrized mode.
+     * This is a requirement from [https://github.com/UnitTestBot/UTBotJava/issues/1137].
+     */
+    private fun collectFuzzerTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+        val testMethods = mutableListOf<CgTestMethod>()
 
-        // We cannot track mocking in fuzzed executions,
-        // so we generate standard tests for each [UtFuzzedExecution].
-        // [https://github.com/UnitTestBot/UTBotJava/issues/1137]
         testSet.executions
             .filterIsInstance<UtFuzzedExecution>()
             .forEach { execution ->
-                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+                testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
             }
 
-        // Also, we generate standard tests for symbolic executions with force mocking.
-        // [https://github.com/UnitTestBot/UTBotJava/issues/1231]
+        return testMethods
+    }
+
+    /**
+     * Collects standard tests for symbolic executions that can't be included into parametrized tests.
+     * This is a requirement from [https://github.com/UnitTestBot/UTBotJava/issues/1231].
+     */
+    private fun collectAdditionalSymbolicTestsForParametrizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
+        val testMethods = mutableListOf<CgTestMethod>()
+
         testSet.executions
             .filterIsInstance<UtSymbolicExecution>()
             .filter { it.containsMocking }
             .forEach { execution ->
-                testCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, execution)
+                testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
             }
 
-        return testCaseTestMethods
+        return testMethods
     }
 
     /**
@@ -328,10 +340,10 @@ internal class CgTestClassConstructor(val context: CgContext) :
     /**
      * Engine errors + codegen errors for a given [UtMethodTestSet]
      */
-    private val CgMethodTestSet.allErrors: Map<String, Int>
+    protected val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 
-    internal object CgComponents {
+    object CgComponents {
         /**
          * Clears all stored data for current [CgContext].
          * As far as context is created per class under test,
@@ -356,19 +368,26 @@ internal class CgTestClassConstructor(val context: CgContext) :
         private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
         private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
 
-        fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) { CgNameGeneratorImpl(context) }
-        fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) { CgCallableAccessManagerImpl(context) }
-        fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) { CgStatementConstructorImpl(context) }
-
-        fun getTestFrameworkManagerBy(context: CgContext) = when (context.testFramework) {
-            is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }
-            is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
-            is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
+        fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) {
+            context.cgLanguageAssistant.getNameGeneratorBy(context)
+        }
+        fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) {
+            context.cgLanguageAssistant.getCallableAccessManagerBy(context)
+        }
+        fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) {
+            context.cgLanguageAssistant.getStatementConstructorBy(context)
         }
 
+        fun getTestFrameworkManagerBy(context: CgContext) =
+            testFrameworkManagers.getOrDefault(context, context.cgLanguageAssistant.getLanguageTestFrameworkManager().managerByFramework(context))
+
         fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
-        fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
-        fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) { CgMethodConstructor(context) }
+        fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) {
+            context.cgLanguageAssistant.getVariableConstructorBy(context)
+        }
+        fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
+            context.cgLanguageAssistant.getMethodConstructorBy(context)
+        }
     }
 }
 

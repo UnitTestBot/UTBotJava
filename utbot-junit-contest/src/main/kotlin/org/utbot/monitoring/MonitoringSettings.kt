@@ -22,19 +22,17 @@ object MonitoringSettings : AbstractSettings(
     val processedClassesThreshold by getIntProperty(9999)
 
     /**
-     * Number of running test generation.
-     */
-    val runTries by getIntProperty(1)
-
-    /**
      * One running generation for all projects timeout in minutes.
      */
     val runTimeoutMinutes by getIntProperty(180)
 
     /**
-     * Target project to generate tests.
-     *
-     * TODO: change it into list and group GlobalStats by projects.
+     * Target projects to generate tests.
      */
-    val project by getStringProperty("guava")
+    val projects by getListProperty(listOf("guava"))
+
+    /**
+     * Set up fuzzing timeout relatively total generation time.
+     */
+    val fuzzingRatios by getListProperty(listOf(0.1), String::toDouble)
 }

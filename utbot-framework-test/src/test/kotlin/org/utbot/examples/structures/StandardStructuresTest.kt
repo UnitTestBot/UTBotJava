@@ -1,9 +1,5 @@
 package org.utbot.examples.structures
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.keyContain
-import org.utbot.tests.infrastructure.keyMatch
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -14,7 +10,11 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.keyContain
+import org.utbot.testing.keyMatch
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,

@@ -2,10 +2,9 @@ package examples.ternary
 
 import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.ternary.Ternary
 import org.utbot.framework.plugin.api.MockStrategyApi
-
+import org.utbot.testing.DoNotCalculate
 class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
     Ternary::class,
 ) {

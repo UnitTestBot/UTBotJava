@@ -1,6 +1,6 @@
 @file:Suppress("NestedLambdaShadowedImplicitParameter")
 
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.ClassLocation

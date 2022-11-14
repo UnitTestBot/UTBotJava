@@ -107,7 +107,7 @@ class FeatureProcessorWithStatesRepetition(
     }
 }
 
-internal class RewardEstimator {
+class RewardEstimator {
 
     fun calculateRewards(testCases: List<TestCase>): Map<Int, Double> {
         val rewards = mutableMapOf<Int, Double>()

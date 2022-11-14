@@ -4,9 +4,9 @@ import examples.SummaryTestCaseGeneratorTest
 import guava.examples.math.Stats
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtClusterInfo
+import org.utbot.testing.DoNotCalculate
 
 /**
  * It runs test generation for the poor analogue of the Stats.of method ported from the guava-26.0 framework

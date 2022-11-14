@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking

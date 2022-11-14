@@ -1,8 +1,5 @@
 package org.utbot.examples.exceptions
 
-import org.utbot.tests.infrastructure.UtModelTestCaseChecker
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.primitiveValue
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
@@ -10,6 +7,9 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
+import org.utbot.testing.UtModelTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.primitiveValue
 
 internal class ExceptionClusteringChecker :
     UtModelTestCaseChecker(testClass = ExceptionClusteringExamples::class) {

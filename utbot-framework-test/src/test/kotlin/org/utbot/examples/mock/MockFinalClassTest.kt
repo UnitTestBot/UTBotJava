@@ -1,16 +1,14 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.mock.others.FinalClass
-import org.utbot.tests.infrastructure.singleMock
-import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.ge
-import org.utbot.tests.infrastructure.Compilation
-import org.utbot.tests.infrastructure.TestExecution
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.singleMock
+import org.utbot.testing.value
 
 internal class MockFinalClassTest : UtValueTestCaseChecker(
     testClass = MockFinalClassExample::class,

@@ -1,15 +1,15 @@
 package org.utbot.examples.arrays
 
 import org.junit.jupiter.api.Disabled
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.atLeast
 import org.utbot.examples.casts.ColoredPoint
 import org.utbot.examples.casts.Point
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutMinimization
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
+import org.utbot.testing.ignoreExecutionsNumber
 
 @Suppress("NestedLambdaShadowedImplicitParameter")
 internal class ArrayOfArraysTest : UtValueTestCaseChecker(testClass = ArrayOfArrays::class) {

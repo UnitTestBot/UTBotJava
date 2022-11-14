@@ -2,16 +2,16 @@ package org.utbot.examples.math
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.examples.algorithms.Sort
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withTreatingOverflowAsError
-import org.utbot.tests.infrastructure.Compilation
+import org.utbot.testing.AtLeast
+import org.utbot.testing.Compilation
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
 import kotlin.math.floor
 import kotlin.math.sqrt
 

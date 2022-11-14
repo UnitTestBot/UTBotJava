@@ -1,7 +1,5 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.util.singleModel
@@ -10,9 +8,11 @@ import org.utbot.framework.util.singleValue
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
-import org.utbot.tests.infrastructure.Compilation
-import org.utbot.tests.infrastructure.TestExecution
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.Compilation
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.TestExecution
+import org.utbot.testing.UtValueTestCaseChecker
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class MockStaticMethodExampleTest : UtValueTestCaseChecker(

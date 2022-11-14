@@ -102,11 +102,6 @@ inline fun UtExecutionResult.onFailure(action: (exception: Throwable) -> Unit): 
     return this
 }
 
-fun UtExecutionResult.getOrThrow(): UtModel = when (this) {
-    is UtExecutionSuccess -> model
-    is UtExecutionFailure -> throw exception
-}
-
 fun UtExecutionResult.exceptionOrNull(): Throwable? = when (this) {
     is UtExecutionFailure -> rootCauseException
     is UtExecutionSuccess -> null

@@ -187,8 +187,8 @@ object PythonTestGenerationProcessor {
                 val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->
                         CgMethodTestSet(
-                            methodIds[testSet.method] as ExecutableId,
-                            testSet.executions
+                            executableId = methodIds[testSet.method] as ExecutableId,
+                            executions = testSet.executions
                         )
                     },
                     allImports

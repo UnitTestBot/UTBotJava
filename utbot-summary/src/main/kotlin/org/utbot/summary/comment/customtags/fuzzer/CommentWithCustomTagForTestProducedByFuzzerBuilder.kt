@@ -33,9 +33,14 @@ class CommentWithCustomTagForTestProducedByFuzzerBuilder(
         val packageName = methodDescription.packageName
         val className = methodDescription.className
         val methodName = methodDescription.compilableName
+        val canonicalName = methodDescription.canonicalName
 
         return if (packageName != null && className != null && methodName != null) {
-            val fullClassName = "$packageName.$className"
+            val fullClassName = if (methodDescription.isNested && canonicalName != null) {
+                canonicalName
+            } else {
+                "$packageName.$className"
+            }
 
             val methodReference = getMethodReferenceForFuzzingTest(
                 fullClassName,

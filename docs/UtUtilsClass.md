@@ -12,11 +12,13 @@ Previously UnitTestBot generated _utility methods_ for each test class when they
 
 For now UnitTestBot provides a special `UtUtils` class containing all _utility methods_ if at least one test class needs some of them. This class is generated once and the specific methods are imported from it if necessary. No need for _utility methods_ — no `UtUtils` class is generated.
 
+We create a separate `UtUtils` class for each supported codegen language (is this class is required).
+
 ## What does it look like
 
-Here is an example of a comment inherent to every `UtUtils` class:
+Here is the documentation inherent to every `UtUtils` class:
 
-<img width="494" alt="ututils" src="https://user-images.githubusercontent.com/64418523/196719780-2603f141-e922-40fc-9a0a-533aaacc5c49.png">
+![Documentation](../images/utbot_ututils_2.0.png)
 
 As one can see, the comment mentions two characteristics of the `UtUtils` class:
 
@@ -39,7 +41,7 @@ rely on the proper methods from `UtUtils` class.
 
 ## Where to find it
 
-`UtUtils` class is usually located in the chosen **Test sources root** near the generated test classes.
+`UtUtils` class is usually located in the chosen **Test sources root** near the generated test classes, it's package is named after the selected codegen language.
 
 ## How to test
 

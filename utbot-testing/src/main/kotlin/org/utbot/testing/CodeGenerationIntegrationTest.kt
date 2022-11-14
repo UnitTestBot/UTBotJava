@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import org.utbot.common.FileUtil
 import org.utbot.common.withAccessibility
@@ -135,7 +135,8 @@ abstract class CodeGenerationIntegrationTest(
                         )
                     }
 
-                    val config = TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language, parameterizationMode)
+                    val config =
+                        TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language, parameterizationMode)
                     TestCodeGeneratorPipeline(config).runClassesCodeGenerationTests(classStages)
                 } catch (e: RuntimeException) {
                     pipelineErrors.add(e.message)

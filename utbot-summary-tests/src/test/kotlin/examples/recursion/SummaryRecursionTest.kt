@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.utbot.examples.recursion.Recursion
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.tests.infrastructure.DoNotCalculate
+import org.utbot.testing.DoNotCalculate
 
 @ExtendWith(CustomJavaDocTagsEnabler::class)
 class SummaryRecursionTest : SummaryTestCaseGeneratorTest(

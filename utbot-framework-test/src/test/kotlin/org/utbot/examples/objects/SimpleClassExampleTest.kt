@@ -1,17 +1,17 @@
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
-import org.utbot.tests.infrastructure.isException
-import org.utbot.tests.infrastructure.keyContain
-import org.utbot.tests.infrastructure.keyMatch
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
+import org.utbot.testing.isException
+import org.utbot.testing.keyContain
+import org.utbot.testing.keyMatch
 
 internal class SimpleClassExampleTest : UtValueTestCaseChecker(testClass = SimpleClassExample::class) {
     @Test

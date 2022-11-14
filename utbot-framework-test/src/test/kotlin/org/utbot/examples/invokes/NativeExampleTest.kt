@@ -1,14 +1,14 @@
 package org.utbot.examples.invokes
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.atLeast
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import kotlin.math.ln
 import kotlin.math.sqrt
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
+import org.utbot.testing.ignoreExecutionsNumber
 
 internal class NativeExampleTest : UtValueTestCaseChecker(testClass = NativeExample::class) {
     @Test

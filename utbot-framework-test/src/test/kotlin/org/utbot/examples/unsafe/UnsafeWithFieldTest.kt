@@ -1,8 +1,8 @@
 package org.utbot.examples.unsafe
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class UnsafeWithFieldTest: UtValueTestCaseChecker(UnsafeWithField::class) {
 

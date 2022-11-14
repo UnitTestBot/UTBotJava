@@ -127,10 +127,14 @@ data class CgMethodTestSet constructor(
      * A separate test set is created for each combination of modified statics.
      */
     private fun splitExecutionsByChangedStatics(): List<CgMethodTestSet> {
-        val executionsByStaticsUsage: Map<Set<FieldId>, List<UtExecution>> =
-            executions.groupBy { it.stateBefore.statics.keys }
+        val executionsByStaticsUsage = executions.groupBy { it.stateBefore.statics.keys }
 
-        return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
+        val executionsByStaticsUsageAndTheirTypes = executionsByStaticsUsage
+            .flatMap { (_, executions) ->
+                executions.groupBy { it.stateBefore.statics.values.map { model -> model.classId } }.values
+            }
+
+        return executionsByStaticsUsageAndTheirTypes.map { executions -> substituteExecutions(executions) }
     }
 
     /**

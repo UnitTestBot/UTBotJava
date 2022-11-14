@@ -2,12 +2,7 @@ package org.utbot.sarif
 
 import org.junit.Test
 import org.mockito.Mockito
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.*
 
 class SarifReportTest {
 
@@ -135,6 +130,19 @@ class SarifReportTest {
             assert(result[index].artifactLocation.uri.contains("Main.java"))
             assert(result[index].region.startLine == 17)
         }
+    }
+
+    @Test
+    fun testProcessSandboxFailure() {
+        mockUtMethodNames()
+
+        val uncheckedException = Mockito.mock(java.security.AccessControlException::class.java)
+        Mockito.`when`(uncheckedException.stackTrace).thenReturn(arrayOf())
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtSandboxFailure(uncheckedException))
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        assert(result.message.text.contains("AccessControlException"))
     }
 
     @Test

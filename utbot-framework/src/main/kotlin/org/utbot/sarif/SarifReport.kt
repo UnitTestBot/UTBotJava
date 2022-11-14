@@ -207,7 +207,7 @@ class SarifReport(
 
         // prepending stack trace by `method` call in generated tests
         val methodCallLocation: SarifPhysicalLocation? =
-            findMethodCallInTestBody(utExecution.testMethodName, method.name)
+            findMethodCallInTestBody(utExecution.testMethodName, method.name, utExecution)
         if (methodCallLocation != null) {
             val testFileName = sourceFinding.testsRelativePath.toPath().fileName
             val testClassName = testFileName.nameWithoutExtension
@@ -255,9 +255,15 @@ class SarifReport(
         generatedTestsCode.split('\n')
     }
 
-    private fun findMethodCallInTestBody(testMethodName: String?, methodName: String): SarifPhysicalLocation? {
+    private fun findMethodCallInTestBody(
+        testMethodName: String?,
+        methodName: String,
+        utExecution: UtExecution,
+    ): SarifPhysicalLocation? {
         if (testMethodName == null)
             return null
+        if (utExecution.result is UtSandboxFailure) // if there is no method call in test
+            return getRelatedLocations(utExecution).firstOrNull()?.physicalLocation
 
         // searching needed test
         val testMethodStartsAt = testsBodyLines.indexOfFirst { line ->
@@ -343,6 +349,7 @@ class SarifReport(
         val implicitlyThrown = result is UtImplicitlyThrownException
         val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
         val assertionError = result is UtExplicitlyThrownException && result.exception is AssertionError
-        return implicitlyThrown || overflowFailure || assertionError
+        val sandboxFailure = result is UtSandboxFailure
+        return implicitlyThrown || overflowFailure || assertionError || sandboxFailure
     }
 }

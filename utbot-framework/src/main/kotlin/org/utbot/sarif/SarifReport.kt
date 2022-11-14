@@ -320,9 +320,10 @@ class SarifReport(
      * Returns the number of the last line in the execution path which is located in the [classFqn].
      */
     private fun getLastLineNumber(utExecution: UtExecution, classFqn: String): Int? {
-        val lastCoveredInstruction = utExecution.coverage?.coveredInstructions?.lastOrNull {
-            it.className == classFqn
-        }
+        val classFqnPath = classFqn.replace(".", "/")
+        val coveredInstructions = utExecution.coverage?.coveredInstructions
+        val lastCoveredInstruction = coveredInstructions?.lastOrNull { it.className == classFqnPath }
+            ?: coveredInstructions?.lastOrNull()
         if (lastCoveredInstruction != null)
             return lastCoveredInstruction.lineNumber
 

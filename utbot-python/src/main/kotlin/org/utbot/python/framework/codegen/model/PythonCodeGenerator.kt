@@ -1,14 +1,19 @@
 package org.utbot.python.framework.codegen.model
 
-import org.utbot.framework.codegen.*
-import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.CodeGeneratorResult
-
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.CodeGenerator
+import org.utbot.framework.codegen.CodeGeneratorResult
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
@@ -66,10 +71,12 @@ class PythonCodeGenerator(
         context.withTestClassFileScope {
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
-            val cgTestClassConstructor = PythonCgTestClassConstructor(context)
+            val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)
 
-            val testClassFile = cgTestClassConstructor.construct(testClassModel)
-            CodeGeneratorResult(renderClassFile(testClassFile), cgTestClassConstructor.testsGenerationReport)
+            val renderer = CgAbstractRenderer.makeRenderer(context)
+            testClassFile.accept(renderer)
+
+            CodeGeneratorResult(renderer.toString(), testClassFile.testsGenerationReport)
         }
     }
 }

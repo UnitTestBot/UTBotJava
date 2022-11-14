@@ -21,7 +21,7 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
-import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import java.nio.file.Path
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)

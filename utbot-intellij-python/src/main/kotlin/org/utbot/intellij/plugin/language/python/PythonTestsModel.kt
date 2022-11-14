@@ -5,8 +5,8 @@ import com.intellij.openapi.project.Project
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.plugin.api.CgLanguageAssistant
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.intellij.plugin.models.BaseTestsModel
 
 class PythonTestsModel(

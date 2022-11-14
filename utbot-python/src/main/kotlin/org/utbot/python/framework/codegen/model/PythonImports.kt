@@ -1,5 +1,7 @@
 package org.utbot.framework.codegen
 
+import org.utbot.framework.codegen.domain.Import
+
 sealed class PythonImport(order: Int) : Import(order) {
     var importName: String = ""
     var moduleName: String? = null

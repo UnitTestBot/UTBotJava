@@ -1,7 +1,7 @@
 package org.utbot.python.framework.codegen
 
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.plugin.api.LanguageTestFrameworkManager
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.services.language.LanguageTestFrameworkManager
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
 import org.utbot.python.framework.codegen.model.constructor.tree.PytestManager

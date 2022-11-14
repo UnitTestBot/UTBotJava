@@ -1,10 +1,10 @@
 package org.utbot.python.framework.codegen.model.constructor.name
 
 import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.isLanguageKeyword
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
+import org.utbot.framework.codegen.services.language.isLanguageKeyword
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId

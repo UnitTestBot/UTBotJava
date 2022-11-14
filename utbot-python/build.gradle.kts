@@ -38,7 +38,7 @@ dependencies {
     api(group = "org.functionaljava", name = "functionaljava", version = functionaljavaVersion)
 
     api(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4") // TODO: will be changed to javacc21
-    api("com.beust:klaxon:5.5") // TODO: remove this dependency and use only moshi
+    api(group = "com.beust", name = "klaxon", version = "5.5") // TODO: will be removed and replaced by moshi
 
     api(group = "com.squareup.moshi", name = "moshi", version = moshiVersion)
     api(group = "com.squareup.moshi", name = "moshi-kotlin", version = moshiVersion)

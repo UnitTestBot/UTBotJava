@@ -18,7 +18,7 @@ We create a separate `UtUtils` class for each supported codegen language (is thi
 
 Here is the documentation inherent to every `UtUtils` class:
 
-![Documentation](../images/utbot_ututils_2.0.png)
+![Documentation](images/utbot_ututils_2.0.png)
 
 As one can see, the comment mentions two characteristics of the `UtUtils` class:
 

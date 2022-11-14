@@ -1,4 +1,4 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -73,11 +73,6 @@ class TestSpecificTestCaseGenerator(
                                             conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
                                 ) {
                                     it.containsMocking = true
-
-                                    conflictTriggers.reset(
-                                        Conflict.ForceMockHappened,
-                                        Conflict.ForceStaticMockHappened
-                                    )
                                 }
                                 executions += it
                             }
@@ -87,6 +82,7 @@ class TestSpecificTestCaseGenerator(
             }
         }
 
+        conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 

@@ -1,10 +1,9 @@
-package org.utbot.tests.infrastructure
+package org.utbot.testing
 
 import org.utbot.framework.plugin.api.CodegenLanguage
 import java.io.File
 import java.nio.file.Path
 import org.utbot.common.FileUtil
-import org.utbot.engine.logger
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestFramework
 

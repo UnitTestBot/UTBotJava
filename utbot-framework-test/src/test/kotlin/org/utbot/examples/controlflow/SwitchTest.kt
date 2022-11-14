@@ -1,8 +1,5 @@
 package org.utbot.examples.controlflow
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.keyContain
-import org.utbot.tests.infrastructure.keyMatch
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -16,6 +13,9 @@ import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withoutMinimization
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.keyContain
+import org.utbot.testing.keyMatch
 
 internal class SwitchTest : UtValueTestCaseChecker(testClass = Switch::class) {
     @Test

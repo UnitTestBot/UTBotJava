@@ -1,9 +1,9 @@
 package org.utbot.examples.thirdparty.numbers
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 // example from Apache common-numbers
 internal class ArithmeticUtilsTest : UtValueTestCaseChecker(testClass = ArithmeticUtils::class) {

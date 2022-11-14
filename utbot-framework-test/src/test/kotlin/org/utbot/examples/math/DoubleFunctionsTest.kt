@@ -1,13 +1,13 @@
 package org.utbot.examples.math
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.isException
 import kotlin.math.abs
 import kotlin.math.hypot
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleFunctionsTest : UtValueTestCaseChecker(testClass = DoubleFunctions::class) {

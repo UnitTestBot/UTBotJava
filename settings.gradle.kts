@@ -36,6 +36,7 @@ include("utbot-gradle")
 include("utbot-maven")
 include("utbot-summary-tests")
 include("utbot-framework-test")
+include("utbot-testing")
 include("utbot-rd")
 include("utbot-android-studio")
 

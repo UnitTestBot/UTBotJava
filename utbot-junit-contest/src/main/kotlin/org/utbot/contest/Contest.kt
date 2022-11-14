@@ -138,7 +138,15 @@ fun main(args: Array<String>) {
             val timeBudgetSec = cmd[2].toLong()
             val cut = ClassUnderTest(classLoader.loadClass(classUnderTestName).id, outputDir, classfileDir.toFile())
 
-            runGeneration(cut, timeBudgetSec, classpathString, runFromEstimator = false, methodNameFilter = null)
+            runGeneration(
+                project = "Contest",
+                cut,
+                timeBudgetSec,
+                fuzzingRatio = 0.1,
+                classpathString,
+                runFromEstimator = false,
+                methodNameFilter = null
+            )
             println("${ContestMessage.READY}")
         }
     }
@@ -162,8 +170,10 @@ fun setOptions() {
 @ObsoleteCoroutinesApi
 @SuppressWarnings
 fun runGeneration(
+    project: String,
     cut: ClassUnderTest,
     timeLimitSec: Long,
+    fuzzingRatio: Double,
     classpathString: String,
     runFromEstimator: Boolean,
     methodNameFilter: String? = null // For debug purposes you can specify method name
@@ -205,7 +215,7 @@ fun runGeneration(
         logger.error("Seems like classloader for cut not valid (maybe it was backported to system): ${cut.classLoader}")
     }
 
-    val statsForClass = StatsForClass()
+    val statsForClass = StatsForClass(project, cut.fqn)
 
     val codeGenerator = CodeGenerator(
             cut.classId,
@@ -276,9 +286,11 @@ fun runGeneration(
 
                     val budgetForSymbolicExecution = max(0, budgetForMethod - budgetForLastSolverRequestAndConcreteExecutionRemainingStates)
 
+                    UtSettings.utBotGenerationTimeoutInMillis = budgetForMethod
+                    UtSettings.fuzzingTimeoutInMillis = (budgetForMethod * fuzzingRatio).toLong()
 
                     //start controller that will activate symbolic execution
-                    GlobalScope.launch {
+                    GlobalScope.launch(currentContext) {
                         delay(budgetForSymbolicExecution)
 
                         if (methodJob.isActive) {
@@ -359,7 +371,7 @@ fun runGeneration(
         }
 
 
-        val cancellator = GlobalScope.launch {
+        val cancellator = GlobalScope.launch(currentContext) {
             delay(remainingBudget())
             if (engineJob.isActive) {
                 logger.warn { "Cancelling job because timeout $generationTimeout ms elapsed (real cancellation can take time)" }

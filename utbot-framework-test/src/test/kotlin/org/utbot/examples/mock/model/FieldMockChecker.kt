@@ -2,14 +2,14 @@ package org.utbot.examples.mock.model
 
 import org.utbot.examples.mock.provider.impl.ProviderImpl
 import org.utbot.examples.mock.service.impl.ServiceWithField
-import org.utbot.tests.infrastructure.primitiveValue
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtModelTestCaseChecker
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtModelTestCaseChecker
+import org.utbot.testing.primitiveValue
 
 internal class FieldMockChecker : UtModelTestCaseChecker(testClass = ServiceWithField::class) {
     @Test

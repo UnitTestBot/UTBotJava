@@ -1487,9 +1487,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     substituteStaticFields(statics, isParametrized = true)
 
                     // build this instance
-                    thisInstance =
-                        genericExecution.stateBefore.thisInstance?.let {
-                        variableConstructor.getOrCreateVariable(it)
+                    thisInstance = genericExecution.stateBefore.thisInstance?.let {
+                        currentMethodParameters[CgParameterKind.ThisInstance]
                     }
 
                     // build arguments for method under test and parameterized test
@@ -1552,6 +1551,20 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val executableUnderTestParameters = testSet.executableId.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
+            // this instance
+            genericExecution.stateBefore.thisInstance?.let {
+                val type = wrapTypeIfRequired(it.classId)
+                val thisInstance = CgParameterDeclaration(
+                    parameter = declareParameter(
+                        type = type,
+                        name = nameGenerator.variableName(type)
+                    ),
+                    isReferenceType = true
+                )
+                this += thisInstance
+                currentMethodParameters[CgParameterKind.ThisInstance] = thisInstance.parameter
+            }
+
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
                 val argumentName = paramNames[executableUnderTest]?.get(index)
@@ -1663,6 +1676,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
         val arguments = mutableListOf<CgExpression>()
 
+        execution.stateBefore.thisInstance?.let {
+            arguments += variableConstructor.getOrCreateVariable(it)
+        }
+
         for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
             val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
             arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
@@ -1672,7 +1689,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         for ((field, model) in statics) {
             arguments += variableConstructor.getOrCreateVariable(model, field.name)
         }
-
 
         val method = currentExecutable!!
         val needsReturnValue = method.returnType != voidClassId

@@ -1,3 +1,6 @@
+plugins {
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.7.20'
+}
 apply plugin: 'jacoco'
 
 configurations {
@@ -57,7 +60,8 @@ dependencies {
     }
     implementation group: 'org.apache.commons', name: 'commons-exec', version: apacheCommonsExecVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'org.jsoup', name: 'jsoup', version: jsoupVersion // prev 1.6.2, now it 1.7.2 and real last version 1.15.3 !
+    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-json', version: kotlinSerializationJsonVersion
+    implementation group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
     // need for tests
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion

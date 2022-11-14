@@ -1,9 +1,9 @@
 package org.utbot.examples.annotations
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class NotNullAnnotationTest : UtValueTestCaseChecker(testClass = NotNullAnnotation::class) {
     @Test

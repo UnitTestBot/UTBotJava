@@ -1,13 +1,13 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
 
 class BinarySearchTest : UtValueTestCaseChecker(testClass = BinarySearch::class,) {
     @Test

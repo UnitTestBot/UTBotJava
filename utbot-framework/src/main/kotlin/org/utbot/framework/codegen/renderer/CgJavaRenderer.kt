@@ -61,6 +61,8 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         get() = this == context.generatedClass
 
     override fun visit(element: CgClass) {
+        element.documentation?.accept(this)
+
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
@@ -87,8 +89,6 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     }
 
     override fun visit(element: CgClassBody) {
-        element.documentation?.accept(this)
-
         // render regions for test methods and utils
         val allRegions = element.methodRegions + element.nestedClassRegions + element.staticDeclarationRegions
         for ((i, region) in allRegions.withIndex()) {

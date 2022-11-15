@@ -3,7 +3,9 @@ package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 import org.utbot.common.isPublic
 import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
@@ -32,7 +34,7 @@ class ConstructorBasedInstanceGenerator(
                     try {
                         initialGenericContext?.constructor(constructor)
                     } catch (_: Throwable) {
-                        null
+                        return UtNullModel(clazz.id)
                     }
                 }
             }
@@ -58,7 +60,7 @@ class ConstructorBasedInstanceGenerator(
                         )
                     }
                     //Avoiding recursion
-                    .filter { it.parameterTypes.all { !it.name.contains(clazz.name) } }
+//                    .filter { it.parameterTypes.all { !it.name.contains(clazz.name) } }
                     .chooseRandomConstructor()
             } catch (_: Throwable) {
                 null

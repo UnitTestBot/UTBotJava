@@ -8,6 +8,7 @@ import org.utbot.engine.logger
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
+import soot.SootMethod
 import java.lang.reflect.Parameter
 
 object DataGenerator {

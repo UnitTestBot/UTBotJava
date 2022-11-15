@@ -2,12 +2,15 @@ package org.utbot.engine.greyboxfuzzer.util
 
 import org.utbot.framework.plugin.api.util.signature
 import soot.Hierarchy
+import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
 import soot.jimple.internal.JAssignStmt
+import soot.jimple.internal.JCastExpr
 import soot.jimple.internal.JInstanceFieldRef
+import soot.jimple.internal.JInstanceOfExpr
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -44,6 +47,17 @@ fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
     return res
 }
 
+fun SootMethod.getAllTypesFromCastAndInstanceOfInstructions(): Set<SootClass> =
+    this.activeBody.units.asSequence().filterIsInstance<JAssignStmt>()
+        .map { it.rightOp }
+        .filter { it is JCastExpr || it is JInstanceOfExpr }
+        .mapNotNull {
+            when (it) {
+                is JCastExpr -> (it.type as? RefType)?.sootClass
+                else -> ((it as JInstanceOfExpr).checkType as? RefType)?.sootClass
+            }
+        }.toSet()
+
 fun SootMethod.getClassFieldsUsedByFunc(clazz: Class<*>) =
     activeBody.units
         .asSequence()
@@ -53,11 +67,15 @@ fun SootMethod.getClassFieldsUsedByFunc(clazz: Class<*>) =
         .mapNotNull { fieldRef -> clazz.getAllDeclaredFields().find { it.name == fieldRef.field.name } }
         .toSet()
 
-fun SootClass.toJavaClass(): Class<*> =
+fun SootClass.toJavaClass(): Class<*>? =
     try {
         Class.forName(this.name)
-    } catch (e: ClassNotFoundException) {
-        CustomClassLoader.classLoader.loadClass(this.name)
+    } catch (e: Throwable) {
+        try {
+            CustomClassLoader.classLoader.loadClass(this.name)
+        } catch (e: Throwable) {
+            null
+        }
     }
 
 fun KFunction<*>.toSootMethod(): SootMethod? = this.javaMethod?.toSootMethod()
@@ -73,12 +91,12 @@ fun Method.toSootMethod(): SootMethod? {
 }
 
 fun SootMethod.toJavaMethod(): Method? =
-    declaringClass.toJavaClass().getAllDeclaredMethods().find {
+    declaringClass.toJavaClass()?.getAllDeclaredMethods()?.find {
         it.signature == this.bytecodeSignature.drop(1).dropLast(1).substringAfter("${declaringClass.name}: ")
     }
 
 fun SootField.toJavaField(): Field? =
-    declaringClass.toJavaClass().getAllDeclaredFields().find { it.name == name }
+    declaringClass.toJavaClass()?.getAllDeclaredFields()?.find { it.name == name }
 
 fun Field.toSootField(): SootField? =
     declaringClass.toSootClass()?.fields?.find { it.name == name }

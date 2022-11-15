@@ -6,7 +6,6 @@ import org.utbot.engine.greyboxfuzzer.mutator.Mutator
 import org.utbot.engine.greyboxfuzzer.mutator.Seed
 import org.utbot.engine.greyboxfuzzer.mutator.SeedCollector
 import org.utbot.engine.greyboxfuzzer.util.*
-import org.utbot.external.api.classIdForType
 import org.utbot.framework.concrete.*
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
@@ -14,10 +13,8 @@ import org.utbot.framework.util.sootMethod
 import org.utbot.instrumentation.ConcreteExecutor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import kotlin.random.Random
-import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.javaMethod
-import kotlin.system.exitProcess
 
 class GreyBoxFuzzer(
     private val pathsToUserClasses: String,
@@ -26,13 +23,12 @@ class GreyBoxFuzzer(
 ) {
 
     private val seeds = SeedCollector()
-//    val kfunction = methodUnderTest as KFunction<*>
-    private val explorationStageIterations = 10
+    private val explorationStageIterations = 100
     private val exploitationStageIterations = 100
-    private var thisInstance: UtModel? = generateThisInstance(methodUnderTest.classId.jClass)
+    private var thisInstance: UtModel? = null
 
     //TODO make it return Sequence<UtExecution>
-    suspend fun fuzz(): Sequence<List<UtModel>> {
+    suspend fun fuzz(): Sequence<UtExecution> {
         logger.debug { "Started to fuzz ${methodUnderTest.name}" }
         val javaClazz = methodUnderTest.classId.jClass
         val javaMethod = methodUnderTest.sootMethod.toJavaMethod()!!
@@ -71,6 +67,9 @@ class GreyBoxFuzzer(
         val parametersToGenericsReplacer = method.parameters.map { it to GenericsReplacer() }
         repeat(numberOfIterations) { iterationNumber ->
             logger.debug { "Iteration number $iterationNumber" }
+            if (!methodUnderTest.isStatic && thisInstance == null) {
+                thisInstance = generateThisInstance(methodUnderTest.classId.jClass)
+            }
             if (thisInstance != null && iterationNumber != 0) {
                 if (Random.getTrue(20)) {
                     logger.debug { "Trying to regenerate this instance" }
@@ -134,7 +133,7 @@ class GreyBoxFuzzer(
         val coverage =
             executionResult.coverage.coveredInstructions
                 .map { it.lineNumber }
-                .filter { it in currentMethodLines }
+                //.filter { it in currentMethodLines }
                 .toSet()
         executionResult.coverage.coveredInstructions.forEach { CoverageCollector.coverage.add(it) }
         return (coverage - prevMethodCoverage).size
@@ -241,13 +240,17 @@ class GreyBoxFuzzer(
         }
 
     private fun generateThisInstance(clazz: Class<*>) =
-        if (!methodUnderTest.isStatic) {
-            DataGenerator.generate(
-                clazz,
-                GreyBoxFuzzerGenerators.sourceOfRandomness,
-                GreyBoxFuzzerGenerators.genStatus
-            )
-        } else {
+        try {
+            if (!methodUnderTest.isStatic) {
+                DataGenerator.generate(
+                    clazz,
+                    GreyBoxFuzzerGenerators.sourceOfRandomness,
+                    GreyBoxFuzzerGenerators.genStatus
+                )
+            } else {
+                null
+            }
+        } catch (_: Throwable) {
             null
         }
 }

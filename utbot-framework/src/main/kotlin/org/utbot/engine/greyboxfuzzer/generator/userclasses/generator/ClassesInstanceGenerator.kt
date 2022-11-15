@@ -2,6 +2,7 @@ package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 
 import org.utbot.engine.logger
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
@@ -43,7 +44,11 @@ class ClassesInstanceGenerator(
                     ).generate()
                     else -> null
                 }
-            generatedInstance?.let { return it } ?: typeOfGenerations.removeIf { it == randomTypeOfGeneration }
+            if (generatedInstance == null || generatedInstance is UtNullModel) {
+                typeOfGenerations.remove(randomTypeOfGeneration)
+            } else {
+                return generatedInstance
+            }
         }
         return null
     }

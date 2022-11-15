@@ -10,9 +10,7 @@ import soot.Scene
 import java.lang.reflect.Type
 import kotlin.random.Random
 
-class ReflectionClassGenerator(
-    private val parameterTypeContext: ParameterTypeContext
-) : InstanceGenerator {
+class ReflectionTypeGenerator(private val parameterTypeContext: ParameterTypeContext) : InstanceGenerator {
     override fun generate(): UtModel {
         val packageName = parameterTypeContext.declarerName.substringBeforeLast('.')
         val randomClassFromSamePackage =
@@ -22,13 +20,15 @@ class ReflectionClassGenerator(
                 .mapNotNull { it.toJavaClass() }
                 .randomOrNull()
         if (randomClassFromSamePackage != null && Random.getTrue(50)) {
-            return UtModelGenerator.utModelConstructor.construct(randomClassFromSamePackage, Class::class.java.id)
+            return UtModelGenerator.utModelConstructor.construct(randomClassFromSamePackage, Type::class.java.id)
         }
         Scene.v().classes.randomOrNull()?.toJavaClass()?.let {
-            if (Random.getTrue(75)) {
-                return UtModelGenerator.utModelConstructor.construct(it, Class::class.java.id)
-            }
+            return UtModelGenerator.utModelConstructor.construct(it, Type::class.java.id)
         }
-        return UtModelGenerator.utModelConstructor.construct(Any::class.java, Class::class.java.id)
+        return UtModelGenerator.utModelConstructor.construct(Any::class.java, Type::class.java.id)
     }
 }
+
+//val packageName = parameterTypeContext.declarerName.substringBeforeLast('.')
+//Scene.v().classes.filter { it.name.startsWith("com.alibaba.fastjson.util") }
+////parameterTypeContext.declarerName

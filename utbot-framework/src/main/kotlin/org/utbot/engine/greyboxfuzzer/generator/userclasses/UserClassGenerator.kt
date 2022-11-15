@@ -47,10 +47,13 @@ class UserClassGenerator : ComponentizedGenerator<Any>(Any::class.java) {
 
     override fun generate(random: SourceOfRandomness, status: GenerationStatus): UtModel? {
         logger.debug { "Trying to generate ${parameterTypeContext!!.resolved}. Current depth depth: $depth" }
-        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return null
+        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return UtNullModel(clazz!!.id)
         val immutableClazz = clazz!!
-        if (immutableClazz == Any::class.java) return ObjectGenerator(random, status).generate()
-        if (immutableClazz == Class::class.java) return ReflectionClassGenerator(parameterTypeContext!!).generate()
+        when (immutableClazz) {
+            Any::class.java -> return ObjectGenerator(parameterTypeContext!!, random, status).generate()
+            Class::class.java -> return ReflectionClassGenerator(parameterTypeContext!!).generate()
+            Type::class.java -> return ReflectionTypeGenerator(parameterTypeContext!!).generate()
+        }
         //TODO! generate inner classes instances
         if (immutableClazz.declaringClass != null && !immutableClazz.hasModifiers(Modifier.STATIC)) {
             return UtNullModel(immutableClazz.id)

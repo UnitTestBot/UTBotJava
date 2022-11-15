@@ -169,7 +169,7 @@ fun createParameterContextForParameter(
 ): ParameterTypeContext {
     val exec = parameter.declaringExecutable
     val clazz = exec.declaringClass
-    val declarerName = clazz.name + '.' + exec.name
+    val declarerName = clazz.name
     val resolvedType =
         when (generics) {
             is MethodGenericsContext -> generics.resolveParameterType(parameterIndex)

@@ -55,7 +55,7 @@ object GreyBoxFuzzerGenerators {
             it.register(HashMapGenerator())
             it.register(LocaleGenerator())
             it.register(BitSetGenerator())
-            it.register(TimeZoneGenerator())
+            //it.register(TimeZoneGenerator())
             it.register(HashSetGenerator())
             it.register(ArrayListGenerator())
             it.register(VectorGenerator())

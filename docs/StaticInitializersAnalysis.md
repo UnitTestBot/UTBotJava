@@ -1,8 +1,11 @@
 # Symbolic analysis of static initializers
 
-## Current behavior
-### Problem
-Before [Prohibit to set static fields from library classes](https://github.com/UnitTestBot/UTBotJava/pull/699), every static field touched outside **_clinit_** block (so-called **_meaningful_** static fields) was stored in **modelBefore** and **modelAfter** and accordingly was set (and correspondingly reset for tests isolation) in code generation part. Such behavior led to unexpected for user explicit static field initializations - for example, setting `EMPTY` static field from `Optional` class for the following method under test:
+## Problem
+
+Before the [Prohibit to set static fields from library classes](https://github.com/UnitTestBot/UTBotJava/pull/699) 
+change was implemented, every static field outside the `<clinit>` block (the so-called _meaningful_ static fields) 
+was stored in `modelBefore` and `modelAfter`. These _meaningful_ static fields were set (and reset for test isolation) during code generation. This led to explicit static field initializations, which looked unexpected for a user. For example, an `EMPTY` static field from the `Optional` class might be set for the following method under test
+
 ```java
 class OptionalEmptyExample {
     public java.util.Optional<Integer> optionalExample(boolean isEmpty) {
@@ -10,39 +13,48 @@ class OptionalEmptyExample {
     }
 }
 ```
+
 like:
+
 ```java
 setStaticField(optionalClazz, "EMPTY", empty);
 ```
 
-Such behavior is mostly strange for a user and should be properly fixed - we should not set such static fields with initializers manually.
+**Goal**: we should not set such kind of static fields with initializers.
 
-### Current solution
-After merging [Prohibit to set static fields from library classes](https://github.com/UnitTestBot/UTBotJava/pull/699), we do not explicitly set static fields of classes from so-called **trusted** libraries (by default represents JDK packages), accordingly to `org.utbot.framework.UtSettings#getIgnoreStaticsFromTrustedLibraries` setting. But such a solution possibly leads to coverage regression, need to be investigated [Investigate coverage regression because of not setting static fields](https://github.com/UnitTestBot/UTBotJava/issues/716). So, there are a few other ways to fix such a problem with static fields.
+## Current solution
 
-## Solutions
+Having merged [Prohibit to set static fields from library classes](https://github.com/UnitTestBot/UTBotJava/pull/699)
+, we now do not explicitly set the static fields of the classes from the so-called _trusted_ libraries (by default, 
+they are JDK packages). This behavior is guided by the `org.utbot.framework.
+UtSettings#getIgnoreStaticsFromTrustedLibraries` setting. Current solution possibly **leads to coverage regression** 
+and needs to be investigated: [Investigate coverage regression because of not setting static fields](https://github.com/UnitTestBot/UTBotJava/issues/716). 
+So, take a look at other ways to fix the problem.
 
-### Use concrete values as soft constraints (not yet implemented)
+## Alternative solutions
 
-The essence of the problem is assigning values for static fields that would be already set in runtime. So, to prevent it we can try to create models for static fields according to theirs runtime values and filter out statics that are equal to runtime values, with the following algorithm:
+### Use concrete values as soft constraints _(not yet implemented)_
 
-1. Extract concrete value for a static field.
+The essence of the problem is assigning values to the static fields that should be set at runtime. To prevent it, 
+we can try to create models for the static fields according to their runtime values and filter out the static fields 
+that are equal to runtime values, using the following algorithm:
+
+1. Extract a concrete value for a static field.
 2. Create `UtModel` for this value and store it.
-3. Transform produced model to soft constraints.
+3. Transform the produced model to soft constraints.
 4. Add them to the current symbolic state.
-5. After resolving `stateBefore` compare resulted `UtModel` for the static field with the stored model and drop resulted model out from `stateBefore` in case theirs equality.
+5. Having resolved `stateBefore`, compare the resulting `UtModel` for the static field with the stored model and then drop the resulting model from `stateBefore` if they are equal.
 
-### Propagate reading of static fields (not yet implemented)
+### Propagate information on the read static fields _(not yet implemented)_
 
-We can change a bit sense of the **meaningful** statics - mark static fields as meaningful only if they affect a result of the method under test. To decide it, we can propagate such knowledge with the following algorithm:
+We can define the _meaningful_ static fields in a different way: we can mark the static fields as _meaningful_ if only they affect the method-under-test result. To decide if they do:
 
-1. Store for each statement whether it reads a specific static value or not.
-2. While traversing a graph of the method, propagate these stores for the each statement.
-3. After reaching a **return** statement of the method under test, mark all propagated static fields as meaningful.
+- find out whether a given statement reads a specific static value or not and store this info,
+- while traversing the method graph, propagate this stored info to each of the following statements in a tree,
+- upon reaching the `return` statement of the method under test, mark all these read static fields as _meaningful_.
 
-#### Filter out statics by `UtExecution` affecting (not yet implemented) (*)
-
-After collecting all the executions, we can analyze them and for every static field check whether this affects a result. Briefly, if the static field value never changes in all executions, it means this value does not affect the result at all and can be dropped out **OR** it is required for all executions like an entering point (if statement as a first statement in the method under test, for example):
+### Filter out static methods: check if they affect `UtExecution` _(not yet implemented)_*
+Having collected all executions, we can analyze them and check whether the given static field affects the result of a current execution. Changing the static field value may have the same effect on every execution or no effect at all. It may also be required as an entry point during the executions (e.g., an _if_-statement as the first statement in the method under test):
 
 ```java
 class AlwaysThrowingException {
@@ -58,4 +70,4 @@ class ClassWithStaticField {
 } 
 ```
 
-(*) This solution should only be used with [propagation](#propagate-reading-of-static-fields) solution.
+*This solution should only be used with the [propagation](#propagate-information-on-the-read-static-fields) solution.

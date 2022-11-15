@@ -270,7 +270,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                                 if (timePassed > totalTimeoutMs) {
                                     method2controller.values.forEach { it.controller.job!!.cancel("Timeout") }
                                     cancel("Timeout")
-                                    analysisStopReasons.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisStopReason.TIMEOUT(timeEstimator.elapsedTimeMs)) }
+                                    executionsByExecutable.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisStopReason.TIMEOUT(timeEstimator.elapsedTimeMs)) }
                                     logger.warn { "Total timeout $totalTimeoutMs (ms) exceeded, analysis is canceled" }
                                 }
 

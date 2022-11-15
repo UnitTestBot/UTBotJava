@@ -5,9 +5,15 @@ import com.squareup.moshi.adapters.EnumJsonAdapter
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
+import kotlin.system.measureTimeMillis
 
-fun readMypyAnnotationStorage(jsonWithAnnotations: String): MypyAnnotationStorage {
-    return jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
+fun readMypyAnnotationStorage(jsonWithAnnotations: String, initObject: Boolean = true): MypyAnnotationStorage {
+    val result = jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
+    if (initObject)
+        result.definitions["builtins"]?.let { module ->
+            module["object"]?.let { builtinsObject = it.annotation.asUtBotType }
+        }
+    return result
 }
 
 private val moshi = Moshi.Builder()
@@ -124,7 +130,7 @@ class MypyAnnotation(
     }
 }
 
-sealed class PythonAnnotationNode() {
+sealed class PythonAnnotationNode {
     @Transient lateinit var storage: MypyAnnotationStorage
     open val children: List<MypyAnnotation> = emptyList()
     abstract fun initializeType(): Type
@@ -288,3 +294,46 @@ class UnknownAnnotationNode: PythonAnnotationNode() {
         return pythonAnyType
     }
 }
+
+/*
+fun main() {
+    val sample = MypyAnnotation::class.java.getResource("/mypy/annotation_sample.json")!!.readText()
+    val storage = readMypyAnnotationStorage(sample)
+    val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
+    val obj = storage.definitions["builtins"]!!["object"]!!.annotation.asUtBotType
+    val counter = storage.definitions["collections"]!!["Counter"]!!.annotation.asUtBotType
+    println((counter.pythonDescription() as PythonCompositeTypeDescription).mro(counter).map { it.pythonDescription().name.name })
+    println(int.pythonDescription().getMemberByName(int, "__init__"))
+    println(counter.pythonDescription().getMemberByName(counter, "__init__"))
+    println((int.pythonDescription() as PythonCompositeTypeDescription).mro(int).map { it.pythonDescription().name.name })
+    println(obj.getPythonAttributes())
+    println((obj.pythonDescription() as PythonCompositeTypeDescription).getMemberByName(obj, "__init__"))
+    /*
+    var cnt = 0
+    val types = mutableSetOf<Type>()
+    storage.definitions["builtins"]!!.forEach { (name, def) ->
+        val type = def.annotation.asUtBotType
+        val type1 = DefaultSubstitutionProvider.substitute(type, emptyMap())
+        assert(type != type1)
+    }
+    storage.definitions.forEach { (_, contents) ->
+        contents.forEach { (_, annotation) ->
+            cnt += 1
+            types.add(annotation.annotation.asUtBotType)
+        }
+    }
+    print(cnt)
+    var cnt1 = 0
+    println(
+        measureTimeMillis {
+            types.forEach { a ->
+                types.forEach { b ->
+                    cnt1 += if (PythonTypeWrapperForComparison(a) == PythonTypeWrapperForComparison(b)) 1 else 0
+                }
+            }
+        }
+    )
+    assert(cnt == cnt1)
+     */
+}
+ */

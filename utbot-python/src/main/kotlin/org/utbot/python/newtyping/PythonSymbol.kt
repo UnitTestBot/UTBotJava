@@ -14,10 +14,18 @@ fun Type.getPythonAttributes(): List<PythonAttribute> {
     return pythonDescription().getNamedMembers(this)
 }
 
+fun Type.getPythonAttributeByName(name: String): PythonAttribute? {
+    return pythonDescription().getMemberByName(this, name)
+}
+
+lateinit var builtinsObject: Type
+
 sealed class PythonTypeDescription(name: Name): TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: Type): Type = type
-    open fun getNamedMembers(type: Type): List<PythonAttribute> = emptyList()
+    open fun getNamedMembers(type: Type): List<PythonAttribute> = emptyList()  // direct members (without inheritance)
     open fun getAnnotationParameters(type: Type): List<Type> = emptyList()
+    open fun getMemberByName(type: Type, name: String): PythonAttribute? =  // overridden for PythonCompositeTypeDescription
+        getNamedMembers(type).find { it.name == name }
 }
 
 sealed class PythonCompositeTypeDescription(
@@ -34,6 +42,48 @@ sealed class PythonCompositeTypeDescription(
         return (memberNames zip compositeType.members).map { PythonAttribute(it.first, it.second) }
     }
     override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
+    fun mro(type: Type): List<Type> {
+        val compositeType = castToCompatibleTypeApi(type)
+        var bases = compositeType.supertypes
+        if (bases.isEmpty() && type.pythonDescription().name != builtinsObject.pythonDescription().name)
+            bases = listOf(builtinsObject)
+        val linBases = (bases.map {
+            val description = it.meta as? PythonCompositeTypeDescription
+                ?: error("Not a PythonCompositeType in superclasses of PythonCompositeType")
+            description.mro(it)
+        } + listOf(bases)).map { it.toMutableList() }.toMutableList()
+        val result = mutableListOf(type)
+        while (true) {
+            linBases.removeIf { it.isEmpty() }
+            if (linBases.isEmpty())
+                break
+            lateinit var addAtThisIteration: Type
+            for (seq in linBases) {
+                val head = seq.first()
+                val isContainedSomewhereElse = linBases.any {
+                    it.drop(1).any { type -> type.pythonDescription().name == head.pythonDescription().name }
+                }
+                if (!isContainedSomewhereElse) {
+                    addAtThisIteration = head
+                    break
+                }
+            }
+            linBases.forEach {
+                if (it.first().pythonDescription().name == addAtThisIteration.pythonDescription().name)
+                    it.removeFirst()
+            }
+            result.add(addAtThisIteration)
+        }
+        return result
+    }
+    override fun getMemberByName(type: Type, name: String): PythonAttribute? {
+        for (parent in mro(type)) {
+            val cur = parent.getPythonAttributes().find { it.name == name }
+            if (cur != null)
+                return cur
+        }
+        return null
+    }
 }
 
 sealed class PythonSpecialAnnotation(name: Name): PythonTypeDescription(name)
@@ -84,7 +134,7 @@ object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName)
 
 object PythonNoneTypeDescription: PythonSpecialAnnotation(pythonNoneName) {
     override fun getNamedMembers(type: Type): List<PythonAttribute> =
-        emptyList() // TODO: add None attributes
+        TODO("Not yet implemented")
 }
 
 object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
@@ -176,20 +226,3 @@ class PythonAttribute(
 
 val exactTypeRelation = TypeRelation("=")
 val upperBoundRelation = TypeRelation("<")
-
-/*
-interface PythonCompositeType: CompositeType {
-    val memberNames: List<String>
-    val namedMembers: List<PythonAttribute>
-        get() = (memberNames zip members).map { PythonAttribute(it.first, it.second) }
-    /*
-    val mro: List<PythonCompositeType>
-        get() {
-            val result = mutableListOf(this)
-            supertypes.forEach {
-
-            }
-        }
-     */
-}
- */

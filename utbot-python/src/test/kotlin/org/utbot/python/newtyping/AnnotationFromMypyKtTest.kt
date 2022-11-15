@@ -80,4 +80,13 @@ internal class AnnotationFromMypyKtTest {
         val square = storage.definitions["annotation_tests"]!!["square"]!!.annotation.asUtBotType as FunctionType
         assertTrue(square.arguments[0].parameters[0].pythonDescription().name == int.pythonDescription().name)
     }
+
+    @Test
+    fun initializeAllTypes() {
+        storage.definitions.forEach { (_, contents) ->
+            contents.forEach { (_, annotation) ->
+                assert(annotation.annotation.asUtBotType.isPythonType())
+            }
+        }
+    }
 }

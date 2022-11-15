@@ -2,7 +2,7 @@ package org.utbot.python.newtyping
 
 import org.utbot.python.newtyping.general.*
 
-class PythonTypeWrapperForComparison(
+class PythonTypeWrapperForEqualityCheck(
     val type: Type,
     private val bounded: List<TypeParameter> = emptyList()
 ) {
@@ -12,7 +12,7 @@ class PythonTypeWrapperForComparison(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is PythonTypeWrapperForComparison)
+        if (other !is PythonTypeWrapperForEqualityCheck)
             return false
         val otherMeta = other.type.pythonDescription()
         when (val selfMeta = type.pythonDescription()) {
@@ -74,7 +74,7 @@ class PythonTypeWrapperForComparison(
     private fun equalChildren(
         selfChildren: List<Type>,
         otherChildren: List<Type>,
-        other: PythonTypeWrapperForComparison
+        other: PythonTypeWrapperForEqualityCheck
     ): Boolean {
         if (selfChildren.size != otherChildren.size)
             return false
@@ -83,11 +83,11 @@ class PythonTypeWrapperForComparison(
         }
     }
 
-    private fun getChildWrapper(elem: Type): PythonTypeWrapperForComparison {
-        return PythonTypeWrapperForComparison(elem, bounded + type.getBoundedParameters())
+    private fun getChildWrapper(elem: Type): PythonTypeWrapperForEqualityCheck {
+        return PythonTypeWrapperForEqualityCheck(elem, bounded + type.getBoundedParameters())
     }
 
-    private fun equalParameters(other: PythonTypeWrapperForComparison): Boolean {
+    private fun equalParameters(other: PythonTypeWrapperForEqualityCheck): Boolean {
         if (type.parameters.size != other.type.parameters.size)
             return false
 
@@ -105,11 +105,24 @@ class PythonTypeWrapperForComparison(
                     Pair(listOf(it.first as TypeParameter), listOf(it.second as TypeParameter))
                 else
                     Pair(emptyList(), emptyList())
-            PythonTypeWrapperForComparison(it.first, bounded + newEquivSelf) ==
-                    PythonTypeWrapperForComparison(it.second, other.bounded + newEquivOther)
+            PythonTypeWrapperForEqualityCheck(it.first, bounded + newEquivSelf) ==
+                    PythonTypeWrapperForEqualityCheck(it.second, other.bounded + newEquivOther)
         }
     }
 }
+
+/*
+class PythonSubtypeChecker(
+    val left: PythonTypeWrapperForEqualityCheck,
+    val right: PythonTypeWrapperForEqualityCheck
+) {
+    fun rightIsSubtypeOfLeft(): Boolean {
+        return when (val leftMeta = left.type.meta as PythonTypeDescription) {
+            is
+        }
+    }
+}
+ */
 
 fun Type.isParameterBoundedTo(type: Type): Boolean =
     (this is TypeParameter) && (this.definedAt == type)

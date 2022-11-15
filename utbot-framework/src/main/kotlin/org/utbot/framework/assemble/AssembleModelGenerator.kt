@@ -5,7 +5,7 @@ import org.utbot.common.isPublic
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.model.util.isAccessibleFrom
+import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo

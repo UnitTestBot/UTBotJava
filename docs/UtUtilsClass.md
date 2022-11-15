@@ -25,7 +25,7 @@ As one can see, the comment mentions two characteristics of the `UtUtils` class:
 If the generated tests require additional _utility methods_, the
 existing `UtUtils` class is upgraded and gets a new version number, which should be defined here:
 
-`org.utbot.framework.codegen.model.constructor.builtin.UtilClassFileMethodProvider.UTIL_CLASS_VERSION`
+`org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider.UTIL_CLASS_VERSION`
 
 _2. Mockito support_
 

@@ -77,7 +77,7 @@ open class CodeGenerator(
                 CodeGeneratorResult(
                     generatedCode = renderer.toString(),
                     utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-                    testsGenerationReport = testClassFile.testsGenerationReport
+                    testsGenerationReport = astConstructor.testsGenerationReport
                 )
             }
         }

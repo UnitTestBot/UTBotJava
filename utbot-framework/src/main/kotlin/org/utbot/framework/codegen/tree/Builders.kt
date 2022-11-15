@@ -24,13 +24,11 @@ import org.utbot.framework.codegen.domain.models.CgParameterizedTestDataProvider
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
-import org.utbot.framework.codegen.domain.models.CgTestClassFile
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodType
 import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.CgWhileLoop
-import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 

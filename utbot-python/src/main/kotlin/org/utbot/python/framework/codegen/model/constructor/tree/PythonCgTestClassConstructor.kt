@@ -2,9 +2,9 @@ package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.domain.context.CgContext
-import org.utbot.framework.codegen.domain.models.CgTestClassFile
+import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.tree.CgTestClassConstructor
-import org.utbot.framework.codegen.tree.buildTestClassFile
+import org.utbot.framework.codegen.tree.buildClassFile
 
 internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassConstructor(context) {
     override fun construct(testClassModel: TestClassModel): CgClassFile {

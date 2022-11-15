@@ -8,6 +8,7 @@ from collections import defaultdict
 import mypy_main
 import mypy.nodes
 import mypy.types
+import mypy.maptype
 
 
 annotation_node_dict: typing.Dict[str, "AnnotationNode"] = {}
@@ -92,28 +93,24 @@ class TypeVarNode(AnnotationNode):
 
 
 class CompositeAnnotationNode(AnnotationNode):
-    def __init__(self, type_name: str, symbol_node, id_, namespace: Namespace):
-        if isinstance(symbol_node, mypy.nodes.TypeInfo):
-            super().__init__(type_name, id_, namespace)
-            self.namespace.fullname_to_node_id[symbol_node._fullname] = id_
-            self.module: str = symbol_node.module_name
-            self.simple_name: str = symbol_node._fullname.split('.')[-1]
+    def __init__(self, type_name: str, symbol_node: mypy.nodes.TypeInfo, id_, namespace: Namespace):
+        super().__init__(type_name, id_, namespace)
+        self.namespace.fullname_to_node_id[symbol_node._fullname] = id_
+        self.module: str = symbol_node.module_name
+        self.simple_name: str = symbol_node._fullname.split('.')[-1]
 
-            self.names: typing.Dict[str, Definition] = {}
-            for name in symbol_node.names.keys():
-                inner_symbol_node = symbol_node.names[name]
-                definition = get_definition_from_node(inner_symbol_node, False, self.namespace)
-                if definition is not None:
-                    self.names[name] = definition
+        self.names: typing.Dict[str, Definition] = {}
+        for name in symbol_node.names.keys():
+            inner_symbol_node = symbol_node.names[name]
+            definition = get_definition_from_node(inner_symbol_node, False, self.namespace)
+            if definition is not None:
+                self.names[name] = definition
 
-            self.type_vars: typing.List[Annotation] = [
-                get_annotation(x, self.namespace) for x in symbol_node.defn.type_vars
-            ]
-            self.bases: typing.List[Annotation] = [
-                get_annotation(x, self.namespace) for x in symbol_node.bases
-            ]
-        else:
-            assert False, "Some SymbolNode wasn't considered"
+        self.raw_type_vars: typing.Sequence[mypy.types.Type] = symbol_node.defn.type_vars
+        self.type_vars: typing.List[Annotation] = [
+            get_annotation(x, self.namespace) for x in self.raw_type_vars
+        ]
+        self.bases = [get_annotation(x, self.namespace) for x in symbol_node.bases]
 
     def encode(self):
         superclass_dict = super().encode()
@@ -130,7 +127,7 @@ class CompositeAnnotationNode(AnnotationNode):
 
 
 class ConcreteAnnotationNode(CompositeAnnotationNode):
-    def __init__(self, symbol_node, id_, namespace: Namespace):
+    def __init__(self, symbol_node: mypy.nodes.TypeInfo, id_, namespace: Namespace):
         assert not symbol_node.is_protocol
         super().__init__("Concrete", symbol_node, id_, namespace)
 
@@ -139,7 +136,7 @@ class ConcreteAnnotationNode(CompositeAnnotationNode):
         
 
 class ProtocolAnnotationNode(CompositeAnnotationNode):
-    def __init__(self, symbol_node, id_, namespace: Namespace):
+    def __init__(self, symbol_node: mypy.nodes.TypeInfo, id_, namespace: Namespace):
         assert symbol_node.is_protocol
         super().__init__("Protocol", symbol_node, id_, namespace)
         self.members: typing.List[str] = symbol_node.protocol_members

@@ -12,7 +12,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
  */
 class BooleanGenerator : Generator(
     listOf(
-        Boolean::class.java
+        Boolean::class.javaObjectType
     )
 ) {
     override fun generate(

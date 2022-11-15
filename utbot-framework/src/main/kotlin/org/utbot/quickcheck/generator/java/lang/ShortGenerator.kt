@@ -12,7 +12,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 /**
  * Produces values of type `short` or [Short].
  */
-class ShortGenerator : IntegralGenerator(listOf(Short::class.java)) {
+class ShortGenerator : IntegralGenerator(listOf(Short::class.javaObjectType)) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minShort") as Short
     private var max = Reflection.defaultValueOf(InRange::class.java, "maxShort") as Short
 

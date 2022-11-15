@@ -12,7 +12,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 /**
  * Produces values of type `int` or [Integer].
  */
-class IntegerGenerator : IntegralGenerator(listOf(Int::class.java)) {
+class IntegerGenerator : IntegralGenerator(listOf(Int::class.javaObjectType)) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minInt") as Int
     private var max = Reflection.defaultValueOf(InRange::class.java, "maxInt") as Int
 

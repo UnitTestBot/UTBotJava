@@ -1,16 +1,14 @@
 package org.utbot.engine.greyboxfuzzer.mutator
 
 import org.javaruntype.type.Types
-import org.utbot.engine.greyboxfuzzer.generator.DataGenerator
-import org.utbot.engine.greyboxfuzzer.generator.GreyBoxFuzzerGenerators
-import org.utbot.engine.greyboxfuzzer.generator.FParameter
-import org.utbot.engine.greyboxfuzzer.generator.getOrProduceGenerator
+import org.utbot.engine.greyboxfuzzer.generator.*
 import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.engine.logger
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.fieldId
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.internal.generator.GeneratorRepository
@@ -35,29 +33,28 @@ object Mutator {
         return fParameter
     }
 
-    fun regenerateFields(clazz: Class<*>, classInstance: UtAssembleModel, fieldsToRegenerate: List<Field>): UtModel {
+    fun regenerateFields(
+        clazz: Class<*>,
+        classInstance: UtAssembleModel,
+        fieldsToRegenerate: List<Field>
+    ): UtModel {
         val parameterTypeContext = ParameterTypeContext.forClass(clazz)
-        var resUtModel = classInstance
-        for (field in fieldsToRegenerate) {
-            resUtModel = setNewFieldValue(field, parameterTypeContext, resUtModel)
-        }
-        return resUtModel
+        val modifications = fieldsToRegenerate.mapNotNull { setNewFieldValue(it, parameterTypeContext, classInstance) }
+        return classInstance.addModification(modifications)
     }
 
     private fun setNewFieldValue(
         field: Field,
         parameterTypeContext: ParameterTypeContext,
         clazzInstance: UtAssembleModel
-    ): UtAssembleModel {
-        field.isAccessible = true
-        val oldFieldValue = field.getFieldValue(clazzInstance)
+    ): UtStatementModel? {
         if (field.hasAtLeastOneOfModifiers(
                 Modifier.STATIC,
                 Modifier.FINAL
-            ) && oldFieldValue != null
-        ) return clazzInstance
+            )
+        ) return null
         val fieldType = parameterTypeContext.generics.resolveFieldType(field)
-        logger.debug { "F = $field TYPE = $fieldType OLDVALUE = $oldFieldValue" }
+        logger.debug { "F = $field TYPE = $fieldType" }
         val parameterTypeContextForResolvedType = ParameterTypeContext(
             field.name,
             field.annotatedType,
@@ -72,11 +69,26 @@ object Mutator {
         )
         logger.debug { "NEW FIELD VALUE = $newFieldValue" }
         if (newFieldValue != null) {
-            return clazzInstance.addModification(UtDirectSetFieldModel(clazzInstance, field.fieldId, newFieldValue))
+            return UtDirectSetFieldModel(clazzInstance, field.fieldId, newFieldValue)
         }
-        return clazzInstance
+        return null
     }
 
+
+    fun mutateThisInstance(
+        thisInstance: ThisInstance,
+        fieldsToRegenerate: List<Field>
+    ): ThisInstance {
+        if (thisInstance !is NormalMethodThisInstance) return thisInstance
+        val thisInstanceAsUtModel = thisInstance.utModel as UtAssembleModel
+        val mutationResult =
+            regenerateFields(
+                thisInstance.classId.jClass,
+                thisInstanceAsUtModel,
+                fieldsToRegenerate
+            )
+        return NormalMethodThisInstance(mutationResult, thisInstance.generator, thisInstance.classId)
+    }
 
     fun mutateParameter(
         fParameter: FParameter
@@ -107,8 +119,9 @@ object Mutator {
                     GreyBoxFuzzerGenerators.genStatus
                 ).utModel
             }
-        val callModel = UtExecutableCallModel(fParameter.utModel as UtReferenceModel, randomMethod, parametersForMethodInvocation)
-        (originalUtModel as UtAssembleModel).addModification(callModel)
+        val callModel =
+            UtExecutableCallModel(fParameter.utModel as UtReferenceModel, randomMethod, parametersForMethodInvocation)
+        (originalUtModel as UtAssembleModel).addModification(listOf(callModel))
         return FParameter(originalParameter, null, fParameter.utModel, fParameter.generator, fParameter.fields)
     }
 

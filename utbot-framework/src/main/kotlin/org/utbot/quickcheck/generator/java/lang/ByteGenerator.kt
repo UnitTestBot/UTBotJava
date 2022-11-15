@@ -13,7 +13,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 /**
  * Produces values of type `byte` or [Byte].
  */
-class ByteGenerator : IntegralGenerator(listOf(Byte::class.java)) {
+class ByteGenerator : IntegralGenerator(listOf(Byte::class.javaObjectType)) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minByte") as Byte
     private var max = Reflection.defaultValueOf(InRange::class.java, "maxByte") as Byte
 

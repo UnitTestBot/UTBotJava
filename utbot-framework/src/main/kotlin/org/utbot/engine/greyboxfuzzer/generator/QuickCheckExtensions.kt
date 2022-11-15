@@ -14,6 +14,7 @@ import org.utbot.engine.logger
 import org.utbot.engine.rawType
 import org.utbot.quickcheck.generator.ComponentizedGenerator
 import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.internal.generator.ArrayGenerator
 import org.utbot.quickcheck.internal.generator.GeneratorRepository
@@ -90,9 +91,9 @@ fun GeneratorRepository.getOrProduceGenerator(
         } finally {
             producedUserClassesGenerators.forEach { removeGenerator(it.parameterTypeContext!!.resolved.rawClass) }
         }
-    (listOf(generator) + generator.getAllComponents()).forEach {
-        GeneratorConfigurator.configureGenerator(it, 85)
-    }
+//    (listOf(generator) + generator.getAllComponents()).forEach {
+//        GeneratorConfigurator.configureGenerator(it, 85)
+//    }
     return generator
 }
 

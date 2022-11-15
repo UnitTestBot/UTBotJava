@@ -3,6 +3,7 @@ package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 import org.utbot.engine.logger
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
@@ -23,7 +24,7 @@ class ClassesInstanceGenerator(
             else -> mutableListOf('c', 'c', 's')
         }
         while (typeOfGenerations.isNotEmpty()) {
-            val randomTypeOfGeneration = typeOfGenerations.randomOrNull() ?: return TODO("null")
+            val randomTypeOfGeneration = typeOfGenerations.randomOrNull() ?: return UtNullModel(clazz.id)
             logger.debug { "Type of generation: $randomTypeOfGeneration" }
             val generatedInstance =
                 when (randomTypeOfGeneration) {
@@ -50,6 +51,6 @@ class ClassesInstanceGenerator(
                 return generatedInstance
             }
         }
-        return TODO("null")
+        return UtNullModel(clazz.id)
     }
 }

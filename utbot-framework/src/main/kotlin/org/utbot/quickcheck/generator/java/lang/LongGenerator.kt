@@ -12,7 +12,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 /**
  * Produces values of type `long` or [Long].
  */
-class LongGenerator : IntegralGenerator(listOf(Long::class.java)) {
+class LongGenerator : IntegralGenerator(listOf(Long::class.javaObjectType)) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minLong") as Long
     private var max = Reflection.defaultValueOf(InRange::class.java, "maxLong") as Long
 

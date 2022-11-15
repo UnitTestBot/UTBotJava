@@ -37,7 +37,7 @@ internal class StaticsMethodBasedInstanceGenerator(
                 generationStatus,
                 depth
             ).invoke()
-        } ?: TODO("null")
+        } ?: UtNullModel(clazz.id)
 
     //In case of no Soot
     private fun getRandomStaticToProduceInstance(): Method? =

@@ -1,11 +1,7 @@
 package org.utbot.quickcheck.internal
 
-import org.javaruntype.type.ExtendsTypeParameter
-import org.javaruntype.type.StandardTypeParameter
+import org.javaruntype.type.*
 import org.javaruntype.type.Type
-import org.javaruntype.type.TypeParameter
-import org.javaruntype.type.Types
-import org.javaruntype.type.WildcardTypeParameter
 import org.utbot.quickcheck.generator.Generator
 import org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory.makeFrom
 import org.utbot.quickcheck.internal.Items.choose
@@ -13,21 +9,12 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.GenericsResolver
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
-import java.lang.reflect.AnnotatedArrayType
-import java.lang.reflect.AnnotatedElement
-import java.lang.reflect.AnnotatedType
-import java.lang.reflect.Constructor
-import java.lang.reflect.Executable
-import java.lang.reflect.Field
-import java.lang.reflect.Method
-import java.lang.reflect.Parameter
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.TypeVariable
+import java.lang.reflect.*
 
 class ParameterTypeContext(
     private val parameterName: String,
     private val parameterType: AnnotatedType,
-    private val declarerName: String,
+    internal val declarerName: String,
     val resolved: Type<*>,
     val generics: GenericsContext,
     private val parameterIndex: Int = -1
@@ -146,7 +133,6 @@ class ParameterTypeContext(
         val deque = ArrayDeque<ParameterTypeContext>()
         if (isArray) {
             addParameterTypeContextToDeque(deque, arrayComponentContext())
-            deque.add(arrayComponentContext())
         }
         typeParameterContexts(sourceOfRandomness).forEach { ptx: ParameterTypeContext ->
             addParameterTypeContextToDeque(deque, ptx)
@@ -284,6 +270,21 @@ class ParameterTypeContext(
         @JvmStatic
         private val zilch: Zilch = Zilch
 
+        fun forType(type: java.lang.reflect.Type): ParameterTypeContext {
+            return forType(type, null)
+        }
+
+        fun forType(type: java.lang.reflect.Type, generics: GenericsContext?): ParameterTypeContext {
+            val gctx: GenericsContext = generics ?: GenericsResolver.resolve(type.javaClass)
+            return ParameterTypeContext(
+                type.typeName,
+                FakeAnnotatedTypeFactoryWithType.makeFrom(type),
+                type.typeName,
+                Types.forJavaLangReflectType(type),
+                gctx
+            )
+        }
+
         fun forClass(clazz: Class<*>): ParameterTypeContext {
             return ParameterTypeContext(
                 clazz.typeName,
@@ -375,7 +376,7 @@ class ParameterTypeContext(
 
         private fun zilch(): AnnotatedType {
             return try {
-                Companion::class.java.getDeclaredField("zilch").annotatedType
+                ParameterTypeContext::class.java.getDeclaredField("zilch").annotatedType
             } catch (e: NoSuchFieldException) {
                 throw AssertionError(e)
             }

@@ -14,6 +14,7 @@ import java.lang.reflect.Parameter
 data class FParameter(
     val parameter: Parameter,
     val value: Any?,
+    //TODO make it val
     var utModel: UtModel,
     val generator: Generator?,
     val classId: ClassId,

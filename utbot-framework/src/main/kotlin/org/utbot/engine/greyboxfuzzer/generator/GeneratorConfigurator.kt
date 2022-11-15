@@ -30,8 +30,8 @@ object GeneratorConfigurator {
     val minCollectionSize: Int = 1
     val maxCollectionSize: Int = 5
 
-    private val sizeAnnotationInstance: Size
-    private val inRangeAnnotationInstance: InRange
+    val sizeAnnotationInstance: Size
+    val inRangeAnnotationInstance: InRange
 
     init {
         val sizeAnnotationParams =
@@ -90,6 +90,13 @@ object GeneratorConfigurator {
             is CollectionGenerator -> generator.configure(sizeAnnotationInstance)
             is ArrayGenerator -> generator.configure(sizeAnnotationInstance)
             is MapGenerator -> generator.configure(sizeAnnotationInstance)
+            is StringGenerator -> generator.configure(
+                if (Random.getTrue(50)) {
+                    setOf('a'.code..'z'.code)
+                } else {
+                    setOf(' '.code..'~'.code)
+                }
+            )
             else -> Unit
         }
 

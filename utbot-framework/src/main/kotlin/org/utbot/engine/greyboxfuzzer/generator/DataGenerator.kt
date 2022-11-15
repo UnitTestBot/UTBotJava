@@ -1,13 +1,16 @@
 package org.utbot.engine.greyboxfuzzer.generator
 
+import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.generator.Generator
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import org.utbot.engine.logger
 import org.utbot.external.api.classIdForType
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.util.jClass
 import soot.SootMethod
 import java.lang.reflect.Parameter
 
@@ -45,6 +48,46 @@ object DataGenerator {
         return generate(generator, parameter, random, status)
     }
 
+    fun generateThis(
+        classId: ClassId,
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): NormalMethodThisInstance {
+        val generator =
+            generatorRepository.getOrProduceGenerator(classId.jClass)
+        return generateThis(generator, classId, random, status)
+    }
+
+    private fun generateThis(
+        generator: Generator?,
+        classId: ClassId,
+        random: SourceOfRandomness,
+        status: GenerationStatus,
+        numberOfTries: Int = 3
+    ): NormalMethodThisInstance {
+        logger.debug { "Trying to generate this instance of type ${classId.name} $numberOfTries times" }
+        generatorRepository.removeGeneratorForObjectClass()
+        if (generator == null) {
+            throw FuzzerIllegalStateException("Can't find generator for ${classId.name}")
+        }
+        var generatedValue: UtModel
+        repeat(numberOfTries) {
+            logger.debug { "Try $it" }
+            try {
+                generatedValue = generator.generate(random, status)
+                return NormalMethodThisInstance(
+                    generatedValue,
+                    generator,
+                    classId
+                )
+            } catch (e: Throwable) {
+                logger.error(e) { "Exception while generation :(" }
+                return@repeat
+            }
+        }
+        throw FuzzerIllegalStateException("Can't generate for ${classId.name}")
+    }
+
     fun generate(
         generator: Generator?,
         parameter: Parameter,
@@ -63,15 +106,13 @@ object DataGenerator {
             logger.debug { "Try $it" }
             try {
                 generatedValue = generator.generate(random, status)
-                if (generatedValue != null) {
-                    return FParameter(
-                        parameter,
-                        null,
-                        generatedValue!!,
-                        generator,
-                        emptyList()
-                    )
-                }
+                return FParameter(
+                    parameter,
+                    null,
+                    generatedValue!!,
+                    generator,
+                    emptyList()
+                )
             } catch (e: Throwable) {
                 logger.error(e) { "Exception while generation :(" }
                 return@repeat

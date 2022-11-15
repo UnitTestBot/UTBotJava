@@ -9,13 +9,13 @@ import java.lang.reflect.Method
 import java.lang.reflect.Parameter
 
 
-fun UtAssembleModel.addModification(modification: UtStatementModel) =
+fun UtAssembleModel.addModification(modifications: List<UtStatementModel>) =
     UtAssembleModel(
         this.id,
         this.classId,
         "${this.classId.name}#" + this.id?.toString(16),
         this.instantiationCall,
-        this.modificationsChain + modification,
+        this.modificationsChain + modifications,
         this.origin
     )
 

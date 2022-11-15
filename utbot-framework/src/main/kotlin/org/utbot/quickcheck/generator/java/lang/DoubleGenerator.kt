@@ -13,7 +13,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
  * Produces values for property parameters of type `double` or
  * [Double].
  */
-class DoubleGenerator : DecimalGenerator(listOf(Double::class.java)) {
+class DoubleGenerator : DecimalGenerator(listOf(Double::class.javaObjectType)) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minDouble") as Double
     private var max = Reflection.defaultValueOf(InRange::class.java, "maxDouble") as Double
 

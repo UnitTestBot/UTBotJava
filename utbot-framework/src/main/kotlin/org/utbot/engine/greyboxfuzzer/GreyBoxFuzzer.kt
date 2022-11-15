@@ -23,9 +23,8 @@ class GreyBoxFuzzer(
 ) {
 
     private val seeds = SeedCollector()
-    private val explorationStageIterations = 100
+    private val explorationStageIterations = 50
     private val exploitationStageIterations = 100
-    private var thisInstance: UtModel? = null
 
     //TODO make it return Sequence<UtExecution>
     suspend fun fuzz(): Sequence<UtExecution> {
@@ -65,62 +64,68 @@ class GreyBoxFuzzer(
         prevMethodCoverage: Set<Int>
     ) {
         val parametersToGenericsReplacer = method.parameters.map { it to GenericsReplacer() }
+        val thisInstancesHistory = ArrayDeque<ThisInstance>()
         repeat(numberOfIterations) { iterationNumber ->
-            logger.debug { "Iteration number $iterationNumber" }
-            if (!methodUnderTest.isStatic && thisInstance == null) {
-                thisInstance = generateThisInstance(methodUnderTest.classId.jClass)
-            }
-            if (thisInstance != null && iterationNumber != 0) {
-                if (Random.getTrue(20)) {
-                    logger.debug { "Trying to regenerate this instance" }
-                    generateThisInstance(clazz)?.let { thisInstance = it }
-                } else if (Random.getTrue(50) && thisInstance is UtAssembleModel) {
-                    thisInstance =
-                        Mutator.regenerateFields(
-                            clazz,
-                            thisInstance as UtAssembleModel,
-                            classFieldsUsedByFunc.toList()
-                        )
-                }
-            }
-            /**
-             * Replacing unresolved generics to random compatible to bounds type
-             */
-            when {
-                Random.getTrue(10) -> parametersToGenericsReplacer.map { it.second.revert() }
-                Random.getTrue(50) -> parametersToGenericsReplacer.map {
-                    it.second.replaceUnresolvedGenericsToRandomTypes(
-                        it.first
-                    )
-                }
-            }
-            val generatedParameters =
-                method.parameters.mapIndexed { index, parameter ->
-                    DataGenerator.generate(
-                        parameter,
-                        index,
-                        GreyBoxFuzzerGenerators.sourceOfRandomness,
-                        GreyBoxFuzzerGenerators.genStatus
-                    )
-                }
-            logger.debug { "Generated params = $generatedParameters" }
-            logger.debug { "This instance = $thisInstance" }
-            val stateBefore =
-                EnvironmentModels(thisInstance, generatedParameters.map { it.utModel }, mapOf())
             try {
-                val executionResult = execute(stateBefore, methodUnderTest) ?: return@repeat
-                logger.debug { "Execution result: $executionResult" }
-                val seedScore =
-                    handleCoverage(
-                        executionResult,
-                        prevMethodCoverage,
-                        methodLinesToCover
-                    )
-                seeds.addSeed(Seed(thisInstance, generatedParameters, seedScore.toDouble()))
-                logger.debug { "Execution result: ${executionResult.result}" }
-            } catch (e: Throwable) {
-                logger.debug(e) { "Exception while execution :(" }
-                return@repeat
+                logger.debug { "Iteration number $iterationNumber" }
+                while (thisInstancesHistory.size > 1) {
+                    thisInstancesHistory.removeLast()
+                }
+                if (thisInstancesHistory.isEmpty()) {
+                    thisInstancesHistory += generateThisInstance(methodUnderTest.classId)
+                }
+                if (iterationNumber != 0) {
+                    if (Random.getTrue(20)) {
+                        logger.debug { "Trying to regenerate this instance" }
+                        thisInstancesHistory.clear()
+                        thisInstancesHistory += generateThisInstance(methodUnderTest.classId)
+                    } else if (Random.getTrue(50)) {
+                        thisInstancesHistory += Mutator.mutateThisInstance(thisInstancesHistory.last(), classFieldsUsedByFunc.toList())
+                    }
+                }
+                /**
+                 * Replacing unresolved generics to random compatible to bounds type
+                 */
+                when {
+                    Random.getTrue(10) -> parametersToGenericsReplacer.map { it.second.revert() }
+                    Random.getTrue(50) -> parametersToGenericsReplacer.map {
+                        it.second.replaceUnresolvedGenericsToRandomTypes(
+                            it.first
+                        )
+                    }
+                }
+                val thisInstance = thisInstancesHistory.last()
+                val generatedParameters =
+                    method.parameters.mapIndexed { index, parameter ->
+                        DataGenerator.generate(
+                            parameter,
+                            index,
+                            GreyBoxFuzzerGenerators.sourceOfRandomness,
+                            GreyBoxFuzzerGenerators.genStatus
+                        )
+                    }
+                logger.debug { "Generated params = $generatedParameters" }
+                logger.debug { "This instance = $thisInstance" }
+                val stateBefore =
+                    EnvironmentModels(thisInstance.utModelForExecution, generatedParameters.map { it.utModel }, mapOf())
+                try {
+                    val executionResult = execute(stateBefore, methodUnderTest)
+                    logger.debug { "Execution result: $executionResult" }
+                    val seedScore =
+                        handleCoverage(
+                            executionResult,
+                            prevMethodCoverage,
+                            methodLinesToCover
+                        )
+                    seeds.addSeed(Seed(thisInstance, generatedParameters, seedScore.toDouble()))
+                    logger.debug { "Execution result: ${executionResult.result}" }
+                } catch (e: Throwable) {
+                    logger.debug(e) { "Exception while execution :(" }
+                    thisInstancesHistory.clear()
+                    return@repeat
+                }
+            } catch (e: FuzzerIllegalStateException) {
+                logger.error(e) { "Something wrong in the fuzzing process" }
             }
         }
     }
@@ -225,32 +230,26 @@ class GreyBoxFuzzer(
     private suspend fun execute(
         stateBefore: EnvironmentModels,
         methodUnderTest: ExecutableId
-    ): UtFuzzingConcreteExecutionResult? =
-        try {
-            val executor =
-                ConcreteExecutor(
-                    UtFuzzingExecutionInstrumentation,
-                    pathsToUserClasses,
-                    pathsToDependencyClasses
-                ).apply { this.classLoader = utContext.classLoader }
-            executor.executeConcretely(methodUnderTest, stateBefore, listOf())
-        } catch (e: Throwable) {
-            logger.debug { "Exception in $methodUnderTest :( $e" }
-            null
-        }
+    ): UtFuzzingConcreteExecutionResult = run {
+        val executor =
+            ConcreteExecutor(
+                UtFuzzingExecutionInstrumentation,
+                pathsToUserClasses,
+                pathsToDependencyClasses
+            ).apply { this.classLoader = utContext.classLoader }
+        executor.executeConcretely(methodUnderTest, stateBefore, listOf())
+    }
 
-    private fun generateThisInstance(clazz: Class<*>) =
-        try {
+
+    private fun generateThisInstance(classId: ClassId): ThisInstance =
             if (!methodUnderTest.isStatic) {
-                DataGenerator.generate(
-                    clazz,
+                DataGenerator.generateThis(
+                    classId,
                     GreyBoxFuzzerGenerators.sourceOfRandomness,
                     GreyBoxFuzzerGenerators.genStatus
                 )
             } else {
-                null
+                StaticMethodThisInstance
             }
-        } catch (_: Throwable) {
-            null
-        }
+
 }

@@ -14,7 +14,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
  */
 class CharacterGenerator : Generator(
     listOf(
-        Char::class.java
+        Char::class.javaObjectType
     )
 ) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minChar") as Char

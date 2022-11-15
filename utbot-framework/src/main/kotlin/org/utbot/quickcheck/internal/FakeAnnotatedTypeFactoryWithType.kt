@@ -22,90 +22,71 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+package org.utbot.quickcheck.internal
 
-package org.utbot.quickcheck.internal;
+import java.lang.reflect.AnnotatedArrayType
+import java.lang.reflect.AnnotatedType
+import java.lang.reflect.Type
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedArrayType;
-import java.lang.reflect.AnnotatedType;
-import java.lang.reflect.Type;
+object FakeAnnotatedTypeFactoryWithType {
 
-final class FakeAnnotatedTypeFactoryWithType {
-    private FakeAnnotatedTypeFactoryWithType() {
-        throw new UnsupportedOperationException();
-    }
 
-    static AnnotatedType makeFrom(Type type) {
-        return type.getClass().isArray() ? makeArrayType(type) : makePlainType(type);
-    }
-
-    private static AnnotatedArrayType makeArrayType(Type type) {
-        return new FakeAnnotatedArrayType(type);
-    }
-
-    private static AnnotatedType makePlainType(Type type) {
-        return new FakeAnnotatedType(type);
-    }
-
-    private static final class FakeAnnotatedArrayType
-            implements AnnotatedArrayType {
-
-        private final Type type;
-
-        FakeAnnotatedArrayType(Type type) {
-            this.type = type;
-        }
-
-        @Override public AnnotatedType getAnnotatedGenericComponentType() {
-            return makeFrom(type.getClass().getComponentType());
+    private class FakeAnnotatedArrayType internal constructor(private val type: Type) : AnnotatedArrayType {
+        override fun getAnnotatedGenericComponentType(): AnnotatedType {
+            return makeFrom(type.javaClass.componentType)
         }
 
         // Not introduced until JDK 9 -- not marking as...
         // @Override
-        public AnnotatedType getAnnotatedOwnerType() {
-            return null;
+        override fun getAnnotatedOwnerType(): AnnotatedType? {
+            return null
         }
 
-        @Override public Type getType() {
-            return type;
+        override fun getType(): Type {
+            return type
         }
 
-        @Override public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
-
-            return null;
+        override fun <T : Annotation?> getAnnotation(annotationClass: Class<T>): T? {
+            return null
         }
 
-        @Override public Annotation[] getAnnotations() {
-            return new Annotation[0];
+        override fun getAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
         }
 
-        @Override public Annotation[] getDeclaredAnnotations() {
-            return new Annotation[0];
+        override fun getDeclaredAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
+        }
+    }
+
+    private class FakeAnnotatedType internal constructor(private val type: Type) : AnnotatedType {
+        override fun getType(): Type {
+            return type
+        }
+
+        override fun <T : Annotation?> getAnnotation(annotationClass: Class<T>): T? {
+            return null
+        }
+
+        override fun getAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
+        }
+
+        override fun getDeclaredAnnotations(): Array<Annotation?> {
+            return arrayOfNulls(0)
         }
     }
 
-    private static final class FakeAnnotatedType implements AnnotatedType {
-        private final Type type;
-
-        FakeAnnotatedType(Type type) {
-            this.type = type;
-        }
-
-        @Override public Type getType() {
-            return type;
-        }
-
-        @Override public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
-
-            return null;
-        }
-
-        @Override public Annotation[] getAnnotations() {
-            return new Annotation[0];
-        }
-
-        @Override public Annotation[] getDeclaredAnnotations() {
-            return new Annotation[0];
-        }
+    fun makeFrom(type: Type): AnnotatedType {
+        return if (type.javaClass.isArray) makeArrayType(type) else makePlainType(type)
     }
+
+    private fun makeArrayType(type: Type): AnnotatedArrayType {
+        return FakeAnnotatedArrayType(type)
+    }
+
+    private fun makePlainType(type: Type): AnnotatedType {
+        return FakeAnnotatedType(type)
+    }
+
 }

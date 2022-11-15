@@ -12,7 +12,7 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 /**
  * Produces values of type `float` or [Float].
  */
-class FloatGenerator : DecimalGenerator(listOf(Float::class.java)) {
+class FloatGenerator : DecimalGenerator(listOf(Float::class.javaObjectType)) {
     private var min = Reflection.defaultValueOf(InRange::class.java, "minFloat") as Float
     private var max = Reflection.defaultValueOf(InRange::class.java, "maxFloat") as Float
 

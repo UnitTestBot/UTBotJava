@@ -24,7 +24,7 @@ internal class StaticsFieldBasedInstanceGenerator(
     override fun generate(): UtModel =
         getRandomStaticToProduceInstanceUsingSoot()?.let { fieldToProvideInstance ->
             createUtModelForStaticFieldInvocation(UtModelGenerator.utModelConstructor, fieldToProvideInstance)
-        } ?: TODO("null")
+        } ?: UtNullModel(clazz.id)
 
     //In case of no Soot
     private fun getStaticFieldToProduceInstance(): Field? {

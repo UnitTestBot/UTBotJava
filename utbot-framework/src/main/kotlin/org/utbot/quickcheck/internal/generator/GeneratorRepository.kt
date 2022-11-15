@@ -120,9 +120,9 @@ open class GeneratorRepository private constructor(
         }
     }
 
-    private fun generatorForArrayType(
+    open fun generatorForArrayType(
         parameter: ParameterTypeContext
-    ): Generator {
+    ): ArrayGenerator {
         val component = parameter.arrayComponentContext()
         return ArrayGenerator(component.rawClass, generatorFor(component))
     }
@@ -249,7 +249,7 @@ open class GeneratorRepository private constructor(
         }
     }
 
-    private fun generatorsFor(parameter: ParameterTypeContext): List<Generator> {
+    open fun generatorsFor(parameter: ParameterTypeContext): List<Generator> {
         var matches = generators[parameter.rawClass]
             ?: error("No generator for type: ${parameter.rawClass}")
         if (!parameter.allowMixedTypes()) {

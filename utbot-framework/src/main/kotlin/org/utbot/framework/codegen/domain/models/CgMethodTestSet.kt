@@ -11,51 +11,28 @@ import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.UtFuzzedExecution
-import soot.jimple.JimpleBody
 
 data class CgMethodTestSet constructor(
     val executableId: ExecutableId,
-    val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>>,
 ) {
     var executions: List<UtExecution> = emptyList()
         private set
 
-    constructor(from: UtMethodTestSet) : this(
-        from.method,
-        from.jimpleBody,
-        from.errors,
-        from.clustersInfo
-    ) {
+    constructor(from: UtMethodTestSet) : this(from.method, from.errors, from.clustersInfo) {
         executions = from.executions
     }
+
     /**
-     * For JavaScript purposes.
+     * Constructor for JavaScript and Python purposes.
      */
     constructor(
         executableId: ExecutableId,
-        execs: List<UtExecution> = emptyList(),
-        errors: Map<String, Int> = emptyMap()
-    ) : this(
-        executableId,
-        null,
-        errors,
-        listOf(null to execs.indices)
-    ) {
-        executions = execs
-    }
-
-    constructor(
-        executableId: ExecutableId,
+        errors: Map<String, Int> = emptyMap(),
         executions: List<UtExecution> = emptyList(),
-    ) : this(
-        executableId,
-        null,
-        emptyMap(),
-
-        listOf(null to executions.indices)
-    ) {
+        clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices),
+    ) : this(executableId, errors, clustersInfo) {
         this.executions = executions
     }
 

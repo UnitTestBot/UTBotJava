@@ -173,7 +173,7 @@ open class CgTestClassConstructor(val context: CgContext) :
         testSet: CgMethodTestSet,
         regions: MutableList<CgRegion<CgMethod>>
     ) {
-        val (methodUnderTest, _, _, clustersInfo) = testSet
+        val (methodUnderTest, _, clustersInfo) = testSet
 
         for ((clusterSummary, executionIndices) in clustersInfo) {
             val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
@@ -208,7 +208,7 @@ open class CgTestClassConstructor(val context: CgContext) :
         testSet: CgMethodTestSet,
         regions: MutableList<CgRegion<CgMethod>>
     ) {
-        val (methodUnderTest, _, _, _) = testSet
+        val (methodUnderTest, _, _) = testSet
 
         for (preparedTestSet in testSet.prepareTestSetsForParameterizedTestGeneration()) {
             val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(preparedTestSet.executableId)

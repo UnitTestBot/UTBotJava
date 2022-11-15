@@ -66,8 +66,10 @@ class PythonCodeGenerator(
         context.withTestClassFileScope {
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
-            val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)
-            CodeGeneratorResult(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+            val cgTestClassConstructor = PythonCgTestClassConstructor(context)
+
+            val testClassFile = cgTestClassConstructor.construct(testClassModel)
+            CodeGeneratorResult(renderClassFile(testClassFile), cgTestClassConstructor.testsGenerationReport)
         }
     }
 }

@@ -36,7 +36,6 @@ interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
     fun <R> accept(visitor: CgVisitor<R>): R = visitor.run {
         when (val element = this@CgElement) {
-            is CgTestClassFile -> visit(element)
             is CgClassFile -> visit(element)
             is CgClass -> visit(element)
             is CgClassBody -> visit(element)
@@ -124,12 +123,6 @@ open class CgClassFile(
     open val imports: List<Import>,
     open val declaredClass: CgClass,
 ): CgElement
-
-data class CgTestClassFile(
-    override val imports: List<Import>,
-    override val declaredClass: CgClass,
-    val testsGenerationReport: TestsGenerationReport
-) : CgClassFile(imports, declaredClass)
 
 class CgClass(
     val id: ClassId,

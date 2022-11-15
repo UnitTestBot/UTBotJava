@@ -116,7 +116,7 @@ internal class DefaultSubstitutionProviderTest {
                         )
                     }
                 ),
-                supertypes = setOf(classA!!)
+                supertypes = listOf(classA!!)
             )
         }
 
@@ -141,7 +141,7 @@ internal class DefaultSubstitutionProviderTest {
         ) {
             CompositeTypeCreator.InitializationData(
                 members = emptyList(),
-                supertypes = setOf(bOfA),
+                supertypes = listOf(bOfA),
             )
         }
         assertTrue(classC.supertypes.size == 1)

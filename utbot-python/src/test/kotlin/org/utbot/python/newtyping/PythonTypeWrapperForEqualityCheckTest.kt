@@ -8,7 +8,7 @@ import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.TypeParameter
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class PythonTypeWrapperForComparisonTest {
+internal class PythonTypeWrapperForEqualityCheckTest {
     lateinit var storage: MypyAnnotationStorage
     @BeforeAll
     fun setup() {
@@ -21,10 +21,10 @@ internal class PythonTypeWrapperForComparisonTest {
         val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
         val set = storage.definitions["builtins"]!!["set"]!!.annotation.asUtBotType
 
-        assert(PythonTypeWrapperForComparison(int) == PythonTypeWrapperForComparison(int))
-        assert(PythonTypeWrapperForComparison(int).hashCode() == PythonTypeWrapperForComparison(int).hashCode())
-        assert(PythonTypeWrapperForComparison(int) != PythonTypeWrapperForComparison(set))
-        assert(PythonTypeWrapperForComparison(int).hashCode() != PythonTypeWrapperForComparison(set).hashCode())
+        assert(PythonTypeWrapperForEqualityCheck(int) == PythonTypeWrapperForEqualityCheck(int))
+        assert(PythonTypeWrapperForEqualityCheck(int).hashCode() == PythonTypeWrapperForEqualityCheck(int).hashCode())
+        assert(PythonTypeWrapperForEqualityCheck(int) != PythonTypeWrapperForEqualityCheck(set))
+        assert(PythonTypeWrapperForEqualityCheck(int).hashCode() != PythonTypeWrapperForEqualityCheck(set).hashCode())
     }
 
     @Test
@@ -36,12 +36,12 @@ internal class PythonTypeWrapperForComparisonTest {
         val setOfInt1 = DefaultSubstitutionProvider.substitute(set, mapOf((set.parameters.first() as TypeParameter) to int))
 
         assert(set != set1)
-        assert(PythonTypeWrapperForComparison(set) == PythonTypeWrapperForComparison(set1))
-        assert(PythonTypeWrapperForComparison(set).hashCode() == PythonTypeWrapperForComparison(set1).hashCode())
+        assert(PythonTypeWrapperForEqualityCheck(set) == PythonTypeWrapperForEqualityCheck(set1))
+        assert(PythonTypeWrapperForEqualityCheck(set).hashCode() == PythonTypeWrapperForEqualityCheck(set1).hashCode())
 
         assert(setOfInt != setOfInt1)
-        assert(PythonTypeWrapperForComparison(setOfInt) == PythonTypeWrapperForComparison(setOfInt1))
-        assert(PythonTypeWrapperForComparison(setOfInt).hashCode() == PythonTypeWrapperForComparison(setOfInt1).hashCode())
+        assert(PythonTypeWrapperForEqualityCheck(setOfInt) == PythonTypeWrapperForEqualityCheck(setOfInt1))
+        assert(PythonTypeWrapperForEqualityCheck(setOfInt).hashCode() == PythonTypeWrapperForEqualityCheck(setOfInt1).hashCode())
     }
 
     @Test
@@ -50,8 +50,8 @@ internal class PythonTypeWrapperForComparisonTest {
             val type = def.annotation.asUtBotType
             val type1 = DefaultSubstitutionProvider.substitute(type, emptyMap())
             assert(type != type1)
-            assert(PythonTypeWrapperForComparison(type) == PythonTypeWrapperForComparison(type1))
-            assert(PythonTypeWrapperForComparison(type).hashCode() == PythonTypeWrapperForComparison(type1).hashCode())
+            assert(PythonTypeWrapperForEqualityCheck(type) == PythonTypeWrapperForEqualityCheck(type1))
+            assert(PythonTypeWrapperForEqualityCheck(type).hashCode() == PythonTypeWrapperForEqualityCheck(type1).hashCode())
         }
     }
 }

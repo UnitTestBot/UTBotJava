@@ -67,10 +67,10 @@ object CompositeTypeCreator {
         override val parameters: MutableList<TypeParameter> =
             List(numberOfParameters) { TypeParameter(this) }.toMutableList()
         override lateinit var members: List<Type>
-        override lateinit var supertypes: Collection<Type>
+        override lateinit var supertypes: List<Type>
     }
     data class InitializationData(
         val members: List<Type>,
-        val supertypes: Collection<Type>
+        val supertypes: List<Type>
     )
 }

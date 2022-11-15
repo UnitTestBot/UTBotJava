@@ -17,7 +17,7 @@ interface StatefulType: Type {
 
 // members and supertypes of CompositeType instance can recursively refer to it and its parameters
 interface CompositeType: StatefulType {
-    val supertypes: Collection<Type>
+    val supertypes: List<Type>
 }
 
 open class TypeMetaData

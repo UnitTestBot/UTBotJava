@@ -61,6 +61,8 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         get() = this == context.generatedClass
 
     override fun visit(element: CgClass) {
+        element.documentation?.accept(this)
+
         for (annotation in element.annotations) {
             annotation.accept(this)
         }

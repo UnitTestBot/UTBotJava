@@ -35,7 +35,7 @@ sealed class UtilClassKind(
     fun utilClassDocumentation(codegenLanguage: CodegenLanguage): CgDocumentationComment
         = CgDocumentationComment(
         listOf(
-            CgDocRegularStmt(utilClassKindCommentText),
+            CgDocRegularStmt("$utilClassKindCommentText \n"),
             CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion(codegenLanguage)}"),
         )
     )

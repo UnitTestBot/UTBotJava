@@ -124,6 +124,7 @@ open class CgClassFile(
 
 class CgClass(
     val id: ClassId,
+    val documentation: CgDocumentationComment?,
     val annotations: List<CgAnnotation>,
     val superclass: ClassId?,
     val interfaces: List<ClassId>,
@@ -149,7 +150,6 @@ class CgClass(
  */
 class CgClassBody(
     val classId: ClassId,
-    val documentation: CgDocumentationComment?,
     val methodRegions: List<CgMethodsCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
     val nestedClassRegions: List<CgNestedClassesRegion<*>>

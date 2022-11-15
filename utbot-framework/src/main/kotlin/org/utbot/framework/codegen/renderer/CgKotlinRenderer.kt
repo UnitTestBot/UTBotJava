@@ -75,6 +75,8 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         get() = (this == context.generatedClass) || isKotlinFile
 
     override fun visit(element: CgClass) {
+        element.documentation?.accept(this)
+
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
@@ -115,8 +117,6 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun visit(element: CgClassBody) {
-        element.documentation?.accept(this)
-
         // render regions for test methods
         for ((i, region) in (element.methodRegions + element.nestedClassRegions).withIndex()) {
             if (i != 0) println()

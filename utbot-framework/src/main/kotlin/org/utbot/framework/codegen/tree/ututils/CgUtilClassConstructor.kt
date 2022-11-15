@@ -27,8 +27,8 @@ internal object CgUtilClassConstructor {
             // so they will be imported once IDEA reformatting action has worked
             declaredClass = buildClass {
                 id = utilsClassId
+                documentation = utilClassKind.utilClassDocumentation(codegenLanguage)
                 body = buildClassBody(utilsClassId) {
-                    documentation = utilClassKind.utilClassDocumentation(codegenLanguage)
                     staticDeclarationRegions += CgStaticsRegion("Util methods", utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) })
                     nestedClassRegions += CgAuxiliaryNestedClassesRegion(
                         nestedClasses = listOf(

@@ -49,6 +49,7 @@ fun buildClassFile(init: CgClassFileBuilder.() -> Unit) = CgClassFileBuilder().a
 
 class CgClassBuilder : CgBuilder<CgClass> {
     lateinit var id: ClassId
+    var documentation: CgDocumentationComment? = null
     val annotations: MutableList<CgAnnotation> = mutableListOf()
     var superclass: ClassId? = null
     val interfaces: MutableList<ClassId> = mutableListOf()
@@ -56,18 +57,17 @@ class CgClassBuilder : CgBuilder<CgClass> {
     var isNested: Boolean = false
     lateinit var body: CgClassBody
 
-    override fun build() = CgClass(id, annotations, superclass, interfaces, body, isStatic, isNested)
+    override fun build() = CgClass(id, documentation, annotations, superclass, interfaces, body, isStatic, isNested)
 }
 
 fun buildClass(init: CgClassBuilder.() -> Unit) = CgClassBuilder().apply(init).build()
 
 class CgClassBodyBuilder(val classId: ClassId) : CgBuilder<CgClassBody> {
-    var documentation: CgDocumentationComment? = null
     val methodRegions: MutableList<CgMethodsCluster> = mutableListOf()
     val staticDeclarationRegions: MutableList<CgStaticsRegion> = mutableListOf()
     val nestedClassRegions: MutableList<CgNestedClassesRegion<*>> = mutableListOf()
 
-    override fun build() = CgClassBody(classId, documentation, methodRegions, staticDeclarationRegions, nestedClassRegions)
+    override fun build() = CgClassBody(classId, methodRegions, staticDeclarationRegions, nestedClassRegions)
 }
 
 fun buildClassBody(classId: ClassId, init: CgClassBodyBuilder.() -> Unit) = CgClassBodyBuilder(classId).apply(init).build()

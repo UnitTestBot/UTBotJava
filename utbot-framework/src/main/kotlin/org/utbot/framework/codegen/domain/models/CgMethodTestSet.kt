@@ -20,7 +20,7 @@ data class CgMethodTestSet constructor(
     var executions: List<UtExecution> = emptyList()
         private set
 
-    constructor(from: UtMethodTestSet) : this(from.method, from.errors) {
+    constructor(from: UtMethodTestSet) : this(from.method, from.errors, from.clustersInfo) {
         executions = from.executions
     }
 

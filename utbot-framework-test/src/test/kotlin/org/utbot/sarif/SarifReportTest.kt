@@ -72,7 +72,7 @@ class SarifReportTest {
             UtImplicitlyThrownException(NullPointerException(), false)
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
-        Mockito.`when`(mockUtExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(1337)
+        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1337)
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
         val report = sarifReportMain.createReport()
@@ -243,8 +243,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
         // different locations
-        Mockito.`when`(mockUtExecution1.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(11)
-        Mockito.`when`(mockUtExecution2.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(22)
+        Mockito.`when`(mockUtExecution1.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(11)
+        Mockito.`when`(mockUtExecution2.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(22)
 
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),

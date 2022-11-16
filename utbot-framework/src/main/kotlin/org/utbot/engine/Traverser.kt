@@ -91,6 +91,8 @@ import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
 import org.utbot.engine.taint.ParamIndexToTaintFlags
 import org.utbot.engine.taint.TaintAnalysis
+import org.utbot.engine.taint.TaintAnalysis.Companion.RETURN_VALUE_INDEX
+import org.utbot.engine.taint.TaintAnalysis.Companion.THIS_PARAM_INDEX
 import org.utbot.engine.taint.TaintAnalysisError
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
@@ -752,7 +754,14 @@ class Traverser(
                     is InterfaceInvokeExpr -> rightValue.base
                     else -> null
                 }
-                processTaintAnalysis(rightValue.method.executableId, methodResult, base, rightValue.args)
+
+                processTaintAnalysis(
+                    rightValue.method.executableId,
+                    rightValue,
+                    methodResult,
+                    base,
+                    rightValue.args
+                )
             } else {
                 SymbolicStateUpdate()
             }
@@ -2341,7 +2350,13 @@ class Traverser(
                 is SpecialInvokeExpr -> invokeExpr.base
                 else -> null
             }
-            val taintAnalysisUpdate = processTaintAnalysis(invokeExpr.method.executableId, methodResult, base, invokeExpr.args)
+            val taintAnalysisUpdate = processTaintAnalysis(
+                invokeExpr.method.executableId,
+                invokeExpr,
+                methodResult,
+                base,
+                invokeExpr.args
+            )
 
             return listOf(
                 methodResult.copy(symbolicStateUpdate = methodResult.symbolicStateUpdate + taintAnalysisUpdate)
@@ -2454,7 +2469,13 @@ class Traverser(
 
     private fun TraversalContext.staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
-            .onEachIndexed { index, value -> processTaintSink(invokeExpr.method.executableId, index + 1, value) }
+
+        processTaintSink(
+            invokeExpr.method.executableId,
+            base = null,
+            parameters
+        )
+
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
 
         if (result != null) return result
@@ -2483,12 +2504,13 @@ class Traverser(
 
 
         val method = methodRef.resolve()
+        val resolvedParameters = resolveParameters(parameters, method.parameterTypes)
 
-        processTaintSink(method.executableId, TaintAnalysis.THIS_PARAM_INDEX, instance)
-
-        val resolvedParameters = resolveParameters(parameters, method.parameterTypes).onEachIndexed { index, value ->
-            processTaintSink(method.executableId, index + 1, value)
-        }
+        processTaintSink(
+            method.executableId,
+            instance,
+            resolvedParameters
+        )
 
         val invocation = Invocation(instance, method, resolvedParameters) {
             when (instance) {
@@ -2622,10 +2644,10 @@ class Traverser(
 
         val method = invokeExpr.retrieveMethod()
 
-        processTaintSink(method.executableId, TaintAnalysis.THIS_PARAM_INDEX, instance)
-
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
-            .onEachIndexed { index, value -> processTaintSink(method.executableId, index + 1, value) }
+
+        processTaintSink(method.executableId, instance, parameters)
+
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
 
         // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
@@ -3330,6 +3352,7 @@ class Traverser(
 
     private fun TraversalContext.processTaintAnalysis(
         methodId: ExecutableId,
+        rightValue: InvokeExpr,
         methodResult: MethodResult,
         base: Value?,
         args: List<Value>
@@ -3348,50 +3371,114 @@ class Traverser(
         methodResult: MethodResult,
         base: Value?,
         args: List<Value>
-    ): SymbolicStateUpdate = processTaintSourceOperation(
-        methodId,
-        methodResult,
-        base,
-        args,
-        ::markAsTaint
-    )
+    ): SymbolicStateUpdate {
+        val sourceInfos = taintAnalysis.getSourceInfo(methodId)
+
+        return sourceInfos.fold(SymbolicStateUpdate()) { acc, sourceInfo ->
+            val condition = sourceInfo.condition
+
+            // TODO process kindsToRemove too, in benchmark project there are no such instances
+            val flagsToAdd = sourceInfo.taintOut.associateWith { sourceInfo.taintKinds.kindsToAdd }
+
+            val symbolicResult = methodResult.symbolicResult
+
+            val thisParameter = base?.let {
+                resolve(it, methodId.sootMethod.declaringClass.type) to flagsToAdd[THIS_PARAM_INDEX]
+            }
+
+            val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
+                .asSequence()
+                .withIndex()
+                .filter { it.value is ReferenceValue }
+                .map { it.value to flagsToAdd[it.index + 1] }
+
+
+            val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+                val value: ReferenceValue = symbolicResult.value
+
+                if (condition != null) {
+                    val taintValue = memory.taintValue(value.addr).toLongValue()
+                    queuedSymbolicStateUpdates += condition.toBoolExpr(
+                        this,
+                        taintValue,
+                        thisParameter?.first,
+                        parameters.mapTo(mutableListOf()) { it.first },
+                        value
+                    ).asHardConstraint()
+                }
+                value.addr to flagsToAdd[RETURN_VALUE_INDEX]
+            } else {
+                null
+            }
+
+
+            val allArgs = mutableListOf<Pair<UtAddrExpression, Set<String>?>>().apply {
+                if (thisParameter != null) add(thisParameter.first.addr to thisParameter.second)
+                addAll(parameters.map { it.first.addr to it.second })
+                if (resultTaint != null) add(resultTaint)
+            }
+
+            acc + allArgs.fold(SymbolicStateUpdate()) { nestedAcc, addrToFlags ->
+                nestedAcc + markAsTaint(addrToFlags.first, addrToFlags.second ?: emptySet())
+            }
+        }
+    }
 
     private fun TraversalContext.processTaintSink(
         methodId: ExecutableId,
-        parameterIndex: Int,
-        symbolicValue: SymbolicValue
+        base: SymbolicValue?,
+        args: List<SymbolicValue>
     ) {
-        if (symbolicValue !is ReferenceValue) return
+        for (parameterIndex in 0..args.size) {
+            val symbolicValue = if (parameterIndex == THIS_PARAM_INDEX) base else args[parameterIndex - 1]
 
-        val sinkInfo = taintAnalysis.getSinkInfo(methodId) ?: return
-        val flags = sinkInfo.taintSinks[parameterIndex] ?: emptySet() // TODO is it right?
-        val taintValue = memory.taintValue(symbolicValue.addr)
-        val condition = taintAnalysis.containsInTainted(taintValue, flags)
-        val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
+            if (symbolicValue !is ReferenceValue) continue
 
-        // TODO information about arguments and source of the error
-        val parameterString = when (parameterIndex) {
-            TaintAnalysis.RETURN_VALUE_INDEX -> "TODO message for return value" // TODO
-            TaintAnalysis.THIS_PARAM_INDEX -> "`this` instance"
-            else -> "$parameterIndex parameter"
+            val sinkInfos = taintAnalysis.getSinkInfo(methodId)
+
+            if (sinkInfos.size > 1) {
+                print('0')
+            }
+
+            sinkInfos.forEach { sinkInfo ->
+                val taintCondition = sinkInfo.taintSinks[parameterIndex] ?: return@forEach
+
+                val taintValue = memory.taintValue(symbolicValue.addr)
+
+                val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
+                val condition = taintCondition.toBoolExpr(
+                    this,
+                    taintValue.toLongValue(),
+                    base,
+                    args,
+                    returnValue = null
+                )
+
+                // TODO information about arguments and source of the error
+                val parameterString = if (parameterIndex == THIS_PARAM_INDEX) {
+                    "`this` instance"
+                } else {
+                    "$parameterIndex parameter"
+                }
+
+                // -1 is returned in case unavailable source position
+                val sinkSourcePosition = environment.state.stmt.javaSourceStartLineNumber.takeIf { it != -1 }
+
+                implicitlyThrowException(
+                    TaintAnalysisError(
+                        "Tainted data was passed as $parameterString into `${methodId.name}` method",
+                        environment.state.stmt,
+                        sinkSourcePosition
+                    ),
+                    setOf(condition, notNullCondition)
+                )
+                // Note that we do not add negation of the condition leading to an exception.
+                // It is required to find further usages of the same `tainted` data in the following instructions
+
+                val memoryUpdate = MemoryUpdate(taintAnalysisFoundSomething = mkAnd(condition, notNullCondition))
+                queuedSymbolicStateUpdates += SymbolicStateUpdate(memoryUpdates = memoryUpdate)
+            }
         }
-
-        // -1 is returned in case unavailable source position
-        val sinkSourcePosition = environment.state.stmt.javaSourceStartLineNumber.takeIf { it != -1 }
-
-        implicitlyThrowException(
-            TaintAnalysisError(
-                "Tainted data was passed as $parameterString into `${methodId.name}` method",
-                environment.state.stmt,
-                sinkSourcePosition
-            ),
-            setOf(condition, notNullCondition)
-        )
-        // Note that we do not add negation of the condition leading to an exception.
-        // It is required to find further usages of the same `tainted` data in the following instructions
-
-        val memoryUpdate = MemoryUpdate(taintAnalysisFoundSomething = mkAnd(condition, notNullCondition))
-        queuedSymbolicStateUpdates += SymbolicStateUpdate(memoryUpdates = memoryUpdate)
     }
 
     private fun TraversalContext.processTaintSanitizer(
@@ -3408,49 +3495,7 @@ class Traverser(
             taintAnalysis.taintSanitizers, // TODO change to sanitizers from config
             ::clearTaintMark
         )
-
-
-    // TODO copy-paste from processTaintAnalysisOperation
-    private fun TraversalContext.processTaintSourceOperation(
-        methodId: ExecutableId,
-        methodResult: MethodResult,
-        base: Value?,
-        args: List<Value>,
-        aggregationOperation: (UtAddrExpression, Set<String>) -> SymbolicStateUpdate
-    ): SymbolicStateUpdate {
-        // TODO process kindsToRemove too
-        val flags = taintAnalysis.getSourceInfo(methodId)?.let { taintSource ->
-            taintSource.taintOut.associateWith { taintSource.taintKinds.kindsToAdd }
-        } ?: return SymbolicStateUpdate()
-
-        val symbolicResult = methodResult.symbolicResult
-
-        val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
-            symbolicResult.value.addr to flags[TaintAnalysis.RETURN_VALUE_INDEX]
-        } else {
-            null
-        }
-
-        val thisParameter = base?.let {
-            resolve(it, methodId.sootMethod.declaringClass.type).addr to flags[TaintAnalysis.THIS_PARAM_INDEX]
-        }
-
-        val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
-            .asSequence()
-            .withIndex()
-            .filter { it.value is ReferenceValue }
-            .map { it.value.addr to flags[it.index + 1] }
-
-        val allArgs = mutableListOf<Pair<UtAddrExpression, Set<String>?>>().apply {
-            if (thisParameter != null) add(thisParameter)
-            addAll(parameters.toList())
-            if (resultTaint != null) add(resultTaint)
-        }
-
-        return allArgs.fold(SymbolicStateUpdate()) { acc, addrToFlags ->
-            acc + aggregationOperation(addrToFlags.first, addrToFlags.second ?: emptySet())
-        }
-    }
+    
 
     private fun TraversalContext.processTaintAnalysisOperation(
         methodId: ExecutableId,
@@ -3465,13 +3510,13 @@ class Traverser(
         val symbolicResult = methodResult.symbolicResult
 
         val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
-            symbolicResult.value.addr to flags[TaintAnalysis.RETURN_VALUE_INDEX]
+            symbolicResult.value.addr to flags[RETURN_VALUE_INDEX]
         } else {
             null
         }
 
         val thisParameter = base?.let {
-            resolve(it, methodId.sootMethod.declaringClass.type).addr to flags[TaintAnalysis.THIS_PARAM_INDEX]
+            resolve(it, methodId.sootMethod.declaringClass.type).addr to flags[THIS_PARAM_INDEX]
         }
 
         val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
@@ -3498,73 +3543,81 @@ class Traverser(
         args: List<Value>
     ): SymbolicStateUpdate {
         // return if there are no flags for the methodId as a taint source
-        val passThroughInformation = taintAnalysis.getPassThroughInfo(methodId) ?: return SymbolicStateUpdate()
+        val passThroughInformations = taintAnalysis.getPassThroughInfo(methodId)
+
+        return passThroughInformations.fold(SymbolicStateUpdate()) { acc, passThroughInformation ->
 
 //        logger.warn { "PassThrough information found: $passThroughInformation" }
 
-        val instance = base?.let { resolve(base, methodId.sootMethod.declaringClass.type) }
-        val arguments = resolveParameters(args, methodId.sootMethod.parameterTypes)
+            val condition = passThroughInformation.condition
+            if (condition != null) {
+                logger.warn { "Condition in passthrough is not supported, please, take a look on it" }
+            }
 
-        val symbolicResult = methodResult.symbolicResult
+            val instance = base?.let { resolve(base, methodId.sootMethod.declaringClass.type) }
+            val arguments = resolveParameters(args, methodId.sootMethod.parameterTypes)
 
-        val resultValue = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
-            symbolicResult.value
-        } else {
-            null
-        }
+            val symbolicResult = methodResult.symbolicResult
 
-        var update = SymbolicStateUpdate()
-        with(passThroughInformation) {
-            taintIn.forEach { sourceIndex ->
-                val sourceValue = when (sourceIndex) {
-                    TaintAnalysis.RETURN_VALUE_INDEX -> resultValue
-                    TaintAnalysis.THIS_PARAM_INDEX -> instance
-                    else -> {
-                        if (sourceIndex - 1 in arguments.indices) {
-                            arguments[sourceIndex - 1]
-                        } else {
-                            return@forEach
+            val resultValue = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+                symbolicResult.value
+            } else {
+                null
+            }
+
+            var update = SymbolicStateUpdate()
+            with(passThroughInformation) {
+                taintIn.forEach { sourceIndex ->
+                    val sourceValue = when (sourceIndex) {
+                        RETURN_VALUE_INDEX -> resultValue
+                        THIS_PARAM_INDEX -> instance
+                        else -> {
+                            if (sourceIndex - 1 in arguments.indices) {
+                                arguments[sourceIndex - 1]
+                            } else {
+                                return@forEach
+                            }
                         }
-                    }
-                } ?: return@forEach
+                    } ?: return@forEach
 
-                sourceValue as? ReferenceValue ?: run {
+                    sourceValue as? ReferenceValue ?: run {
 //                    logger.warn {
 //                        "Source index: $sourceIndex, instance: $instance, result: $resultValue, " +
 //                                "arguments: $arguments, method: $methodId, " +
 //                                "passThrough info: $passThroughInformation"
 //                    }
-                    return@forEach
-                }
+                        return@forEach
+                    }
 
-                taintOut.forEach innerForeach@ { targetIndex ->
-                    val targetValue = when (targetIndex) {
-                        TaintAnalysis.RETURN_VALUE_INDEX -> resultValue
-                        TaintAnalysis.THIS_PARAM_INDEX -> instance
-                        else -> run {
-                            if (targetIndex - 1 in arguments.indices) {
-                                arguments[targetIndex - 1]
-                            } else {
-                                return@innerForeach
+                    taintOut.forEach innerForeach@{ targetIndex ->
+                        val targetValue = when (targetIndex) {
+                            RETURN_VALUE_INDEX -> resultValue
+                            THIS_PARAM_INDEX -> instance
+                            else -> run {
+                                if (targetIndex - 1 in arguments.indices) {
+                                    arguments[targetIndex - 1]
+                                } else {
+                                    return@innerForeach
+                                }
                             }
-                        }
-                    } ?: return@innerForeach
+                        } ?: return@innerForeach
 
-                    targetValue as? ReferenceValue ?: run {
+                        targetValue as? ReferenceValue ?: run {
 //                        logger.warn {
 //                            "Target index: $targetIndex, arguments: $arguments, instance: $instance, result: $resultValue, " +
 //                                    "method: $methodId, passThrough info: $passThroughInformation"
 //                        }
-                        return@innerForeach
-                    }
+                            return@innerForeach
+                        }
 
-                    // TODO support kindToRemove
-                    update += assignTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToAdd)
+                        // TODO support kindToRemove
+                        update += assignTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToAdd)
+                    }
                 }
             }
-        }
 
-        return update
+            acc + update
+        }
 
         /*return passThroughInformation.entries.fold(SymbolicStateUpdate()) { acc, information ->
             val (sourceIndex, passInformation) = information

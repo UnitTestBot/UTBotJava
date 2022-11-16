@@ -2,6 +2,7 @@ package org.utbot.engine.taint
 
 data class TaintConfiguration(
     val taintSourceConfigurations: Collection<TaintSourceConfiguration>,
+    val taintEntryPointConfigurations: Collection<TaintEntryPointConfiguration>,
     val taintSinkConfigurations: Collection<TaintSinkConfiguration>,
     val taintPassThroughConfigurations: Collection<TaintPassThroughConfiguration>,
     val taintSanitizerConfigurations: Collection<TaintSanitizerConfiguration>
@@ -20,7 +21,18 @@ class TaintSourceConfiguration(
     className: NameInformation,
     methodName: NameInformation,
     val taintOutput: List<Int>,
-    val taintKinds: TaintKinds
+    val taintKinds: TaintKinds,
+    val condition: Condition?
+) : TaintInfo(packageName, className, methodName)
+
+class TaintEntryPointConfiguration(
+    packageName: NameInformation,
+    className: NameInformation,
+    methodName: NameInformation,
+    val taintIn: List<Int>,
+    val taintOut: List<Int>,
+    val taintKinds: TaintKinds,
+    val condition: Condition?
 ) : TaintInfo(packageName, className, methodName)
 
 class TaintSinkConfiguration(
@@ -37,7 +49,8 @@ class TaintSanitizerConfiguration(
     methodName: NameInformation,
     val taintInput: List<Int>,
     val taintOutput: List<Int>,
-    val taintKinds: TaintKinds
+    val taintKinds: TaintKinds,
+    val condition: Condition?
 ) : TaintInfo(packageName, className, methodName)
 
 class TaintPassThroughConfiguration(
@@ -46,7 +59,8 @@ class TaintPassThroughConfiguration(
     methodName: NameInformation,
     val taintInput: List<Int>,
     val taintOutput: List<Int>,
-    val taintKinds: TaintKinds
+    val taintKinds: TaintKinds,
+    val condition: Condition?
 ) : TaintInfo(packageName, className, methodName)
 
 // TODO it seems only one of them can be present - consider using alternative?
@@ -67,10 +81,29 @@ data class NameInformation(
 
 data class SinkConfigInstance(
     val index: Int,
-    val taintKinds: Set<String>
+    val condition: Condition
 )
 
-data class TaintKinds(
-    val kindsToAdd: Set<String> = emptySet(),
-    val kindToRemove: Set<String> = emptySet()
-)
+class TaintKinds(
+    kindsToAdd: Set<String> = emptySet(),
+    kindsToRemove: Set<String> = emptySet()
+) {
+    private val _kindsToAdd: MutableSet<String> = mutableSetOf()
+    private val _kindsToRemove: MutableSet<String> = mutableSetOf()
+
+    val kindsToAdd: Set<String> get() = _kindsToAdd
+    val kindsToRemove: Set<String> get() = _kindsToRemove
+
+    init {
+        _kindsToAdd.addAll(kindsToAdd)
+        _kindsToRemove.addAll(kindsToRemove)
+    }
+
+    fun putKindToAdd(taintKind: String) {
+        _kindsToAdd += taintKind
+    }
+
+    fun putKindToRemove(taintKind: String) {
+        _kindsToRemove += taintKind
+    }
+}

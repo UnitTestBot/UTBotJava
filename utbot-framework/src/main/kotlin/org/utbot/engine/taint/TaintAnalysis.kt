@@ -18,7 +18,7 @@ class TaintAnalysis {
 
     private val taintFlagToIdBiMap: BiMap<String, Long> = HashBiMap.create()
 
-    private fun idByFlag(flag: String): Long = taintFlagToIdBiMap.getOrPut(flag) { counter.also { counter *= 2 } }
+    internal fun idByFlag(flag: String): Long = taintFlagToIdBiMap.getOrPut(flag) { counter.also { counter *= 2 } }
     private fun flagById(id: Long): String = taintFlagToIdBiMap.inverse()[id] ?: error("Unknown flag id: $id")
 
     private var counter: Long = 1
@@ -41,18 +41,19 @@ class TaintAnalysis {
             }.getOrDefault("")
         }
 
-    fun getSourceInfo(source: ExecutableId): TaintSource? =
-        sources.filter { it.key.matches(source.fullName) }.entries.firstOrNull()?.value
+    // TODO maps
+    fun getSourceInfo(source: ExecutableId): List<TaintSource> =
+        sources.filter { it.key.matches(source.fullName) }.entries.map { it.value }
 
-    fun getSinkInfo(sink: ExecutableId): TaintSink? =
+    fun getSinkInfo(sink: ExecutableId): List<TaintSink> =
         // TODO not first, but union of all sinks or list of them
-        sinks.filter { it.key.matches(sink.fullName) }.entries.firstOrNull()?.value
+        sinks.filter { it.key.matches(sink.fullName) }.entries.map { it.value }
 
-    fun getPassThroughInfo(executableId: ExecutableId): TaintPassThrough? =
-        passThrough.filter { it.key.matches(executableId.fullName) }.entries.firstOrNull()?.value
+    fun getPassThroughInfo(executableId: ExecutableId): List<TaintPassThrough> =
+        passThrough.filter { it.key.matches(executableId.fullName) }.entries.map { it.value }
 
-    fun getSanitizerInfo(executableId: ExecutableId): TaintSanitizer? =
-        sanitizers.filter { it.key.matches(executableId.fullName) }.entries.firstOrNull()?.value
+    fun getSanitizerInfo(executableId: ExecutableId): List<TaintSanitizer> =
+        sanitizers.filter { it.key.matches(executableId.fullName) }.entries.map { it.value }
 
     // TODO what to do with negation of kind?
     fun constructTaintedVector(flags: Set<String>): UtBvLiteral {
@@ -83,7 +84,13 @@ class TaintAnalysis {
     }
 
     fun setConfiguration(taintConfiguration: TaintConfiguration) {
-        val (sourceConfigurations, sinkConfigurations, passThroughConfigurations, sanitizerConfigurations) = taintConfiguration
+        val (
+            sourceConfigurations,
+            entryPointsConfigurations,
+            sinkConfigurations,
+            passThroughConfigurations,
+            sanitizerConfigurations
+        ) = taintConfiguration
 
         setSources(sourceConfigurations)
         setSinks(sinkConfigurations)
@@ -95,15 +102,19 @@ class TaintAnalysis {
         sourceConfigurations.forEach {
             val pattern = it.pattern
 
-            sources[pattern] = TaintSource(pattern, it.taintOutput.toSet(), it.taintKinds)
+            sources[pattern] = TaintSource(pattern, it.taintOutput.toSet(), it.taintKinds, it.condition)
         }
+    }
+
+    private fun setEntryPoints(entryPointConfigurations: Collection<TaintEntryPointConfiguration>) {
+        entryPointConfigurations.forEach {  }
     }
 
     private fun setSinks(sinkConfigurations: Collection<TaintSinkConfiguration>) {
         sinkConfigurations.forEach { sinkConfiguration ->
             val pattern = sinkConfiguration.pattern
 
-            val taintSinks = sinkConfiguration.sinks.associate { it.index to it.taintKinds }
+            val taintSinks = sinkConfiguration.sinks.associate { it.index to it.condition }
             sinks[pattern] = TaintSink(pattern, taintSinks)
         }
     }
@@ -113,17 +124,15 @@ class TaintAnalysis {
             val pattern = it.pattern
 
             passThrough[pattern] =
-                TaintPassThrough(pattern, it.taintInput.toSet(), it.taintOutput.toSet(), it.taintKinds)
+                TaintPassThrough(pattern, it.taintInput.toSet(), it.taintOutput.toSet(), it.taintKinds, it.condition)
         }
 
         taintPassThrough.forEach { (method, arg) ->
             val pattern = "${method.classId.name}.${method.name}".toRegex()
 
             passThrough[pattern] = TaintPassThrough(
-                pattern, arg.keys, arg.values.map { it.first }.toSet(), TaintKinds()
+                pattern, arg.keys, arg.values.map { it.first }.toSet(), TaintKinds(), condition = null
             )
-
-//            org.utbot.engine.logger.warn { "Added a passThrough information: ${passThrough[pattern]}" }
         }
     }
 
@@ -131,7 +140,13 @@ class TaintAnalysis {
         sanitizerConfigurations.forEach {
             val pattern = it.pattern
 
-            sanitizers[pattern] = TaintSanitizer(pattern, it.taintInput.toSet(), it.taintOutput.toSet(), it.taintKinds)
+            sanitizers[pattern] = TaintSanitizer(
+                pattern,
+                it.taintInput.toSet(),
+                it.taintOutput.toSet(),
+                it.taintKinds,
+                it.condition
+            )
         }
     }
 
@@ -372,12 +387,13 @@ class TaintAnalysis {
     class TaintSource(
         pattern: Regex,
         val taintOut: Set<Int>,
-        val taintKinds: TaintKinds
+        val taintKinds: TaintKinds,
+        val condition: Condition?
     ) : TaintPattern(pattern)
 
     class TaintSink(
         pattern: Regex,
-        val taintSinks: Map<Int, Set<String>>
+        val taintSinks: Map<Int, Condition>
     ) : TaintPattern(pattern) {
         override fun toString(): String = "Pattern $pattern, sinks: $taintSinks"
     }
@@ -387,7 +403,8 @@ class TaintAnalysis {
         pattern: Regex,
         val taintIn: Set<Int>,
         val taintOut: Set<Int>,
-        val taintKinds: TaintKinds
+        val taintKinds: TaintKinds,
+        val condition: Condition?
     ) : TaintPattern(pattern)
 
     // TODO what does it do exactly?
@@ -395,7 +412,8 @@ class TaintAnalysis {
         pattern: Regex,
         val taintIn: Set<Int>,
         val taintOut: Set<Int>,
-        val taintKinds: TaintKinds
+        val taintKinds: TaintKinds,
+        val condition: Condition?
     ) : TaintPattern(pattern) {
         override fun toString(): String =
             "Pattern: $pattern, taintIn: $taintIn, taintOut: $taintOut, taintKinds: $taintKinds"

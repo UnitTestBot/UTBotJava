@@ -36,6 +36,8 @@ def update_from_coverage(name: str, labels: dict) -> str:
             labels["type"] = "averaged_by_classes"
         else:
             labels["source"] = source
+    if "source" not in labels:
+        labels["source"] = "all"
     return coverage_key
 
 
@@ -88,7 +90,8 @@ def build_metrics_from_target(target: dict, runner: str) -> List[dict]:
         target["summarised"],
         {
             "runner": runner,
-            "project": project
+            "project": project,
+            "class": "All"
         }
     ))
 

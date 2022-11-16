@@ -5,7 +5,9 @@ import org.apache.maven.project.MavenProject
 import org.junit.jupiter.api.*
 import org.utbot.common.PathUtil.toPath
 import org.utbot.engine.Mocker
-import org.utbot.framework.codegen.*
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework

@@ -2,8 +2,6 @@
 
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.atLeast
 import org.utbot.framework.plugin.api.CodegenLanguage
 import java.lang.Boolean
 import kotlin.Array
@@ -11,7 +9,9 @@ import kotlin.Suppress
 import kotlin.arrayOf
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
 
 internal class ClassRefTest : UtValueTestCaseChecker(
     testClass = ClassRef::class,

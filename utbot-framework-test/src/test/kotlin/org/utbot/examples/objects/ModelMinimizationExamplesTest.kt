@@ -1,9 +1,9 @@
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class ModelMinimizationExamplesTest : UtValueTestCaseChecker(testClass = ModelMinimizationExamples::class) {
     @Test

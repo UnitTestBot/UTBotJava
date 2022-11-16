@@ -1,9 +1,9 @@
 package org.utbot.examples.types
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.atLeast
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
 
 internal class TypeBordersTest : UtValueTestCaseChecker(testClass = TypeBorders::class) {
     @Test

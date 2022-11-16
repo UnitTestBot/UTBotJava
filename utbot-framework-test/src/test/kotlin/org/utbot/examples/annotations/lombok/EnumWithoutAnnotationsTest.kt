@@ -1,8 +1,8 @@
 package org.utbot.examples.annotations.lombok
 
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class EnumWithoutAnnotationsTest : UtValueTestCaseChecker(testClass = EnumWithoutAnnotations::class) {
     @Test

@@ -18,8 +18,13 @@ import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.runIdeaProcessWithDebug
-import org.utbot.framework.codegen.*
-import org.utbot.framework.codegen.model.UtilClassKind
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider

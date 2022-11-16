@@ -1,8 +1,8 @@
 package org.utbot.examples.arrays
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.junit.jupiter.api.Test
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 
 internal class FinalStaticFieldArrayTest : UtValueTestCaseChecker(testClass = FinalStaticFieldArray::class) {
 

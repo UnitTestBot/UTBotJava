@@ -1,10 +1,10 @@
 package org.utbot.examples.statics.substitution
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutSubstituteStaticsWithSymbolicVariable
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 class StaticsSubstitutionTest : UtValueTestCaseChecker(testClass = StaticSubstitutionExamples::class) {
 

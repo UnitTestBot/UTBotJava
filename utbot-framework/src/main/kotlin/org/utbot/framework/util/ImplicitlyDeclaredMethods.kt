@@ -1,7 +1,7 @@
 package org.utbot.framework.util
 
-import org.utbot.framework.codegen.model.util.fieldThatIsGotWith
-import org.utbot.framework.codegen.model.util.fieldThatIsSetWith
+import org.utbot.framework.codegen.util.fieldThatIsGotWith
+import org.utbot.framework.codegen.util.fieldThatIsSetWith
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.util.isData
 import org.utbot.framework.plugin.api.util.isEnum

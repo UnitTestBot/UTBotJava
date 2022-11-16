@@ -1,14 +1,14 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtModelTestCaseChecker
-import org.utbot.tests.infrastructure.primitiveValue
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.getOrThrow
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtModelTestCaseChecker
+import org.utbot.testing.getOrThrow
+import org.utbot.testing.primitiveValue
 
 internal class MockWithFieldChecker : UtModelTestCaseChecker(testClass = MockWithFieldExample::class) {
     @Test

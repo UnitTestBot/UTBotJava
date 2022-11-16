@@ -1,9 +1,9 @@
 package org.utbot.examples.codegen
 
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 class JavaAssertTest : UtValueTestCaseChecker(
     testClass = JavaAssert::class,

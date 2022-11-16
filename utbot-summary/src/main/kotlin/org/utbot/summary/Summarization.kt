@@ -80,14 +80,14 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
             return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
         }
 
-        val clustersToReturn = mutableListOf<UtExecutionCluster>()
+        val executionClusters = mutableListOf<UtExecutionCluster>()
 
-        clustersToReturn += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
-        clustersToReturn += generateSummariesForTestsProducedByFuzzer(testSet)
-        clustersToReturn += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
+        executionClusters += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
+        executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
+        executionClusters += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
 
-        return if (clustersToReturn.size > 0)
-            clustersToReturn
+        return if (GENERATE_CLUSTER_COMMENTS && executionClusters.size > 0)
+            executionClusters
         else
             listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
     }

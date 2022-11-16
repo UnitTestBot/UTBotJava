@@ -150,7 +150,7 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val startLine = getLastLineNumber(utExecution) ?: defaultLineNumber
+        val startLine = getLastLineNumber(utExecution, classFqn) ?: defaultLineNumber
         val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
         val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
@@ -317,26 +317,25 @@ class SarifReport(
     }
 
     /**
-     * Returns the number of the last line in the execution path.
+     * Returns the number of the last line in the execution path which is located in the [classFqn].
      */
-    private fun getLastLineNumber(utExecution: UtExecution): Int? {
-        // if for some reason we can't extract the last line from the path
-        val lastCoveredInstruction =
-            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
+    private fun getLastLineNumber(utExecution: UtExecution, classFqn: String): Int? {
+        val classFqnPath = classFqn.replace(".", "/")
+        val coveredInstructions = utExecution.coverage?.coveredInstructions
+        val lastCoveredInstruction = coveredInstructions?.lastOrNull { it.className == classFqnPath }
+            ?: coveredInstructions?.lastOrNull()
+        if (lastCoveredInstruction != null)
+            return lastCoveredInstruction.lineNumber
 
-        return if (utExecution is UtSymbolicExecution) {
-            val lastPathLine = try {
-                // path/fullPath might be empty when engine executes in another process -
-                // soot entities cannot be passed to the main process because kryo cannot deserialize them
-                utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
-            } catch (t: Throwable) {
-                null
-            }
-
-            lastPathLine ?: lastCoveredInstruction
-        } else {
-            lastCoveredInstruction
+        // if for some reason we can't extract the last line from the coverage
+        val lastPathElementLineNumber = try {
+            // path/fullPath might be empty when engine executes in another process -
+            // soot entities cannot be passed to the main process because kryo cannot deserialize them
+            (utExecution as? UtSymbolicExecution)?.path?.lastOrNull()?.stmt?.javaSourceStartLineNumber
+        } catch (t: Throwable) {
+            null
         }
+        return lastPathElementLineNumber
     }
 
     private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {

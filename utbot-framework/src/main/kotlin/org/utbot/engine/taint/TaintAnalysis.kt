@@ -142,10 +142,8 @@ class TaintAnalysis {
 
             sanitizers[pattern] = TaintSanitizer(
                 pattern,
-                it.taintInput.toSet(),
                 it.taintOutput.toSet(),
-                it.taintKinds,
-                it.condition
+                it.taintKinds
             )
         }
     }
@@ -401,10 +399,8 @@ class TaintAnalysis {
     // TODO what does it do exactly?
     class TaintSanitizer(
         pattern: Regex,
-        val taintIn: Set<Int>,
         val taintOut: Set<Int>,
         val taintKinds: TaintKinds,
-        val condition: Condition?
     ) : TaintPattern(pattern)
 
     // TODO what does it do exactly?

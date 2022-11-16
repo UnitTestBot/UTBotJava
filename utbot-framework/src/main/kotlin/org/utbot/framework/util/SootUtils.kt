@@ -2,6 +2,7 @@ package org.utbot.framework.util
 
 import org.utbot.common.FileUtil
 import org.utbot.engine.jimpleBody
+import org.utbot.engine.overrides.UtAccessController
 import org.utbot.engine.pureJavaSignature
 import org.utbot.engine.taint.TaintAnalysisError
 import org.utbot.framework.UtSettings
@@ -207,6 +208,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.LongStream::class,
     org.utbot.engine.overrides.stream.DoubleStream::class,
     TaintAnalysisError::class,
+    UtAccessController::class
 ).map { it.java }.toTypedArray()
 
 private const val UTBOT_PACKAGE_PREFIX = "org.utbot"

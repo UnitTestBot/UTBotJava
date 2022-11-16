@@ -3384,14 +3384,13 @@ class Traverser(
 
             val thisParameter = base?.let {
                 resolve(it, methodId.sootMethod.declaringClass.type) to flagsToAdd[THIS_PARAM_INDEX]
-            }
+            }?.takeIf { THIS_PARAM_INDEX in sourceInfo.taintOut }
 
             val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
                 .asSequence()
                 .withIndex()
-                .filter { it.value is ReferenceValue }
+                .filter { it.value is ReferenceValue && it.index + 1 in sourceInfo.taintOut }
                 .map { it.value to flagsToAdd[it.index + 1] }
-
 
             val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
                 val value: ReferenceValue = symbolicResult.value
@@ -3406,10 +3405,11 @@ class Traverser(
                         value
                     ).asHardConstraint()
                 }
+
                 value.addr to flagsToAdd[RETURN_VALUE_INDEX]
             } else {
                 null
-            }
+            }?.takeIf { RETURN_VALUE_INDEX in sourceInfo.taintOut }
 
 
             val allArgs = mutableListOf<Pair<UtAddrExpression, Set<String>?>>().apply {
@@ -3486,53 +3486,41 @@ class Traverser(
         methodResult: MethodResult,
         base: Value?,
         args: List<Value>
-    ): SymbolicStateUpdate =
-        processTaintAnalysisOperation(
-            methodId,
-            methodResult,
-            base,
-            args,
-            taintAnalysis.taintSanitizers, // TODO change to sanitizers from config
-            ::clearTaintMark
-        )
-    
-
-    private fun TraversalContext.processTaintAnalysisOperation(
-        methodId: ExecutableId,
-        methodResult: MethodResult,
-        base: Value?,
-        args: List<Value>,
-        flagsSource: Map<ExecutableId, ParamIndexToTaintFlags>,
-        aggregationOperation: (UtAddrExpression, Set<String>) -> SymbolicStateUpdate
     ): SymbolicStateUpdate {
-        val flags = flagsSource[methodId] ?: return SymbolicStateUpdate()
+        val sanitizers = taintAnalysis.getSanitizerInfo(methodId)
 
-        val symbolicResult = methodResult.symbolicResult
+        return sanitizers.fold(SymbolicStateUpdate()) { oldAcc, sanitizer ->
+            val symbolicResult = methodResult.symbolicResult
 
-        val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
-            symbolicResult.value.addr to flags[RETURN_VALUE_INDEX]
-        } else {
-            null
-        }
+            val resultTaint = if (symbolicResult is SymbolicSuccess && symbolicResult.value is ReferenceValue) {
+                symbolicResult.value.addr
+            } else {
+                null
+            }?.takeIf { RETURN_VALUE_INDEX in sanitizer.taintOut }
 
-        val thisParameter = base?.let {
-            resolve(it, methodId.sootMethod.declaringClass.type).addr to flags[THIS_PARAM_INDEX]
-        }
+            val thisParameter = base?.let {
+                resolve(it, methodId.sootMethod.declaringClass.type).addr
+            }?.takeIf { THIS_PARAM_INDEX in sanitizer.taintOut }
 
-        val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
-            .asSequence()
-            .withIndex()
-            .filter { it.value is ReferenceValue }
-            .map { it.value.addr to flags[it.index + 1] }
+            val parameters = resolveParameters(args, methodId.sootMethod.parameterTypes)
+                .asSequence()
+                .withIndex()
+                .filter { it.value is ReferenceValue && it.index + 1 in sanitizer.taintOut }
+                .map { it.value.addr }
 
-        val allArgs = mutableListOf<Pair<UtAddrExpression, Set<String>?>>().apply {
-            if (thisParameter != null) add(thisParameter)
-            addAll(parameters.toList())
-            if (resultTaint != null) add(resultTaint)
-        }
+            val allArgs = mutableListOf<UtAddrExpression>().apply {
+                if (thisParameter != null) add(thisParameter)
+                addAll(parameters.toList())
+                if (resultTaint != null) add(resultTaint)
+            }
 
-        return allArgs.fold(SymbolicStateUpdate()) { acc, addrToFlags ->
-            acc + aggregationOperation(addrToFlags.first, addrToFlags.second ?: emptySet())
+            if (sanitizer.taintKinds.kindsToAdd.isNotEmpty()) {
+                logger.warn { "Kinds to add are not supported in sanitizers yet" }
+            }
+
+            oldAcc + allArgs.fold(SymbolicStateUpdate()) { acc, addr ->
+                acc + clearTaintMark(addr, sanitizer.taintKinds.kindsToRemove)
+            }
         }
     }
 
@@ -3551,6 +3539,7 @@ class Traverser(
 
             val condition = passThroughInformation.condition
             if (condition != null) {
+                // TODO support with ITE stored in the array
                 logger.warn { "Condition in passthrough is not supported, please, take a look on it" }
             }
 
@@ -3612,6 +3601,11 @@ class Traverser(
 
                         // TODO support kindToRemove
                         update += assignTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToAdd)
+
+                        if (taintKinds.kindsToRemove.isNotEmpty()) {
+                            logger.warn { "Kinds to remove are not supported in passThrough instructions yet" }
+                        }
+//                        update += clearTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToRemove)
                     }
                 }
             }

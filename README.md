@@ -19,7 +19,7 @@ UnitTestBot represents all the test summaries in a **human-readable format**. Th
 
 # Get started
 
-Try the **[online demo](https://www.utbot.org/utbot/)** to generate unit tests with one click.
+Try the **[online demo](https://www.utbot.org/demo)** to generate unit tests with one click.
 
 Get to know the **full version** of UnitTestBot plugin with this quick guide:
 

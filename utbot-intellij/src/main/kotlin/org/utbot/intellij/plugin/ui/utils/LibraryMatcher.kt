@@ -1,13 +1,13 @@
 package org.utbot.intellij.plugin.ui.utils
 
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.util.patterns
+import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
-import org.utbot.framework.codegen.model.util.parametrizedTestsPatterns
-import org.utbot.framework.codegen.model.util.Patterns
+import org.utbot.framework.plugin.api.utils.Patterns
+import org.utbot.framework.plugin.api.utils.parametrizedTestsPatterns
+import org.utbot.framework.plugin.api.utils.patterns
 
 fun findFrameworkLibrary(
     project: Project,

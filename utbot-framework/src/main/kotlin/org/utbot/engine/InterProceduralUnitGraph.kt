@@ -1,9 +1,12 @@
 package org.utbot.engine
 
+import org.utbot.common.WorkaroundReason
+import org.utbot.common.workaround
 import org.utbot.engine.selectors.strategies.TraverseGraphStatistics
 import org.utbot.engine.state.CALL_DECISION_NUM
 import org.utbot.engine.state.Edge
 import org.utbot.engine.state.ExecutionState
+import org.utbot.framework.UtSettings
 import soot.SootClass
 import soot.SootMethod
 import soot.jimple.Stmt
@@ -322,7 +325,9 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
             return true
         }
 
-        if (method.declaringClass.isOverridden && method.uncoveredThrowStatements().isNotEmpty()) {
+        // We don't need to cover exceptions in wrappers in taint mode
+        val notOnlyTaintAnalysis = workaround(WorkaroundReason.TAINT) { !UtSettings.useOnlyTaintAnalysis }
+        if (notOnlyTaintAnalysis && method.declaringClass.isOverridden && method.uncoveredThrowStatements().isNotEmpty()) {
             return false
         }
 

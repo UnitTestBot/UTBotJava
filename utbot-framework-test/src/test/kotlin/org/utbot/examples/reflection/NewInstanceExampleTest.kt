@@ -16,7 +16,7 @@ class NewInstanceExampleTest : UtValueTestCaseChecker(NewInstanceExample::class,
         )
     }
 
-    @Test
+    /*@Test
     fun testNewInstanceWithExceptionExample() {
         checkWithException(
             NewInstanceExample::createWithReflectionWithExceptionExample,
@@ -24,5 +24,5 @@ class NewInstanceExampleTest : UtValueTestCaseChecker(NewInstanceExample::class,
             { r -> r.isException<InstantiationException>() },
             coverage = DoNotCalculate // an exception is thrown in the middle of the MUT
         )
-    }
+    }*/
 }

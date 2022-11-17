@@ -449,13 +449,13 @@ class Traverser(
         val castedLocalVariable = (localVariableMemory.local(castedJimpleVariable.variable) as? ReferenceValue) ?: return false
 
         val castSootClass = castType.sootClass
-        val initMethod = castSootClass.getMethodUnsafe("void <init>()")
-        if (initMethod == null) {
-            // This class does not have a default constructor, should throw a `java.lang.InstantiationException`
-            implicitlyThrowException(InstantiationException(), conditions = emptySet())
-            queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
-            return true
-        }
+
+        // This class does not have a default constructor
+        // Since it can be a cast of a class with constructor to the interface (or ot the ancestor without default constructor),
+        // we cannot always throw a `java.lang.InstantiationException`.
+        // So, instead we will just continue the analysis without analysis of <init>.
+        val initMethod = castSootClass.getMethodUnsafe("void <init>()") ?: return false
+
         if (!initMethod.canRetrieveBody()) {
             return false
         }

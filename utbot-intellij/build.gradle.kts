@@ -61,6 +61,29 @@ intellij {
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
 }
+abstract class SettingsToConfigTask : DefaultTask() {
+    @get:Internal
+    val path = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
+    @get:Internal
+    val sourceFileName = "UTSettings.kt"
+
+    @TaskAction
+    fun proceed() {
+        try {
+            File(path,sourceFileName).useLines {
+                it.iterator().forEach { line ->
+                    if (line.startsWith("    var")) {
+                        println(line.substring(7))
+                    }
+                }
+            }
+        } catch (e : java.io.IOException) {
+            logger.error("Unexpected error when processing $sourceFileName", e)
+        }
+    }
+}
+
+tasks.register<SettingsToConfigTask>("generateConfigTemplate")
 
 tasks {
     compileKotlin {

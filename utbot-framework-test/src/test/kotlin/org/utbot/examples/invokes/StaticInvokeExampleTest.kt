@@ -1,9 +1,9 @@
 package org.utbot.examples.invokes
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.between
 import kotlin.math.max
 import org.junit.jupiter.api.Test
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
 
 internal class StaticInvokeExampleTest : UtValueTestCaseChecker(testClass = StaticInvokeExample::class) {
     // TODO: inline local variables when types inference bug in Kotlin fixed

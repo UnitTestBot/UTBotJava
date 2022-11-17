@@ -2,10 +2,10 @@ package org.utbot.examples.collections
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 
 // TODO failed Kotlin compilation SAT-1332
 @Disabled

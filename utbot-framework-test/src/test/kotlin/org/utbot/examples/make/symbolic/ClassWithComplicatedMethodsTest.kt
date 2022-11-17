@@ -1,7 +1,5 @@
 package org.utbot.examples.make.symbolic
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
 import kotlin.math.abs
@@ -10,7 +8,9 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
-import org.utbot.tests.infrastructure.Compilation
+import org.utbot.testing.Compilation
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 // This class is substituted with ComplicatedMethodsSubstitutionsStorage
 // but we cannot do in code generation.

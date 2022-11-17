@@ -1,6 +1,6 @@
 package org.utbot.python.framework.codegen.model
 
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId

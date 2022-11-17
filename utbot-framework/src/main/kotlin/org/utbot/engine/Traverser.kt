@@ -88,8 +88,10 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
+import org.utbot.engine.types.NEW_INSTANCE_SIGNATURE
 import org.utbot.engine.types.HASHCODE_SIGNATURE
 import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
 import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
@@ -340,7 +342,8 @@ class Traverser(
     }
 
     /**
-     * Handles preparatory work for static initializers and multi-dimensional arrays creation.
+     * Handles preparatory work for static initializers, multi-dimensional arrays creation
+     * and `newInstance` reflection call post-processing.
      *
      * For instance, it could push handmade graph with preparation statements to the path selector.
      *
@@ -356,6 +359,7 @@ class Traverser(
         return when {
             processStaticInitializerIfRequired(current) -> true
             unfoldMultiArrayExprIfRequired(current) -> true
+            pushInitGraphAfterNewInstanceReflectionCall(current) -> true
             else -> false
         }
     }
@@ -408,6 +412,50 @@ class Traverser(
         negativeArraySizeCheck(*resolvedSizes.toTypedArray())
 
         pushToPathSelector(graph, caller = null, resolvedSizes)
+        return true
+    }
+
+    /**
+     * If the previous stms was `newInstance` method invocation,
+     * pushes a graph of the default constructor of the constructed type, if present,
+     * and pushes a state with a [InstantiationException] otherwise.
+     */
+    private fun TraversalContext.pushInitGraphAfterNewInstanceReflectionCall(stmt: JAssignStmt): Boolean {
+        // Check whether the previous stmt was a `newInstance` invocation
+        val lastStmt = environment.state.path.lastOrNull() as? JAssignStmt ?: return false
+        val lastStmtRight = lastStmt.rightOp as? JVirtualInvokeExpr ?: return false
+        val lastMethodInvocation = lastStmtRight.retrieveMethod()
+        if (lastMethodInvocation.subSignature != NEW_INSTANCE_SIGNATURE) {
+            return false
+        }
+
+        // Process the current stmt as cast expression
+        val right = stmt.rightOp as? JCastExpr ?: return false
+        val castType = right.castType as? RefType ?: return false
+        val castedJimpleVariable = right.op as? JimpleLocal ?: return false
+
+        val castedLocalVariable = (localVariableMemory.local(castedJimpleVariable.variable) as? ReferenceValue) ?: return false
+
+        val castSootClass = castType.sootClass
+
+        // We need to consider a situation when this class does not have a default constructor
+        // Since it can be a cast of a class with constructor to the interface (or ot the ancestor without default constructor),
+        // we cannot always throw a `java.lang.InstantiationException`.
+        // So, instead we will just continue the analysis without analysis of <init>.
+        val initMethod = castSootClass.getMethodUnsafe("void <init>()") ?: return false
+
+        if (!initMethod.canRetrieveBody()) {
+            return false
+        }
+
+        val initGraph = ExceptionalUnitGraph(initMethod.activeBody)
+
+        pushToPathSelector(
+            initGraph,
+            castedLocalVariable,
+            callParameters = emptyList(),
+        )
+
         return true
     }
 
@@ -2913,6 +2961,21 @@ class Traverser(
                 }
                 null -> unreachableBranch("Static getClass call: $invocation")
             }
+        }
+
+        // Return an unbounded symbolic variable for any `forName` overloading
+        if (instance == null && invocation.method.name == "forName") {
+            val forNameResult = unboundedVariable(name = "classForName", invocation.method)
+
+            return OverrideResult(success = true, forNameResult)
+        }
+
+        // Return an unbounded symbolic variable for the `newInstance` method invocation,
+        // and at the next traversing step push <init> graph of the resulted type
+        if (instance?.type == CLASS_REF_TYPE && subSignature == NEW_INSTANCE_SIGNATURE) {
+            val getInstanceResult = unboundedVariable(name = "newInstance", invocation.method)
+
+            return OverrideResult(success = true, getInstanceResult)
         }
 
         val instanceAsWrapperOrNull = instance?.asWrapperOrNull

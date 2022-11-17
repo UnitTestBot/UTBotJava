@@ -5,7 +5,10 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Iconable
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.util.ui.EmptyIcon
+import javax.swing.Icon
 import org.utbot.common.PathUtil.toPath
 
 /**
@@ -20,7 +23,7 @@ class ViewGeneratedTestFix(
     val testFileRelativePath: String,
     val lineNumber: Int,
     val columnNumber: Int
-) : LocalQuickFix {
+) : LocalQuickFix, Iconable {
 
     /**
      * Navigates the user to the [lineNumber] line of the [testFileRelativePath] file.
@@ -43,4 +46,6 @@ class ViewGeneratedTestFix(
     override fun getName() = "View generated test"
 
     override fun getFamilyName() = name
+
+    override fun getIcon(flags: Int): Icon = EmptyIcon.ICON_0
 }

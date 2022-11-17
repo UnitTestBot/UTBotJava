@@ -1,7 +1,5 @@
 package org.utbot.python.framework.codegen.model
 
-import org.utbot.framework.codegen.Import
-
 import org.utbot.framework.codegen.domain.Import
 
 sealed class PythonImport(order: Int) : Import(order) {

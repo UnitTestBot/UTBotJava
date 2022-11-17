@@ -87,7 +87,7 @@ abstract class SettingsToConfigTask : DefaultTask() {
     @get:Internal
     val path = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
     @get:Internal
-    val sourceFileName = "UTSettings.kt"
+    val sourceFileName = "UtSettings.kt"
 
     @TaskAction
     fun proceed() {

@@ -1,6 +1,6 @@
 package org.utbot.python.framework.codegen.model.constructor.name
 
-import org.utbot.framework.codegen.PythonImport
+import org.utbot.python.framework.codegen.model.PythonImport
 import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner

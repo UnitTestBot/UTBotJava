@@ -76,7 +76,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
 
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
+    fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 CgLiteral(objectNode.type, objectNode.repr)

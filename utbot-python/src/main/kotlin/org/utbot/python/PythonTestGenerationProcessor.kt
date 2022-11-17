@@ -2,9 +2,9 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.framework.codegen.PythonSysPathImport
-import org.utbot.framework.codegen.PythonSystemImport
-import org.utbot.framework.codegen.PythonUserImport
+import org.utbot.python.framework.codegen.model.PythonSysPathImport
+import org.utbot.python.framework.codegen.model.PythonSystemImport
+import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId

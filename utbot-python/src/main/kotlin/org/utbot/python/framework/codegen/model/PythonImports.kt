@@ -1,4 +1,6 @@
-package org.utbot.framework.codegen
+package org.utbot.python.framework.codegen.model
+
+import org.utbot.framework.codegen.Import
 
 sealed class PythonImport(order: Int) : Import(order) {
     var importName: String = ""

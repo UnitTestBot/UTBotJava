@@ -83,6 +83,52 @@ abstract class SettingsToConfigTask : DefaultTask() {
     }
 }
 
+abstract class SettingsToConfigTask : DefaultTask() {
+    @get:Internal
+    val path = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
+    @get:Internal
+    val sourceFileName = "UTSettings.kt"
+
+    @TaskAction
+    fun proceed() {
+        try {
+            val docLines = mutableListOf<String>()
+            File(path, sourceFileName).useLines {
+                it.iterator().forEach { line ->
+                    var s = line.trim()
+                    if (s == "/**") {
+                        docLines.clear()
+                    }
+                    if (s.startsWith("* ")) {
+                        docLines.add(s.substring(2))
+                    }
+
+                    if (s.startsWith("var")) {
+//                        println(s.substring(3))
+                        var i = s.indexOf(" by ", 3)
+                        if (i > 0) {
+                            val propertyName = s.substring(0, i)
+                            s = s.substring(i + 7)
+                            i = s.indexOf("Property")
+                            if (i > 0) {
+                                val type = s.subSequence(0, i)
+                                println("$propertyName: $type")
+                                for (docLine in docLines) {
+                                    println("    |$docLine")
+                                }
+                            }
+                        } else {
+                            System.err.println(s)
+                        }
+                    }
+                }
+            }
+        } catch (e : java.io.IOException) {
+            logger.error("Unexpected error when processing $sourceFileName", e)
+        }
+    }
+}
+
 tasks.register<SettingsToConfigTask>("generateConfigTemplate")
 
 tasks {

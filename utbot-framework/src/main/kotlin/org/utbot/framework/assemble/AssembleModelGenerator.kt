@@ -5,7 +5,7 @@ import org.utbot.common.isPublic
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.model.util.isAccessibleFrom
+import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
@@ -241,7 +241,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
             val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
 
             val constructorId = findBestConstructorOrNull(compositeModel)
-                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.id}")
+                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.classId}")
 
             val constructorInfo = constructorAnalyzer.analyze(constructorId)
 

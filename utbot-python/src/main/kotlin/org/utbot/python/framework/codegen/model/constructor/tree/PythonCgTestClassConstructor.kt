@@ -1,20 +1,19 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
-import org.utbot.framework.codegen.model.tree.buildTestClassFile
+import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgClassFile
+import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.buildClassFile
 
 internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassConstructor(context) {
-    override fun construct(testClassModel: TestClassModel): CgTestClassFile {
-        return buildTestClassFile {
+    override fun construct(testClassModel: TestClassModel): CgClassFile {
+        return buildClassFile {
             this.declaredClass = withTestClassScope {
                 with(currentTestClassContext) { testClassSuperclass = testFramework.testSuperClass }
                 constructTestClass(testClassModel)
             }
             imports.addAll(context.collectedImports)
-            testsGenerationReport = this@PythonCgTestClassConstructor.testsGenerationReport
         }
     }
 }

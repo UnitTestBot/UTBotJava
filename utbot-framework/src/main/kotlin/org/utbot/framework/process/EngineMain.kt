@@ -13,8 +13,13 @@ import org.utbot.common.nameOfPackage
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.codegen.*
-import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.MockitoStaticMocking
+import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.testFrameworkByName
+import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Signature
 import org.utbot.framework.plugin.api.util.UtContext

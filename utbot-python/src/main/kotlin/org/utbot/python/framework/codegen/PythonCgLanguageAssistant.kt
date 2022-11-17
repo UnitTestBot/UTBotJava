@@ -1,11 +1,11 @@
 package org.utbot.python.framework.codegen
 
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.util.CgPrinter
-import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
-import org.utbot.framework.codegen.model.visitor.CgRendererContext
-import org.utbot.framework.plugin.api.CgLanguageAssistant
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.renderer.CgPrinter
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
+import org.utbot.framework.codegen.renderer.CgRendererContext
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.codegen.model.constructor.name.PythonCgNameGenerator
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgCallableAccessManagerImpl

@@ -1,7 +1,6 @@
 package org.utbot.contest
 
 import org.utbot.common.FileUtil
-import org.utbot.framework.codegen.model.util.createTestClassName
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.utContext
 import java.io.File
@@ -53,5 +52,12 @@ class ClassUnderTest(
             "\n]"
     }
 
-
+    /**
+     * Creates a name of test class.
+     * We need the name in code and the name of test class file be similar.
+     * On this way we need to avoid symbols like '$'.
+     */
+    private fun createTestClassName(name: String): String = name
+        .substringAfterLast('.')
+        .replace('\$', '_')
 }

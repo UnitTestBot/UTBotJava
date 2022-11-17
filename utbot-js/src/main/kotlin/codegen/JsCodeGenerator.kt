@@ -14,7 +14,6 @@ import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
@@ -78,7 +77,7 @@ class JsCodeGenerator(
         }
     }
 
-    private fun renderClassFile(file: CgTestClassFile): String {
+    private fun renderClassFile(file: CgClassFile): String {
         val renderer = CgAbstractRenderer.makeRenderer(context)
         file.accept(renderer)
         return renderer.toString()

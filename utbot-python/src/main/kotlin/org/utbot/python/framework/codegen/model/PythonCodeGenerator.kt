@@ -1,16 +1,18 @@
 package org.utbot.python.framework.codegen.model
 
-import org.utbot.framework.codegen.*
-import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.CodeGeneratorResult
-
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.codegen.model.util.CgPrinterImpl
-import org.utbot.framework.codegen.model.visitor.CgRendererContext
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.codegen.CodeGenerator
+import org.utbot.framework.codegen.CodeGeneratorResult
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
@@ -18,6 +20,9 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
@@ -77,8 +82,14 @@ class PythonCodeGenerator(
         context.withTestClassFileScope {
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
-            val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)
-            CodeGeneratorResult(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+
+            val astConstructor = PythonCgTestClassConstructor(context)
+            val renderer = CgAbstractRenderer.makeRenderer(context)
+
+            val testClassFile = astConstructor.construct(testClassModel)
+            testClassFile.accept(renderer)
+
+            CodeGeneratorResult(renderer.toString(), astConstructor.testsGenerationReport)
         }
     }
 

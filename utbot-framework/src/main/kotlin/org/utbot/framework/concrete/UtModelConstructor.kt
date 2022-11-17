@@ -35,6 +35,7 @@ import org.utbot.framework.util.valueToClassId
 import java.lang.reflect.Modifier
 import java.util.IdentityHashMap
 import java.util.stream.BaseStream
+import org.utbot.framework.plugin.api.util.utContext
 
 /**
  * Represents common interface for model constructors.
@@ -79,6 +80,21 @@ class UtModelConstructor(
         return objectToModelCache[value]?.let { (it as? UtReferenceModel)?.id } ?: computeUnusedIdAndUpdate()
     }
 
+    private val proxyLambdaSubstring = "$\$Lambda$"
+
+    private fun isProxyLambda(value: Any?): Boolean {
+        if (value == null) {
+            return false
+        }
+        return proxyLambdaSubstring in value::class.java.name
+    }
+
+    private fun constructFakeLambda(value: Any, classId: ClassId): UtLambdaModel {
+        val baseClassName = value::class.java.name.substringBefore(proxyLambdaSubstring)
+        val baseClass = utContext.classLoader.loadClass(baseClassName).id
+        return UtLambdaModel.createFake(handleId(value), classId, baseClass)
+    }
+
     /**
      * Constructs a UtModel from a concrete [value] with a specific [classId]. The result can be a [UtAssembleModel]
      * as well.
@@ -90,6 +106,9 @@ class UtModelConstructor(
             if (model is UtLambdaModel) {
                 return model
             }
+        }
+        if (isProxyLambda(value)) {
+            return constructFakeLambda(value!!, classId)
         }
         return when (value) {
             null -> UtNullModel(classId)

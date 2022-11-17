@@ -570,12 +570,31 @@ class UtLambdaModel(
     val capturedValues: MutableList<UtModel> = mutableListOf(),
 ) : UtReferenceModel(id, samType) {
 
+    val isFake: Boolean = lambdaName == fakeName
+
     val lambdaMethodId: MethodId
-        get() = declaringClass.jClass
-            .declaredMethods
-            .singleOrNull { it.name == lambdaName }
-            ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
-            ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+        get() {
+            if (isFake) {
+                val targetMethod = samType.jClass.declaredMethods.single()
+                return object : MethodId(
+                    declaringClass,
+                    fakeName,
+                    targetMethod.returnType.id,
+                    targetMethod.parameterTypes.map { it.id }
+                ) {
+                    override val modifiers: Int = ModifierFactory.invoke {
+                        public = true
+                        static = true
+                        final = true
+                    }
+                }
+            }
+            return declaringClass.jClass
+                .declaredMethods
+                .singleOrNull { it.name == lambdaName }
+                ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
+                ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+        }
 
     override fun toString(): String = "Anonymous function $lambdaName implementing functional interface $declaringClass"
 
@@ -591,6 +610,13 @@ class UtLambdaModel(
     }
 
     override fun hashCode(): Int = id
+
+    companion object {
+        private const val fakeName = "<FAKE>"
+
+        fun createFake(id: Int, samType: ClassId, declaringClass: ClassId) =
+            UtLambdaModel(id, samType, declaringClass, fakeName)
+    }
 }
 
 /**

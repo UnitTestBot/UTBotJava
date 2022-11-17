@@ -89,13 +89,14 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
-import org.utbot.engine.taint.ParamIndexToTaintFlags
 import org.utbot.engine.taint.TaintAnalysis
 import org.utbot.engine.taint.TaintAnalysis.Companion.RETURN_VALUE_INDEX
 import org.utbot.engine.taint.TaintAnalysis.Companion.THIS_PARAM_INDEX
 import org.utbot.engine.taint.TaintAnalysisError
+import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
+import org.utbot.engine.types.NEW_INSTANCE_SIGNATURE
 import org.utbot.engine.types.HASHCODE_SIGNATURE
 import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
 import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
@@ -353,7 +354,8 @@ class Traverser(
     }
 
     /**
-     * Handles preparatory work for static initializers and multi-dimensional arrays creation.
+     * Handles preparatory work for static initializers, multi-dimensional arrays creation
+     * and `newInstance` reflection call post-processing.
      *
      * For instance, it could push handmade graph with preparation statements to the path selector.
      *
@@ -369,6 +371,7 @@ class Traverser(
         return when {
             processStaticInitializerIfRequired(current) -> true
             unfoldMultiArrayExprIfRequired(current) -> true
+            pushInitGraphAfterNewInstanceReflectionCall(current) -> true
             else -> false
         }
     }
@@ -421,6 +424,50 @@ class Traverser(
         negativeArraySizeCheck(*resolvedSizes.toTypedArray())
 
         pushToPathSelector(graph, caller = null, resolvedSizes)
+        return true
+    }
+
+    /**
+     * If the previous stms was `newInstance` method invocation,
+     * pushes a graph of the default constructor of the constructed type, if present,
+     * and pushes a state with a [InstantiationException] otherwise.
+     */
+    private fun TraversalContext.pushInitGraphAfterNewInstanceReflectionCall(stmt: JAssignStmt): Boolean {
+        // Check whether the previous stmt was a `newInstance` invocation
+        val lastStmt = environment.state.path.lastOrNull() as? JAssignStmt ?: return false
+        val lastStmtRight = lastStmt.rightOp as? JVirtualInvokeExpr ?: return false
+        val lastMethodInvocation = lastStmtRight.retrieveMethod()
+        if (lastMethodInvocation.subSignature != NEW_INSTANCE_SIGNATURE) {
+            return false
+        }
+
+        // Process the current stmt as cast expression
+        val right = stmt.rightOp as? JCastExpr ?: return false
+        val castType = right.castType as? RefType ?: return false
+        val castedJimpleVariable = right.op as? JimpleLocal ?: return false
+
+        val castedLocalVariable = (localVariableMemory.local(castedJimpleVariable.variable) as? ReferenceValue) ?: return false
+
+        val castSootClass = castType.sootClass
+        val initMethod = castSootClass.getMethodUnsafe("void <init>()")
+        if (initMethod == null) {
+            // This class does not have a default constructor, should throw a `java.lang.InstantiationException`
+            implicitlyThrowException(InstantiationException(), conditions = emptySet())
+            queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+            return true
+        }
+        if (!initMethod.canRetrieveBody()) {
+            return false
+        }
+
+        val initGraph = ExceptionalUnitGraph(initMethod.activeBody)
+
+        pushToPathSelector(
+            initGraph,
+            castedLocalVariable,
+            callParameters = emptyList(),
+        )
+
         return true
     }
 
@@ -3030,6 +3077,21 @@ class Traverser(
             }
         }
 
+        // Return an unbounded symbolic variable for any `forName` overloading
+        if (instance == null && invocation.method.name == "forName") {
+            val forNameResult = unboundedVariable(name = "classForName", invocation.method)
+
+            return OverrideResult(success = true, forNameResult)
+        }
+
+        // Return an unbounded symbolic variable for the `newInstance` method invocation,
+        // and at the next traversing step push <init> graph of the resulted type
+        if (instance?.type == CLASS_REF_TYPE && subSignature == NEW_INSTANCE_SIGNATURE) {
+            val getInstanceResult = unboundedVariable(name = "newInstance", invocation.method)
+
+            return OverrideResult(success = true, getInstanceResult)
+        }
+
         val instanceAsWrapperOrNull = instance?.asWrapperOrNull
 
         if (instanceAsWrapperOrNull is UtMockWrapper && subSignature == HASHCODE_SIGNATURE) {
@@ -3124,11 +3186,11 @@ class Traverser(
                 createObject(
                     addr,
                     returnType,
-                    useConcreteType = true,
+                    useConcreteType = false,
                     UtMockInfoGenerator { UtObjectMockInfo(returnType.id, addr) }
                 )
             }
-            is ArrayType -> createArray(findNewAddr(), returnType, useConcreteType = true)
+            is ArrayType -> createArray(findNewAddr(), returnType, useConcreteType = false)
             else -> createConst(returnType, "$name${unboundedConstCounter++}")
         }
 

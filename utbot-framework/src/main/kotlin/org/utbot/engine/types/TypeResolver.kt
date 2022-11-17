@@ -344,12 +344,16 @@ internal val CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR: MemoryChunkDescriptor
         IntType.v()
     )
 
+internal val CLASS_REF_SOOT_CLASS = Scene.v().getSootClass(CLASS_REF_CLASSNAME)
+
 internal val OBJECT_TYPE: RefType
     get() = Scene.v().getSootClass(Object::class.java.canonicalName).type
 internal val STRING_TYPE: RefType
     get() = Scene.v().getSootClass(String::class.java.canonicalName).type
 internal val CLASS_REF_TYPE: RefType
-    get() = Scene.v().getSootClass(CLASS_REF_CLASSNAME).type
+    get() = CLASS_REF_SOOT_CLASS.type
+
+internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 
 internal val HASHCODE_SIGNATURE: String =
     Scene.v()

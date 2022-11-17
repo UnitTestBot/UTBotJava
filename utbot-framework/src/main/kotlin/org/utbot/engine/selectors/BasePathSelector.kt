@@ -7,10 +7,12 @@ import org.utbot.engine.isPreconditionCheckMethod
 import org.utbot.engine.pathLogger
 import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
+import org.utbot.engine.pc.UtSolverStatusSAT
 import org.utbot.engine.pc.UtSolverStatusUNSAT
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
+import org.utbot.engine.z3.value
 import org.utbot.framework.UtSettings
 
 
@@ -66,10 +68,19 @@ abstract class BasePathSelector(
 
 
     /**
-     * @return true if [utSolver] constraints are satisfiable
+     * @return false if [utSolver] constraints are satisfiable, true otherwise
      */
-    private fun checkUnsat(utSolver: UtSolver): Boolean =
-        utSolver.assertions.isNotEmpty() && utSolver.check(respectSoft = false).statusKind != SAT
+    private fun checkUnsat(utSolver: UtSolver): Boolean {
+        val lastStatus = utSolver.lastStatus
+
+        if (lastStatus is UtSolverStatusSAT) {
+            if (utSolver.assertions.all { lastStatus.eval(it).value() as Boolean }) {
+                return false
+            }
+        }
+
+        return utSolver.assertions.isNotEmpty() && utSolver.check(respectSoft = false).statusKind != SAT
+    }
 
     /**
      * check fast unsat on forks

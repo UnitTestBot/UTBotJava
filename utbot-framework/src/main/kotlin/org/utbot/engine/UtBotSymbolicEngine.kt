@@ -226,12 +226,13 @@ class UtBotSymbolicEngine(
     //HACK (long strings)
     internal var softMaxArraySize = 40
 
-    private val concreteExecutor =
+    private val concreteExecutor by lazy {
         ConcreteExecutor(
             UtExecutionInstrumentation,
             classpath,
             dependencyPaths
         ).apply { this.classLoader = utContext.classLoader }
+    }
 
     private val featureProcessor: FeatureProcessor? =
         if (enableFeatureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null

@@ -360,7 +360,7 @@ abstract class CgAbstractRenderer(
     override fun visit(element: CgDocRegularStmt){
         if (element.isEmpty()) return
 
-        print(element.stmt.replace("\n", "\n * "))
+        print(" * " + element.stmt)
     }
     override fun visit(element: CgDocClassLinkStmt) {
         if (element.isEmpty()) return

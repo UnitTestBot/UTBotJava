@@ -29,8 +29,12 @@ internal object CgUtilClassConstructor {
                 id = utilsClassId
                 documentation = utilClassKind.utilClassDocumentation(codegenLanguage)
                 body = buildClassBody(utilsClassId) {
-                    staticDeclarationRegions += CgStaticsRegion("Util methods", utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) })
+                    staticDeclarationRegions += CgStaticsRegion(
+                        header = "Util methods",
+                        content = utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) })
+
                     nestedClassRegions += CgAuxiliaryNestedClassesRegion(
+                        header = "Util classes",
                         nestedClasses = listOf(
                             CgAuxiliaryClass(utilMethodProvider.capturedArgumentClassId)
                         )

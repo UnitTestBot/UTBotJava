@@ -426,6 +426,7 @@ object CodeGenerationController {
                 .map { comment -> comment.text }
                 .firstOrNull { text -> UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX in text }
                 ?.substringAfterLast(UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX)
+                ?.substringBefore("\n")
                 ?.trim()
         }
 

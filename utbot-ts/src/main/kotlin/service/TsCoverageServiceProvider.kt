@@ -155,11 +155,13 @@ class TsCoverageServiceProvider(
 $imports
 
 let json = {}
+// @ts-ignore
 json.s = ${TsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s
 fs.writeFileSync("$resFilePath", JSON.stringify(json))
         """
     }
 
+    //TODO: refactor this.
     private fun makeStringForRunJs(
         fuzzedValue: List<FuzzedValue>,
         method: TsMethodId,
@@ -177,11 +179,15 @@ let res$index
 try {
     res$index = $callString
 } catch(e) {
+    // @ts-ignore
     res$index = "Error:" + e.message
 }
 ${
+"// @ts-ignore\n" +
 "json$index.result = res$index\n" +
+"// @ts-ignore\n" +
 if (mode == TsCoverageMode.FAST ) "json$index.index = $index\n" +
+"// @ts-ignore\n" + 
 "json$index.s = ${TsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
 }            
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
@@ -214,7 +220,9 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
 
     private fun UtAssembleModel.toParamString(): String =
         with(this) {
-            val callConstructorString = "new ${TsTestGenerationSettings.fileUnderTestAliases}.${classId.name}"
+            val classSource = context.imports.find { it.alias == classId.name }?.alias
+                ?: TsTestGenerationSettings.fileUnderTestAliases
+            val callConstructorString = "new $classSource.${classId.name}"
             val paramsString = instantiationCall.params.joinToString(
                 prefix = "(",
                 postfix = ")",

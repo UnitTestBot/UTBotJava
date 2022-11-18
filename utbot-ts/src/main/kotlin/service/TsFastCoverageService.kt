@@ -1,11 +1,15 @@
 package service
 
 import java.io.File
+import java.nio.file.Paths
 import java.util.Collections
+import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
 import settings.TsTestGenerationSettings.tempFileName
 import utils.TsCmdExec
+import utils.TsPathResolver
+import kotlin.io.path.pathString
 
 class TsFastCoverageService(
     private val context: TsServiceContext,
@@ -41,22 +45,31 @@ class TsFastCoverageService(
                 )
 
             val instrumentedFilePath = "$destination/${filePathToInference.substringAfterLast("/")}"
-            val instrumentedFileText = File(instrumentedFilePath).readText()
-            fixImportsInInstrumentedFile(instrumentedFilePath, instrumentedFileText)
-            val covFunRegex = Regex("function (cov_.*)\\(\\).*")
-            val covFunName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
-                ?: throw IllegalStateException("No coverage function was found in instrumented source file!")
-            val fixedFileText = "$instrumentedFileText\nexports.$covFunName = $covFunName"
-            File(instrumentedFilePath).writeText(fixedFileText)
-            return covFunName
+
+            return fixImportsInInstrumentedFile(instrumentedFilePath, context)
         }
 
-        private fun fixImportsInInstrumentedFile(filePath: String, fileText: String) {
-            val importRegex = Regex("import\\{.*}from\"(.*)\"")
-            val imports = importRegex.findAll(fileText).iterator().asSequence().map {
-               it.groups[1]?.value
-            }.toList()
-            // TODO: continue
+        private fun fixImportsInInstrumentedFile(filePath: String, context: TsServiceContext): String {
+            with(context) {
+                val importRegex = Regex("import\\{.*}from\"(.*)\"")
+                val fileText = File(filePath).readText()
+                val newFileText = importRegex.findAll(fileText).fold(fileText) { acc, it ->
+                    val importRange = it.groups[1]?.range ?: throw IllegalStateException()
+                    val importValue = it.groups[1]?.value ?: throw IllegalStateException()
+                    val relPath = Paths.get(TsPathResolver.getRelativePath(
+                        "${projectPath}/${utbotDir}/instr",
+                        File(filePathToInference).parent
+                    )).resolve(importValue).pathString.replace("\\", "/")
+                    val newFileText = acc.replaceRange(importRange, relPath)
+                    newFileText
+                }
+                val covFunRegex = Regex("function (cov_.*)\\(\\).*")
+                val covFunName = covFunRegex.find(newFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
+                    ?: throw IllegalStateException("No coverage function was found in instrumented source file!")
+                val fixedFileText = "$newFileText\nexports.$covFunName = $covFunName"
+                File(filePath).writeText(fixedFileText)
+                return covFunName
+            }
         }
     }
 
@@ -122,15 +135,15 @@ class TsFastCoverageService(
     }
 
     private fun removeTempFiles() {
-//        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
-//        File("$utbotDirPath/${tempFileName}Base.ts").delete()
-//        File("$utbotDirPath/${tempFileName}Base.json").delete()
-//        for (index in testCaseIndices) {
-//            File("$utbotDirPath/$tempFileName$index.json").delete()
-//        }
-//        for (index in scriptTexts.indices) {
-//            File("$utbotDirPath/$tempFileName$index.ts").delete()
-//        }
+        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
+        File("$utbotDirPath/${tempFileName}Base.ts").delete()
+        File("$utbotDirPath/${tempFileName}Base.json").delete()
+        for (index in testCaseIndices) {
+            File("$utbotDirPath/$tempFileName$index.json").delete()
+        }
+        for (index in scriptTexts.indices) {
+            File("$utbotDirPath/$tempFileName$index.ts").delete()
+        }
     }
 
 

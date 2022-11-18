@@ -79,7 +79,6 @@ interface ProcessWithRdServer : LifetimedProcess {
     val port: Int
         get() = protocol.wire.serverPort
 
-    suspend fun initModels(bindables: Protocol.() -> Unit): ProcessWithRdServer
     suspend fun awaitSignal(): ProcessWithRdServer
 }
 
@@ -97,14 +96,6 @@ class ProcessWithRdServerImpl private constructor(
         ): ProcessWithRdServerImpl = ProcessWithRdServerImpl(child, serverFactory).terminateOnException {
             it.apply { protocol.wire.connected.adviseForConditionAsync(lifetime).await() }
         }
-    }
-
-    override suspend fun initModels(bindables: Protocol.() -> Unit): ProcessWithRdServer {
-        protocol.scheduler.pump(lifetime) {
-            protocol.bindables()
-        }
-
-        return this
     }
 
     override suspend fun awaitSignal(): ProcessWithRdServer {

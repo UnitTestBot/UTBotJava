@@ -10,6 +10,7 @@ import org.utbot.instrumentation.rd.generated.SetInstrumentationParams
 import org.utbot.instrumentation.rd.generated.childProcessModel
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.ProcessWithRdServer
+import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
 
@@ -27,23 +28,22 @@ class UtInstrumentationProcess private constructor(
     val kryoHelper = KryoHelper(lifetime.createNested()).apply {
         classLoader?.let { setKryoClassLoader(it) }
     }
-    val protocolModel: ChildProcessModel
-        get() = protocol.childProcessModel
+    val chidlProcessModel: ChildProcessModel = onSchedulerBlocking { protocol.childProcessModel }
 
     companion object {
-        private suspend fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invokeImpl(
-            lifetime: Lifetime,
+        suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
+            parent: Lifetime,
             childProcessRunner: ChildProcessRunner,
             instrumentation: TInstrumentation,
             pathsToUserClasses: String,
             pathsToDependencyClasses: String,
             classLoader: ClassLoader?
-        ): UtInstrumentationProcess {
+        ): UtInstrumentationProcess = parent.createNested().terminateOnException { lifetime ->
             val rdProcess: ProcessWithRdServer = startUtProcessWithRdServer(
                 lifetime = lifetime
             ) {
                 childProcessRunner.start(it)
-            }.initModels { childProcessModel }.awaitSignal()
+            }.awaitSignal()
 
             logger.trace("rd process started")
 
@@ -57,7 +57,7 @@ class UtInstrumentationProcess private constructor(
             }
 
             logger.trace("sending add paths")
-            proc.protocolModel.addPaths.startSuspending(
+            proc.chidlProcessModel.addPaths.startSuspending(
                 proc.lifetime, AddPathsParams(
                     pathsToUserClasses,
                     pathsToDependencyClasses
@@ -65,7 +65,7 @@ class UtInstrumentationProcess private constructor(
             )
 
             logger.trace("sending instrumentation")
-            proc.protocolModel.setInstrumentation.startSuspending(
+            proc.chidlProcessModel.setInstrumentation.startSuspending(
                 proc.lifetime, SetInstrumentationParams(
                     proc.kryoHelper.writeObject(instrumentation)
                 )
@@ -73,24 +73,6 @@ class UtInstrumentationProcess private constructor(
             logger.trace("start commands sent")
 
             return proc
-        }
-
-        suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
-            lifetime: Lifetime,
-            childProcessRunner: ChildProcessRunner,
-            instrumentation: TInstrumentation,
-            pathsToUserClasses: String,
-            pathsToDependencyClasses: String,
-            classLoader: ClassLoader?
-        ): UtInstrumentationProcess = lifetime.createNested().terminateOnException {
-            invokeImpl(
-                it,
-                childProcessRunner,
-                instrumentation,
-                pathsToUserClasses,
-                pathsToDependencyClasses,
-                classLoader
-            )
         }
     }
 }

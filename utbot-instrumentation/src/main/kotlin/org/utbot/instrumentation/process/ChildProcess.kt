@@ -13,7 +13,7 @@ import org.utbot.instrumentation.rd.generated.CollectCoverageResult
 import org.utbot.instrumentation.rd.generated.InvokeMethodCommandResult
 import org.utbot.instrumentation.rd.generated.childProcessModel
 import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.rd.CallsSynchronizer
+import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.findRdPort
 import org.utbot.rd.loggers.UtRdConsoleLoggerFactory
@@ -110,15 +110,15 @@ private lateinit var pathsToUserClasses: Set<String>
 private lateinit var pathsToDependencyClasses: Set<String>
 private lateinit var instrumentation: Instrumentation<*>
 
-private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsSynchronizer) {
-    synchronizer.measureExecutionForTermination(warmup) {
+private fun ChildProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
+    watchdog.wrapActiveCall(warmup) {
         logger.debug { "received warmup request" }
         val time = measureTimeMillis {
             HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
         }
         logger.debug { "warmup finished in $time ms" }
     }
-    synchronizer.measureExecutionForTermination(invokeMethodCommand) { params ->
+    watchdog.wrapActiveCall(invokeMethodCommand) { params ->
         logger.debug { "received invokeMethod request: ${params.classname}, ${params.signature}" }
         val clazz = HandlerClassesLoader.loadClass(params.classname)
         val res = kotlin.runCatching {
@@ -138,7 +138,7 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
             throw it
         }
     }
-    synchronizer.measureExecutionForTermination(setInstrumentation) { params ->
+    watchdog.wrapActiveCall(setInstrumentation) { params ->
         logger.debug { "setInstrumentation request" }
         instrumentation = kryoHelper.readObject(params.instrumentation)
         logger.trace { "instrumentation - ${instrumentation.javaClass.name} " }
@@ -146,7 +146,7 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.init(pathsToUserClasses)
     }
-    synchronizer.measureExecutionForTermination(addPaths) { params ->
+    watchdog.wrapActiveCall(addPaths) { params ->
         logger.debug { "addPaths request" }
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
         pathsToDependencyClasses = params.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
@@ -155,11 +155,11 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
         kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
         UtContext.setUtContext(UtContext(HandlerClassesLoader))
     }
-    synchronizer.measureExecutionForTermination(stopProcess) {
+    watchdog.wrapActiveCall(stopProcess) {
         logger.debug { "stop request" }
-        synchronizer.stopProtocol()
+        watchdog.stopProtocol()
     }
-    synchronizer.measureExecutionForTermination(collectCoverage) { params ->
+    watchdog.wrapActiveCall(collectCoverage) { params ->
         logger.debug { "collect coverage request" }
         val anyClass: Class<*> = kryoHelper.readObject(params.clazz)
         logger.debug { "class - ${anyClass.name}" }

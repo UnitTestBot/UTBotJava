@@ -4,10 +4,9 @@ import org.utbot.framework.plugin.services.JdkInfoService
 
 object OpenModulesContainer {
     private val modulesContainer: List<String>
-    val javaVersionSpecificArguments: List<String>
+    val javaVersionSpecificArguments: List<String>?
         get() = modulesContainer
             .takeIf { JdkInfoService.provide().version > 8 }
-            ?: emptyList()
 
     init {
         modulesContainer = buildList {

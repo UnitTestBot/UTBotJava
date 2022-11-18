@@ -14,7 +14,6 @@ import com.jetbrains.rd.util.trace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.trySendBlocking
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.common.*
 import org.utbot.rd.generated.synchronizationModel
@@ -57,7 +56,10 @@ fun findRdPort(args: Array<String>): Int {
         ?: throw IllegalArgumentException("No port provided")
 }
 
-class CallsSynchronizer(private val ldef: LifetimeDefinition, val timeout: Duration) {
+/**
+ * Traces when process is idle for too much time, then terminates it.
+ */
+class IdleWatchdog(private val ldef: LifetimeDefinition, val timeout: Duration) {
     private enum class State {
         STARTED,
         ENDED
@@ -69,7 +71,11 @@ class CallsSynchronizer(private val ldef: LifetimeDefinition, val timeout: Durat
         ldef.onTermination { synchronizer.close(CancellationException("Client terminated")) }
     }
 
-    fun <T> measureExecutionForTermination(block: () -> T): T {
+    /**
+     * Execute block indicating that during this activity process should not die.
+     * After block ended - idle timer restarts
+     */
+    fun <T> wrapActive(block: () -> T): T {
         try {
             synchronizer.trySendBlocking(State.STARTED)
             return block()
@@ -78,9 +84,13 @@ class CallsSynchronizer(private val ldef: LifetimeDefinition, val timeout: Durat
         }
     }
 
-    fun <T, R> measureExecutionForTermination(call: RdCall<T, R>, block: (T) -> R) {
+    /**
+     * Adds callback to RdCall with indicating that during this activity process should not die.
+     * After block ended - idle timer restarts
+     */
+    fun <T, R> wrapActiveCall(call: RdCall<T, R>, block: (T) -> R) {
         call.set { it ->
-            measureExecutionForTermination {
+            wrapActive {
                 block(it)
             }
         }
@@ -116,8 +126,8 @@ class CallsSynchronizer(private val ldef: LifetimeDefinition, val timeout: Durat
 class ClientProtocolBuilder {
     private var timeout = Duration.INFINITE
 
-    suspend fun start(port: Int, parent: Lifetime? = null, bindables: Protocol.(CallsSynchronizer) -> Unit) {
-        UtRdCoroutineScope.current // coroutine scope initialization
+    suspend fun start(port: Int, parent: Lifetime? = null, block: Protocol.(IdleWatchdog) -> Unit) {
+        UtRdCoroutineScope.initialize()
         val pid = currentProcessPid.toInt()
         val ldef = parent?.createNested() ?: LifetimeDefinition()
         ldef.terminateOnException { _ ->
@@ -143,12 +153,12 @@ class ClientProtocolBuilder {
                 SocketWire.Client(ldef, rdClientProtocolScheduler, port),
                 ldef
             )
-            val synchronizer = CallsSynchronizer(ldef, timeout)
+            val synchronizer = IdleWatchdog(ldef, timeout)
 
             synchronizer.setupTimeout()
             rdClientProtocolScheduler.pump(ldef) {
                 clientProtocol.synchronizationModel
-                clientProtocol.bindables(synchronizer)
+                clientProtocol.block(synchronizer)
             }
 
             signalChildReady(port)
@@ -157,7 +167,7 @@ class ClientProtocolBuilder {
                 val answerFromMainProcess = sync.adviseForConditionAsync(ldef) {
                     if (it == "main") {
                         logger.trace { "received from main" }
-                        synchronizer.measureExecutionForTermination {
+                        synchronizer.wrapActive {
                             sync.fire("child")
                         }
                         true

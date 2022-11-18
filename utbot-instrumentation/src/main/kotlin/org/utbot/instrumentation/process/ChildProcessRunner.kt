@@ -12,16 +12,15 @@ import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.rd.rdPortArgument
 import java.io.File
+import java.time.LocalDateTime
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
 class ChildProcessRunner {
-    private val id = Random.nextLong()
-    private var processSeqN = 0
     private val cmds: List<String> by lazy {
         val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runChildProcessWithDebug })
-        val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
+        val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments ?: emptyList()
         val pathToJava = JdkInfoService.provide().path
 
         listOf(pathToJava.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()) +
@@ -36,12 +35,10 @@ class ChildProcessRunner {
         val portArgument = rdPortArgument(rdPort)
 
         logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
-        processSeqN++
 
-        if (UtSettings.logConcreteExecutionErrors) {
-            UT_BOT_TEMP_DIR.mkdirs()
-            errorLogFile = File(UT_BOT_TEMP_DIR, "${id}-${processSeqN}.log")
-        }
+        UT_BOT_TEMP_DIR.mkdirs()
+        val formatted = dateTimeFormatter.format(LocalDateTime.now())
+        errorLogFile = File(UT_BOT_TEMP_DIR, "$formatted.log")
 
         val directory = WorkingDirService.provide().toFile()
         val commandsWithOptions = buildList {
@@ -49,9 +46,7 @@ class ChildProcessRunner {
             if (!UtSettings.useSandbox) {
                 add(DISABLE_SANDBOX_OPTION)
             }
-            if (UtSettings.logConcreteExecutionErrors) {
-                add(logLevelArgument(UtSettings.childProcessLogLevel))
-            }
+            add(logLevelArgument(UtSettings.childProcessLogLevel))
             add(portArgument)
         }
 
@@ -60,11 +55,8 @@ class ChildProcessRunner {
             .directory(directory)
 
         return processBuilder.start().also {
-            logger.info { "Process started with PID=${it.getPid}" }
-
-            if (UtSettings.logConcreteExecutionErrors) {
-                logger.info { "Child process error log: ${errorLogFile.absolutePath}" }
-            }
+            logger.info { "Child process started with PID=${it.getPid}" }
+            logger.info { "Child process log file: ${errorLogFile.absolutePath}" }
         }
     }
 
@@ -73,7 +65,7 @@ class ChildProcessRunner {
         private const val ERRORS_FILE_PREFIX = "utbot-childprocess-errors"
         private const val INSTRUMENTATION_LIB = "lib"
 
-        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5006"
+        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=$childProcessDebugPort"
 
         private val UT_BOT_TEMP_DIR: File = File(utBotTempDirectory.toFile(), ERRORS_FILE_PREFIX)
 

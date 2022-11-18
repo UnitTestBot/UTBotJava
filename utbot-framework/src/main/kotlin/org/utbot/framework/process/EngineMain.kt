@@ -32,7 +32,7 @@ import org.utbot.framework.process.generated.*
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.rd.CallsSynchronizer
+import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.findRdPort
 import org.utbot.rd.loggers.UtRdKLoggerFactory
@@ -56,11 +56,7 @@ suspend fun main(args: Array<String>) = runBlocking {
     Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
 
     ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeoutMillis).start(port) {
-        settingsModel
-        rdSourceFindingStrategy
-        rdInstrumenterAdapter
-
-        AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol))
+        AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol.settingsModel))
         val kryoHelper = KryoHelper(lifetime)
         engineProcessModel.setup(kryoHelper, it, protocol)
     }
@@ -74,18 +70,16 @@ private val testSets: MutableMap<Long, List<UtMethodTestSet>> = mutableMapOf()
 private val testGenerationReports: MutableList<TestsGenerationReport> = mutableListOf()
 private var idCounter: Long = 0
 
-private fun EngineProcessModel.setup(
-    kryoHelper: KryoHelper, synchronizer: CallsSynchronizer, realProtocol: IProtocol
-) {
+private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog, realProtocol: IProtocol) {
     val model = this
-    synchronizer.measureExecutionForTermination(setupUtContext) { params ->
+    watchdog.wrapActiveCall(setupUtContext) { params ->
         UtContext.setUtContext(UtContext(URLClassLoader(params.classpathForUrlsClassloader.map {
             File(it).toURI().toURL()
         }.toTypedArray())))
     }
-    synchronizer.measureExecutionForTermination(createTestGenerator) { params ->
+    watchdog.wrapActiveCall(createTestGenerator) { params ->
         AnalyticsConfigureUtil.configureML()
-        Instrumenter.adapter = RdInstrumenter(realProtocol)
+        Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
         testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
@@ -96,7 +90,7 @@ private fun EngineProcessModel.setup(
                 }
             })
     }
-    synchronizer.measureExecutionForTermination(generate) { params ->
+    watchdog.wrapActiveCall(generate) { params ->
         val mockFrameworkInstalled = params.mockInstalled
         val conflictTriggers = ConflictTriggers(kryoHelper.readObject(params.conflictTriggers))
         if (!mockFrameworkInstalled) {
@@ -126,7 +120,7 @@ private fun EngineProcessModel.setup(
         testSets[id] = result
         GenerateResult(result.size, id)
     }
-    synchronizer.measureExecutionForTermination(render) { params ->
+    watchdog.wrapActiveCall(render) { params ->
         val testFramework = testFrameworkByName(params.testFramework)
         val staticMocking = if (params.staticsMocking.startsWith("No")) {
             NoStaticMocking
@@ -157,11 +151,11 @@ private fun EngineProcessModel.setup(
                 RenderResult(it.generatedCode, it.utilClassKind?.javaClass?.simpleName)
             }
     }
-    synchronizer.measureExecutionForTermination(stopProcess) { synchronizer.stopProtocol() }
-    synchronizer.measureExecutionForTermination(obtainClassId) { canonicalName ->
+    watchdog.wrapActiveCall(stopProcess) { watchdog.stopProtocol() }
+    watchdog.wrapActiveCall(obtainClassId) { canonicalName ->
         kryoHelper.writeObject(UtContext.currentContext()!!.classLoader.loadClass(canonicalName).id)
     }
-    synchronizer.measureExecutionForTermination(findMethodsInClassMatchingSelected) { params ->
+    watchdog.wrapActiveCall(findMethodsInClassMatchingSelected) { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
         val selectedSignatures = params.signatures.map { Signature(it.name, it.parametersTypes) }
         FindMethodsInClassMatchingSelectedResult(kryoHelper.writeObject(classId.jClass.allNestedClasses.flatMap { clazz ->
@@ -170,7 +164,7 @@ private fun EngineProcessModel.setup(
                 .map { it.executableId }
         }))
     }
-    synchronizer.measureExecutionForTermination(findMethodParamNames) { params ->
+    watchdog.wrapActiveCall(findMethodParamNames) { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
         val bySignature = kryoHelper.readObject<Map<Signature, List<String>>>(params.bySignature)
         FindMethodParamNamesResult(kryoHelper.writeObject(
@@ -179,7 +173,7 @@ private fun EngineProcessModel.setup(
                 .toMap()
         ))
     }
-    synchronizer.measureExecutionForTermination(writeSarifReport) { params ->
+    watchdog.wrapActiveCall(writeSarifReport) { params ->
         val reportFilePath = Paths.get(params.reportFilePath)
         reportFilePath.parent.toFile().mkdirs()
         val sarifReport = SarifReport(
@@ -190,12 +184,12 @@ private fun EngineProcessModel.setup(
         reportFilePath.toFile().writeText(sarifReport)
         sarifReport
     }
-    synchronizer.measureExecutionForTermination(generateTestReport) { params ->
+    watchdog.wrapActiveCall(generateTestReport) { params ->
         val eventLogMessage = params.eventLogMessage
         val testPackageName: String? = params.testPackageName
         var hasWarnings = false
         val reports = testGenerationReports
-        if (reports.isEmpty()) return@measureExecutionForTermination GenerateTestReportResult("No tests were generated", null, true)
+        if (reports.isEmpty()) return@wrapActiveCall GenerateTestReportResult("No tests were generated", null, true)
         val isMultiPackage = params.isMultiPackage
         val (notifyMessage, statistics) = if (reports.size == 1) {
             val report = reports.first()

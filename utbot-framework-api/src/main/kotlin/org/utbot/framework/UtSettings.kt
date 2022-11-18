@@ -265,23 +265,16 @@ object UtSettings : AbstractSettings(
     )
 
     /**
-     * Log level for engine process, which started in idea on generate tests action.
-     */
-    var engineProcessLogLevel by getEnumProperty(LogLevel.Info)
-
-    /**
      * Log level for concrete executor process.
      */
     var childProcessLogLevel by getEnumProperty(LogLevel.Info)
 
     /**
-     * Determines whether should errors from a child process be written to a log file or suppressed.
-     * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
-     *
-     * False by default (for saving disk space).
+     * Path to custom log4j2 configuration file for EngineProcess.
+     * By default utbot-intellij/src/main/resources/log4j2.xml is used.
+     * Also default value is used if provided value is not a file.
      */
-    var logConcreteExecutionErrors by getBooleanProperty(false)
-
+    var ideaProcessLogConfigFile by getStringProperty("")
 
     /**
      * Property useful only for idea

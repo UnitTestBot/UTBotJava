@@ -70,20 +70,20 @@ private fun TsClassId.constructMethods(
 
 fun TypeNode.makeTsClassIdFromType(serviceContext: TsServiceContext): TsClassId {
     return when (this) {
-        is BaseTypeNode -> TsClassId(this.stringTypeName.lowercase(Locale.getDefault()))
+        is BaseTypeNode -> TsClassId(stringTypeName.lowercase(Locale.getDefault()))
         is CustomTypeNode -> {
             val classNode = TsParserUtils.searchForClassDecl(
-                className = this.stringTypeName,
+                className = stringTypeName,
                 parsedFile = serviceContext.parsedFile,
-                basePath = serviceContext.filePathToInference,
                 strict = true,
+                parsedImportedFiles = serviceContext.parsedFiles,
             )
             classNode?.let {
-                TsClassId(this.stringTypeName).constructClass(
+                TsClassId(stringTypeName).constructClass(
                     classNode = it,
                     serviceContext = serviceContext
                 )
-            } ?: throw IllegalStateException("Could not build instance of ${this.stringTypeName}")
+            } ?: throw IllegalStateException("Could not build instance of ${stringTypeName}")
         }
         else -> throw IllegalStateException("")
     }

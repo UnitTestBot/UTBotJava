@@ -85,7 +85,7 @@ class TsBasicCoverageService(
 
     private fun removeTempFiles() {
         for (index in testCaseIndices) {
-            File("$utbotDirPath/$tempFileName$index.js").delete()
+            File("$utbotDirPath/$tempFileName$index.ts").delete()
             FileUtils.deleteDirectory(File("$utbotDirPath/coverage$index"))
             FileUtils.deleteDirectory(File("$utbotDirPath/cache$index"))
         }
@@ -93,7 +93,7 @@ class TsBasicCoverageService(
 
     private fun generateCoverageReportForAllFiles() {
         testCaseIndices.toList().parallelStream().forEach { parallelIndex ->
-            generateCoverageReport("$utbotDirPath/$tempFileName$parallelIndex.js", parallelIndex)
+            generateCoverageReport("$utbotDirPath/$tempFileName$parallelIndex.ts", parallelIndex)
         }
     }
 
@@ -127,7 +127,7 @@ class TsBasicCoverageService(
 
     private fun generateTempFiles() {
         scriptTexts.forEachIndexed { index, scriptText ->
-            val tempScriptPath = "$utbotDirPath/$tempFileName$index.js"
+            val tempScriptPath = "$utbotDirPath/$tempFileName$index.ts"
             createTempScript(
                 path = tempScriptPath,
                 scriptText = scriptText

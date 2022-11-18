@@ -1,5 +1,6 @@
 package parser.visitors
 
+import api.TsImport
 import java.io.File
 import java.nio.file.Paths
 import parser.TsParser
@@ -17,15 +18,23 @@ class TsImportsAstVisitor(
     val parsedFiles: Map<String, AstNode>
         get() = _parsedFilesCache.toMap()
 
+    // Used for generating temp files.
+    private val _importObjects = mutableListOf<TsImport>()
+
+    val importObjects: List<TsImport>
+        get() = _importObjects.toList()
+
     override fun visitImportDeclarationNode(node: ImportDeclarationNode): Boolean {
         val relPath = node.importText + if (node.importText.endsWith(".ts")) "" else ".ts"
         // If import text doesn't contain "/", then it is NodeJS stdlib import.
         if (!relPath.contains("/")) return true
         val finalPath = Paths.get(File(basePath).parent).resolve(Paths.get(relPath))
         val fileText = finalPath.toFile().readText()
-        node.nameBindings.forEach {aliases ->
-            if (_parsedFilesCache.putIfAbsent(aliases, parser.parse(fileText)) != null)
+        node.nameBindings.forEach { alias ->
+            if (_parsedFilesCache.putIfAbsent(alias, parser.parse(fileText)) != null)
                 throw UnsupportedOperationException("Multiple files for one aliases")
+            _importObjects.add(TsImport(alias, finalPath))
+
         }
         return true
     }

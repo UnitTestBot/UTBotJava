@@ -12,14 +12,27 @@ import parser.ast.ClassDeclarationNode
 import settings.TsTestGenerationSettings
 import settings.TsTestGenerationSettings.tempFileName
 import utils.TsPathResolver
+import kotlin.io.path.pathString
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
-class TsCoverageServiceProvider(private val context: TsServiceContext) {
+class TsCoverageServiceProvider(
+    private val context: TsServiceContext,
+) {
 
     private val importFileUnderTest = "instr/${context.filePathToInference.substringAfterLast("/")}"
 
+    //TODO: Make function that accepts strings and build import statement instead of monstrosity below.
     private val imports = "const ${TsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
-            "const fs = require(\"fs\")\n\n"
+            "const fs = require(\"fs\")\n" +
+            context.imports.joinToString(separator = "\n", postfix = "\n") { import ->
+                with(import) {
+                    val relPath = TsPathResolver.getRelativePath(
+                        "${context.projectPath}/${context.utbotDir}",
+                            path.pathString
+                    ).replace("\\", "/")
+                    "const $alias = require(\"$relPath\")"
+                }
+            }
 
     init {
         makeConfigFile(context.projectPath, context.settings.tsNycModulePath)
@@ -63,22 +76,30 @@ class TsCoverageServiceProvider(private val context: TsServiceContext) {
         execId: TsMethodId,
         classNode: ClassDeclarationNode?,
     ): Pair<List<Set<Int>>, List<String>> {
-        val tempScriptTexts = fuzzedValues.indices.map {
-            "const ${TsTestGenerationSettings.fileUnderTestAliases} = require(\"./${TsPathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
-                fuzzedValue = fuzzedValues[it],
-                method = execId,
-                containingClass = classNode?.name,
-                index = it,
-                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
-                mode = TsCoverageMode.BASIC
+        with(context) {
+            val tempScriptTexts = fuzzedValues.indices.map {
+                "const ${TsTestGenerationSettings.fileUnderTestAliases} = " +
+                        "require(\"./${
+                            TsPathResolver.getRelativePath(
+                                "${projectPath}/${utbotDir}",
+                                filePathToInference
+                            )
+                        }\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
+                    fuzzedValue = fuzzedValues[it],
+                    method = execId,
+                    containingClass = classNode?.name,
+                    index = it,
+                    resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
+                    mode = TsCoverageMode.BASIC
+                )
+            }
+            val coverageService = TsBasicCoverageService(
+                context = context,
+                scriptTexts = tempScriptTexts,
+                testCaseIndices = fuzzedValues.indices,
             )
+            return coverageService.getCoveredLines() to coverageService.resultList
         }
-        val coverageService = TsBasicCoverageService(
-            context = context,
-            scriptTexts = tempScriptTexts,
-            testCaseIndices = fuzzedValues.indices,
-        )
-        return coverageService.getCoveredLines() to coverageService.resultList
     }
 
     private fun runFastCoverageAnalysis(

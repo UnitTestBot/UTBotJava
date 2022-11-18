@@ -31,6 +31,7 @@ import parser.ast.FunctionNode
 import parser.visitors.TsClassAstVisitor
 import parser.visitors.TsFunctionAstVisitor
 import parser.visitors.TsFuzzerAstVisitor
+import parser.visitors.TsImportsAstVisitor
 import parser.visitors.TsToplevelFunctionAstVisitor
 import service.TsCoverageServiceProvider
 import service.TsServiceContext
@@ -69,13 +70,18 @@ class TsTestGenerator(
      * Returns String representation of generated tests.
      */
     fun run(): String {
-        parsedFile = TsParser(File(settings.tsModulePath)).parse(File(sourceFilePath).readText())
+        val tsParser = TsParser(File(settings.tsModulePath))
+        parsedFile = tsParser.parse(File(sourceFilePath).readText())
+        val importsVisitor = TsImportsAstVisitor(sourceFilePath, tsParser)
+        importsVisitor.accept(parsedFile)
         val context = TsServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
             filePathToInference = sourceFilePath,
             parsedFile = parsedFile,
             settings = settings,
+            imports = importsVisitor.importObjects,
+            parsedFiles = importsVisitor.parsedFiles
         )
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()
@@ -83,8 +89,8 @@ class TsTestGenerator(
             TsParserUtils.searchForClassDecl(
                 className = parentClassName,
                 parsedFile = parsedFile,
-                basePath = sourceFilePath,
                 strict = selectedMethods?.isNotEmpty() ?: false,
+                parsedImportedFiles = importsVisitor.parsedFiles,
             )
         parentClassName = classNode?.name
         val classId = makeTsClassId(classNode, context)
@@ -282,7 +288,10 @@ class TsTestGenerator(
     private fun getClassMethods(className: String): List<FunctionNode> {
         val visitor = TsClassAstVisitor(className)
         visitor.accept(parsedFile)
-        val classNode = TsParserUtils.searchForClassDecl(className, parsedFile, sourceFilePath)
+        val classNode = TsParserUtils.searchForClassDecl(
+            className = className,
+            parsedFile = parsedFile,
+        )
         return classNode?.methods ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

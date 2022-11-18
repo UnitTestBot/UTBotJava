@@ -14,7 +14,7 @@ fun String.toTsAny(returnType: TsClassId): Pair<Any?, TsClassId> {
         this == "true" || this == "false" -> toBoolean() to tsBooleanClassId
         this == "null" || this == "undefined" -> null to tsUndefinedClassId
         Regex("^.*Error:.*").matches(this) -> this.replace("Error:", "") to tsErrorClassId
-        Regex("\".*\"").matches(this) -> this.replace("\"", "") to tsStringClassId
+        returnType == tsStringClassId -> this to tsStringClassId
         else -> {
             if (contains('.')) {
                 (toDoubleOrNull() ?: toBigDecimal()) to tsNumberClassId

@@ -2,7 +2,6 @@ package service
 
 import java.io.File
 import java.util.Collections
-import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
 import settings.TsTestGenerationSettings.tempFileName
@@ -30,7 +29,12 @@ class TsFastCoverageService(
             val destination = "${projectPath}/${utbotDir}/instr"
             val fileName = filePathToInference.substringAfterLast("/")
                 TsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destination),
+                    cmd = arrayOf(
+                        settings.pathToNYC,
+                        "instrument",
+                        fileName,
+                        destination,
+                    ),
                     dir = filePathToInference.substringBeforeLast("/"),
                     shouldWait = true,
                     timeout = settings.timeout,
@@ -38,12 +42,21 @@ class TsFastCoverageService(
 
             val instrumentedFilePath = "$destination/${filePathToInference.substringAfterLast("/")}"
             val instrumentedFileText = File(instrumentedFilePath).readText()
+            fixImportsInInstrumentedFile(instrumentedFilePath, instrumentedFileText)
             val covFunRegex = Regex("function (cov_.*)\\(\\).*")
             val covFunName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
                 ?: throw IllegalStateException("No coverage function was found in instrumented source file!")
             val fixedFileText = "$instrumentedFileText\nexports.$covFunName = $covFunName"
             File(instrumentedFilePath).writeText(fixedFileText)
             return covFunName
+        }
+
+        private fun fixImportsInInstrumentedFile(filePath: String, fileText: String) {
+            val importRegex = Regex("import\\{.*}from\"(.*)\"")
+            val imports = importRegex.findAll(fileText).iterator().asSequence().map {
+               it.groups[1]?.value
+            }.toList()
+            // TODO: continue
         }
     }
 
@@ -55,14 +68,14 @@ class TsFastCoverageService(
 
     private fun generateTempFiles() {
         scriptTexts.forEachIndexed { index, scriptText ->
-            val tempScriptPath = "$utbotDirPath/$tempFileName$index.js"
+            val tempScriptPath = "$utbotDirPath/$tempFileName$index.ts"
             createTempScript(
                 path = tempScriptPath,
                 scriptText = scriptText
             )
         }
         createTempScript(
-            path = "$utbotDirPath/${tempFileName}Base.js",
+            path = "$utbotDirPath/${tempFileName}Base.ts",
             scriptText = baseCoverageScriptText
         )
     }
@@ -70,7 +83,7 @@ class TsFastCoverageService(
     private fun getBaseCoverage(): List<Int> {
         with(context) {
             TsCmdExec.runCommand(
-                cmd = arrayOf(settings.tsNodePath, "$utbotDirPath/${tempFileName}Base.js"),
+                cmd = arrayOf(settings.tsNodePath, "$utbotDirPath/${tempFileName}Base.ts"),
                 dir = context.projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
@@ -109,15 +122,15 @@ class TsFastCoverageService(
     }
 
     private fun removeTempFiles() {
-        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
-        File("$utbotDirPath/${tempFileName}Base.js").delete()
-        File("$utbotDirPath/${tempFileName}Base.json").delete()
-        for (index in testCaseIndices) {
-            File("$utbotDirPath/$tempFileName$index.json").delete()
-        }
-        for (index in scriptTexts.indices) {
-            File("$utbotDirPath/$tempFileName$index.js").delete()
-        }
+//        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
+//        File("$utbotDirPath/${tempFileName}Base.ts").delete()
+//        File("$utbotDirPath/${tempFileName}Base.json").delete()
+//        for (index in testCaseIndices) {
+//            File("$utbotDirPath/$tempFileName$index.json").delete()
+//        }
+//        for (index in scriptTexts.indices) {
+//            File("$utbotDirPath/$tempFileName$index.ts").delete()
+//        }
     }
 
 
@@ -125,7 +138,7 @@ class TsFastCoverageService(
         scriptTexts.indices.toList().parallelStream().forEach { parallelIndex ->
             with(context) {
                 val (_, error) = TsCmdExec.runCommand(
-                    cmd = arrayOf(settings.tsNodePath, "$utbotDirPath/$tempFileName$parallelIndex.js"),
+                    cmd = arrayOf(settings.tsNodePath, "$utbotDirPath/$tempFileName$parallelIndex.ts"),
                     dir = context.projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,

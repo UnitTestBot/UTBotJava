@@ -15,7 +15,6 @@ import parser.ast.NumericLiteralNode
 import parser.ast.ParameterNode
 import parser.ast.PropertyDeclarationNode
 import parser.visitors.TsClassAstVisitor
-import parser.visitors.TsImportsAstVisitor
 
 object TsParserUtils {
 
@@ -36,8 +35,8 @@ object TsParserUtils {
     fun searchForClassDecl(
         className: String?,
         parsedFile: AstNode,
-        basePath: String,
         strict: Boolean = false,
+        parsedImportedFiles: Map<String, AstNode>? = null,
     ): ClassDeclarationNode? {
         val visitor = TsClassAstVisitor(className)
         visitor.accept(parsedFile)
@@ -47,15 +46,13 @@ object TsParserUtils {
             if (!strict && visitor.classNodesCount == 1) {
                 visitor.atLeastSomeClassNode
             } else {
-                val importsVisitor = TsImportsAstVisitor(basePath, parser)
-                importsVisitor.accept(parsedFile)
                 className?.let { target ->
-                    val parsedFile = importsVisitor.parsedFiles[target] ?: return@let null
+                    val parsedFile = parsedImportedFiles?.get(target) ?: return@let null
                     searchForClassDecl(
                         className = target,
                         parsedFile = parsedFile,
-                        basePath = basePath,
                         strict = true,
+                        parsedImportedFiles = parsedImportedFiles,
                     )
                 }
             }

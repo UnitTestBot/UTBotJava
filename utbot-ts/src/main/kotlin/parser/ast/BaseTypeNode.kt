@@ -5,9 +5,8 @@ import parser.TsParserUtils.getKind
 
 class BaseTypeNode(
     obj: V8Object,
-    typescript: V8Object,
     typeLiteral: String? = null,
 ): TypeNode() {
 
-    override val stringTypeName = typeLiteral ?: obj.getKind(typescript)
+    override val stringTypeName = typeLiteral ?: obj.getKind()
 }

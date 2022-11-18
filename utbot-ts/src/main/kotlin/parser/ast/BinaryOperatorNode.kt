@@ -10,14 +10,14 @@ abstract class BinaryOperatorNode: AstNode() {
     abstract val stringOperatorName: String
 }
 
-fun V8Object.getBinaryOperatorNode(typescript: V8Object): BinaryOperatorNode {
-    val kind = this.getKind(typescript)
+fun V8Object.getBinaryOperatorNode(): BinaryOperatorNode {
+    val kind = this.getKind()
     if (!ComparisonBinaryOperatorNode.allComparisonOperators.contains(kind)) {
         if (MathBinaryOperatorNode.allMathOperators.contains(kind)) {
-            return MathBinaryOperatorNode(this, typescript)
+            return MathBinaryOperatorNode(this)
         } else {
             throw UnsupportedOperationException("Binary operator $kind is unknown")
         }
     }
-    return ComparisonBinaryOperatorNode(this, typescript)
+    return ComparisonBinaryOperatorNode(this)
 }

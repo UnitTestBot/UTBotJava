@@ -8,7 +8,7 @@ import parser.ast.AstNode
 
 class TsParser(pathToTSModule: File) {
 
-    val typescript: V8Object
+    private val typescript: V8Object
     private val compilerOptions: V8Object
 
     init {
@@ -19,11 +19,12 @@ class TsParser(pathToTSModule: File) {
         val system = moduleKind.getInteger("Latest")
         compilerOptions = V8Object(nodeJs.runtime)
         compilerOptions.add("module", system)
+        TsParserUtils.initParserUtils(typescript, this)
     }
 
     fun parse(fileText: String): AstNode {
         return (typescript
             .executeJSFunction("createSourceFile", "parsed", fileText, compilerOptions, true)
-                as V8Object).getAstNodeByKind(typescript)
+                as V8Object).getAstNodeByKind()
     }
 }

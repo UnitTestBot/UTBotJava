@@ -4,5 +4,4 @@ import com.eclipsesource.v8.V8Object
 
 class MethodDeclarationNode(
     obj: V8Object,
-    typescript: V8Object
-): FunctionNode(obj, typescript)
+): FunctionNode(obj)

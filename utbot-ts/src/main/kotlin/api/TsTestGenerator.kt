@@ -35,10 +35,8 @@ import parser.visitors.TsToplevelFunctionAstVisitor
 import service.TsCoverageServiceProvider
 import service.TsServiceContext
 import settings.TsDynamicSettings
-import settings.TsTestGenerationSettings.dummyClassName
 import utils.constructClass
 import utils.toTsAny
-
 
 class TsTestGenerator(
     private var sourceFilePath: String,
@@ -85,7 +83,8 @@ class TsTestGenerator(
             TsParserUtils.searchForClassDecl(
                 className = parentClassName,
                 parsedFile = parsedFile,
-                strict = selectedMethods?.isNotEmpty() ?: false
+                basePath = sourceFilePath,
+                strict = selectedMethods?.isNotEmpty() ?: false,
             )
         parentClassName = classNode?.name
         val classId = makeTsClassId(classNode, context)
@@ -154,7 +153,7 @@ class TsTestGenerator(
             errorsForGenerator
         )
         testSets += testSet
-        paramNames[execId] = funcNode.parameters.map { it.name.toString() }
+        paramNames[execId] = funcNode.parameters.map { it.name }
     }
 
     private fun makeThisInstance(
@@ -217,7 +216,7 @@ class TsTestGenerator(
         val methodUnderTestDescription =
             FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
                 compilableName = funcNode.name
-                val names = funcNode.parameters.map { it.name.toString() }
+                val names = funcNode.parameters.map { it.name }
                 parameterNameMap = { index -> names.getOrNull(index) }
             }
         val fuzzedValues =
@@ -267,7 +266,7 @@ class TsTestGenerator(
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): FunctionNode {
         val visitor = TsFunctionAstVisitor(
             focusedMethodName,
-            if (parentClassName != dummyClassName) parentClassName else null
+            parentClassName
         )
         visitor.accept(parsedFile)
         return visitor.targetFunctionNode
@@ -283,7 +282,7 @@ class TsTestGenerator(
     private fun getClassMethods(className: String): List<FunctionNode> {
         val visitor = TsClassAstVisitor(className)
         visitor.accept(parsedFile)
-        val classNode = TsParserUtils.searchForClassDecl(className, parsedFile)
+        val classNode = TsParserUtils.searchForClassDecl(className, parsedFile, sourceFilePath)
         return classNode?.methods ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

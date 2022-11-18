@@ -6,7 +6,6 @@ import parser.TsParserUtils.getKind
 
 class ComparisonBinaryOperatorNode(
     obj: V8Object,
-    typescript: V8Object
 ): BinaryOperatorNode() {
 
     companion object {
@@ -25,7 +24,7 @@ class ComparisonBinaryOperatorNode(
         )
     }
 
-    override val stringOperatorName = obj.getKind(typescript)
+    override val stringOperatorName = obj.getKind()
 
     fun toFuzzedContext(): FuzzedContext =
         when (stringOperatorName) {

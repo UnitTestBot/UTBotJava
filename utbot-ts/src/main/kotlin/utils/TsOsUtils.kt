@@ -2,14 +2,14 @@ package utils
 
 import java.util.Locale
 
-abstract class OsProvider {
+abstract class TsOsProvider {
 
     abstract fun getCmdPrefix(): Array<String>
     abstract fun getAbstractivePathTool(): String
 
     companion object {
 
-        fun getProviderByOs(): OsProvider {
+        fun getProviderByOs(): TsOsProvider {
             val osData = System.getProperty("os.name").lowercase(Locale.getDefault())
             return when {
                 osData.contains("windows") -> WindowsProvider()
@@ -19,12 +19,12 @@ abstract class OsProvider {
     }
 }
 
-class WindowsProvider : OsProvider() {
+class WindowsProvider : TsOsProvider() {
     override fun getCmdPrefix() = arrayOf("cmd.exe", "/c")
     override fun getAbstractivePathTool() = "where"
 }
 
-class LinuxProvider : OsProvider() {
+class LinuxProvider : TsOsProvider() {
     override fun getCmdPrefix() = emptyArray<String>()
     override fun getAbstractivePathTool() = "which"
 }

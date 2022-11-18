@@ -10,11 +10,11 @@ abstract class TypeNode: AstNode() {
     abstract val stringTypeName: String
 }
 
-fun V8Object.getTypeNode(typescript: V8Object): TypeNode {
-    return this.getKind(typescript).let { kind ->
-        if (kind == "Undefined") return BaseTypeNode(this, typescript, "Undefined")
+fun V8Object.getTypeNode(): TypeNode {
+    return this.getKind().let { kind ->
+        if (kind == "Undefined") return BaseTypeNode(this, "Undefined")
         if (kind.contains("keyword", true)) {
-            BaseTypeNode(this, typescript)
-        } else CustomTypeNode(this, typescript)
+            BaseTypeNode(this)
+        } else CustomTypeNode(this)
     }
 }

@@ -13,10 +13,12 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import org.utbot.engine.logger
+import mu.KotlinLogging
 import service.TsCoverageMode
 import settings.TsDynamicSettings
 import settings.TsTestGenerationSettings
+
+val logger = KotlinLogging.logger {}
 
 class TsGenerateTestsCommand :
     CliktCommand(name = "generate_ts", help = "Generates tests for the specified class or toplevel functions.") {
@@ -30,7 +32,10 @@ class TsGenerateTestsCommand :
             it.endsWith(".ts") && Files.exists(Paths.get(it))
         }
 
-    private val targetClass by option("-c", "--class", help = "Specifies target class to generate tests for.")
+    private val targetClass: String? by option("-c", "--class", help = "Specifies target class to generate tests for.")
+
+    private val targetFunction: String?
+        by option("-f", "--function", help = "Specifies target top-level function to generate tests for.")
 
     private val output by option("-o", "--output", help = "Specifies output file for generated tests.")
         .check("Must end with .ts suffix") {
@@ -89,6 +94,13 @@ class TsGenerateTestsCommand :
     ).required()
 
     override fun run() {
+        /*
+            targetClass and targetFunction can't be specified at the same time.
+        */
+        if (targetClass != null && targetFunction != null) {
+            logger.error { "\"--class\" and \"--function\" options can't be specified at the same time!" }
+            return
+        }
         val started = LocalDateTime.now()
         try {
             val sourceFileAbsolutePath = TsUtils.makeAbsolutePath(sourceCodeFile)
@@ -97,6 +109,7 @@ class TsGenerateTestsCommand :
             val testGenerator = TsTestGenerator(
                 sourceFilePath = sourceFileAbsolutePath,
                 projectPath = TsUtils.makeAbsolutePath(projectPath),
+                selectedMethods = targetFunction?.let { listOf(it) },
                 parentClassName = targetClass,
                 outputFilePath = outputAbsolutePath,
                 settings = TsDynamicSettings(

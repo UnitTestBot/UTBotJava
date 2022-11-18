@@ -7,13 +7,12 @@ import parser.TsParserUtils.getChildren
 
 class ConstructorNode(
     obj: V8Object,
-    typescript: V8Object
 ): AstNode() {
 
-    override val children = obj.getChildren().map { it.getAstNodeByKind(typescript) }
+    override val children = obj.getChildren().map { it.getAstNodeByKind() }
 
     @Suppress("UNCHECKED_CAST")
-    val parameters = (obj.getArrayAsList("parameters")).map { it.getAstNodeByKind(typescript) }
+    val parameters = (obj.getArrayAsList("parameters")).map { it.getAstNodeByKind() }
                         as List<ParameterNode>
 
 

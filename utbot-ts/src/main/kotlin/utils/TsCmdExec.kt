@@ -14,7 +14,7 @@ object TsCmdExec {
         timeout: Long = defaultTimeout,
         vararg cmd: String,
     ): Pair<BufferedReader, BufferedReader> {
-        val builder = ProcessBuilder(*OsProvider.getProviderByOs().getCmdPrefix(), *cmd)
+        val builder = ProcessBuilder(*TsOsProvider.getProviderByOs().getCmdPrefix(), *cmd)
         dir?.let {
             builder.directory(File(it))
         }

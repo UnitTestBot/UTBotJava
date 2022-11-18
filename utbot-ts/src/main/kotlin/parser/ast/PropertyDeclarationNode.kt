@@ -6,12 +6,11 @@ import parser.TsParserUtils.getChildren
 
 class PropertyDeclarationNode(
     obj: V8Object,
-    typescript: V8Object
 ): AstNode() {
 
-    override val children: List<AstNode> = obj.getChildren().map { it.getAstNodeByKind(typescript) }
+    override val children: List<AstNode> = obj.getChildren().map { it.getAstNodeByKind() }
 
-    val name: String = (obj.get("name") as V8Object).getString("escapedText")
+    val name: String = obj.getObject("name").getString("escapedText")
 
-    val type = (obj.get("type") as V8Object).getTypeNode(typescript)
+    val type = obj.getObject("type").getTypeNode()
 }

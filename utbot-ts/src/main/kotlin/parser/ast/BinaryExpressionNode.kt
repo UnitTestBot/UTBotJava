@@ -6,15 +6,14 @@ import parser.TsParserUtils.getChildren
 
 class BinaryExpressionNode(
     obj: V8Object,
-    typescript: V8Object
 ): AstNode() {
 
-    override val children: List<AstNode> = obj.getChildren().map { it.getAstNodeByKind(typescript) }
+    override val children: List<AstNode> = obj.getChildren().map { it.getAstNodeByKind() }
 
-    val binaryOperator = (obj.get("operatorToken") as V8Object).getBinaryOperatorNode(typescript)
+    val binaryOperator = obj.getObject("operatorToken").getBinaryOperatorNode()
 
-    val leftOperand = (obj.get("left") as V8Object).getAstNodeByKind(typescript)
+    val leftOperand = obj.getObject("left").getAstNodeByKind()
 
-    val rightOperand = (obj.get("right") as V8Object).getAstNodeByKind(typescript)
+    val rightOperand = obj.getObject("right").getAstNodeByKind()
 
 }

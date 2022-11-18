@@ -307,7 +307,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         taintCandidates: TaintCandidates,
         totalTimeoutMs: Long,
         classPath: String
-    ): MutableMap<ExecutableId, Pair<List<ConfirmedTaint>, AnalysisStopReason>> {
+    ): MutableMap<ExecutableId, UtBotExecutableTaints> {
         disableCoroutinesDebug()
 
         val timeouts = timeoutStrategy.splitTimeout(totalTimeoutMs, taintCandidates)
@@ -330,7 +330,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
         val mockAlwaysDefaults = Mocker.javaDefaultClassesToMockAlways.mapTo(mutableSetOf()) { it.id }
         val (classpathForEngine, dependencyPaths) = retrieveClassPaths()
-        val executableTaints = mutableMapOf<ExecutableId, Pair<List<ConfirmedTaint>, AnalysisStopReason>>()
+        val executableTaints = mutableMapOf<ExecutableId, UtBotExecutableTaints>()
 
         taintAnalysis.setConfiguration(taintConfiguration)
 
@@ -382,7 +382,9 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                 taints += confirmedTaint
             }
 
-            executableTaints[executable] = taints to (analysisStopReasons[executable] ?: AnalysisStopReason.ERRORS(timeouts[executable]!!))
+            val analysisStopReason = analysisStopReasons[executable]
+                ?: AnalysisStopReason.ERRORS(timeouts[executable]!!)
+            executableTaints[executable] = UtBotExecutableTaints(taints, analysisStopReason)
         }
 
         return executableTaints
@@ -515,4 +517,9 @@ data class ConfirmedTaint(
     val sink: Stmt,
     val sinkPosition: Int?,
     val path: TaintPath
+)
+
+class UtBotExecutableTaints(
+    val taints: List<ConfirmedTaint>,
+    val analysisStopReason: UtBotTaintAnalysis.AnalysisStopReason
 )

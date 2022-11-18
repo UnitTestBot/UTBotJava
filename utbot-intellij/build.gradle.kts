@@ -1,3 +1,6 @@
+import java.io.ByteArrayOutputStream
+import java.io.PrintWriter
+
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
@@ -61,67 +64,79 @@ intellij {
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
 }
-abstract class SettingsToConfigTask : DefaultTask() {
-    @get:Internal
-    val path = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
-    @get:Internal
-    val sourceFileName = "UTSettings.kt"
-
-    @TaskAction
-    fun proceed() {
-        try {
-            File(path,sourceFileName).useLines {
-                it.iterator().forEach { line ->
-                    if (line.startsWith("    var")) {
-                        println(line.substring(7))
-                    }
-                }
-            }
-        } catch (e : java.io.IOException) {
-            logger.error("Unexpected error when processing $sourceFileName", e)
-        }
-    }
-}
 
 abstract class SettingsToConfigTask : DefaultTask() {
     @get:Internal
-    val path = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
+    val settingsSourceDir = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
     @get:Internal
     val sourceFileName = "UtSettings.kt"
+    @get:Internal
+    val settingsResourceDir = File(project.buildDir.parentFile.parentFile, "utbot-intellij/src/main/resources/")
+    @get:Internal
+    val settingsFileName = "settings.properties"
 
     @TaskAction
     fun proceed() {
         try {
+            val constMap = mutableMapOf<String, String>()
+            val acc = StringBuilder()
             val docLines = mutableListOf<String>()
-            File(path, sourceFileName).useLines {
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            val writer = PrintWriter(byteArrayOutputStream)
+            File(settingsSourceDir, sourceFileName).useLines {
                 it.iterator().forEach { line ->
                     var s = line.trim()
-                    if (s == "/**") {
+                    if (s.startsWith("const val ")) {
+                        val pos = s.indexOf(" = ")
+                        constMap[s.substring(10, pos)] = s.substring(pos + 3)
+                    } else if (s == "/**") {
                         docLines.clear()
-                    }
-                    if (s.startsWith("* ")) {
+                    } else if (s.startsWith("* ")) {
                         docLines.add(s.substring(2))
-                    }
-
-                    if (s.startsWith("var")) {
-//                        println(s.substring(3))
-                        var i = s.indexOf(" by ", 3)
-                        if (i > 0) {
-                            val propertyName = s.substring(0, i)
-                            s = s.substring(i + 7)
-                            i = s.indexOf("Property")
+                    } else if (s.startsWith("var")) {
+                        acc.clear()
+                        acc.append(s)
+                    } else if (s.isEmpty() && !acc.isEmpty()) {
+                        s = acc.toString()
+                        acc.clear()
+                        if (s.startsWith("var")) {
+                            var i = s.indexOf(" by ", 3)
                             if (i > 0) {
-                                val type = s.subSequence(0, i)
-                                println("$propertyName: $type")
-                                for (docLine in docLines) {
-                                    println("    |$docLine")
+                                var propertyName = s.substring(3, i).trim()
+                                if (propertyName.contains(':')) {
+                                    propertyName = propertyName.substring(0, propertyName.lastIndexOf(':'))
                                 }
+                                s = s.substring(i + 7)
+                                i = s.indexOf("Property")
+                                if (i > 0) {
+                                    val type = s.subSequence(0, i)
+                                    i = s.indexOf('(', i)
+                                    if (i > 0) {
+                                        s = s.substring(i + 1)
+                                        var defaultValue = s.substring(0, s.indexOf(')'))
+                                        defaultValue = constMap[defaultValue] ?:defaultValue
+                                        if (byteArrayOutputStream.size() > 0) {
+                                            writer.println()
+                                            writer.println("#")
+                                        }
+                                        for (docLine in docLines) {
+                                            writer.println("# $docLine")
+                                        }
+                                        writer.println("$propertyName=$defaultValue")
+                                        writer.flush()
+                                    }
+                                }
+                            } else {
+                                System.err.println(s)
                             }
-                        } else {
-                            System.err.println(s)
                         }
+                    } else if (acc.isNotEmpty()) {
+                        acc.append(" $s")
                     }
                 }
+                writer.flush()
+                writer.close()
+                File(settingsResourceDir, settingsFileName).writeBytes(byteArrayOutputStream.toByteArray())
             }
         } catch (e : java.io.IOException) {
             logger.error("Unexpected error when processing $sourceFileName", e)

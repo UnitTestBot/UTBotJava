@@ -24,7 +24,7 @@ sealed class PythonTypeDescription(name: Name): TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: Type): Type = type
     open fun getNamedMembers(type: Type): List<PythonAttribute> = emptyList()  // direct members (without inheritance)
     open fun getAnnotationParameters(type: Type): List<Type> = emptyList()
-    open fun getMemberByName(type: Type, name: String): PythonAttribute? =  // overridden for PythonCompositeTypeDescription
+    open fun getMemberByName(type: Type, name: String): PythonAttribute? =  // overridden for some types
         getNamedMembers(type).find { it.name == name }
 }
 
@@ -88,7 +88,11 @@ sealed class PythonCompositeTypeDescription(
 
 sealed class PythonSpecialAnnotation(name: Name): PythonTypeDescription(name)
 
-class PythonTypeVarDescription(name: Name, val variance: Variance): PythonTypeDescription(name) {
+class PythonTypeVarDescription(
+    name: Name,
+    val variance: Variance,
+    val parameterKind: ParameterKind
+): PythonTypeDescription(name) {
     override fun castToCompatibleTypeApi(type: Type): TypeParameter {
         return type as? TypeParameter
             ?: error("Got unexpected type PythonTypeVarDescription: $type")
@@ -97,6 +101,10 @@ class PythonTypeVarDescription(name: Name, val variance: Variance): PythonTypeDe
         INVARIANT,
         COVARIANT,
         CONTRAVARIANT
+    }
+    enum class ParameterKind {
+        WithUpperBound,
+        WithConcreteValues
     }
 }
 
@@ -111,7 +119,11 @@ class PythonProtocolDescription(
     val protocolMemberNames: List<String>
 ): PythonCompositeTypeDescription(name, memberNames)
 
-class PythonCallableTypeDescription(val argumentKinds: List<ArgKind>): PythonTypeDescription(pythonCallableName) {
+class PythonCallableTypeDescription(
+    val argumentKinds: List<ArgKind>,
+    val isClassMethod: Boolean,
+    val isStaticMethod: Boolean
+): PythonTypeDescription(pythonCallableName) {
     override fun castToCompatibleTypeApi(type: Type): FunctionType {
         return type as? FunctionType
             ?: error("Got unexpected type PythonCallableTypeDescription: $type")
@@ -130,7 +142,11 @@ class PythonCallableTypeDescription(val argumentKinds: List<ArgKind>): PythonTyp
 }
 
 // Special Python annotations
-object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName)
+object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName) {
+    override fun getMemberByName(type: Type, name: String): PythonAttribute {
+        return PythonAttribute(name, pythonAnyType)
+    }
+}
 
 object PythonNoneTypeDescription: PythonSpecialAnnotation(pythonNoneName) {
     override fun getNamedMembers(type: Type): List<PythonAttribute> =
@@ -142,9 +158,18 @@ object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
         return type as? StatefulType
             ?: error("Got unexpected type PythonUnionTypeDescription: $type")
     }
-    override fun getNamedMembers(type: Type): List<PythonAttribute> {
+    override fun getMemberByName(type: Type, name: String): PythonAttribute? {
         val statefulType = castToCompatibleTypeApi(type)
-        TODO("Not yet implemented")
+        val children = statefulType.members.mapNotNull {
+            it.getPythonAttributeByName(name)?.type
+        }
+        return if (children.isEmpty())
+            null
+        else
+            PythonAttribute(
+                name = name,
+                type = createPythonUnionType(children)
+            )
     }
     override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
 }
@@ -186,7 +211,7 @@ val pythonNoneType = TypeCreator.create(emptyList(), PythonNoneTypeDescription)
 fun createPythonUnionType(members: List<Type>): StatefulType =
     StatefulTypeCreator.create(emptyList(), members, PythonUnionTypeDescription)
 
-fun createOverloadedFunctionType(members: List<Type>): StatefulType =
+fun createOverload(members: List<Type>): StatefulType =
     StatefulTypeCreator.create(emptyList(), members, PythonOverloadTypeDescription)
 
 fun createPythonTupleType(members: List<Type>): StatefulType =
@@ -212,9 +237,15 @@ fun createPythonProtocol(
 fun createPythonCallableType(
     numberOfParameters: Int,
     argumentKinds: List<PythonCallableTypeDescription.ArgKind>,
+    isClassMethod: Boolean,
+    isStaticMethod: Boolean,
     initialization: (FunctionTypeCreator.Original) -> FunctionTypeCreator.InitializationData
 ): FunctionType =
-    FunctionTypeCreator.create(numberOfParameters, PythonCallableTypeDescription(argumentKinds), initialization)
+    FunctionTypeCreator.create(
+        numberOfParameters,
+        PythonCallableTypeDescription(argumentKinds, isClassMethod, isStaticMethod),
+        initialization
+    )
 
 class PythonAttribute(
     val name: String,

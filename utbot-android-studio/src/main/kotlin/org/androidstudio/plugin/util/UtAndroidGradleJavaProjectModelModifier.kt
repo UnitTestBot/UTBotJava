@@ -11,19 +11,23 @@ import com.android.tools.idea.gradle.util.GradleUtil
 import com.android.tools.idea.project.AndroidProjectInfo
 import com.android.tools.idea.projectsystem.TestArtifactSearchScopes
 import com.google.wireless.android.sdk.stats.GradleSyncStats
+import com.intellij.ide.plugins.PluginManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.command.undo.BasicUndoableAction
 import com.intellij.openapi.command.undo.UndoManager
-import com.intellij.openapi.externalSystem.ExternalSystemModulePropertyManager
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
+import com.intellij.openapi.roots.libraries.Library
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.pom.java.LanguageLevel
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.concurrency.AsyncPromise
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.rejectedPromise
 
 class UtAndroidGradleJavaProjectModelModifier : AndroidGradleJavaProjectModelModifier() {
     override fun addExternalLibraryDependency(
@@ -32,14 +36,8 @@ class UtAndroidGradleJavaProjectModelModifier : AndroidGradleJavaProjectModelMod
         scope: DependencyScope
     ): Promise<Void?>? {
         val module = ContainerUtil.getFirstItem(modules) ?: return null
-
-        if (!isAndroidGradleProject(module.project)) {
-            return null
-        }
-
         val dependencySpec = ArtifactDependencySpec.create(descriptor.libraryArtifactId, descriptor.libraryGroupId, descriptor.preferredVersion)
         return addExternalLibraryDependency(module, dependencySpec, scope)
-
     }
 
     private fun addExternalLibraryDependency(
@@ -99,8 +97,6 @@ class UtAndroidGradleJavaProjectModelModifier : AndroidGradleJavaProjectModelMod
             }
         })
     }
-
-    private fun isAndroidGradleProject(project: Project): Boolean = AndroidProjectInfo.getInstance(project).requiresAndroidModel()
 
     private fun doAndroidGradleSync(project: Project, trigger: GradleSyncStats.Trigger): AsyncPromise<Void?> {
         val promise = AsyncPromise<Void?>()

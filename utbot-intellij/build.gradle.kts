@@ -114,7 +114,10 @@ abstract class SettingsToConfigTask : DefaultTask() {
                                     if (i > 0) {
                                         s = s.substring(i + 1)
                                         var defaultValue = s.substring(0, s.indexOf(')'))
+                                        //TODO DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS -> 1000L
                                         defaultValue = constMap[defaultValue] ?:defaultValue
+                                        //TODO remove class names for Enum type
+                                        //TODO get documentation from Enum values to property key documentation
                                         if (byteArrayOutputStream.size() > 0) {
                                             writer.println()
                                             writer.println("#")

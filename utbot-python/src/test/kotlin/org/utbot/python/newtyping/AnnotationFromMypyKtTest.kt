@@ -65,11 +65,16 @@ internal class AnnotationFromMypyKtTest {
     fun testUserClass() {
         val classA = storage.definitions["annotation_tests"]!!["A"]!!.annotation.asUtBotType as CompositeType
         assertTrue(classA.parameters.size == 1)
-        assertTrue((classA.parameters[0] as TypeParameter).constraints.size == 3)
+        assertTrue((classA.parameters[0] as TypeParameter).constraints.size == 2)
         assertTrue((classA.parameters[0] as TypeParameter).definedAt === classA)
         assertTrue(
             (classA.parameters[0] as TypeParameter).constraints.any {
                 it.boundary.pythonDescription().name == classA.pythonDescription().name && it.relation == exactTypeRelation
+            }
+        )
+        assertTrue(
+            (classA.parameters[0] as TypeParameter).constraints.all {
+                it.relation == exactTypeRelation
             }
         )
     }

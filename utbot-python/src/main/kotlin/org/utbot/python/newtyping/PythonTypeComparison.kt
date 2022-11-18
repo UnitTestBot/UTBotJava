@@ -8,7 +8,7 @@ class PythonTypeWrapperForEqualityCheck(
 ) {
     init {
         if (!type.isPythonType())
-            error("Trying to create PythonTypeWrapperForComparison for non-Python type $type")
+            error("Trying to create PythonTypeWrapperForEqualityCheck for non-Python type $type")
     }
 
     override fun equals(other: Any?): Boolean {
@@ -111,18 +111,198 @@ class PythonTypeWrapperForEqualityCheck(
     }
 }
 
-/*
 class PythonSubtypeChecker(
-    val left: PythonTypeWrapperForEqualityCheck,
-    val right: PythonTypeWrapperForEqualityCheck
+    val left: Type,
+    val right: Type,
+    private val typeParameterCorrespondence: List<Pair<Type, Type>>,
+    private val skipFirstArgument: Boolean = false
 ) {
+    init {
+        if (!left.isPythonType() || !right.isPythonType())
+            error("Trying to create PythonSubtypeChecker for non-Python types $left, $right")
+    }
     fun rightIsSubtypeOfLeft(): Boolean {
-        return when (val leftMeta = left.type.meta as PythonTypeDescription) {
-            is
+        if (PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(right))
+            return true
+
+        val leftMeta = left.meta as PythonTypeDescription
+        val rightMeta = right.meta as PythonTypeDescription
+
+        // subtype checking is not supported for types with bounded parameters, except CallableType
+        if (left.hasBoundedParameters() && leftMeta !is PythonCallableTypeDescription)
+            return false
+        if (right.hasBoundedParameters() && rightMeta !is PythonCallableTypeDescription)
+            return false
+
+        if (rightMeta is PythonAnyTypeDescription)
+            return true
+
+        return when (leftMeta) {
+            is PythonAnyTypeDescription -> true
+            is PythonTypeVarDescription -> caseOfLeftTypeVar(leftMeta)
+            is PythonProtocolDescription -> caseOfLeftProtocol(leftMeta)
+            is PythonCallableTypeDescription -> caseOfLeftCallable(leftMeta)
+            is PythonUnionTypeDescription -> caseOfLeftUnion(leftMeta)
+            is PythonConcreteCompositeTypeDescription -> caseOfLeftCompositeType(leftMeta)
+            is PythonNoneTypeDescription -> rightMeta is PythonNoneTypeDescription
+            is PythonOverloadTypeDescription -> caseOfLeftOverload(leftMeta)
+            is PythonTupleTypeDescription -> caseOfLeftTupleType(leftMeta)
         }
     }
+    private fun caseOfLeftTupleType(leftMeta: PythonTupleTypeDescription): Boolean {
+        return when (val rightMeta = right.pythonDescription()) {
+            is PythonAnyTypeDescription -> true
+            is PythonTupleTypeDescription -> {
+                val leftAsCompositeType = leftMeta.castToCompatibleTypeApi(left)
+                val rightAsCompositeType = rightMeta.castToCompatibleTypeApi(right)
+                if (leftAsCompositeType.members.size != rightAsCompositeType.members.size)
+                    false
+                else {
+                    (leftAsCompositeType.members zip rightAsCompositeType.members).all { (leftMember, rightMember) ->
+                        PythonSubtypeChecker(
+                            left = leftMember,
+                            right = rightMember,
+                            typeParameterCorrespondence
+                        ).rightIsSubtypeOfLeft()
+                    }
+                }
+            }
+            else -> false
+        }
+    }
+    private fun caseOfLeftOverload(leftMeta: PythonOverloadTypeDescription): Boolean {
+        val leftAsStatefulType = leftMeta.castToCompatibleTypeApi(left)
+        return leftAsStatefulType.members.all {
+            PythonSubtypeChecker(
+                left = it,
+                right = right,
+                typeParameterCorrespondence
+            ).rightIsSubtypeOfLeft()
+        }
+    }
+    private fun caseOfLeftCompositeType(leftMeta: PythonConcreteCompositeTypeDescription): Boolean {
+        if (PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(builtinsObject))
+            return true
+        return when (val rightMeta = right.pythonDescription()) {
+            is PythonAnyTypeDescription -> true
+            is PythonConcreteCompositeTypeDescription -> {
+                val rightAsCompositeType = rightMeta.castToCompatibleTypeApi(right)
+                if (rightMeta.name == leftMeta.name) {
+                    val origin = left.getOrigin()
+                    (left.parameters zip right.parameters zip origin.parameters).all {
+                        val (args, param) = it
+                        val (leftArg, rightArg) = args
+                        if (leftArg.pythonDescription() is PythonAnyTypeDescription ||
+                            rightArg.pythonDescription() is PythonAnyTypeDescription)
+                            return@all true
+                        val typeVarDescription = param.pythonDescription()
+                        if (typeVarDescription !is PythonTypeVarDescription)  // shouldn't be possible
+                            return@all false
+                        when (typeVarDescription.variance) {
+                            PythonTypeVarDescription.Variance.INVARIANT -> false
+                            PythonTypeVarDescription.Variance.COVARIANT ->
+                                PythonSubtypeChecker(
+                                    left = leftArg,
+                                    right = rightArg,
+                                    typeParameterCorrespondence
+                                ).rightIsSubtypeOfLeft()
+                            PythonTypeVarDescription.Variance.CONTRAVARIANT ->
+                                PythonSubtypeChecker(
+                                    left = rightArg,
+                                    right = leftArg,
+                                    reverseTypeParameterCorrespondence(typeParameterCorrespondence)
+                                ).rightIsSubtypeOfLeft()
+                        }
+                    }
+                } else {
+                    rightAsCompositeType.supertypes.any {
+                        PythonSubtypeChecker(
+                            left = left,
+                            right = it,
+                            typeParameterCorrespondence
+                        ).rightIsSubtypeOfLeft()
+                    }
+                }
+            }
+            else -> false
+        }
+    }
+    private fun caseOfLeftTypeVar(leftMeta: PythonTypeVarDescription): Boolean {
+        // TODO: more accurate case analysis
+        return when (val rightMeta = right.pythonDescription()) {
+            is PythonAnyTypeDescription -> true
+            is PythonTypeVarDescription -> caseOfLeftAndRightTypeVar(leftMeta, rightMeta)
+            else -> false
+        }
+    }
+    private fun caseOfLeftUnion(leftMeta: PythonUnionTypeDescription): Boolean {
+        val children = leftMeta.getAnnotationParameters(left)
+        return children.any {  childType ->
+            PythonSubtypeChecker(
+                left = childType,
+                right = right,
+                typeParameterCorrespondence
+            ).rightIsSubtypeOfLeft()
+        }
+    }
+    private fun caseOfLeftAndRightTypeVar(leftMeta: PythonTypeVarDescription, rightMeta: PythonTypeVarDescription): Boolean {
+        val leftParam = leftMeta.castToCompatibleTypeApi(left)
+        val rightParam = rightMeta.castToCompatibleTypeApi(right)
+        // TODO: more accurate case analysis
+        return typeParameterCorrespondence.contains(Pair(leftParam, rightParam))
+    }
+    private fun caseOfLeftProtocol(leftMeta: PythonProtocolDescription): Boolean {
+        val membersNotToCheck = listOf("__new__", "__init__")
+        return leftMeta.protocolMemberNames.subtract(membersNotToCheck).all { protocolMemberName ->
+            val neededAttribute = left.getPythonAttributeByName(protocolMemberName)!!
+            val rightAttribute = right.getPythonAttributeByName(protocolMemberName) ?: return false
+            val description = neededAttribute.type.pythonDescription()
+            val skipFirstArgument =
+                (description is PythonCallableTypeDescription) && !description.isStaticMethod
+            PythonSubtypeChecker(
+                left = neededAttribute.type,
+                right = rightAttribute.type,
+                typeParameterCorrespondence,
+                skipFirstArgument
+            ).rightIsSubtypeOfLeft()
+        }
+    }
+    private fun caseOfLeftCallable(leftMeta: PythonCallableTypeDescription): Boolean {
+        val rightCallAttribute = right.getPythonAttributeByName("__call__")?.type as? FunctionType
+            ?: return false
+        val leftAsFunctionType = leftMeta.castToCompatibleTypeApi(left)
+        // TODO: more accurate work with argument binding?
+        if (rightCallAttribute.arguments.size != leftAsFunctionType.arguments.size)
+            return false
+        val leftBounded = leftAsFunctionType.getBoundedParameters()
+        val rightBounded = rightCallAttribute.getBoundedParameters()
+
+        // TODO: more accurate case analysis
+        if (leftBounded.size != rightBounded.size)
+            return false
+
+        val newCorrespondence = typeParameterCorrespondence + (leftBounded zip rightBounded)
+
+        var args = leftAsFunctionType.arguments zip rightCallAttribute.arguments
+        if (skipFirstArgument)
+            args = args.drop(1)
+
+        return args.all { (leftArg, rightArg) ->
+            PythonSubtypeChecker(
+                left = rightArg,
+                right = leftArg,
+                reverseTypeParameterCorrespondence(newCorrespondence)
+            ).rightIsSubtypeOfLeft()
+        } && PythonSubtypeChecker(
+            left = leftAsFunctionType.returnValue,
+            right = rightCallAttribute.returnValue,
+            newCorrespondence
+        ).rightIsSubtypeOfLeft()
+    }
+
+    private fun reverseTypeParameterCorrespondence(correspondence: List<Pair<Type, Type>>): List<Pair<Type, Type>> =
+        correspondence.map { Pair(it.second, it.first) }
 }
- */
 
 fun Type.isParameterBoundedTo(type: Type): Boolean =
     (this is TypeParameter) && (this.definedAt == type)
@@ -144,3 +324,9 @@ fun Type.getBoundedParameters(): List<TypeParameter> =
             null
         }
     }
+
+fun Type.hasBoundedParameters(): Boolean =
+    parameters.any { it.isParameterBoundedTo(this) }
+
+fun Type.getOrigin(): Type =
+    if (this is TypeSubstitution) rawOrigin.getOrigin() else this

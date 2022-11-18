@@ -5,7 +5,6 @@ import com.squareup.moshi.adapters.EnumJsonAdapter
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
-import kotlin.system.measureTimeMillis
 
 fun readMypyAnnotationStorage(jsonWithAnnotations: String, initObject: Boolean = true): MypyAnnotationStorage {
     val result = jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
@@ -150,7 +149,7 @@ sealed class CompositeAnnotationNode(
         (typeVars zip self.parameters).forEach { (node, typeParam) ->
             val typeVar = node.node as TypeVarNode
             storage.nodeToUtBotType[typeVar] = typeParam
-            typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance)
+            typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance, typeVar.kind)
             typeParam.constraints = typeVar.constraints
         }
         val members = names.values.mapNotNull { def ->
@@ -203,20 +202,25 @@ class Protocol(
 class FunctionNode(
     val positional: List<MypyAnnotation>,  // for now ignore other argument kinds
     val returnType: MypyAnnotation,
-    val typeVars: List<String>
+    val typeVars: List<String>,
+    val isClass: Boolean = false,
+    val isStatic: Boolean = false
 ): PythonAnnotationNode() {
     override val children: List<MypyAnnotation>
         get() = super.children + positional + listOf(returnType)
     override fun initializeType(): Type {
         return createPythonCallableType(
             typeVars.size,
-            positional.map { PythonCallableTypeDescription.ArgKind.Positional }
+            positional.map { PythonCallableTypeDescription.ArgKind.Positional },
+            isClass,
+            isStatic
         ) { self ->
             storage.nodeToUtBotType[this] = self
             (typeVars zip self.parameters).forEach { (nodeId, typeParam) ->
                 val typeVar = storage.nodeStorage[nodeId] as TypeVarNode
                 storage.nodeToUtBotType[typeVar] = typeParam
-                typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance)
+                typeParam.meta = PythonTypeVarDescription(Name(emptyList(), typeVar.varName), typeVar.variance, typeVar.kind)
+                typeParam.constraints = typeVar.constraints
             }
             FunctionTypeCreator.InitializationData(
                 arguments = positional.map { it.asUtBotType },
@@ -229,7 +233,7 @@ class FunctionNode(
 class TypeVarNode(
     val varName: String,
     val values: List<MypyAnnotation>,
-    val upperBound: MypyAnnotation?,
+    var upperBound: MypyAnnotation?,
     val def: String,
     val variance: PythonTypeVarDescription.Variance
 ): PythonAnnotationNode() {
@@ -243,6 +247,15 @@ class TypeVarNode(
             upperBound?.let { setOf(TypeParameterConstraint(upperBoundRelation, it.asUtBotType)) } ?: emptySet()
         values.map { TypeParameterConstraint(exactTypeRelation, it.asUtBotType) }.toSet() + upperBoundConstraint
     }
+    val kind: PythonTypeVarDescription.ParameterKind
+        get() {
+            return if (values.isEmpty())
+                PythonTypeVarDescription.ParameterKind.WithUpperBound
+            else {
+                upperBound = null
+                PythonTypeVarDescription.ParameterKind.WithConcreteValues
+            }
+        }
 }
 
 class PythonTuple(
@@ -285,7 +298,7 @@ class OverloadedFunction(
     override val children: List<MypyAnnotation>
         get() = super.children + items
     override fun initializeType(): Type {
-        return createOverloadedFunctionType(items.map { it.asUtBotType })
+        return createOverload(items.map { it.asUtBotType })
     }
 }
 
@@ -295,10 +308,12 @@ class UnknownAnnotationNode: PythonAnnotationNode() {
     }
 }
 
-/*
 fun main() {
-    val sample = MypyAnnotation::class.java.getResource("/mypy/annotation_sample.json")!!.readText()
+    val sample = MypyAnnotation::class.java.getResource("/subtypes_sample.json")!!.readText()
     val storage = readMypyAnnotationStorage(sample)
+    val func = storage.definitions["subtypes"]!!["func_for_P"]!!.annotation.asUtBotType
+    println((func.meta as PythonCallableTypeDescription).isStaticMethod)
+    /*
     val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
     val obj = storage.definitions["builtins"]!!["object"]!!.annotation.asUtBotType
     val counter = storage.definitions["collections"]!!["Counter"]!!.annotation.asUtBotType
@@ -308,7 +323,6 @@ fun main() {
     println((int.pythonDescription() as PythonCompositeTypeDescription).mro(int).map { it.pythonDescription().name.name })
     println(obj.getPythonAttributes())
     println((obj.pythonDescription() as PythonCompositeTypeDescription).getMemberByName(obj, "__init__"))
-    /*
     var cnt = 0
     val types = mutableSetOf<Type>()
     storage.definitions["builtins"]!!.forEach { (name, def) ->
@@ -336,4 +350,3 @@ fun main() {
     assert(cnt == cnt1)
      */
 }
- */

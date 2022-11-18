@@ -11,7 +11,7 @@ val collectionsVersion: String by project
 val junit5Version: String by project
 val dateBasedVersion: String = SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis()) // CI proceeds the same way
 
-version = semVer ?: "$dateBasedVersion-SNAPSHOT"
+version = "luban-SNAPSHOT"
 
 plugins {
     `java-library`
@@ -147,13 +147,22 @@ configure(
 
     publishing {
         repositories {
+//            maven {
+//                name = "GitHubPackages"
+//                url = uri("https://maven.pkg.github.com/UnitTestBot/UTBotJava")
+//                credentials {
+//                    username = System.getenv("GITHUB_ACTOR")
+//                    password = System.getenv("GITHUB_TOKEN")
+//                }
+//            }
             maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/UnitTestBot/UTBotJava")
+                name = "LocalNexus"
+                url = uri("http://10.198.126.224:8081/repository/utbot-luban/")
                 credentials {
-                    username = System.getenv("GITHUB_ACTOR")
-                    password = System.getenv("GITHUB_TOKEN")
+                    username = System.getenv("NEXUS_LOGIN")
+                    password = System.getenv("NEXUS_PASSWORD")
                 }
+                isAllowInsecureProtocol = true
             }
         }
     }

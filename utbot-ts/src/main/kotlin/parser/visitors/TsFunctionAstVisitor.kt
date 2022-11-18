@@ -19,7 +19,7 @@ class TsFunctionAstVisitor(
     }
 
     override fun visitFunctionDeclarationNode(node: FunctionDeclarationNode): Boolean {
-        if (node.name == target && (className ?: "") == lastVisitedClassName) {
+        if (node.name == target && className == null) {
             targetFunctionNode = node
             return false
         }
@@ -27,7 +27,7 @@ class TsFunctionAstVisitor(
     }
 
     override fun visitMethodDeclarationNode(node: MethodDeclarationNode): Boolean {
-        if (node.name == target) {
+        if (node.name == target && (className ?: "") == lastVisitedClassName) {
             targetFunctionNode = node
             return false
         }

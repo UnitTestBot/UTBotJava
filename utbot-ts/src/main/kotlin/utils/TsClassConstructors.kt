@@ -55,12 +55,13 @@ private fun TsClassId.constructMethods(
             )
         }?.asSequence() ?:
         // used for toplevel functions
-        functions.map { methodNode ->
+        functions.map { functionNode ->
             TsMethodId(
                 classId = TsClassId(name),
-                name = methodNode.name,
-                returnType = methodNode.returnType.makeTsClassIdFromType(serviceContext),
-                parameters = methodNode.parameters.map { param -> param.type.makeTsClassIdFromType(serviceContext) }
+                name = functionNode.name,
+                returnType = functionNode.returnType.makeTsClassIdFromType(serviceContext),
+                parameters = functionNode.parameters.map { param -> param.type.makeTsClassIdFromType(serviceContext) },
+                staticModifier = true
             )
         }.asSequence()
         return methods
@@ -74,6 +75,7 @@ fun TypeNode.makeTsClassIdFromType(serviceContext: TsServiceContext): TsClassId 
             val classNode = TsParserUtils.searchForClassDecl(
                 className = this.stringTypeName,
                 parsedFile = serviceContext.parsedFile,
+                basePath = serviceContext.filePathToInference,
                 strict = true,
             )
             classNode?.let {

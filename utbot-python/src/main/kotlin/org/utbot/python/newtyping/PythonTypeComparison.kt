@@ -1,6 +1,9 @@
 package org.utbot.python.newtyping
 
+import mu.KotlinLogging
 import org.utbot.python.newtyping.general.*
+
+private val logger = KotlinLogging.logger {}
 
 class PythonTypeWrapperForEqualityCheck(
     val type: Type,
@@ -111,10 +114,14 @@ class PythonTypeWrapperForEqualityCheck(
     }
 }
 
+const val MAX_RECURSION_DEPTH = 100
+
 class PythonSubtypeChecker(
     val left: Type,
     val right: Type,
     private val typeParameterCorrespondence: List<Pair<Type, Type>>,
+    private val assumingSubtypePairs: List<Pair<PythonTypeWrapperForEqualityCheck, PythonTypeWrapperForEqualityCheck>>,
+    private val recursionDepth: Int,
     private val skipFirstArgument: Boolean = false
 ) {
     init {
@@ -122,8 +129,16 @@ class PythonSubtypeChecker(
             error("Trying to create PythonSubtypeChecker for non-Python types $left, $right")
     }
     fun rightIsSubtypeOfLeft(): Boolean {
-        if (PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(right))
+        val leftWrapper = PythonTypeWrapperForEqualityCheck(left)
+        val rightWrapper = PythonTypeWrapperForEqualityCheck(right)
+        if (leftWrapper == rightWrapper)
             return true
+
+        // this is done to avoid possible infinite recursion
+        if (assumingSubtypePairs.contains(Pair(leftWrapper, rightWrapper)))
+            return true
+        if (assumingSubtypePairs.contains(Pair(rightWrapper, leftWrapper)))
+            return false
 
         val leftMeta = left.meta as PythonTypeDescription
         val rightMeta = right.meta as PythonTypeDescription
@@ -136,6 +151,12 @@ class PythonSubtypeChecker(
 
         if (rightMeta is PythonAnyTypeDescription)
             return true
+
+        // just in case
+        if (recursionDepth >= MAX_RECURSION_DEPTH) {
+            logger.warn("Recursion depth limit exceeded")
+            return false
+        }
 
         return when (leftMeta) {
             is PythonAnyTypeDescription -> true
@@ -162,7 +183,9 @@ class PythonSubtypeChecker(
                         PythonSubtypeChecker(
                             left = leftMember,
                             right = rightMember,
-                            typeParameterCorrespondence
+                            typeParameterCorrespondence,
+                            nextAssumingSubtypePairs,
+                            recursionDepth + 1
                         ).rightIsSubtypeOfLeft()
                     }
                 }
@@ -176,7 +199,9 @@ class PythonSubtypeChecker(
             PythonSubtypeChecker(
                 left = it,
                 right = right,
-                typeParameterCorrespondence
+                typeParameterCorrespondence,
+                nextAssumingSubtypePairs,
+                recursionDepth + 1
             ).rightIsSubtypeOfLeft()
         }
     }
@@ -204,13 +229,17 @@ class PythonSubtypeChecker(
                                 PythonSubtypeChecker(
                                     left = leftArg,
                                     right = rightArg,
-                                    typeParameterCorrespondence
+                                    typeParameterCorrespondence,
+                                    nextAssumingSubtypePairs,
+                                    recursionDepth + 1
                                 ).rightIsSubtypeOfLeft()
                             PythonTypeVarDescription.Variance.CONTRAVARIANT ->
                                 PythonSubtypeChecker(
                                     left = rightArg,
                                     right = leftArg,
-                                    reverseTypeParameterCorrespondence(typeParameterCorrespondence)
+                                    reverse(typeParameterCorrespondence),
+                                    nextAssumingSubtypePairs,
+                                    recursionDepth + 1
                                 ).rightIsSubtypeOfLeft()
                         }
                     }
@@ -219,7 +248,9 @@ class PythonSubtypeChecker(
                         PythonSubtypeChecker(
                             left = left,
                             right = it,
-                            typeParameterCorrespondence
+                            typeParameterCorrespondence,
+                            nextAssumingSubtypePairs,
+                            recursionDepth + 1
                         ).rightIsSubtypeOfLeft()
                     }
                 }
@@ -241,7 +272,9 @@ class PythonSubtypeChecker(
             PythonSubtypeChecker(
                 left = childType,
                 right = right,
-                typeParameterCorrespondence
+                typeParameterCorrespondence,
+                nextAssumingSubtypePairs,
+                recursionDepth + 1
             ).rightIsSubtypeOfLeft()
         }
     }
@@ -263,6 +296,8 @@ class PythonSubtypeChecker(
                 left = neededAttribute.type,
                 right = rightAttribute.type,
                 typeParameterCorrespondence,
+                nextAssumingSubtypePairs,
+                recursionDepth + 1,
                 skipFirstArgument
             ).rightIsSubtypeOfLeft()
         }
@@ -291,17 +326,42 @@ class PythonSubtypeChecker(
             PythonSubtypeChecker(
                 left = rightArg,
                 right = leftArg,
-                reverseTypeParameterCorrespondence(newCorrespondence)
+                reverse(newCorrespondence),
+                nextAssumingSubtypePairs,
+                recursionDepth + 1
             ).rightIsSubtypeOfLeft()
         } && PythonSubtypeChecker(
             left = leftAsFunctionType.returnValue,
             right = rightCallAttribute.returnValue,
-            newCorrespondence
+            newCorrespondence,
+            nextAssumingSubtypePairs,
+            recursionDepth + 1
         ).rightIsSubtypeOfLeft()
     }
 
-    private fun reverseTypeParameterCorrespondence(correspondence: List<Pair<Type, Type>>): List<Pair<Type, Type>> =
+    private fun reverse(correspondence: List<Pair<Type, Type>>): List<Pair<Type, Type>> =
         correspondence.map { Pair(it.second, it.first) }
+
+    private val nextAssumingSubtypePairs: List<Pair<PythonTypeWrapperForEqualityCheck, PythonTypeWrapperForEqualityCheck>>
+        by lazy {
+            if (left.pythonDescription() is PythonCompositeTypeDescription
+                && right.pythonDescription() is PythonCompositeTypeDescription)
+                assumingSubtypePairs +
+                        listOf(Pair(PythonTypeWrapperForEqualityCheck(left), PythonTypeWrapperForEqualityCheck(right)))
+            else
+                assumingSubtypePairs
+        }
+
+    companion object {
+        fun checkIfRightIsSubtypeOfLeft(left: Type, right: Type): Boolean =
+            PythonSubtypeChecker(
+                left = left,
+                right = right,
+                emptyList(),
+                emptyList(),
+                0
+            ).rightIsSubtypeOfLeft()
+    }
 }
 
 fun Type.isParameterBoundedTo(type: Type): Boolean =

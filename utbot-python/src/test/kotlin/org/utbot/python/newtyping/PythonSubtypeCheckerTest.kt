@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.utbot.python.newtyping.PythonSubtypeChecker.Companion.checkIfRightIsSubtypeOfLeft
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.TypeParameter
 
@@ -24,20 +25,17 @@ internal class PythonSubtypeCheckerTest {
         assertTrue(classS.pythonDescription() is PythonConcreteCompositeTypeDescription)
         val classS1 = storage.definitions["subtypes"]!!["S1"]!!.annotation.asUtBotType
         assertTrue(classS1.pythonDescription() is PythonConcreteCompositeTypeDescription)
-        assertTrue(
-            PythonSubtypeChecker(
-                left = protocolP,
-                right = classS,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
-        assertFalse(
-            PythonSubtypeChecker(
-                left = protocolP,
-                right = classS1,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
+        assertTrue(checkIfRightIsSubtypeOfLeft(protocolP, classS))
+        assertFalse(checkIfRightIsSubtypeOfLeft(protocolP, classS1))
+    }
+
+    @Test
+    fun testCustomProtocolWithPossibleInfiniteRecursion() {
+        val protocolR = storage.definitions["subtypes"]!!["R"]!!.annotation.asUtBotType
+        assertTrue(protocolR.pythonDescription() is PythonProtocolDescription)
+        val classRImpl = storage.definitions["subtypes"]!!["RImpl"]!!.annotation.asUtBotType
+        assertTrue(classRImpl.pythonDescription() is PythonConcreteCompositeTypeDescription)
+        assertTrue(checkIfRightIsSubtypeOfLeft(protocolR, classRImpl))
     }
 
     @Test
@@ -63,42 +61,12 @@ internal class PythonSubtypeCheckerTest {
         )
 
         // list is invariant
-        assertFalse(
-            PythonSubtypeChecker(
-                left = listOfObj,
-                right = listOfInt,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
-        assertTrue(
-            PythonSubtypeChecker(
-                left = listOfAny,
-                right = listOfInt,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
-        assertTrue(
-            PythonSubtypeChecker(
-                left = listOfInt,
-                right = listOfAny,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
+        assertFalse(checkIfRightIsSubtypeOfLeft(listOfObj, listOfInt))
+        assertTrue(checkIfRightIsSubtypeOfLeft(listOfAny, listOfInt))
+        assertTrue(checkIfRightIsSubtypeOfLeft(listOfInt, listOfAny))
 
         // frozenset is covariant
-        assertTrue(
-            PythonSubtypeChecker(
-                left = frozensetOfObj,
-                right = frozensetOfInt,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
-        assertFalse(
-            PythonSubtypeChecker(
-                left = frozensetOfInt,
-                right = frozensetOfObj,
-                emptyList()
-            ).rightIsSubtypeOfLeft()
-        )
+        assertTrue(checkIfRightIsSubtypeOfLeft(frozensetOfObj, frozensetOfInt))
+        assertFalse(checkIfRightIsSubtypeOfLeft(frozensetOfInt, frozensetOfObj))
     }
 }

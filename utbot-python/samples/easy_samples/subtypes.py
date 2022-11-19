@@ -25,4 +25,21 @@ def func_for_P(x: P) -> None:
 func_for_P(S())
 
 
+class R(Protocol):
+    def f(self) -> R:
+        ...
+
+
+class RImpl:
+    def f(self) -> RImpl:
+        return self
+
+
+def func_for_R(x: R) -> None:
+    return None
+
+
+func_for_R(RImpl())
+
+
 a: List[int] = []

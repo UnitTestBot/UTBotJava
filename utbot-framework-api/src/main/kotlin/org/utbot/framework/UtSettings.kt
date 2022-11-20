@@ -174,13 +174,6 @@ object UtSettings : AbstractSettings(
     var useConcreteExecution by getBooleanProperty(true)
 
     /**
-     * Enable check of full coverage for methods with code generations tests.
-     *
-     * TODO doesn't work for now JIRA:1407
-     */
-    var checkCoverageInCodeGenerationTests by getBooleanProperty(true)
-
-    /**
      * Enable code generation tests with every possible configuration
      * for every method in samples.
      *
@@ -339,11 +332,6 @@ object UtSettings : AbstractSettings(
      * See [SubpathGuidedSelector]
      */
     var subpathGuidedSelectorIndex by getIntProperty(1)
-
-    /**
-     * Set of indexes, which will use [SubpathGuidedSelector] in not single mode
-     */
-    var subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
 
     /**
      * Flag that indicates whether feature processing for execution states enabled or not

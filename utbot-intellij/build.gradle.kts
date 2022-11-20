@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
 import java.io.PrintWriter
 
@@ -75,20 +76,40 @@ abstract class SettingsToConfigTask : DefaultTask() {
     @get:Internal
     val settingsFileName = "settings.properties"
 
+    data class PropertyModel(
+        val key: String,
+        var type: String = "",
+        var defaultValue: String = "",
+        var docLines: MutableList<String> = mutableListOf()
+    )
+
+    data class EnumInfo(var className: String, var docMap: MutableMap<String, MutableList<String>> = linkedMapOf())
+
     @TaskAction
     fun proceed() {
         try {
-            val constMap = mutableMapOf<String, String>()
+            val dictionary = mutableMapOf<String, String>().also {
+                it["Int.MAX_VALUE"] = Int.MAX_VALUE.toString()
+            }
+            val models = mutableListOf<PropertyModel>()
+            val enums = mutableListOf<EnumInfo>()
+
             val acc = StringBuilder()
             val docLines = mutableListOf<String>()
             val byteArrayOutputStream = ByteArrayOutputStream()
             val writer = PrintWriter(byteArrayOutputStream)
-            File(settingsSourceDir, sourceFileName).useLines {
+            File(settingsSourceDir, sourceFileName).useLines { it ->
                 it.iterator().forEach { line ->
                     var s = line.trim()
-                    if (s.startsWith("const val ")) {
+                    if (s.startsWith("enum class ")) {
+                        enums.add(EnumInfo(s.substring(11, s.length - 2)))
+                    } else if (s.matches(Regex("[A-Z_]+,?")) && enums.isNotEmpty()) {
+                        var enumValue = s.substring(0, s.length - 1)
+                        if (enumValue.endsWith(",")) enumValue = enumValue.substring(0, enumValue.length - 1)
+                        enums.last().docMap[enumValue] = docLines.toMutableList()
+                    } else if (s.startsWith("const val ")) {
                         val pos = s.indexOf(" = ")
-                        constMap[s.substring(10, pos)] = s.substring(pos + 3)
+                        dictionary[s.substring(10, pos)] = s.substring(pos + 3)
                     } else if (s == "/**") {
                         docLines.clear()
                     } else if (s.startsWith("* ")) {
@@ -96,39 +117,44 @@ abstract class SettingsToConfigTask : DefaultTask() {
                     } else if (s.startsWith("var")) {
                         acc.clear()
                         acc.append(s)
-                    } else if (s.isEmpty() && !acc.isEmpty()) {
+                    } else if (s.isEmpty() && acc.isNotEmpty()) {
                         s = acc.toString()
                         acc.clear()
                         if (s.startsWith("var")) {
                             var i = s.indexOf(" by ", 3)
                             if (i > 0) {
-                                var propertyName = s.substring(3, i).trim()
-                                if (propertyName.contains(':')) {
-                                    propertyName = propertyName.substring(0, propertyName.lastIndexOf(':'))
+                                var key = s.substring(3, i).trim()
+                                if (key.contains(':')) {
+                                    key = key.substring(0, key.lastIndexOf(':'))
                                 }
+                                val model = PropertyModel(key)
+                                models.add(model)
                                 s = s.substring(i + 7)
                                 i = s.indexOf("Property")
-                                if (i > 0) {
-                                    val type = s.subSequence(0, i)
+                                if (i > 0) model.type = s.substring(0, i)
+                                if (i == 0) {
+                                    i = s.indexOf('<', i)
+                                    if (i != -1) {
+                                        s = s.substring(i+1)
+                                        i = s.indexOf('>')
+                                        if (i != -1) {
+                                            model.type = s.substring(0, i)
+                                        }
+                                    }
+                                }
+
                                     i = s.indexOf('(', i)
                                     if (i > 0) {
                                         s = s.substring(i + 1)
-                                        var defaultValue = s.substring(0, s.indexOf(')'))
-                                        //TODO DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS -> 1000L
-                                        defaultValue = constMap[defaultValue] ?:defaultValue
-                                        //TODO remove class names for Enum type
-                                        //TODO get documentation from Enum values to property key documentation
-                                        if (byteArrayOutputStream.size() > 0) {
-                                            writer.println()
-                                            writer.println("#")
+                                        var defaultValue = s.substring(0, s.indexOf(')')).trim()
+                                        if (defaultValue.contains(',')) defaultValue = defaultValue.substring(0, defaultValue.indexOf(','))
+                                        defaultValue = dictionary[defaultValue] ?:defaultValue
+                                        if (defaultValue.matches(Regex("[\\d_]+L"))) {
+                                            defaultValue = defaultValue.substring(0, defaultValue.length - 1).replace("_", "")
                                         }
-                                        for (docLine in docLines) {
-                                            writer.println("# $docLine")
-                                        }
-                                        writer.println("$propertyName=$defaultValue")
-                                        writer.flush()
+                                        model.defaultValue = defaultValue
+                                        model.docLines.addAll(docLines)
                                     }
-                                }
                             } else {
                                 System.err.println(s)
                             }
@@ -136,6 +162,31 @@ abstract class SettingsToConfigTask : DefaultTask() {
                     } else if (acc.isNotEmpty()) {
                         acc.append(" $s")
                     }
+                }
+                for (model in models) {
+                    if (model.type == "Enum") {
+                        val split = model.defaultValue.split('.')
+                        if (split.size > 1) {
+                            model.defaultValue = split[1]
+                            val enumInfo = enums.find { info -> info.className == split[0] }
+                            enumInfo?.docMap?.forEach {
+                                model.docLines.add(it.key)
+                                it.value.forEach { line -> model.docLines.add(line) }
+                            }
+                        }
+                    }
+                    if (byteArrayOutputStream.size() > 0) {
+                        writer.println()
+                        writer.println("#")
+                    }
+                    for (docLine in model.docLines) {
+                        writer.println("# $docLine")
+                    }
+                    if (!model.docLines.any({ s -> s.toLowerCaseAsciiOnly().contains("default") })) {
+                        writer.println("# ${model.defaultValue} by default")
+                    }
+                    writer.println("${model.key}=${model.defaultValue}")
+                    writer.flush()
                 }
                 writer.flush()
                 writer.close()

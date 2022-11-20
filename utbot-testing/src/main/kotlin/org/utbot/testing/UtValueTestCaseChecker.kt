@@ -9,7 +9,6 @@ import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
 import org.utbot.engine.prettify
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.checkCoverageInCodeGenerationTests
 import org.utbot.framework.UtSettings.daysLimitForTempFiles
 import org.utbot.framework.UtSettings.testDisplayName
 import org.utbot.framework.UtSettings.testName
@@ -2401,10 +2400,6 @@ abstract class UtValueTestCaseChecker(
                     if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
                         conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                         return
-                    }
-
-                    if (checkCoverageInCodeGenerationTests) {
-                        // TODO JIRA:1407
                     }
 
                     val methodUnderTestOwnerId = testSet.method.classId

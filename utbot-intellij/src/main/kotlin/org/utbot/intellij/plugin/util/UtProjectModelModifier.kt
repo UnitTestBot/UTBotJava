@@ -30,7 +30,6 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
     ): Promise<Void>? {
         val defaultRoots = descriptor.libraryClassesRoots
         val firstModule = ContainerUtil.getFirstItem(modules) ?: return null
-
         val classesRoots = if (defaultRoots.isNotEmpty()) {
             LocateLibraryDialog(
                 firstModule,
@@ -54,8 +53,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
         }
         if (classesRoots.isNotEmpty()) {
             val urls = OrderEntryFix.refreshAndConvertToUrls(classesRoots)
-
-            if (modules.size == 1 && !firstModule.project.isBuildWithGradle) {
+            if (canLoadModuleLibrary(modules)) {
                 ModuleRootModificationUtil.addModuleLibrary(
                     firstModule,
                     if (classesRoots.size > 1) descriptor.presentableName else null,
@@ -81,4 +79,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
         }
         return resolvedPromise()
     }
+
+    private fun canLoadModuleLibrary(modules: Collection<Module>) =
+        modules.size == 1 && !ContainerUtil.getFirstItem(modules).project.isBuildWithGradle
 }

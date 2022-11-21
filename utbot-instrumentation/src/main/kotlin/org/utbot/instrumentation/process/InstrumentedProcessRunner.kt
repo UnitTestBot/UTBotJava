@@ -8,18 +8,16 @@ import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.OpenModulesContainer
-import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import org.utbot.rd.rdPortArgument
 import java.io.File
 import java.time.LocalDateTime
-import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
-class ChildProcessRunner {
+class InstrumentedProcessRunner {
     private val cmds: List<String> by lazy {
-        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runChildProcessWithDebug })
+        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runInstrumentedProcessWithDebug })
         val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments ?: emptyList()
         val pathToJava = JdkInfoService.provide().path
 
@@ -34,7 +32,7 @@ class ChildProcessRunner {
     fun start(rdPort: Int): Process {
         val portArgument = rdPortArgument(rdPort)
 
-        logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
+        logger.debug { "Starting instrumented process: ${cmds.joinToString(" ")} $portArgument" }
 
         UT_BOT_TEMP_DIR.mkdirs()
         val formatted = dateTimeFormatter.format(LocalDateTime.now())
@@ -46,7 +44,7 @@ class ChildProcessRunner {
             if (!UtSettings.useSandbox) {
                 add(DISABLE_SANDBOX_OPTION)
             }
-            add(logLevelArgument(UtSettings.childProcessLogLevel))
+            add(logLevelArgument(UtSettings.instrumentedProcessLogLevel))
             add(portArgument)
         }
 
@@ -55,17 +53,19 @@ class ChildProcessRunner {
             .directory(directory)
 
         return processBuilder.start().also {
-            logger.info { "Child process started with PID=${it.getPid}" }
-            logger.info { "Child process log file: ${errorLogFile.absolutePath}" }
+            logger.info { "Instrumented process started with PID=${it.getPid}" }
+            logger.info { "Instrumented process log file: ${errorLogFile.absolutePath}" }
         }
     }
 
     companion object {
+        private fun suspendValue(): String = if (UtSettings.engineProcessDebugSuspendPolicy) "y" else "n"
+
         private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
-        private const val ERRORS_FILE_PREFIX = "utbot-childprocess-errors"
+        private const val ERRORS_FILE_PREFIX = "utbot-instrumentedprocess-errors"
         private const val INSTRUMENTATION_LIB = "lib"
 
-        private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=$childProcessDebugPort"
+        private val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspendValue()},quiet=y,address=${UtSettings.instrumentedProcessDebugPort}"
 
         private val UT_BOT_TEMP_DIR: File = File(utBotTempDirectory.toFile(), ERRORS_FILE_PREFIX)
 
@@ -92,7 +92,7 @@ class ChildProcessRunner {
                     val unzippedJarName = "$UTBOT_INSTRUMENTATION-${currentProcessPid}.jar"
                     val instrumentationJarFile = File(tempDir, unzippedJarName)
 
-                    ChildProcessRunner::class.java.classLoader
+                    InstrumentedProcessRunner::class.java.classLoader
                         .firstOrNullResourceIS(INSTRUMENTATION_LIB) { resourcePath ->
                             resourcePath.contains(UTBOT_INSTRUMENTATION) && resourcePath.endsWith(".jar")
                         }
@@ -103,7 +103,7 @@ class ChildProcessRunner {
                     instrumentationJarFile
                 } ?: run {
                     logger.debug("Failed to find jar in the resources. Trying to find it in the classpath.")
-                    ChildProcessRunner::class.java.classLoader
+                    InstrumentedProcessRunner::class.java.classLoader
                         .scanForResourcesContaining(DynamicClassTransformer::class.java.nameOfPackage)
                         .firstOrNull {
                             it.absolutePath.contains(UTBOT_INSTRUMENTATION) && it.extension == "jar"

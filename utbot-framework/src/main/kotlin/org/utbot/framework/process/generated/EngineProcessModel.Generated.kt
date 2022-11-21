@@ -64,7 +64,7 @@ class EngineProcessModel private constructor(
         @JvmStatic
         @Deprecated("Use protocol.engineProcessModel or revise the extension scope instead", ReplaceWith("protocol.engineProcessModel"))
         fun create(lifetime: Lifetime, protocol: IProtocol): EngineProcessModel  {
-            EngineProcessProtocolRoot.register(protocol.serializers)
+            EngineProcessRoot.register(protocol.serializers)
             
             return EngineProcessModel().apply {
                 identify(protocol.identity, RdId.Null.mix("EngineProcessModel"))

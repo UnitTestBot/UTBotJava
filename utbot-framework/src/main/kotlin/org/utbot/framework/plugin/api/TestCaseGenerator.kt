@@ -224,7 +224,7 @@ open class TestCaseGenerator(
                 }
             }
         }
-        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close child processes
+        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
 
         return methods.map { method ->

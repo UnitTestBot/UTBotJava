@@ -16,5 +16,14 @@ class UtbotBundle : DynamicBundle(BUNDLE) {
         ): String {
             return INSTANCE.getMessage(key, *params)
         }
+
+        fun takeIf(
+            @PropertyKey(resourceBundle = BUNDLE) key: String,
+            vararg params: Any,
+            condition: () -> Boolean): String? {
+            if (condition())
+                return message(key, params)
+            return null
+        }
     }
 }

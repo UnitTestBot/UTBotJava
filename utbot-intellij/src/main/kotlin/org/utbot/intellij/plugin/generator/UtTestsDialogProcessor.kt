@@ -94,7 +94,7 @@ object UtTestsDialogProcessor {
         val testModules = srcModule.testModules(project)
 
         JdkInfoService.jdkInfoProvider = PluginJdkInfoProvider(project)
-        // we want to start the child process in the same directory as the test runner
+        // we want to start the instrumented process in the same directory as the test runner
         WorkingDirService.workingDirProvider = PluginWorkingDirProvider(project)
 
         val model = GenerateTestsModel(
@@ -199,7 +199,7 @@ object UtTestsDialogProcessor {
                                 )
 
                                 // set timeout for concrete execution and for generated tests
-                                UtSettings.concreteExecutionTimeoutInChildProcess =
+                                UtSettings.concreteExecutionTimeoutInInstrumentedProcess =
                                     model.hangingTestsTimeout.timeoutMs
 
                                 UtSettings.useCustomJavaDocTags =
@@ -355,6 +355,6 @@ object UtTestsDialogProcessor {
         val classpath: String,
         val classpathList: List<String>,
         val pluginJarsPath: List<String>
-        // ^ TODO: Now we collect ALL dependent libs and pass them to the child process. Most of them are redundant.
+        // ^ TODO: Now we collect ALL dependent libs and pass them to the instrumented process. Most of them are redundant.
     )
 }

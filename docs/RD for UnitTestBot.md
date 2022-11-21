@@ -112,21 +112,21 @@ Usefull:
 2. There are some usefull classes to work with processes & rd:
 	- ```LifetimedProcess``` - binds ```Lifetime``` to process. If process dies - lifetime terminates and vice versa. You can terminate lifetime manually - this will destroy process.
 	- ```ProcessWithRdServer``` - also starts Rd server and waits for connection.
-	- ```UtInstrumentationProcess``` - encapsulates logic for preparing child process for executing arbitary commands. Exposes ```protocolModel``` for communicating with child process.
+	- ```UtInstrumentationProcess``` - encapsulates logic for preparing instrumented process for executing arbitary commands. Exposes ```protocolModel``` for communicating with instrumented process.
 	- ```ConcreteExecutor``` is convenient wrapper for executing commands and managing resources.
 3. How child communication works:
 	- Choosing free port
-	- Creating child process, passing port as argument
+	- Creating instrumented process, passing port as argument
 	- Both processes create protocols and bind model
-	- Child process setups all callbacks
+	- Instrumented process setups all callbacks
 	- Parent process cannot send messages before child creates protocol, otherwise messages will be lost. So child process needs to signal that he is ready.
-	- Child proces creates special file in temp dir, that is observed by parent process.
+	- Instrumented proces creates special file in temp dir, that is observed by parent process.
 	- When parent process spots file - he deletes it, and then sends special message for preparing child proccess instrumentation
 	- Only then process is ready for executing commands
 4. How to write custom commands for child process
 	- Add new ```call``` in ```ProtocolModel```
 	- Regenerate models
-	- Add callback for new ```call``` in ```ChildProcess.kt```
+	- Add callback for new ```call``` in ```InstrumentedProcess.kt```
 	- Use ```ConcreteExecutor.withProcess``` method
 	- ___Important___ - do not add `Rdgen` as implementation dependency, it breaks some `.jar`s as it contains `kotlin-compiler-embeddable`.
 5. Logs

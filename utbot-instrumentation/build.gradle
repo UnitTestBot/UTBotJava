@@ -24,12 +24,12 @@ jar {
 
     manifest {
         attributes (
-                'Main-Class': 'org.utbot.instrumentation.process.ChildProcessKt',
+                'Main-Class': 'org.utbot.instrumentation.process.InstrumentedProcessMainKt',
                 'Premain-Class': 'org.utbot.instrumentation.agent.Agent',
         )
     }
 
-    // we need only classes from implementation and utbot to execute child process
+    // we need only classes from implementation and utbot to execute instrumented process
     dependsOn configurations.compileClasspath
     from {
         configurations.compileClasspath

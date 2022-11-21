@@ -20,7 +20,7 @@ private const val defaultKeyForSettingsPath = "utbot.settings.path"
 /**
  * Default concrete execution timeout (in milliseconds).
  */
-const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
+const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS = 1000L
 
 object UtSettings : AbstractSettings(
     logger, defaultKeyForSettingsPath, defaultSettingsPath
@@ -260,44 +260,64 @@ object UtSettings : AbstractSettings(
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(
-        DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+    var concreteExecutionTimeoutInInstrumentedProcess: Long by getLongProperty(
+        DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
     /**
-     * Log level for concrete executor process.
+     * Log level for instrumented process.
      */
-    var childProcessLogLevel by getEnumProperty(LogLevel.Info)
+    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
 
     /**
      * Path to custom log4j2 configuration file for EngineProcess.
      * By default utbot-intellij/src/main/resources/log4j2.xml is used.
      * Also default value is used if provided value is not a file.
      */
-    var ideaProcessLogConfigFile by getStringProperty("")
+    var engineProcessLogConfigFile by getStringProperty("")
 
     /**
      * Property useful only for idea
      * If true - runs engine process with the ability to attach a debugger
-     * @see runChildProcessWithDebug
+     * @see runInstrumentedProcessWithDebug
      * @see org.utbot.intellij.plugin.process.EngineProcess
      */
-    var runIdeaProcessWithDebug by getBooleanProperty(false)
+    var runEngineProcessWithDebug by getBooleanProperty(false)
 
     /**
-     * If true, runs the child process with the ability to attach a debugger.
+     * Port which will be used for debugging engine process
+     */
+    var engineProcessDebugPort by getIntProperty(5005)
+
+    /**
+     * Whether engine process should suspend until debugger attached
+     */
+    var engineProcessDebugSuspendPolicy by getBooleanProperty(true)
+
+    /**
+     * Port which will be used for debugging instrumented process
+     */
+    var instrumentedProcessDebugPort by getIntProperty(5006)
+
+    /**
+     * Whether instrumented process should suspend until debugger attached
+     */
+    var instrumentedProcessSuspendPolicy by getBooleanProperty(true)
+
+    /**
+     * If true, runs the instrumented process with the ability to attach a debugger.
      *
-     * To debug the child process, set the breakpoint in the childProcessRunner.start() line
-     * and in the child process's main function and run the main process.
+     * To debug the instrumented process, set the breakpoint in the instrumentedProcessRunner.start() line
+     * and in the instrumented process's main function and run the main process.
      * Then run the remote JVM debug configuration in IDEA.
      * If you see the message in console about successful connection, then
      * the debugger is attached successfully.
-     * Now you can put the breakpoints in the child process and debug
+     * Now you can put the breakpoints in the instrumented process and debug
      * both processes simultaneously.
      *
-     * @see [org.utbot.instrumentation.process.ChildProcessRunner.cmds]
+     * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
      */
-    var runChildProcessWithDebug by getBooleanProperty(false)
+    var runInstrumentedProcessWithDebug by getBooleanProperty(false)
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
@@ -391,7 +411,7 @@ object UtSettings : AbstractSettings(
     var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
 
     /**
-     * Use the sandbox in the concrete executor.
+     * Use the sandbox in the instrumented process.
      *
      * If true (default), the sandbox will prevent potentially dangerous calls, e.g., file access, reading
      * or modifying the environment, calls to `Unsafe` methods etc.

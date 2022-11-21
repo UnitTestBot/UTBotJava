@@ -18,7 +18,11 @@ The most straightforward way to debug the Engine process is the following.
 
 1. Open `org/utbot/framework/UtSettings.kt`.
 2. Set `runIdeaProcessWithDebug` property to _true_. This enables `EngineProcess.debugArgument`.
-3. Find `EngineProcess.debugArgument` at `org/utbot/intellij/plugin/process/EngineProcess` and check the parameters of the debug run:
+   * Alternatively you can create `~/.utbot/settings.properties` file and write following:
+   ```
+   runIdeaProcessWithDebug=true
+   ```
+4. Find `EngineProcess.debugArgument` at `org/utbot/intellij/plugin/process/EngineProcess` and check the parameters of the debug run:
 
     `"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005"`
 

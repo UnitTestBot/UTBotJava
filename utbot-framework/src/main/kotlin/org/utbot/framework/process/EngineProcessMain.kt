@@ -34,7 +34,9 @@ import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
+import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.findRdPort
+import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport

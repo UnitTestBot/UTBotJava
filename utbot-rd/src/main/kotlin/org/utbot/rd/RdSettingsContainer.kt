@@ -1,12 +1,10 @@
-package org.utbot.framework.process
+package org.utbot.rd
 
-import kotlinx.coroutines.runBlocking
 import mu.KLogger
 import org.utbot.common.SettingsContainer
 import org.utbot.common.SettingsContainerFactory
-import org.utbot.framework.process.generated.SettingForArgument
-import org.utbot.framework.process.generated.SettingsModel
-import org.utbot.rd.startBlocking
+import org.utbot.rd.generated.SettingForArgument
+import org.utbot.rd.generated.SettingsModel
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty

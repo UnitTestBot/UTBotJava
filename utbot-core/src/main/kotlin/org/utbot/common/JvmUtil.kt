@@ -5,6 +5,3 @@ val isJvm8 = javaSpecificationVersion.equals("1.8")
 val isJvm9Plus = !javaSpecificationVersion.contains(".") && javaSpecificationVersion.toInt() >= 9
 
 fun osSpecificJavaExecutable() = if (isWindows) "javaw" else "java"
-
-const val engineProcessDebugPort = 5005
-const val childProcessDebugPort = 5006

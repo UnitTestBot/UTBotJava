@@ -11,19 +11,11 @@ import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.common.*
-import org.utbot.common.PathUtil.toPathOrNull
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.runIdeaProcessWithDebug
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfo
@@ -42,6 +34,10 @@ import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
 import org.utbot.intellij.plugin.util.assertIsReadAccessAllowed
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.rd.*
+import org.utbot.rd.exceptions.InstantProcessDeathException
+import org.utbot.rd.generated.SettingForResult
+import org.utbot.rd.generated.SettingsModel
+import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
@@ -49,8 +45,6 @@ import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import kotlin.io.path.pathString
 import kotlin.reflect.KProperty1
@@ -62,6 +56,9 @@ private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdE
 
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
+class EngineProcessInstantDeathException :
+    InstantProcessDeathException(UtSettings.engineProcessDebugPort, UtSettings.runEngineProcessWithDebug)
+
 class EngineProcess private constructor(val project: Project, rdProcess: ProcessWithRdServer) :
     ProcessWithRdServer by rdProcess {
     companion object {
@@ -72,7 +69,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             engineProcessLogConfigurations.mkdirs()
             Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
 
-            val customFile = File(UtSettings.ideaProcessLogConfigFile)
+            val customFile = File(UtSettings.engineProcessLogConfigFile)
 
             if (customFile.exists()) {
                 log4j2ConfigFile = customFile
@@ -93,9 +90,11 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
 
         private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
 
+        private fun suspendValue(): String = if (UtSettings.engineProcessDebugSuspendPolicy) "y" else "n"
+
         private val debugArgument: String?
-            get() = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=$engineProcessDebugPort"
-                .takeIf { runIdeaProcessWithDebug }
+            get() = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
+                .takeIf { UtSettings.runEngineProcessWithDebug }
 
         private val javaExecutablePathString: Path
             get() = JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}")
@@ -107,9 +106,9 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
                 postfix = "\""
             )
 
-        private const val startFileName = "org.utbot.framework.process.EngineMainKt"
+        private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
 
-        private fun obtainEngineProcessCommandLine(port: Int) = buildList<String> {
+        private fun obtainEngineProcessCommandLine(port: Int) = buildList {
             add(javaExecutablePathString.pathString)
             add("-ea")
             OpenModulesContainer.javaVersionSpecificArguments?.let { addAll(it) }
@@ -139,6 +138,11 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
 
                     logger.info { "Engine process started with PID = ${process.getPid}" }
                     logger.info { "Engine process log file - ${logFile.canonicalPath}" }
+
+                    if (!process.isAlive) {
+                        throw EngineProcessInstantDeathException()
+                    }
+
                     process
                 }
                 rdProcess.awaitSignal()
@@ -355,20 +359,18 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
     fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> {
         assertIsNonDispatchThread()
 
-        // todo unforce loading
-
-        val forceMockWarning = UtbotBundle.message(
+        val forceMockWarning = UtbotBundle.takeIf(
             "test.report.force.mock.warning",
             TestReportUrlOpeningListener.prefix,
             TestReportUrlOpeningListener.mockitoSuffix
-        ).takeIf { model.conflictTriggers[Conflict.ForceMockHappened] == true }
-        val forceStaticMockWarnings = UtbotBundle.message(
+        ) { model.conflictTriggers[Conflict.ForceMockHappened] == true }
+        val forceStaticMockWarnings = UtbotBundle.takeIf(
             "test.report.force.static.mock.warning",
             TestReportUrlOpeningListener.prefix,
             TestReportUrlOpeningListener.mockitoInlineSuffix
-        ).takeIf { model.conflictTriggers[Conflict.ForceStaticMockHappened] == true }
-        val testFrameworkWarnings = UtbotBundle.message("test.report.test.framework.warning")
-            .takeIf { model.conflictTriggers[Conflict.TestFrameworkConflict] == true }
+        ) { model.conflictTriggers[Conflict.ForceStaticMockHappened] == true }
+        val testFrameworkWarnings =
+            UtbotBundle.takeIf("test.report.test.framework.warning") { model.conflictTriggers[Conflict.TestFrameworkConflict] == true }
         val params = GenerateTestReportArgs(
             eventLogMessage,
             model.testPackageName,

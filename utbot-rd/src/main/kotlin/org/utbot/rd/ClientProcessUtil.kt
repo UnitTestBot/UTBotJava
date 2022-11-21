@@ -30,7 +30,7 @@ internal fun childCreatedFileName(port: Int): String {
     return "$port.created"
 }
 
-internal fun signalChildReady(port: Int) {
+internal fun signalInstrumentedReady(port: Int) {
     processSyncDirectory.mkdirs()
 
     val signalFile = File(processSyncDirectory, childCreatedFileName(port))
@@ -161,7 +161,7 @@ class ClientProtocolBuilder {
                 clientProtocol.block(synchronizer)
             }
 
-            signalChildReady(port)
+            signalInstrumentedReady(port)
             logger.info { "signalled" }
             clientProtocol.synchronizationModel.synchronizationSignal.let { sync ->
                 val answerFromMainProcess = sync.adviseForConditionAsync(ldef) {

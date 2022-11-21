@@ -55,7 +55,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
         if (classesRoots.isNotEmpty()) {
             val urls = OrderEntryFix.refreshAndConvertToUrls(classesRoots)
 
-            if (modules.size == 1) {
+            if (modules.size == 1 && !firstModule.project.isBuildWithGradle) {
                 ModuleRootModificationUtil.addModuleLibrary(
                     firstModule,
                     if (classesRoots.size > 1) descriptor.presentableName else null,

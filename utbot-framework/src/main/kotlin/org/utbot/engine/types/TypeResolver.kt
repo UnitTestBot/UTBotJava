@@ -354,6 +354,10 @@ internal val STRING_TYPE: RefType
     get() = Scene.v().getSootClass(String::class.java.canonicalName).type
 internal val CLASS_REF_TYPE: RefType
     get() = CLASS_REF_SOOT_CLASS.type
+internal val THREAD_TYPE: RefType
+    get() = Scene.v().getSootClass(Thread::class.java.canonicalName).type
+internal val THREAD_GROUP_TYPE: RefType
+    get() = Scene.v().getSootClass(ThreadGroup::class.java.canonicalName).type
 
 internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 

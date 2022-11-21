@@ -5,7 +5,6 @@ import org.utbot.engine.jimpleBody
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
@@ -181,11 +180,13 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.strings.UtString::class,
     org.utbot.engine.overrides.strings.UtStringBuilder::class,
     org.utbot.engine.overrides.strings.UtStringBuffer::class,
+    org.utbot.engine.overrides.threads.UtThread::class,
+    org.utbot.engine.overrides.threads.UtThreadGroup::class,
     org.utbot.engine.overrides.stream.Stream::class,
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,
     org.utbot.engine.overrides.collections.List::class,
-    UtStreamConsumingException::class,
+    org.utbot.framework.plugin.api.visible.UtStreamConsumingException::class,
     org.utbot.engine.overrides.stream.UtStream::class,
     org.utbot.engine.overrides.stream.UtIntStream::class,
     org.utbot.engine.overrides.stream.UtLongStream::class,

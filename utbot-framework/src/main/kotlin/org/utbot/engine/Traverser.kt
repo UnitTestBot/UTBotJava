@@ -961,7 +961,12 @@ class Traverser(
                 }
             }
 
-            SymbolicStateUpdate(memoryUpdates = objectUpdate)
+            // We need to associate this field with the created symbolic value to not lose an information about its type.
+            // For example, if field's declared type is Runnable but at the current state it is a specific lambda,
+            // we have to save this lambda as a type of this field to be able to retrieve it in the future.
+            val fieldValuesUpdate = fieldUpdate(left.field, instanceForField.addr, value)
+
+            SymbolicStateUpdate(memoryUpdates = objectUpdate + fieldValuesUpdate)
         }
         is JimpleLocal -> SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(left.variable to value))
         is InvokeExpr -> TODO("Not implemented: $left")
@@ -1941,7 +1946,7 @@ class Traverser(
 
     /**
      * For now the field is `meaningful` if it is safe to set, that is, it is not an internal system field nor a
-     * synthetic field. This filter is needed to prohibit changing internal fields, which can break up our own
+     * synthetic field or a wrapper's field. This filter is needed to prohibit changing internal fields, which can break up our own
      * code and which are useless for the user.
      *
      * @return `true` if the field is meaningful, `false` otherwise.
@@ -1950,7 +1955,9 @@ class Traverser(
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields that cannot be set via reflection anyway
             !field.fieldId.isInaccessibleViaReflection &&
-                // we should not manually set enum constants
+            // we should not set static fields from wrappers
+            !field.declaringClass.isOverridden &&
+            // we should not manually set enum constants
             !(field.declaringClass.isEnum && field.isEnumConstant) &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
@@ -2063,6 +2070,10 @@ class Traverser(
         field: SootField,
         mockInfoGenerator: UtMockInfoGenerator?
     ): SymbolicValue {
+        memory.fieldValue(field, addr)?.let {
+            return it
+        }
+
         val chunkId = hierarchy.chunkIdForField(objectType, field)
         val createdField = createField(objectType, addr, field.type, chunkId, mockInfoGenerator)
 
@@ -2234,6 +2245,20 @@ class Traverser(
         val chunkId = hierarchy.chunkIdForField(instance.type, field)
         val descriptor = MemoryChunkDescriptor(chunkId, instance.type, field.type)
         return MemoryUpdate(persistentListOf(namedStore(descriptor, instance.addr, value)))
+    }
+
+    /**
+     * Creates a [MemoryUpdate] with [MemoryUpdate.fieldValues] containing [fieldValue] associated with the non-staitc [field]
+     * of the object instance with the specified [instanceAddr].
+     */
+    private fun fieldUpdate(
+        field: SootField,
+        instanceAddr: UtAddrExpression,
+        fieldValue: SymbolicValue
+    ): MemoryUpdate {
+        val fieldValuesUpdate = persistentHashMapOf(field to persistentHashMapOf(instanceAddr to fieldValue))
+
+        return MemoryUpdate(fieldValues = fieldValuesUpdate)
     }
 
     fun arrayUpdateWithValue(

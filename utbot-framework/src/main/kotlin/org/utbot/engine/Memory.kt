@@ -45,6 +45,7 @@ import soot.CharType
 import soot.IntType
 import soot.RefLikeType
 import soot.Scene
+import soot.SootField
 import soot.Type
 
 
@@ -64,6 +65,8 @@ import soot.Type
  *
  * Note: [staticInitial] contains mapping from [FieldId] to the memory state at the moment of the field initialization.
  *
+ * [fieldValues] stores symbolic values for specified fields of the specified object instances.
+ *
  * @see memoryForNestedMethod
  * @see FieldStates
  */
@@ -77,6 +80,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     private val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val staticFieldsStates: PersistentMap<FieldId, FieldStates> = persistentHashMapOf(),
     private val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
+    private val fieldValues: PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>> = persistentHashMapOf(),
     private val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
     private val addrToMockInfo: PersistentMap<UtAddrExpression, UtMockInfo> = persistentHashMapOf(),
     private val updates: MemoryUpdate = MemoryUpdate(), // TODO: refactor this later. Now we use it only for statics substitution
@@ -109,6 +113,13 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun mocks(): List<MockInfoEnriched> = mockInfos
 
     fun staticFields(): Map<FieldId, FieldStates> = staticFieldsStates.filterKeys { it in meaningfulStaticFields }
+
+    /**
+     * Returns a symbolic value, associated with the specified [field] of the object with the specified [instanceAddr],
+     * if present, and null otherwise.
+     */
+    fun fieldValue(field: SootField, instanceAddr: UtAddrExpression): SymbolicValue? =
+        fieldValues[field]?.get(instanceAddr)
 
     /**
      * Construct the mapping from addresses to sets of fields whose values are read during the code execution
@@ -243,6 +254,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             initializedStaticFields = initializedStaticFields.addAll(update.initializedStaticFields),
             staticFieldsStates = previousMemoryStates.toPersistentMap().putAll(updatedStaticFields),
             meaningfulStaticFields = meaningfulStaticFields.addAll(update.meaningfulStaticFields),
+            fieldValues = fieldValues.putAll(update.fieldValues),
             addrToArrayType = addrToArrayType.putAll(update.addrToArrayType),
             addrToMockInfo = addrToMockInfo.putAll(update.addrToMockInfo),
             updates = updates + update,
@@ -342,6 +354,7 @@ data class MemoryUpdate(
     val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val staticFieldsUpdates: PersistentList<StaticFieldMemoryUpdateInfo> = persistentListOf(),
     val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
+    val fieldValues: PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>> = persistentHashMapOf(),
     val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
     val addrToMockInfo: PersistentMap<UtAddrExpression, UtMockInfo> = persistentHashMapOf(),
     val visitedValues: PersistentList<UtAddrExpression> = persistentListOf(),
@@ -361,6 +374,7 @@ data class MemoryUpdate(
             initializedStaticFields = initializedStaticFields.addAll(other.initializedStaticFields),
             staticFieldsUpdates = staticFieldsUpdates.addAll(other.staticFieldsUpdates),
             meaningfulStaticFields = meaningfulStaticFields.addAll(other.meaningfulStaticFields),
+            fieldValues = fieldValues.putAll(other.fieldValues),
             addrToArrayType = addrToArrayType.putAll(other.addrToArrayType),
             addrToMockInfo = addrToMockInfo.putAll(other.addrToMockInfo),
             visitedValues = visitedValues.addAll(other.visitedValues),

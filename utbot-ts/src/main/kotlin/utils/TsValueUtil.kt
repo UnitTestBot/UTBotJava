@@ -11,6 +11,7 @@ import org.json.JSONObject
 
 fun String.toTsAny(returnType: TsClassId): Pair<Any?, TsClassId> {
     return when {
+        // TODO(Check by types)
         this == "true" || this == "false" -> toBoolean() to tsBooleanClassId
         this == "null" || this == "undefined" -> null to tsUndefinedClassId
         Regex("^.*Error:.*").matches(this) -> this.replace("Error:", "") to tsErrorClassId

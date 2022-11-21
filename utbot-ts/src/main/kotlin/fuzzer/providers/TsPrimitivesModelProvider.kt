@@ -50,7 +50,7 @@ object TsPrimitivesModelProvider : ModelProvider {
                 TsPrimitiveModel(-1.1).fuzzed { summary = "%var% < 0.0" },
                 TsPrimitiveModel(MIN_INT.toDouble()).fuzzed { summary = "%var% = Number.MIN_SAFE_VALUE" },
                 TsPrimitiveModel(MAX_INT.toDouble()).fuzzed { summary = "%var% = Number.MAX_SAFE_VALUE" },
-//                TODO SEVERE: Think about such values as they are present in JavaScript.
+//                TODO SEVERE: Think about such values as they are present in TypeScript.
 //                UtPrimitiveModel(Double.NEGATIVE_INFINITY).fuzzed { summary = "%var% = Double.NEGATIVE_INFINITY" },
 //                UtPrimitiveModel(Double.POSITIVE_INFINITY).fuzzed { summary = "%var% = Double.POSITIVE_INFINITY" },
 //                TsPrimitiveModel(Double.NaN).fuzzed { summary = "%var% = Double.NaN" },

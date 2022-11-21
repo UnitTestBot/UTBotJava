@@ -100,9 +100,9 @@ class TsUndefinedModel(
 
 data class TsPrimitiveModel(
     val value: Any,
-) : TsUtModel(jsPrimitiveModelValueToClassId(value)) {
+) : TsUtModel(tsPrimitiveModelValueToClassId(value)) {
     override fun toString() = value.toString()
 }
 
-private fun jsPrimitiveModelValueToClassId(value: Any) =
+private fun tsPrimitiveModelValueToClassId(value: Any) =
     primitiveModelValueToClassId(value).toTsClassId()

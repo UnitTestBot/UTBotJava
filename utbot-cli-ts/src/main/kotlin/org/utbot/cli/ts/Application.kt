@@ -11,7 +11,7 @@ import org.utbot.cli.getVersion
 import org.utbot.cli.setVerbosity
 import kotlin.system.exitProcess
 
-class UtBotJsCli : CliktCommand(name = "UnitTestBot JavaScript Command Line Interface") {
+class UtBotJsCli : CliktCommand(name = "UnitTestBot TypeScript Command Line Interface") {
     private val verbosity by option("--verbosity", help = "Changes verbosity level, case insensitive")
         .enum<Level>(ignoreCase = true)
         .default(Level.INFO)

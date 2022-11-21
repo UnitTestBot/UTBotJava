@@ -25,7 +25,7 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     override val logicalOr: String
         get() = "||"
 
-    override val langPackage: String = "js"
+    override val langPackage: String = "ts"
 
     override val ClassId.methodsAreAccessibleAsTopLevel: Boolean
         get() = false
@@ -140,7 +140,7 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgNotNullAssertion) {
-        throw UnsupportedOperationException("JavaScript does not support not null assertions")
+        throw UnsupportedOperationException("TypeScript does not support not null assertions")
     }
 
     override fun visit(element: CgAllocateArray) {
@@ -200,11 +200,11 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgGetJavaClass) {
-        throw UnsupportedOperationException("No Java classes in JavaScript")
+        throw UnsupportedOperationException("No Java classes in TypeScript")
     }
 
     override fun visit(element: CgGetKotlinClass) {
-        throw UnsupportedOperationException("No Kotlin classes in JavaScript")
+        throw UnsupportedOperationException("No Kotlin classes in TypeScript")
     }
 
     override fun visit(element: CgConstructorCall) {
@@ -279,9 +279,7 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
             renderAccess(caller)
         } else {
             val method = element.executableId
-            if (method is BuiltinMethodId) {
-
-            } else if (method.isStatic) {
+            if (method.isStatic && method !is BuiltinMethodId) {
                 val line = if (method.classId.toString() == "undefined") "" else "${method.classId}."
                 print(line)
             }

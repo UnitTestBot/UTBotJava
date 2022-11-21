@@ -155,7 +155,7 @@ class TsCgStatementConstructor(context: CgContext) :
     }
 
     override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) {
-        throw UnsupportedOperationException("JavaScript does not have forEach loops")
+        throw UnsupportedOperationException("TypeScript does not have forEach loops")
     }
 
     override fun getClassOf(classId: ClassId): CgExpression {
@@ -196,7 +196,7 @@ class TsCgStatementConstructor(context: CgContext) :
         TODO("Not yet implemented")
     }
 
-    // TODO MINOR: check whether js has inner blocks
+    // TODO MINOR: check whether TS has inner blocks
     override fun innerBlock(init: () -> Unit): CgInnerBlock =
         CgInnerBlock(block(init)).also {
             currentBlock += it

@@ -92,13 +92,17 @@ class TsCoverageServiceProvider(
     ): Pair<List<Set<Int>>, List<String>> {
         with(context) {
             val tempScriptTexts = fuzzedValues.indices.map {
-                "const $fileUnderTestAliases = " +
-                        "require(\"./${
-                            TsPathResolver.getRelativePath(
-                                "${projectPath}/${utbotDir}",
+                val importSection = buildString {
+                    append(buildImportStatement(
+                        fileUnderTestAliases,
+                        "./${TsPathResolver.getRelativePath(
+                            "${projectPath}/${utbotDir}",
                                 filePathToInference
-                            )
-                        }\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
+                            )}"
+                    ))
+                    appendLine(buildImportStatement("fs", "fs"))
+                }
+                importSection + makeStringForRunJs(
                     fuzzedValue = fuzzedValues[it],
                     method = execId,
                     containingClass = classNode?.name,
@@ -164,8 +168,8 @@ class TsCoverageServiceProvider(
         }
     }
 
-    private fun makeScriptForBaseCoverage(covFunName: String, resFilePath: String): String {
-        return """
+    private fun makeScriptForBaseCoverage(covFunName: String, resFilePath: String): String =
+        """
 $importsSection
 
 let json = {}
@@ -173,9 +177,7 @@ let json = {}
 json.s = $fileUnderTestAliases.$covFunName().s
 fs.writeFileSync("$resFilePath", JSON.stringify(json))
         """
-    }
 
-    //TODO: refactor this.
     private fun makeStringForRunJs(
         fuzzedValue: List<FuzzedValue>,
         method: TsMethodId,
@@ -184,14 +186,13 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
         index: Int,
         resFilePath: String,
         mode: TsCoverageMode,
-    ): String {
-        val callString = makeCallFunctionString(fuzzedValue, method, containingClass)
-        return """
+    ): String =
+        """
 let json$index = {}
 
 let res$index
 try {
-    res$index = $callString
+    res$index = ${makeCallFunctionString(fuzzedValue, method, containingClass)}
 } catch(e) {
     // @ts-ignore
     res$index = "Error:" + e.message
@@ -205,8 +206,7 @@ if (mode == TsCoverageMode.FAST ) "json$index.index = $index\n" +
 "json$index.s = $fileUnderTestAliases.$covFunName().s\n" else ""
 }            
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
-            """
-    }
+        """
 
     private fun makeCallFunctionString(
         fuzzedValue: List<FuzzedValue>,

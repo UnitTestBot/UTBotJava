@@ -51,6 +51,7 @@ class TsFastCoverageService(
 
         private fun fixImportsInInstrumentedFile(filePath: String, context: TsServiceContext): String {
             with(context) {
+                // nyc poorly handles imports paths in file to instrument. Manual fix required.
                 val importRegex = Regex("import\\{.*}from\"(.*)\"")
                 val fileText = File(filePath).readText()
                 val newFileText = importRegex.findAll(fileText).fold(fileText) { acc, it ->

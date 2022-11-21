@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import parser.ast.ClassDeclarationNode
-import settings.TsTestGenerationSettings
+import settings.TsTestGenerationSettings.fileUnderTestAliases
 import settings.TsTestGenerationSettings.tempFileName
 import utils.TsPathResolver
 import kotlin.io.path.pathString
@@ -19,24 +19,37 @@ class TsCoverageServiceProvider(
     private val context: TsServiceContext,
 ) {
 
-    private val importFileUnderTest = "instr/${context.filePathToInference.substringAfterLast("/")}"
-
-    //TODO: Make function that accepts strings and build import statement instead of monstrosity below.
-    private val imports = "const ${TsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
-            "const fs = require(\"fs\")\n" +
-            context.imports.joinToString(separator = "\n", postfix = "\n") { import ->
-                with(import) {
-                    val relPath = TsPathResolver.getRelativePath(
-                        "${context.projectPath}/${context.utbotDir}",
-                            path.pathString
-                    ).replace("\\", "/")
-                    "const $alias = require(\"$relPath\")"
-                }
-            }
-
     init {
         makeConfigFile(context.projectPath, context.settings.tsNycModulePath)
     }
+
+    private val importsSection = buildImportSection()
+
+    private fun buildImportSection(): String {
+        val fileUnderTestImport = buildImportStatement(
+            fileUnderTestAliases,
+            "./instr/${context.filePathToInference.substringAfterLast("/")}"
+        )
+        val fsImport = buildImportStatement("fs", "fs")
+        val otherImports = context.imports.map { import ->
+            val relPath = TsPathResolver.getRelativePath(
+                "${context.projectPath}/${context.utbotDir}",
+                import.path.pathString
+            ).replace("\\", "/")
+            buildImportStatement(import.alias, relPath)
+        }
+        return buildString {
+            append(fileUnderTestImport)
+            append(fsImport)
+            otherImports.forEach {
+                append(it)
+            }
+            appendLine()
+        }
+    }
+
+    private fun buildImportStatement(alias: String, path: String): String =
+        "const $alias = require(\"$path\")\n"
 
     private fun makeConfigFile(projectPath: String, tsNycPath: String) {
         val configFile = File("$projectPath/.nycrc.json")
@@ -47,6 +60,7 @@ class TsCoverageServiceProvider(
         configFile.writeText(json.toString())
         configFile.createNewFile()
     }
+
     fun get(
         mode: TsCoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
@@ -78,7 +92,7 @@ class TsCoverageServiceProvider(
     ): Pair<List<Set<Int>>, List<String>> {
         with(context) {
             val tempScriptTexts = fuzzedValues.indices.map {
-                "const ${TsTestGenerationSettings.fileUnderTestAliases} = " +
+                "const $fileUnderTestAliases = " +
                         "require(\"./${
                             TsPathResolver.getRelativePath(
                                 "${projectPath}/${utbotDir}",
@@ -136,7 +150,7 @@ class TsCoverageServiceProvider(
             // No need to run parallel execution, so only 1 element in the list
             tempScripts.size < 1000 -> {
                 return listOf(
-                    imports + tempScripts.joinToString("\n\n")
+                    importsSection + tempScripts.joinToString("\n\n")
                 )
             }
             else -> {
@@ -144,7 +158,7 @@ class TsCoverageServiceProvider(
                     .withIndex()
                     .groupBy { it.index / 1000 }
                     .map { entry ->
-                        imports + entry.value.joinToString("\n\n") { it.value }
+                        importsSection + entry.value.joinToString("\n\n") { it.value }
                     }
             }
         }
@@ -152,11 +166,11 @@ class TsCoverageServiceProvider(
 
     private fun makeScriptForBaseCoverage(covFunName: String, resFilePath: String): String {
         return """
-$imports
+$importsSection
 
 let json = {}
 // @ts-ignore
-json.s = ${TsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s
+json.s = $fileUnderTestAliases.$covFunName().s
 fs.writeFileSync("$resFilePath", JSON.stringify(json))
         """
     }
@@ -188,7 +202,7 @@ ${
 "// @ts-ignore\n" +
 if (mode == TsCoverageMode.FAST ) "json$index.index = $index\n" +
 "// @ts-ignore\n" + 
-"json$index.s = ${TsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
+"json$index.s = $fileUnderTestAliases.$covFunName().s\n" else ""
 }            
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             """
@@ -201,9 +215,9 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     ): String {
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                "new ${TsTestGenerationSettings.fileUnderTestAliases}.${it}()."
-            } else "${TsTestGenerationSettings.fileUnderTestAliases}.$it."
-        } ?: "${TsTestGenerationSettings.fileUnderTestAliases}."
+                "new $fileUnderTestAliases.${it}()."
+            } else "$fileUnderTestAliases.$it."
+        } ?: "$fileUnderTestAliases."
         var callString = "$initClass${method.name}"
         callString += fuzzedValue.joinToString(
             prefix = "(",
@@ -221,7 +235,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     private fun UtAssembleModel.toParamString(): String =
         with(this) {
             val classSource = context.imports.find { it.alias == classId.name }?.alias
-                ?: TsTestGenerationSettings.fileUnderTestAliases
+                ?: fileUnderTestAliases
             val callConstructorString = "new $classSource.${classId.name}"
             val paramsString = instantiationCall.params.joinToString(
                 prefix = "(",

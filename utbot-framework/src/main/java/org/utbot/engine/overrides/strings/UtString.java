@@ -13,7 +13,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 import static java.lang.Math.min;
 
-@SuppressWarnings({"ConstantConditions", "unused"})
+@SuppressWarnings("unused")
 public class UtString implements java.io.Serializable, Comparable<String>, CharSequence {
     char[] value;
     int length;

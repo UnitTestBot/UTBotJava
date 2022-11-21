@@ -13,6 +13,7 @@ import org.utbot.engine.MemoryUpdate
 import org.utbot.engine.MockInfoEnriched
 import org.utbot.engine.ObjectValue
 import org.utbot.engine.StaticFieldMemoryUpdateInfo
+import org.utbot.engine.SymbolicValue
 import org.utbot.engine.UtMockInfo
 import org.utbot.engine.UtNamedStore
 import org.utbot.engine.pc.Simplificator
@@ -22,6 +23,7 @@ import org.utbot.engine.pc.UtExpression
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import soot.ArrayType
+import soot.SootField
 
 typealias StoresType = PersistentList<UtNamedStore>
 typealias TouchedChunkDescriptorsType = PersistentSet<MemoryChunkDescriptor>
@@ -31,6 +33,7 @@ typealias StaticInstanceStorageType = PersistentMap<ClassId, ObjectValue>
 typealias InitializedStaticFieldsType = PersistentSet<FieldId>
 typealias StaticFieldsUpdatesType = PersistentList<StaticFieldMemoryUpdateInfo>
 typealias MeaningfulStaticFieldsType = PersistentSet<FieldId>
+typealias FieldValuesType = PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>>
 typealias AddrToArrayTypeType = PersistentMap<UtAddrExpression, ArrayType>
 typealias AddrToMockInfoType = PersistentMap<UtAddrExpression, UtMockInfo>
 typealias VisitedValuesType = PersistentList<UtAddrExpression>
@@ -54,6 +57,7 @@ class MemoryUpdateSimplificator(
         val initializedStaticFields = simplifyInitializedStaticFields(initializedStaticFields)
         val staticFieldsUpdates = simplifyStaticFieldsUpdates(staticFieldsUpdates)
         val meaningfulStaticFields = simplifyMeaningfulStaticFields(meaningfulStaticFields)
+        val fieldValues = simplifyFieldValues(fieldValues)
         val addrToArrayType = simplifyAddrToArrayType(addrToArrayType)
         val addrToMockInfo = simplifyAddrToMockInfo(addrToMockInfo)
         val visitedValues = simplifyVisitedValues(visitedValues)
@@ -75,6 +79,7 @@ class MemoryUpdateSimplificator(
             initializedStaticFields,
             staticFieldsUpdates,
             meaningfulStaticFields,
+            fieldValues,
             addrToArrayType,
             addrToMockInfo,
             visitedValues,
@@ -133,6 +138,7 @@ class MemoryUpdateSimplificator(
     private fun simplifyMeaningfulStaticFields(meaningfulStaticFields: MeaningfulStaticFieldsType): MeaningfulStaticFieldsType =
         meaningfulStaticFields
 
+    private fun simplifyFieldValues(fieldValues: FieldValuesType): FieldValuesType = fieldValues
 
     private fun simplifyAddrToArrayType(addrToArrayType: AddrToArrayTypeType): AddrToArrayTypeType =
         addrToArrayType

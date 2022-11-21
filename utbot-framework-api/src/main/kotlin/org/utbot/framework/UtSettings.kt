@@ -29,7 +29,7 @@ object UtSettings : AbstractSettings(
     /**
      * Setting to disable coroutines debug explicitly.
      *
-     * True by default, set it to false if debug info is required.
+     * Set it to false if debug info is required.
      */
     var disableCoroutinesDebug: Boolean by getBooleanProperty(true)
 
@@ -87,7 +87,7 @@ object UtSettings : AbstractSettings(
     /**
      * Use debug visualization.
      *
-     * False by default, set it to true if debug visualization is needed.
+     * Set it to true if debug visualization is needed.
      */
     var useDebugVisualization by getBooleanProperty(false)
 
@@ -101,31 +101,35 @@ object UtSettings : AbstractSettings(
 
     /**
      * Set the value to true to show library classes' graphs in visualization.
-     *
-     * False by default.
      */
     val showLibraryClassesInVisualization by getBooleanProperty(false)
 
     /**
-     * Method is paused after this timeout to give an opportunity other methods
-     * to work
+     * Method is paused after this timeout to give an opportunity other methods to work
      */
     var timeslotForOneToplevelMethodTraversalMs by getIntProperty(2000)
 
     /**
      * Use simplification of UtExpressions.
      *
-     * True by default, set it to false to disable expression simplification.
-     * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">
-     *     UtBot Expression Optimizations</a>
+     * Set it to false to disable expression simplification.
+     * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">UtBot Expression Optimizations</a>
      */
     var useExpressionSimplification by getBooleanProperty(true)
 
-    /*
-    * Activate or deactivate tests on comments && names/displayNames
-    * */
+    /**
+    * Activate or deactivate tests on comments
+    */
     var testSummary by getBooleanProperty(true)
+
+    /**
+    * Activate or deactivate tests on names
+    */
     var testName by getBooleanProperty(true)
+
+    /**
+    * Activate or deactivate tests on displayNames
+    */
     var testDisplayName by getBooleanProperty(true)
 
     /**
@@ -135,18 +139,23 @@ object UtSettings : AbstractSettings(
 
     /**
      * Enable the Summarization module to generate summaries for methods under test.
-     * True by default.
      *
      * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
      */
     var enableSummariesGeneration by getBooleanProperty(true)
 
     /**
-     * Options below regulate which [NullPointerException] check should be performed.
+     * This option regulates which [NullPointerException] check should be performed for nested methods.
      *
      * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
      */
     var checkNpeInNestedMethods by getBooleanProperty(true)
+
+    /**
+     * This option regulates which [NullPointerException] check should be performed for nested not private methods.
+     *
+     * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
+     */
     var checkNpeInNestedNotPrivateMethods by getBooleanProperty(false)
 
     /**
@@ -154,7 +163,7 @@ object UtSettings : AbstractSettings(
      * in non-application classes. Set by true, this option highly decreases test's readability in some cases
      * because of using reflection API for setting final/non-public fields in non-application classes.
      *
-     * NOTE: default false value loses some executions with NPE in system classes, but often most of these executions
+     * NOTE: With false value loses some executions with NPE in system classes, but often most of these executions
      * are not expected by user.
      */
     var maximizeCoverageUsingReflection by getBooleanProperty(false)
@@ -168,8 +177,6 @@ object UtSettings : AbstractSettings(
 
     /**
      * Use concrete execution.
-     *
-     * True by default.
      */
     var useConcreteExecution by getBooleanProperty(true)
 
@@ -177,13 +184,12 @@ object UtSettings : AbstractSettings(
      * Enable code generation tests with every possible configuration
      * for every method in samples.
      *
-     * Important: disabled by default. This check requires enormous amount of time.
+     * Important: is enabled generation requires enormous amount of time.
      */
     var checkAllCombinationsForEveryTestInSamples by getBooleanProperty(false)
 
     /**
      * Enable transformation UtCompositeModels into UtAssembleModels using AssembleModelGenerator.
-     * True by default.
      *
      * Note: false doesn't mean that there will be no assemble models, it means that the generator will be turned off.
      * Assemble models will present for lists, sets, etc.
@@ -198,8 +204,6 @@ object UtSettings : AbstractSettings(
 
     /**
      * Enables soft constraints in the engine.
-     *
-     * True by default.
      */
     var preferredCexOption by getBooleanProperty(true)
 
@@ -227,15 +231,11 @@ object UtSettings : AbstractSettings(
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
      * that throw Arithmetic Exception.
-     *
-     * False by default.
      */
     var treatOverflowAsError: Boolean by getBooleanProperty(false)
 
     /**
      * Generate tests that treat assertions as error suits.
-     *
-     * True by default.
      */
     var treatAssertAsErrorSuit: Boolean by getBooleanProperty(true)
 
@@ -271,7 +271,7 @@ object UtSettings : AbstractSettings(
      * Determines whether should errors from a child process be written to a log file or suppressed.
      * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
      *
-     * False by default (for saving disk space).
+     * In enabled it consumes a lot of disk space.
      */
     var logConcreteExecutionErrors by getBooleanProperty(false)
 
@@ -314,16 +314,12 @@ object UtSettings : AbstractSettings(
      * It may be usefull during debug.
      *
      * Note: it might highly impact performance, so do not enable it in release mode.
-     *
-     * False by default.
      */
     var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
 
     /**
      * Enable it to process states with unknown solver status
      * from the queue to concrete execution.
-     *
-     * True by default.
      */
     var processUnknownStatesDuringConcreteExecution by getBooleanProperty(true)
 
@@ -388,7 +384,7 @@ object UtSettings : AbstractSettings(
     /**
      * Use the sandbox in the concrete executor.
      *
-     * If true (default), the sandbox will prevent potentially dangerous calls, e.g., file access, reading
+     * If true, the sandbox will prevent potentially dangerous calls, e.g., file access, reading
      * or modifying the environment, calls to `Unsafe` methods etc.
      *
      * If false, all these operations will be enabled and may lead to data loss during code analysis
@@ -441,8 +437,6 @@ object UtSettings : AbstractSettings(
      * Use this option to enable calculation and logging of MD5 for dropped states by statistics.
      * Example of such logging:
      *     Dropping state (lastStatus=UNDEFINED) by the distance statistics. MD5: 5d0bccc242e87d53578ca0ef64aa5864
-     *
-     * Default value is false.
      */
     var enableLoggingForDroppedStates by getBooleanProperty(false)
 
@@ -518,8 +512,15 @@ enum class PathSelectorType {
 }
 
 enum class TestSelectionStrategyType {
-    DO_NOT_MINIMIZE_STRATEGY, // Always adds new test
-    COVERAGE_STRATEGY // Adds new test only if it increases coverage
+    /**
+     * Always adds new test
+     */
+    DO_NOT_MINIMIZE_STRATEGY,
+
+    /**
+     * Adds new test only if it increases coverage
+     */
+    COVERAGE_STRATEGY
 }
 
 /**

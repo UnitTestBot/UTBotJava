@@ -104,7 +104,7 @@ abstract class SettingsToConfigTask : DefaultTask() {
                     if (s.startsWith("enum class ")) {
                         enums.add(EnumInfo(s.substring(11, s.length - 2)))
                     } else if (s.matches(Regex("[A-Z_]+,?")) && enums.isNotEmpty()) {
-                        var enumValue = s.substring(0, s.length - 1)
+                        var enumValue = s.substring(0, s.length)
                         if (enumValue.endsWith(",")) enumValue = enumValue.substring(0, enumValue.length - 1)
                         enums.last().docMap[enumValue] = docLines.toMutableList()
                     } else if (s.startsWith("const val ")) {
@@ -113,14 +113,16 @@ abstract class SettingsToConfigTask : DefaultTask() {
                     } else if (s == "/**") {
                         docLines.clear()
                     } else if (s.startsWith("* ")) {
-                        docLines.add(s.substring(2))
-                    } else if (s.startsWith("var")) {
+                        if (!s.contains("href")) {//Links are not supported
+                            docLines.add(s.substring(2))
+                        }
+                    } else if (s.startsWith("var") || s.startsWith("val")) {
                         acc.clear()
                         acc.append(s)
                     } else if (s.isEmpty() && acc.isNotEmpty()) {
                         s = acc.toString()
                         acc.clear()
-                        if (s.startsWith("var")) {
+                        if (s.startsWith("var") || s.startsWith("val")) {
                             var i = s.indexOf(" by ", 3)
                             if (i > 0) {
                                 var key = s.substring(3, i).trim()
@@ -152,6 +154,9 @@ abstract class SettingsToConfigTask : DefaultTask() {
                                         if (defaultValue.matches(Regex("[\\d_]+L"))) {
                                             defaultValue = defaultValue.substring(0, defaultValue.length - 1).replace("_", "")
                                         }
+                                        if (defaultValue.matches(Regex("^\".+\"$"))) {
+                                            defaultValue = defaultValue.substring(1, defaultValue.length - 1)
+                                        }
                                         model.defaultValue = defaultValue
                                         model.docLines.addAll(docLines)
                                     }
@@ -169,9 +174,16 @@ abstract class SettingsToConfigTask : DefaultTask() {
                         if (split.size > 1) {
                             model.defaultValue = split[1]
                             val enumInfo = enums.find { info -> info.className == split[0] }
+                            if (enumInfo!= null) {
+                                model.docLines.add("")
+                            }
                             enumInfo?.docMap?.forEach {
-                                model.docLines.add(it.key)
-                                it.value.forEach { line -> model.docLines.add(line) }
+                                if (it.value.size == 1) {
+                                    model.docLines.add("${it.key}: ${it.value.first()}")
+                                } else {
+                                    model.docLines.add(it.key)
+                                    it.value.forEach { line -> model.docLines.add(line) }
+                                }
                             }
                         }
                     }
@@ -180,10 +192,15 @@ abstract class SettingsToConfigTask : DefaultTask() {
                         writer.println("#")
                     }
                     for (docLine in model.docLines) {
-                        writer.println("# $docLine")
+                        if (docLine.isEmpty()) {
+                            writer.println("#")
+                        } else {
+                            writer.println("# $docLine")
+                        }
                     }
                     if (!model.docLines.any({ s -> s.toLowerCaseAsciiOnly().contains("default") })) {
-                        writer.println("# ${model.defaultValue} by default")
+                        writer.println("#")
+                        writer.println("# Default value is [${model.defaultValue}]")
                     }
                     writer.println("${model.key}=${model.defaultValue}")
                     writer.flush()

@@ -13,6 +13,11 @@ import com.intellij.pom.java.LanguageLevel
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.concurrency.Promise
 
+/*
+NOTE: this is a wrapper for [UtAndroidGradleJavaProjectModelModifier].
+The purpose of this wrapper is to avoid inheritance of [AndroidGradleJavaProjectModelModifier]
+because it leads to crashes when Android plugin is disabled.
+ */
 class UtAndroidGradleJavaProjectModelModifierWrapper(val project: Project): IdeaProjectModelModifier(project)  {
 
     override fun addExternalLibraryDependency(
@@ -26,7 +31,9 @@ class UtAndroidGradleJavaProjectModelModifierWrapper(val project: Project): Idea
             return null
         }
 
-        return UtAndroidGradleJavaProjectModelModifier().addExternalLibraryDependency(modules, descriptor, scope)
+        // NOTE: we use such DependencyScope to obtain `implementation`, not `testImplementation`
+        // to deal with androidTest modules (there is no way to add `androidTestImplementation` additionally.
+        return UtAndroidGradleJavaProjectModelModifier().addExternalLibraryDependency(modules, descriptor, DependencyScope.COMPILE)
     }
 
     override fun addModuleDependency(

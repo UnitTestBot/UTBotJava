@@ -13,7 +13,6 @@ import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.util.isStatic
-import settings.TsTestGenerationSettings.fileUnderTestAliases
 
 internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -209,7 +208,7 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgConstructorCall) {
-        print("new $fileUnderTestAliases.${element.executableId.classId.name}")
+        print("new ${element.executableId.classId.name}")
         print("(")
         element.arguments.renderSeparated()
         print(")")
@@ -284,9 +283,7 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
             } else if (method.isStatic) {
                 val line = if (method.classId.toString() == "undefined") "" else "${method.classId}."
-                print("$fileUnderTestAliases.$line")
-            } else {
-                print("$fileUnderTestAliases.")
+                print(line)
             }
         }
         print(element.executableId.name.escapeNamePossibleKeyword())

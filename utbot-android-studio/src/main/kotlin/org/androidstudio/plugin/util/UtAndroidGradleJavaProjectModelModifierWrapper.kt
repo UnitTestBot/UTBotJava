@@ -8,6 +8,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.impl.IdeaProjectModelModifier
+import com.intellij.openapi.roots.libraries.Library
+import com.intellij.pom.java.LanguageLevel
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.concurrency.Promise
 
@@ -26,6 +28,22 @@ class UtAndroidGradleJavaProjectModelModifierWrapper(val project: Project): Idea
 
         return UtAndroidGradleJavaProjectModelModifier().addExternalLibraryDependency(modules, descriptor, scope)
     }
+
+    override fun addModuleDependency(
+        from: Module,
+        to: Module,
+        scope: DependencyScope,
+        exported: Boolean
+    ): Promise<Void>? = null
+
+    override fun addLibraryDependency(
+        from: Module,
+        library: Library,
+        scope: DependencyScope,
+        exported: Boolean
+    ): Promise<Void>? = null
+
+    override fun changeLanguageLevel(module: Module, level: LanguageLevel): Promise<Void>? = null
 
     private fun isAndroidGradleProject(project: Project): Boolean {
         val pluginId = PluginId.findId("org.jetbrains.android")

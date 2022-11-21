@@ -22,12 +22,12 @@ object TsCgLanguageAssistant : CgLanguageAssistant() {
         get() = ".ts"
 
     override val languageKeywords: Set<String> = setOf(
-        "abstract", "arguments", "await", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue",
-        "debugger", "default", "delete", "do", "double", "else", "enum", "eval", "export", "extends", "false", "final",
-        "finally", "float", "for", "function", "goto", "if", "implements", "import", "in", "instanceof", "int", "interface",
-        "let", "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short", "static",
-        "super", "switch", "synchronized", "this", "throw", "throws", "transient", "true", "try", "typeof", "var", "void",
-        "volatile", "while", "with", "yield"
+        "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else",
+        "enum", "export", "extends", "false", "finally", "for", "function", "if", "import", "in", "instanceof",
+        "new", "null", "return", "super", "switch", "this", "throw", "true", "try", "typeof", "var", "void",
+        "while", "with", "as", "implements", "interface", "let", "package", "private", "protected", "public",
+        "static", "yield", "any", "boolean", "constructor", "declare", "get", "module", "require", "number",
+        "set", "string", "symbol", "type", "from", "of"
     )
 
     override fun testClassName(
@@ -38,7 +38,9 @@ object TsCgLanguageAssistant : CgLanguageAssistant() {
         return testClassNameGenerator(testClassCustomName, testClassPackageName, classUnderTest)
     }
 
-    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer = CgTsRenderer(context, printer)
+    override fun cgRenderer(context: CgRendererContext, printer: CgPrinter): CgAbstractRenderer =
+        CgTsRenderer(context, printer)
+
     override fun getCallableAccessManagerBy(context: CgContext) = TsCgCallableAccessManager(context)
     override fun getMethodConstructorBy(context: CgContext) = TsCgMethodConstructor(context)
     override fun getStatementConstructorBy(context: CgContext) = TsCgStatementConstructor(context)

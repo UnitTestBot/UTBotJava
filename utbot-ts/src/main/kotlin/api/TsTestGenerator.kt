@@ -206,11 +206,10 @@ class TsTestGenerator(
     ): UtExecutionResult {
         val (returnValue, valueClassId) = returnText.toTsAny(execId.returnType)
         val result = TsUtModelConstructor().construct(returnValue, valueClassId)
-        val utExecResult = when (result.classId) {
+        return when (result.classId) {
             tsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
             else -> UtExecutionSuccess(result)
         }
-        return utExecResult
     }
 
     private fun runFuzzer(
@@ -230,17 +229,16 @@ class TsTestGenerator(
         return fuzzerVisitor.fuzzedConcreteValues.toSet() to fuzzedValues
     }
 
-    private fun makeMethodsToTest(): List<FunctionNode> {
-        return selectedMethods?.map {
+    private fun makeMethodsToTest(): List<FunctionNode> =
+        selectedMethods?.map {
             getFunctionNode(
                 focusedMethodName = it,
                 parentClassName = parentClassName,
             )
         } ?: getMethodsToTest()
-    }
 
-    private fun makeTsClassId(classNode: ClassDeclarationNode?, serviceContext: TsServiceContext): TsClassId {
-        return classNode?.let {
+    private fun makeTsClassId(classNode: ClassDeclarationNode?, serviceContext: TsServiceContext): TsClassId =
+        classNode?.let {
             TsClassId(parentClassName!!).constructClass(
                 classNode = classNode,
                 serviceContext = serviceContext
@@ -249,7 +247,6 @@ class TsTestGenerator(
             functions = extractToplevelFunctions(),
             serviceContext = serviceContext
         )
-    }
 
     private fun extractToplevelFunctions(): List<FunctionNode> {
         val visitor = TsToplevelFunctionAstVisitor()

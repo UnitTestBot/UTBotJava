@@ -13,6 +13,8 @@ import mypy.maptype
 
 annotation_node_dict: tp.Dict[str, "AnnotationNode"] = {}
 type_vars_of_node: tp.Dict[str, tp.List[str]] = defaultdict(list)
+current_file: tp.Optional[tp.List[str]] = None
+any_type_instance = mypy.types.AnyType(mypy.types.TypeOfAny.unannotated)
 
 
 class Meta:
@@ -40,20 +42,32 @@ class AnnotationNode:
 
 
 class FunctionNode(AnnotationNode):
-    def __init__(self, function_like, id_, namespace: Meta, is_static: tp.Optional[bool], is_class: tp.Optional[bool]):
+    def __init__(self, function_like: tp.Union[mypy.types.CallableType, mypy.nodes.FuncItem],
+            id_, namespace: Meta, is_static: tp.Optional[bool], is_class: tp.Optional[bool]):
         super().__init__("Function", id_, namespace)
         self.namespace.fullname_to_node_id[''] = id_
+        self.is_class = is_class
+        self.is_static = is_static
+        self.positional: tp.List[Annotation]
+        self.return_type: Annotation
+        self.type_vars: tp.List[str]
         if isinstance(function_like, mypy.types.CallableType):
-            self.positional: tp.List[Annotation] = [
+            self.positional = [
                 get_annotation(x, meta=self.namespace)
                 for x in function_like.arg_types[:function_like.min_args]
             ]
-            self.return_type: Annotation = get_annotation(function_like.ret_type, self.namespace)
-            self.type_vars: tp.List[str] = type_vars_of_node[id_]
-            self.is_class = is_class
-            self.is_static = is_static
+            self.return_type = get_annotation(function_like.ret_type, self.namespace)
+            self.type_vars = type_vars_of_node[id_]
+        elif isinstance(function_like, mypy.nodes.FuncItem):
+            self.positional = [
+                get_annotation(any_type_instance, meta=self.namespace)
+                for _ in range(function_like.min_args)
+            ]
+            self.return_type = get_annotation(any_type_instance, meta=self.namespace)
+            self.type_vars = []
         else:
-            assert False, f"Some function type wasn't considered. Type: {type(function_like)}"
+            assert False, "Not reachable"
+
 
     def encode(self):
         superclass_dict = super().encode()
@@ -110,7 +124,8 @@ class CompositeAnnotationNode(AnnotationNode):
         self.names: tp.Dict[str, Definition] = {}
         for name in symbol_node.names.keys():
             inner_symbol_node = symbol_node.names[name]
-            definition = get_definition_from_node(inner_symbol_node, False, self.namespace)
+            defs: tp.List[NodeInfo] = get_infos_of_nodes(symbol_node.defn.defs.body)
+            definition = get_definition_from_node(inner_symbol_node, False, self.namespace, defs, name)
             if definition is not None:
                 self.names[name] = definition
 
@@ -263,16 +278,18 @@ def get_annotation(mypy_type: mypy.types.Type, meta: Meta) -> Annotation:
 
 
 class Definition:
-    def __init__(self, type_name: str):
+    def __init__(self, type_name: str, line: int, column: int):
         self.type_name = type_name
+        self.line = line
+        self.column = column
 
     def encode(self):
         return {"kind": self.type_name}
 
 
 class TypeDefinition(Definition):
-    def __init__(self, type_info: mypy.nodes.TypeInfo):
-        super().__init__("Type")
+    def __init__(self, type_info: mypy.nodes.TypeInfo, line: int, column: int):
+        super().__init__("Type", line, column)
         self.annotation: Annotation = get_annotation(
             mypy.types.Instance(type_info, []),
             # TODO: does this work for inner classes?
@@ -285,12 +302,17 @@ class TypeDefinition(Definition):
         return dict(superclass_dict, **subclass_dict)
 
 
-any_type_instance = mypy.types.AnyType(mypy.types.TypeOfAny.unannotated)
+def get_function_default_annotation(node: mypy.nodes.FuncItem, meta: Meta) -> Annotation:
+    id_ = str(id(node))
+    annotation_node_dict[id_] = FunctionNode(node, id_, meta, meta.is_static, meta.is_class)
+    meta.is_static = None
+    meta.is_class = None
+    return Annotation(id_)
 
 
 class VarDefinition(Definition):
-    def __init__(self, var: tp.Union[mypy.nodes.Var, mypy.nodes.FuncBase], meta: Meta):
-        super().__init__("Var")
+    def __init__(self, var: tp.Union[mypy.nodes.Var, mypy.nodes.FuncBase], meta: Meta, line: int, column: int):
+        super().__init__("Var", line, column)
 
         if isinstance(var, mypy.nodes.FuncBase):
             meta.is_class = var.is_class
@@ -298,7 +320,10 @@ class VarDefinition(Definition):
 
         self.annotation: Annotation
         if var.type is None:
-            self.annotation = get_annotation(any_type_instance, meta)
+            if isinstance(var, mypy.nodes.FuncItem):
+                self.annotation = get_function_default_annotation(var, meta)
+            else:
+                self.annotation = get_annotation(any_type_instance, meta)
         else:
             self.annotation = get_annotation(var.type, meta)
 
@@ -311,18 +336,25 @@ class VarDefinition(Definition):
 def get_definition_from_node(
     table_node: mypy.nodes.SymbolTableNode,
     only_public: bool,
-    namespace: Meta
+    namespace: Meta,
+    defined_nodes: tp.List["NodeInfo"],
+    name: str
 )-> tp.Optional[Definition]:
-    if (only_public and not table_node.module_public) or table_node.node is None:
+    if (only_public and not table_node.module_public) or table_node.node is None \
+            or not any(name == x.name for x in defined_nodes) \
+            or not isinstance(table_node.node, mypy.nodes.Node):
         return None
 
     node = table_node.node
+    info = next(filter(lambda x: x.name == name, defined_nodes))
+    #sys.stderr.write(f"{info.line} {info.column} {info.end_line} {info.end_column}\n")
+
     if isinstance(node, mypy.nodes.TypeInfo):
-        return TypeDefinition(node)
+        return TypeDefinition(node, info.line, info.column)
     elif isinstance(node, mypy.nodes.Var) or isinstance(node, mypy.nodes.FuncBase):
-        return VarDefinition(node, namespace)
+        return VarDefinition(node, namespace, info.line, info.column)
     elif isinstance(node, mypy.nodes.Decorator):
-        return VarDefinition(node.var, namespace)
+        return VarDefinition(node.var, namespace, info.line, info.column)
     else:
         return None
 
@@ -339,35 +371,64 @@ def get_output_json(annotations: tp.Dict[str, tp.Dict[str, Definition]]):
     return json.dumps(result)
 
 
+class NodeInfo:
+    def __init__(self, name: str, node: mypy.nodes.Node):
+        self.name = name
+        self.line = node.line
+        self.column = node.column
+        self.end_line = node.end_line
+        self.end_column = node.end_column
+
+    def set_end(self, line, column):
+        self.end_line = line
+        self.end_column = column
+
+
+def get_info_of_node(node) -> tp.Optional[NodeInfo]:
+    if isinstance(node, mypy.nodes.SymbolNode) or isinstance(node, mypy.nodes.ClassDef):
+        return NodeInfo(node.name, node)
+
+    return None
+
+
+#def _decrease_pos(line, number)
+
+
+def get_infos_of_nodes(nodes: tp.List) -> tp.List[NodeInfo]:
+    result = []
+    for node in nodes:
+        name = get_info_of_node(node)
+        if name is not None:
+            result.append(name)
+    return result
+
+
 def main(mypy_config_file, source_paths):
     stdout, stderr, exit_status, build_result = mypy_main.run(
         source_paths + ["--config-file", mypy_config_file]
     )
-    
+
     annotation_dict: tp.Dict[str, tp.Dict[str, Definition]] = {}
     for module in build_result.files.keys():
         annotation_dict[module] = {}
-        for name in build_result.files[module].names.keys():
+        mypy_file: mypy.nodes.MypyFile = build_result.files[module]
+
+        defs: tp.List[NodeInfo]
+        if mypy_file.path in source_paths:
+            with open(mypy_file.path, "r") as file:
+                current_file = file.readlines()
+            defs = get_infos_of_nodes(mypy_file.defs)
+        else:
+            current_file = None
+            defs = get_infos_of_nodes([x.node for x in mypy_file.names.values()])
+
+        for name in mypy_file.names.keys():
             symbol_table_node = build_result.files[module].names[name]
-            definition = get_definition_from_node(symbol_table_node, True, Meta())
+            definition = get_definition_from_node(symbol_table_node, True, Meta(), defs, name)
             if definition is not None:
                 annotation_dict[module][name] = definition
 
     print(get_output_json(annotation_dict))
-
-    #module_name = os.path.basename(source_path)[:-3]
-    #function_info = build_result.files[module_name].names[function_name].node
-
-    #if function_info.type is None:
-    #    sys.stderr.write("No annotation")
-    #    exit(1)
-
-    #arg_annotations = function_info.type.arg_types
-    #annotation_list = [get_annotation(function_info.type)]
-    #for x in arg_annotations:
-    #    annotation_list.append(get_annotation(x))
-    
-    #print(get_output_json(annotation_list))
 
 
 def get_args():

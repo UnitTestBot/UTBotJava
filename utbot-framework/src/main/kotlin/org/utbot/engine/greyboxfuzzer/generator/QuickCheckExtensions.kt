@@ -7,9 +7,7 @@ import org.javaruntype.type.StandardTypeParameter
 import org.javaruntype.type.Types
 import org.utbot.common.withAccessibility
 import org.utbot.engine.greyboxfuzzer.generator.userclasses.UserClassGenerator
-import org.utbot.engine.greyboxfuzzer.util.ReflectionUtils
-import org.utbot.engine.greyboxfuzzer.util.getActualTypeArguments
-import org.utbot.engine.greyboxfuzzer.util.toClass
+import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.engine.logger
 import org.utbot.engine.rawType
 import org.utbot.quickcheck.generator.ComponentizedGenerator
@@ -24,6 +22,7 @@ import ru.vyarus.java.generics.resolver.context.GenericsContext
 import ru.vyarus.java.generics.resolver.context.GenericsInfo
 import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
 import java.lang.reflect.*
+import kotlin.random.Random
 
 
 fun Generator.getAllComponents(): List<Generator> {
@@ -216,59 +215,86 @@ private fun createStandardTypeParameter(type: org.javaruntype.type.Type<*>): Sta
     }
 }
 
-//fun ParameterizedType.buildGenericsContext(): GenericsContext {
-//    val clazz = this.toClass()!!
-//    val klassTypeParams = clazz.typeParameters?.map { it.name }
-//    val gm = LinkedHashMap<String, Type>()
-//    klassTypeParams?.zip(this.actualTypeArguments)?.forEach { gm[it.first] = it.second }
-//    val m = mutableMapOf(clazz to gm)
-//    val genericsInfo = GenericsInfo(clazz, m)
-//    return GenericsContext(genericsInfo, clazz)
-//}
+object QuickCheckExtensions {
 
-//fun Field.resolveFieldType(originalType: ParameterizedType): Type {
-//    return originalType.buildGenericsContext().resolveFieldType(this)
-//}
-//
-//fun Field.resolveFieldType(genericsContext: GenericsContext): Type? =
-//    try {
-//        genericsContext.resolveFieldType(this)
-//    } catch (_: Throwable) {
-//        null
-//    }
-
-//fun Field.buildParameterContext(originalType: ParameterizedType): ParameterTypeContext {
-//    val ctx = originalType.buildGenericsContext()
-//    return createParameterTypeContext(
-//        this.name,
-//        this.annotatedType,
-//        this.declaringClass.name,
-//        Types.forJavaLangReflectType(ctx.resolveFieldType(this)),
-//        ctx
-//    )
-//}
-
-//fun Field.buildParameterContext(genericsContext: GenericsContext): ParameterTypeContext {
-//    return createParameterTypeContext(
-//        this.name,
-//        this.annotatedType,
-//        this.declaringClass.name,
-//        Types.forJavaLangReflectType(genericsContext.resolveFieldType(this)),
-//        genericsContext
-//    )
-//}
-//@Deprecated("Not implemented")
-//fun Type.buildParameterContext(): ParameterTypeContext? {
-//    val clazz = this.toClass() ?: return null
-//    return if (this is ParameterizedType) {
-//        buildParameterContext()
-//    } else {
-//        createParameterTypeContext(
-//            clazz.typeName,
-//            FakeAnnotatedTypeFactory.makeFrom(clazz),
-//            clazz.typeName,
-//            Types.forJavaLangReflectType(this),
-//            GenericsResolver.resolve(clazz)
-//        )
-//    }
-//}
+    fun getRandomImplementerGenericContext(clazz: Class<*>, resolvedType: Type): GenericsContext? {
+        val sootClass = clazz.toSootClass() ?: return null
+        val implementers =
+            sootClass.getImplementersOfWithChain()
+                .filter { it.all { !it.toString().contains("$") } }
+                .filter { it.last().isConcrete }
+        val randomImplementersChain =
+            if (Random.getTrue(75)) {
+                implementers.shuffled().minByOrNull { it.size }?.drop(1)
+            } else {
+                implementers.randomOrNull()?.drop(1)
+            } ?: return null
+        //Deal with generics
+        val generics = mutableListOf<Pair<Type, MutableList<Type>>>()
+        var prevImplementer = clazz
+        resolvedType.getActualTypeArguments().forEachIndexed { index, typeVariable ->
+            if (prevImplementer.toClass() != null) {
+                generics.add(typeVariable to mutableListOf(prevImplementer.toClass()!!.typeParameters[index]))
+            }
+        }
+        for (implementer in randomImplementersChain) {
+            val javaImplementer = implementer.toJavaClass() ?: return null
+            val extendType = javaImplementer.let { it.genericInterfaces + it.genericSuperclass }
+                .find { it.toClass() == prevImplementer }
+            val tp = prevImplementer.typeParameters
+            prevImplementer = javaImplementer
+            if (tp.isEmpty()) continue
+            val newTp = extendType?.getActualTypeArguments()?.ifEmpty { return null } ?: return null
+            tp.mapIndexed { index, typeVariable -> typeVariable to newTp[index] }
+                .forEach { typeVar ->
+                    val indexOfTypeParam = generics.indexOfFirst { it.second.last() == typeVar.first }
+                    if (indexOfTypeParam != -1) {
+                        generics[indexOfTypeParam].second.add(typeVar.second)
+                    }
+                }
+        }
+        val g =
+            prevImplementer.typeParameters.associate { tp -> tp.name to generics.find { it.second.last() == tp }?.first }
+        val gm = LinkedHashMap<String, Type>()
+        g.forEach {
+            if (it.value != null) {
+                gm[it.key] = it.value!!
+            }
+        }
+        val m = mutableMapOf(prevImplementer to gm)
+        return GenericsContext(GenericsInfo(prevImplementer, m), prevImplementer)
+    }
+    fun buildGenericsContextForInterfaceParent(resolvedType: Type, clazz: Class<*>, parentChain: List<Class<*>>): GenericsContext? {
+        val generics = mutableListOf<Pair<Type, MutableList<Type>>>()
+        var curClass = clazz
+        resolvedType.getActualTypeArguments().forEachIndexed { index, typeVariable ->
+            if (curClass.toClass() != null) {
+                generics.add(typeVariable to mutableListOf(curClass.toClass()!!.typeParameters[index]))
+            }
+        }
+        for (parent in parentChain) {
+            val parentType = curClass.let { it.genericInterfaces.toList() + listOf(it.genericSuperclass) }
+                .find { it.toClass() == parent }
+            val tp = curClass.typeParameters
+            curClass = parent
+            if (tp.isEmpty()) continue
+            val newTp = parentType?.getActualTypeArguments()?.ifEmpty { return null } ?: return null
+            tp.mapIndexed { index, typeVariable -> typeVariable to newTp[index] }
+                .forEach { typeVar ->
+                    val indexOfTypeParam = generics.indexOfFirst { it.second.last() == typeVar.first }
+                    if (indexOfTypeParam != -1) {
+                        generics[indexOfTypeParam].second.add(curClass.typeParameters[indexOfTypeParam])
+                    }
+                }
+        }
+        val g = curClass.typeParameters.associate { tp -> tp.name to generics.find { it.second.last() == tp }?.first }
+        val gm = LinkedHashMap<String, Type>()
+        g.forEach {
+            if (it.value != null) {
+                gm[it.key] = it.value!!
+            }
+        }
+        val m = mutableMapOf(curClass to gm)
+        return GenericsContext(GenericsInfo(curClass, m), curClass)
+    }
+}

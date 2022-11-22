@@ -15,6 +15,11 @@ import java.util.function.UnaryOperator
  * @param <T> type of parameter and return type of produced operator
 </T> */
 class UnaryOperatorGenerator<T> : ComponentizedGenerator(UnaryOperator::class.java) {
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

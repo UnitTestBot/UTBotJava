@@ -23,6 +23,10 @@ class ToIntFunctionGenerator<T> : ComponentizedGenerator(ToIntFunction::class.ja
         generator = gen()!!.type(Int::class.javaPrimitiveType!!)
     }
 
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

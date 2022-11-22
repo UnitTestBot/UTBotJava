@@ -22,11 +22,11 @@ class UTGeneratorRepository(random: SourceOfRandomness) : GeneratorRepository(ra
         return generator
     }
 
-    override fun generatorsFor(parameter: ParameterTypeContext) =
-        super.generatorsFor(parameter).onEach { GeneratorConfigurator.configureGenerator(it, 85) }
-
-    override fun generatorForArrayType(parameter: ParameterTypeContext) =
-         super.generatorForArrayType(parameter).also { GeneratorConfigurator.configureGenerator(it, 85) }
+//    override fun generatorsFor(parameter: ParameterTypeContext) =
+//        super.generatorsFor(parameter)//.onEach { GeneratorConfigurator.configureGenerator(it, 85) }
+//
+//    override fun generatorForArrayType(parameter: ParameterTypeContext) =
+//         super.generatorForArrayType(parameter)//.also { GeneratorConfigurator.configureGenerator(it, 85) }
 
 
 }

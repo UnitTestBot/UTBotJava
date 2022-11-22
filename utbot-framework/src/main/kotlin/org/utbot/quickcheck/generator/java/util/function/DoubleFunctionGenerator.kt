@@ -15,6 +15,11 @@ import java.util.function.DoubleFunction
  * @param <R> return type of produced function
 </R> */
 class DoubleFunctionGenerator<R> : ComponentizedGenerator(DoubleFunction::class.java) {
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

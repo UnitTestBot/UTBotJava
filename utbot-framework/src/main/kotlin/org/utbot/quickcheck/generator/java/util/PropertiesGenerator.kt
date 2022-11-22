@@ -47,8 +47,8 @@ class PropertiesGenerator : Generator(Properties::class.java) {
         ) {
             val setPropertyMethodId = methodId(classId, "setProperty", objectClassId, objectClassId, objectClassId)
             (0..size).map {
-                val key = stringGenerator.generate(random, status)
-                val value = stringGenerator.generate(random, status)
+                val key = stringGenerator.generateImpl(random, status)
+                val value = stringGenerator.generateImpl(random, status)
                 UtExecutableCallModel(this, setPropertyMethodId, listOf(key, value))
             }
         }

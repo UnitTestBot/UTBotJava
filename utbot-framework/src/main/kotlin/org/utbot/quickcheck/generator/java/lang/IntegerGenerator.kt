@@ -34,12 +34,11 @@ class IntegerGenerator : IntegralGenerator(listOf(Int::class.javaObjectType)) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(generateValue(random, status), intWrapperClassId)
+        return utModelConstructor.construct(generateValue(random), intWrapperClassId)
     }
 
     fun generateValue(
-        random: SourceOfRandomness,
-        status: GenerationStatus?
+        random: SourceOfRandomness
     ): Int {
         return random.nextInt(min, max)
     }

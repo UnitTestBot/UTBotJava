@@ -29,6 +29,10 @@ class CallableGenerator<V> : ComponentizedGenerator(Callable::class.java) {
         )
     }
 
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun numberOfNeededComponents(): Int {
         return 1
     }

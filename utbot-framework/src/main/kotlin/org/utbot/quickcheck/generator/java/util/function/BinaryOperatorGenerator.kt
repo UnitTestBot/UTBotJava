@@ -15,6 +15,11 @@ import java.util.function.BinaryOperator
  * @param <T> parameters type and return type of produced operator
 </T> */
 class BinaryOperatorGenerator<T> : ComponentizedGenerator(BinaryOperator::class.java) {
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

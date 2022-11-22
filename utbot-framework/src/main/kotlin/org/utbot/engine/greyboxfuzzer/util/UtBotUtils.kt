@@ -19,6 +19,49 @@ fun UtAssembleModel.addModification(modifications: List<UtStatementModel>) =
         this.origin
     )
 
+fun UtAssembleModel.addOrReplaceModification(newModification: UtStatementModel): UtAssembleModel {
+    val newModificationChain =
+        when (newModification) {
+            is UtDirectSetFieldModel -> {
+                val oldChain = this.modificationsChain.filterIsInstance<UtDirectSetFieldModel>().toMutableList()
+                oldChain.indexOfFirst { newModification.fieldId == it.fieldId }.let {
+                    if (it != -1) oldChain.removeAt(it)
+                }
+                oldChain.add(newModification)
+                oldChain.toList()
+            }
+            is UtExecutableCallModel -> {
+                val oldChain = this.modificationsChain.filterIsInstance<UtExecutableCallModel>().toMutableList()
+                oldChain.indexOfFirst { newModification.executable == it.executable }.let {
+                    if (it != -1) oldChain.removeAt(it)
+                }
+                oldChain.add(newModification)
+                oldChain.toList()
+            }
+        }
+
+    return UtAssembleModel(
+        this.id,
+        this.classId,
+        "${this.classId.name}#" + this.id?.toString(16),
+        this.instantiationCall,
+        newModificationChain,
+        this.origin
+    )
+}
+
+fun UtModel.copy(): UtModel =
+    when (this) {
+        is UtAssembleModel -> this.copy()
+        is UtCompositeModel -> this.copy()
+        is UtArrayModel -> this.copy()
+        is UtClassRefModel -> this.copy()
+        is UtPrimitiveModel -> this.copy()
+        is UtReferenceModel -> this.copy()
+        else -> this
+    }
+
+
 
 fun UtModelConstructor.constructAssembleModelUsingMethodInvocation(
     clazz: Class<*>,

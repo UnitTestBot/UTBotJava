@@ -19,6 +19,11 @@ import java.util.function.ToIntBiFunction
 </U></T> */
 class ToIntBiFunctionGenerator<T, U> : ComponentizedGenerator(ToIntBiFunction::class.java) {
     private var generator: Generator? = null
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun provide(provided: Generators) {
         super.provide(provided)
         generator = gen()!!.type(Int::class.javaPrimitiveType!!)

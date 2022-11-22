@@ -23,7 +23,7 @@ internal class NullableGenerator(private val delegate: Generator) : Generator(de
         return if (random.nextFloat(0f, 1f) < probabilityOfNull) {
             UtNullModel(classIdForType(types()[0]))
         } else {
-            delegate.generate(random, status)
+            delegate.generateImpl(random, status)
         }
     }
 

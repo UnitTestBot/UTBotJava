@@ -28,7 +28,7 @@ class OptionalGenerator : ComponentizedGenerator(Optional::class.java) {
                 classId
             )
         }
-        val value = componentGenerators().first().generate(random, status)
+        val value = componentGenerators().first().generateImpl(random, status)
         val constructorId = methodId(classId, "of", classId, objectClassId)
         val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
         return UtAssembleModel(
@@ -38,6 +38,8 @@ class OptionalGenerator : ComponentizedGenerator(Optional::class.java) {
             UtExecutableCallModel(null, constructorId, listOf(value)),
         )
     }
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel = generate(random, status)
 
     override fun numberOfNeededComponents(): Int {
         return 1

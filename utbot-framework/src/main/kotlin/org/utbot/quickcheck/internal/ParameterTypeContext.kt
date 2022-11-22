@@ -305,7 +305,15 @@ class ParameterTypeContext(
                 generics
             )
         }
-
+        fun forField(field: Field, generics: GenericsContext): ParameterTypeContext {
+            return ParameterTypeContext(
+                field.name,
+                field.annotatedType,
+                field.declaringClass.name,
+                Types.forJavaLangReflectType(generics.resolveFieldType(field)),
+                generics
+            )
+        }
         fun forParameter(parameter: Parameter): ParameterTypeContext {
             val exec = parameter.declaringExecutable
             val clazz = exec.declaringClass

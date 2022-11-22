@@ -3,9 +3,15 @@ package org.utbot.quickcheck.generator
 import org.javaruntype.type.TypeParameter
 import org.javaruntype.type.Types
 import org.javaruntype.type.WildcardTypeParameter
+import org.utbot.engine.greyboxfuzzer.generator.GeneratorConfigurator
+import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
+import org.utbot.engine.greyboxfuzzer.util.getImplementersOfWithChain
+import org.utbot.engine.greyboxfuzzer.util.removeIfAndReturnRemovedElements
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.internal.Reflection
 import org.utbot.quickcheck.internal.ReflectionException
 import org.utbot.quickcheck.random.SourceOfRandomness
+import soot.SootClass
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.AnnotatedType
 import java.lang.reflect.Method
@@ -19,6 +25,83 @@ import java.lang.annotation.Annotation as JavaAnnotation
 abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
     private val types: MutableList<Class<*>> = ArrayList()
     private var repo: Generators? = null
+    var generatedUtModel: UtModel? = null
+    var generationState = GenerationState.REGENERATE
+    var nestedGenerators = mutableListOf<Generator>()
+
+    open fun generateImpl(random: SourceOfRandomness, status: GenerationStatus): UtModel =
+        when (generationState) {
+            GenerationState.REGENERATE -> {
+                generate(random, status).also {
+                    generatedUtModel = it
+                    nestedGeneratorsRecursive().forEach {
+                        it.generationState = GenerationState.CACHE
+                    }
+                }
+            }
+            GenerationState.CACHE -> {
+                generatedUtModel ?: throw FuzzerIllegalStateException("No cached model")
+            }
+            GenerationState.MODIFY -> {
+                withModification {
+                    generate(random, status).also { generatedUtModel = it }
+                }
+            }
+            GenerationState.MODIFYING_CHAIN -> {
+                generate(random, status).also {
+                    generatedUtModel = it
+                    nestedGeneratorsRecursive().forEach {
+                        it.generationState = GenerationState.CACHE
+                    }
+                }
+            }
+        }
+
+    private fun flattenedTo(destination: MutableList<Generator>) {
+        destination.add(this)
+        nestedGenerators.forEach { it.flattenedTo(destination) }
+    }
+
+    fun nestedGeneratorsRecursive(): List<Generator> {
+        val allGenerators = mutableListOf<Generator>()
+        this.flattenedTo(allGenerators)
+        return allGenerators
+    }
+
+    fun nestedGeneratorsRecursiveWithoutThis() = nestedGeneratorsRecursive().filter { it != this }
+
+    private fun genRandomNestedGenerator(): Generator? {
+        val queue = ArrayDeque<Generator>()
+        val res = mutableListOf<Generator>()
+        queue.add(this)
+        while (queue.isNotEmpty()) {
+            val el = queue.removeFirst()
+            res.add(el)
+        }
+        return res.randomOrNull()
+    }
+
+    protected fun getAllGeneratorsBetween(start: Generator, end: Generator): List<Generator>? {
+        val res = mutableListOf(mutableListOf(start))
+        val queue = ArrayDeque<Generator>()
+        queue.add(start)
+        while (queue.isNotEmpty()) {
+            val curGenerator = queue.removeFirst()
+            if (curGenerator == end) break
+            val nestedGenerators = curGenerator.nestedGenerators
+            if (nestedGenerators.isEmpty()) continue
+            val oldLists = res.removeIfAndReturnRemovedElements { it.last() == curGenerator }
+            for (implementer in nestedGenerators) {
+                queue.add(implementer)
+                oldLists.forEach { res.add((it + listOf(implementer)).toMutableList()) }
+            }
+        }
+        return res.find { it.last() == end }?.drop(1)?.dropLast(1)
+    }
+
+    private fun getAllGeneratorsBetween(currentPath: MutableList<Generator>, end: Generator) {
+
+    }
 
     /**
      * @param type class token for type of property parameter this generator is
@@ -173,7 +256,12 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
      * @return a copy of the receiver
      */
     open fun copy(): Generator {
-        return Reflection.instantiate(javaClass) as Generator
+        return Reflection.instantiate(javaClass).also {
+            it.generatedUtModel = generatedUtModel
+            it.generationState = generationState
+            it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
+            GeneratorConfigurator.configureGenerator(it, 85)
+        }
     }
 
     /**
@@ -246,6 +334,11 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
             exceptionHandler(ex)
         }
         if (configurer != null) Reflection.invoke(configurer, this, configuration)
+    }
+
+    protected fun <T> withModification(block: () -> T): T {
+        generationState = GenerationState.MODIFY
+        return block.invoke().also { generationState = GenerationState.CACHE }
     }
 
     companion object {

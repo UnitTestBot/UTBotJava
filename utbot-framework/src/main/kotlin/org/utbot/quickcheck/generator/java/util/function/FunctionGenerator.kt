@@ -16,6 +16,11 @@ import java.util.function.Function
  * @param <R> return type of produced function
 </R></T> */
 class FunctionGenerator<T, R> : ComponentizedGenerator(Function::class.java) {
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

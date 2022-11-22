@@ -1,7 +1,10 @@
 package org.utbot.quickcheck.generator
 
 import org.javaruntype.type.TypeParameter
+import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.internal.Reflection
+import org.utbot.quickcheck.random.SourceOfRandomness
 import java.lang.reflect.AnnotatedType
 import java.util.Collections
 
@@ -59,6 +62,19 @@ abstract class ComponentizedGenerator constructor(type: Class<*>) : Generator(ty
         }
     }
 
+    abstract fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel
+    protected open fun modify(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val cachedModel = generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        val randomNestedGenerator = nestedGeneratorsRecursiveWithoutThis().randomOrNull() ?: return cachedModel
+        getAllGeneratorsBetween(this, randomNestedGenerator)?.forEach {
+            it.generationState = GenerationState.MODIFYING_CHAIN
+        }
+        randomNestedGenerator.generationState = GenerationState.REGENERATE
+        return createModifiedUtModel(random, status)
+    }
     override fun configure(annotatedType: AnnotatedType?) {
         super.configure(annotatedType)
         val annotatedComponentTypes = Reflection.annotatedComponentTypes(annotatedType)
@@ -74,5 +90,11 @@ abstract class ComponentizedGenerator constructor(type: Class<*>) : Generator(ty
      */
     fun componentGenerators(): List<Generator> {
         return Collections.unmodifiableList(components)
+    }
+
+    override fun copy(): Generator {
+        return (super.copy() as ComponentizedGenerator).also {
+            it.components.addAll(components.map { it.copy() })
+        }
     }
 }

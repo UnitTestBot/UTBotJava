@@ -8,7 +8,6 @@ import org.utbot.quickcheck.random.SourceOfRandomness
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
-import java.util.Arrays
 import java.util.Random
 
 /**
@@ -40,7 +39,7 @@ class Lambdas private constructor() {
                 source,
                 attempts
             )
-            return returnValueGenerator.generate(source, status)
+            return returnValueGenerator.generateImpl(source, status)
         }
 
         private fun handleObjectMethod(

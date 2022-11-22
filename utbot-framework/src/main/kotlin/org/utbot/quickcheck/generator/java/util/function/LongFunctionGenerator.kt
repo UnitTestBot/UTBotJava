@@ -15,6 +15,11 @@ import java.util.function.LongFunction
  * @param <R> return type of produced function
 </R> */
 class LongFunctionGenerator<R> : ComponentizedGenerator(LongFunction::class.java) {
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

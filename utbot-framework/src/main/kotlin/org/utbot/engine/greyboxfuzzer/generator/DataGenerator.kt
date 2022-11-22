@@ -11,7 +11,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.jClass
-import soot.SootMethod
 import java.lang.reflect.Parameter
 
 object DataGenerator {
@@ -22,20 +21,20 @@ object DataGenerator {
         clazz: Class<*>,
         random: SourceOfRandomness,
         status: GenerationStatus
-    ): UtModel? = generatorRepository.getOrProduceGenerator(clazz)?.generate(random, status)
+    ): UtModel? = generatorRepository.getOrProduceGenerator(clazz)?.generateImpl(random, status)
 
     fun generate(
         parameterTypeContext: ParameterTypeContext,
         random: SourceOfRandomness,
         status: GenerationStatus
-    ): UtModel? = generatorRepository.getOrProduceGenerator(parameterTypeContext, 0)?.generate(random, status)
+    ): UtModel? = generatorRepository.getOrProduceGenerator(parameterTypeContext, 0)?.generateImpl(random, status)
 
     fun generate(
         parameterTypeContext: ParameterTypeContext,
         random: SourceOfRandomness,
         status: GenerationStatus,
         depth: Int
-    ): UtModel? = generatorRepository.getOrProduceGenerator(parameterTypeContext, depth)?.generate(random, status)
+    ): UtModel? = generatorRepository.getOrProduceGenerator(parameterTypeContext, depth)?.generateImpl(random, status)
 
     fun generate(
         parameter: Parameter,
@@ -74,7 +73,7 @@ object DataGenerator {
         repeat(numberOfTries) {
             logger.debug { "Try $it" }
             try {
-                generatedValue = generator.generate(random, status)
+                generatedValue = generator.generateImpl(random, status)
                 return NormalMethodThisInstance(
                     generatedValue,
                     generator,
@@ -105,7 +104,7 @@ object DataGenerator {
         repeat(numberOfTries) {
             logger.debug { "Try $it" }
             try {
-                generatedValue = generator.generate(random, status)
+                generatedValue = generator.generateImpl(random, status)
                 return FParameter(
                     parameter,
                     null,

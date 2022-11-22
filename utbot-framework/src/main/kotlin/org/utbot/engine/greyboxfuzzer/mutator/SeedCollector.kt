@@ -1,17 +1,13 @@
 package org.utbot.engine.greyboxfuzzer.mutator
 
 import org.utbot.engine.greyboxfuzzer.util.getTrue
-import java.util.PriorityQueue
-import java.util.TreeSet
 import kotlin.math.abs
-import kotlin.math.exp
-import kotlin.math.pow
 import kotlin.random.Random
 
 class SeedCollector(private val maxSize: Int = 50) {
     private val seeds = sortedSetOf(
         comparator =
-        compareByDescending { seed: Seed -> seed.priority }.thenComparator { seed1, seed2 -> if (seed1 === seed2) 0 else 1 }
+        compareByDescending { seed: Seed -> seed.score }.thenComparator { seed1, seed2 -> if (seed1 === seed2) 0 else 1 }
     )
 
     fun addSeed(seed: Seed) {
@@ -41,8 +37,8 @@ class SeedCollector(private val maxSize: Int = 50) {
 
     fun getRandomWeightedSeed() =
         if (Random.getTrue(75)) {
-            val bestSeed = getBestSeed().priority
-            seeds.filter { abs(it.priority - bestSeed) < 1e-5 }.randomOrNull()
+            val bestSeed = getBestSeed().score
+            seeds.filter { abs(it.score - bestSeed) < 1e-5 }.randomOrNull()
         } else {
             seeds.randomOrNull()
         }

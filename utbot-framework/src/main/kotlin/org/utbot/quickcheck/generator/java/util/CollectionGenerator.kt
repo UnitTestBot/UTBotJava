@@ -1,18 +1,12 @@
 package org.utbot.quickcheck.generator.java.util
 
+import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
 import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.quickcheck.generator.ComponentizedGenerator
-import org.utbot.quickcheck.generator.Distinct
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.Size
+import org.utbot.quickcheck.generator.*
 import org.utbot.quickcheck.internal.Ranges
 import org.utbot.quickcheck.random.SourceOfRandomness
 
@@ -64,13 +58,39 @@ abstract class CollectionGenerator(type: Class<*>) : ComponentizedGenerator(type
         this.distinct = distinct
     }
 
-    override fun generate(
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        val cachedModel = generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        val collectionClassId = types().single().id
+        val collectionConstructorId = ConstructorId(collectionClassId, emptyList())
+        val genId = cachedModel.getIdOrThrow()
+        return UtAssembleModel(
+            genId,
+            cachedModel.classId,
+            collectionConstructorId.name + "#" + genId,
+            UtExecutableCallModel(null, collectionConstructorId, emptyList())
+        ) {
+            val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
+            (0 until nestedGenerators.size).map { ind ->
+                val generator = nestedGenerators[ind]
+                val item = generator.generateImpl(random, status)
+                generator.generationState = GenerationState.CACHE
+                UtExecutableCallModel(
+                    this,
+                    addMethodId,
+                    listOf(item)
+                )
+            }
+        }
+    }
+
+    private fun regenerate(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
+        nestedGenerators.clear()
         val collectionClassId = types().single().id
         val collectionConstructorId = ConstructorId(collectionClassId, emptyList())
-
         val genId = utModelConstructor.computeUnusedIdAndUpdate()
         return UtAssembleModel(
             genId,
@@ -78,15 +98,27 @@ abstract class CollectionGenerator(type: Class<*>) : ComponentizedGenerator(type
             collectionConstructorId.name + "#" + genId,
             UtExecutableCallModel(null, collectionConstructorId, emptyList()),
         ) {
-            val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
             val size = size(random, status)
-            val generator = componentGenerators().first()
             (0..size).map {
-                val item = generator.generate(random, status)
+                val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
+                val generator = componentGenerators().first().copy().also { nestedGenerators.add(it) }
+                val item = generator.generateImpl(random, status)
                 UtExecutableCallModel(this, addMethodId, listOf(item))
             }
         }
     }
+
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel =
+        when (generationState) {
+            GenerationState.REGENERATE -> regenerate(random, status)
+            GenerationState.MODIFY -> modify(random, status)
+            GenerationState.MODIFYING_CHAIN -> createModifiedUtModel(random, status)
+            GenerationState.CACHE -> generatedUtModel ?: throw FuzzerIllegalStateException("No cached model")
+        }
+
 
     override fun numberOfNeededComponents(): Int {
         return 1

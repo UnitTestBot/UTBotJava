@@ -1,17 +1,12 @@
 package org.utbot.quickcheck.generator.java.util
 
+import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
 import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.quickcheck.generator.ComponentizedGenerator
-import org.utbot.quickcheck.generator.Distinct
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.Size
+import org.utbot.quickcheck.generator.*
 import org.utbot.quickcheck.internal.Ranges
 import org.utbot.quickcheck.random.SourceOfRandomness
 
@@ -59,17 +54,41 @@ abstract class MapGenerator protected constructor(type: Class<*>) : Componentize
         this.distinct = distinct != null
     }
 
-    override fun generate(
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        val cachedUtModel = generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        val size = nestedGenerators.size / 2
+        val classId = types().single().id
+
+        val modelId = cachedUtModel.getIdOrThrow()
+        val constructorId = ConstructorId(classId, emptyList())
+        return UtAssembleModel(
+            modelId,
+            classId,
+            constructorId.name + "#" + modelId,
+            UtExecutableCallModel(null, constructorId, emptyList()),
+        ) {
+            val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))
+            (0 until size).map { ind ->
+                val keyGenerator = nestedGenerators[ind * 2]
+                val valueGenerator = nestedGenerators[ind * 2 + 1]
+                val key = keyGenerator.generateImpl(random, status)
+                val value = valueGenerator.generateImpl(random, status)
+                keyGenerator.generationState = GenerationState.CACHE
+                valueGenerator.generationState = GenerationState.CACHE
+                UtExecutableCallModel(this, putMethodId, listOf(key, value))
+            }
+        }
+    }
+    private fun regenerate(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
         val size = size(random, status)
         val classId = types().single().id
-        val keyGenerator = componentGenerators()[0]
-        val valueGenerator = componentGenerators()[1]
 
         val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
         val constructorId = ConstructorId(classId, emptyList())
+        nestedGenerators.clear()
         return UtAssembleModel(
             generatedModelId,
             classId,
@@ -77,17 +96,27 @@ abstract class MapGenerator protected constructor(type: Class<*>) : Componentize
             UtExecutableCallModel(null, constructorId, emptyList()),
         ) {
             val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))
-            generateSequence {
-                val key = keyGenerator.generate(random, status)
-                val value = valueGenerator.generate(random, status)
+            (0..size).map {
+                val keyGenerator = componentGenerators()[0].copy().also { nestedGenerators.add(it) }
+                val valueGenerator = componentGenerators()[1].copy().also { nestedGenerators.add(it) }
+                val key = keyGenerator.generateImpl(random, status)
+                val value = valueGenerator.generateImpl(random, status)
                 key to value
-            }.filter { (key, value) ->
-                okToAdd(key, value)
-            }.map { (key, value) ->
                 UtExecutableCallModel(this, putMethodId, listOf(key, value))
-            }.take(size).toList()
+            }
         }
     }
+
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel =
+        when (generationState) {
+            GenerationState.REGENERATE -> regenerate(random, status)
+            GenerationState.MODIFY -> modify(random, status)
+            GenerationState.MODIFYING_CHAIN -> createModifiedUtModel(random, status)
+            GenerationState.CACHE -> generatedUtModel ?: throw FuzzerIllegalStateException("No cached model")
+        }
 
     override fun numberOfNeededComponents(): Int {
         return 2

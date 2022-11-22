@@ -1,10 +1,13 @@
 package org.utbot.quickcheck.internal.generator
 
+import org.utbot.engine.greyboxfuzzer.generator.GeneratorConfigurator
+import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
 import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.getIdOrThrow
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.byteArrayClassId
 import org.utbot.framework.plugin.api.util.charArrayClassId
@@ -13,13 +16,8 @@ import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.floatArrayClassId
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.longArrayClassId
-import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.shortArrayClassId
-import org.utbot.quickcheck.generator.Distinct
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.Generator
-import org.utbot.quickcheck.generator.Generators
-import org.utbot.quickcheck.generator.Size
+import org.utbot.quickcheck.generator.*
 import org.utbot.quickcheck.internal.Ranges
 import org.utbot.quickcheck.internal.Reflection
 import org.utbot.quickcheck.random.SourceOfRandomness
@@ -51,10 +49,46 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
         this.distinct = distinct != null
     }
 
-    override fun generate(
+    private fun modify(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
+        val cachedModel = generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        val randomNestedGenerator = nestedGeneratorsRecursiveWithoutThis().randomOrNull() ?: return cachedModel
+        getAllGeneratorsBetween(this, randomNestedGenerator)?.forEach {
+            it.generationState = GenerationState.MODIFYING_CHAIN
+        }
+        randomNestedGenerator.generationState = GenerationState.REGENERATE
+        return createModifiedUtModel(random, status)
+    }
+
+    private fun createModifiedUtModel(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val cachedModel = generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        val length = nestedGenerators.size
+        val componentTypeId = classIdForType(componentType)
+        val modelId = cachedModel.getIdOrThrow()
+        return UtArrayModel(
+            modelId,
+            getClassIdForArrayType(componentType),
+            length,
+            componentTypeId.defaultValueModel(),
+            (0 until length).associateWithTo(hashMapOf()) { ind ->
+                val generator = nestedGenerators[ind]
+                val item = generator.generateImpl(random, status)
+                generator.generationState = GenerationState.CACHE
+                item
+            }
+        )
+    }
+
+    private fun regenerate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        nestedGenerators.clear()
         val length = length(random, status)
         val componentTypeId = classIdForType(componentType)
         val modelId = utModelConstructor.computeUnusedIdAndUpdate()
@@ -63,9 +97,35 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
             getClassIdForArrayType(componentType),
             length,
             componentTypeId.defaultValueModel(),
-            (0 until length).associateWithTo(hashMapOf()) { component.generate(random, status) }
+            (0 until length).associateWithTo(hashMapOf()) {
+                val generator = component.copy()
+                nestedGenerators.add(generator)
+                generator.generateImpl(random, status)
+            }
         )
     }
+
+    override fun generate(
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel =
+        when (generationState) {
+            GenerationState.REGENERATE -> regenerate(random, status)
+            GenerationState.MODIFY -> modify(random, status)
+            GenerationState.MODIFYING_CHAIN -> createModifiedUtModel(random, status)
+            GenerationState.CACHE -> generatedUtModel ?: throw FuzzerIllegalStateException("No cached model")
+        }
+
+//    override fun generate(
+//        random: SourceOfRandomness,
+//        status: GenerationStatus
+//    ): UtModel {
+//        return if (generationState == GenerationState.MODIFY) {
+//            modify(random, status)
+//        } else {
+//            regenerate(random, status)
+//        }
+//    }
 
     private fun getClassIdForArrayType(componentType: Class<*>): ClassId = when (componentType) {
         Int::class.javaPrimitiveType -> intArrayClassId
@@ -94,5 +154,15 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
 
     private fun length(random: SourceOfRandomness, status: GenerationStatus): Int {
         return if (lengthRange != null) random.nextInt(lengthRange!!.min, lengthRange!!.max) else status.size()
+    }
+
+    override fun copy(): Generator {
+        val gen = Reflection.instantiate(ArrayGenerator::class.java.constructors.first(), componentType, component.copy()) as Generator
+        return gen.also {
+            it.generatedUtModel = generatedUtModel
+            it.generationState = generationState
+            it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
+            GeneratorConfigurator.configureGenerator(it, 85)
+        }
     }
 }

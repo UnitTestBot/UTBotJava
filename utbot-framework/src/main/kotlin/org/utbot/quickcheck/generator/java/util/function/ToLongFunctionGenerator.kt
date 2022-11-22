@@ -18,6 +18,11 @@ import java.util.function.ToLongFunction
 </T> */
 class ToLongFunctionGenerator<T> : ComponentizedGenerator(ToLongFunction::class.java) {
     private var generator: Generator? = null
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun provide(provided: Generators) {
         super.provide(provided)
         generator = gen()!!.type(Long::class.javaPrimitiveType!!)

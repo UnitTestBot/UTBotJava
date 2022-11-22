@@ -19,6 +19,11 @@ import java.util.function.ToLongBiFunction
 </U></T> */
 class ToLongBiFunctionGenerator<T, U> : ComponentizedGenerator(ToLongBiFunction::class.java) {
     private var generator: Generator? = null
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun provide(provided: Generators) {
         super.provide(provided)
         generator = gen()!!.type(Long::class.javaPrimitiveType!!)

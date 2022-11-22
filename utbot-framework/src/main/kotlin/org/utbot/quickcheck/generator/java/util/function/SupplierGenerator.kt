@@ -15,6 +15,11 @@ import java.util.function.Supplier
  * @param <T> the type of the values produced by the generated instances
 </T> */
 class SupplierGenerator<T> : ComponentizedGenerator(Supplier::class.java) {
+
+    override fun createModifiedUtModel(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        return generate(random, status)
+    }
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus

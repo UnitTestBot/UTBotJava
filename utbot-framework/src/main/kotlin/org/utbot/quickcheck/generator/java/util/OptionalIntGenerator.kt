@@ -36,7 +36,7 @@ class OptionalIntGenerator : Generator(OptionalInt::class.java) {
     ): UtModel {
         val trial = random.nextDouble()
         val generated =
-            if (trial < 0.25) OptionalInt.empty() else OptionalInt.of(integers.generateValue(random, status))
+            if (trial < 0.25) OptionalInt.empty() else OptionalInt.of(integers.generateValue(random))
         return utModelConstructor.construct(generated, classIdForType(OptionalInt::class.java))
     }
 }

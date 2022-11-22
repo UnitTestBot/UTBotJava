@@ -1,11 +1,13 @@
 package org.utbot.engine.greyboxfuzzer.generator
 
 import org.utbot.engine.greyboxfuzzer.mutator.Mutator
+import org.utbot.engine.greyboxfuzzer.util.copy
 import org.utbot.engine.greyboxfuzzer.util.getAllDeclaredFields
 import org.utbot.quickcheck.generator.Generator
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.jClass
 import java.lang.reflect.Field
@@ -51,10 +53,29 @@ data class FParameter(
     fun regenerateFields() {
         regenerateFields(classId.jClass.getAllDeclaredFields())
     }
+
     fun regenerateFields(fieldsToRegenerate: List<Field>) {
         if (utModel is UtAssembleModel) {
             utModel = Mutator.regenerateFields(classId.jClass, utModel as UtAssembleModel, fieldsToRegenerate)
         }
     }
+
+    fun copy(): FParameter = FParameter(
+        parameter,
+        value,
+        utModel.copy(),
+        generator?.copy(),
+        classId,
+        fields
+    )
+
+    fun replaceUtModel(newUtModel: UtModel): FParameter = FParameter(
+        parameter,
+        value,
+        newUtModel,
+        generator?.copy(),
+        classId,
+        fields
+    )
 
 }

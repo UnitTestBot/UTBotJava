@@ -13,7 +13,6 @@ import org.utbot.framework.util.sootMethod
 import org.utbot.instrumentation.ConcreteExecutor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
-import java.lang.reflect.Modifier
 import kotlin.random.Random
 
 class GreyBoxFuzzer(
@@ -23,15 +22,15 @@ class GreyBoxFuzzer(
 ) {
 
     private val seeds = SeedCollector()
-    private val explorationStageIterations = 50
+    private val explorationStageIterations = 100
     private val exploitationStageIterations = 100
 
     //TODO make it return Sequence<UtExecution>
     suspend fun fuzz(): Sequence<UtExecution> {
         logger.debug { "Started to fuzz ${methodUnderTest.name}" }
         val javaClazz = methodUnderTest.classId.jClass
-        val javaMethod = methodUnderTest.sootMethod.toJavaMethod()!!
         val sootMethod = methodUnderTest.sootMethod
+        val javaMethod = sootMethod.toJavaMethod()!!
         val classFieldsUsedByFunc = sootMethod.getClassFieldsUsedByFunc(javaClazz)
         val methodLines = sootMethod.activeBody.units.map { it.javaSourceStartLineNumber }.filter { it != -1 }.toSet()
         val currentCoverageByLines = CoverageCollector.coverage
@@ -43,13 +42,12 @@ class GreyBoxFuzzer(
             javaMethod,
             explorationStageIterations,
             methodLines,
-            javaClazz,
             classFieldsUsedByFunc,
             methodUnderTest,
             currentCoverageByLines
         )
         logger.debug { "SEEDS AFTER EXPLORATION STAGE = ${seeds.seedsSize()}" }
-        //exploitationStage(exploitationStageIterations, javaClazz, methodLines, currentCoverageByLines)
+        exploitationStage(exploitationStageIterations, javaClazz, methodLines, currentCoverageByLines)
         //UtModelGenerator.reset()
         return sequenceOf()
     }
@@ -58,11 +56,32 @@ class GreyBoxFuzzer(
         method: Method,
         numberOfIterations: Int,
         methodLinesToCover: Set<Int>,
-        clazz: Class<*>,
         classFieldsUsedByFunc: Set<Field>,
         methodUnderTest: ExecutableId,
         prevMethodCoverage: Set<Int>
     ) {
+//        val param = method.parameters.first()
+//        val firstGenerator = GreyBoxFuzzerGenerators.generatorRepository.getOrProduceGenerator(param, 0)!!
+//        var generator = firstGenerator
+//        println("GENERATOR = $generator")
+//        val generatedValue = generator.generateImpl(GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+//        println("GENERATED VALUE = $generatedValue")
+//        generator.generationState = GenerationState.CACHE
+//        val valueFromCache = generator.generateImpl(GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+//        println("VALUE FROM CACHE = $valueFromCache")
+//        //generator = firstGenerator.copy()
+//        generator.generationState = GenerationState.MODIFY
+//        val modifiedValue = generator.generateImpl(GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+//        println("MODIFIED VALUE = $modifiedValue")
+//        //generator = firstGenerator.copy()
+//        generator.generationState = GenerationState.MODIFY
+//        val modifiedValue2 = generator.generateImpl(GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+//        println("MODIFIED VALUE = $modifiedValue2")
+//        //generator = firstGenerator.copy()
+//        generator.generationState = GenerationState.MODIFY
+//        val modifiedValue3 = generator.generateImpl(GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+//        println("MODIFIED VALUE = $modifiedValue3")
+//        exitProcess(0)
         val parametersToGenericsReplacer = method.parameters.map { it to GenericsReplacer() }
         val thisInstancesHistory = ArrayDeque<ThisInstance>()
         repeat(numberOfIterations) { iterationNumber ->
@@ -119,6 +138,7 @@ class GreyBoxFuzzer(
                         )
                     seeds.addSeed(Seed(thisInstance, generatedParameters, seedScore.toDouble()))
                     logger.debug { "Execution result: ${executionResult.result}" }
+                    logger.debug { "Seed score = $seedScore" }
                 } catch (e: Throwable) {
                     logger.debug(e) { "Exception while execution :(" }
                     thisInstancesHistory.clear()
@@ -140,13 +160,14 @@ class GreyBoxFuzzer(
                 .map { it.lineNumber }
                 //.filter { it in currentMethodLines }
                 .toSet()
+        val currentMethodCoverage = coverage.filter { it in currentMethodLines }
         executionResult.coverage.coveredInstructions.forEach { CoverageCollector.coverage.add(it) }
-        return (coverage - prevMethodCoverage).size
+        return (currentMethodCoverage - prevMethodCoverage).size
     }
 
 
     //TODO under construction
-    private fun exploitationStage(
+    private suspend fun exploitationStage(
         numberOfIterations: Int,
         clazz: Class<*>,
         methodLinesToCover: Set<Int>,
@@ -154,10 +175,29 @@ class GreyBoxFuzzer(
     ) {
         logger.debug { "Exploitation began" }
         repeat(numberOfIterations) {
+            logger.debug { "Mutation iteration $it" }
             val randomSeed = seeds.getRandomWeightedSeed() ?: return@repeat
-            val randomSeedArgs = randomSeed.arguments.toMutableList()
-            val randomParameter = randomSeedArgs.random()
-            Mutator.mutateParameter(randomParameter)
+            logger.debug { "Random seed params = ${randomSeed.parameters}" }
+            val mutatedSeed = Mutator.mutateSeed(randomSeed, GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+            logger.debug { "Mutated params = ${mutatedSeed.parameters}" }
+            val stateBefore = mutatedSeed.createEnvironmentModels()
+            try {
+                val executionResult = execute(stateBefore, methodUnderTest)
+                logger.debug { "Execution result: $executionResult" }
+                val seedScore =
+                    handleCoverage(
+                        executionResult,
+                        prevMethodCoverage,
+                        methodLinesToCover
+                    )
+                mutatedSeed.score = seedScore.toDouble()
+                seeds.addSeed(mutatedSeed)
+                logger.debug { "Execution result: ${executionResult.result}" }
+                logger.debug { "Seed score = $seedScore" }
+            } catch (e: Throwable) {
+                logger.debug(e) { "Exception while execution :(" }
+                return@repeat
+            }
         }
     }
 //    private suspend fun exploitationStage(

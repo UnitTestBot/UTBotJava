@@ -18,9 +18,9 @@ import kotlin.reflect.jvm.javaMethod
 
 fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
     this.checkLevel(SootClass.HIERARCHY)
-    if (!this.isInterface && !this.isAbstract) {
-        throw RuntimeException("interfaced needed; got $this")
-    }
+//    if (!this.isInterface && !this.isAbstract) {
+//        throw RuntimeException("interfaced needed; got $this")
+//    }
     val hierarchy = Hierarchy()
     val res = mutableListOf(mutableListOf(this))
     val queue = ArrayDeque<SootClass>()

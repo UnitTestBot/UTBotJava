@@ -30,7 +30,7 @@ class ObjectGenerator(
                 val randomClass = potentialUsefulClasses.random()
                 GreyBoxFuzzerGenerators.generatorRepository
                     .getOrProduceGenerator(randomClass)
-                    ?.generate(sourceOfRandomness, generationStatus)
+                    ?.generateImpl(sourceOfRandomness, generationStatus)
             } else null
         potentialInterestingObjectReplacement?.let { return it }
         return GreyBoxFuzzerGenerators.generatorRepository
@@ -39,6 +39,6 @@ class ObjectGenerator(
             .flatMap { it.second }
             .filter { !it.hasComponents() }
             .randomOrNull()
-            ?.generate(sourceOfRandomness, generationStatus) ?: UtNullModel(parameterTypeContext.rawClass.id)
+            ?.generateImpl(sourceOfRandomness, generationStatus) ?: UtNullModel(parameterTypeContext.rawClass.id)
     }
 }

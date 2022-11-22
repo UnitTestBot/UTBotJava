@@ -20,6 +20,7 @@ import org.jetbrains.concurrency.resolvedPromise
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryProperties
 import org.jetbrains.jps.model.library.JpsMavenRepositoryLibraryDescriptor
 import org.utbot.intellij.plugin.models.mavenCoordinates
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(project) {
     override fun addExternalLibraryDependency(
@@ -52,7 +53,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
         }
         if (classesRoots.isNotEmpty()) {
             val urls = OrderEntryFix.refreshAndConvertToUrls(classesRoots)
-            if (modules.size == 1) {
+            if (canLoadModuleLibrary(modules)) {
                 ModuleRootModificationUtil.addModuleLibrary(
                     firstModule,
                     if (classesRoots.size > 1) descriptor.presentableName else null,
@@ -78,4 +79,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
         }
         return resolvedPromise()
     }
+
+    private fun canLoadModuleLibrary(modules: Collection<Module>) =
+        modules.size == 1 && !ContainerUtil.getFirstItem(modules).project.isBuildWithGradle
 }

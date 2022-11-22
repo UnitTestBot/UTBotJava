@@ -6,11 +6,10 @@
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.platform</depends>
 
-    <depends optional="true" config-file="META-INF/withJava.xml">com.intellij.modules.java</depends>
-    <depends optional="true" config-file="META-INF/withLang.xml">com.intellij.modules.lang</depends>
-    <depends optional="true" config-file="META-INF/withKotlin.xml">org.jetbrains.kotlin</depends>
-    <depends optional="true" config-file="META-INF/withPython.xml">com.intellij.modules.python</depends>
-    <depends optional="true" config-file="META-INF/withAndroid.xml">org.jetbrains.android</depends>
+    <depends optional="true" config-file="withJava.xml">com.intellij.modules.java</depends>
+    <depends optional="true" config-file="withKotlin.xml">org.jetbrains.kotlin</depends>
+    <depends optional="true" config-file="withPython.xml">com.intellij.modules.python</depends>
+    <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
 
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
@@ -25,7 +24,7 @@
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
-        <projectConfigurable parentId="tools" instance="org.utbot.intellij.plugin.settings.Configurable"
+        <projectConfigurable dynamic="true" parentId="tools" instance="org.utbot.intellij.plugin.settings.Configurable"
                                  id="org.utbot.intellij.plugin.settings.Configurable"
                                  displayName="UnitTestBot"/>
         <!--suppress PluginXmlValidity -->
@@ -33,7 +32,7 @@
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
         <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>
         <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtProjectModelModifier"/>
-        <projectModelModifier implementation="org.androidstudio.plugin.util.UtAndroidGradleJavaProjectModelModifier" order="first"/>
+        <projectModelModifier implementation="org.androidstudio.plugin.util.UtAndroidGradleJavaProjectModelModifierWrapper" order="first"/>
         <!--Documentation-->
         <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
         <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>

@@ -32,13 +32,13 @@ There are so many ways to contribute. Choose yours and find the relevant short g
 ## Reporting a bug
 
 1. Check if the bug (a true bug!) has already been reported: search through [UnitTestBot issues](https://github.com/UnitTestBot/UTBotJava/issues). Please, don't duplicate.
-2. Check with the [Naming and labeling conventions](Conventions.md).
+2. Check with the [Naming and labeling conventions](docs/contributing/Conventions.md).
 3. Make sure you have all the necessary information as per [template](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=) and create the bug reporting issue.
 
 ## Requesting a feature
 
 1. Check if the feature has already been requested: search through [UnitTestBot issues](https://github.com/UnitTestBot/UTBotJava/issues).
-2. Check with our [Naming and labeling conventions](Conventions.md).
+2. Check with our [Naming and labeling conventions](docs/contributing/Conventions.md).
 3. Make sure you are able to provide all the necessary information as per [template](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) and create the feature request issue.
 
 ## Contributing the code (bug fix or feature implementation)
@@ -66,7 +66,7 @@ Do you need to create an issue if you want to fix a bug?
    * Before creating the pull request perform the tests you find necessary for your code changes.
    * When implementing something new, it's great to find real users and ask them to try out your feature — to prove
      the necessity and quality of your suggestion.
-6. Check with the [Naming and labeling conventions](Conventions.md).
+6. Check with the [Naming and labeling conventions](docs/contributing/Conventions.md).
 7. Create the pull request, and you'll see if the automated tests pass on GitHub. Your reviewer will possibly recommend
    you more tests.
 
@@ -87,7 +87,7 @@ is the same as for the code. If you'd like to improve the existing docs or to ad
 2. Create your own fork of the code.
 3. Clone the forked repository to your local machine.
 4. Implement changes to docs (change the existing doc or create a new one). Usually, we create a new doc for a new feature, not for the small fixes. You are not obliged to write a detailed text about the feature you implement. You have to only describe it properly in both the related issue and the pull request, but it will be great if you still provide some docs.
-6. Check with the [Naming and labeling conventions](Conventions.md).
+6. Check with the [Naming and labeling conventions](docs/contributing/Conventions.md).
 7. Create the pull request, and we'll review it.
 
 * You can request a new doc — create an issue, using the [guide for a feature request](#Requesting-a-feature).

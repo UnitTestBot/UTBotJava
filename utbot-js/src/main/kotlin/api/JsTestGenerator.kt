@@ -162,9 +162,9 @@ class JsTestGenerator(
             )
         }
         val testSet = CgMethodTestSet(
-            execId,
-            testsForGenerator,
-            errorsForGenerator
+            executableId = execId,
+            errors = errorsForGenerator,
+            executions = testsForGenerator,
         )
         testSets += testSet
         paramNames[execId] = funcNode.parameters.map { it.name.toString() }

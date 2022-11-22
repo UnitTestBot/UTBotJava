@@ -22,9 +22,9 @@ import javax.swing.JCheckBox
 import javax.swing.JPanel
 import kotlin.reflect.KClass
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.HangingTestsTimeout
-import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.JavaDocCommentStyle

@@ -150,7 +150,7 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val startLine = getLastLineNumber(utExecution) ?: defaultLineNumber
+        val startLine = getLastLineNumber(utExecution, classFqn) ?: defaultLineNumber
         val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
         val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
@@ -196,8 +196,12 @@ class SarifReport(
         }
         if (lastMethodCallIndex == -1)
             return listOf()
-        // taking all elements before the last `method` call
-        val stackTraceFiltered = stackTrace.take(lastMethodCallIndex + 1)
+
+        val stackTraceFiltered = stackTrace
+            .take(lastMethodCallIndex + 1) // taking all elements before the last `method` call
+            .filter {
+                !it.className.startsWith("org.utbot.") // filter all internal calls
+            }
 
         val stackTraceResolved = stackTraceFiltered.mapNotNull {
             findStackTraceElementLocation(it)
@@ -207,7 +211,7 @@ class SarifReport(
 
         // prepending stack trace by `method` call in generated tests
         val methodCallLocation: SarifPhysicalLocation? =
-            findMethodCallInTestBody(utExecution.testMethodName, method.name)
+            findMethodCallInTestBody(utExecution.testMethodName, method.name, utExecution)
         if (methodCallLocation != null) {
             val testFileName = sourceFinding.testsRelativePath.toPath().fileName
             val testClassName = testFileName.nameWithoutExtension
@@ -255,9 +259,15 @@ class SarifReport(
         generatedTestsCode.split('\n')
     }
 
-    private fun findMethodCallInTestBody(testMethodName: String?, methodName: String): SarifPhysicalLocation? {
+    private fun findMethodCallInTestBody(
+        testMethodName: String?,
+        methodName: String,
+        utExecution: UtExecution,
+    ): SarifPhysicalLocation? {
         if (testMethodName == null)
             return null
+        if (utExecution.result is UtSandboxFailure) // if there is no method call in test
+            return getRelatedLocations(utExecution).firstOrNull()?.physicalLocation
 
         // searching needed test
         val testMethodStartsAt = testsBodyLines.indexOfFirst { line ->
@@ -317,32 +327,32 @@ class SarifReport(
     }
 
     /**
-     * Returns the number of the last line in the execution path.
+     * Returns the number of the last line in the execution path which is located in the [classFqn].
      */
-    private fun getLastLineNumber(utExecution: UtExecution): Int? {
-        // if for some reason we can't extract the last line from the path
-        val lastCoveredInstruction =
-            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
+    private fun getLastLineNumber(utExecution: UtExecution, classFqn: String): Int? {
+        val classFqnPath = classFqn.replace(".", "/")
+        val coveredInstructions = utExecution.coverage?.coveredInstructions
+        val lastCoveredInstruction = coveredInstructions?.lastOrNull { it.className == classFqnPath }
+            ?: coveredInstructions?.lastOrNull()
+        if (lastCoveredInstruction != null)
+            return lastCoveredInstruction.lineNumber
 
-        return if (utExecution is UtSymbolicExecution) {
-            val lastPathLine = try {
-                // path/fullPath might be empty when engine executes in another process -
-                // soot entities cannot be passed to the main process because kryo cannot deserialize them
-                utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
-            } catch (t: Throwable) {
-                null
-            }
-
-            lastPathLine ?: lastCoveredInstruction
-        } else {
-            lastCoveredInstruction
+        // if for some reason we can't extract the last line from the coverage
+        val lastPathElementLineNumber = try {
+            // path/fullPath might be empty when engine executes in another process -
+            // soot entities cannot be passed to the main process because kryo cannot deserialize them
+            (utExecution as? UtSymbolicExecution)?.path?.lastOrNull()?.stmt?.javaSourceStartLineNumber
+        } catch (t: Throwable) {
+            null
         }
+        return lastPathElementLineNumber
     }
 
     private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
         val implicitlyThrown = result is UtImplicitlyThrownException
         val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
         val assertionError = result is UtExplicitlyThrownException && result.exception is AssertionError
-        return implicitlyThrown || overflowFailure || assertionError
+        val sandboxFailure = result is UtSandboxFailure
+        return implicitlyThrown || overflowFailure || assertionError || sandboxFailure
     }
 }

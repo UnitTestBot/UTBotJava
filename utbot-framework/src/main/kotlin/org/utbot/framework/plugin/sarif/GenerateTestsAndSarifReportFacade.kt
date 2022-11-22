@@ -1,8 +1,8 @@
 package org.utbot.framework.plugin.sarif
 
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.model.CodeGenerator
+import org.utbot.framework.codegen.CodeGenerator
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id

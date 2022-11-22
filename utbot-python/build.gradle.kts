@@ -23,6 +23,7 @@ tasks {
 dependencies {
     api(project(":utbot-fuzzers"))
     api(project(":utbot-framework"))
+    api(project(":utbot-python-parser"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation(group = "org.apache.commons", name = "commons-lang3", version = "3.12.0")

@@ -37,6 +37,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
+import com.intellij.psi.codeStyle.JavaCodeStyleManager.DO_NOT_ADD_IMPORTS
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.siyeh.ig.psiutils.ImportUtils
@@ -773,7 +774,7 @@ object CodeGenerationController {
                     val startOffset = range.startOffset
                     val endOffset = range.endOffset
                     val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
-                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
+                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange, DO_NOT_ADD_IMPORTS)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
             }

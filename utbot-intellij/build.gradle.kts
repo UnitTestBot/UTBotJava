@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import java.io.ByteArrayOutputStream
 import java.io.PrintWriter
+import java.text.SimpleDateFormat
 
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
@@ -68,6 +69,21 @@ intellij {
 
 abstract class SettingsToConfigTask : DefaultTask() {
     @get:Internal
+    val apacheLines =
+"""Copyright (c) ${SimpleDateFormat("yyyy").format(System.currentTimeMillis())} The UnitTestBot Authors
+
+Licensed under the Apache License, Version 2.0 (the \License\);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an \AS IS\ BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.""".split("\n")
+    @get:Internal
     val settingsSourceDir = File(project.buildDir.parentFile.parentFile, "utbot-framework-api/src/main/kotlin/org/utbot/framework/")
     @get:Internal
     val sourceFileName = "UtSettings.kt"
@@ -96,8 +112,6 @@ abstract class SettingsToConfigTask : DefaultTask() {
 
             val acc = StringBuilder()
             val docLines = mutableListOf<String>()
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            val writer = PrintWriter(byteArrayOutputStream)
             File(settingsSourceDir, sourceFileName).useLines { it ->
                 it.iterator().forEach { line ->
                     var s = line.trim()
@@ -126,6 +140,7 @@ abstract class SettingsToConfigTask : DefaultTask() {
                             var i = s.indexOf(" by ", 3)
                             if (i > 0) {
                                 var key = s.substring(3, i).trim()
+                                println(key)
                                 if (key.contains(':')) {
                                     key = key.substring(0, key.lastIndexOf(':'))
                                 }
@@ -168,6 +183,10 @@ abstract class SettingsToConfigTask : DefaultTask() {
                         acc.append(" $s")
                     }
                 }
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                val writer = PrintWriter(byteArrayOutputStream)
+                apacheLines.forEach { writer.println("# $it") }
+
                 for (model in models) {
                     if (model.type == "Enum") {
                         val split = model.defaultValue.split('.')
@@ -187,10 +206,8 @@ abstract class SettingsToConfigTask : DefaultTask() {
                             }
                         }
                     }
-                    if (byteArrayOutputStream.size() > 0) {
-                        writer.println()
-                        writer.println("#")
-                    }
+                    writer.println()
+                    writer.println("#")
                     for (docLine in model.docLines) {
                         if (docLine.isEmpty()) {
                             writer.println("#")

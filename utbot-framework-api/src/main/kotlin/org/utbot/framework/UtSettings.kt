@@ -22,9 +22,7 @@ private const val defaultKeyForSettingsPath = "utbot.settings.path"
  */
 const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
 
-object UtSettings : AbstractSettings(
-    logger, defaultKeyForSettingsPath, defaultSettingsPath
-) {
+object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultSettingsPath) {
 
     /**
      * Setting to disable coroutines debug explicitly.
@@ -258,7 +256,7 @@ object UtSettings : AbstractSettings(
     )
 
     /**
-     * Log level for engine process, which started in idea on generate tests action.
+     * Log level for engine process, which started in IntelliJ IDEA on generate tests action.
      */
     var engineProcessLogLevel by getEnumProperty(LogLevel.Info)
 
@@ -277,7 +275,7 @@ object UtSettings : AbstractSettings(
 
 
     /**
-     * Property useful only for idea
+     * Property useful only for IntelliJ IDEA
      * If true - runs engine process with the ability to attach a debugger
      * @see runChildProcessWithDebug
      * @see org.utbot.intellij.plugin.process.EngineProcess
@@ -289,7 +287,7 @@ object UtSettings : AbstractSettings(
      *
      * To debug the child process, set the breakpoint in the childProcessRunner.start() line
      * and in the child process's main function and run the main process.
-     * Then run the remote JVM debug configuration in IDEA.
+     * Then run the remote JVM debug configuration in IntelliJ IDEA.
      * If you see the message in console about successful connection, then
      * the debugger is attached successfully.
      * Now you can put the breakpoints in the child process and debug

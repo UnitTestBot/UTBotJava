@@ -309,10 +309,12 @@ class UnknownAnnotationNode: PythonAnnotationNode() {
 }
 
 fun main() {
-    val sample = MypyAnnotation::class.java.getResource("/subtypes_sample.json")!!.readText()
+    val sample = MypyAnnotation::class.java.getResource("/mypy/general.json")!!.readText()
     val storage = readMypyAnnotationStorage(sample)
-    val func = storage.definitions["subtypes"]!!["func_for_P"]!!.annotation.asUtBotType
-    println((func.meta as PythonCallableTypeDescription).isStaticMethod)
+    println(storage.definitions["general"]!!.keys)
+    println(storage.definitions["general"]!!.values.map { it.annotation.asUtBotType })
+    //val func = storage.definitions["subtypes"]!!["func_for_P"]!!.annotation.asUtBotType
+    //println((func.meta as PythonCallableTypeDescription).isStaticMethod)
     /*
     val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
     val obj = storage.definitions["builtins"]!!["object"]!!.annotation.asUtBotType

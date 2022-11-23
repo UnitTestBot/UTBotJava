@@ -8,6 +8,9 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.Converter
 import com.intellij.util.xmlb.annotations.OptionTag
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Paths
 import org.utbot.common.FileUtil
 import org.utbot.engine.Mocker
 import org.utbot.framework.UtSettings
@@ -171,7 +174,24 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     override fun initializeComponent() {
         super.initializeComponent()
-        CompletableFuture.runAsync { FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles) }
+        CompletableFuture.runAsync {
+            FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles)
+            // In case settings.properties file is not yet presented in {homeDir}/.utbot folder
+            // we copy it from plugin resource file
+            val settingsClass = javaClass
+            Paths.get(UtSettings.defaultSettingsPath()).toFile().apply {
+                if (!this.isFile) {
+                    val parentFile = this.parentFile
+                    if (parentFile.mkdirs()) Files.setAttribute(parentFile.toPath(), "dos:hidden", true)
+                    try {
+                        settingsClass.getResource("../../../../../settings.properties")?.let {
+                            this.writeBytes(it.openStream().readBytes())
+                        }
+                    } catch (ignored: IOException) {
+                    }
+                }
+            }
+        }
     }
 
     override fun loadState(state: State) {

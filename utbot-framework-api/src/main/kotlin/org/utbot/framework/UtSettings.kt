@@ -24,6 +24,8 @@ const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
 
 object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultSettingsPath) {
 
+    fun defaultSettingsPath() = defaultSettingsPath
+
     /**
      * Setting to disable coroutines debug explicitly.
      *

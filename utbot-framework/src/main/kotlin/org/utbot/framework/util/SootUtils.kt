@@ -184,6 +184,8 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.threads.UtThreadGroup::class,
     org.utbot.engine.overrides.threads.UtCompletableFuture::class,
     org.utbot.engine.overrides.threads.CompletableFuture::class,
+    org.utbot.engine.overrides.threads.Executors::class,
+    org.utbot.engine.overrides.threads.UtExecutorService::class,
     org.utbot.engine.overrides.stream.Stream::class,
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,

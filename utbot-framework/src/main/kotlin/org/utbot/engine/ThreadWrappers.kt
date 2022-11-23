@@ -1,14 +1,17 @@
 package org.utbot.engine
 
 import org.utbot.engine.overrides.threads.UtCompletableFuture
+import org.utbot.engine.overrides.threads.UtExecutorService
 import org.utbot.engine.overrides.threads.UtThread
 import org.utbot.engine.overrides.threads.UtThreadGroup
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.COMPLETABLE_FUTURE_TYPE
+import org.utbot.engine.types.EXECUTORS_TYPE
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.THREAD_GROUP_TYPE
 import org.utbot.engine.types.THREAD_TYPE
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -19,6 +22,7 @@ import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.util.executableId
 import org.utbot.framework.util.nextModelName
 import soot.RefType
 import soot.Scene
@@ -31,6 +35,8 @@ val utThreadGroupClass: SootClass
     get() = Scene.v().getSootClass(UtThreadGroup::class.qualifiedName)
 val utCompletableFutureClass: SootClass
     get() = Scene.v().getSootClass(UtCompletableFuture::class.qualifiedName)
+val utExecutorServiceClass: SootClass
+    get() = Scene.v().getSootClass(UtExecutorService::class.qualifiedName)
 
 class ThreadWrapper : BaseOverriddenWrapper(utThreadClass.name) {
     override fun Traverser.overrideInvoke(
@@ -158,5 +164,33 @@ class CompletableFutureWrapper : BaseOverriddenWrapper(utCompletableFutureClass.
     companion object {
         private val resultFieldId: FieldId
             get() = utCompletableFutureClass.getField("result", OBJECT_TYPE).fieldId
+    }
+}
+
+class ExecutorServiceWrapper : BaseOverriddenWrapper(utExecutorServiceClass.name) {
+    override fun Traverser.overrideInvoke(
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<InvokeResult>? = null
+
+    override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel =
+        resolver.run {
+            val classId = EXECUTORS_TYPE.id
+            val addr = holder.concreteAddr(wrapper.addr)
+            val modelName = nextModelName("executorService")
+
+            val instantiationCall = UtExecutableCallModel(
+                instance = null,
+                newSingleThreadExecutorMethod,
+                emptyList()
+            )
+
+            return UtAssembleModel(addr, classId, modelName, instantiationCall)
+        }
+
+    companion object {
+        val newSingleThreadExecutorMethod: ExecutableId
+            get() = EXECUTORS_TYPE.sootClass.getMethodByName("newSingleThreadExecutor").executableId
     }
 }

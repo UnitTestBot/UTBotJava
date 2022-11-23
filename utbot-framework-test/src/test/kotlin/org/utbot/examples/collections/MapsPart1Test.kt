@@ -59,6 +59,43 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
         )
     }
 
+
+    @Test
+    fun mapAsParameterTest() {
+        check(
+            Maps::mapAsParameter,
+            eq(-1),
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun mapAsStaticFieldTest() {
+        check(
+            Maps::mapAsStaticField,
+            eq(-1),
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun mapAsNonStaticFieldTest() {
+        check(
+            Maps::mapAsNonStaticField,
+            eq(-1),
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun methodWithRawTypeTest() {
+        check(
+            Maps::methodWithRawType,
+            eq(-1),
+            coverage = DoNotCalculate
+        )
+    }
+
     @Test
     fun createTest() {
         check(
@@ -81,7 +118,8 @@ internal class MapsPart1Test : UtValueTestCaseChecker(
         check(
             Maps::mapToString,
             eq(1),
-            { a, b, c, r -> r == Maps().mapToString(a, b, c) }
+            { a, b, c, r -> r == Maps()
+                .mapToString(a, b, c) }
         )
     }
 

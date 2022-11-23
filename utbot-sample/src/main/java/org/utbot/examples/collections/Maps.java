@@ -9,6 +9,35 @@ import java.util.List;
 import java.util.Map;
 
 public class Maps {
+    public String mapAsStaticField() {
+        CollectionAsField.staticMap.put("key1", "value");
+        return CollectionAsField.staticMap.get("key1");
+    }
+
+    public String mapAsParameter(Map<String, String> map) {
+        map.put("key1", "value");
+        return map.get("key1");
+    }
+
+
+    public String mapAsNonStaticField(CollectionAsField object) {
+        object.nonStaticMap.put("key1", "value");
+        return object.nonStaticMap.get("key1");
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public String methodWithRawType(Map map) {
+        nestedMethodWithGenericInfo(map);
+        map.put("key1", "value");
+
+        return (String) map.get("key1");
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    private Map<String, String> nestedMethodWithGenericInfo(Map<String, String> map) {
+        return map;
+    }
+
     Map<Integer, Integer> create(int[] keys, int[] values) {
         Map<Integer, Integer> result = new LinkedHashMap<>();
         for (int i = 0; i < keys.length; i++) {
@@ -301,6 +330,7 @@ public class Maps {
 
         return map;
     }
+
     public Map<WorkDays, Integer> createMapWithEnum() {
         Map<WorkDays, Integer> map = new HashMap<>();
         map.put(WorkDays.Monday, 112);

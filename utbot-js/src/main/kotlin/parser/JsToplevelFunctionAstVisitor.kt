@@ -1,22 +1,18 @@
 package parser
 
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.js.parser.ir.FunctionNode
-import com.oracle.js.parser.ir.LexicalContext
-import com.oracle.js.parser.ir.visitor.NodeVisitor
+import com.google.javascript.jscomp.NodeUtil
+import com.google.javascript.rhino.Node
 
-class JsToplevelFunctionAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
+class JsToplevelFunctionAstVisitor : IAstVisitor {
 
-    val extractedMethods = mutableListOf<FunctionNode>()
+    val extractedMethods = mutableListOf<Node>()
 
-    override fun enterClassNode(classNode: ClassNode?): Boolean {
-        return false
-    }
 
-    override fun enterFunctionNode(functionNode: FunctionNode?): Boolean {
-        functionNode?.let {
-            extractedMethods += it
+    override fun accept(rootNode: Node) {
+        NodeUtil.visitPreOrder(rootNode) { node ->
+            when {
+                node.isFunction && !node.parent!!.isMemberFunctionDef -> extractedMethods += node
+            }
         }
-        return false
     }
 }

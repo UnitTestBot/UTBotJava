@@ -1,13 +1,13 @@
 package service
 
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.truffle.api.strings.TruffleString
+import com.google.javascript.rhino.Node
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
+import parser.JsParserUtils.getClassName
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.PathResolver
@@ -24,7 +24,7 @@ class CoverageServiceProvider(private val context: ServiceContext) {
         mode: CoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: ClassNode?
+        classNode: Node?
     ): Pair<List<Set<Int>>, List<String>> {
         return when (mode) {
             CoverageMode.FAST -> runFastCoverageAnalysis(
@@ -47,13 +47,13 @@ class CoverageServiceProvider(private val context: ServiceContext) {
         context: ServiceContext,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: ClassNode?,
+        classNode: Node?,
     ): Pair<List<Set<Int>>, List<String>> {
         val tempScriptTexts = fuzzedValues.indices.map {
             "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = classNode?.ident?.name,
+                containingClass = classNode?.getClassName(),
                 index = it,
                 resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
                 mode = CoverageMode.BASIC
@@ -71,14 +71,14 @@ class CoverageServiceProvider(private val context: ServiceContext) {
         context: ServiceContext,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: ClassNode?,
+        classNode: Node?,
     ): Pair<List<Set<Int>>, List<String>> {
         val covFunName = FastCoverageService.instrument(context)
         val tempScriptTexts = fuzzedValues.indices.map {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = classNode?.ident?.name,
+                containingClass = classNode?.getClassName(),
                 covFunName = covFunName,
                 index = it,
                 resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
@@ -128,7 +128,7 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
     private fun makeStringForRunJs(
         fuzzedValue: List<FuzzedValue>,
         method: JsMethodId,
-        containingClass: TruffleString?,
+        containingClass: String?,
         covFunName: String = "",
         index: Int,
         resFilePath: String,
@@ -156,7 +156,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     private fun makeCallFunctionString(
         fuzzedValue: List<FuzzedValue>,
         method: JsMethodId,
-        containingClass: TruffleString?
+        containingClass: String?
     ): String {
         val initClass = containingClass?.let {
             if (!method.isStatic) {

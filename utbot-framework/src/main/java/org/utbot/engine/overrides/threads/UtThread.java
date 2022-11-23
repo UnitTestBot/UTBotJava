@@ -5,6 +5,10 @@ import org.utbot.api.mock.UtMock;
 import java.security.AccessControlContext;
 import java.util.Map;
 
+import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
+import static org.utbot.engine.overrides.UtOverrideMock.visit;
+
 @SuppressWarnings("unused")
 public class UtThread {
     private String name;
@@ -121,6 +125,8 @@ public class UtThread {
     private UtThread(ThreadGroup g, Runnable target, String name,
                      long stackSize, AccessControlContext ignoredAcc,
                      boolean ignoredInheritUtThreadLocals) {
+        visit(this);
+
         if (name == null) {
             throw new NullPointerException();
         }
@@ -135,8 +141,8 @@ public class UtThread {
         this.daemon = UtMock.makeSymbolic();
 
         final Integer priority = UtMock.makeSymbolic();
-        UtMock.assume(priority >= MIN_PRIORITY);
-        UtMock.assume(priority <= MIN_PRIORITY);
+        assume(priority >= MIN_PRIORITY);
+        assume(priority <= MIN_PRIORITY);
         this.priority = priority;
         setPriority(this.priority);
 
@@ -146,21 +152,45 @@ public class UtThread {
         this.tid = nextThreadID();
     }
 
+    public void preconditionCheck() {
+        if (alreadyVisited(this)) {
+            return;
+        }
+
+        assume(name != null);
+
+        assume(priority >= MIN_PRIORITY);
+        assume(priority <= MIN_PRIORITY);
+
+        assume(group != null);
+        assume(contextClassLoader != null);
+
+        assume(threadInitNumber >= 0);
+        assume(tid >= 0);
+        assume(threadSeqNumber >= 0);
+
+        visit(this);
+    }
+
     public void start() {
         run();
     }
 
     public void run() {
+        preconditionCheck();
+
         if (target != null) {
             target.run();
         }
     }
 
     public final void stop() {
+        preconditionCheck();
         // DO nothing
     }
 
     public void interrupt() {
+        preconditionCheck();
         // Set interrupted status
         isInterrupted = true;
     }
@@ -170,22 +200,30 @@ public class UtThread {
     }
 
     public boolean isInterrupted() {
+        preconditionCheck();
+
         return isInterrupted;
     }
 
     public final boolean isAlive() {
+        preconditionCheck();
+
         return UtMock.makeSymbolic();
     }
 
     public final void suspend() {
+        preconditionCheck();
         // Do nothing
     }
 
     public final void resume() {
+        preconditionCheck();
         // Do nothing
     }
 
     public final void setPriority(int newPriority) {
+        preconditionCheck();
+
         if (newPriority > MAX_PRIORITY || newPriority < MIN_PRIORITY) {
             throw new IllegalArgumentException();
         }
@@ -200,10 +238,14 @@ public class UtThread {
     }
 
     public final int getPriority() {
+        preconditionCheck();
+
         return priority;
     }
 
-    public final synchronized void setName(String name) {
+    public final void setName(String name) {
+        preconditionCheck();
+
         if (name == null) {
             throw new NullPointerException();
         }
@@ -212,24 +254,28 @@ public class UtThread {
     }
 
     public final String getName() {
+        preconditionCheck();
+
         return name;
     }
 
     public final ThreadGroup getThreadGroup() {
+        preconditionCheck();
+
         return group;
     }
 
     public static int activeCount() {
         final Integer result = UtMock.makeSymbolic();
-        UtMock.assume(result >= 0);
+        assume(result >= 0);
 
         return result;
     }
 
     public static int enumerate(UtThread[] tarray) {
         Integer length = UtMock.makeSymbolic();
-        UtMock.assume(length >= 0);
-        UtMock.assume(length <= tarray.length);
+        assume(length >= 0);
+        assume(length <= tarray.length);
 
         for (int i = 0; i < length; i++) {
             tarray[i] = UtMock.makeSymbolic();
@@ -239,10 +285,14 @@ public class UtThread {
     }
 
     public int countStackFrames() {
+        preconditionCheck();
+
         return UtMock.makeSymbolic();
     }
 
     public final void join(long millis) throws InterruptedException {
+        preconditionCheck();
+
         if (millis < 0) {
             throw new IllegalArgumentException();
         }
@@ -251,6 +301,8 @@ public class UtThread {
     }
 
     public final void join(long millis, int nanos) throws InterruptedException {
+        preconditionCheck();
+
         if (millis < 0) {
             throw new IllegalArgumentException();
         }
@@ -263,6 +315,8 @@ public class UtThread {
     }
 
     public final void join() throws InterruptedException {
+        preconditionCheck();
+
         join(0);
     }
 
@@ -271,14 +325,20 @@ public class UtThread {
     }
 
     public final void setDaemon(boolean on) {
+        preconditionCheck();
+
         daemon = on;
     }
 
     public final boolean isDaemon() {
+        preconditionCheck();
+
         return daemon;
     }
 
     public String toString() {
+        preconditionCheck();
+
         if (group != null) {
             return "Thread[" + getName() + "," + getPriority() + "," +
                     group.getName() + "]";
@@ -289,10 +349,14 @@ public class UtThread {
     }
 
     public ClassLoader getContextClassLoader() {
+        preconditionCheck();
+
         return contextClassLoader;
     }
 
     public void setContextClassLoader(ClassLoader cl) {
+        preconditionCheck();
+
         contextClassLoader = cl;
     }
 
@@ -305,6 +369,8 @@ public class UtThread {
     }
 
     public StackTraceElement[] getStackTrace() {
+        preconditionCheck();
+
         return UtMock.makeSymbolic();
     }
 
@@ -313,10 +379,14 @@ public class UtThread {
     }
 
     public long getId() {
+        preconditionCheck();
+
         return tid;
     }
 
     public Thread.State getState() {
+        preconditionCheck();
+
         return UtMock.makeSymbolic();
     }
 
@@ -329,10 +399,14 @@ public class UtThread {
     }
 
     public Thread.UncaughtExceptionHandler getUncaughtExceptionHandler() {
+        preconditionCheck();
+
         return uncaughtExceptionHandler != null ? uncaughtExceptionHandler : group;
     }
 
     public void setUncaughtExceptionHandler(Thread.UncaughtExceptionHandler eh) {
+        preconditionCheck();
+
         uncaughtExceptionHandler = eh;
     }
 }

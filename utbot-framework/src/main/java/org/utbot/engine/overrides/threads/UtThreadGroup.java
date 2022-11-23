@@ -4,6 +4,10 @@ import org.utbot.api.mock.UtMock;
 
 import java.util.Arrays;
 
+import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
+import static org.utbot.engine.overrides.UtOverrideMock.visit;
+
 @SuppressWarnings("unused")
 public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     private final ThreadGroup parent;
@@ -24,37 +28,75 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     public UtThreadGroup(ThreadGroup parent, String name) {
+        visit(this);
+
         this.name = name;
-        this.maxPriority = UtMock.makeSymbolic();
+
+        final Integer maxPriority = UtMock.makeSymbolic();
+        assume(maxPriority >= UtThread.MIN_PRIORITY);
+        assume(maxPriority <= UtThread.MAX_PRIORITY);
+        this.maxPriority = maxPriority;
+
         this.daemon = UtMock.makeSymbolic();
         this.parent = parent;
     }
 
+    public void preconditionCheck() {
+        if (alreadyVisited(this)) {
+            return;
+        }
+
+        assume(parent != null);
+        assume(name != null);
+
+        assume(maxPriority >= UtThread.MIN_PRIORITY);
+        assume(maxPriority <= UtThread.MAX_PRIORITY);
+
+        assume(nUnstartedThreads >= 0);
+        assume(ngroups >= 0);
+
+        visit(this);
+    }
+
     public final String getName() {
+        preconditionCheck();
+
         return name;
     }
 
     public final ThreadGroup getParent() {
+        preconditionCheck();
+
         return parent;
     }
 
     public final int getMaxPriority() {
+        preconditionCheck();
+
         return maxPriority;
     }
 
     public final boolean isDaemon() {
+        preconditionCheck();
+
         return daemon;
     }
 
-    public synchronized boolean isDestroyed() {
+    public boolean isDestroyed() {
+        preconditionCheck();
+
         return destroyed;
     }
 
     public final void setDaemon(boolean daemon) {
+        preconditionCheck();
+
         this.daemon = daemon;
     }
 
     public final void setMaxPriority(int pri) {
+        preconditionCheck();
+
         if (pri < UtThread.MIN_PRIORITY || pri > UtThread.MAX_PRIORITY) {
             return;
         }
@@ -65,20 +107,25 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     public final boolean parentOf(ThreadGroup g) {
+        preconditionCheck();
+
         return UtMock.makeSymbolic();
     }
 
     public final void checkAccess() {
+        preconditionCheck();
         // Do nothing
     }
 
     public int activeCount() {
+        preconditionCheck();
+
         if (destroyed) {
             return 0;
         }
 
         final Integer result = UtMock.makeSymbolic();
-        UtMock.assume(result >= 0);
+        assume(result >= 0);
         return result;
     }
 
@@ -92,6 +139,8 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
 
     @SuppressWarnings({"SameParameterValue", "ParameterCanBeLocal"})
     private int enumerate(Thread[] list, int ignoredN, boolean ignoredRecurse) {
+        preconditionCheck();
+
         if (destroyed) {
             return 0;
         }
@@ -99,19 +148,21 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
         list = UtMock.makeSymbolic();
 
         final Integer result = UtMock.makeSymbolic();
-        UtMock.assume(result <= list.length);
-        UtMock.assume(result >= 0);
+        assume(result <= list.length);
+        assume(result >= 0);
 
         return result;
     }
 
     public int activeGroupCount() {
+        preconditionCheck();
+
         if (destroyed) {
             return 0;
         }
 
         final Integer result = UtMock.makeSymbolic();
-        UtMock.assume(result >= 0);
+        assume(result >= 0);
         return result;
     }
 
@@ -125,6 +176,8 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
 
     @SuppressWarnings({"SameParameterValue", "ParameterCanBeLocal"})
     private int enumerate(ThreadGroup[] list, int ignoredN, boolean ignoredRecurse) {
+        preconditionCheck();
+
         if (destroyed) {
             return 0;
         }
@@ -132,17 +185,20 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
         list = UtMock.makeSymbolic();
 
         final Integer result = UtMock.makeSymbolic();
-        UtMock.assume(result <= list.length);
-        UtMock.assume(result >= 0);
+        assume(result <= list.length);
+        assume(result >= 0);
 
         return result;
     }
 
     public final void stop() {
+        preconditionCheck();
         // Do nothing
     }
 
     public final void interrupt() {
+        preconditionCheck();
+
         for (int i = 0 ; i < nthreads ; i++) {
             threads[i].interrupt();
         }
@@ -153,14 +209,18 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     public final void suspend() {
+        preconditionCheck();
         // Do nothing
     }
 
     public final void resume() {
+        preconditionCheck();
         // Do nothing
     }
 
     public final void destroy() {
+        preconditionCheck();
+
         if (destroyed || nthreads > 0) {
             throw new IllegalThreadStateException();
         }
@@ -178,6 +238,8 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     private void add(ThreadGroup g){
+        preconditionCheck();
+
         if (destroyed) {
             throw new IllegalThreadStateException();
         }
@@ -193,6 +255,8 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     private void remove(ThreadGroup g) {
+        preconditionCheck();
+
         if (destroyed) {
             return;
         }
@@ -212,6 +276,8 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     void addUnstarted() {
+        preconditionCheck();
+
         if (destroyed) {
             throw new IllegalThreadStateException();
         }
@@ -220,6 +286,8 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     void add(Thread t) {
+        preconditionCheck();
+
         if (destroyed) {
             throw new IllegalThreadStateException();
         }
@@ -236,18 +304,24 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     public void list() {
+        preconditionCheck();
         // Do nothing
     }
 
     public void uncaughtException(Thread t, Throwable e) {
+        preconditionCheck();
         // Do nothing
     }
 
     public boolean allowThreadSuspension(boolean b) {
+        preconditionCheck();
+
         return true;
     }
 
     public String toString() {
+        preconditionCheck();
+
         return getClass().getName() + "[name=" + getName() + ",maxpri=" + maxPriority + "]";
     }
 }

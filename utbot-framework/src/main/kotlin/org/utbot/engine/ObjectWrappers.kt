@@ -43,6 +43,10 @@ import java.util.OptionalLong
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionStage
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.ThreadPoolExecutor
 import kotlin.reflect.KClass
 
 typealias TypeToBeWrapped = RefType
@@ -154,6 +158,10 @@ private val wrappers = mapOf(
     // threads
     wrap(Thread::class) { type, addr -> objectValue(type, addr, ThreadWrapper()) },
     wrap(ThreadGroup::class) { type, addr -> objectValue(type, addr, ThreadGroupWrapper()) },
+    wrap(ExecutorService::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(ThreadPoolExecutor::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(ForkJoinPool::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(ScheduledThreadPoolExecutor::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
     wrap(CompletableFuture::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
     wrap(CompletionStage::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
     // A hack to be able to create UtCompletableFuture in its methods as a wrapper

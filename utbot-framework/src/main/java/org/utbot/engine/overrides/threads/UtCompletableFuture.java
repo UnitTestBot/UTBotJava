@@ -4,9 +4,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
@@ -14,10 +16,11 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
-public class UtCompletableFuture<T> implements Future<T>, CompletionStage<T> {
+public class UtCompletableFuture<T> implements Future<T>, ScheduledFuture<T>, CompletionStage<T> {
     T result;
 
     Throwable exception;
@@ -445,5 +448,20 @@ public class UtCompletableFuture<T> implements Future<T>, CompletionStage<T> {
     @Override
     public T get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return get();
+    }
+
+    @Override
+    public long getDelay(@NotNull TimeUnit unit) {
+        return 0;
+    }
+
+    @Override
+    public int compareTo(@NotNull Delayed o) {
+        if (o == this) { // compare zero if same object{
+            return 0;
+        }
+
+        long diff = getDelay(NANOSECONDS) - o.getDelay(NANOSECONDS);
+        return (diff < 0) ? -1 : (diff > 0) ? 1 : 0;
     }
 }

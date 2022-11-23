@@ -21,6 +21,7 @@ import org.utbot.engine.overrides.security.UtSecurityManager
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
+import org.utbot.engine.overrides.threads.UtCompletableFuture
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -39,6 +40,8 @@ import java.util.Optional
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import java.util.OptionalLong
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionStage
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
 
@@ -151,6 +154,10 @@ private val wrappers = mapOf(
     // threads
     wrap(Thread::class) { type, addr -> objectValue(type, addr, ThreadWrapper()) },
     wrap(ThreadGroup::class) { type, addr -> objectValue(type, addr, ThreadGroupWrapper()) },
+    wrap(CompletableFuture::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
+    wrap(CompletionStage::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
+    // A hack to be able to create UtCompletableFuture in its methods as a wrapper
+    wrap(UtCompletableFuture::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
 
     wrap(RangeModifiableUnlimitedArray::class) { type, addr ->
         objectValue(type, addr, RangeModifiableUnlimitedArrayWrapper())

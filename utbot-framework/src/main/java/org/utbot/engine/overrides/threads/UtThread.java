@@ -205,6 +205,18 @@ public class UtThread {
         return isInterrupted;
     }
 
+    private boolean isInterrupted(boolean clearInterrupted) {
+        preconditionCheck();
+
+        boolean result = isInterrupted;
+
+        if (clearInterrupted) {
+            isInterrupted = false;
+        }
+
+        return result;
+    }
+
     public final boolean isAlive() {
         preconditionCheck();
 

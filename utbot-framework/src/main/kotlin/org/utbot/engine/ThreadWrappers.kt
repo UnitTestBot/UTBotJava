@@ -191,6 +191,6 @@ class ExecutorServiceWrapper : BaseOverriddenWrapper(utExecutorServiceClass.name
 
     companion object {
         val newSingleThreadExecutorMethod: ExecutableId
-            get() = EXECUTORS_TYPE.sootClass.getMethodByName("newSingleThreadExecutor").executableId
+            get() = EXECUTORS_TYPE.sootClass.getMethod("newSingleThreadExecutor", emptyList()).executableId
     }
 }

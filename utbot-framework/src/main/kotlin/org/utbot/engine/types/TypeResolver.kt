@@ -43,6 +43,7 @@ import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
+import java.util.concurrent.CompletableFuture
 
 class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy: Hierarchy) {
 
@@ -358,6 +359,8 @@ internal val THREAD_TYPE: RefType
     get() = Scene.v().getSootClass(Thread::class.java.canonicalName).type
 internal val THREAD_GROUP_TYPE: RefType
     get() = Scene.v().getSootClass(ThreadGroup::class.java.canonicalName).type
+internal val COMPLETABLE_FUTURE_TYPE: RefType
+    get() = Scene.v().getSootClass(CompletableFuture::class.java.canonicalName).type
 
 internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 

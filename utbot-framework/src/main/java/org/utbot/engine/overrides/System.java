@@ -231,13 +231,13 @@ public class System {
 
     // TODO probably, we should use nullable version since chinese colleagues expect null values sometimes
     @SuppressWarnings("unused")
-    public String getenv(String name) {
+    public static String getenv(String name) {
         // Prevent null for taint analysis
         return UtMock.makeSymbolic();
     }
 
     @SuppressWarnings("unused")
-    public Map<String, String> getenv() {
+    public static Map<String, String> getenv() {
         // Prevent null for taint analysis
         return UtMock.makeSymbolic();
     }

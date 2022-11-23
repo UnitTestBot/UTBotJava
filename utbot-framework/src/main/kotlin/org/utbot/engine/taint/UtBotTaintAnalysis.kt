@@ -31,7 +31,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator.ExecutionTimeEstimator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.defaultTestFlow
 import org.utbot.framework.plugin.api.util.UtContext
@@ -359,14 +359,16 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         executionsByExecutable.forEach { (executable, executions) ->
             val taints = mutableListOf<ConfirmedTaint>()
             for (execution in executions) {
-                if (execution.result !is UtExplicitlyThrownException) {
-                    continue
-                }
-                if ((execution.result as UtExplicitlyThrownException).exception !is TaintAnalysisError) {
+                // TODO should it be implicitly or explicitly thrown exception?
+                if (execution.result !is UtExecutionFailure) {
                     continue
                 }
 
-                val taintError = (execution.result as UtExplicitlyThrownException).exception as TaintAnalysisError
+                if ((execution.result as UtExecutionFailure).exception !is TaintAnalysisError) {
+                    continue
+                }
+
+                val taintError = (execution.result as UtExecutionFailure).exception as TaintAnalysisError
 
                 val path = execution.fullPath.map { it.stmt }
                 val source = retrieveSource(path, taintCandidates[executable]!!.keys.mapTo(mutableSetOf()) { it.stmt })
@@ -442,12 +444,12 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                 val taintExecutions = executions
                     .filterIsInstance<UtSymbolicExecution>()
                     .filter {
-                        it.result is UtExplicitlyThrownException && (it.result as UtExplicitlyThrownException).exception is TaintAnalysisError
+                        it.result is UtExecutionFailure && (it.result as UtExecutionFailure).exception is TaintAnalysisError
 
                     }
 
                 taintExecutions.forEach { execution ->
-                    val taintError = (execution.result as UtExplicitlyThrownException).exception as TaintAnalysisError
+                    val taintError = (execution.result as UtExecutionFailure).exception as TaintAnalysisError
 
                     val path = execution.fullPath.map { it.stmt }
                     val source = retrieveSource(path, taintPairs.keys.mapTo(mutableSetOf()) { it.stmt })

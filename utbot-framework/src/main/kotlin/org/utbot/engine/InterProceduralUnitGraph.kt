@@ -159,6 +159,7 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
             value?.apply { add(graph.head) } ?: mutableSetOf(graph.head)
         }
 
+        // TODO should it be under flag "is registered"?
         registeredEdges += invokeEdge
         allExplicitEdges += invokeEdge
 

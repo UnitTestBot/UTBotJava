@@ -342,6 +342,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     private boolean contentEqualsZeroOffset(char[] otherValue, int n) {
         //TODO: remove assume
         assume(n <= 25);
+
         for (int i = 0; i < n; i++) {
             if (value[i] != otherValue[i]) {
                 return false;
@@ -353,18 +354,25 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     public boolean equals(Object anObject) {
         preconditionCheck();
+
         if (this == anObject) {
             return true;
         }
-        if (anObject instanceof String) {
-            String anotherString = (String) anObject;
-            int n = length;
-            if (n == anotherString.length()) {
-                char[] v2 = anotherString.toCharArray();
-                return contentEqualsZeroOffset(v2, n);
-            }
+
+        if (!(anObject instanceof String)) {
+            return false;
         }
-        return false;
+
+        String anotherString = (String) anObject;
+        int n = length;
+
+        if (n != anotherString.length()) {
+            return false;
+        }
+
+        char[] v2 = anotherString.toCharArray();
+
+        return contentEqualsZeroOffset(v2, n);
     }
 
     public boolean contentEquals(StringBuffer sb) {

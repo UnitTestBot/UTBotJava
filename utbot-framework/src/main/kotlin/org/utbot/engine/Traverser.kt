@@ -9,6 +9,7 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
+import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -1052,6 +1053,8 @@ class Traverser(
                         }
                     }
                 } else {
+                    require(!environment.state.isInNestedMethod()) { "There are no parameters provided into a nested method" }
+
                     val suffix = if (identityRef is ParameterRef) "${identityRef.index}" else "_this"
                     val pName = "p$suffix"
                     val mockInfoGenerator = parameterMockInfoGenerator(identityRef)
@@ -4055,11 +4058,16 @@ class Traverser(
             queuedSymbolicStateUpdates += mkNot(mkEq(symbolicResult.value.addr, nullObjectAddr)).asHardConstraint()
         }
 
-        if (!environment.state.isInNestedMethod()) {
-            val isSuccess = if (symbolicResult is SymbolicSuccess) UtTrue else UtFalse
-            val taintHasBeenFound = mkNot(memory.doesTaintAnalysisFoundSomething())
+        // usage of the following code causes hanging when we have
+        // a producer of states (for example, a cycle) and, then,
+        // the only reason to finish is timeout or step limit
+        doNotRun {
+            if (!environment.state.isInNestedMethod()) {
+                val isSuccess = if (symbolicResult is SymbolicSuccess) UtTrue else UtFalse
+                val taintHasBeenFound = mkNot(memory.doesTaintAnalysisFoundSomething())
 
-            queuedSymbolicStateUpdates += mkOr(taintHasBeenFound, mkNot(isSuccess)).asHardConstraint()
+                queuedSymbolicStateUpdates += mkOr(taintHasBeenFound, mkNot(isSuccess)).asHardConstraint()
+            }
         }
 
         val symbolicState = environment.state.symbolicState + queuedSymbolicStateUpdates

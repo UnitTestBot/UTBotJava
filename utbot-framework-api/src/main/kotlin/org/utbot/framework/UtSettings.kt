@@ -492,8 +492,10 @@ object UtSettings : AbstractSettings(
 
     /**
      * Value for [callDepthToMock] in case [useTaintAnalysisMode] is true.
+     *
+     * Note that too little constant might cause path explosion due to numerous unbounded symbolic variables.
      */
-    var taintAnalysisCallDepthToMock by getIntProperty(8)
+    var taintAnalysisCallDepthToMock by getIntProperty(10)
 
     /**
      * If this value is positive, a path selector for the symbolic engine will strictly drop loop states

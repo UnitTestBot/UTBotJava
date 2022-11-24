@@ -2,12 +2,7 @@ package org.utbot.sarif
 
 import org.junit.Test
 import org.mockito.Mockito
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.*
 
 class SarifReportTest {
 
@@ -72,7 +67,7 @@ class SarifReportTest {
             UtImplicitlyThrownException(NullPointerException(), false)
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
-        Mockito.`when`(mockUtExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(1337)
+        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1337)
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
         val report = sarifReportMain.createReport()
@@ -135,6 +130,19 @@ class SarifReportTest {
             assert(result[index].artifactLocation.uri.contains("Main.java"))
             assert(result[index].region.startLine == 17)
         }
+    }
+
+    @Test
+    fun testProcessSandboxFailure() {
+        mockUtMethodNames()
+
+        val uncheckedException = Mockito.mock(java.security.AccessControlException::class.java)
+        Mockito.`when`(uncheckedException.stackTrace).thenReturn(arrayOf())
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtSandboxFailure(uncheckedException))
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        assert(result.message.text.contains("AccessControlException"))
     }
 
     @Test
@@ -243,8 +251,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
         // different locations
-        Mockito.`when`(mockUtExecution1.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(11)
-        Mockito.`when`(mockUtExecution2.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(22)
+        Mockito.`when`(mockUtExecution1.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(11)
+        Mockito.`when`(mockUtExecution2.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(22)
 
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),

@@ -4,8 +4,8 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import java.io.File
 import java.nio.file.Path
 import org.utbot.common.FileUtil
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.TestFramework
 
 data class ClassUnderTest(
     val testClassSimpleName: String,

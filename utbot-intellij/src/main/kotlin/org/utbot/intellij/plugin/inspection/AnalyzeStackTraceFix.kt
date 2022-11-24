@@ -5,7 +5,9 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Iconable
 import com.intellij.unscramble.AnalyzeStacktraceUtil
+import javax.swing.Icon
 
 /**
  * Button that launches the built-in "Analyze Stack Trace" action. Displayed as a quick fix.
@@ -16,7 +18,7 @@ import com.intellij.unscramble.AnalyzeStacktraceUtil
 class AnalyzeStackTraceFix(
     private val exceptionMessage: String,
     private val stackTraceLines: List<String>
-) : LocalQuickFix {
+) : LocalQuickFix, Iconable {
 
     /**
      * Without `invokeLater` the [com.intellij.execution.impl.ConsoleViewImpl.myPredefinedFilters] will not be filled.
@@ -42,4 +44,6 @@ class AnalyzeStackTraceFix(
     override fun getName() = "Analyze stack trace"
 
     override fun getFamilyName() = name
+
+    override fun getIcon(flags: Int): Icon = AllIcons.Actions.Lightning
 }

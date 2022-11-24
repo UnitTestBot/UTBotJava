@@ -1,12 +1,12 @@
 package org.utbot.intellij.plugin.models
 
 import com.intellij.openapi.components.service
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.HangingTestsTimeout
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi

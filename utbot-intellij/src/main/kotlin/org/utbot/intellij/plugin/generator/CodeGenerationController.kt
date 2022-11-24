@@ -37,6 +37,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
+import com.intellij.psi.codeStyle.JavaCodeStyleManager.DO_NOT_ADD_IMPORTS
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.siyeh.ig.psiutils.ImportUtils
@@ -51,7 +52,6 @@ import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.ImportInsertHelperImpl
-import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -63,12 +63,12 @@ import org.utbot.common.FileUtil
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.Import
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RegularImport
-import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
+import org.utbot.framework.codegen.domain.Import
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RegularImport
+import org.utbot.framework.codegen.domain.StaticImport
+import org.utbot.framework.codegen.tree.ututils.UtilClassKind
+import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
@@ -83,9 +83,7 @@ import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.ui.TestsReportNotifier
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
-import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.EDT_LATER
@@ -429,6 +427,7 @@ object CodeGenerationController {
                 .map { comment -> comment.text }
                 .firstOrNull { text -> UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX in text }
                 ?.substringAfterLast(UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX)
+                ?.substringBefore("\n")
                 ?.trim()
         }
 
@@ -775,7 +774,7 @@ object CodeGenerationController {
                     val startOffset = range.startOffset
                     val endOffset = range.endOffset
                     val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
-                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
+                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange, DO_NOT_ADD_IMPORTS)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
             }

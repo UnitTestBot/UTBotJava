@@ -1,6 +1,6 @@
 package org.utbot.python.framework.codegen.model.constructor.visitor
 
-import org.utbot.framework.codegen.model.visitor.CgVisitor
+import org.utbot.framework.codegen.renderer.CgVisitor
 import org.utbot.python.framework.codegen.model.tree.*
 
 interface CgPythonVisitor<R> : CgVisitor<R> {

@@ -63,6 +63,7 @@ object SummarySentenceConstants {
     const val CARRIAGE_RETURN = "\r"
 
     const val FROM_TO_NAMES_TRANSITION = "->"
+    const val FROM_TO_NAMES_COLON = ":"
     const val AT_CODE = "@code"
     const val OPEN_BRACKET = "{"
     const val CLOSE_BRACKET = "}"

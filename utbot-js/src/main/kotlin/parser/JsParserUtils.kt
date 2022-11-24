@@ -74,6 +74,7 @@ object JsParserUtils {
         this.token.name == "GT" -> FuzzedContext.Comparison.GT
         this.token.name == "LE" -> FuzzedContext.Comparison.LE
         this.token.name == "GE" -> FuzzedContext.Comparison.GE
+        this.token.name == "SHEQ" -> FuzzedContext.Comparison.EQ
         else -> null
     }
 

@@ -12,7 +12,7 @@ import framework.api.js.util.jsErrorClassId
 import fuzzer.JsFuzzer
 import fuzzer.providers.JsObjectModelProvider
 import java.io.File
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -161,9 +161,9 @@ class JsTestGenerator(
             )
         }
         val testSet = CgMethodTestSet(
-            execId,
-            testsForGenerator,
-            errorsForGenerator
+            executableId = execId,
+            errors = errorsForGenerator,
+            executions = testsForGenerator,
         )
         testSets += testSet
         paramNames[execId] = funcNode.getAbstractFunctionParams().map { it.getParamName() }

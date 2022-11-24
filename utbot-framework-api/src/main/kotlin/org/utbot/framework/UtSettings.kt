@@ -105,11 +105,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     val showLibraryClassesInVisualization by getBooleanProperty(false)
 
     /**
-     * Method is paused after this timeout to give an opportunity other methods to work
-     */
-    var timeslotForOneToplevelMethodTraversalMs by getIntProperty(2000)
-
-    /**
      * Use simplification of UtExpressions.
      *
      * Set it to false to disable expression simplification.
@@ -363,11 +358,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Counter for tests during testGeneration for one project in ContestEstimator
      */
     var testCounter by getIntProperty(0)
-
-    /**
-     * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
-     */
-    var singleSelector by getBooleanProperty(true)
 
     /**
      * Flag that indicates whether tests for synthetic (see [Executable.isSynthetic]) and implicitly declared methods (like values, valueOf in enums) should be generated, or not

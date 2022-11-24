@@ -15,7 +15,6 @@ import framework.api.js.util.jsErrorClassId
 import fuzzer.JsFuzzer
 import fuzzer.providers.JsObjectModelProvider
 import org.graalvm.polyglot.Context
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -47,6 +46,7 @@ import utils.PathResolver
 import utils.constructClass
 import utils.toJsAny
 import java.io.File
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 
 
 class JsTestGenerator(

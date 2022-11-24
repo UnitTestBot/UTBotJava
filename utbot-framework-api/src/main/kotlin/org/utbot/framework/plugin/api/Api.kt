@@ -614,6 +614,11 @@ class UtLambdaModel(
     companion object {
         private const val fakeName = "<FAKE>"
 
+        /**
+         * Create a non-existent lambda with fake method.
+         *
+         * That's temporary solution for building lambdas from concrete values.
+         */
         fun createFake(id: Int, samType: ClassId, declaringClass: ClassId) =
             UtLambdaModel(id, samType, declaringClass, fakeName)
     }

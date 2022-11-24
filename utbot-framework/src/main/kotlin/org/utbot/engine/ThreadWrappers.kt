@@ -1,11 +1,13 @@
 package org.utbot.engine
 
 import org.utbot.engine.overrides.threads.UtCompletableFuture
+import org.utbot.engine.overrides.threads.UtCountDownLatch
 import org.utbot.engine.overrides.threads.UtExecutorService
 import org.utbot.engine.overrides.threads.UtThread
 import org.utbot.engine.overrides.threads.UtThreadGroup
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.COMPLETABLE_FUTURE_TYPE
+import org.utbot.engine.types.COUNT_DOWN_LATCH_TYPE
 import org.utbot.engine.types.EXECUTORS_TYPE
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.STRING_TYPE
@@ -20,10 +22,13 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.constructorId
+import org.utbot.framework.plugin.api.util.defaultValueModel
+import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.nextModelName
+import soot.IntType
 import soot.RefType
 import soot.Scene
 import soot.SootClass
@@ -37,6 +42,8 @@ val utCompletableFutureClass: SootClass
     get() = Scene.v().getSootClass(UtCompletableFuture::class.qualifiedName)
 val utExecutorServiceClass: SootClass
     get() = Scene.v().getSootClass(UtExecutorService::class.qualifiedName)
+val utCountDownLatchClass: SootClass
+    get() = Scene.v().getSootClass(UtCountDownLatch::class.qualifiedName)
 
 class ThreadWrapper : BaseOverriddenWrapper(utThreadClass.name) {
     override fun Traverser.overrideInvoke(
@@ -192,5 +199,36 @@ class ExecutorServiceWrapper : BaseOverriddenWrapper(utExecutorServiceClass.name
     companion object {
         val newSingleThreadExecutorMethod: ExecutableId
             get() = EXECUTORS_TYPE.sootClass.getMethod("newSingleThreadExecutor", emptyList()).executableId
+    }
+}
+
+class CountDownLatchWrapper : BaseOverriddenWrapper(utCountDownLatchClass.name) {
+    override fun Traverser.overrideInvoke(
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<InvokeResult>? = null
+
+    override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel =
+        resolver.run {
+            val classId = COUNT_DOWN_LATCH_TYPE.id
+            val addr = holder.concreteAddr(wrapper.addr)
+            val modelName = nextModelName("countDownLatch")
+
+            val values = collectFieldModels(wrapper.addr, overriddenClass.type)
+            val countModel = values[countFieldId] ?: intClassId.defaultValueModel()
+
+            val instantiationCall = UtExecutableCallModel(
+                instance = null,
+                constructorId(classId, intClassId),
+                listOf(countModel)
+            )
+
+            return UtAssembleModel(addr, classId, modelName, instantiationCall)
+        }
+
+    companion object {
+        private val countFieldId: FieldId
+            get() = utCountDownLatchClass.getField("count", IntType.v()).fieldId
     }
 }

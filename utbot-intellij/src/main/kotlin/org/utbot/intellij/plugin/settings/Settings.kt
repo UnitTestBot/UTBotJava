@@ -35,6 +35,7 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
+import org.utbot.common.isWindows
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 @State(
@@ -176,19 +177,22 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         super.initializeComponent()
         CompletableFuture.runAsync {
             FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles)
-            // In case settings.properties file is not yet presented in {homeDir}/.utbot folder
-            // we copy it from plugin resource file
+
+            // Don't replace file with custom user's settings
+            if (UtSettings.areCustomized()) return@runAsync
+            // In case settings.properties file is not yet presented
+            // (or stays with all default template values) in {homeDir}/.utbot folder
+            // we copy (or re-write) it from plugin resource file
             val settingsClass = javaClass
             Paths.get(UtSettings.defaultSettingsPath()).toFile().apply {
-                if (!this.isFile) {
-                    val parentFile = this.parentFile
-                    if (parentFile.mkdirs()) Files.setAttribute(parentFile.toPath(), "dos:hidden", true)
-                    try {
-                        settingsClass.getResource("../../../../../settings.properties")?.let {
-                            this.writeBytes(it.openStream().readBytes())
-                        }
-                    } catch (ignored: IOException) {
+                try {
+                    this.parentFile.apply {
+                        if (this.mkdirs() && isWindows) Files.setAttribute(this.toPath(), "dos:hidden", true)
                     }
+                    settingsClass.getResource("../../../../../settings.properties")?.let {
+                        this.writeBytes(it.openStream().readBytes())
+                    }
+                } catch (ignored: IOException) {
                 }
             }
         }

@@ -43,6 +43,7 @@ import soot.SootField
 import soot.Type
 import soot.VoidType
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
 class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy: Hierarchy) {
@@ -362,6 +363,8 @@ internal val COMPLETABLE_FUTURE_TYPE: RefType
     get() = Scene.v().getSootClass(CompletableFuture::class.java.canonicalName).type
 internal val EXECUTORS_TYPE: RefType
     get() = Scene.v().getSootClass(Executors::class.java.canonicalName).type
+internal val COUNT_DOWN_LATCH_TYPE: RefType
+    get() = Scene.v().getSootClass(CountDownLatch::class.java.canonicalName).type
 
 internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 

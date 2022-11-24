@@ -58,6 +58,7 @@ import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.stringClassId
@@ -445,8 +446,15 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructEnumConstant(model: UtEnumConstantModel, baseName: String?): CgVariable {
-        return newVar(model.classId, baseName) {
-            CgEnumConstantAccess(model.classId, model.value.name)
+        val classId = model.classId
+
+        require(classId.isEnum ||
+                classId.isAnonymous && classId.outerClass?.isEnum == true) {
+            "Enum constant model $model should be a enum or an anonymous class that overrides enum methods"
+        }
+
+        return newVar(classId, baseName) {
+            CgEnumConstantAccess(classId, model.value.name)
         }
     }
 

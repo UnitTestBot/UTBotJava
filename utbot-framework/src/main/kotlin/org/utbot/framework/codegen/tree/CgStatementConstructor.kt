@@ -63,6 +63,8 @@ import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.methodClassId
 import org.utbot.framework.plugin.api.util.denotableType
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
@@ -500,11 +502,13 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     }
 
     private fun guardEnumConstantAccess(access: CgEnumConstantAccess): ExpressionWithType {
-        val (enumClass, constant) = access
+        val (enumAccessClass, constant) = access
 
-        return if (enumClass.isAccessibleFrom(testClassPackageName)) {
-            ExpressionWithType(enumClass, access)
+        return if (enumAccessClass.isAccessibleFrom(testClassPackageName)) {
+            ExpressionWithType(enumAccessClass, access)
         } else {
+            val enumClass: ClassId =
+                if (enumAccessClass.isEnum) enumAccessClass else enumAccessClass.outerClass!!.id
             val enumClassVariable = newVar(classCgClassId) {
                 classClassId[forName](enumClass.name)
             }

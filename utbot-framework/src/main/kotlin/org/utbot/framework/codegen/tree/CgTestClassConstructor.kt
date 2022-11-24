@@ -227,12 +227,12 @@ open class CgTestClassConstructor(val context: CgContext) :
         }
 
         regions += CgSimpleRegion(
-            "SYMBOLIC EXECUTION: additional tests for symbolic executions for method ${methodUnderTest.humanReadableName}",
+            "SYMBOLIC EXECUTION: additional tests for symbolic executions for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
             collectAdditionalSymbolicTestsForParametrizedMode(testSet),
         )
 
         regions += CgSimpleRegion(
-            "FUZZER: Tests for method ${methodUnderTest.humanReadableName}",
+            "FUZZER: Tests for method ${methodUnderTest.humanReadableName} that cannot be presented as parameterized",
             collectFuzzerTestsForParameterizedMode(testSet),
         )
     }

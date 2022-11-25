@@ -11,7 +11,7 @@ class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
     companion object {
         val current = UtRdCoroutineScope(Lifetime.Eternal)
         fun initialize() {
-            // only to initialize load and initialize class
+            // only to load and initialize class
         }
     }
 

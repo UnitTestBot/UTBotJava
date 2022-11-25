@@ -35,7 +35,7 @@ class RdSettingsContainer(val logger: KLogger, val key: String, val settingsMode
                 }
 
                 override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
-                    throw NotImplementedError("Setting properties allowed only from plugin process")
+                    throw IllegalStateException("Setting properties allowed only from plugin process")
                 }
             }
         }

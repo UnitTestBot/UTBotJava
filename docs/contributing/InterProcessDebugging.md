@@ -32,7 +32,7 @@ For engine and instrumented processes you need to enable some options:
 4. Additionally, you can set additional options for JDWP agent if debug is enabled:
    * `engineProcessDebugPort` and `instrumentedProcessDebugPort` - port for debugging. 
    Default values - 5005 for Engine and 5006 for Instrumented processes. 
-   * `engineProcessDebugSuspendPolicy` and `instrumentedProcessSuspendPolicy` - whether JDWP agent should
+   * `suspendEngineProcessExecutionInDebugMode` and `suspendInstrumentedProcessExecutionInDebugMode` - whether JDWP agent should
    suspend process until debugger is connected. 
 
    More formally, if debug is enabled following switch is added to engine process JVM at start by default:
@@ -44,7 +44,7 @@ For engine and instrumented processes you need to enable some options:
    ```
    runEngineProcessWithDebug=true
    engineProcessDebugPort=12345
-   engineProcessDebugSuspendPolicy=false
+   suspendEngineProcessExecutionInDebugMode=false
    ```
    result switch will be:
    ```

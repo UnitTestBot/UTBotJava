@@ -103,6 +103,6 @@ fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: 
     withProcess {
         val clazzByteArray = kryoHelper.writeObject(clazz)
 
-        kryoHelper.readObject(chidlProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo)
+        kryoHelper.readObject(instrumentedProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo)
     }
 }

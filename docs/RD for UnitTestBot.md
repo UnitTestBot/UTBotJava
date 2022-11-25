@@ -138,7 +138,7 @@ Other processes ask this process for settings via RD RPC.
 
 ### Engine process
 
-`TestCaseGenerator` and `UtBotSymbolicEngine` runs here. Process classpath contains all plugin jars(more precisely - it uses plugin classpath). 
+`TestCaseGenerator` and `UtBotSymbolicEngine` run here. Process classpath contains all plugin jars(more precisely - it uses plugin classpath). 
 
 ___Must___ run on JDK, which uses project we analyze. Otherwise there will be numerous problems with code analysis, soot, reflection and 
 devirgention of generated code Java API. 

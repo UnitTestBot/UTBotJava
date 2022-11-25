@@ -22,7 +22,6 @@ suspend fun <T> ProcessWithRdServer.onScheduler(block: () -> T): T {
 
 fun <T> ProcessWithRdServer.onSchedulerBlocking(block: () -> T): T = runBlocking { onScheduler(block) }
 
-
 fun <TReq, TRes> IRdCall<TReq, TRes>.startBlocking(req: TReq): TRes {
     val call = this
     // We do not use RdCall.sync because it requires timeouts for execution, after which request will be stopped.
@@ -75,11 +74,12 @@ suspend fun <T> IScheduler.pump(lifetime: Lifetime, block: (Lifetime) -> T): T {
 suspend fun <T> IScheduler.pump(block: (Lifetime) -> T): T = this.pump(Lifetime.Eternal, block)
 
 /**
- * Advises provided condition on source and returns Deferred,
- * which will be completed when condition satisfied, or cancelled when provided lifetime terminated.
- * If you don't need this condition no more - you can cancel deferred.
+ * Asynchronously checks the condition.
+ * The condition can be satisfied or canceled.
+ * As soon as the condition is checked, the lifetime is terminated.
+ * In order to cancel the calculation, use the function return value of Deferred type.
  *
- * N.B. in case you need timeout - wrap deferred in withTimeout coroutine builder
+ * @see kotlinx.coroutines.withTimeout coroutine builder in case you need cancel the calculation by timeout.
  */
 fun <T> ISource<T>.adviseForConditionAsync(lifetime: Lifetime, condition: (T) -> Boolean): Deferred<Unit> {
     val ldef = lifetime.createNested()

@@ -90,7 +90,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
 
         private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
 
-        private fun suspendValue(): String = if (UtSettings.engineProcessDebugSuspendPolicy) "y" else "n"
+        private fun suspendValue(): String = if (UtSettings.suspendEngineProcessExecutionInDebugMode) "y" else "n"
 
         private val debugArgument: String?
             get() = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
@@ -111,7 +111,10 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         private fun obtainEngineProcessCommandLine(port: Int) = buildList {
             add(javaExecutablePathString.pathString)
             add("-ea")
-            OpenModulesContainer.javaVersionSpecificArguments?.let { addAll(it) }
+            val javaVersionSpecificArgs = vaOpenModulesContainer.javaVersionSpecificArguments
+            if (javaVersionSpecificArgs.isNotEmpty()) {
+                addAll(it)
+            }
             debugArgument?.let { add(it) }
             add(log4j2ConfigSwitch)
             add("-cp")

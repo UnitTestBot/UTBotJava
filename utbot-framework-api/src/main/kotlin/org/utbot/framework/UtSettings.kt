@@ -20,7 +20,7 @@ private const val defaultKeyForSettingsPath = "utbot.settings.path"
 /**
  * Default concrete execution timeout (in milliseconds).
  */
-const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS = 1000L
+const val DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS = 1000L
 
 object UtSettings : AbstractSettings(
     logger, defaultKeyForSettingsPath, defaultSettingsPath
@@ -261,7 +261,7 @@ object UtSettings : AbstractSettings(
      * Timeout for specific concrete execution (in milliseconds).
      */
     var concreteExecutionTimeoutInInstrumentedProcess: Long by getLongProperty(
-        DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
+        DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
 // region engine process debug
@@ -274,35 +274,39 @@ object UtSettings : AbstractSettings(
     var engineProcessLogConfigFile by getStringProperty("")
 
     /**
-     * Property useful only for idea
-     * If true - runs engine process with the ability to attach a debugger
+     * The property is useful only for the IntelliJ IDEs.
+     * If the property is set in true the engine process opens a debug port.
      * @see runInstrumentedProcessWithDebug
      * @see org.utbot.intellij.plugin.process.EngineProcess
      */
     var runEngineProcessWithDebug by getBooleanProperty(false)
 
     /**
-     * Port which will be used for debugging engine process
+     * The engine process JDWP agent's port of the instrumented process.
+     * A debugger attaches to the port in order to debug the process.
      */
     var engineProcessDebugPort by getIntProperty(5005)
 
     /**
-     * Whether engine process should suspend until debugger attached
+     * Value of the suspend mode for the JDWP agent of the engine process.
+     * If the value is true, the engine process will suspend until a debugger attaches to it.
      */
-    var engineProcessDebugSuspendPolicy by getBooleanProperty(true)
+    var suspendEngineProcessExecutionInDebugMode by getBooleanProperty(true)
 
 // endregion
 
 // region instrumented process debug
     /**
-     * Port which will be used for debugging instrumented process
+     * The instrumented process JDWP agent's port of the instrumented process.
+     * A debugger attaches to the port in order to debug the process.
      */
     var instrumentedProcessDebugPort by getIntProperty(5006)
 
     /**
-     * Whether instrumented process should suspend until debugger attached
+     * Value of the suspend mode for the JDWP agent of the instrumented process.
+     * If the value is true, the instrumented process will suspend until a debugger attaches to it.
      */
-    var instrumentedProcessSuspendPolicy by getBooleanProperty(true)
+    var suspendInstrumentedProcessExecutionInDebugMode by getBooleanProperty(true)
 
     /**
      * If true, runs the instrumented process with the ability to attach a debugger.

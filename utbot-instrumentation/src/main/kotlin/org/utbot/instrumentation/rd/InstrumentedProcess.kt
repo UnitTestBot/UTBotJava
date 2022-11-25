@@ -32,7 +32,7 @@ class InstrumentedProcess private constructor(
     val kryoHelper = KryoHelper(lifetime.createNested()).apply {
         classLoader?.let { setKryoClassLoader(it) }
     }
-    val chidlProcessModel: InstrumentedProcessModel = onSchedulerBlocking { protocol.instrumentedProcessModel }
+    val instrumentedProcessModel: InstrumentedProcessModel = onSchedulerBlocking { protocol.instrumentedProcessModel }
 
     companion object {
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
@@ -65,7 +65,7 @@ class InstrumentedProcess private constructor(
             }
 
             logger.trace("sending add paths")
-            proc.chidlProcessModel.addPaths.startSuspending(
+            proc.instrumentedProcessModel.addPaths.startSuspending(
                 proc.lifetime, AddPathsParams(
                     pathsToUserClasses,
                     pathsToDependencyClasses
@@ -73,7 +73,7 @@ class InstrumentedProcess private constructor(
             )
 
             logger.trace("sending instrumentation")
-            proc.chidlProcessModel.setInstrumentation.startSuspending(
+            proc.instrumentedProcessModel.setInstrumentation.startSuspending(
                 proc.lifetime, SetInstrumentationParams(
                     proc.kryoHelper.writeObject(instrumentation)
                 )

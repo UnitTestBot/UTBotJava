@@ -242,7 +242,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             val parametersByteArray = kryoHelper.writeObject(parameters)
             val params = InvokeMethodCommandParams(className, signature, argumentsByteArray, parametersByteArray)
 
-            val ba = chidlProcessModel.invokeMethodCommand.startSuspending(lifetime, params).result
+            val ba = instrumentedProcessModel.invokeMethodCommand.startSuspending(lifetime, params).result
             kryoHelper.readObject(ba)
         }
     } catch (e: Throwable) {
@@ -282,7 +282,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 if (alive) {
                     try {
                         processInstance?.run {
-                            chidlProcessModel.stopProcess.start(lifetime, Unit)
+                            instrumentedProcessModel.stopProcess.start(lifetime, Unit)
                         }
                     } catch (_: Exception) {}
                     processInstance = null
@@ -296,7 +296,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
 fun ConcreteExecutor<*,*>.warmup() = runBlocking {
     withProcess {
-        chidlProcessModel.warmup.start(lifetime, Unit)
+        instrumentedProcessModel.warmup.start(lifetime, Unit)
     }
 }
 
@@ -308,7 +308,7 @@ fun <T> ConcreteExecutor<*, *>.computeStaticField(fieldId: FieldId): Result<T> =
         val fieldIdSerialized = kryoHelper.writeObject(fieldId)
         val params = ComputeStaticFieldParams(fieldIdSerialized)
 
-        val result = chidlProcessModel.computeStaticField.startSuspending(lifetime, params)
+        val result = instrumentedProcessModel.computeStaticField.startSuspending(lifetime, params)
 
         kryoHelper.readObject(result.result)
     }

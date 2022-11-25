@@ -18,7 +18,7 @@ private val logger = KotlinLogging.logger {}
 class InstrumentedProcessRunner {
     private val cmds: List<String> by lazy {
         val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runInstrumentedProcessWithDebug })
-        val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments ?: emptyList()
+        val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
         val pathToJava = JdkInfoService.provide().path
 
         listOf(pathToJava.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()) +
@@ -59,7 +59,7 @@ class InstrumentedProcessRunner {
     }
 
     companion object {
-        private fun suspendValue(): String = if (UtSettings.engineProcessDebugSuspendPolicy) "y" else "n"
+        private fun suspendValue(): String = if (UtSettings.suspendInstrumentedProcessExecutionInDebugMode) "y" else "n"
 
         private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
         private const val ERRORS_FILE_PREFIX = "utbot-instrumentedprocess-errors"

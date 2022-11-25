@@ -8,6 +8,7 @@ import org.utbot.python.newtyping.ast.visitor.Collector
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.getPythonAttributeByName
 import org.utbot.python.newtyping.pythonAnyType
+import java.util.*
 
 class HintCollector(
     val parameters: List<FunctionParameter>
@@ -16,26 +17,88 @@ class HintCollector(
     private val parameterToNode: Map<FunctionParameter, HintCollectorNode> =
         parameters.associateWith { HintCollectorNode() }
     private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
+    private val identificationToNode: MutableMap<Block?, MutableMap<String, HintCollectorNode>> = mutableMapOf()
+    private val blockStack = Stack<Block>()
 
     init {
+        identificationToNode[null] = mutableMapOf()
         parameters.forEach {
             nodes.add(parameterToNode[it]!!)
+            val node = HintCollectorNode()
+            identificationToNode[null]!![it.name] = node
+            node.typeDescription = PartialTypeDescription(it.type, emptyList(), emptyList())
+        }
+    }
+
+    override fun collectFromNodeBeforeRecursion(node: Node) {
+        if (node is Block) {
+            blockStack.add(node)
+            identificationToNode[node] = mutableMapOf()
         }
     }
 
     override fun collectFromNodeAfterRecursion(node: Node) {
         when (node) {
+            is Block -> processBlock(node)
+            is Name -> processName(node)
             is ForStatement -> processForStatement(node)
             is IfStatement -> processIfStatement(node)
             is Conjunction -> processConjunction(node)
             is Disjunction -> processDisjunction(node)
             is Inversion -> processInversion(node)
             is Group -> processGroup(node)
-            else -> {
-                astNodeToHintCollectorNode[node] =
-                    HintCollectorNode()
-            }
+            // is DotName
+            else -> astNodeToHintCollectorNode[node] = HintCollectorNode()
         }
+    }
+
+    private fun processBlock(node: Block) {
+        blockStack.pop()
+        val prevBlock = if (blockStack.isEmpty()) null else blockStack.peek()
+        identificationToNode[node]!!.forEach { (id, hintNode) ->
+            val prevHintNode = identificationToNode[prevBlock]!![id] ?: HintCollectorNode()
+            identificationToNode[prevBlock]!![id] = prevHintNode
+            val edgeFromPrev = HintEdge(
+                from = prevHintNode,
+                to = hintNode,
+                source = EdgeSource.Identification
+            ) { upperType ->
+                { description ->
+                    PartialTypeDescription(
+                        description.partialType,
+                        description.lowerBounds,
+                        description.upperBounds + listOf(upperType)
+                    )
+                }
+            }
+            val edgeToPrev = HintEdge(
+                from = hintNode,
+                to = prevHintNode,
+                source = EdgeSource.Identification
+            ) { lowerType ->
+                { description ->
+                    PartialTypeDescription(
+                        description.partialType,
+                        description.lowerBounds + listOf(lowerType),
+                        description.upperBounds
+                    )
+                }
+            }
+            prevHintNode.outgoingEdges.add(edgeFromPrev)
+            prevHintNode.ingoingEdges.add(edgeToPrev)
+            hintNode.outgoingEdges.add(edgeToPrev)
+            hintNode.ingoingEdges.add(edgeFromPrev)
+        }
+    }
+
+    private fun processName(node: Name) {
+        if (!isIdentification(node))
+            return
+        val name = node.toString()
+        val block = blockStack.peek()
+        val hintNode = identificationToNode[block]!![name] ?: HintCollectorNode()
+        identificationToNode[block]!![name] = hintNode
+        astNodeToHintCollectorNode[node] = hintNode
     }
 
     private fun processForStatement(node: ForStatement) {

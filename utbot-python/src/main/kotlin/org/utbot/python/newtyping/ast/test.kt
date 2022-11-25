@@ -1,6 +1,8 @@
 package org.utbot.python.newtyping.ast
 
 import org.parsers.python.PythonParser
+import org.parsers.python.ast.Block
+import org.parsers.python.ast.FunctionDefinition
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.hints.FunctionParameter
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
@@ -17,15 +19,17 @@ fun main() {
             res = x[i:i+2:-1][0]
             if i > 0 and True or (not True):
                 return 1
-            for elem in x:
-                res += elem
+            else:
+                for elem in x:
+                    res += elem
             return res
     """.trimIndent()
     val root = PythonParser(content).Module()
+    val functionBlock = root.children().first { it is FunctionDefinition }.children().first { it is Block }
     val collector = HintCollector(
         listOf(FunctionParameter("x", pythonAnyType), FunctionParameter("i", pythonAnyType))
     )
     val visitor = Visitor(listOf(collector))
-    visitor.visit(root)
+    visitor.visit(functionBlock)
     val x = root.beginLine
 }

@@ -196,8 +196,12 @@ class SarifReport(
         }
         if (lastMethodCallIndex == -1)
             return listOf()
-        // taking all elements before the last `method` call
-        val stackTraceFiltered = stackTrace.take(lastMethodCallIndex + 1)
+
+        val stackTraceFiltered = stackTrace
+            .take(lastMethodCallIndex + 1) // taking all elements before the last `method` call
+            .filter {
+                !it.className.startsWith("org.utbot.") // filter all internal calls
+            }
 
         val stackTraceResolved = stackTraceFiltered.mapNotNull {
             findStackTraceElementLocation(it)

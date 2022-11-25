@@ -129,9 +129,17 @@ TODO (Nikita Stroganov)
 TODO (Nikita Stroganov)
 
 ### Contest estimator
+The main responsibility of Contest estimator is running UTBot on prepared projects in advance and providing some statistics such as instruction coverage.
 
-TODO (Rustam Sadykov)
+It is placed in [utbot-junit-contest][contest estimator 1] module and has several entry points:
+- [ContestEstimator.kt][contest estimator 2] - the main entry point of Contest estimator, it runs UTBot on specified projects, calculates some statistics for target classes and projects and outputs them in a console. 
+- [StatisticsMonitoring.kt][contest estimator 3] - an additional entry point of Contest estimator which does the same as the previous one, but can be configured from a file and dumps output statistics to a file. 
+It is used to [monitor and chart][contest estimator 4] statistics every night.
 
+[contest estimator 1]: ../utbot-junit-contest
+[contest estimator 2]: ../utbot-junit-contest/src/main/kotlin/org/utbot/contest/ContestEstimator.kt
+[contest estimator 3]: ../utbot-junit-contest/src/main/kotlin/org/utbot/monitoring/StatisticsMonitoring.kt
+[contest estimator 4]: NightStatisticsMonitoring.md
 
 # Components
 

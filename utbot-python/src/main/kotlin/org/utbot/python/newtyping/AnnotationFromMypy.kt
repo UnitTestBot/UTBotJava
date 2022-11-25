@@ -10,7 +10,10 @@ fun readMypyAnnotationStorage(jsonWithAnnotations: String, initObject: Boolean =
     val result = jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
     if (initObject)
         result.definitions["builtins"]?.let { module ->
-            module["object"]?.let { builtinsObject = it.annotation.asUtBotType }
+            BuiltinTypes.initialize(
+                pythonObject = module["object"]!!.annotation.asUtBotType,
+                pythonBool = module["bool"]!!.annotation.asUtBotType
+            )
         }
     return result
 }

@@ -145,7 +145,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
 
                     process
                 }
-                rdProcess.awaitSignal()
+                rdProcess.awaitProcessReady()
 
                 return EngineProcess(project, rdProcess)
             }

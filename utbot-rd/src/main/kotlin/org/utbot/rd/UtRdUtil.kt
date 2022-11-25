@@ -27,7 +27,7 @@ fun <TReq, TRes> IRdCall<TReq, TRes>.startBlocking(req: TReq): TRes {
     val call = this
     // We do not use RdCall.sync because it requires timeouts for execution, after which request will be stopped.
     // Some requests, for example test generation, might be either really long, or have their own timeouts.
-    // To honor their timeout logic we do not use RdCall.sync.
+    // To honour their timeout logic we do not use RdCall.sync.
     return runBlocking { call.startSuspending(req) }
 }
 

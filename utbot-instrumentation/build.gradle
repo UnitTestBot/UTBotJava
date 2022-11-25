@@ -9,8 +9,8 @@ dependencies {
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryoSerializersVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
     implementation group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
 
 

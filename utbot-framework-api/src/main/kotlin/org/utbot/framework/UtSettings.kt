@@ -264,10 +264,7 @@ object UtSettings : AbstractSettings(
         DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
-    /**
-     * Log level for instrumented process.
-     */
-    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
+// region engine process debug
 
     /**
      * Path to custom log4j2 configuration file for EngineProcess.
@@ -294,6 +291,9 @@ object UtSettings : AbstractSettings(
      */
     var engineProcessDebugSuspendPolicy by getBooleanProperty(true)
 
+// endregion
+
+// region instrumented process debug
     /**
      * Port which will be used for debugging instrumented process
      */
@@ -318,6 +318,12 @@ object UtSettings : AbstractSettings(
      * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
      */
     var runInstrumentedProcessWithDebug by getBooleanProperty(false)
+
+    /**
+     * Log level for instrumented process.
+     */
+    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
+// endregion
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.

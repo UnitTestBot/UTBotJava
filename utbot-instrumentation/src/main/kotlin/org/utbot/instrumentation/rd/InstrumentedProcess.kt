@@ -51,7 +51,7 @@ class InstrumentedProcess private constructor(
                     throw InstrumentedProcessInstantDeathException()
                 }
                 process
-            }.awaitSignal()
+            }.awaitProcessReady()
 
             logger.trace("rd process started")
 

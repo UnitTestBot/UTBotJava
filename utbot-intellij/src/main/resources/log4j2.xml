@@ -6,7 +6,7 @@
             <PatternLayout pattern="%msg%n"/>
         </Console>
 <!--        When working as separate process - temporary log4j2.xml would be created, in which -->
-<!--        substring "ref=\"IdeaAppender\"" will be replaced with "ref=\"EngineProcessAppender\""-->
+<!--        substring `ref="IdeaAppender"` will be replaced with `ref="EngineProcessAppender"`-->
         <Console name="EngineProcessAppender" target="SYSTEM_OUT">
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %-25c{1} | %msg%n"/>
         </Console>

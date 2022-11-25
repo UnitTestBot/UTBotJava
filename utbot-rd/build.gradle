@@ -1,5 +1,5 @@
 plugins {
-    id 'com.jetbrains.rdgen' version "2022.3.1"
+    id 'com.jetbrains.rdgen' version "2022.3.4"
 }
 
 import com.jetbrains.rd.generator.gradle.RdGenExtension
@@ -48,14 +48,14 @@ sourceSets {
 
 dependencies {
     implementation project(':utbot-core')
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
     processWithRdServerMockImplementation project(':utbot-rd')
 
-    rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: '2022.3.1'
+    rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: rdVersion
 }
 
 task lifetimedProcessMockJar(type: Jar) {

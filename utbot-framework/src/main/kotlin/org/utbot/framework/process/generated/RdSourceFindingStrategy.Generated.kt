@@ -44,10 +44,7 @@ class RdSourceFindingStrategy private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): RdSourceFindingStrategy  {
             EngineProcessRoot.register(protocol.serializers)
             
-            return RdSourceFindingStrategy().apply {
-                identify(protocol.identity, RdId.Null.mix("RdSourceFindingStrategy"))
-                bind(lifetime, protocol, "RdSourceFindingStrategy")
-            }
+            return RdSourceFindingStrategy()
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()

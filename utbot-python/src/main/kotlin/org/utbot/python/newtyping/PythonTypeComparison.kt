@@ -206,7 +206,7 @@ class PythonSubtypeChecker(
         }
     }
     private fun caseOfLeftCompositeType(leftMeta: PythonConcreteCompositeTypeDescription): Boolean {
-        if (PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(builtinsObject))
+        if (PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(BuiltinTypes.pythonObject))
             return true
         return when (val rightMeta = right.pythonDescription()) {
             is PythonAnyTypeDescription -> true

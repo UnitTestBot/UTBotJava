@@ -1,5 +1,6 @@
 package org.utbot.examples.enums
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.enums.ComplexEnumExamples.Color
 import org.utbot.examples.enums.ComplexEnumExamples.Color.BLUE
@@ -74,6 +75,7 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("TODO: nested anonymous classes are not supported: https://github.com/UnitTestBot/UTBotJava/issues/617")
     fun testFindState() {
         check(
             ComplexEnumExamples::findState,

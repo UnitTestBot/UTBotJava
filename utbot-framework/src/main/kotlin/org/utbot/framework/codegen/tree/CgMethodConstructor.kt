@@ -1365,6 +1365,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 val statics = currentExecution!!.stateBefore
                     .statics
                     .filterNot { it.value is UtEnumConstantModel }
+                    .filterNot { it.value.classId.outerClass?.isEnum == true }
 
                 rememberInitialStaticFields(statics)
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)

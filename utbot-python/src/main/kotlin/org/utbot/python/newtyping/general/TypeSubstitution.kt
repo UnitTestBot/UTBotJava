@@ -13,6 +13,11 @@ object DefaultSubstitutionProvider: SubstitutionProvider<Type, Type>() {
 
 abstract class SubstitutionProvider<I : Type, O: Type> {
     abstract fun substitute(type: I, params: Map<TypeParameter, Type>): O
+    fun substituteByIndex(type: I, index: Int, newParamValue: Type): O {
+        val param = type.parameters[index] as? TypeParameter
+            ?: error("Cannot substitute parameter at index $index of type $type")
+        return substitute(type, mapOf(param to newParamValue))
+    }
 }
 
 class TypeSubstitutionProvider(

@@ -2,6 +2,7 @@ package parser
 
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
+import parser.TsParserUtils.getAstNodeByKind
 import parser.ast.AstNode
 import parser.ast.BinaryExpressionNode
 import parser.ast.ClassDeclarationNode
@@ -147,22 +148,20 @@ object TsParserUtils {
             "Constructor" -> ConstructorNode(this)
             "NumericLiteral" -> NumericLiteralNode(this)
             "ImportDeclaration" -> ImportDeclarationNode(this)
-            "VariableDeclaration" -> {
-                // TypeScript parses require as function call, so we check
-                // if some call expression contains require keyword.
-                if (syntaxKind.getString(
-                        this.getObject("initializer")
-                            .getObject("expression")
-                            .getInteger("originalKeywordKind")
-                            .toString()
-                    ) == "RequireKeyword"
-                ) {
-                    ImportDeclarationNode(this)
-                }
-                else DummyNode(this)
-            }
+            "VariableDeclaration" -> this.checkForRequire()
             else -> DummyNode(this)
        }
         return node
     }
+
+    private fun V8Object.checkForRequire(): AstNode = if (syntaxKind.getString(
+            this.getObject("initializer")
+                .getObject("expression")
+                .getInteger("originalKeywordKind")
+                .toString()
+        ) == "RequireKeyword"
+    ) {
+        ImportDeclarationNode(this)
+    }
+    else DummyNode(this)
 }

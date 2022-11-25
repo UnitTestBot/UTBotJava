@@ -31,5 +31,6 @@ class FunctionParameter(
 
 enum class EdgeSource {
     ForStatement,
-    Group
+    Group,
+    Identification
 }

@@ -209,6 +209,11 @@ class SettingsWindow(val project: Project) {
                 addToRight(symLabel)
             }().constraints(CCFlags.growX)
         }
+        if (!UtSettings.useFuzzing) {
+            row("") {
+                comment("Fuzzing is disabled in ${UtSettings.getPath()}, see the key 'useFuzzing'" )
+            }
+        }
     }
 
     fun isModified(): Boolean {

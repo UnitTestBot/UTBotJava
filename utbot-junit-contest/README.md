@@ -12,6 +12,14 @@ It is used to [monitor and chart][monitoring] statistics every night.
 [ep 2]: src/main/kotlin/org/utbot/monitoring/StatisticsMonitoring.kt
 [monitoring]: ../docs/NightStatisticsMonitoring.md
 
+## Key functions
+
+| Function name | File name           | Description                                                                                               |
+|---------------|---------------------|-----------------------------------------------------------------------------------------------------------|
+| runGeneration | Contest.kt          | This function runs UTBot and manage it's work                                                             |
+| runEstimator  | ContestEstimator.kt | This function configure a project's classpath and does main loop of generation with collection statistics |
+
+
 ## Projects
 
 There are some prepared projects in advance.

@@ -111,9 +111,9 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         private fun obtainEngineProcessCommandLine(port: Int) = buildList {
             add(javaExecutablePathString.pathString)
             add("-ea")
-            val javaVersionSpecificArgs = vaOpenModulesContainer.javaVersionSpecificArguments
+            val javaVersionSpecificArgs = OpenModulesContainer.javaVersionSpecificArguments
             if (javaVersionSpecificArgs.isNotEmpty()) {
-                addAll(it)
+                addAll(javaVersionSpecificArgs)
             }
             debugArgument?.let { add(it) }
             add(log4j2ConfigSwitch)

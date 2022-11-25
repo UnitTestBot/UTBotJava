@@ -5,6 +5,7 @@ import com.google.javascript.rhino.Node
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
+import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 import parser.JsParserUtils.getAnyValue
@@ -21,11 +22,15 @@ class JsFuzzerAstVisitor : IAstVisitor {
         NodeUtil.visitPreOrder(rootNode) { node ->
             val currentFuzzedOp = node.toFuzzedContextComparisonOrNull()
             when {
-                node.isCase -> validateNode(node.firstChild!!.getAnyValue())
+                node.isCase -> validateNode(
+                    node.firstChild?.getAnyValue() ?:
+                    throw IllegalStateException("Case AST node has no children")
+                )
                 currentFuzzedOp != null -> {
                     lastFuzzedOpGlobal = currentFuzzedOp
                     validateNode(node.getBinaryExprLeftOperand().getAnyValue())
-                    lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison) (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
+                    lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison)
+                            (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
                     validateNode(node.getBinaryExprRightOperand().getAnyValue())
                 }
             }

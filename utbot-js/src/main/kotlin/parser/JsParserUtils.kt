@@ -1,6 +1,7 @@
 package parser
 
 import com.google.javascript.rhino.Node
+import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedContext
 import parser.JsParserUtils.getMethodName
 
@@ -24,7 +25,8 @@ object JsParserUtils {
     /**
      * Called upon node with Class token.
      */
-    fun Node.getClassName(): String = this.firstChild!!.string
+    fun Node.getClassName(): String =
+        this.firstChild?.string ?: throw IllegalStateException("Class AST node has no children")
 
     /**
      * Called upon node with Method token.
@@ -34,7 +36,8 @@ object JsParserUtils {
     /**
      * Called upon node with Function token.
      */
-    private fun Node.getFunctionName(): String = this.firstChild!!.string
+    private fun Node.getFunctionName(): String =
+        this.firstChild?.string ?: throw IllegalStateException("Function AST node has no children")
 
     /**
      * Called upon node with Parameter token.
@@ -96,7 +99,8 @@ object JsParserUtils {
     /**
      * Called upon node with Method token.
      */
-    private fun Node.getMethodParams(): List<Node> = this.firstChild!!.getFunctionParams()
+    private fun Node.getMethodParams(): List<Node> =
+        this.firstChild?.getFunctionParams() ?: throw IllegalStateException("Method AST node has no children")
 
     /**
      * Convenience method. Used as a wrapper for [getFunctionParams] and [getMethodParams]

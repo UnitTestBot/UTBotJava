@@ -11,7 +11,7 @@ class JsToplevelFunctionAstVisitor : IAstVisitor {
     override fun accept(rootNode: Node) {
         NodeUtil.visitPreOrder(rootNode) { node ->
             when {
-                node.isFunction && !node.parent!!.isMemberFunctionDef -> extractedMethods += node
+                node.isFunction && !(node.parent?.isMemberFunctionDef ?: true) -> extractedMethods += node
             }
         }
     }

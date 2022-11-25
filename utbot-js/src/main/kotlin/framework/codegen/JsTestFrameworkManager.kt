@@ -1,8 +1,8 @@
 package framework.codegen
 
 import framework.codegen.model.constructor.tree.MochaManager
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.plugin.api.LanguageTestFrameworkManager
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.services.language.LanguageTestFrameworkManager
 
 class JsTestFrameworkManager: LanguageTestFrameworkManager() {
 

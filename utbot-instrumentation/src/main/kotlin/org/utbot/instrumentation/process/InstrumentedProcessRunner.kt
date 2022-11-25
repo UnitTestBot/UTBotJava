@@ -65,7 +65,7 @@ class InstrumentedProcessRunner {
         private const val ERRORS_FILE_PREFIX = "utbot-instrumentedprocess-errors"
         private const val INSTRUMENTATION_LIB = "lib"
 
-        private val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspendValue()},quiet=y,address=${UtSettings.instrumentedProcessDebugPort}"
+        private val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.instrumentedProcessDebugPort}"
 
         private val UT_BOT_TEMP_DIR: File = File(utBotTempDirectory.toFile(), ERRORS_FILE_PREFIX)
 

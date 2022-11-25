@@ -93,7 +93,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         private fun suspendValue(): String = if (UtSettings.suspendEngineProcessExecutionInDebugMode) "y" else "n"
 
         private val debugArgument: String?
-            get() = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
+            get() = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
                 .takeIf { UtSettings.runEngineProcessWithDebug }
 
         private val javaExecutablePathString: Path

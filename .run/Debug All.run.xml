@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Debug All" type="CompoundRunConfigurationType">
     <toRun name="Run IDE" type="GradleRunConfiguration" />
-    <toRun name="Listen for Concrete Executor Process" type="Remote" />
     <toRun name="Listen for Engine Process" type="Remote" />
+    <toRun name="Listen for Instrumented Process" type="Remote" />
     <method v="2" />
   </configuration>
 </component>

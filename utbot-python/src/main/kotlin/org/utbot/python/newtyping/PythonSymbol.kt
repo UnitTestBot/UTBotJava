@@ -18,7 +18,15 @@ fun Type.getPythonAttributeByName(name: String): PythonAttribute? {
     return pythonDescription().getMemberByName(this, name)
 }
 
-lateinit var builtinsObject: Type
+object BuiltinTypes {
+    lateinit var pythonObject: Type
+    lateinit var pythonBool: Type
+
+    fun initialize(pythonObject: Type, pythonBool: Type) {
+        this.pythonObject = pythonObject
+        this.pythonBool = pythonBool
+    }
+}
 
 sealed class PythonTypeDescription(name: Name): TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: Type): Type = type
@@ -45,8 +53,8 @@ sealed class PythonCompositeTypeDescription(
     fun mro(type: Type): List<Type> {
         val compositeType = castToCompatibleTypeApi(type)
         var bases = compositeType.supertypes
-        if (bases.isEmpty() && type.pythonDescription().name != builtinsObject.pythonDescription().name)
-            bases = listOf(builtinsObject)
+        if (bases.isEmpty() && type.pythonDescription().name != BuiltinTypes.pythonObject.pythonDescription().name)
+            bases = listOf(BuiltinTypes.pythonObject)
         val linBases = (bases.map {
             val description = it.meta as? PythonCompositeTypeDescription
                 ?: error("Not a PythonCompositeType in superclasses of PythonCompositeType")

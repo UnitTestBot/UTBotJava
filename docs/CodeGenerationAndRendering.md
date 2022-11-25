@@ -162,7 +162,8 @@ Supported testing frameworks are:
 
 Supported mocking options are:
 - No mocking
-- Mocking with Mockito framework, including mocking static methods
+- Mocking with Mockito framework
+- Mocking static methods with Mockito
 
 Parameterized tests can be generated in Java only. Parameterization is not supported with the mocks enabled or 
 with JUnit 4 chosen as the testing framework.
@@ -179,9 +180,7 @@ The `codegen` entry points are:
 
 The latter gets `UtExecution` information received from the symbolic engine or the fuzzer and converts it into the 
 `codegen`-related data units, each called `CgMethodTestSet`. As a result of further processing, the test code is 
-generated as a string with a test generation report.
-
-_Note:_ test generation reports are not created for parameterized tests.
+generated as a string with a test generation report (see [Reports](#Reports) for details).
 
 Previously, `CgMethodTestSet` has been considerably different from `UtMethodTestSet` as it has been using 
 `ExecutableId` instead of the legacy `UtMethod` (has been removed recently).
@@ -211,12 +210,11 @@ The further AST levels are created similarly. The AST leaves are `CgLiteral`, `C
 
 ## Test method
 
-The above-mentioned functionality is implemented in `CgMethodConstructor`.
+The below-mentioned functionality is implemented in `CgMethodConstructor`.
 
-To create a test method: 
-* store the initial values of the static fields; 
-* in the `try` block, perform the seven steps for creating test method body mentioned later;
-* recover the static field values in the `finally` block.
+To create a test method:
+* store the initial values of the static fields and perform the seven steps for creating test method body mentioned later,
+* if the static field values undergo changes, perform these seven steps in the `try` block and recover these values in the `finally` block accordingly.
 
 To create test method body:
 1. substitute static fields with local variables
@@ -288,6 +286,8 @@ like trying to use mocks when mocking framework is not installed.
 
 The report is represented as an HTML-string allowing for including clickable links.
 
+_Note:_ no test generation reports are created for parameterized tests.
+
 ## Services
 
 Services help the `codegen` module to produce human-readable test code.
@@ -325,7 +325,7 @@ All the state-related variables are marked as `INITIAL` or `FINAL`.
 
 This service helps to validate access. For example, if the current argument 
 list is valid for the method under test, `CgCallableAccessManager` checks if one can call this method with these 
-arguments without using `Reflection`.
+arguments without using _Reflection_.
 
 `CgCallableAccessManager` analyzes callables as well as fields for accessibility.
 

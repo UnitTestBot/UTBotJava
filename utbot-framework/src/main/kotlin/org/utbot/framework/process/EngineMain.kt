@@ -166,7 +166,7 @@ private fun EngineProcessModel.setup(
         val selectedSignatures = params.signatures.map { Signature(it.name, it.parametersTypes) }
         FindMethodsInClassMatchingSelectedResult(kryoHelper.writeObject(classId.jClass.allNestedClasses.flatMap { clazz ->
             clazz.id.allMethods.mapNotNull { it.method.kotlinFunction }.sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
-                .filter { it.signature().normalized() in selectedSignatures }
+                .filter { !it.isAbstract && it.signature().normalized() in selectedSignatures }
                 .map { it.executableId }
         }))
     }

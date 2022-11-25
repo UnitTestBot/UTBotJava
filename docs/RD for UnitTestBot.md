@@ -1,5 +1,31 @@
-# RD
-New child process communication involves 3 different things:
+# Multi-process architecture
+
+## Table of content
+- [Overview](#overview)
+- [Lifetimes](#lifetimes)
+	- [Lifetime](#lifetime)
+	- [LifetimeDefinition](#lifetimedefinition)
+- [Rd](#rd)
+- [Rdgen](#rdgen)
+  - [Model DSL](#model-dsl)
+  - [Gradle](#gradle)
+- [UtBot project](#utbot-project)
+  - [IDEA process](#idea-process)
+  - [Engine process](#engine-process)
+  - [Instrumented process](#instrumented-process)
+  - [Commons](#useful)
+
+## Overview
+UtBot consists of 3 different processes: 
+1. `IDEA process` - the one where plugin part executes. Also can be called `plugin process`, `IDE process`. 
+2. `Engine process` - process where unit test generation engine executes.
+3. `InstrumentedProces` - process where concrete execution takes place.
+
+These processes are built on top of [JetBrains.RD](https://github.com/JetBrains/rd). It is crucial to understand 
+this library, so it's better describing it first(as there are no documentation about it in repo;)).
+
+RD is mostly about 3 components:
+
 1. Lifetimes
 2. Rd entities
 3. Rdgen
@@ -21,7 +47,7 @@ And so Lifetime was introduced.
 ### Lifetime:
 ```Lifetime``` is a class, where you can register callbacks and which can be terminated once, thus executing all registered callbacks.
 
-```Lifetime``` is an abstract class, it's inheritor - ```LifetimeDefinition```. The only difference - only ```LifetimeDefinition``` can be terminated. Though all ```Lifetime``` are instances of ```LifetimeDefinition```, there are some conventions:
+```Lifetime``` is an abstract class, it's inheritor - ```LifetimeDefinition```. The only difference - ```LifetimeDefinition``` can be terminated. Though all ```Lifetime``` are instances of ```LifetimeDefinition```, there are some conventions:
 1. Do not cast ```Lifetime``` to ```LifetimeDefinion``` unless you are the one who created ```LifetimeDefinition```.
 2. If you introduce somewhere ```LifetimeDefinition``` - either attach it to another ```Lifetime``` or provide code that terminates it.
 
@@ -100,42 +126,67 @@ DSL:
 
 ## UtBot project
 
-There is another gradle project ```utbot-rd``` which contains model sources in ```rdgenModels``` sources. Look for ```org.utbot.rd.models.ProtocolRoot```.
+There is another gradle project ```utbot-rd``` which contains model sources in ```rdgenModels```.
+Look at [```utbot-rd/src/main/rdgen/org/utbot/rd/models```](../utbot-rd/src/main/rdgen/org/utbot/rd/models)
 
-Usefull:
+### IDEA process
+Uses bundled JetBrains JDK. Code in `utbot-intellij` ___must___ be compatible will all JDKs and plugin SDKs, which are used by our officially supported IntellijIDEA versions.
+See [`utbot-intellij/build.gradle.kts`](../utbot-intellij/build.gradle.kts), parts `sinceBuild` and `untilBuild`. 
+
+Starts `Engine process`. Maintains `UtSettings` instance in memory and updates it from IDEA. 
+Other processes ask this process for settings via RD RPC.
+
+### Engine process
+
+`TestCaseGenerator` and `UtBotSymbolicEngine` runs here. Process classpath contains all plugin jars(more precisely - it uses plugin classpath). 
+
+___Must___ run on JDK, which uses project we analyze. Otherwise there will be numerous problems with code analysis, soot, reflection and 
+devirgention of generated code Java API. 
+
+Currently, it is prohibited to run more than 1 generation process simultaneously(something with native libs). 
+However, logging for processes relies on that fact, so they can exclusively write to log file.
+
+IDEA starting point - class [`EngineProcess`](../utbot-intellij/src/main/kotlin/org/utbot/intellij/plugin/process/EngineProcess.kt). 
+Process start file - [`EngineProcessMain`](../utbot-framework/src/main/kotlin/org/utbot/framework/process/EngineProcessMain.kt).
+Starts `Instrumented process`.  
+
+### Instrumented process
+
+Start points at `Engine process`: classes [`InstrumentedProcess`](../utbot-instrumentation/src/main/kotlin/org/utbot/instrumentation/rd/InstrumentedProcess.kt) and [`ConcreteExecutor`](../utbot-instrumentation/src/main/kotlin/org/utbot/instrumentation/ConcreteExecutor.kt). 
+First one is state encapsulation, second is used to implement request logic for concrete execution.
+
+Runs on the same JDK as `Engine process` to erase deviation from `Engine process`. 
+Sometimes might unexpectedly die due concrete execution.
+
+
+### Useful
+
 1. if you need to use rd somewhere - add following dependencies:
     ```
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: 'actual.version'
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: 'actual.version'
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
     ```
-2. There are some usefull classes to work with processes & rd:
+2. There are some useful classes in `utbot-rd` to work with processes & rd:
 	- ```LifetimedProcess``` - binds ```Lifetime``` to process. If process dies - lifetime terminates and vice versa. You can terminate lifetime manually - this will destroy process.
-	- ```ProcessWithRdServer``` - also starts Rd server and waits for connection.
-	- ```UtInstrumentationProcess``` - encapsulates logic for preparing instrumented process for executing arbitary commands. Exposes ```protocolModel``` for communicating with instrumented process.
-	- ```ConcreteExecutor``` is convenient wrapper for executing commands and managing resources.
-3. How child communication works:
-	- Choosing free port
-	- Creating instrumented process, passing port as argument
-	- Both processes create protocols and bind model
-	- Instrumented process setups all callbacks
-	- Parent process cannot send messages before child creates protocol, otherwise messages will be lost. So child process needs to signal that he is ready.
-	- Instrumented proces creates special file in temp dir, that is observed by parent process.
-	- When parent process spots file - he deletes it, and then sends special message for preparing child proccess instrumentation
-	- Only then process is ready for executing commands
-4. How to write custom commands for child process
-	- Add new ```call``` in ```ProtocolModel```
-	- Regenerate models
-	- Add callback for new ```call``` in ```InstrumentedProcess.kt```
-	- Use ```ConcreteExecutor.withProcess``` method
-	- ___Important___ - do not add `Rdgen` as implementation dependency, it breaks some `.jar`s as it contains `kotlin-compiler-embeddable`.
-5. Logs
-
-   There is ```UtRdLogger``` where you can configure level via ```log4j2.xml```.
-
+	- ```ProcessWithRdServer``` - also starts Rd server and waits for connection. 
+    - `ClientProtocolBuilder` - use in client process to correctly connect to `ProcessWithRdServer`.
+3. How ```ProcessWithRdServer``` communication works:
+	- Choose free port
+	- Create client process, pass port as argument
+	- Both processes create protocols, bind model and setup callbacks
+	- Server process cannot send messages before child creates protocol, otherwise messages will be lost. So client process needs to signal that he is ready.
+	- Client process creates special file in temp dir, that is observed by parent process.
+	- When parent process spots file - he deletes it, and then sends special message for client process confirming communication succeed. 
+	- Only after client process answer reaches server - then processes are ready.
+4. How to write custom RPC commands
+	- Add new ```call``` in some model, for example in ```EngineProcessModel```.
+	- Regenerate models: there are special gradle tasks for it in `utbot-rd/build.gradle` file.
+	- Add callback for new ```call``` in corresponding start files, for example in `EngineProcessMain.kt`.
+	- ___Important___ - do not add [`Rdgen`](https://mvnrepository.com/artifact/com.jetbrains.rd/rd-gen) as implementation dependency, it breaks some `.jar`s as it contains `kotlin-compiler-embeddable`.
+5. Logs & Debug
+	- Logs - [inter process logging](./contributing/InterProcessLogging.md)
+   	- Debug - [inter process debugging](./contributing/InterProcessDebugging.md)
 6. Custom protocol marshalling types
-
-   Do not spend time on it until:
-	- Cyclic dependencies removed from UtModels
-	- Kotlinx.serialization is used
+   Do not spend time on it until UtModels would get simpler, for example Kotlinx.serialization compatible.
 

@@ -284,7 +284,7 @@ While constructing the test class, we create test generation reports. It contain
 number of generated tests, the number of successful tests, etc. It also may contain information on potential problems 
 like trying to use mocks when mocking framework is not installed.
 
-The report is represented as an HTML-string allowing for including clickable links.
+The report is represented as an HTML-string allowing to include clickable links.
 
 _Note:_ no test generation reports are created for parameterized tests.
 

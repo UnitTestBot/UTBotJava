@@ -17,14 +17,14 @@ import kotlin.jvm.JvmStatic
 /**
  * #### Generated from [EngineProcessModel.kt:5]
  */
-class EngineProcessProtocolRoot private constructor(
+class EngineProcessRoot private constructor(
 ) : RdExtBase() {
     //companion
     
     companion object : ISerializersOwner {
         
         override fun registerSerializersCore(serializers: ISerializers)  {
-            EngineProcessProtocolRoot.register(serializers)
+            EngineProcessRoot.register(serializers)
             EngineProcessModel.register(serializers)
             RdInstrumenterAdapter.register(serializers)
             RdSourceFindingStrategy.register(serializers)
@@ -34,11 +34,11 @@ class EngineProcessProtocolRoot private constructor(
         
         
         
-        const val serializationHash = -4532543668004925627L
+        const val serializationHash = 2863869932420445069L
         
     }
-    override val serializersOwner: ISerializersOwner get() = EngineProcessProtocolRoot
-    override val serializationHash: Long get() = EngineProcessProtocolRoot.serializationHash
+    override val serializersOwner: ISerializersOwner get() = EngineProcessRoot
+    override val serializationHash: Long get() = EngineProcessRoot.serializationHash
     
     //fields
     //methods
@@ -48,12 +48,12 @@ class EngineProcessProtocolRoot private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("EngineProcessProtocolRoot (")
+        printer.println("EngineProcessRoot (")
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): EngineProcessProtocolRoot   {
-        return EngineProcessProtocolRoot(
+    override fun deepClone(): EngineProcessRoot   {
+        return EngineProcessRoot(
         )
     }
     //contexts

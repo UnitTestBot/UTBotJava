@@ -6,6 +6,6 @@ import mu.KLogger
 
 class UtRdKLoggerFactory(private val realLogger: KLogger) : ILoggerFactory {
     override fun getLogger(category: String): Logger {
-        return UtRdKLogger(realLogger, category)
+        return UtRdKLogger(realLogger)
     }
 }

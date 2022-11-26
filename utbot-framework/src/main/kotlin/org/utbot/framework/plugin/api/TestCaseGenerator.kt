@@ -204,7 +204,7 @@ open class TestCaseGenerator(
                             method2controller.values.forEach { it.paused = true }
                             controller.paused = false
 
-                            logger.info { "|> Resuming method $method" }
+                            logger.info { "Resuming method $method" }
                             val startTime = System.currentTimeMillis()
                             while (controller.job!!.isActive &&
                                 (System.currentTimeMillis() - startTime) < executionTimeEstimator.timeslotForOneToplevelMethodTraversalInMillis
@@ -224,7 +224,7 @@ open class TestCaseGenerator(
                 }
             }
         }
-        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close child processes
+        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
 
         return methods.map { method ->

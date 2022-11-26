@@ -382,7 +382,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
             { _, i, r -> i <= 0 && r.isException<IllegalArgumentException>() },
             { cs, i, r -> i > 0 && cs == null && !r.getOrThrow() },
             { cs, i, r -> i > 0 && cs != null && cs.length > i && r.getOrThrow() },
-            coverage = DoNotCalculate // TODO: Coverage calculation fails in the child process with Illegal Argument Exception
+            coverage = DoNotCalculate // TODO: Coverage calculation fails in the instrumented process with Illegal Argument Exception
         )
     }
 

@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen.domain
 
-import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+import org.utbot.framework.DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.ongoingStubbingClassId
 import org.utbot.framework.codegen.domain.models.CgClassId
@@ -581,7 +581,7 @@ data class HangingTestsTimeout(val timeoutMs: Long) {
     constructor() : this(DEFAULT_TIMEOUT_MS)
 
     companion object {
-        const val DEFAULT_TIMEOUT_MS = DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+        const val DEFAULT_TIMEOUT_MS = DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
         const val MIN_TIMEOUT_MS = 100L
         const val MAX_TIMEOUT_MS = 1_000_000L
     }

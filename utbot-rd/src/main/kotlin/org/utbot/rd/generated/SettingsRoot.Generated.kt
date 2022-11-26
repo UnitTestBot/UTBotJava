@@ -1,5 +1,5 @@
 @file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
-package org.utbot.framework.process.generated
+package org.utbot.rd.generated
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.base.*
@@ -17,14 +17,14 @@ import kotlin.jvm.JvmStatic
 /**
  * #### Generated from [SettingsModel.kt:5]
  */
-class SettingsProtocolRoot private constructor(
+class SettingsRoot private constructor(
 ) : RdExtBase() {
     //companion
     
     companion object : ISerializersOwner {
         
         override fun registerSerializersCore(serializers: ISerializers)  {
-            SettingsProtocolRoot.register(serializers)
+            SettingsRoot.register(serializers)
             SettingsModel.register(serializers)
         }
         
@@ -32,11 +32,11 @@ class SettingsProtocolRoot private constructor(
         
         
         
-        const val serializationHash = 6206621683627449183L
+        const val serializationHash = -414203168893339225L
         
     }
-    override val serializersOwner: ISerializersOwner get() = SettingsProtocolRoot
-    override val serializationHash: Long get() = SettingsProtocolRoot.serializationHash
+    override val serializersOwner: ISerializersOwner get() = SettingsRoot
+    override val serializationHash: Long get() = SettingsRoot.serializationHash
     
     //fields
     //methods
@@ -46,12 +46,12 @@ class SettingsProtocolRoot private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("SettingsProtocolRoot (")
+        printer.println("SettingsRoot (")
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): SettingsProtocolRoot   {
-        return SettingsProtocolRoot(
+    override fun deepClone(): SettingsRoot   {
+        return SettingsRoot(
         )
     }
     //contexts

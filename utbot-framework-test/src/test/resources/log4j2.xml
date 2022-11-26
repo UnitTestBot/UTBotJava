@@ -7,12 +7,12 @@
                      filePattern="logs/framework-%d{MM-dd-yyyy}.log.gz"
                      ignoreExceptions="false">
 
-            <PatternLayout pattern=" | %-5level | %c{1} | %msg%n"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %-25c{1} | %msg%n"/>
         </File>
 
         <Console name="Console" target="SYSTEM_OUT">
             <ThresholdFilter level="DEBUG"  onMatch="NEUTRAL"   onMismatch="DENY"/>
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %-25c{1} | %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>

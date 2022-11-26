@@ -614,7 +614,7 @@ class Traverser(
         val jClass = type.id.jClass
 
         // symbolic value for enum class itself
-        val enumClassValue = findOrCreateStaticObject(type)
+        val enumClassValue = findOrCreateStaticObject(type) // TODO resolveInstanceForField???
 
         // values for enum constants
         val enumConstantConcreteValues = jClass.enumConstants.filterIsInstance<Enum<*>>()
@@ -688,7 +688,7 @@ class Traverser(
             MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
         val objectUpdate = objectUpdate(
-            instance = findOrCreateStaticObject(declaringClass.type),
+            instance = findOrCreateStaticObject(declaringClass.type), // TODO  resolveInstanceForField
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
@@ -1948,10 +1948,10 @@ class Traverser(
         with(simplificator) { simplifySymbolicValue(it) }
     }
 
-    private fun readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
+    private fun TraversalContext.readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
         val field = fieldRef.field
         val declaringClassType = field.declaringClass.type
-        val staticObject = findOrCreateStaticObject(declaringClassType)
+        val staticObject = resolveInstanceForField(fieldRef)
 
         val generator = (field.type as? RefType)?.let { refType ->
             UtMockInfoGenerator { mockAddr ->
@@ -3565,10 +3565,6 @@ class Traverser(
             if (symbolicValue !is ReferenceValue) continue
 
             val sinkInfos = taintAnalysis.getSinkInfo(methodId)
-
-            if (sinkInfos.size > 1) {
-                print('0')
-            }
 
             sinkInfos.forEach { sinkInfo ->
                 val taintCondition = sinkInfo.taintSinks[parameterIndex] ?: return@forEach

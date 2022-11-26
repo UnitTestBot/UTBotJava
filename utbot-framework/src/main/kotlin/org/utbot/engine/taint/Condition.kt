@@ -92,7 +92,7 @@ class SinkLabel(val name: String) : Condition {
         base: SymbolicValue?,
         args: List<SymbolicValue>,
         returnValue: SymbolicValue?
-    ): UtBoolExpression = TODO()
+    ): UtBoolExpression = UtTrue // TODO
 
     override fun collectRelatedTaintKinds(taintKinds: TaintKinds) {
         // do nothing
@@ -145,7 +145,7 @@ class ConstantEq(argument: Int, value: String) : ConstantCondition(argument, val
         args: List<SymbolicValue>,
         returnValue: SymbolicValue?
     ): UtBoolExpression {
-        TODO()
+        return UtTrue // TODO
     }
 }
 
@@ -157,7 +157,7 @@ class ConstantGt(argument: Int, value: String) : ConstantCondition(argument, val
         args: List<SymbolicValue>,
         returnValue: SymbolicValue?
     ): UtBoolExpression {
-        TODO("Not yet implemented")
+        return UtTrue // TODO
     }
 }
 
@@ -169,7 +169,7 @@ class ConstantLt(argument: Int, value: String) : ConstantCondition(argument, val
         args: List<SymbolicValue>,
         returnValue: SymbolicValue?
     ): UtBoolExpression {
-        TODO("Not yet implemented")
+        return UtTrue // TODO
     }
 }
 

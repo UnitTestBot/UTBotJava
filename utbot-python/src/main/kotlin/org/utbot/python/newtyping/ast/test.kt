@@ -17,8 +17,17 @@ fun main() {
 
         def f(x, i):
             res = x[i:i+2:-1][0]
+            res += 1
+            y = res = 1 + 2
+            y = [1, 2, 3, len(x), 1j, None, "123"]
+            z = []
+            w = [1]
+            w = [len(x)]
+            # x, y = res
             if i > 0 and True or (not True):
                 return 1
+            elif len(x) == 0:
+                return 2
             else:
                 for elem in x:
                     res += elem

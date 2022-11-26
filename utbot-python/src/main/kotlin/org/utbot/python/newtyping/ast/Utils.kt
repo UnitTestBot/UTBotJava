@@ -12,6 +12,9 @@ data class ParsedConjunction(val left: Node, val right: Node)
 data class ParsedDisjunction(val left: Node, val right: Node)
 data class ParsedInversion(val expr: Node)
 data class ParsedGroup(val expr: Node)
+data class ParsedAdditiveExpression(val left: Node, val op: Node, val right: Node)
+data class ParsedMultiplicativeExpression(val left: Node, val op: Node, val right: Node)
+data class ParsedList(val elems: List<Node>)
 
 fun isIdentification(node: Node): Boolean {
     val name = node as? Name ?: return false
@@ -49,3 +52,19 @@ fun parseInversion(node: Inversion): ParsedInversion =
 
 fun parseGroup(node: Group): ParsedGroup =
     ParsedGroup(node.children().first { it !is Delimiter })
+
+fun parseAdditiveExpression(node: AdditiveExpression): ParsedAdditiveExpression =
+    ParsedAdditiveExpression(node.children()[0], node.children()[1], node.children()[2])
+
+fun parseMultiplicativeExpression(node: MultiplicativeExpression): ParsedMultiplicativeExpression =
+    ParsedMultiplicativeExpression(node.children()[0], node.children()[1], node.children()[2])
+
+fun parseList(node: org.parsers.python.ast.List): ParsedList {
+    if (node.children().size <= 2)  // only delimiters
+        return ParsedList(emptyList())
+    val expr = node.children()[1]
+    return if (expr is StarNamedExpressions)
+        ParsedList(expr.children().filter { it !is Delimiter })
+    else
+        ParsedList(listOf(expr))
+}

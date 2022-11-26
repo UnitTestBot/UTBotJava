@@ -44,6 +44,12 @@ public class UtThread {
 
     private boolean isInterrupted;
 
+    // This field is required by ThreadLocal class. The real type is a package-private type ThreadLocal.ThreadLocalMap
+    Object threadLocals;
+
+    // This field is required by InheritableThreadLocal class. The real type is a package-private type ThreadLocal.ThreadLocalMap
+    Object inheritableThreadLocals;
+
     /**
      * The minimum priority that a thread can have.
      */
@@ -150,6 +156,10 @@ public class UtThread {
         this.target = target;
 
         this.tid = nextThreadID();
+
+        // We need to make it possible to cast these fields to the ThreadLocal.ThreadLocalMap type
+        UtMock.disableClassCastExceptionCheck(threadLocals);
+        UtMock.disableClassCastExceptionCheck(inheritableThreadLocals);
     }
 
     public void preconditionCheck() {

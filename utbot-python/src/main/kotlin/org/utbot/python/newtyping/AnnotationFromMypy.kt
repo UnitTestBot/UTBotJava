@@ -12,7 +12,10 @@ fun readMypyAnnotationStorage(jsonWithAnnotations: String, initObject: Boolean =
         result.definitions["builtins"]?.let { module ->
             BuiltinTypes.initialize(
                 pythonObject = module["object"]!!.annotation.asUtBotType,
-                pythonBool = module["bool"]!!.annotation.asUtBotType
+                pythonBool = module["bool"]!!.annotation.asUtBotType,
+                pythonList = module["list"]!!.annotation.asUtBotType,
+                pythonDict = module["dict"]!!.annotation.asUtBotType,
+                pythonSet = module["set"]!!.annotation.asUtBotType
             )
         }
     return result

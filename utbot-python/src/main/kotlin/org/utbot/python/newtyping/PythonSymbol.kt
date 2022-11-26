@@ -21,10 +21,16 @@ fun Type.getPythonAttributeByName(name: String): PythonAttribute? {
 object BuiltinTypes {
     lateinit var pythonObject: Type
     lateinit var pythonBool: Type
+    lateinit var pythonList: Type
+    lateinit var pythonDict: Type
+    lateinit var pythonSet: Type
 
-    fun initialize(pythonObject: Type, pythonBool: Type) {
+    fun initialize(pythonObject: Type, pythonBool: Type, pythonList: Type, pythonDict: Type, pythonSet: Type) {
         this.pythonObject = pythonObject
         this.pythonBool = pythonBool
+        this.pythonList = pythonList
+        this.pythonDict = pythonDict
+        this.pythonSet = pythonSet
     }
 }
 

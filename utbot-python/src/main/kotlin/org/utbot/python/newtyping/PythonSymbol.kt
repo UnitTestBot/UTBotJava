@@ -24,13 +24,25 @@ object BuiltinTypes {
     lateinit var pythonList: Type
     lateinit var pythonDict: Type
     lateinit var pythonSet: Type
+    lateinit var pythonInt: Type
+    lateinit var pythonFloat: Type
+    lateinit var pythonComplex: Type
+    lateinit var pythonStr: Type
 
-    fun initialize(pythonObject: Type, pythonBool: Type, pythonList: Type, pythonDict: Type, pythonSet: Type) {
-        this.pythonObject = pythonObject
-        this.pythonBool = pythonBool
-        this.pythonList = pythonList
-        this.pythonDict = pythonDict
-        this.pythonSet = pythonSet
+    fun checkInitialized() {
+        val inits = listOf(
+            this::pythonObject.isInitialized,
+            this::pythonBool.isInitialized,
+            this::pythonList.isInitialized,
+            this::pythonDict.isInitialized,
+            this::pythonSet.isInitialized,
+            this::pythonInt.isInitialized,
+            this::pythonFloat.isInitialized,
+            this::pythonComplex.isInitialized,
+            this::pythonStr.isInitialized
+        )
+        if (!inits.all { it })
+            error("Some types from BuiltinTypes were skipped during initialization")
     }
 }
 

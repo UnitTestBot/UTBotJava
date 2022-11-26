@@ -123,10 +123,10 @@ val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
 
 //in future we should put all timeouts here
-class EngineController {
+open class EngineController {
     var paused: Boolean = false
     var executeConcretely: Boolean = false
-    var stop: Boolean = false
+    open var stop: Boolean = false
     var job: Job? = null
 }
 
@@ -191,6 +191,8 @@ class UtBotSymbolicEngine(
         get() = workaround(WorkaroundReason.TAINT) {
             (pathSelector as? BasePathSelector)?.wasStoppedByStepsLimit ?: false
         }
+
+    var wasStoppedByController: Boolean = false
 
     internal val hierarchy: Hierarchy = Hierarchy(typeRegistry)
 
@@ -280,8 +282,10 @@ class UtBotSymbolicEngine(
         pathSelector.use {
 
             while (currentCoroutineContext().isActive) {
-                if (controller.stop)
+                if (controller.stop) {
+                    wasStoppedByController = true
                     break
+                }
 
                 if (controller.paused) {
                     try {

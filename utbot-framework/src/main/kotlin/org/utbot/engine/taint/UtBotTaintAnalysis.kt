@@ -1,20 +1,15 @@
 package org.utbot.engine.taint
 
 import com.jetbrains.rd.util.concurrentMapOf
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DEBUG_PROPERTY_NAME
 import kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.yield
-import org.utbot.common.runBlockingWithCancellationPredicate
-import org.utbot.common.runIgnoringCancellationException
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
@@ -73,7 +68,10 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     private fun String.toUrl(): URL = File(this).toURI().toURL()
 
     // TODO copy-paste from org.utbot.cli.util.ClassLoaderUtilsKt.createClassLoader
-    private fun createClassLoader(classPath: String? = "", absoluteFileNameWithClasses: String? = null): URLClassLoader {
+    private fun createClassLoader(
+        classPath: String? = "",
+        absoluteFileNameWithClasses: String? = null
+    ): URLClassLoader {
         val urlSet = mutableSetOf<URL>()
         classPath?.run {
             urlSet.addAll(this.split(File.pathSeparatorChar).map { it.toUrl() }.toMutableSet())
@@ -96,8 +94,16 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
         class COVERAGE(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "All covered")
         class TIMEOUT(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "Timeout exceeding")
-        class STEPS(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "Step limit ${UtSettings.pathSelectorStepsLimit} exceeding")
-        class ERRORS(elapsedTimeMs: Long) : AnalysisStopReason(elapsedTimeMs, explanation = "Errors during analysis occurred")
+        class STEPS(elapsedTimeMs: Long) :
+            AnalysisStopReason(elapsedTimeMs, explanation = "Step limit ${UtSettings.pathSelectorStepsLimit} exceeding")
+
+        class ERRORS(elapsedTimeMs: Long) :
+            AnalysisStopReason(elapsedTimeMs, explanation = "Errors during analysis occurred")
+
+        class DISCOVERED_ALL_TAINTS(elapsedTimeMs: Long) :
+            AnalysisStopReason(elapsedTimeMs, explanation = "Found all passed taints")
+
+        class WAS_NOT_STARTED() : AnalysisStopReason(elapsedTimeMs = 0L, explanation = "Was not started")
     }
 
     data class TaintTimeEstimator(val initialTimeBudgetMs: Long) {
@@ -136,6 +142,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     @OptIn(DelicateCoroutinesApi::class)
     private fun runTaintAnalysisJobs(
         sortedByPriorityTaintMethodsWithTimeouts: List<TaintMethodWithTimeout>,
+        mutToSourceSinksPairs: MutableMap<ExecutableId, MutableMap<Stmt, MutableSet<Stmt>>>,
         currentUtContext: UtContext,
         mockAlwaysDefaults: Set<ClassId>,
         classPath: String,
@@ -144,16 +151,12 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     ): Pair<MutableMap<ExecutableId, MutableList<UtSymbolicExecution>>, MutableMap<ExecutableId, AnalysisStopReason>> {
         disableCoroutinesDebug()
 
-        val executionStartInMillis = System.currentTimeMillis()
+        val totalExecutionEndTime = System.currentTimeMillis() + totalTimeoutMs
 
-        val method2controller = sortedByPriorityTaintMethodsWithTimeouts.associateWith {
-            ControllerWithTimeEstimator(
-                EngineController(),
-                TaintTimeEstimator(it.timeoutMs)
-            )
-        }
-        val isCanceled = { false }
+        var toBeProcessed = sortedByPriorityTaintMethodsWithTimeouts.size
 
+        // Concurrent seems to be required here
+        val analysisStopReasons = concurrentMapOf<ExecutableId, AnalysisStopReason>()
         val executionsByExecutable = mutableMapOf<ExecutableId, MutableList<UtSymbolicExecution>>().apply {
             // Fill with empty lists of executions for logging later
             sortedByPriorityTaintMethodsWithTimeouts.forEach {
@@ -161,136 +164,48 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
             }
         }
 
-        // Concurrent seems to be required here
-        val analysisStopReasons = concurrentMapOf<ExecutableId, AnalysisStopReason>()
+        for ((method, _) in sortedByPriorityTaintMethodsWithTimeouts) {
+            val taintsToBeFound = mutToSourceSinksPairs.getValue(method)
 
-        runIgnoringCancellationException {
-            runBlockingWithCancellationPredicate(isCanceled) {
-                var extraTimeBudgetMs = 0L
-
-                for ((methodWithTimeout, controllerWithTimeEstimator) in method2controller) {
-                    val (controller, timeEstimator) = controllerWithTimeEstimator
-
-                    controller.job = launch(currentUtContext) {
-                        if (!isActive) return@launch
-
-                        val method = methodWithTimeout.method
-                        try {
-                            //yield one to
-                            yield()
-
-                            // TODO create an appropriate path selector and pass it to the engine here
-
-                            val engine = UtBotSymbolicEngine(
-                                controller,
-                                method,
-                                classPath,
-                                dependencyPaths,
-                                mockStrategy = mockStrategy.toModel(),
-                                chosenClassesToMockAlways = mockAlwaysDefaults,
-                                solverTimeoutInMillis = getUpdatedSolverCheckTimeoutMs(methodWithTimeout.timeoutMs)
-                            )
-
-                            val resultFlow = defaultTestFlow(engine, timeEstimator.totalTimeBudgetMs)
-
-                            resultFlow
-                                .onCompletion {
-                                    extraTimeBudgetMs += timeEstimator.remainingTimeBudgetMs
-
-                                    if (it != null) {
-                                        logger.error(it) { "Error in taint flow for $method" }
-                                        return@onCompletion
-                                    }
-
-                                    if (engine.wasStoppedByStepsLimit) {
-                                        analysisStopReasons.getOrPut(method) {
-                                            logger.warn {
-                                                "Taint analysis of the executable $method was stopped due to exceeding steps limit, elapsed time ${timeEstimator.elapsedTimeMs} (ms)"
-                                            }
-
-                                            AnalysisStopReason.STEPS(timeEstimator.elapsedTimeMs)
-                                        }
-                                    } else {
-                                        analysisStopReasons.getOrPut(method) {
-                                            logger.warn {
-                                                "Taint analysis of the executable $method ended due to full coverage, elapsed time ${timeEstimator.elapsedTimeMs} (ms)"
-                                            }
-
-                                            AnalysisStopReason.COVERAGE(timeEstimator.elapsedTimeMs)
-                                        }
-                                    }
-                                }
-                                .catch {
-                                    logger.error(it) { "Error in flow during taint analysis" }
-                                }
-                                .collect {
-                                    when (it) {
-                                        is UtSymbolicExecution -> {
-                                            executionsByExecutable[method]?.add(it)
-                                            logger.warn { "Method: ${method}, executions: $it" }
-                                        }
-                                        is UtError -> {
-                                            analysisStopReasons.putIfAbsent(method, AnalysisStopReason.ERRORS(timeEstimator.elapsedTimeMs))
-                                            logger.error(it.error) { "Failed to analyze for taint: $it" }
-                                        }
-                                        else -> logger.error { "Unexpected taint execution $it" }
-                                }
-                            }
-                        } catch (e: CancellationException) {
-                            // Do nothing
-                        } catch (e: Exception) {
-                            logger.error(e) { "Error in engine during taint analysis" }
-                        }
-                    }
-                    controller.paused = true
+            val mutStartTime = System.currentTimeMillis()
+            if (mutStartTime > totalExecutionEndTime) {
+                executionsByExecutable.keys.forEach {
+                    analysisStopReasons.putIfAbsent(it, AnalysisStopReason.WAS_NOT_STARTED())
                 }
 
-                GlobalScope.launch {
-                    while (isActive) {
-                        var activeCount = 0
-                        for ((methodWithTimeout, controllerWithTimeEstimator) in method2controller) {
-                            val (controller, timeEstimator) = controllerWithTimeEstimator
-                            timeEstimator.setStart()
-                            timeEstimator.addTimeBudget(extraTimeBudgetMs)
-                            extraTimeBudgetMs = 0L
+                logger.warn { "Total timeout $totalTimeoutMs (ms) exceeded, analysis is canceled" }
+                break
+            }
 
-                            val job = controller.job
+            val mutEndTime = mutStartTime + (totalExecutionEndTime - mutStartTime) / toBeProcessed
 
-                            if (!job!!.isActive) {
-                                continue
-                            }
-                            activeCount++
+            val controller = object : EngineController() {
+                override var stop: Boolean
+                    get() = System.currentTimeMillis() >= mutEndTime || taintsToBeFound.isEmpty()
+                    set(value) {}
+            }
 
-                            method2controller.values.forEach { it.controller.paused = true }
-                            controller.paused = false
+            try {
+                withUtContext(currentUtContext) {
+                    runBlocking {
+                        val engine = UtBotSymbolicEngine(
+                            controller,
+                            method,
+                            classPath,
+                            dependencyPaths,
+                            mockStrategy = mockStrategy.toModel(),
+                            chosenClassesToMockAlways = mockAlwaysDefaults,
+                            solverTimeoutInMillis = getUpdatedSolverCheckTimeoutMs(mutEndTime - mutStartTime)
+                        )
+                        controller.job = currentCoroutineContext().job
 
-                            while (job.isActive && !timeEstimator.isTimeElapsed()) {
-                                val timePassed = System.currentTimeMillis() - executionStartInMillis
-
-                                if (timePassed > totalTimeoutMs) {
-                                    method2controller.values.forEach { it.controller.job!!.cancel("Timeout") }
-                                    cancel("Timeout")
-                                    executionsByExecutable.keys.forEach { analysisStopReasons.putIfAbsent(it, AnalysisStopReason.TIMEOUT(timeEstimator.elapsedTimeMs)) }
-                                    logger.warn { "Total timeout $totalTimeoutMs (ms) exceeded, analysis is canceled" }
-                                }
-
-                                yield()
-                            }
-
-                            if (job.isActive) {
-                                val method = methodWithTimeout.method
-                                analysisStopReasons[method] = AnalysisStopReason.TIMEOUT(timeEstimator.elapsedTimeMs)
-                                logger.warn { "Analysis of executable $method was interrupted due to exceeding it's timeout ${timeEstimator.totalTimeBudgetMs}" }
-                            }
-                        }
-
-                        // TODO do we really need this variable and this break?
-                        if (activeCount == 0) {
-                            logger.error { "No active analysis tasks, interrupted" }
-                            break
-                        }
+                        runEngine(engine, method, analysisStopReasons, executionsByExecutable, taintsToBeFound)
                     }
                 }
+            } catch (e: Throwable) {
+                logger.error(e) { "Error in flow during taint analysis" }
+            } finally {
+                toBeProcessed--
             }
         }
 
@@ -301,6 +216,99 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         }
 
         return executionsByExecutable to analysisStopReasons
+    }
+
+    private suspend fun runEngine(
+        engine: UtBotSymbolicEngine,
+        method: ExecutableId,
+        analysisStopReasons: MutableMap<ExecutableId, AnalysisStopReason>,
+        executionsByExecutable: MutableMap<ExecutableId, MutableList<UtSymbolicExecution>>,
+        taintsToBeFound: MutableMap<Stmt, MutableSet<Stmt>>
+    ) {
+        val engineFlow = engine.traverse()
+        val methodStartTime = System.currentTimeMillis()
+
+        engineFlow.onCompletion { error ->
+            if (error != null) {
+                logger.error(error) { "Error in taint flow for $method" }
+                return@onCompletion
+            }
+
+            val elapsedTimeMs = System.currentTimeMillis() - methodStartTime
+
+            analysisStopReasons.getOrPut(method) {
+                when {
+                    taintsToBeFound.isEmpty() -> {
+                        logger.warn {
+                            "Taint analysis of the executable $method was stopped since it found all provided taints, " +
+                                    "elapsed time $elapsedTimeMs (ms)"
+                        }
+
+                        AnalysisStopReason.DISCOVERED_ALL_TAINTS(elapsedTimeMs)
+                    }
+                    engine.wasStoppedByController -> {
+                        logger.warn {
+                            "Taint analysis of the executable $method was stopped due to exceeding time limit, " +
+                                    "elapsed time $elapsedTimeMs (ms)"
+                        }
+
+                        AnalysisStopReason.TIMEOUT(elapsedTimeMs)
+                    }
+                    engine.wasStoppedByStepsLimit -> {
+                        logger.warn {
+                            "Taint analysis of the executable $method was stopped due to exceeding steps limit, " +
+                                    "elapsed time $elapsedTimeMs (ms)"
+                        }
+
+                        AnalysisStopReason.STEPS(elapsedTimeMs)
+                    }
+                    else -> {
+                        logger.warn {
+                            "Taint analysis of the executable $method ended due to full coverage, " +
+                                    "elapsed time $elapsedTimeMs (ms)"
+                        }
+
+                        AnalysisStopReason.COVERAGE(elapsedTimeMs)
+                    }
+                }
+            }
+        }.catch {
+            logger.error(it) { "Error in flow during taint analysis" }
+        }.collect { result ->
+            when (result) {
+                is UtSymbolicExecution -> {
+                    executionsByExecutable.getValue(method) += result
+
+                    logger.warn { "Method: ${method}, executions: $result" }
+
+                    val executionResult = result.result
+                    if (executionResult !is UtExecutionFailure) {
+                        return@collect
+                    }
+
+                    val exception = executionResult.exception
+                    if (exception !is TaintAnalysisError) {
+                        return@collect
+                    }
+
+                    val path = result.fullPath.map { it.stmt }
+                    val sink = exception.taintSink
+                    val source = retrieveSource(path, taintsToBeFound, sink)
+
+                    taintsToBeFound[source]?.remove(sink)
+                    if (taintsToBeFound[source]?.isEmpty() == true) {
+                        taintsToBeFound.remove(source)
+                    }
+                }
+                is UtError -> {
+                    val elapsedTimeMs = System.currentTimeMillis() - methodStartTime
+                    analysisStopReasons.putIfAbsent(method, AnalysisStopReason.ERRORS(elapsedTimeMs))
+
+                    logger.error(result.error) { "Failed to analyze for taint: $result" }
+                }
+                else -> logger.error { "Unexpected taint execution $result" }
+            }
+        }
     }
 
     fun runTaintAnalysis(
@@ -337,6 +345,13 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val classPath1 = "$classPath${File.pathSeparatorChar}${System.getProperty("java.class.path")}"
         val classLoader = createClassLoader(classPath1)
 
+        val mutToSourseSinksPairs = taintCandidates.mapValuesTo(mutableMapOf()) {
+            it.value.mapKeys { it.key.stmt }.mapValuesTo(mutableMapOf()) { it.value.mapTo(mutableSetOf()) { it.stmt } }
+        }
+
+        val immutableMutToSourseSinksPairs =
+            mutToSourseSinksPairs.mapValues { it.value.mapValues { it.value.toSet() }.toMap() }.toMap()
+
         /*runTaintAnalysisWithOneController(
             sortedByPriorityTaintMethods,
             classLoader,
@@ -349,6 +364,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val currentUtContext = UtContext(classLoader)
         val (executionsByExecutable, analysisStopReasons) = runTaintAnalysisJobs(
             sortedByPriorityTaintMethods,
+            mutToSourseSinksPairs,
             currentUtContext,
             mockAlwaysDefaults,
             classPath1,
@@ -371,8 +387,8 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                 val taintError = (execution.result as UtExecutionFailure).exception as TaintAnalysisError
 
                 val path = execution.fullPath.map { it.stmt }
-                val source = retrieveSource(path, taintCandidates[executable]!!.keys.mapTo(mutableSetOf()) { it.stmt })
                 val sink = taintError.taintSink
+                val source = retrieveSource(path, immutableMutToSourseSinksPairs[executable]!!, sink)
 
                 val confirmedTaint = ConfirmedTaint(
                     source = source,
@@ -395,6 +411,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     // Old version, does not respect timeout
     private fun runTaintAnalysisWithOneController(
         sortedByPriorityTaintMethods: List<TaintMethodWithTimeout>,
+        mutToSourseSinksPairs: Map<ExecutableId, Map<Stmt, MutableSet<Stmt>>>,
         classLoader: URLClassLoader,
         classpathForEngine: String,
         dependencyPaths: String,
@@ -409,7 +426,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                 runBlocking {
                     val timeEstimator = ExecutionTimeEstimator(timeoutMs, methodsUnderTestNumber = 1)
 
-    //                val pathSelector = createPathSelector(method, taintPairs, timeoutMs)
+                    //                val pathSelector = createPathSelector(method, taintPairs, timeoutMs)
                     // TODO pass it to the engine
 
                     val controller = EngineController()
@@ -452,8 +469,8 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                     val taintError = (execution.result as UtExecutionFailure).exception as TaintAnalysisError
 
                     val path = execution.fullPath.map { it.stmt }
-                    val source = retrieveSource(path, taintPairs.keys.mapTo(mutableSetOf()) { it.stmt })
                     val sink = taintError.taintSink
+                    val source = retrieveSource(path, mutToSourseSinksPairs[method]!!, sink)
 
                     val confirmedTaint = ConfirmedTaint(
                         source = source,
@@ -477,9 +494,11 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         return "" to ""
     }
 
-    private fun retrieveSource(path: List<Stmt>, sources: Set<Stmt>): Stmt =
+    private fun retrieveSource(path: List<Stmt>, sourcesToSink: Map<Stmt, Set<Stmt>>, sink: Stmt): Stmt {
         // TODO can we really take any of these?
-        path.first { it in sources }
+        val suitableSources = sourcesToSink.filter { sink in it.value }
+        return path.first { it in suitableSources.keys }
+    }
 
     private fun retrievePath(
         path: List<Stmt>,

@@ -6,17 +6,20 @@ import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
 
-fun readMypyAnnotationStorage(jsonWithAnnotations: String, initObject: Boolean = true): MypyAnnotationStorage {
+fun readMypyAnnotationStorage(jsonWithAnnotations: String, initBUiltins: Boolean = true): MypyAnnotationStorage {
     val result = jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
-    if (initObject)
+    if (initBUiltins)
         result.definitions["builtins"]?.let { module ->
-            BuiltinTypes.initialize(
-                pythonObject = module["object"]!!.annotation.asUtBotType,
-                pythonBool = module["bool"]!!.annotation.asUtBotType,
-                pythonList = module["list"]!!.annotation.asUtBotType,
-                pythonDict = module["dict"]!!.annotation.asUtBotType,
-                pythonSet = module["set"]!!.annotation.asUtBotType
-            )
+            BuiltinTypes.pythonObject = module["object"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonBool = module["bool"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonList = module["list"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonDict = module["dict"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonSet = module["set"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonInt = module["int"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonFloat = module["float"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonComplex = module["complex"]!!.annotation.asUtBotType
+            BuiltinTypes.pythonStr = module["str"]!!.annotation.asUtBotType
+            BuiltinTypes.checkInitialized()
         }
     return result
 }

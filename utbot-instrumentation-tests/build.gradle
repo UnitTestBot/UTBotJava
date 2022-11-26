@@ -9,12 +9,12 @@ dependencies {
     testImplementation configurations.fetchInstrumentationJar
     testImplementation project(':utbot-sample')
     testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 }
 
 processResources {
-    // We will extract this jar in `ChildProcessRunner` class.
+    // We will extract this jar in `InstrumentedProcessRunner` class.
     from(configurations.fetchInstrumentationJar) {
         into "instrumentation-lib"
     }

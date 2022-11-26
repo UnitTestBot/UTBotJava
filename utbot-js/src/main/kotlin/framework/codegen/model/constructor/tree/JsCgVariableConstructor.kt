@@ -1,17 +1,17 @@
 package framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
-import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import framework.api.js.JsPrimitiveModel
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgVariableConstructor
+import org.utbot.framework.codegen.util.nullLiteral
 
 class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
 

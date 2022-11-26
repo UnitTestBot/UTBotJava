@@ -1,7 +1,6 @@
 package service
 
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.js.parser.ir.FunctionNode
+import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
@@ -10,6 +9,10 @@ import java.util.Locale
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
+import parser.JsParserUtils.getAbstractFunctionName
+import parser.JsParserUtils.getAbstractFunctionParams
+import parser.JsParserUtils.getClassName
+import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
 import utils.MethodTypes
 import utils.constructClass
@@ -104,14 +107,14 @@ test("${context.filePathToInference}")
         }
     }
 
-    fun processConstructor(classNode: ClassNode): List<JsClassId> {
+    fun processConstructor(classNode: Node): List<JsClassId> {
         return try {
-            val classJson = json.getJSONObject(classNode.ident.name.toString())
+            val classJson = json.getJSONObject(classNode.getClassName())
             val constructorFunc = classJson.getString("!type")
                 .filterNot { setOf(' ', '+', '!').contains(it) }
             extractParameters(constructorFunc)
         } catch (e: JSONException) {
-            (classNode.constructor.value as FunctionNode).parameters.map { jsUndefinedClassId }
+            classNode.getConstructor()?.getAbstractFunctionParams()?.map { jsUndefinedClassId } ?: emptyList()
         }
     }
 
@@ -146,18 +149,18 @@ test("${context.filePathToInference}")
         } ?: jsUndefinedClassId
     }
 
-    fun processMethod(className: String?, funcNode: FunctionNode, isToplevel: Boolean = false): MethodTypes {
+    fun processMethod(className: String?, funcNode: Node, isToplevel: Boolean = false): MethodTypes {
         // Js doesn't support nested classes, so if the function is not top-level, then we can check for only one parent class.
         try {
             var scope = className?.let {
                 if (!isToplevel) json.getJSONObject(it) else json
             } ?: json
             try {
-                scope.getJSONObject(funcNode.name.toString())
+                scope.getJSONObject(funcNode.getAbstractFunctionName())
             } catch (e: JSONException) {
                 scope = scope.getJSONObject("prototype")
             }
-            val methodJson = scope.getJSONObject(funcNode.name.toString())
+            val methodJson = scope.getJSONObject(funcNode.getAbstractFunctionName())
             val typesString = methodJson.getString("!type")
                 .filterNot { setOf(' ', '+', '!').contains(it) }
             val parametersList = lazy { extractParameters(typesString) }
@@ -166,7 +169,7 @@ test("${context.filePathToInference}")
             return MethodTypes(parametersList, returnType)
         } catch (e: Exception) {
             return MethodTypes(
-                lazy { funcNode.parameters.map { jsUndefinedClassId } },
+                lazy { funcNode.getAbstractFunctionParams().map { jsUndefinedClassId } },
                 lazy { jsUndefinedClassId }
             )
         }

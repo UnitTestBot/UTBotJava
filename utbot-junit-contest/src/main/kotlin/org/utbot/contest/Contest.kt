@@ -355,7 +355,7 @@ fun runGeneration(
 
                         //hack
                         if (statsForMethod.isSuspicious && (ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs) > 5000) {
-                            logger.error { "HEURISTICS: close child process, because it haven't responded for long time: ${ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs}" }
+                            logger.error { "HEURISTICS: close instrumented process, because it haven't responded for long time: ${ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs}" }
                             ConcreteExecutor.defaultPool.close()
                         }
                     }

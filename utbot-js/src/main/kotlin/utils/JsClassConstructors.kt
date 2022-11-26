@@ -1,19 +1,22 @@
 package utils
 
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.js.parser.ir.FunctionNode
+import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsConstructorId
 import framework.api.js.JsMethodId
 import framework.api.js.util.jsUndefinedClassId
+import parser.JsParserUtils.getAbstractFunctionName
+import parser.JsParserUtils.getClassMethods
+import parser.JsParserUtils.getClassName
+import parser.JsParserUtils.isStatic
 import service.TernService
 
 fun JsClassId.constructClass(
     ternService: TernService,
-    classNode: ClassNode? = null,
-    functions: List<FunctionNode> = emptyList()
+    classNode: Node? = null,
+    functions: List<Node> = emptyList()
 ): JsClassId {
-    val className = classNode?.ident?.name?.toString()
+    val className = classNode?.getClassName()
     val methods = constructMethods(classNode, ternService, className, functions)
 
     val constructor = classNode?.let {
@@ -37,21 +40,20 @@ fun JsClassId.constructClass(
 }
 
 private fun JsClassId.constructMethods(
-    classNode: ClassNode?,
+    classNode: Node?,
     ternService: TernService,
     className: String?,
-    functions: List<FunctionNode>
+    functions: List<Node>
 ): Sequence<JsMethodId> {
     with(this) {
-        val methods = classNode?.classElements?.map {
-            val funcNode = it.value as FunctionNode
-            val types = ternService.processMethod(className, funcNode)
+        val methods = classNode?.getClassMethods()?.map { methodNode ->
+            val types = ternService.processMethod(className, methodNode)
             JsMethodId(
                 classId = JsClassId(name),
-                name = funcNode.name.toString(),
+                name = methodNode.getAbstractFunctionName(),
                 returnTypeNotLazy = jsUndefinedClassId,
                 parametersNotLazy = emptyList(),
-                staticModifier = it.isStatic,
+                staticModifier = methodNode.isStatic(),
                 lazyReturnType = types.returnType,
                 lazyParameters = types.parameters,
             )
@@ -61,7 +63,7 @@ private fun JsClassId.constructMethods(
             val types = ternService.processMethod(className, funcNode, true)
             JsMethodId(
                 classId = JsClassId(name),
-                name = funcNode.name.toString(),
+                name = funcNode.getAbstractFunctionName(),
                 returnTypeNotLazy = jsUndefinedClassId,
                 parametersNotLazy = emptyList(),
                 staticModifier = true,

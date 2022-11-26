@@ -1,5 +1,5 @@
 @file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
-package org.utbot.instrumentation.rd.generated
+package org.utbot.instrumentation.process.generated
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.base.*
@@ -15,9 +15,9 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:7]
+ * #### Generated from [InstrumentedProcessModel.kt:7]
  */
-class ChildProcessModel private constructor(
+class InstrumentedProcessModel private constructor(
     private val _addPaths: RdCall<AddPathsParams, Unit>,
     private val _warmup: RdCall<Unit, Unit>,
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
@@ -45,33 +45,30 @@ class ChildProcessModel private constructor(
         @JvmStatic
         @JvmName("internalCreateModel")
         @Deprecated("Use create instead", ReplaceWith("create(lifetime, protocol)"))
-        internal fun createModel(lifetime: Lifetime, protocol: IProtocol): ChildProcessModel  {
+        internal fun createModel(lifetime: Lifetime, protocol: IProtocol): InstrumentedProcessModel  {
             @Suppress("DEPRECATION")
             return create(lifetime, protocol)
         }
         
         @JvmStatic
-        @Deprecated("Use protocol.childProcessModel or revise the extension scope instead", ReplaceWith("protocol.childProcessModel"))
-        fun create(lifetime: Lifetime, protocol: IProtocol): ChildProcessModel  {
-            ChildProcessProtocolRoot.register(protocol.serializers)
+        @Deprecated("Use protocol.instrumentedProcessModel or revise the extension scope instead", ReplaceWith("protocol.instrumentedProcessModel"))
+        fun create(lifetime: Lifetime, protocol: IProtocol): InstrumentedProcessModel  {
+            InstrumentedProcessRoot.register(protocol.serializers)
             
-            return ChildProcessModel().apply {
-                identify(protocol.identity, RdId.Null.mix("ChildProcessModel"))
-                bind(lifetime, protocol, "ChildProcessModel")
-            }
+            return InstrumentedProcessModel()
         }
         
         
-        const val serializationHash = 3283744426733090208L
+        const val serializationHash = -3546055831649640704L
         
     }
-    override val serializersOwner: ISerializersOwner get() = ChildProcessModel
-    override val serializationHash: Long get() = ChildProcessModel.serializationHash
+    override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
+    override val serializationHash: Long get() = InstrumentedProcessModel.serializationHash
     
     //fields
     
     /**
-     * The main process tells where the child process should search for the classes
+     * The main process tells where the instrumented process should search for the classes
      */
     val addPaths: RdCall<AddPathsParams, Unit> get() = _addPaths
     
@@ -81,30 +78,30 @@ class ChildProcessModel private constructor(
     val warmup: RdCall<Unit, Unit> get() = _warmup
     
     /**
-     * The main process sends [instrumentation] to the child process
+     * The main process sends [instrumentation] to the instrumented process
      */
     val setInstrumentation: RdCall<SetInstrumentationParams, Unit> get() = _setInstrumentation
     
     /**
-     * The main process requests the child process to execute a method with the given [signature],
+     * The main process requests the instrumented process to execute a method with the given [signature],
     which declaring class's name is [className].
     @property parameters are the parameters needed for an execution, e.g. static environment
      */
     val invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult> get() = _invokeMethodCommand
     
     /**
-     * This command tells the child process to stop
+     * This command tells the instrumented process to stop
      */
     val stopProcess: RdCall<Unit, Unit> get() = _stopProcess
     
     /**
-     * This command is sent to the child process from the [ConcreteExecutor] if user wants to collect coverage for the
+     * This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to collect coverage for the
     [clazz]
      */
     val collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult> get() = _collectCoverage
     
     /**
-     * This command is sent to the child process from the [ConcreteExecutor] if user wants to get value of static field
+     * This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to get value of static field
     [fieldId]
      */
     val computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult> get() = _computeStaticField
@@ -146,7 +143,7 @@ class ChildProcessModel private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("ChildProcessModel (")
+        printer.println("InstrumentedProcessModel (")
         printer.indent {
             print("addPaths = "); _addPaths.print(printer); println()
             print("warmup = "); _warmup.print(printer); println()
@@ -159,8 +156,8 @@ class ChildProcessModel private constructor(
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): ChildProcessModel   {
-        return ChildProcessModel(
+    override fun deepClone(): InstrumentedProcessModel   {
+        return InstrumentedProcessModel(
             _addPaths.deepClonePolymorphic(),
             _warmup.deepClonePolymorphic(),
             _setInstrumentation.deepClonePolymorphic(),
@@ -172,12 +169,12 @@ class ChildProcessModel private constructor(
     }
     //contexts
 }
-val IProtocol.childProcessModel get() = getOrCreateExtension(ChildProcessModel::class) { @Suppress("DEPRECATION") ChildProcessModel.create(lifetime, this) }
+val IProtocol.instrumentedProcessModel get() = getOrCreateExtension(InstrumentedProcessModel::class) { @Suppress("DEPRECATION") InstrumentedProcessModel.create(lifetime, this) }
 
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:8]
+ * #### Generated from [InstrumentedProcessModel.kt:8]
  */
 data class AddPathsParams (
     val pathsToUserClasses: String,
@@ -240,7 +237,7 @@ data class AddPathsParams (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:28]
+ * #### Generated from [InstrumentedProcessModel.kt:28]
  */
 data class CollectCoverageParams (
     val clazz: ByteArray
@@ -297,7 +294,7 @@ data class CollectCoverageParams (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:32]
+ * #### Generated from [InstrumentedProcessModel.kt:32]
  */
 data class CollectCoverageResult (
     val coverageInfo: ByteArray
@@ -354,7 +351,7 @@ data class CollectCoverageResult (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:36]
+ * #### Generated from [InstrumentedProcessModel.kt:36]
  */
 data class ComputeStaticFieldParams (
     val fieldId: ByteArray
@@ -411,7 +408,7 @@ data class ComputeStaticFieldParams (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:40]
+ * #### Generated from [InstrumentedProcessModel.kt:40]
  */
 data class ComputeStaticFieldResult (
     val result: ByteArray
@@ -468,7 +465,7 @@ data class ComputeStaticFieldResult (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:17]
+ * #### Generated from [InstrumentedProcessModel.kt:17]
  */
 data class InvokeMethodCommandParams (
     val classname: String,
@@ -543,7 +540,7 @@ data class InvokeMethodCommandParams (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:24]
+ * #### Generated from [InstrumentedProcessModel.kt:24]
  */
 data class InvokeMethodCommandResult (
     val result: ByteArray
@@ -600,7 +597,7 @@ data class InvokeMethodCommandResult (
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:13]
+ * #### Generated from [InstrumentedProcessModel.kt:13]
  */
 data class SetInstrumentationParams (
     val instrumentation: ByteArray

@@ -54,6 +54,7 @@ import soot.jimple.Stmt
 import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import org.utbot.common.isAbstract
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -570,12 +571,31 @@ class UtLambdaModel(
     val capturedValues: MutableList<UtModel> = mutableListOf(),
 ) : UtReferenceModel(id, samType) {
 
+    val isFake: Boolean = lambdaName == fakeName
+
     val lambdaMethodId: MethodId
-        get() = declaringClass.jClass
-            .declaredMethods
-            .singleOrNull { it.name == lambdaName }
-            ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
-            ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+        get() {
+            if (isFake) {
+                val targetMethod = samType.jClass.declaredMethods.single { it.isAbstract }
+                return object : MethodId(
+                    declaringClass,
+                    fakeName,
+                    targetMethod.returnType.id,
+                    targetMethod.parameterTypes.map { it.id }
+                ) {
+                    override val modifiers: Int = ModifierFactory.invoke {
+                        public = true
+                        static = true
+                        final = true
+                    }
+                }
+            }
+            return declaringClass.jClass
+                .declaredMethods
+                .singleOrNull { it.name == lambdaName }
+                ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
+                ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+        }
 
     override fun toString(): String = "Anonymous function $lambdaName implementing functional interface $declaringClass"
 
@@ -591,6 +611,18 @@ class UtLambdaModel(
     }
 
     override fun hashCode(): Int = id
+
+    companion object {
+        private const val fakeName = "<FAKE>"
+
+        /**
+         * Create a non-existent lambda with fake method.
+         *
+         * That's temporary solution for building lambdas from concrete values.
+         */
+        fun createFake(id: Int, samType: ClassId, declaringClass: ClassId) =
+            UtLambdaModel(id, samType, declaringClass, fakeName)
+    }
 }
 
 /**

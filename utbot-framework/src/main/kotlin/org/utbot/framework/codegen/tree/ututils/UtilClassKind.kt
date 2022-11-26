@@ -36,7 +36,7 @@ sealed class UtilClassKind(
         = CgDocumentationComment(
         listOf(
             CgDocRegularStmt("$utilClassKindCommentText \n"),
-            CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion(codegenLanguage)}"),
+            CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion(codegenLanguage)} \n"),
         )
     )
 
@@ -108,9 +108,9 @@ sealed class UtilClassKind(
             codegenLanguage: CodegenLanguage
         )
         : UtilClassKind? {
-            return when (comment) {
-                RegularUtUtils(codegenLanguage).utilClassKindCommentText -> RegularUtUtils(codegenLanguage)
-                UtUtilsWithMockito(codegenLanguage).utilClassKindCommentText -> UtUtilsWithMockito(codegenLanguage)
+            return when {
+                comment.contains(RegularUtUtils(codegenLanguage).utilClassKindCommentText) -> RegularUtUtils(codegenLanguage)
+                comment.contains(UtUtilsWithMockito(codegenLanguage).utilClassKindCommentText) -> UtUtilsWithMockito(codegenLanguage)
                 else -> null
             }
         }

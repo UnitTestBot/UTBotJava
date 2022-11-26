@@ -40,12 +40,9 @@ class RdInstrumenterAdapter private constructor(
         @JvmStatic
         @Deprecated("Use protocol.rdInstrumenterAdapter or revise the extension scope instead", ReplaceWith("protocol.rdInstrumenterAdapter"))
         fun create(lifetime: Lifetime, protocol: IProtocol): RdInstrumenterAdapter  {
-            EngineProcessProtocolRoot.register(protocol.serializers)
+            EngineProcessRoot.register(protocol.serializers)
             
-            return RdInstrumenterAdapter().apply {
-                identify(protocol.identity, RdId.Null.mix("RdInstrumenterAdapter"))
-                bind(lifetime, protocol, "RdInstrumenterAdapter")
-            }
+            return RdInstrumenterAdapter()
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()

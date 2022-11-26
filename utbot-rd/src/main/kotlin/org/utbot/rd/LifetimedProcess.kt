@@ -5,6 +5,7 @@ import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 /**
  * Creates LifetimedProcess.
@@ -66,11 +67,14 @@ class LifetimedProcessIml(override val process: Process, lifetime: Lifetime? = n
 
     init {
         ldef = lifetime?.createNested() ?: LifetimeDefinition()
+        allProcessList.add(this)
         ldef.onTermination {
             process.destroy()
 
             if (!process.waitFor(processKillTimeoutMillis, TimeUnit.MILLISECONDS))
                 process.destroyForcibly()
+
+            allProcessList.remove(this)
         }
         UtRdCoroutineScope.current.launch(ldef) {
             while (process.isAlive) {
@@ -83,5 +87,17 @@ class LifetimedProcessIml(override val process: Process, lifetime: Lifetime? = n
 
     override fun terminate() {
         ldef.terminate()
+    }
+
+    companion object {
+        private val allProcessList = mutableListOf<LifetimedProcess>()
+
+        init {
+            Runtime.getRuntime().addShutdownHook(thread(start = false) {
+                for (proc in allProcessList.reversed()) {
+                    proc.terminate()
+                }
+            })
+        }
     }
 }

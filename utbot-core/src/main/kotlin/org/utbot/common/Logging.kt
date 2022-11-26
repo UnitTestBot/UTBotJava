@@ -3,7 +3,8 @@ package org.utbot.common
 import mu.KLogger
 import java.time.format.DateTimeFormatter
 
-val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+val dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
 
 class LoggerWithLogMethod(val logger: KLogger, val logMethod: (() -> Any?) -> Unit)
 
@@ -11,17 +12,11 @@ fun KLogger.info(): LoggerWithLogMethod = LoggerWithLogMethod(this, this::info)
 fun KLogger.debug(): LoggerWithLogMethod = LoggerWithLogMethod(this, this::debug)
 fun KLogger.trace(): LoggerWithLogMethod = LoggerWithLogMethod(this, this::trace)
 
-
-/**
- *
- */
 fun elapsedSecFrom(startNano: Long): String {
     val elapsedNano = System.nanoTime() - startNano
     val elapsedS = elapsedNano.toDouble() / 1_000_000_000
     return String.format("%.3f", elapsedS) + " sec"
 }
-
-
 
 /**
  * Structured logging.

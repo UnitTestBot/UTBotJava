@@ -1,12 +1,9 @@
 package api
 
 import codegen.JsCodeGenerator
-import com.oracle.js.parser.ErrorManager
-import com.oracle.js.parser.Parser
-import com.oracle.js.parser.ScriptEnvironment
-import com.oracle.js.parser.Source
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.js.parser.ir.FunctionNode
+import com.google.javascript.jscomp.Compiler
+import com.google.javascript.jscomp.SourceFile
+import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.JsMultipleClassId
@@ -14,8 +11,8 @@ import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import fuzzer.JsFuzzer
 import fuzzer.providers.JsObjectModelProvider
-import org.graalvm.polyglot.Context
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import java.io.File
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -25,10 +22,8 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -37,6 +32,11 @@ import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
 import parser.JsParserUtils
+import parser.JsParserUtils.getAbstractFunctionName
+import parser.JsParserUtils.getAbstractFunctionParams
+import parser.JsParserUtils.getClassMethods
+import parser.JsParserUtils.getClassName
+import parser.JsParserUtils.getParamName
 import parser.JsToplevelFunctionAstVisitor
 import service.CoverageServiceProvider
 import service.ServiceContext
@@ -46,7 +46,6 @@ import settings.JsTestGenerationSettings.dummyClassName
 import utils.PathResolver
 import utils.constructClass
 import utils.toJsAny
-import java.io.File
 
 
 class JsTestGenerator(
@@ -62,7 +61,7 @@ class JsTestGenerator(
 
     private val exports = mutableSetOf<String>()
 
-    private lateinit var parsedFile: FunctionNode
+    private lateinit var parsedFile: Node
 
     private val utbotDir = "utbotJs"
 
@@ -97,7 +96,7 @@ class JsTestGenerator(
                 parsedFile = parsedFile,
                 strict = selectedMethods?.isNotEmpty() ?: false
             )
-        parentClassName = classNode?.ident?.name?.toString()
+        parentClassName = classNode?.getClassName()
         val classId = makeJsClassId(classNode, ternService)
         val methods = makeMethodsToTest()
         if (methods.isEmpty()) throw IllegalArgumentException("No methods to test were found!")
@@ -115,14 +114,14 @@ class JsTestGenerator(
 
     private fun makeTestsForMethod(
         classId: JsClassId,
-        funcNode: FunctionNode,
-        classNode: ClassNode?,
+        funcNode: Node,
+        classNode: Node?,
         context: ServiceContext,
         testSets: MutableList<CgMethodTestSet>,
         paramNames: MutableMap<ExecutableId, List<String>>
     ) {
         val execId = classId.allMethods.find {
-            it.name == funcNode.name.toString()
+            it.name == funcNode.getAbstractFunctionName()
         } ?: throw IllegalStateException()
         manageExports(classNode, funcNode, execId)
         val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId)
@@ -167,7 +166,7 @@ class JsTestGenerator(
             executions = testsForGenerator,
         )
         testSets += testSet
-        paramNames[execId] = funcNode.parameters.map { it.name.toString() }
+        paramNames[execId] = funcNode.getAbstractFunctionParams().map { it.getParamName() }
     }
 
     private fun makeImportPrefix(): String {
@@ -231,15 +230,15 @@ class JsTestGenerator(
     }
 
     private fun runFuzzer(
-        funcNode: FunctionNode,
+        funcNode: Node,
         execId: JsMethodId
     ): Pair<Set<FuzzedConcreteValue>, List<List<FuzzedValue>>> {
         val fuzzerVisitor = JsFuzzerAstVisitor()
-        funcNode.body.accept(fuzzerVisitor)
+        fuzzerVisitor.accept(funcNode)
         val methodUnderTestDescription =
             FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
-                compilableName = funcNode.name.toString()
-                val names = funcNode.parameters.map { it.name.toString() }
+                compilableName = funcNode.getAbstractFunctionName()
+                val names = funcNode.getAbstractFunctionParams().map { it.getParamName() }
                 parameterNameMap = { index -> names.getOrNull(index) }
             }
         val fuzzedValues =
@@ -248,28 +247,27 @@ class JsTestGenerator(
     }
 
     private fun manageExports(
-        classNode: ClassNode?,
-        funcNode: FunctionNode,
+        classNode: Node?,
+        funcNode: Node,
         execId: JsMethodId
     ) {
-        val obligatoryExport = (classNode?.ident?.name ?: funcNode.ident.name).toString()
+        val obligatoryExport = (classNode?.getClassName() ?: funcNode.getAbstractFunctionName()).toString()
         val collectedExports = collectExports(execId)
         exports += (collectedExports + obligatoryExport)
         exportsManager(exports.toList())
     }
 
-    private fun makeMethodsToTest(): List<FunctionNode> {
+    private fun makeMethodsToTest(): List<Node> {
         return selectedMethods?.map {
             getFunctionNode(
                 focusedMethodName = it,
                 parentClassName = parentClassName,
-                fileText = fileText
             )
         } ?: getMethodsToTest()
     }
 
     private fun makeJsClassId(
-        classNode: ClassNode?,
+        classNode: Node?,
         ternService: TernService
     ): JsClassId {
         return classNode?.let {
@@ -280,21 +278,12 @@ class JsTestGenerator(
         )
     }
 
-    private fun runParser(fileText: String): FunctionNode {
-        // Fixes problem with Graal.polyglot missing from classpath, resulting in error.
-        withUtContext(UtContext(Context::class.java.classLoader)) {
-            val parser = Parser(
-                ScriptEnvironment.builder().build(),
-                Source.sourceFor("jsFile", fileText),
-                ErrorManager.ThrowErrorManager()
-            )
-            return parser.parse()
-        }
-    }
+    private fun runParser(fileText: String): Node =
+        Compiler().parse(SourceFile.fromCode("jsFile", fileText))
 
-    private fun extractToplevelFunctions(): List<FunctionNode> {
+    private fun extractToplevelFunctions(): List<Node> {
         val visitor = JsToplevelFunctionAstVisitor()
-        parsedFile.body.accept(visitor)
+        visitor.accept(parsedFile)
         return visitor.extractedMethods
     }
 
@@ -321,18 +310,12 @@ class JsTestGenerator(
         return resultList
     }
 
-    private fun getFunctionNode(focusedMethodName: String, parentClassName: String?, fileText: String): FunctionNode {
-        val parser = Parser(
-            ScriptEnvironment.builder().build(),
-            Source.sourceFor("jsFile", fileText),
-            ErrorManager.ThrowErrorManager()
-        )
-        val fileNode = parser.parse()
+    private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {
         val visitor = JsFunctionAstVisitor(
             focusedMethodName,
             if (parentClassName != dummyClassName) parentClassName else null
         )
-        fileNode.accept(visitor)
+        visitor.accept(parsedFile)
         return visitor.targetFunctionNode
     }
 
@@ -343,12 +326,10 @@ class JsTestGenerator(
             getClassMethods("")
         }
 
-    private fun getClassMethods(className: String): List<FunctionNode> {
+    private fun getClassMethods(className: String): List<Node> {
         val visitor = JsClassAstVisitor(className)
-        parsedFile.body.accept(visitor)
+        visitor.accept(parsedFile)
         val classNode = JsParserUtils.searchForClassDecl(className, parsedFile)
-        return classNode?.classElements?.filter {
-            it.value is FunctionNode
-        }?.map { it.value as FunctionNode } ?: throw IllegalStateException("Can't extract methods of class $className")
+        return classNode?.getClassMethods() ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

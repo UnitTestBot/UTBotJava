@@ -3,24 +3,44 @@ package org.utbot.python.newtyping.ast.visitor.hints
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonAnyType
 
-class HintEdge(
+fun addEdge(edge: HintEdge) {
+    edge.from.outgoingEdges.add(edge)
+    edge.to.ingoingEdges.add(edge)
+}
+
+sealed class HintEdge(
     val from: HintCollectorNode,
     val to: HintCollectorNode,
-    val source: EdgeSource,
-    val dependency: (Type) -> (PartialTypeDescription) -> PartialTypeDescription
 )
 
-class HintCollectorNode {
-    var typeDescription: PartialTypeDescription = PartialTypeDescription(pythonAnyType, emptyList(), emptyList())
+class HintEdgeWithBound(
+    from: HintCollectorNode,
+    to: HintCollectorNode,
+    val source: EdgeSource,
+    val boundType: BoundType,
+    val dependency: (Type) -> List<Type>
+): HintEdge(from, to) {
+    enum class BoundType {
+        Lower,
+        Upper
+    }
+}
+
+class HintEdgeWithValue(
+    from: HintCollectorNode,
+    to: HintCollectorNode,
+    val dependency: (Type, Type) -> Type  // (newTypeOfFrom, oldTypeOfTo) -> newTypeOfTo
+): HintEdge(from, to)
+
+class HintCollectorNode(val typeDescription: PartialTypeDescription) {
     val outgoingEdges: MutableSet<HintEdge> = mutableSetOf()
     val ingoingEdges: MutableSet<HintEdge> = mutableSetOf()
 }
 
-class PartialTypeDescription(
-    val partialType: Type,
-    val lowerBounds: List<Type>,
-    val upperBounds: List<Type>
-)
+class PartialTypeDescription(val partialType: Type) {
+    val lowerBounds: MutableList<Type> = mutableListOf()
+    val upperBounds: MutableList<Type> = mutableListOf()
+}
 
 class HintCollectorResult
 
@@ -32,5 +52,7 @@ class FunctionParameter(
 enum class EdgeSource {
     ForStatement,
     Group,
-    Identification
+    Identification,
+    Operation,
+    CollectionElement
 }

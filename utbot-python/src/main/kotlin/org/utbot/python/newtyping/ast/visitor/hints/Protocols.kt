@@ -9,12 +9,51 @@ import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.Name
 import org.utbot.python.newtyping.general.Type
 
+fun operationToMagicMethod(op: String): String? =
+    when (op) {
+        "+" -> "__add__"
+        "-" -> "__sub__"
+        "*" -> "__mul__"
+        else -> null
+    }
+
 fun createIterableWithCustomReturn(returnType: Type): Type =
+    createUnaryProtocolWithCustomReturn("__iter__", returnType)
+
+val supportsBoolProtocol: Type =
+    createUnaryProtocolWithCustomReturn("__bool__", BuiltinTypes.pythonBool)
+
+fun createBinaryProtocol(methodName: String, argType: Type, returnType: Type): Type =
+    createPythonProtocol(
+        Name(emptyList(), ""),  // TODO: name?
+        0,
+        listOf(methodName),
+        listOf(methodName)
+    ) { self ->
+        CompositeTypeCreator.InitializationData(
+            members = listOf(
+                createPythonCallableType(
+                    0,
+                    listOf(PythonCallableTypeDescription.ArgKind.Positional),
+                    isClassMethod = false,
+                    isStaticMethod = false
+                ) {
+                    FunctionTypeCreator.InitializationData(
+                        arguments = listOf(self, argType),
+                        returnValue = returnType
+                    )
+                }
+            ),
+            supertypes = emptyList()
+        )
+    }
+
+fun createUnaryProtocolWithCustomReturn(methodName: String, returnType: Type): Type =
     createPythonProtocol(
         Name(emptyList(), ""),  // TODO: normal names?
         0,
-        listOf("__iter__"),
-        listOf("__iter__")
+        listOf(methodName),
+        listOf(methodName)
     ) { self ->
         CompositeTypeCreator.InitializationData(
             members = listOf(
@@ -27,31 +66,6 @@ fun createIterableWithCustomReturn(returnType: Type): Type =
                     FunctionTypeCreator.InitializationData(
                         arguments = listOf(self),
                         returnType
-                    )
-                }
-            ),
-            supertypes = emptyList()
-        )
-    }
-
-val supportsBoolProtocol: Type =
-    createPythonProtocol(
-        Name(emptyList(), ""),  // TODO: name?
-        0,
-        listOf("__bool__"),
-        listOf("__bool__")
-    ) { self ->
-        CompositeTypeCreator.InitializationData(
-            members = listOf(
-                createPythonCallableType(
-                    0,
-                    listOf(PythonCallableTypeDescription.ArgKind.Positional),
-                    isClassMethod = false,
-                    isStaticMethod = false
-                ) {
-                    FunctionTypeCreator.InitializationData(
-                        arguments = listOf(self),
-                        returnValue = BuiltinTypes.pythonBool
                     )
                 }
             ),

@@ -9,4 +9,5 @@ data class TsDynamicSettings (
     val tsNycModulePath: String,
     val tsNodePath: String = "ts-node",
     val tsModulePath: String,
+    val godObject: String? = null,
 )

@@ -2,26 +2,35 @@ package org.utbot.cli.ts
 
 import api.TsTestGenerator
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.check
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
+import mu.KotlinLogging
+import service.TsCoverageMode
+import settings.TsDynamicSettings
+import settings.TsTestGenerationSettings
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import mu.KotlinLogging
-import service.TsCoverageMode
-import settings.TsDynamicSettings
-import settings.TsTestGenerationSettings
 
 val logger = KotlinLogging.logger {}
 
 class TsGenerateTestsCommand :
     CliktCommand(name = "generate_ts", help = "Generates tests for the specified class or toplevel functions.") {
+
+    init {
+        context {
+            valueSources(
+                JsonValueSource.from(File(System.getProperty("user.dir") + "/tsconfig.json").readText())
+            )
+        }
+    }
 
     private val sourceCodeFile by option(
         "-s", "--source",
@@ -93,6 +102,12 @@ class TsGenerateTestsCommand :
         help = "Sets path to the project containing file under test."
     ).required()
 
+    private val godObjectClass by option(
+        "-g",
+        "--god-object",
+        help = "Specifies class that will be taken as god object for test generation"
+    )
+
     override fun run() {
         /*
             targetClass and targetFunction can't be specified at the same time.
@@ -119,6 +134,7 @@ class TsGenerateTestsCommand :
                     tsNycModulePath = pathToNycTs,
                     tsNodePath = pathToTsNode,
                     tsModulePath = pathToTsModule,
+                    godObject = godObjectClass
                 )
 
             )

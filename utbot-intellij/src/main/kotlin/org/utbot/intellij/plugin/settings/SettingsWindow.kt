@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.layout.CCFlags
 import com.intellij.ui.layout.LayoutBuilder
@@ -20,6 +21,7 @@ import com.intellij.util.ui.components.BorderLayoutPanel
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JPanel
+import javax.swing.JSlider
 import kotlin.reflect.KClass
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ForceStaticMocking
@@ -29,9 +31,9 @@ import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
-import javax.swing.JSlider
 import org.utbot.framework.plugin.api.isSummarizationCompatible
+import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
+import org.utbot.intellij.plugin.util.showSettingsEditor
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -211,7 +213,13 @@ class SettingsWindow(val project: Project) {
         }
         if (!UtSettings.useFuzzing) {
             row("") {
-                comment("Fuzzing is disabled in ${UtSettings.getPath()}, see the key 'useFuzzing'" )
+                cell {
+                    component(comment("Fuzzing is disabled in configuration file.").component)
+                    component(ActionLink("Edit configuration") {
+                        UIUtil.getWindow(fuzzLabel)?.dispose()
+                        showSettingsEditor(project, "useFuzzing")
+                    })
+                }
             }
         }
     }

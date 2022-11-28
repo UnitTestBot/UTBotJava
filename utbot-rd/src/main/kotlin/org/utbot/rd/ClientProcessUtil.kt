@@ -27,6 +27,7 @@ internal const val fileWaitTimeoutMillis = 10L
 private val logger = getLogger<ClientProtocolBuilder>()
 
 internal fun childCreatedFileName(port: Int): String {
+    println("this is only to check if CI works with rd 2022.3.4")
     return "$port.created"
 }
 

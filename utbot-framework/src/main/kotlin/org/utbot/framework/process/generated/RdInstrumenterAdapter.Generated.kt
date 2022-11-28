@@ -42,7 +42,10 @@ class RdInstrumenterAdapter private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): RdInstrumenterAdapter  {
             EngineProcessRoot.register(protocol.serializers)
             
-            return RdInstrumenterAdapter()
+            return RdInstrumenterAdapter().apply {
+                identify(protocol.identity, RdId.Null.mix("RdInstrumenterAdapter"))
+                bind(lifetime, protocol, "RdInstrumenterAdapter")
+            }
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()

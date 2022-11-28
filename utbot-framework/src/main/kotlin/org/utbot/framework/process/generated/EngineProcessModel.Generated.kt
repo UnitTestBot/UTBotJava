@@ -66,7 +66,10 @@ class EngineProcessModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): EngineProcessModel  {
             EngineProcessRoot.register(protocol.serializers)
             
-            return EngineProcessModel()
+            return EngineProcessModel().apply {
+                identify(protocol.identity, RdId.Null.mix("EngineProcessModel"))
+                bind(lifetime, protocol, "EngineProcessModel")
+            }
         }
         
         

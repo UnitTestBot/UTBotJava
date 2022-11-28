@@ -1,5 +1,5 @@
 @file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
-package org.utbot.instrumentation.rd.generated
+package org.utbot.instrumentation.process.generated
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.base.*
@@ -15,28 +15,28 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [ChildProcessModel.kt:5]
+ * #### Generated from [InstrumentedProcessModel.kt:5]
  */
-class ChildProcessProtocolRoot private constructor(
+class InstrumentedProcessRoot private constructor(
 ) : RdExtBase() {
     //companion
     
     companion object : ISerializersOwner {
         
         override fun registerSerializersCore(serializers: ISerializers)  {
-            ChildProcessProtocolRoot.register(serializers)
-            ChildProcessModel.register(serializers)
+            InstrumentedProcessRoot.register(serializers)
+            InstrumentedProcessModel.register(serializers)
         }
         
         
         
         
         
-        const val serializationHash = -2158664525887799313L
+        const val serializationHash = -7874463878801458679L
         
     }
-    override val serializersOwner: ISerializersOwner get() = ChildProcessProtocolRoot
-    override val serializationHash: Long get() = ChildProcessProtocolRoot.serializationHash
+    override val serializersOwner: ISerializersOwner get() = InstrumentedProcessRoot
+    override val serializationHash: Long get() = InstrumentedProcessRoot.serializationHash
     
     //fields
     //methods
@@ -46,12 +46,12 @@ class ChildProcessProtocolRoot private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("ChildProcessProtocolRoot (")
+        printer.println("InstrumentedProcessRoot (")
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): ChildProcessProtocolRoot   {
-        return ChildProcessProtocolRoot(
+    override fun deepClone(): InstrumentedProcessRoot   {
+        return InstrumentedProcessRoot(
         )
     }
     //contexts

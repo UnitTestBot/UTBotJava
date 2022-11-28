@@ -2,9 +2,9 @@ package org.utbot.rd.models
 
 import com.jetbrains.rd.generator.nova.*
 
-object ChildProcessProtocolRoot : Root()
+object InstrumentedProcessRoot : Root()
 
-object ChildProcessModel : Ext(ChildProcessProtocolRoot) {
+object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
     val AddPathsParams = structdef {
         field("pathsToUserClasses", PredefinedType.string)
         field("pathsToDependencyClasses", PredefinedType.string)
@@ -45,7 +45,7 @@ object ChildProcessModel : Ext(ChildProcessProtocolRoot) {
         call("AddPaths", AddPathsParams, PredefinedType.void).apply {
             async
             documentation =
-                "The main process tells where the child process should search for the classes"
+                "The main process tells where the instrumented process should search for the classes"
         }
         call("Warmup", PredefinedType.void, PredefinedType.void).apply {
             async
@@ -55,30 +55,30 @@ object ChildProcessModel : Ext(ChildProcessProtocolRoot) {
         call("SetInstrumentation", SetInstrumentationParams, PredefinedType.void).apply {
             async
             documentation =
-                "The main process sends [instrumentation] to the child process"
+                "The main process sends [instrumentation] to the instrumented process"
         }
         call("InvokeMethodCommand", InvokeMethodCommandParams, InvokeMethodCommandResult).apply {
             async
             documentation =
-            "The main process requests the child process to execute a method with the given [signature],\n" +
+            "The main process requests the instrumented process to execute a method with the given [signature],\n" +
                     "which declaring class's name is [className].\n" +
                     "@property parameters are the parameters needed for an execution, e.g. static environment"
         }
         call("StopProcess", PredefinedType.void, PredefinedType.void).apply {
             async
             documentation =
-                "This command tells the child process to stop"
+                "This command tells the instrumented process to stop"
         }
         call("CollectCoverage", CollectCoverageParams, CollectCoverageResult).apply {
             async
             documentation =
-                "This command is sent to the child process from the [ConcreteExecutor] if user wants to collect coverage for the\n" +
+                "This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to collect coverage for the\n" +
                         "[clazz]"
         }
         call("ComputeStaticField", ComputeStaticFieldParams, ComputeStaticFieldResult).apply {
             async
             documentation =
-                "This command is sent to the child process from the [ConcreteExecutor] if user wants to get value of static field\n" +
+                "This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to get value of static field\n" +
                         "[fieldId]"
         }
     }

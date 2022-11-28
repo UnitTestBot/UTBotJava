@@ -20,7 +20,7 @@ private const val defaultKeyForSettingsPath = "utbot.settings.path"
 /**
  * Default concrete execution timeout (in milliseconds).
  */
-const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
+const val DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS = 1000L
 
 object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultSettingsPath) {
 
@@ -248,51 +248,74 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(
-        DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+    var concreteExecutionTimeoutInInstrumentedProcess: Long by getLongProperty(
+        DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
+// region engine process debug
+
     /**
-     * Log level for engine process, which started in IntelliJ IDEA on generate tests action.
+     * Path to custom log4j2 configuration file for EngineProcess.
+     * By default utbot-intellij/src/main/resources/log4j2.xml is used.
+     * Also default value is used if provided value is not a file.
      */
-    var engineProcessLogLevel by getEnumProperty(LogLevel.Info)
+    var engineProcessLogConfigFile by getStringProperty("")
 
     /**
-     * Log level for concrete executor process.
-     */
-    var childProcessLogLevel by getEnumProperty(LogLevel.Info)
-
-    /**
-     * Determines whether should errors from a child process be written to a log file or suppressed.
-     * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
-     *
-     * In enabled it consumes a lot of disk space.
-     */
-    var logConcreteExecutionErrors by getBooleanProperty(false)
-
-
-    /**
-     * Property useful only for IntelliJ IDEA
-     * If true - runs engine process with the ability to attach a debugger
-     * @see runChildProcessWithDebug
+     * The property is useful only for the IntelliJ IDEs.
+     * If the property is set in true the engine process opens a debug port.
+     * @see runInstrumentedProcessWithDebug
      * @see org.utbot.intellij.plugin.process.EngineProcess
      */
-    var runIdeaProcessWithDebug by getBooleanProperty(false)
+    var runEngineProcessWithDebug by getBooleanProperty(false)
 
     /**
-     * If true, runs the child process with the ability to attach a debugger.
+     * The engine process JDWP agent's port of the instrumented process.
+     * A debugger attaches to the port in order to debug the process.
+     */
+    var engineProcessDebugPort by getIntProperty(5005)
+
+    /**
+     * Value of the suspend mode for the JDWP agent of the engine process.
+     * If the value is true, the engine process will suspend until a debugger attaches to it.
+     */
+    var suspendEngineProcessExecutionInDebugMode by getBooleanProperty(true)
+
+// endregion
+
+// region instrumented process debug
+    /**
+     * The instrumented process JDWP agent's port of the instrumented process.
+     * A debugger attaches to the port in order to debug the process.
+     */
+    var instrumentedProcessDebugPort by getIntProperty(5006)
+
+    /**
+     * Value of the suspend mode for the JDWP agent of the instrumented process.
+     * If the value is true, the instrumented process will suspend until a debugger attaches to it.
+     */
+    var suspendInstrumentedProcessExecutionInDebugMode by getBooleanProperty(true)
+
+    /**
+     * If true, runs the instrumented process with the ability to attach a debugger.
      *
-     * To debug the child process, set the breakpoint in the childProcessRunner.start() line
-     * and in the child process's main function and run the main process.
-     * Then run the remote JVM debug configuration in IntelliJ IDEA.
+     * To debug the instrumented process, set the breakpoint in the instrumentedProcessRunner.start() line
+     * and in the instrumented process's main function and run the main process.
+     * Then run the remote JVM debug configuration in IDEA.
      * If you see the message in console about successful connection, then
      * the debugger is attached successfully.
-     * Now you can put the breakpoints in the child process and debug
+     * Now you can put the breakpoints in the instrumented process and debug
      * both processes simultaneously.
      *
-     * @see [org.utbot.instrumentation.process.ChildProcessRunner.cmds]
+     * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
      */
-    var runChildProcessWithDebug by getBooleanProperty(false)
+    var runInstrumentedProcessWithDebug by getBooleanProperty(false)
+
+    /**
+     * Log level for instrumented process.
+     */
+    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
+// endregion
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
@@ -372,7 +395,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
 
     /**
-     * Use the sandbox in the concrete executor.
+     * Use the sandbox in the instrumented process.
      *
      * If true, the sandbox will prevent potentially dangerous calls, e.g., file access, reading
      * or modifying the environment, calls to `Unsafe` methods etc.

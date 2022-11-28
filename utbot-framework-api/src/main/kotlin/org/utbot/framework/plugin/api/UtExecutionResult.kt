@@ -58,14 +58,14 @@ data class UtTimeoutException(override val exception: TimeoutException) : UtExec
 
 /**
  * Indicates failure in concrete execution.
- * For now it is explicitly throwing by ConcreteExecutor in case child process death.
+ * For now it is explicitly throwing by ConcreteExecutor in case instrumented process death.
  */
 class ConcreteExecutionFailureException(cause: Throwable, errorFile: File, val processStdout: List<String>) :
     Exception(
         buildString {
             appendLine()
             appendLine("----------------------------------------")
-            appendLine("The child process is dead")
+            appendLine("The instrumented process is dead")
             appendLine("Cause:\n${cause.message}")
             appendLine("Last 1000 lines of the error log ${errorFile.absolutePath}:")
             appendLine("----------------------------------------")

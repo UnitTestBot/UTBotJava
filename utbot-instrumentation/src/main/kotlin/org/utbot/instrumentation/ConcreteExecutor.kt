@@ -7,7 +7,6 @@ import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.concurrent.thread
 import kotlin.reflect.KCallable
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
@@ -25,19 +24,19 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.process.ChildProcessRunner
-import org.utbot.instrumentation.rd.UtInstrumentationProcess
-import org.utbot.instrumentation.rd.generated.ComputeStaticFieldParams
-import org.utbot.instrumentation.rd.generated.InvokeMethodCommandParams
-import org.utbot.instrumentation.util.ChildProcessError
+import org.utbot.instrumentation.process.InstrumentedProcessRunner
+import org.utbot.instrumentation.process.generated.ComputeStaticFieldParams
+import org.utbot.instrumentation.process.generated.InvokeMethodCommandParams
+import org.utbot.instrumentation.rd.InstrumentedProcess
+import org.utbot.instrumentation.util.InstrumentedProcessError
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 
 private val logger = KotlinLogging.logger {}
 
 /**
- * Creates [ConcreteExecutor], which delegates `execute` calls to the child process, and applies the given [block] to it.
+ * Creates [ConcreteExecutor], which delegates `execute` calls to the instrumented process, and applies the given [block] to it.
  *
- * The child process will search for the classes in [pathsToUserClasses] and will use [instrumentation] for instrumenting.
+ * The instrumented process will search for the classes in [pathsToUserClasses] and will use [instrumentation] for instrumenting.
  *
  * Specific instrumentation can add functionality to [ConcreteExecutor] via Kotlin extension functions.
  *
@@ -96,12 +95,12 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
 }
 
 /**
- * Concrete executor class. Takes [pathsToUserClasses] where the child process will search for the classes. Paths should
+ * Concrete executor class. Takes [pathsToUserClasses] where the instrumented process will search for the classes. Paths should
  * be separated with [java.io.File.pathSeparatorChar].
  *
  * If [instrumentation] depends on other classes, they should be passed in [pathsToDependencyClasses].
  *
- * Also takes [instrumentation] object which will be used in the child process for the instrumentation.
+ * Also takes [instrumentation] object which will be used in the instrumented process for the instrumentation.
  *
  * @param TIResult the return type of [Instrumentation.invoke] function for the given [instrumentation].
  */
@@ -111,7 +110,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     internal val pathsToDependencyClasses: String
 ) : Closeable, Executor<TIResult> {
     private val ldef: LifetimeDefinition = LifetimeDefinition()
-    private val childProcessRunner: ChildProcessRunner = ChildProcessRunner()
+    private val instrumentedProcessRunner: InstrumentedProcessRunner = InstrumentedProcessRunner()
 
     companion object {
 
@@ -126,7 +125,6 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
         init {
             Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
-            Runtime.getRuntime().addShutdownHook(thread(start = false) { defaultPool.close() })
         }
 
         /**
@@ -153,18 +151,18 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         get() = ldef.isAlive
 
     private val corMutex = Mutex()
-    private var processInstance: UtInstrumentationProcess? = null
+    private var processInstance: InstrumentedProcess? = null
 
     // this function is intended to be called under corMutex
-    private suspend fun regenerate(): UtInstrumentationProcess {
+    private suspend fun regenerate(): InstrumentedProcess {
         ldef.throwIfNotAlive()
 
-        var proc: UtInstrumentationProcess? = processInstance
+        var proc: InstrumentedProcess? = processInstance
 
         if (proc == null || !proc.lifetime.isAlive) {
-            proc = UtInstrumentationProcess(
+            proc = InstrumentedProcess(
                 ldef,
-                childProcessRunner,
+                instrumentedProcessRunner,
                 instrumentation,
                 pathsToUserClasses,
                 pathsToDependencyClasses,
@@ -177,18 +175,18 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     }
 
     /**
-     * Main entry point for communicating with child process.
+     * Main entry point for communicating with instrumented process.
      * Use this function every time you want to access protocol model.
-     * This method prepares child process for execution and ensures it is alive before giving it block
+     * This method prepares instrumented process for execution and ensures it is alive before giving it block
      *
      * @param exclusively if true - executes block under mutex.
      * This guarantees that no one can access protocol model - no other calls made before block completes
      */
-    suspend fun <T> withProcess(exclusively: Boolean = false, block: suspend UtInstrumentationProcess.() -> T): T {
-        fun throwConcreteIfDead(e: Throwable, proc: UtInstrumentationProcess?) {
+    suspend fun <T> withProcess(exclusively: Boolean = false, block: suspend InstrumentedProcess.() -> T): T {
+        fun throwConcreteIfDead(e: Throwable, proc: InstrumentedProcess?) {
             if (proc?.lifetime?.isAlive != true) {
                 throw ConcreteExecutionFailureException(e,
-                    childProcessRunner.errorLogFile,
+                    instrumentedProcessRunner.errorLogFile,
                     try {
                         proc?.run { process.inputStream.bufferedReader().lines().toList() } ?: emptyList()
                     } catch (e: Exception) {
@@ -200,7 +198,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
         sendTimestamp.set(System.currentTimeMillis())
 
-        var proc: UtInstrumentationProcess? = null
+        var proc: InstrumentedProcess? = null
 
         try {
             if (exclusively) {
@@ -216,7 +214,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         catch (e: CancellationException) {
             // cancellation can be from 2 causes
             // 1. process died, its lifetime terminated, so operation was cancelled
-            // this clearly indicates child process death -> ConcreteExecutionFailureException
+            // this clearly indicates instrumented process death -> ConcreteExecutionFailureException
             throwConcreteIfDead(e, proc)
             // 2. it can be ordinary timeout from coroutine. then just rethrow
             throw e
@@ -226,7 +224,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             // 1. be dead because of this exception
             throwConcreteIfDead(e, proc)
             // 2. might be deliberately thrown and process still can operate
-            throw ChildProcessError(e)
+            throw InstrumentedProcessError(e)
         }
         finally {
             receiveTimeStamp.set(System.currentTimeMillis())
@@ -244,7 +242,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             val parametersByteArray = kryoHelper.writeObject(parameters)
             val params = InvokeMethodCommandParams(className, signature, argumentsByteArray, parametersByteArray)
 
-            val ba = protocolModel.invokeMethodCommand.startSuspending(lifetime, params).result
+            val ba = instrumentedProcessModel.invokeMethodCommand.startSuspending(lifetime, params).result
             kryoHelper.readObject(ba)
         }
     } catch (e: Throwable) {
@@ -253,7 +251,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     }
 
     /**
-     * Executes [kCallable] in the child process with the supplied [arguments] and [parameters], e.g. static environment.
+     * Executes [kCallable] in the instrumented process with the supplied [arguments] and [parameters], e.g. static environment.
      *
      * @return the processed result of the method call.
      */
@@ -284,7 +282,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 if (alive) {
                     try {
                         processInstance?.run {
-                            protocolModel.stopProcess.start(lifetime, Unit)
+                            instrumentedProcessModel.stopProcess.start(lifetime, Unit)
                         }
                     } catch (_: Exception) {}
                     processInstance = null
@@ -298,7 +296,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
 fun ConcreteExecutor<*,*>.warmup() = runBlocking {
     withProcess {
-        protocolModel.warmup.start(lifetime, Unit)
+        instrumentedProcessModel.warmup.start(lifetime, Unit)
     }
 }
 
@@ -310,7 +308,7 @@ fun <T> ConcreteExecutor<*, *>.computeStaticField(fieldId: FieldId): Result<T> =
         val fieldIdSerialized = kryoHelper.writeObject(fieldId)
         val params = ComputeStaticFieldParams(fieldIdSerialized)
 
-        val result = protocolModel.computeStaticField.startSuspending(lifetime, params)
+        val result = instrumentedProcessModel.computeStaticField.startSuspending(lifetime, params)
 
         kryoHelper.readObject(result.result)
     }

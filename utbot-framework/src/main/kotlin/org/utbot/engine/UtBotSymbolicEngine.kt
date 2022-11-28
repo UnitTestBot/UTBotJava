@@ -391,7 +391,7 @@ class UtBotSymbolicEngine(
      */
     fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
         val isFuzzable = methodUnderTest.parameters.all { classId ->
-            classId != Method::class.java.id && // causes the child process crash at invocation
+            classId != Method::class.java.id && // causes the instrumented process crash at invocation
                 classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
         if (!isFuzzable) {

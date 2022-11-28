@@ -79,8 +79,7 @@ interface ProcessWithRdServer : LifetimedProcess {
     val port: Int
         get() = protocol.wire.serverPort
 
-    suspend fun initModels(bindables: Protocol.() -> Unit): ProcessWithRdServer
-    suspend fun awaitSignal(): ProcessWithRdServer
+    suspend fun awaitProcessReady(): ProcessWithRdServer
 }
 
 private val logger = getLogger<ProcessWithRdServer>()
@@ -99,15 +98,7 @@ class ProcessWithRdServerImpl private constructor(
         }
     }
 
-    override suspend fun initModels(bindables: Protocol.() -> Unit): ProcessWithRdServer {
-        protocol.scheduler.pump(lifetime) {
-            protocol.bindables()
-        }
-
-        return this
-    }
-
-    override suspend fun awaitSignal(): ProcessWithRdServer {
+    override suspend fun awaitProcessReady(): ProcessWithRdServer {
         protocol.scheduler.pump(lifetime) {
             protocol.synchronizationModel
         }

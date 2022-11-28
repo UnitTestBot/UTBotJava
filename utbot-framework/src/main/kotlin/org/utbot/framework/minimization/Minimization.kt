@@ -27,7 +27,7 @@ import org.utbot.framework.plugin.api.UtVoidModel
  * We have 4 different test suites:
  * * Regression suite
  * * Error suite (invocations in which implicitly thrown unchecked exceptions reached to the top)
- * * Crash suite (invocations in which the child process crashed or unexpected exception in our code occurred)
+ * * Crash suite (invocations in which the instrumented process crashed or unexpected exception in our code occurred)
  * * Timeout suite
  *
  * We want to minimize tests independently in each of these suites.

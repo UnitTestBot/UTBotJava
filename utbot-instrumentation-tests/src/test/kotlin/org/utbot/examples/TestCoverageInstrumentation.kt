@@ -10,7 +10,7 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
-import org.utbot.instrumentation.util.ChildProcessError
+import org.utbot.instrumentation.util.InstrumentedProcessError
 import org.utbot.instrumentation.util.StaticEnvironment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -67,7 +67,7 @@ class TestCoverageInstrumentation {
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
-            val exc = assertThrows<ChildProcessError> {
+            val exc = assertThrows<InstrumentedProcessError> {
                 it.execute(
                     ExampleClass::bar,
                     arrayOf(testObject, 1, 2, 3)
@@ -90,7 +90,7 @@ class TestCoverageInstrumentation {
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
-            val exc = assertThrows<ChildProcessError> {
+            val exc = assertThrows<InstrumentedProcessError> {
                 it.execute(
                     ExampleClass::bar,
                     arrayOf(testObject, 1, 2, 3)

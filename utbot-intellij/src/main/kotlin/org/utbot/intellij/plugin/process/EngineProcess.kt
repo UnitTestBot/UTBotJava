@@ -10,24 +10,15 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.ConcurrentHashMap
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.lifetime.Lifetime
-import com.jetbrains.rd.util.lifetime.throwIfNotAlive
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.runIdeaProcessWithDebug
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.HangingTestsTimeout
-import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.domain.StaticsMocking
-import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.*
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.services.JdkInfo
-import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.OpenModulesContainer
@@ -36,19 +27,26 @@ import org.utbot.framework.process.generated.Signature
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.util.KryoHelper
+import org.utbot.intellij.plugin.UtbotBundle
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
+import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
+import org.utbot.intellij.plugin.util.assertIsReadAccessAllowed
 import org.utbot.intellij.plugin.util.signature
-import org.utbot.rd.ProcessWithRdServer
+import org.utbot.rd.*
+import org.utbot.rd.exceptions.InstantProcessDeathException
+import org.utbot.rd.generated.SettingForResult
+import org.utbot.rd.generated.SettingsModel
+import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
-import org.utbot.rd.rdPortArgument
-import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.deleteIfExists
+import java.nio.file.StandardCopyOption
+import java.time.LocalDateTime
 import kotlin.io.path.pathString
-import kotlin.random.Random
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 
@@ -58,201 +56,187 @@ private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdE
 
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
-class EngineProcess(parent: Lifetime, val project: Project) {
-    companion object {
-        init {
-            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
-        }
-    }
-    private val ldef = parent.createNested()
-    private val id = Random.nextLong()
-    private var count = 0
-    private var configPath: Path? = null
+class EngineProcessInstantDeathException :
+    InstantProcessDeathException(UtSettings.engineProcessDebugPort, UtSettings.runEngineProcessWithDebug)
 
+class EngineProcess private constructor(val project: Project, rdProcess: ProcessWithRdServer) :
+    ProcessWithRdServer by rdProcess {
+    companion object {
+        private val log4j2ConfigFile: File
+
+        init {
+            engineProcessLogDirectory.mkdirs()
+            engineProcessLogConfigurations.mkdirs()
+            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
+
+            val customFile = File(UtSettings.engineProcessLogConfigFile)
+
+            if (customFile.exists()) {
+                log4j2ConfigFile = customFile
+            } else {
+                log4j2ConfigFile = Files.createTempFile(engineProcessLogConfigurations.toPath(), null, ".xml").toFile()
+                log4j2ConfigFile.deleteOnExit()
+                this.javaClass.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
+                    val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
+                        .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
+                    Files.copy(
+                        resultConfig.byteInputStream(),
+                        log4j2ConfigFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING
+                    )
+                }
+            }
+        }
+
+        private val log4j2ConfigSwitch = "-Dlog4j2.configurationFile=${log4j2ConfigFile.canonicalPath}"
+
+        private fun suspendValue(): String = if (UtSettings.suspendEngineProcessExecutionInDebugMode) "y" else "n"
+
+        private val debugArgument: String?
+            get() = "-agentlib:jdwp=transport=dt_socket,server=n,suspend=${suspendValue()},quiet=y,address=${UtSettings.engineProcessDebugPort}"
+                .takeIf { UtSettings.runEngineProcessWithDebug }
+
+        private val javaExecutablePathString: Path
+            get() = JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}")
+
+        private val pluginClasspath: String
+            get() = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
+                separator = File.pathSeparator,
+                prefix = "\"",
+                postfix = "\""
+            )
+
+        private const val startFileName = "org.utbot.framework.process.EngineProcessMainKt"
+
+        private fun obtainEngineProcessCommandLine(port: Int) = buildList {
+            add(javaExecutablePathString.pathString)
+            add("-ea")
+            val javaVersionSpecificArgs = OpenModulesContainer.javaVersionSpecificArguments
+            if (javaVersionSpecificArgs.isNotEmpty()) {
+                addAll(javaVersionSpecificArgs)
+            }
+            debugArgument?.let { add(it) }
+            add(log4j2ConfigSwitch)
+            add("-cp")
+            add(pluginClasspath)
+            add(startFileName)
+            add(rdPortArgument(port))
+        }
+
+        fun createBlocking(project: Project): EngineProcess = runBlocking { EngineProcess(project) }
+
+        suspend operator fun invoke(project: Project): EngineProcess =
+            LifetimeDefinition().terminateOnException { lifetime ->
+                val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
+                    val cmd = obtainEngineProcessCommandLine(port)
+                    val directory = WorkingDirService.provide().toFile()
+                    val builder = ProcessBuilder(cmd).directory(directory)
+                    val formatted = dateTimeFormatter.format(LocalDateTime.now())
+                    val logFile = File(engineProcessLogDirectory, "$formatted.log")
+
+                    builder.redirectOutput(logFile)
+                    builder.redirectError(logFile)
+
+                    val process = builder.start()
+
+                    logger.info { "Engine process started with PID = ${process.getPid}" }
+                    logger.info { "Engine process log file - ${logFile.canonicalPath}" }
+
+                    if (!process.isAlive) {
+                        throw EngineProcessInstantDeathException()
+                    }
+
+                    process
+                }
+                rdProcess.awaitProcessReady()
+
+                return EngineProcess(project, rdProcess)
+            }
+    }
+
+    private val engineModel: EngineProcessModel = onSchedulerBlocking { protocol.engineProcessModel }
+    private val instrumenterAdapterModel: RdInstrumenterAdapter = onSchedulerBlocking { protocol.rdInstrumenterAdapter }
+    private val sourceFindingModel: RdSourceFindingStrategy = onSchedulerBlocking { protocol.rdSourceFindingStrategy }
+    private val settingsModel: SettingsModel = onSchedulerBlocking { protocol.settingsModel }
+
+    private val kryoHelper = KryoHelper(lifetime)
     private val sourceFindingStrategies = ConcurrentHashMap<Long, SourceFindingStrategy>()
 
-    private fun getOrCreateLogConfig(): String {
-        var realPath = configPath
-        if (realPath == null) {
-            engineProcessLogConfigurations.mkdirs()
-            configPath = File.createTempFile("epl", ".xml", engineProcessLogConfigurations).apply {
-                val onMatch = if (UtSettings.logConcreteExecutionErrors) "NEUTRAL" else "DENY"
-                writeText(
-                    """<?xml version="1.0" encoding="UTF-8"?>
-<Configuration>
-    <Appenders>
-        <Console name="Console" target="SYSTEM_OUT">
-            <ThresholdFilter level="${UtSettings.engineProcessLogLevel.name.uppercase()}"  onMatch="$onMatch"   onMismatch="DENY"/>
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
-        </Console>
-    </Appenders>
-    <Loggers>
-        <Root level="${UtSettings.engineProcessLogLevel.name.lowercase()}">
-            <AppenderRef ref="Console"/>
-        </Root>
-    </Loggers>
-</Configuration>"""
-                )
-            }.toPath()
-            realPath = configPath
-            logger.info("log configuration path - ${realPath!!.pathString}")
+    fun setupUtContext(classpathForUrlsClassloader: List<String>) {
+        engineModel.setupUtContext.start(lifetime, SetupContextParams(classpathForUrlsClassloader))
+    }
+
+    private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =
+        DumbService.getInstance(project).runReadActionInSmartMode<String?> {
+            val scope = GlobalSearchScope.allScope(project)
+            val psiClass = JavaFileManager.getInstance(project).findClass(params.className, scope)
+            val sourceFile = psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
+
+            logger.debug { "computeSourceFileByClass result: $sourceFile" }
+            sourceFile
         }
-        return realPath.pathString
-    }
 
-    private fun debugArgument(): String {
-        return "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005".takeIf { runIdeaProcessWithDebug }
-            ?: ""
-    }
-
-    private val kryoHelper = KryoHelper(ldef)
-
-    private suspend fun engineModel(): EngineProcessModel {
-        ldef.throwIfNotAlive()
-        return lock.withLock {
-            var proc = current
-
-            if (proc == null) {
-                proc = startUtProcessWithRdServer(ldef) { port ->
-                    val current = JdkInfoDefaultProvider().info
-                    val required = JdkInfoService.jdkInfoProvider.info
-                    val java =
-                        JdkInfoService.jdkInfoProvider.info.path.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()
-                    val cp = (this.javaClass.classLoader as PluginClassLoader).classPath.baseUrls.joinToString(
-                        separator = File.pathSeparator,
-                        prefix = "\"",
-                        postfix = "\""
-                    )
-                    val classname = "org.utbot.framework.process.EngineMainKt"
-                    val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
-                    val directory = WorkingDirService.provide().toFile()
-                    val log4j2ConfigFile = "-Dlog4j2.configurationFile=${getOrCreateLogConfig()}"
-                    val debugArg = debugArgument()
-                    logger.info { "java - $java\nclasspath - $cp\nport - $port" }
-                    val cmd = mutableListOf<String>(java, "-ea")
-                    if (javaVersionSpecificArguments.isNotEmpty()) {
-                        cmd.addAll(javaVersionSpecificArguments)
-                    }
-                    if (debugArg.isNotEmpty()) {
-                        cmd.add(debugArg)
-                    }
-                    cmd.add(log4j2ConfigFile)
-                    cmd.add("-cp")
-                    cmd.add(cp)
-                    cmd.add(classname)
-                    cmd.add(rdPortArgument(port))
-                    ProcessBuilder(cmd).directory(directory).apply {
-                        if (UtSettings.logConcreteExecutionErrors) {
-                            engineProcessLogDirectory.mkdirs()
-                            val logFile = File(engineProcessLogDirectory, "${id}-${count++}.log")
-                            logger.info { "logFile - ${logFile.canonicalPath}" }
-                            redirectOutput(logFile)
-                            redirectError(logFile)
-                        }
-                    }.start().apply {
-                        logger.debug { "Engine process started with PID = ${this.getPid}" }
-                    }
-                }.initModels {
-                    engineProcessModel
-                    rdInstrumenterAdapter
-                    rdSourceFindingStrategy
-                    settingsModel.settingFor.set { params ->
-                        SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
-                            val members: Collection<KProperty1<AbstractSettings, *>> =
-                                settings.javaClass.kotlin.memberProperties
-                            val names: List<KProperty1<AbstractSettings, *>> =
-                                members.filter { it.name == params.propertyName }
-                            val sing: KProperty1<AbstractSettings, *> = names.single()
-                            val result = sing.get(settings)
-                            logger.trace { "request for settings ${params.key}:${params.propertyName} - $result" }
-                            result.toString()
-                        })
-                    }
-                }.awaitSignal()
-                current = proc
-                initSourceFindingStrategies()
-            }
-
-            proc.protocol.engineProcessModel
-        }
-    }
-
-    private val lock = Mutex()
-    private var current: ProcessWithRdServer? = null
-
-    fun setupUtContext(classpathForUrlsClassloader: List<String>) = runBlocking {
-        engineModel().setupUtContext.startSuspending(ldef, SetupContextParams(classpathForUrlsClassloader))
-    }
-
-    // suppose that only 1 simultaneous test generator process can be executed in idea
-    // so every time test generator is created - we just overwrite previous
     fun createTestGenerator(
         buildDir: List<String>,
         classPath: String?,
         dependencyPaths: String,
         jdkInfo: JdkInfo,
         isCancelled: (Unit) -> Boolean
-    ) = runBlocking {
-        engineModel().isCancelled.set(handler = isCancelled)
-        current!!.protocol.rdInstrumenterAdapter.computeSourceFileByClass.set { params ->
-            val result = DumbService.getInstance(project).runReadActionInSmartMode<String?> {
-                val scope = GlobalSearchScope.allScope(project)
-                val psiClass = JavaFileManager.getInstance(project)
-                    .findClass(params.className, scope)
+    ) {
+        engineModel.isCancelled.set(handler = isCancelled)
+        instrumenterAdapterModel.computeSourceFileByClass.set(handler = this::computeSourceFileByClass)
 
-                psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
-            }
-            logger.debug("computeSourceFileByClass result: $result")
-            result
-        }
-        engineModel().createTestGenerator.startSuspending(
-            ldef,
-            TestGeneratorParams(buildDir.toTypedArray(), classPath, dependencyPaths, JdkInfo(jdkInfo.path.pathString, jdkInfo.version))
+        val params = TestGeneratorParams(
+            buildDir.toTypedArray(),
+            classPath,
+            dependencyPaths,
+            JdkInfo(jdkInfo.path.pathString, jdkInfo.version)
         )
+        engineModel.createTestGenerator.start(lifetime, params)
     }
 
-    fun obtainClassId(canonicalName: String): ClassId = runBlocking {
-        kryoHelper.readObject(engineModel().obtainClassId.startSuspending(canonicalName))
+    fun obtainClassId(canonicalName: String): ClassId {
+        assertIsNonDispatchThread()
+        return kryoHelper.readObject(engineModel.obtainClassId.startBlocking(canonicalName))
     }
 
-    fun findMethodsInClassMatchingSelected(clazzId: ClassId, srcMethods: List<MemberInfo>): List<ExecutableId> =
-        runBlocking {
-            val srcSignatures = srcMethods.map { it.signature() }
-            val rdSignatures = srcSignatures.map {
-                Signature(it.name, it.parameterTypes)
-            }
-            kryoHelper.readObject(
-                engineModel().findMethodsInClassMatchingSelected.startSuspending(
-                    FindMethodsInClassMatchingSelectedArguments(kryoHelper.writeObject(clazzId), rdSignatures)
-                ).executableIds
-            )
-        }
+    fun findMethodsInClassMatchingSelected(clazzId: ClassId, srcMethods: List<MemberInfo>): List<ExecutableId> {
+        assertIsNonDispatchThread()
+        assertIsReadAccessAllowed()
 
-    fun findMethodParamNames(classId: ClassId, methods: List<MemberInfo>): Map<ExecutableId, List<String>> =
-        runBlocking {
-            val bySignature = methods.associate { it.signature() to it.paramNames() }
-            kryoHelper.readObject(
-                engineModel().findMethodParamNames.startSuspending(
-                    FindMethodParamNamesArguments(
-                        kryoHelper.writeObject(
-                            classId
-                        ), kryoHelper.writeObject(bySignature)
-                    )
-                ).paramNames
-            )
-        }
+        val srcSignatures = srcMethods.map { it.signature() }
+        val rdSignatures = srcSignatures.map { Signature(it.name, it.parameterTypes) }
+        val binaryClassId = kryoHelper.writeObject(clazzId)
+        val arguments = FindMethodsInClassMatchingSelectedArguments(binaryClassId, rdSignatures)
+        val result = engineModel.findMethodsInClassMatchingSelected.startBlocking(arguments)
 
-    private fun MemberInfo.paramNames(): List<String> =
-        (this.member as PsiMethod).parameterList.parameters.map {
-            if (it.name.startsWith("\$this"))
-                // If member is Kotlin extension function, name of first argument isn't good for further usage,
-                // so we better choose name based on type of receiver.
-                //
-                // There seems no API to check whether parameter is an extension receiver by PSI
-                it.type.presentableText
-            else
-                it.name
-        }
+        return kryoHelper.readObject(result.executableIds)
+    }
+
+    fun findMethodParamNames(classId: ClassId, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
+        assertIsNonDispatchThread()
+        assertIsReadAccessAllowed()
+
+        val bySignature = methods.associate { it.signature() to it.paramNames() }
+        val arguments = FindMethodParamNamesArguments(
+            kryoHelper.writeObject(classId),
+            kryoHelper.writeObject(bySignature)
+        )
+        val result = engineModel.findMethodParamNames.startBlocking(arguments).paramNames
+
+        return kryoHelper.readObject(result)
+    }
+
+    private fun MemberInfo.paramNames(): List<String> = (this.member as PsiMethod).parameterList.parameters.map {
+        if (it.name.startsWith("\$this"))
+        // If member is Kotlin extension function, name of first argument isn't good for further usage,
+        // so we better choose name based on type of receiver.
+        //
+        // There seems no API to check whether parameter is an extension receiver by PSI
+            it.type.presentableText
+        else
+            it.name
+    }
 
     fun generate(
         mockInstalled: Boolean,
@@ -267,26 +251,25 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         isFuzzingEnabled: Boolean,
         fuzzingValue: Double,
         searchDirectory: String
-    ): RdTestGenerationResult = runBlocking {
-        val result = engineModel().generate.startSuspending(
-            ldef,
-            GenerateParams(
-                mockInstalled,
-                staticsMockingIsConfigured,
-                kryoHelper.writeObject(conflictTriggers.toMutableMap()),
-                kryoHelper.writeObject(methods),
-                mockStrategyApi.name,
-                kryoHelper.writeObject(chosenClassesToMockAlways),
-                timeout,
-                generationTimeout,
-                isSymbolicEngineEnabled,
-                isFuzzingEnabled,
-                fuzzingValue,
-                searchDirectory
-            )
+    ): RdTestGenerationResult {
+        assertIsNonDispatchThread()
+        val params = GenerateParams(
+            mockInstalled,
+            staticsMockingIsConfigured,
+            kryoHelper.writeObject(conflictTriggers.toMutableMap()),
+            kryoHelper.writeObject(methods),
+            mockStrategyApi.name,
+            kryoHelper.writeObject(chosenClassesToMockAlways),
+            timeout,
+            generationTimeout,
+            isSymbolicEngineEnabled,
+            isFuzzingEnabled,
+            fuzzingValue,
+            searchDirectory
         )
+        val result = engineModel.generate.startBlocking(params)
 
-        return@runBlocking RdTestGenerationResult(result.notEmptyCases, result.testSetsId)
+        return RdTestGenerationResult(result.notEmptyCases, result.testSetsId)
     }
 
     fun render(
@@ -305,64 +288,61 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         hangingTestSource: HangingTestsTimeout,
         enableTestsTimeout: Boolean,
         testClassPackageName: String
-    ): Pair<String, UtilClassKind?> = runBlocking {
-        val result = engineModel().render.startSuspending(
-            ldef, RenderParams(
-                    testSetsId,
-                    kryoHelper.writeObject(classUnderTest),
-                    kryoHelper.writeObject(paramNames),
-                    generateUtilClassFile,
-                    testFramework.id.lowercase(),
-                    mockFramework.name,
-                    codegenLanguage.name,
-                    parameterizedTestSource.name,
-                    staticsMocking.id,
-                    kryoHelper.writeObject(forceStaticMocking),
-                    generateWarningsForStaticsMocking,
-                    runtimeExceptionTestsBehaviour.name,
-                    hangingTestSource.timeoutMs,
-                    enableTestsTimeout,
-                    testClassPackageName
-                )
-            )
-        result.generatedCode to result.utilClassKind?.let {
+    ): Pair<String, UtilClassKind?> {
+        assertIsNonDispatchThread()
+        val params = RenderParams(
+            testSetsId,
+            kryoHelper.writeObject(classUnderTest),
+            kryoHelper.writeObject(paramNames),
+            generateUtilClassFile,
+            testFramework.id.lowercase(),
+            mockFramework.name,
+            codegenLanguage.name,
+            parameterizedTestSource.name,
+            staticsMocking.id,
+            kryoHelper.writeObject(forceStaticMocking),
+            generateWarningsForStaticsMocking,
+            runtimeExceptionTestsBehaviour.name,
+            hangingTestSource.timeoutMs,
+            enableTestsTimeout,
+            testClassPackageName
+        )
+        val result = engineModel.render.startBlocking(params)
+        val realUtilClassKind = result.utilClassKind?.let {
             if (UtilClassKind.RegularUtUtils(codegenLanguage).javaClass.simpleName == it)
                 UtilClassKind.RegularUtUtils(codegenLanguage)
             else
                 UtilClassKind.UtUtilsWithMockito(codegenLanguage)
         }
+
+        return result.generatedCode to realUtilClassKind
     }
 
-    fun forceTermination() = runBlocking {
-        configPath?.deleteIfExists()
-        engineModel().stopProcess.start(Unit)
-        current?.terminate()
-    }
+    private fun getSourceFile(params: SourceStrategyMethodArgs): String? =
+        DumbService.getInstance(project).runReadActionInSmartMode<String?> {
+            sourceFindingStrategies[params.testSetId]!!.getSourceFile(
+                params.classFqn,
+                params.extension
+            )?.canonicalPath
+        }
+
+    private fun getSourceRelativePath(params: SourceStrategyMethodArgs): String =
+        DumbService.getInstance(project).runReadActionInSmartMode<String> {
+            sourceFindingStrategies[params.testSetId]!!.getSourceRelativePath(
+                params.classFqn,
+                params.extension
+            )
+        }
+
+    private fun testsRelativePath(testSetId: Long): String =
+        DumbService.getInstance(project).runReadActionInSmartMode<String> {
+            sourceFindingStrategies[testSetId]!!.testsRelativePath
+        }
 
     private fun initSourceFindingStrategies() {
-        current!!.protocol.rdSourceFindingStrategy.let {
-            it.getSourceFile.set { params ->
-                DumbService.getInstance(project).runReadActionInSmartMode<String?> {
-                    sourceFindingStrategies[params.testSetId]!!.getSourceFile(
-                        params.classFqn,
-                        params.extension
-                    )?.canonicalPath
-                }
-            }
-            it.getSourceRelativePath.set { params ->
-                DumbService.getInstance(project).runReadActionInSmartMode<String> {
-                    sourceFindingStrategies[params.testSetId]!!.getSourceRelativePath(
-                        params.classFqn,
-                        params.extension
-                    )
-                }
-            }
-            it.testsRelativePath.set { testSetId ->
-                DumbService.getInstance(project).runReadActionInSmartMode<String> {
-                    sourceFindingStrategies[testSetId]!!.testsRelativePath
-                }
-            }
-        }
+        sourceFindingModel.getSourceFile.set(handler = this::getSourceFile)
+        sourceFindingModel.getSourceRelativePath.set(handler = this::getSourceRelativePath)
+        sourceFindingModel.testsRelativePath.set(handler = this::testsRelativePath)
     }
 
     fun writeSarif(
@@ -370,53 +350,60 @@ class EngineProcess(parent: Lifetime, val project: Project) {
         testSetsId: Long,
         generatedTestsCode: String,
         sourceFindingStrategy: SourceFindingStrategy
-    ): String = runBlocking {
+    ): String {
+        assertIsNonDispatchThread()
+
+        val params = WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
+
         sourceFindingStrategies[testSetsId] = sourceFindingStrategy
-        engineModel().writeSarifReport.startSuspending(
-            WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
-        )
+        return engineModel.writeSarifReport.startBlocking(params)
     }
 
-    fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> = runBlocking {
-        val forceMockWarning = if (model.conflictTriggers[Conflict.ForceMockHappened] == true) {
-            """
-                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
-                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
-                """.trimIndent()
-        } else null
-        val forceStaticMockWarnings = if (model.conflictTriggers[Conflict.ForceStaticMockHappened] == true) {
-            """
-                    <b>Warning</b>: Some test cases were ignored, because mockito-inline is not installed in the project.<br>
-                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoInlineSuffix}">configuring mockito-inline</a>.
-                """.trimIndent()
-        } else null
-        val testFrameworkWarnings = if (model.conflictTriggers[Conflict.TestFrameworkConflict] == true) {
-            """
-                    <b>Warning</b>: There are several test frameworks in the project. 
-                    To select run configuration, please refer to the documentation depending on the project build system:
-                     <a href=" https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests">Gradle</a>, 
-                     <a href=" https://maven.apache.org/surefire/maven-surefire-plugin/examples/providers.html">Maven</a> 
-                     or <a href=" https://www.jetbrains.com/help/idea/run-debug-configuration.html#compound-configs">Idea</a>.
-                """.trimIndent()
-        } else null
-        val result = engineModel().generateTestReport.startSuspending(
-            GenerateTestReportArgs(
-                eventLogMessage,
-                model.testPackageName,
-                model.isMultiPackage,
-                forceMockWarning,
-                forceStaticMockWarnings,
-                testFrameworkWarnings,
-                model.conflictTriggers.anyTriggered
-            )
-        )
+    fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> {
+        assertIsNonDispatchThread()
 
-        return@runBlocking Triple(result.notifyMessage, result.statistics, result.hasWarnings)
+        val forceMockWarning = UtbotBundle.takeIf(
+            "test.report.force.mock.warning",
+            TestReportUrlOpeningListener.prefix,
+            TestReportUrlOpeningListener.mockitoSuffix
+        ) { model.conflictTriggers[Conflict.ForceMockHappened] == true }
+        val forceStaticMockWarnings = UtbotBundle.takeIf(
+            "test.report.force.static.mock.warning",
+            TestReportUrlOpeningListener.prefix,
+            TestReportUrlOpeningListener.mockitoInlineSuffix
+        ) { model.conflictTriggers[Conflict.ForceStaticMockHappened] == true }
+        val testFrameworkWarnings =
+            UtbotBundle.takeIf("test.report.test.framework.warning") { model.conflictTriggers[Conflict.TestFrameworkConflict] == true }
+        val params = GenerateTestReportArgs(
+            eventLogMessage,
+            model.testPackageName,
+            model.isMultiPackage,
+            forceMockWarning,
+            forceStaticMockWarnings,
+            testFrameworkWarnings,
+            model.conflictTriggers.anyTriggered
+        )
+        val result = engineModel.generateTestReport.startBlocking(params)
+
+        return Triple(result.notifyMessage, result.statistics, result.hasWarnings)
     }
 
     init {
-        ldef.onTermination {
-            forceTermination()
+        lifetime.onTermination {
+            engineModel.stopProcess.start(Unit)
         }
+        settingsModel.settingFor.set { params ->
+            SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->
+                val members: Collection<KProperty1<AbstractSettings, *>> =
+                    settings.javaClass.kotlin.memberProperties
+                val names: List<KProperty1<AbstractSettings, *>> =
+                    members.filter { it.name == params.propertyName }
+                val sing: KProperty1<AbstractSettings, *> = names.single()
+                val result = sing.get(settings)
+                logger.trace { "request for settings ${params.key}:${params.propertyName} - $result" }
+                result.toString()
+            })
+        }
+        initSourceFindingStrategies()
     }
 }

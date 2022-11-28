@@ -13,7 +13,7 @@ private val logger = KotlinLogging.logger {}
  * and their versions correspond to our requirements.
  *
  * Note: [UtExecutionInstrumentation] must be in dependency path too
- * as it is used by Engine in the child process in Concrete Executor.
+ * as it is used by Engine in the instrumented process in Concrete Executor.
  */
 fun checkFrameworkDependencies(dependencyPaths: String?) {
     if (dependencyPaths.isNullOrEmpty()) {

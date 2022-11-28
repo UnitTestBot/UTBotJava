@@ -8,13 +8,11 @@ import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
-import org.utbot.instrumentation.rd.generated.CollectCoverageParams
 import org.utbot.instrumentation.util.CastProbesArrayException
-import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.NoProbesArrayException
 import java.security.ProtectionDomain
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.util.jField
+import org.utbot.instrumentation.process.generated.CollectCoverageParams
 
 data class CoverageInfo(
     val methodToInstrRange: Map<String, IntRange>,
@@ -105,6 +103,6 @@ fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: 
     withProcess {
         val clazzByteArray = kryoHelper.writeObject(clazz)
 
-        kryoHelper.readObject(protocolModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo)
+        kryoHelper.readObject(instrumentedProcessModel.collectCoverage.startSuspending(lifetime, CollectCoverageParams(clazzByteArray)).coverageInfo)
     }
 }

@@ -54,7 +54,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     private val taintMethodsAnalysisPrioritizer: TaintMethodsAnalysisPrioritizer = SimpleTaintMethodsAnalysisPrioritizer
 
     // TODO should it be something different for taint?
-    private val mockStrategy: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES
+    private val mockStrategy: MockStrategyApi = MockStrategyApi.THIRD_PARTY_LIBRARY_CLASSES
 
     init {
         passTaintAnalysisConfiguration()

@@ -2,6 +2,7 @@ package parser
 
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
+import parser.ast.ArrowFunctionNode
 import parser.ast.AstNode
 import parser.ast.BinaryExpressionNode
 import parser.ast.CallExpressionNode
@@ -138,6 +139,7 @@ object TsParserUtils {
 
     fun V8Object.getAstNodeByKind(parent: AstNode?): AstNode {
         val node =  when (this.getKind()) {
+            "ArrowFunction" -> ArrowFunctionNode(this, parent)
             "FunctionDeclaration" -> FunctionDeclarationNode(this, parent)
             "Parameter" -> ParameterNode(this, parent)
             "Identifier" -> IdentifierNode(this, parent)
@@ -148,21 +150,25 @@ object TsParserUtils {
             "Constructor" -> ConstructorNode(this, parent)
             "NumericLiteral" -> NumericLiteralNode(this, parent)
             "ImportDeclaration" -> ImportDeclarationNode(this, parent)
-            "CallExpression" -> CallExpressionNode(this, parent)
+            // Currently not supporting method access calls
+            "CallExpression" -> try {
+                CallExpressionNode(this, parent)
+            } catch (e: Exception) { DummyNode(this, parent) }
             "VariableDeclaration" -> this.checkForRequire(parent)
             else -> DummyNode(this, parent)
        }
         return node
     }
 
-    private fun V8Object.checkForRequire(parent: AstNode?): AstNode = if (syntaxKind.getString(
-            this.getObject("initializer")
-                .getObject("expression")
-                .getInteger("originalKeywordKind")
-                .toString()
-        ) == "RequireKeyword"
-    ) {
-        ImportDeclarationNode(this, parent)
-    }
-    else DummyNode(this, parent)
+    private fun V8Object.checkForRequire(parent: AstNode?): AstNode = try {
+        if (syntaxKind.getString(
+                this.getObject("initializer")
+                    .getObject("expression")
+                    .getInteger("originalKeywordKind")
+                    .toString()
+            ) == "RequireKeyword"
+        ) {
+            ImportDeclarationNode(this, parent)
+        } else DummyNode(this, parent)
+    } catch (e: Exception) { DummyNode(this, parent) }
 }

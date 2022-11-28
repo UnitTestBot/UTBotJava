@@ -48,7 +48,7 @@ class TsFuzzerAstVisitor: AbstractAstVisitor() {
 //            }
 
             is NumericLiteralNode -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(tsNumberClassId, literalNode.value, FuzzedContext.Comparison.valueOf("")))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(tsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
             }
         }
     }

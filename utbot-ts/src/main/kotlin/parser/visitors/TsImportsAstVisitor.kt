@@ -30,7 +30,9 @@ class TsImportsAstVisitor(
         if (!relPath.contains("/")) return true
         val finalPath = Paths.get(File(basePath).parent).resolve(Paths.get(relPath))
         val fileText = finalPath.toFile().readText()
+        val parsedFile = parser.parse(fileText)
         node.nameBindings.forEach { alias ->
+            node.importedNodes[alias] = parsedFile.extractDecl(alias)
             if (_parsedFilesCache.putIfAbsent(alias, parser.parse(fileText)) != null)
                 throw UnsupportedOperationException("Multiple files for one aliases")
             _importObjects.add(TsImport(alias, finalPath))
@@ -38,4 +40,15 @@ class TsImportsAstVisitor(
         }
         return true
     }
+
+    private fun AstNode.extractDecl(key: String): AstNode =
+        try {
+            val classAstVisitor = TsClassAstVisitor(key)
+            classAstVisitor.accept(this)
+            classAstVisitor.targetClassNode
+        } catch (e: Exception) {
+            val functionAstVisitor = TsFunctionAstVisitor(key, null)
+            functionAstVisitor.accept(this)
+            functionAstVisitor.targetFunctionNode
+        }
 }

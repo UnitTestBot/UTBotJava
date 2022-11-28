@@ -30,4 +30,6 @@ class ImportDeclarationNode(
         else -> throw IllegalStateException("Can't extract name bindings from ${obj.getKind()}")
     }
 
+    val importedNodes = mutableMapOf<String, AstNode>()
+
 }

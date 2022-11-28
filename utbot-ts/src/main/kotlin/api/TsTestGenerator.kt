@@ -92,6 +92,7 @@ class TsTestGenerator(
                 strict = selectedMethods?.isNotEmpty() ?: false,
                 parsedImportedFiles = importsVisitor.parsedFiles,
             )
+        TsUIProcessor().traverseCallGraph(parsedFile)
         parentClassName = classNode?.name
         val classId = makeTsClassId(classNode, context)
         val methods = makeMethodsToTest()

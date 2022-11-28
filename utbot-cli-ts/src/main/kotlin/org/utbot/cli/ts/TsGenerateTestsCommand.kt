@@ -27,7 +27,7 @@ class TsGenerateTestsCommand :
     init {
         context {
             valueSources(
-                JsonValueSource.from(File(System.getProperty("user.dir") + "/tsconfig.json").readText())
+                JsonValueSource.from(File(System.getProperty("user.dir") + "/tsconfig.json")),
             )
         }
     }

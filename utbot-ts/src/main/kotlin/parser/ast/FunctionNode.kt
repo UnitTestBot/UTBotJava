@@ -7,14 +7,15 @@ import parser.TsParserUtils.getChildren
 
 abstract class FunctionNode(
     obj: V8Object,
+    override val parent: AstNode?
 ): AstNode() {
-    override val children = obj.getChildren().map { it.getAstNodeByKind() }
+    override val children = obj.getChildren().map { it.getAstNodeByKind(this) }
 
     val name: String = obj.getObject("name").getString("escapedText")
 
     @Suppress("UNCHECKED_CAST")
-    val parameters = (obj.getArrayAsList("parameters")).map { it.getAstNodeByKind() }
+    val parameters = (obj.getArrayAsList("parameters")).map { it.getAstNodeByKind(this) }
             as List<ParameterNode>
 
-    val returnType = obj.getObject("type").getTypeNode()
+    val returnType = obj.getObject("type").getTypeNode(this)
 }

@@ -5,7 +5,8 @@ import parser.TsParserUtils.getArrayAsList
 import parser.TsParserUtils.getKind
 
 class ImportDeclarationNode(
-    obj: V8Object
+    obj: V8Object,
+    override val parent: AstNode?
 ): AstNode() {
 
     override val children: List<AstNode> = emptyList()

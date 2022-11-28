@@ -6,7 +6,8 @@ import parser.TsParserUtils.getChildren
 
 class DummyNode(
     obj: V8Object,
+    override val parent: AstNode?
 ): AstNode() {
 
-    override val children = obj.getChildren().map { it.getAstNodeByKind() }
+    override val children = obj.getChildren().map { it.getAstNodeByKind(this) }
 }

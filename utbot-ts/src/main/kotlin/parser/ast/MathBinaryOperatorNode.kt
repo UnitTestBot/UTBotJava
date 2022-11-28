@@ -5,6 +5,7 @@ import parser.TsParserUtils.getKind
 
 class MathBinaryOperatorNode(
     obj: V8Object,
+    override val parent: AstNode?
 ): BinaryOperatorNode() {
 
     companion object {

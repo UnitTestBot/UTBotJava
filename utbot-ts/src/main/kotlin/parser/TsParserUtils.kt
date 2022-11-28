@@ -2,9 +2,9 @@ package parser
 
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
-import parser.TsParserUtils.getAstNodeByKind
 import parser.ast.AstNode
 import parser.ast.BinaryExpressionNode
+import parser.ast.CallExpressionNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.ConstructorNode
 import parser.ast.DummyNode
@@ -136,32 +136,33 @@ object TsParserUtils {
         }
     }
 
-    fun V8Object.getAstNodeByKind(): AstNode {
+    fun V8Object.getAstNodeByKind(parent: AstNode?): AstNode {
         val node =  when (this.getKind()) {
-            "FunctionDeclaration" -> FunctionDeclarationNode(this)
-            "Parameter" -> ParameterNode(this)
-            "Identifier" -> IdentifierNode(this)
-            "BinaryExpression" -> BinaryExpressionNode(this)
-            "ClassDeclaration" -> ClassDeclarationNode(this)
-            "MethodDeclaration" -> MethodDeclarationNode(this)
-            "PropertyDeclaration" -> PropertyDeclarationNode(this)
-            "Constructor" -> ConstructorNode(this)
-            "NumericLiteral" -> NumericLiteralNode(this)
-            "ImportDeclaration" -> ImportDeclarationNode(this)
-            "VariableDeclaration" -> this.checkForRequire()
-            else -> DummyNode(this)
+            "FunctionDeclaration" -> FunctionDeclarationNode(this, parent)
+            "Parameter" -> ParameterNode(this, parent)
+            "Identifier" -> IdentifierNode(this, parent)
+            "BinaryExpression" -> BinaryExpressionNode(this, parent)
+            "ClassDeclaration" -> ClassDeclarationNode(this, parent)
+            "MethodDeclaration" -> MethodDeclarationNode(this, parent)
+            "PropertyDeclaration" -> PropertyDeclarationNode(this, parent)
+            "Constructor" -> ConstructorNode(this, parent)
+            "NumericLiteral" -> NumericLiteralNode(this, parent)
+            "ImportDeclaration" -> ImportDeclarationNode(this, parent)
+            "CallExpression" -> CallExpressionNode(this, parent)
+            "VariableDeclaration" -> this.checkForRequire(parent)
+            else -> DummyNode(this, parent)
        }
         return node
     }
 
-    private fun V8Object.checkForRequire(): AstNode = if (syntaxKind.getString(
+    private fun V8Object.checkForRequire(parent: AstNode?): AstNode = if (syntaxKind.getString(
             this.getObject("initializer")
                 .getObject("expression")
                 .getInteger("originalKeywordKind")
                 .toString()
         ) == "RequireKeyword"
     ) {
-        ImportDeclarationNode(this)
+        ImportDeclarationNode(this, parent)
     }
-    else DummyNode(this)
+    else DummyNode(this, parent)
 }

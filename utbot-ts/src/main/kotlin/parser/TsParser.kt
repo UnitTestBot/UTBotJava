@@ -25,6 +25,6 @@ class TsParser(pathToTSModule: File) {
     fun parse(fileText: String): AstNode {
         return (typescript
             .executeJSFunction("createSourceFile", "parsed", fileText, compilerOptions, true)
-                as V8Object).getAstNodeByKind()
+                as V8Object).getAstNodeByKind(null)
     }
 }

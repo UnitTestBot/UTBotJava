@@ -6,6 +6,7 @@ import parser.TsParserUtils.getKind
 
 class ComparisonBinaryOperatorNode(
     obj: V8Object,
+    override val parent: AstNode?
 ): BinaryOperatorNode() {
 
     companion object {

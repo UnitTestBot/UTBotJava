@@ -1141,6 +1141,11 @@ enum class MockStrategyApi(
         "Mock everything outside the package",
         "Mock all classes outside the current package except system ones"
     ),
+    THIRD_PARTY_LIBRARY_CLASSES(
+        "Classes from third-party libraries: Mockito",
+        "Mock all classes from third-party libraries",
+        "Mock all classes from libraries except system ones",
+    ),
     OTHER_CLASSES(
         "Other classes: Mockito",
         "Mock everything outside the class",

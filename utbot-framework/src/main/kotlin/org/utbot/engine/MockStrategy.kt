@@ -1,6 +1,7 @@
 package org.utbot.engine
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.jClass
 
 /**
  * Mock strategies.
@@ -21,6 +22,20 @@ enum class MockStrategy {
             classToMock != classUnderTest && classToMock.packageName.let {
                 it != classUnderTest.packageName && !isSystemPackage(it)
             }
+    },
+
+    THIRD_PARTY_LIBRARY_CLASSES {
+        // see https://stackoverflow.com/a/1983870
+        override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean {
+            if (isSystemPackage(classToMock.packageName)) {
+                return false
+            }
+
+            val codeSource = classToMock.jClass.protectionDomain.codeSource ?: return false
+            val location = codeSource.location
+
+            return location.path.endsWith("jar")
+        }
     },
 
     OTHER_CLASSES {

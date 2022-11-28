@@ -3,6 +3,7 @@ package parser.visitors
 import parser.ast.AstNode
 import parser.ast.BaseTypeNode
 import parser.ast.BinaryExpressionNode
+import parser.ast.CallExpressionNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.ComparisonBinaryOperatorNode
 import parser.ast.ConstructorNode
@@ -24,6 +25,7 @@ abstract class AbstractAstVisitor {
             is DummyNode -> visitDummyNode(root)
             is BaseTypeNode -> visitBaseTypeNode(root)
             is BinaryExpressionNode -> visitBinaryExpressionNode(root)
+            is CallExpressionNode -> visitCallExpressionNode(root)
             is ClassDeclarationNode -> visitClassDeclarationNode(root)
             is ComparisonBinaryOperatorNode -> visitComparisonBinaryOperationNode(root)
             is ConstructorNode -> visitConstructorNode(root)
@@ -48,6 +50,8 @@ abstract class AbstractAstVisitor {
     open fun visitBaseTypeNode(node: BaseTypeNode): Boolean = true
 
     open fun visitBinaryExpressionNode(node: BinaryExpressionNode): Boolean = true
+
+    open fun visitCallExpressionNode(node: CallExpressionNode): Boolean = true
 
     open fun visitClassDeclarationNode(node: ClassDeclarationNode): Boolean = true
 

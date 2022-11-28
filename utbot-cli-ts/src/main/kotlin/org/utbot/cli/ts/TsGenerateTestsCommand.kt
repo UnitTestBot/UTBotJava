@@ -11,6 +11,7 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import mu.KotlinLogging
 import service.TsCoverageMode
+import service.TsWorkMode
 import settings.TsDynamicSettings
 import settings.TsTestGenerationSettings
 import java.io.File
@@ -108,6 +109,14 @@ class TsGenerateTestsCommand :
         help = "Specifies class that will be taken as god object for test generation"
     )
 
+    private val workMode by option(
+        "--work-mode",
+        help = "Specifies the work mode for UTBot-TS. Check docs for more info."
+    ).choice(
+        TsWorkMode.PLANE.toString() to TsWorkMode.PLANE,
+        TsWorkMode.EXPERIMENTAL.toString() to TsWorkMode.EXPERIMENTAL
+    ).default(TsWorkMode.PLANE)
+
     override fun run() {
         /*
             targetClass and targetFunction can't be specified at the same time.
@@ -134,7 +143,8 @@ class TsGenerateTestsCommand :
                     tsNycModulePath = pathToNycTs,
                     tsNodePath = pathToTsNode,
                     tsModulePath = pathToTsModule,
-                    godObject = godObjectClass
+                    godObject = godObjectClass,
+                    workMode = workMode,
                 )
 
             )

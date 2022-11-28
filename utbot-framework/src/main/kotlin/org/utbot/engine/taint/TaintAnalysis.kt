@@ -26,6 +26,7 @@ class TaintAnalysis {
     // TODO public mutable - bad design
     // TODO we cannot get a value by regex key, iteration is required - perhaps traverse the whole query first and make these maps with ExecutableId as keys?
     val sources: MutableMap<Regex, TaintSource> = mutableMapOf()
+    val knownSourceStatements: MutableMap<Stmt, TaintKinds> = mutableMapOf()
     val sinks: MutableMap<Regex, TaintSink> = mutableMapOf()
     val passThrough: MutableMap<Regex, TaintPassThrough> = mutableMapOf()
     val sanitizers: MutableMap<Regex, TaintSanitizer> = mutableMapOf()
@@ -44,6 +45,8 @@ class TaintAnalysis {
     // TODO maps
     fun getSourceInfo(source: ExecutableId): List<TaintSource> =
         sources.filter { it.key.matches(source.fullName) }.entries.map { it.value }
+
+    fun getTaintKindsByStatement(stmt: Stmt): TaintKinds? = knownSourceStatements[stmt]
 
     fun getSinkInfo(sink: ExecutableId): List<TaintSink> =
         // TODO not first, but union of all sinks or list of them
@@ -96,6 +99,10 @@ class TaintAnalysis {
         setSinks(sinkConfigurations)
         setPathTrough(passThroughConfigurations)
         setSanitizers(sanitizerConfigurations)
+    }
+
+    fun addKnownSourceStatements(sourceStatements: Map<Stmt, TaintKinds>) {
+        knownSourceStatements += sourceStatements
     }
 
     private fun setSources(sourceConfigurations: Collection<TaintSourceConfiguration>) {

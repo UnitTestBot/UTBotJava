@@ -786,15 +786,22 @@ class Traverser(
             }
         }
 
+        var taintAnalysisUpdate = SymbolicStateUpdate()
+
         val rightPartWrappedAsMethodResults = if (rightValue is InvokeExpr) {
             invokeResult(rightValue)
         } else {
             val value = resolve(rightValue, current.leftOp.type)
+
+            if (rightValue is JInstanceFieldRef || rightValue is StaticFieldRef) {
+                taintAnalysisUpdate += processTaintSourceForStatementAndValue(current, value)
+            }
+
             listOf(MethodResult(value))
         }
 
         rightPartWrappedAsMethodResults.forEach { methodResult ->
-            val taintAnalysisUpdate = if (rightValue is InvokeExpr) {
+             taintAnalysisUpdate += if (rightValue is InvokeExpr) {
                 val base = when (rightValue) {
                     is StaticInvokeExpr -> null
                     is SpecialInvokeExpr -> rightValue.base
@@ -1080,6 +1087,8 @@ class Traverser(
                                 )
                             ).asHardConstraint()
                         }
+
+                        queuedSymbolicStateUpdates += processTaintSourceForStatementAndValue(current, createdValue)
                     }
                     if (preferredCexOption) {
                         applyPreferredConstraints(createdValue)
@@ -3489,14 +3498,24 @@ class Traverser(
     ): SymbolicStateUpdate {
         var result = SymbolicStateUpdate()
 
-        result += processTaintSource(methodId, methodResult, base, args)
+        result += processTaintSourceForInvocation(methodId, methodResult, base, args)
         result += processTaintSanitizer(methodId, methodResult, base, args)
         result += processTaintPassThrough(methodId, methodResult, base, args)
 
         return result
     }
 
-    private fun TraversalContext.processTaintSource(
+    private fun processTaintSourceForStatementAndValue(
+        stmt: Stmt,
+        value: SymbolicValue
+    ): SymbolicStateUpdate {
+        if (value !is ReferenceValue) return SymbolicStateUpdate()
+        val taintKinds = taintAnalysis.getTaintKindsByStatement(stmt) ?: return SymbolicStateUpdate()
+
+        return markAsTaint(value.addr, taintKinds.kindsToAdd)
+    }
+
+    private fun TraversalContext.processTaintSourceForInvocation(
         methodId: ExecutableId,
         methodResult: MethodResult,
         base: Value?,

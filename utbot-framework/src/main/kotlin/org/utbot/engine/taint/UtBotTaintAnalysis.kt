@@ -293,7 +293,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
                     val path = result.fullPath.map { it.stmt }
                     val sink = exception.taintSink
-                    val source = retrieveSource(path, taintsToBeFound, sink)
+                    val source = retrieveSource(path, taintsToBeFound, sink) ?: return@collect
 
                     taintsToBeFound[source]?.remove(sink)
                     if (taintsToBeFound[source]?.isEmpty() == true) {
@@ -340,7 +340,9 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val (classpathForEngine, dependencyPaths) = retrieveClassPaths()
         val executableTaints = mutableMapOf<ExecutableId, UtBotExecutableTaints>()
 
+        val knownTaintSources = taintCandidates.values.flatMap { it.keys }.associate { it.stmt to it.taintKinds }
         taintAnalysis.setConfiguration(taintConfiguration)
+        taintAnalysis.addKnownSourceStatements(knownTaintSources)
 
         val classPath1 = "$classPath${File.pathSeparatorChar}${System.getProperty("java.class.path")}"
         val classLoader = createClassLoader(classPath1)
@@ -388,7 +390,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
                 val path = execution.fullPath.map { it.stmt }
                 val sink = taintError.taintSink
-                val source = retrieveSource(path, immutableMutToSourseSinksPairs[executable]!!, sink)
+                val source = retrieveSource(path, immutableMutToSourseSinksPairs[executable]!!, sink) ?: continue
 
                 val confirmedTaint = ConfirmedTaint(
                     source = source,
@@ -465,22 +467,22 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
                     }
 
-                taintExecutions.forEach { execution ->
-                    val taintError = (execution.result as UtExecutionFailure).exception as TaintAnalysisError
+                 taintExecutions.forEach executionLabel@{ execution ->
+                     val taintError = (execution.result as UtExecutionFailure).exception as TaintAnalysisError
 
-                    val path = execution.fullPath.map { it.stmt }
-                    val sink = taintError.taintSink
-                    val source = retrieveSource(path, mutToSourseSinksPairs[method]!!, sink)
+                     val path = execution.fullPath.map { it.stmt }
+                     val sink = taintError.taintSink
+                     val source = retrieveSource(path, mutToSourseSinksPairs[method]!!, sink) ?: return@executionLabel
 
-                    val confirmedTaint = ConfirmedTaint(
-                        source = source,
-                        sink = sink,
-                        sinkPosition = taintError.sinkSourcePosition,
-                        path = retrievePath(path, source, sink)
-                    )
+                     val confirmedTaint = ConfirmedTaint(
+                         source = source,
+                         sink = sink,
+                         sinkPosition = taintError.sinkSourcePosition,
+                         path = retrievePath(path, source, sink)
+                     )
 
-                    confirmedTaints += confirmedTaint
-                }
+                     confirmedTaints += confirmedTaint
+                 }
             }
         }
     }
@@ -494,10 +496,18 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         return "" to ""
     }
 
-    private fun retrieveSource(path: List<Stmt>, sourcesToSink: Map<Stmt, Set<Stmt>>, sink: Stmt): Stmt {
+    private fun retrieveSource(path: List<Stmt>, sourcesToSink: Map<Stmt, Set<Stmt>>, sink: Stmt): Stmt? {
         // TODO can we really take any of these?
         val suitableSources = sourcesToSink.filter { sink in it.value }
-        return path.first { it in suitableSources.keys }
+        val result = path.firstOrNull { it in suitableSources.keys }
+
+        if (result == null) {
+            logger.warn {
+                "UtBot found unexpected taint error on instruction $sink ignored due to filtering mode"
+            }
+        }
+
+        return result
     }
 
     private fun retrievePath(

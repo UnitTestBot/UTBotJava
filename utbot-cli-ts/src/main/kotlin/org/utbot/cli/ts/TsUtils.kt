@@ -34,8 +34,12 @@ class JsonValueSource(
     }
 
     companion object {
-        fun from(file: String): JsonValueSource {
-            val json = JSONObject(file)
+        fun from(file: File): JsonValueSource {
+            val json: JSONObject = if (file.canRead()) {
+                JSONObject(file.readText())
+            } else {
+                JSONObject("{}")
+            }
             return JsonValueSource(json)
         }
 

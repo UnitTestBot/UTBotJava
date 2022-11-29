@@ -51,6 +51,7 @@ class FunctionNode(AnnotationNode):
         self.positional: tp.List[Annotation]
         self.return_type: Annotation
         self.type_vars: tp.List[str]
+        self.arg_names: tp.List[str]
         if isinstance(function_like, mypy.types.CallableType):
             self.positional = [
                 get_annotation(x, meta=self.namespace)
@@ -58,6 +59,7 @@ class FunctionNode(AnnotationNode):
             ]
             self.return_type = get_annotation(function_like.ret_type, self.namespace)
             self.type_vars = type_vars_of_node[id_]
+            self.arg_names = [x if (x is not None) else '' for x in function_like.arg_names]
         elif isinstance(function_like, mypy.nodes.FuncItem):
             self.positional = [
                 get_annotation(any_type_instance, meta=self.namespace)
@@ -65,6 +67,7 @@ class FunctionNode(AnnotationNode):
             ]
             self.return_type = get_annotation(any_type_instance, meta=self.namespace)
             self.type_vars = []
+            self.arg_names = [x if (x is not None) else '' for x in function_like.arg_names]
         else:
             assert False, "Not reachable"
 
@@ -74,7 +77,8 @@ class FunctionNode(AnnotationNode):
         subclass_dict = {
             "positional": [x.encode() for x in self.positional],
             "returnType": self.return_type.encode(),
-            "typeVars": self.type_vars
+            "typeVars": self.type_vars,
+            "argNames": self.arg_names
         }
         if self.is_class:
             subclass_dict["isClass"] = True

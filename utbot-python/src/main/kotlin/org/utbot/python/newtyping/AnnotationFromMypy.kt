@@ -212,6 +212,7 @@ class FunctionNode(
     val positional: List<MypyAnnotation>,  // for now ignore other argument kinds
     val returnType: MypyAnnotation,
     val typeVars: List<String>,
+    val argNames: List<String>,
     val isClass: Boolean = false,
     val isStatic: Boolean = false
 ): PythonAnnotationNode() {
@@ -221,6 +222,7 @@ class FunctionNode(
         return createPythonCallableType(
             typeVars.size,
             positional.map { PythonCallableTypeDescription.ArgKind.Positional },
+            argNames,
             isClass,
             isStatic
         ) { self ->
@@ -315,49 +317,4 @@ class UnknownAnnotationNode: PythonAnnotationNode() {
     override fun initializeType(): Type {
         return pythonAnyType
     }
-}
-
-fun main() {
-    val sample = MypyAnnotation::class.java.getResource("/mypy/general.json")!!.readText()
-    val storage = readMypyAnnotationStorage(sample)
-    println(storage.definitions["general"]!!.keys)
-    println(storage.definitions["general"]!!.values.map { it.annotation.asUtBotType })
-    //val func = storage.definitions["subtypes"]!!["func_for_P"]!!.annotation.asUtBotType
-    //println((func.meta as PythonCallableTypeDescription).isStaticMethod)
-    /*
-    val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
-    val obj = storage.definitions["builtins"]!!["object"]!!.annotation.asUtBotType
-    val counter = storage.definitions["collections"]!!["Counter"]!!.annotation.asUtBotType
-    println((counter.pythonDescription() as PythonCompositeTypeDescription).mro(counter).map { it.pythonDescription().name.name })
-    println(int.pythonDescription().getMemberByName(int, "__init__"))
-    println(counter.pythonDescription().getMemberByName(counter, "__init__"))
-    println((int.pythonDescription() as PythonCompositeTypeDescription).mro(int).map { it.pythonDescription().name.name })
-    println(obj.getPythonAttributes())
-    println((obj.pythonDescription() as PythonCompositeTypeDescription).getMemberByName(obj, "__init__"))
-    var cnt = 0
-    val types = mutableSetOf<Type>()
-    storage.definitions["builtins"]!!.forEach { (name, def) ->
-        val type = def.annotation.asUtBotType
-        val type1 = DefaultSubstitutionProvider.substitute(type, emptyMap())
-        assert(type != type1)
-    }
-    storage.definitions.forEach { (_, contents) ->
-        contents.forEach { (_, annotation) ->
-            cnt += 1
-            types.add(annotation.annotation.asUtBotType)
-        }
-    }
-    print(cnt)
-    var cnt1 = 0
-    println(
-        measureTimeMillis {
-            types.forEach { a ->
-                types.forEach { b ->
-                    cnt1 += if (PythonTypeWrapperForComparison(a) == PythonTypeWrapperForComparison(b)) 1 else 0
-                }
-            }
-        }
-    )
-    assert(cnt == cnt1)
-     */
 }

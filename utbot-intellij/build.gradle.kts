@@ -15,6 +15,7 @@ val jsIde: String? by rootProject
 
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
+val rdVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
 
@@ -90,8 +91,8 @@ tasks {
 }
 
 dependencies {
-    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
-    implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
     implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)

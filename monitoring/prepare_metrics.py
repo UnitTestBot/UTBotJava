@@ -82,14 +82,14 @@ def build_metrics_from_data_array(metrics: List[dict], labels: dict) -> List[dic
     return result
 
 
-def build_metrics_from_target(target: dict, runner: str) -> List[dict]:
+def build_metrics_from_target(target: dict, run_id: str) -> List[dict]:
     result = []
     project = target["target"]
 
     result.extend(build_metrics_from_data_array(
         target["summarised"],
         {
-            "runner": runner,
+            "run_id": run_id,
             "project": project,
             "class": "All"
         }
@@ -100,7 +100,7 @@ def build_metrics_from_target(target: dict, runner: str) -> List[dict]:
         result.extend(build_metrics_from_data_array(
             class_item["data"],
             {
-                "runner": runner,
+                "run_id": run_id,
                 "project": project,
                 "class": class_name
             }
@@ -109,10 +109,10 @@ def build_metrics_from_target(target: dict, runner: str) -> List[dict]:
     return result
 
 
-def build_metrics_from_targets(targets: List[dict], runner: str) -> List[dict]:
+def build_metrics_from_targets(targets: List[dict], run_id: str) -> List[dict]:
     metrics = []
     for target in targets:
-        metrics.extend(build_metrics_from_target(target, runner))
+        metrics.extend(build_metrics_from_target(target, run_id))
     return metrics
 
 
@@ -131,11 +131,16 @@ def get_args():
     return args
 
 
+def extract_run_id(text: str):
+    idx = text.find('-')
+    return "run" + text[idx:]
+
+
 def main():
     args = get_args()
     stats = load(args.stats_file)
-    runner = stats["metadata"]["environment"]["host"]
-    metrics = build_metrics_from_targets(stats["targets"], runner)
+    run_id = extract_run_id(stats["metadata"]["source"]["id"])
+    metrics = build_metrics_from_targets(stats["targets"], run_id)
     metrics.sort(key=lambda x: x["metric"])
     with open(args.output_file, "w") as f:
         json.dump(metrics, f, indent=4)

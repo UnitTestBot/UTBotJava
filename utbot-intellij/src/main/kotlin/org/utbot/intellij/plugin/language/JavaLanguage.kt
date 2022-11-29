@@ -28,7 +28,6 @@ import org.jetbrains.kotlin.utils.addIfNotNull
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.ui.InvalidClassNotifier
-import org.utbot.intellij.plugin.util.isAbstract
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
@@ -167,12 +166,6 @@ object JvmLanguageAssistant : LanguageAssistant() {
     private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
         if (this.module?.let { findSdkVersionOrNull(it) } == null) {
             if (withWarnings) InvalidClassNotifier.notify("class out of module or with undefined SDK")
-            return true
-        }
-
-        val isAbstractOrInterface = this.isInterface || this.isAbstract
-        if (isAbstractOrInterface) {
-            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface ${this.name}")
             return true
         }
 

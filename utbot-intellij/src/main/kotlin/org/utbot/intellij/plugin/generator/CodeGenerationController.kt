@@ -8,6 +8,7 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
@@ -37,6 +38,7 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
+import com.intellij.psi.codeStyle.JavaCodeStyleManager.DO_NOT_ADD_IMPORTS
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.siyeh.ig.psiutils.ImportUtils
@@ -51,6 +53,7 @@ import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.ImportInsertHelperImpl
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -90,6 +93,8 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.THREAD_POOL
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.WRITE_ACTION
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
+import org.utbot.intellij.plugin.util.assertIsDispatchThread
+import org.utbot.intellij.plugin.util.assertIsWriteThread
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.sarif.Sarif
 import org.utbot.sarif.SarifReport
@@ -109,9 +114,10 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         classesWithTests: Map<PsiClass, RdTestGenerationResult>,
         psi2KClass: Map<PsiClass, ClassId>,
-        proc: EngineProcess,
+        proccess: EngineProcess,
         indicator: ProgressIndicator
     ) {
+        assertIsDispatchThread()
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
@@ -137,7 +143,7 @@ object CodeGenerationController {
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     generateCodeAndReport(
-                        proc,
+                        proccess,
                         testSetsId,
                         srcClass,
                         cut,
@@ -165,23 +171,21 @@ object CodeGenerationController {
                 run(EDT_LATER, indicator,"Go to EDT for utility class creation") {
                     run(WRITE_ACTION, indicator, "Need write action for utility class creation") {
                         createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory, indicator)
-                        run(EDT_LATER, indicator, "Proceed test report") {
-                            proceedTestReport(proc, model)
-                            run(THREAD_POOL, indicator, "Generate summary Sarif report") {
-                                val sarifReportsPath =
-                                    model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
-                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Merge Sarif reports", 0.75)
-                                mergeSarifReports(model, sarifReportsPath)
-                                if (model.runGeneratedTestsWithCoverage) {
-                                    UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 0.95)
-                                    RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
-                                }
-                                proc.forceTermination()
-                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generation finished", 1.0)
+                        run(THREAD_POOL, indicator, "Generate summary Sarif report") {
+                            proceedTestReport(proccess, model)
+                            val sarifReportsPath =
+                                model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+                            UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Merge Sarif reports", 0.75)
+                            mergeSarifReports(model, sarifReportsPath)
+                            if (model.runGeneratedTestsWithCoverage) {
+                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 0.95)
+                                RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
+                            }
+                            proccess.terminate()
+                            UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generation finished", 1.0)
 
-                                run(EDT_LATER, null, "Run sarif-based inspections") {
-                                    runInspectionsIfNeeded(model, srcClassPathToSarifReport)
-                                }
+                            run(EDT_LATER, null, "Run sarif-based inspections") {
+                                runInspectionsIfNeeded(model, srcClassPathToSarifReport)
                             }
                         }
                     }
@@ -212,7 +216,7 @@ object CodeGenerationController {
             .doInspections(AnalysisScope(model.project))
     }
 
-    private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) {
+    private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) = runReadAction {
         try {
             // Parametrized tests are not supported in tests report yet
             // TODO JIRA:1507
@@ -653,21 +657,22 @@ object CodeGenerationController {
         utilClassListener: UtilClassListener,
         indicator: ProgressIndicator
     ) {
+        assertIsWriteThread()
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
-        val paramNames = try {
-            DumbService.getInstance(model.project)
-                .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
-        } catch (e: Exception) {
-            logger.warn(e) { "Cannot find method param names for ${classUnderTest.name}" }
-            reportsCountDown.countDown()
-            return
-        }
         val testPackageName = testClass.packageName
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL, indicator, "Rendering test code") {
             val (generatedTestsCode, utilClassKind) = try {
+                val paramNames = try {
+                    DumbService.getInstance(model.project)
+                        .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
+                } catch (e: Exception) {
+                    logger.warn(e) { "Cannot find method param names for ${classUnderTest.name}" }
+                    reportsCountDown.countDown()
+                    return@run
+                }
                 proc.render(
                     testSetsId,
                     classUnderTest,
@@ -773,7 +778,7 @@ object CodeGenerationController {
                     val startOffset = range.startOffset
                     val endOffset = range.endOffset
                     val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
-                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
+                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange, DO_NOT_ADD_IMPORTS)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
             }

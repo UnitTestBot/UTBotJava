@@ -8,14 +8,16 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
-import org.utbot.instrumentation.rd.generated.ChildProcessModel
-import org.utbot.instrumentation.rd.generated.CollectCoverageResult
-import org.utbot.instrumentation.rd.generated.InvokeMethodCommandResult
-import org.utbot.instrumentation.rd.generated.childProcessModel
+import org.utbot.instrumentation.process.generated.CollectCoverageResult
+import org.utbot.instrumentation.process.generated.InstrumentedProcessModel
+import org.utbot.instrumentation.process.generated.InvokeMethodCommandResult
+import org.utbot.instrumentation.process.generated.instrumentedProcessModel
 import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.rd.CallsSynchronizer
+import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
+import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.findRdPort
+import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.loggers.UtRdConsoleLoggerFactory
 import java.io.File
 import java.io.OutputStream
@@ -54,7 +56,7 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
  */
 const val DISABLE_SANDBOX_OPTION = "--disable-sandbox"
 const val ENABLE_LOGS_OPTION = "--enable-logs"
-private val logger = getLogger("ChildProcess")
+private val logger = getLogger("InstrumentedProcess")
 private val messageFromMainTimeout: Duration = 120.seconds
 
 fun logLevelArgument(level: LogLevel): String {
@@ -68,7 +70,7 @@ private fun findLogLevel(args: Array<String>): LogLevel {
 }
 
 /**
- * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
+ * It should be compiled into separate jar file (instrumented_process.jar) and be run with an agent (agent.jar) option.
  */
 fun main(args: Array<String>) = runBlocking {
     // We don't want user code to litter the standard output, so we redirect it.
@@ -95,7 +97,8 @@ fun main(args: Array<String>) = runBlocking {
         ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(port) {
             val kryoHelper = KryoHelper(lifetime)
             logger.info { "setup started" }
-            childProcessModel.setup(kryoHelper, it)
+            AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol.settingsModel))
+            instrumentedProcessModel.setup(kryoHelper, it)
             logger.info { "setup ended" }
         }
     } catch (e: Throwable) {
@@ -110,15 +113,15 @@ private lateinit var pathsToUserClasses: Set<String>
 private lateinit var pathsToDependencyClasses: Set<String>
 private lateinit var instrumentation: Instrumentation<*>
 
-private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsSynchronizer) {
-    synchronizer.measureExecutionForTermination(warmup) {
+private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
+    watchdog.wrapActiveCall(warmup) {
         logger.debug { "received warmup request" }
         val time = measureTimeMillis {
             HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
         }
         logger.debug { "warmup finished in $time ms" }
     }
-    synchronizer.measureExecutionForTermination(invokeMethodCommand) { params ->
+    watchdog.wrapActiveCall(invokeMethodCommand) { params ->
         logger.debug { "received invokeMethod request: ${params.classname}, ${params.signature}" }
         val clazz = HandlerClassesLoader.loadClass(params.classname)
         val res = kotlin.runCatching {
@@ -138,7 +141,7 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
             throw it
         }
     }
-    synchronizer.measureExecutionForTermination(setInstrumentation) { params ->
+    watchdog.wrapActiveCall(setInstrumentation) { params ->
         logger.debug { "setInstrumentation request" }
         instrumentation = kryoHelper.readObject(params.instrumentation)
         logger.trace { "instrumentation - ${instrumentation.javaClass.name} " }
@@ -146,7 +149,7 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.init(pathsToUserClasses)
     }
-    synchronizer.measureExecutionForTermination(addPaths) { params ->
+    watchdog.wrapActiveCall(addPaths) { params ->
         logger.debug { "addPaths request" }
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
         pathsToDependencyClasses = params.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
@@ -155,11 +158,11 @@ private fun ChildProcessModel.setup(kryoHelper: KryoHelper, synchronizer: CallsS
         kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
         UtContext.setUtContext(UtContext(HandlerClassesLoader))
     }
-    synchronizer.measureExecutionForTermination(stopProcess) {
+    watchdog.wrapActiveCall(stopProcess) {
         logger.debug { "stop request" }
-        synchronizer.stopProtocol()
+        watchdog.stopProtocol()
     }
-    synchronizer.measureExecutionForTermination(collectCoverage) { params ->
+    watchdog.wrapActiveCall(collectCoverage) { params ->
         logger.debug { "collect coverage request" }
         val anyClass: Class<*> = kryoHelper.readObject(params.clazz)
         logger.debug { "class - ${anyClass.name}" }

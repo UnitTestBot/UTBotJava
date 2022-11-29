@@ -1,50 +1,50 @@
 package parser
 
-import com.oracle.js.parser.ir.BinaryNode
-import com.oracle.js.parser.ir.CaseNode
-import com.oracle.js.parser.ir.LexicalContext
-import com.oracle.js.parser.ir.LiteralNode
-import com.oracle.js.parser.ir.Node
-import com.oracle.js.parser.ir.visitor.NodeVisitor
-import com.oracle.truffle.api.strings.TruffleString
+import com.google.javascript.jscomp.NodeUtil
+import com.google.javascript.rhino.Node
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
+import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
+import parser.JsParserUtils.getAnyValue
+import parser.JsParserUtils.getBinaryExprLeftOperand
+import parser.JsParserUtils.getBinaryExprRightOperand
+import parser.JsParserUtils.toFuzzedContextComparisonOrNull
 
-class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
+class JsFuzzerAstVisitor : IAstVisitor {
+
     private var lastFuzzedOpGlobal: FuzzedContext = FuzzedContext.Unknown
-
     val fuzzedConcreteValues = mutableSetOf<FuzzedConcreteValue>()
-    override fun enterCaseNode(caseNode: CaseNode?): Boolean {
-        caseNode?.test?.let {
-            validateNode(it)
+
+    override fun accept(rootNode: Node) {
+        NodeUtil.visitPreOrder(rootNode) { node ->
+            val currentFuzzedOp = node.toFuzzedContextComparisonOrNull()
+            when {
+                node.isCase -> validateNode(
+                    node.firstChild?.getAnyValue() ?:
+                    throw IllegalStateException("Case AST node has no children")
+                )
+                currentFuzzedOp != null -> {
+                    lastFuzzedOpGlobal = currentFuzzedOp
+                    validateNode(node.getBinaryExprLeftOperand().getAnyValue())
+                    lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison)
+                            (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
+                    validateNode(node.getBinaryExprRightOperand().getAnyValue())
+                }
+            }
         }
-        return true
+
     }
 
-    override fun enterBinaryNode(binaryNode: BinaryNode?): Boolean {
-        binaryNode?.let { binNode ->
-            val compOp = """>=|<=|>|<|==|!=""".toRegex()
-            val curOp = compOp.find(binNode.toString())?.value
-            val currentFuzzedOp = FuzzedContext.Comparison.values().find { curOp == it.sign } ?: FuzzedContext.Unknown
-            lastFuzzedOpGlobal = currentFuzzedOp
-            validateNode(binNode.lhs)
-            lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison) (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
-            validateNode(binNode.rhs)
-        }
-        return true
-    }
-
-    private fun validateNode(literalNode: Node) {
-        if (literalNode !is LiteralNode<*>) return
-        when (literalNode.value) {
-            is TruffleString -> {
+    private fun validateNode(value: Any) {
+        when (value) {
+            is String -> {
                 fuzzedConcreteValues.add(
                     FuzzedConcreteValue(
                         jsStringClassId,
-                        literalNode.value.toString(),
+                        value.toString(),
                         lastFuzzedOpGlobal
                     )
                 )
@@ -54,22 +54,14 @@ class JsFuzzerAstVisitor : NodeVisitor<LexicalContext>(LexicalContext()) {
                 fuzzedConcreteValues.add(
                     FuzzedConcreteValue(
                         jsBooleanClassId,
-                        literalNode.value,
+                        value,
                         lastFuzzedOpGlobal
                     )
                 )
             }
 
-            is Int -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
-            }
-
-            is Long -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
-            }
-
             is Double -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, literalNode.value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, value, lastFuzzedOpGlobal))
             }
         }
     }

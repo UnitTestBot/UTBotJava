@@ -7,7 +7,7 @@ import org.utbot.examples.samples.staticenvironment.StaticExampleClass
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.util.ChildProcessError
+import org.utbot.instrumentation.util.InstrumentedProcessError
 import kotlin.reflect.full.declaredMembers
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -40,7 +40,7 @@ class TestInvokeInstrumentation {
             ExampleClass::class.java.protectionDomain.codeSource.location.path
         ).use {
             val testObject = ExampleClass()
-            val exc = assertThrows<ChildProcessError> {
+            val exc = assertThrows<InstrumentedProcessError> {
                 it.execute(
                     ExampleClass::bar,
                     arrayOf(testObject, 1, 2, 3)

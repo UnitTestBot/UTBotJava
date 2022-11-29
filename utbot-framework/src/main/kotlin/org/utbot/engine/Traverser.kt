@@ -9,6 +9,7 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
+import org.utbot.common.WorkaroundReason.TAINT
 import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
@@ -489,6 +490,13 @@ class Traverser(
     ): Boolean {
         if (shouldProcessStaticFieldConcretely(fieldRef)) {
             return processStaticFieldConcretely(fieldRef, stmt)
+        }
+
+        // If we are in `taint` mode, do not analyze <clinit> symbolically
+        workaround(TAINT) {
+            if (UtSettings.useTaintAnalysisMode) {
+                return false
+            }
         }
 
         val field = fieldRef.field
@@ -3747,10 +3755,10 @@ class Traverser(
                         // TODO support kindToRemove
                         update += assignTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToAdd)
 
-                        if (taintKinds.kindsToRemove.isNotEmpty()) {
-                            logger.warn { "Kinds to remove are not supported in passThrough instructions yet" }
-                        }
-//                        update += clearTaintMark(sourceValue.addr, targetValue.addr, taintKinds.kindsToRemove)
+//                        if (taintKinds.kindsToRemove.isNotEmpty()) {
+//                            logger.warn { "Kinds to remove are not supported in passThrough instructions yet" }
+//                        }
+                        update += clearTaintMark(targetValue.addr, taintKinds.kindsToRemove)
                     }
                 }
             }

@@ -69,6 +69,7 @@ class GraphViz(
                         "var fullStackVisibility=[]\nvar uncompletedStack=[]\n" +
                         "var uncompletedStackDepth=[]\nvar uncompletedStackVisibility=[]\nvar globalGraph=``"
             )
+            it.flush()
         }
 
         update()
@@ -169,6 +170,7 @@ class GraphViz(
                         "var uncompletedStackVisibility=[${uncompletedStack.joinToString(",") { "\"${subgraphVisibility[it.name]}\"" }}]\n" +
                         "var globalGraph=`$dotGlobalGraph`"
             )
+            writer.flush()
         }
     }
 

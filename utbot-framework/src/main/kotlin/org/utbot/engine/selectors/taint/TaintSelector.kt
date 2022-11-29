@@ -42,9 +42,12 @@ import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
+import java.util.PriorityQueue
 
 class TaintSelector(
     val graph: ExceptionalUnitGraph,
+    val taintSources: Set<Stmt>,
+    val taintSinks: Set<Stmt>,
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy
 ) : BasePathSelector(choosingStrategy, stoppingStrategy) {
@@ -54,8 +57,53 @@ class TaintSelector(
     private val stmtsQueue = ArrayDeque<Stmt>()
     private lateinit var currentStmt: Stmt
 
+    private val distancesBetweenStmts: MutableMap<Stmt, MutableMap<Stmt, Int>> = mutableMapOf()
+    lateinit var adjacencyMatrix: Array<IntArray>
+    private val stmtToIds: MutableMap<Stmt, Int> = mutableMapOf()
+
+    private val executionQueue: PriorityQueue<ExecutionState> = PriorityQueue(Comparator { firstState, secondState ->
+        val firstStmt = firstState.stmt
+        val secondStmt = secondState.stmt
+
+        // TODO check signs
+        val firstId = stmtToIds[firstStmt] ?: return@Comparator 1
+        val secondId = stmtToIds[secondStmt] ?: return@Comparator -1
+
+        val firstDistance = if (firstState.path.any { it in taintSources }) {
+            val sinkIds = taintSinks.mapNotNull { stmtToIds[it] }
+
+            val toSinkDistances = sinkIds.map { adjacencyMatrix[firstId][it] }
+
+            toSinkDistances.minOrNull() ?: Int.MAX_VALUE
+        } else {
+            val sourceIds = taintSources.mapNotNull { stmtToIds[it] }
+
+            val toSourceDistances = sourceIds.map { adjacencyMatrix[firstId][it] }
+
+            toSourceDistances.minOrNull() ?: Int.MAX_VALUE
+        }
+
+        val secondDistance = if (secondState.path.any { it in taintSources }) {
+            val sinkIds = taintSinks.mapNotNull { stmtToIds[it] }
+
+            val toSinkDistances = sinkIds.map { adjacencyMatrix[secondId][it] }
+
+            toSinkDistances.minOrNull() ?: Int.MAX_VALUE
+        } else {
+            val sourceIds = taintSources.mapNotNull { stmtToIds[it] }
+
+            val toSourceDistances = sourceIds.map { adjacencyMatrix[secondId][it] }
+
+            toSourceDistances.minOrNull() ?: Int.MAX_VALUE
+        }
+
+        return@Comparator firstDistance.compareTo(secondDistance)
+    })
+
     init {
         joinAllNonAbstractMethodGraphs()
+        buildAdjacencyMatrix()
+        runFLoydWarshall()
     }
 
     private fun joinAllNonAbstractMethodGraphs() {
@@ -63,7 +111,58 @@ class TaintSelector(
 
         while (!stmtsQueue.isEmpty()) {
             currentStmt = stmtsQueue.removeFirst()
+
+            val initDistances = distancesBetweenStmts.getOrPut(currentStmt) { mutableMapOf() }
+            initDistances[currentStmt] = 0
+
             traverseStmt(currentStmt)
+        }
+    }
+
+    private fun buildAdjacencyMatrix() {
+        val allStmts = globalGraph.stmts
+        val n = allStmts.size
+        adjacencyMatrix = Array(n) { IntArray(n) { Int.MAX_VALUE } }
+
+        var id = 0
+        for (from in allStmts) {
+            val fromId = stmtToIds.getOrPut(from) { id++ }
+
+            for (to in allStmts) {
+                val toId = stmtToIds.getOrPut(to) { id++ }
+
+                adjacencyMatrix[fromId][toId] = if (fromId == toId) {
+                    0
+                } else {
+                    distancesBetweenStmts[from]?.let { it[to] } ?: Int.MAX_VALUE
+                }
+            }
+        }
+    }
+
+    private fun runFLoydWarshall() {
+        val n = adjacencyMatrix.size
+
+        for(k in 0 until n) {
+            for (i in 0 until n) {
+                for (j in 0 until n) {
+                    val anotherOption = adjacencyMatrix[i][k].let { first ->
+                        if (first == Int.MAX_VALUE) {
+                            Int.MAX_VALUE
+                        } else {
+                            adjacencyMatrix[k][j].let { second ->
+                                if (second == Int.MAX_VALUE) {
+                                    Int.MAX_VALUE
+                                } else {
+                                    first + second
+                                }
+                            }
+                        }
+                    }
+
+                    adjacencyMatrix[i][j] = minOf(adjacencyMatrix[i][j], anotherOption)
+                }
+            }
         }
     }
 
@@ -149,7 +248,12 @@ class TaintSelector(
         val method = invokeExpr.retrieveMethod()
         if (method.canRetrieveBody()) {
             globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
-            stmtsQueue += globalGraph.succ(currentStmt).dst
+            val nextStmt = globalGraph.succ(currentStmt).dst
+
+            distancesBetweenStmts[currentStmt]?.let {
+                it[nextStmt] = 1
+            }
+            stmtsQueue += nextStmt
         }
     }
 
@@ -157,7 +261,12 @@ class TaintSelector(
         val method = Scene.v().getMethod(methodRef.signature)
         if (method.canRetrieveBody()) {
             globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
-            stmtsQueue += globalGraph.succ(currentStmt).dst
+            val nextStmt = globalGraph.succ(currentStmt).dst
+
+            distancesBetweenStmts[currentStmt]?.let {
+                it[nextStmt] = 1
+            }
+            stmtsQueue += nextStmt
         }
     }
 
@@ -165,22 +274,43 @@ class TaintSelector(
         val method = invokeExpr.retrieveMethod()
         if (method.canRetrieveBody()) {
             globalGraph.join(currentStmt, method.jimpleBody().graph(), registerEdges = true/*TODO what should be passed?*/)
-            stmtsQueue += globalGraph.succ(currentStmt).dst
+            val nextStmt = globalGraph.succ(currentStmt).dst
+
+            distancesBetweenStmts[currentStmt]?.let {
+                it[nextStmt] = 1
+            }
+            stmtsQueue += nextStmt
         }
     }
 
     private fun traverseIfStmt(current: JIfStmt) {
         val (negativeCaseEdge, positiveCaseEdge) = globalGraph.succs(current).let { it[0] to it.getOrNull(1) }
 
-        stmtsQueue += negativeCaseEdge.dst
-        positiveCaseEdge?.let { stmtsQueue += it.dst }
+        val negativeStmt = negativeCaseEdge.dst
+        stmtsQueue += negativeStmt
+        distancesBetweenStmts[currentStmt]?.let {
+            it[negativeStmt] = 1
+        }
+
+        positiveCaseEdge?.let { positiveCaseEdgeNotNull ->
+            val positiveStmt = positiveCaseEdgeNotNull.dst
+            distancesBetweenStmts[currentStmt]?.let {
+                it[positiveStmt] = 1
+            }
+            stmtsQueue += positiveStmt
+        }
     }
 
     private fun traverseIdentityStmt(current: JIdentityStmt) {
         when (val identityRef = current.rightOp as IdentityRef) {
             is ParameterRef, is ThisRef, is JCaughtExceptionRef -> {
                 // TODO strange error occurred
-                stmtsQueue += globalGraph.succ(currentStmt).dst
+                val nextStmt = globalGraph.succ(currentStmt).dst
+
+                distancesBetweenStmts[currentStmt]?.let {
+                    it[nextStmt] = 1
+                }
+                stmtsQueue += nextStmt
             }
             else -> error("Unsupported $identityRef")
         }
@@ -193,53 +323,45 @@ class TaintSelector(
             invokeResult(rightValue)
         }
 
-        stmtsQueue += globalGraph.succ(currentStmt).dst
-    }
+        val nextStmt = globalGraph.succ(currentStmt).dst
 
-    override fun offer(state: ExecutionState) {
-        super.offer(state)
-    }
-
-    override fun peek(): ExecutionState? {
-        return super.peek()
-    }
-
-    override fun poll(): ExecutionState? {
-        return super.poll()
-    }
-
-    override fun remove(state: ExecutionState): Boolean {
-        return super.remove(state)
-    }
-
-    override fun queue(): List<Pair<ExecutionState, Double>> {
-        return super.queue()
-    }
-
-    override fun removeImpl(state: ExecutionState): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun pollImpl(): ExecutionState? {
-        TODO("Not yet implemented")
-    }
-
-    override fun peekImpl(): ExecutionState? {
-        TODO("Not yet implemented")
+        distancesBetweenStmts[currentStmt]?.let {
+            it[nextStmt] = 1
+        }
+        stmtsQueue += nextStmt
     }
 
     override fun offerImpl(state: ExecutionState) {
-        TODO("Not yet implemented")
+        executionQueue.add(state)
+    }
+
+    override fun peekImpl(): ExecutionState? {
+        return executionQueue.peek()
+    }
+
+    override fun pollImpl(): ExecutionState? {
+        return executionQueue.poll()
+    }
+
+    override fun removeImpl(state: ExecutionState): Boolean {
+        return executionQueue.remove(state)
+    }
+
+    override fun queue(): List<Pair<ExecutionState, Double>> {
+        // TODO real weight
+        return executionQueue.map { it to 0.0 }
     }
 
     override fun isEmpty(): Boolean {
-        TODO("Not yet implemented")
+        return executionQueue.isEmpty()
     }
 
     override val name: String
-        get() = TODO("Not yet implemented")
+        get() = "TaintPathSelector"
 
     override fun close() {
-        TODO("Not yet implemented")
+        executionQueue.forEach {
+            it.close()
+        }
     }
 }

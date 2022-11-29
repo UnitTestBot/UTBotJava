@@ -103,7 +103,9 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.engine.selectors.BasePathSelector
+import org.utbot.engine.selectors.strategies.DistanceStatistics
+import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
+import org.utbot.engine.selectors.taint.TaintSelector
 import org.utbot.engine.selectors.randomSelectorWithLoopIterationsThreshold
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
@@ -186,7 +188,7 @@ class UtBotSymbolicEngine(
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
-    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
+    val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
 
     val wasStoppedByStepsLimit: Boolean
         get() = workaround(WorkaroundReason.TAINT) {

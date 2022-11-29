@@ -24,6 +24,7 @@ import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.models.packageName
@@ -113,6 +114,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                     when(it) {
                         is PsiFileSystemItem  -> srcClasses += getAllClasses(project, arrayOf(it.virtualFile))
                         is PsiClass -> srcClasses.add(it)
+                        is KtClass -> srcClasses += getClassesFromFile(it.containingKtFile)
                         is PsiElement -> {
                             srcClasses.addIfNotNull(it.getContainingClass())
                             if (it is PsiMethod) {

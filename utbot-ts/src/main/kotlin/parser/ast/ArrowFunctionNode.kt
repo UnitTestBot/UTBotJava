@@ -7,5 +7,6 @@ class ArrowFunctionNode(
     override val parent: AstNode?
 ): FunctionNode(obj, parent) {
 
-    override val name: String = ""
+    override val name: String =
+        if (parent is VariableDeclarationNode) parent.name else ""
 }

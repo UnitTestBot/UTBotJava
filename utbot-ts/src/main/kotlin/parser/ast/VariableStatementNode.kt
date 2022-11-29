@@ -5,15 +5,13 @@ import parser.TsParserUtils.getArrayAsList
 import parser.TsParserUtils.getAstNodeByKind
 import parser.TsParserUtils.getChildren
 
-class CallExpressionNode(
+class VariableStatementNode(
     obj: V8Object,
     override val parent: AstNode?
 ): AstNode() {
 
     override val children: List<AstNode> = obj.getChildren().map { it.getAstNodeByKind(this) }
 
-    val arguments = obj.getArrayAsList("arguments").map { it.getAstNodeByKind(this) }
-
-    val funcName: String = obj.getObject("expression").getString("escapedText")
+    val variableDeclarations: List<VariableDeclarationNode> = obj.getObject("declarationList")
+        .getArrayAsList("declarations").map { it.getAstNodeByKind(this) as VariableDeclarationNode }
 }
-

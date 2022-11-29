@@ -1,20 +1,17 @@
 package parser.ast
 
 import com.eclipsesource.v8.V8Object
-import parser.TsParserUtils.getArrayAsList
 import parser.TsParserUtils.getAstNodeByKind
 import parser.TsParserUtils.getChildren
 
 class ConstructorNode(
     obj: V8Object,
     override val parent: AstNode?
-): AstNode() {
+): FunctionNode(obj, parent) {
+
+    override val name: String = (parent as? ClassDeclarationNode)?.name ?: throw IllegalStateException()
 
     override val children = obj.getChildren().map { it.getAstNodeByKind(this) }
 
-    @Suppress("UNCHECKED_CAST")
-    val parameters = (obj.getArrayAsList("parameters")).map { it.getAstNodeByKind(this) }
-                        as List<ParameterNode>
-
-
+    override val returnType: TypeNode = CustomTypeNode(obj, parent = this, typeLiteral = name)
 }

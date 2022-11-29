@@ -19,12 +19,13 @@ class TsParser(pathToTSModule: File) {
         val system = moduleKind.getInteger("Latest")
         compilerOptions = V8Object(nodeJs.runtime)
         compilerOptions.add("module", system)
-        TsParserUtils.initParserUtils(typescript, this)
     }
 
     fun parse(fileText: String): AstNode {
-        return (typescript
+        TsParserUtils.initParserUtils(typescript, this)
+        val rootNode = (typescript
             .executeJSFunction("createSourceFile", "parsed", fileText, compilerOptions, true)
                 as V8Object).getAstNodeByKind(null)
+        return rootNode
     }
 }

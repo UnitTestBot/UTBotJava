@@ -16,6 +16,8 @@ import parser.ast.MethodDeclarationNode
 import parser.ast.NumericLiteralNode
 import parser.ast.ParameterNode
 import parser.ast.PropertyDeclarationNode
+import parser.ast.VariableDeclarationNode
+import parser.ast.VariableStatementNode
 import parser.visitors.TsClassAstVisitor
 
 object TsParserUtils {
@@ -23,6 +25,7 @@ object TsParserUtils {
 
     private lateinit var syntaxKind: V8Object
     private lateinit var parser: TsParser
+    lateinit var astScrapper: TSAstScrapper
 
     /*
         I dislike this function, but it removes typescript V8Object from the parser API, and we don't
@@ -31,6 +34,7 @@ object TsParserUtils {
     fun initParserUtils(ts: V8Object, tsParser: TsParser) {
         syntaxKind = ts.getObject("SyntaxKind")
         parser = tsParser
+        astScrapper = TSAstScrapper()
     }
 
     @Suppress("NAME_SHADOWING")
@@ -138,7 +142,7 @@ object TsParserUtils {
     }
 
     fun V8Object.getAstNodeByKind(parent: AstNode?): AstNode {
-        val node =  when (this.getKind()) {
+        val node = when (this.getKind()) {
             "ArrowFunction" -> ArrowFunctionNode(this, parent)
             "FunctionDeclaration" -> FunctionDeclarationNode(this, parent)
             "Parameter" -> ParameterNode(this, parent)
@@ -155,6 +159,7 @@ object TsParserUtils {
                 CallExpressionNode(this, parent)
             } catch (e: Exception) { DummyNode(this, parent) }
             "VariableDeclaration" -> this.checkForRequire(parent)
+            "VariableStatement" -> VariableStatementNode(this, parent)
             else -> DummyNode(this, parent)
        }
         return node
@@ -170,5 +175,5 @@ object TsParserUtils {
         ) {
             ImportDeclarationNode(this, parent)
         } else DummyNode(this, parent)
-    } catch (e: Exception) { DummyNode(this, parent) }
+    } catch (e: Exception) { VariableDeclarationNode(this, parent) }
 }

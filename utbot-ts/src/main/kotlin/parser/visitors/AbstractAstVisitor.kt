@@ -10,6 +10,7 @@ import parser.ast.ConstructorNode
 import parser.ast.CustomTypeNode
 import parser.ast.DummyNode
 import parser.ast.FunctionDeclarationNode
+import parser.ast.FunctionTypeNode
 import parser.ast.IdentifierNode
 import parser.ast.ImportDeclarationNode
 import parser.ast.MathBinaryOperatorNode
@@ -17,6 +18,8 @@ import parser.ast.MethodDeclarationNode
 import parser.ast.NumericLiteralNode
 import parser.ast.ParameterNode
 import parser.ast.PropertyDeclarationNode
+import parser.ast.VariableDeclarationNode
+import parser.ast.VariableStatementNode
 
 abstract class AbstractAstVisitor {
 
@@ -38,6 +41,9 @@ abstract class AbstractAstVisitor {
             is NumericLiteralNode -> visitNumericLiteralNode(root)
             is ParameterNode -> visitParameterNode(root)
             is PropertyDeclarationNode -> visitPropertyDeclarationNode(root)
+            is FunctionTypeNode -> visitFunctionTypeNode(root)
+            is VariableDeclarationNode -> visitVariableDeclarationNode(root)
+            is VariableStatementNode -> visitVariableStatementNode(root)
             else -> throw IllegalStateException("No such AST node exists: $root")
         }
         if (shouldContinue) {
@@ -76,4 +82,10 @@ abstract class AbstractAstVisitor {
     open fun visitNumericLiteralNode(node: NumericLiteralNode): Boolean = true
 
     open fun visitImportDeclarationNode(node: ImportDeclarationNode): Boolean = true
+
+    open fun visitFunctionTypeNode(node: FunctionTypeNode): Boolean = true
+
+    open fun visitVariableDeclarationNode(node: VariableDeclarationNode): Boolean = true
+
+    open fun visitVariableStatementNode(node: VariableStatementNode): Boolean = true
 }

@@ -1,53 +1,111 @@
 package api
 
+import parser.ast.ArrowFunctionNode
 import parser.ast.AstNode
+import parser.ast.CallExpressionNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.FunctionNode
 import parser.ast.ImportDeclarationNode
 import parser.ast.PropertyDeclarationNode
+import parser.ast.VariableStatementNode
 
 class TsUIProcessor {
 
     fun traverseCallGraph(rootNode: AstNode) {
-        buildContext(rootNode)
-        val kke = 0
+        traverse(rootNode, Context(scope = rootNode))
     }
 
-    private val nodeToContext = mutableMapOf<AstNode, Context>()
-    
-    private fun buildContext(startNode: AstNode) {
-        val nodeQueue = ArrayDeque<AstNode>()
-        nodeQueue.add(startNode)
-        nodeToContext[startNode] = Context()
-        while (nodeQueue.isNotEmpty()) {
-            val currentNode = nodeQueue.removeFirst()
-            val currentContext = nodeToContext[currentNode] ?: throw IllegalStateException()
-            currentNode.children.fold(currentContext) { acc, node ->
-                val newContext = node.processNode(acc)
-                nodeToContext[node] = newContext
-                nodeQueue.add(node)
-                newContext
+    private fun traverse(currentNode: AstNode, context: Context): Context {
+//        println("I am in $currentNode, my context is $context")
+        val newContext = currentNode.processNode(context)
+        if (currentNode is CallExpressionNode) {
+            val functionNode = context.functions.find { it.name == currentNode.funcName }
+                ?: throw IllegalStateException()
+            functionNode.body.fold(newContext) { acc, node ->
+                val result = traverse(node, acc)
+                Context(
+                    setOf(*acc.classes.toTypedArray(), *result.classes.toTypedArray()),
+                    setOf(*acc.functions.toTypedArray(), *result.functions.toTypedArray()),
+                    context.scope
+                )
+            }
+            // We don't want to pass context with function params in it to the call node children.
+            currentNode.children.fold(context) { acc, node ->
+                val result = traverse(node, acc)
+                Context(
+                    setOf(*acc.classes.toTypedArray(), *result.classes.toTypedArray()),
+                    setOf(*acc.functions.toTypedArray(), *result.functions.toTypedArray()),
+                    context.scope
+                )
+            }
+        } else {
+            currentNode.children.fold(newContext) { acc, node ->
+                val result = traverse(node, acc)
+                Context(
+                    setOf(*acc.classes.toTypedArray(), *result.classes.toTypedArray()),
+                    setOf(*acc.functions.toTypedArray(), *result.functions.toTypedArray()),
+                    context.scope
+                )
             }
         }
+        return newContext
     }
     
     private fun AstNode.processNode(context: Context): Context = when (this) {
-        is FunctionNode -> Context(context.classes, setOf(this, *context.functions.toTypedArray()))
-        is ClassDeclarationNode -> Context(setOf(this, *context.classes.toTypedArray()), context.functions)
+        is FunctionNode -> Context(
+            context.classes,
+            setOf(this, *context.functions.toTypedArray()),
+            context.scope
+        )
+        is ClassDeclarationNode -> Context(
+            setOf(this, *context.classes.toTypedArray()),
+            context.functions,
+            context.scope
+        )
         is ImportDeclarationNode -> {
             val _classes = this.importedNodes.values.filterIsInstance<ClassDeclarationNode>()
             val _functions = this.importedNodes.values.filterIsInstance<FunctionNode>()
             Context(
                 setOf(*_classes.toTypedArray(), *context.classes.toTypedArray()),
-                setOf(*_functions.toTypedArray(), *context.functions.toTypedArray())
+                setOf(*_functions.toTypedArray(), *context.functions.toTypedArray()),
+                context.scope
             )
         }
+        is CallExpressionNode -> {
+            val lambdaArgs = this.arguments.filterIsInstance<ArrowFunctionNode>().toTypedArray()
+            Context(
+                context.classes,
+                setOf(*lambdaArgs, *context.functions.toTypedArray()),
+                context.scope
+            )
+        }
+        is VariableStatementNode -> {
+            this.variableDeclarations.fold(context) { acc, node ->
+                if (node.value is FunctionNode) {
+                    Context(
+                        acc.classes,
+                        setOf(node.value, *acc.functions.toTypedArray()),
+                        acc.scope
+                    )
+                } else acc
+            }
+        }
+//        is VariableDeclarationNode -> {
+//            if (this.value is FunctionNode) {
+//                Context(
+//                    context.classes,
+//                    setOf(this.value, *context.functions.toTypedArray()),
+//                    context.scope
+//                )
+//            } else context
+//        }
         else -> context
     }
 
     private data class Context(
         val classes: Set<ClassDeclarationNode> = emptySet(),
         val functions: Set<FunctionNode> = emptySet(),
+        val scope: AstNode
     )
 
     fun collectStatics(classNode: ClassDeclarationNode): List<PropertyDeclarationNode> {

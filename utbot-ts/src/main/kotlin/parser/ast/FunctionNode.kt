@@ -19,6 +19,7 @@ abstract class FunctionNode(
             as List<ParameterNode>
 
     val body = obj.getObject("body").getArrayAsList("statements")
+        .map { it.getAstNodeByKind(this) }
 
-    val returnType = obj.getObject("type").getTypeNode(this)
+   open val returnType = obj.getObject("type").getTypeNode(this)
 }

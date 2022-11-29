@@ -94,4 +94,19 @@ internal class AnnotationFromMypyKtTest {
             }
         }
     }
+
+    @Test
+    fun testIncludedDefinitions() {
+        val defs = storage.definitions["annotation_tests"]!!.keys
+        assertTrue(listOf("Optional", "collections", "Enum", "Iterable", "list", "int").all { !defs.contains(it) })
+        assertTrue(listOf("sequence", "enum_literal", "Color", "A", "tuple_").all { defs.contains(it) })
+    }
+
+    @Test
+    fun testFunctionArgNames() {
+        val square = storage.definitions["annotation_tests"]!!["square"]!!.annotation.asUtBotType
+        assertTrue(
+            (square.pythonDescription() as PythonCallableTypeDescription).argumentNames == listOf("collection", "x")
+        )
+    }
 }

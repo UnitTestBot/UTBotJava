@@ -142,7 +142,7 @@ if __name__ == "__main__":
         print("BuildResult is None")
     else:
         pass
-        #print(build_result.files['builtins'].defs)
+        #print(build_result.files['annotation_tests'].names['square'].node.type.arg_names)
         #print(build_result.files['collections'].names['deque'].node.mro)
         #print(build_result.files['builtins'].names['str'].node.bases)
         #print(build_result.files['collections'].names['Counter'].node._promote)

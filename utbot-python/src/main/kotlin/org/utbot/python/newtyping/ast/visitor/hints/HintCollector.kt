@@ -3,30 +3,38 @@ package org.utbot.python.newtyping.ast.visitor.hints
 import org.parsers.python.Node
 import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
-import org.utbot.python.newtyping.BuiltinTypes
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.*
 import org.utbot.python.newtyping.ast.visitor.Collector
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.getPythonAttributeByName
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonNoneType
+import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
+import org.utbot.python.newtyping.inference.addEdge
 import java.util.*
 
-class HintCollector(
-    val parameters: List<FunctionParameter>
-) : Collector() {
-    private val parameterToNode: Map<FunctionParameter, HintCollectorNode> =
-        parameters.associateWith { HintCollectorNode(PartialTypeDescription(it.type)) }
+class HintCollector(val signature: FunctionType) : Collector() {
+    private val signatureDescription = signature.pythonDescription() as PythonCallableTypeDescription
+    private val parameterToNode: Map<String, HintCollectorNode> =
+        (signatureDescription.argumentNames zip signature.arguments).associate {
+            it.first to HintCollectorNode(it.second)
+        }
     private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
     private val identificationToNode: MutableMap<Block?, MutableMap<String, HintCollectorNode>> = mutableMapOf()
     private val blockStack = Stack<Block>()
 
     init {
+        val argNames = signatureDescription.argumentNames
+        assert(argNames.all { it != "" })
         identificationToNode[null] = mutableMapOf()
-        parameters.forEach {
-            identificationToNode[null]!![it.name] = parameterToNode[it]!!
+        argNames.forEach {
+            identificationToNode[null]!![it] = parameterToNode[it]!!
         }
+    }
+
+    lateinit var result: HintCollectorResult
+    override fun finishCollection() {
+        result = HintCollectorResult(parameterToNode, signature)
     }
 
     override fun collectFromNodeBeforeRecursion(node: Node) {
@@ -56,7 +64,7 @@ class HintCollector(
             // TODO: DotName, FunctionCall, SliceExpression
             is Newline, is IndentToken, is Delimiter, is Operator, is DedentToken, is ReturnStatement,
             is Assignment, is Statement, is InvocationArguments -> Unit
-            else -> astNodeToHintCollectorNode[node] = HintCollectorNode(PartialTypeDescription(pythonAnyType))
+            else -> astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
         }
     }
 
@@ -67,7 +75,7 @@ class HintCollector(
             "for", "if", "else", "elif", "while", "in", "return", "or", "and", "not" -> return
             else -> pythonAnyType
         }
-        astNodeToHintCollectorNode[node] = HintCollectorNode(PartialTypeDescription(type))
+        astNodeToHintCollectorNode[node] = HintCollectorNode(type)
     }
 
     private fun processNumericalLiteral(node: NumericalLiteral) {
@@ -79,32 +87,30 @@ class HintCollector(
             PythonConstants.TokenType.COMPLEX -> BuiltinTypes.pythonComplex
             else -> pythonAnyType
         }
-        astNodeToHintCollectorNode[node] = HintCollectorNode(PartialTypeDescription(type))
+        astNodeToHintCollectorNode[node] = HintCollectorNode(type)
     }
 
     private fun processStringLiteral(node: StringLiteral) {
-        astNodeToHintCollectorNode[node] = HintCollectorNode(PartialTypeDescription(BuiltinTypes.pythonStr))
+        astNodeToHintCollectorNode[node] = HintCollectorNode(BuiltinTypes.pythonStr)
     }
 
     private fun processBlock(node: Block) {
         blockStack.pop()
         val prevBlock = if (blockStack.isEmpty()) null else blockStack.peek()
         identificationToNode[node]!!.forEach { (id, hintNode) ->
-            val prevHintNode = identificationToNode[prevBlock]!![id] ?: HintCollectorNode(
-                PartialTypeDescription(pythonAnyType)
-            )
+            val prevHintNode = identificationToNode[prevBlock]!![id] ?: HintCollectorNode(pythonAnyType)
             identificationToNode[prevBlock]!![id] = prevHintNode
             val edgeFromPrev = HintEdgeWithBound(
                 from = prevHintNode,
                 to = hintNode,
                 source = EdgeSource.Identification,
-                boundType = HintEdgeWithBound.BoundType.Upper
+                boundType = TypeInferenceEdgeWithBound.BoundType.Upper
             ) { upperType -> listOf(upperType) }
             val edgeToPrev = HintEdgeWithBound(
                 from = hintNode,
                 to = prevHintNode,
                 source = EdgeSource.Identification,
-                boundType = HintEdgeWithBound.BoundType.Lower
+                boundType = TypeInferenceEdgeWithBound.BoundType.Lower
             ) { lowerType -> listOf(lowerType) }
 
             addEdge(edgeFromPrev)
@@ -117,7 +123,7 @@ class HintCollector(
             return
         val name = node.toString()
         val block = blockStack.peek()
-        val hintNode = identificationToNode[block]!![name] ?: HintCollectorNode(PartialTypeDescription(pythonAnyType))
+        val hintNode = identificationToNode[block]!![name] ?: HintCollectorNode(pythonAnyType)
         identificationToNode[block]!![name] = hintNode
         astNodeToHintCollectorNode[node] = hintNode
     }
@@ -130,13 +136,13 @@ class HintCollector(
             from = variableNode,
             to = iterableNode,
             source = EdgeSource.ForStatement,
-            boundType = HintEdgeWithBound.BoundType.Upper
+            boundType = TypeInferenceEdgeWithBound.BoundType.Upper
         ) { varType -> listOf(createIterableWithCustomReturn(varType)) }
         val edgeFromIterableToVariable = HintEdgeWithBound(
             from = iterableNode,
             to = variableNode,
             source = EdgeSource.ForStatement,
-            boundType = HintEdgeWithBound.BoundType.Lower
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { iterType ->
             val iterReturnType = iterType.getPythonAttributeByName("__iter__")?.type
                 ?: return@HintEdgeWithBound emptyList()
@@ -182,7 +188,7 @@ class HintCollector(
         val parsed = parseAdditiveExpression(node)
         val leftNode = astNodeToHintCollectorNode[parsed.left]!!
         val rightNode = astNodeToHintCollectorNode[parsed.right]!!
-        val curNode = HintCollectorNode(PartialTypeDescription(pythonAnyType))
+        val curNode = HintCollectorNode(pythonAnyType)
         astNodeToHintCollectorNode[node] = curNode
         val methodName = operationToMagicMethod(parsed.op.toString()) ?: return
         addProtocol(leftNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
@@ -192,7 +198,7 @@ class HintCollector(
             from = leftNode,
             to = curNode,
             source = EdgeSource.Operation,
-            boundType = HintEdgeWithBound.BoundType.Lower
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { leftType ->
             listOf((leftType.getPythonAttributeByName(methodName) ?: return@HintEdgeWithBound emptyList()).type)
         }
@@ -200,7 +206,7 @@ class HintCollector(
             from = rightNode,
             to = curNode,
             source = EdgeSource.Operation,
-            boundType = HintEdgeWithBound.BoundType.Lower
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { rightType ->
             listOf((rightType.getPythonAttributeByName(methodName) ?: return@HintEdgeWithBound emptyList()).type)
         }
@@ -213,16 +219,15 @@ class HintCollector(
 
     private fun processList(node: org.parsers.python.ast.List) {
         val parsed = parseList(node)
-        val typeDescription = PartialTypeDescription(
-            DefaultSubstitutionProvider.substituteByIndex(BuiltinTypes.pythonList, 0, pythonAnyType)
-        )
-        val curNode = HintCollectorNode(typeDescription)
+        val partialType = DefaultSubstitutionProvider.substituteByIndex(BuiltinTypes.pythonList, 0, pythonAnyType)
+        val curNode = HintCollectorNode(partialType)
         astNodeToHintCollectorNode[node] = curNode
-        val innerTypeNode = HintCollectorNode(PartialTypeDescription(pythonAnyType))
+        val innerTypeNode = HintCollectorNode(pythonAnyType)
         val edgeFromInnerToCur = HintEdgeWithValue(
             from = innerTypeNode,
-            to = curNode
-        ) { innerType, _ -> DefaultSubstitutionProvider.substituteByIndex(BuiltinTypes.pythonList, 0, innerType) }
+            to = curNode,
+            annotationParameterId = 0
+        )
         addEdge(edgeFromInnerToCur)
 
         parsed.elems.forEach { elem ->
@@ -231,19 +236,18 @@ class HintCollector(
                 from = elemNode,
                 to = innerTypeNode,
                 source = EdgeSource.CollectionElement,
-                boundType = HintEdgeWithBound.BoundType.Lower
+                boundType = TypeInferenceEdgeWithBound.BoundType.Lower
             ) { listOf(it) }
             addEdge(edge)
         }
     }
 
     private fun processBoolExpression(node: Node) {
-        val typeDescription = PartialTypeDescription(BuiltinTypes.pythonBool)
-        val hintCollectorNode = HintCollectorNode(typeDescription)
+        val hintCollectorNode = HintCollectorNode(BuiltinTypes.pythonBool)
         astNodeToHintCollectorNode[node] = hintCollectorNode
     }
 
     private fun addProtocol(node: HintCollectorNode, protocol: Type) {
-        node.typeDescription.upperBounds.add(protocol)
+        node.upperBounds.add(protocol)
     }
 }

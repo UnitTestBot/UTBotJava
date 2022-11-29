@@ -34,7 +34,8 @@ fun createBinaryProtocol(methodName: String, argType: Type, returnType: Type): T
             members = listOf(
                 createPythonCallableType(
                     0,
-                    listOf(PythonCallableTypeDescription.ArgKind.Positional),
+                    listOf(PythonCallableTypeDescription.ArgKind.Positional, PythonCallableTypeDescription.ArgKind.Positional),
+                    listOf("self", ""),
                     isClassMethod = false,
                     isStaticMethod = false
                 ) {
@@ -60,6 +61,7 @@ fun createUnaryProtocolWithCustomReturn(methodName: String, returnType: Type): T
                 createPythonCallableType(
                     0,
                     listOf(PythonCallableTypeDescription.ArgKind.Positional),
+                    listOf("self"),
                     isClassMethod = false,
                     isStaticMethod = false
                 ) {

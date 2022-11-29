@@ -1,57 +1,45 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.pythonAnyType
-
-fun addEdge(edge: HintEdge) {
-    edge.from.outgoingEdges.add(edge)
-    edge.to.ingoingEdges.add(edge)
-}
+import org.utbot.python.newtyping.inference.TypeInferenceEdge
+import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
+import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithValue
+import org.utbot.python.newtyping.inference.TypeInferenceNode
 
 sealed class HintEdge(
-    val from: HintCollectorNode,
-    val to: HintCollectorNode,
-)
+    override val from: HintCollectorNode,
+    override val to: HintCollectorNode,
+): TypeInferenceEdge
 
 class HintEdgeWithBound(
     from: HintCollectorNode,
     to: HintCollectorNode,
     val source: EdgeSource,
-    val boundType: BoundType,
-    val dependency: (Type) -> List<Type>
-): HintEdge(from, to) {
-    enum class BoundType {
-        Lower,
-        Upper
-    }
-}
+    override val boundType: TypeInferenceEdgeWithBound.BoundType,
+    override val dependency: (Type) -> List<Type>
+): HintEdge(from, to), TypeInferenceEdgeWithBound
 
 class HintEdgeWithValue(
     from: HintCollectorNode,
     to: HintCollectorNode,
-    val dependency: (Type, Type) -> Type  // (newTypeOfFrom, oldTypeOfTo) -> newTypeOfTo
-): HintEdge(from, to)
+    override val annotationParameterId: Int
+): HintEdge(from, to), TypeInferenceEdgeWithValue
 
-class HintCollectorNode(val typeDescription: PartialTypeDescription) {
-    val outgoingEdges: MutableSet<HintEdge> = mutableSetOf()
-    val ingoingEdges: MutableSet<HintEdge> = mutableSetOf()
-}
-
-class PartialTypeDescription(val partialType: Type) {
+class HintCollectorNode(override val partialType: Type): TypeInferenceNode {
     val lowerBounds: MutableList<Type> = mutableListOf()
     val upperBounds: MutableList<Type> = mutableListOf()
+    override val outgoingEdges: MutableSet<HintEdge> = mutableSetOf()
+    override val ingoingEdges: MutableSet<HintEdge> = mutableSetOf()
 }
 
-class HintCollectorResult
-
-class FunctionParameter(
-    val name: String,
-    val type: Type
+class HintCollectorResult(
+    val parameterToNode: Map<String, HintCollectorNode>,
+    val initialSignature: FunctionType
 )
 
 enum class EdgeSource {
     ForStatement,
-    Group,
     Identification,
     Operation,
     CollectionElement

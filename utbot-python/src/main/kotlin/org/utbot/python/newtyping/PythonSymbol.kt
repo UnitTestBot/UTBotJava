@@ -147,6 +147,7 @@ class PythonProtocolDescription(
 
 class PythonCallableTypeDescription(
     val argumentKinds: List<ArgKind>,
+    val argumentNames: List<String>,
     val isClassMethod: Boolean,
     val isStaticMethod: Boolean
 ): PythonTypeDescription(pythonCallableName) {
@@ -263,13 +264,14 @@ fun createPythonProtocol(
 fun createPythonCallableType(
     numberOfParameters: Int,
     argumentKinds: List<PythonCallableTypeDescription.ArgKind>,
+    argumentNames: List<String>,
     isClassMethod: Boolean,
     isStaticMethod: Boolean,
     initialization: (FunctionTypeCreator.Original) -> FunctionTypeCreator.InitializationData
 ): FunctionType =
     FunctionTypeCreator.create(
         numberOfParameters,
-        PythonCallableTypeDescription(argumentKinds, isClassMethod, isStaticMethod),
+        PythonCallableTypeDescription(argumentKinds, argumentNames, isClassMethod, isStaticMethod),
         initialization
     )
 

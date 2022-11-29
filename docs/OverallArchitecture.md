@@ -84,9 +84,7 @@ sequenceDiagram
     ij ->> ij: Calculate what jar need to be installed
         
     opt Some jars need to be installed  
-        alt
             ij ->> ij: Install jars
-        end
     end
 
     ij ->> engine: Start process

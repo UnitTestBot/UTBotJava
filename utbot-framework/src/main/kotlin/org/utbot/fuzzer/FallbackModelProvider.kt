@@ -1,7 +1,7 @@
 package org.utbot.fuzzer
 
 import org.utbot.common.isPublic
-import org.utbot.framework.concrete.UtModelConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -9,7 +9,6 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -22,7 +21,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.fuzzer.providers.AbstractModelProvider
 import java.util.*
-import java.util.function.IntSupplier
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.reflect.KClass

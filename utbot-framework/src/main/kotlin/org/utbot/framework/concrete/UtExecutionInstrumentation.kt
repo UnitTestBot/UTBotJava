@@ -45,6 +45,10 @@ import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
+import org.utbot.framework.concrete.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.framework.concrete.constructors.MockValueConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.concrete.mock.InstrumentationContext
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.

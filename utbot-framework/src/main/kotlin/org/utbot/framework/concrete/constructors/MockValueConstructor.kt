@@ -1,6 +1,21 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.concrete.constructors
 
+import java.io.Closeable
+import java.lang.reflect.Modifier
+import java.util.IdentityHashMap
+import kotlin.reflect.KClass
+import org.mockito.Mockito
+import org.mockito.stubbing.Answer
+import org.objectweb.asm.Type
+import org.utbot.common.Reflection
 import org.utbot.common.invokeCatching
+import org.utbot.engine.util.lambda.CapturedArgument
+import org.utbot.engine.util.lambda.constructLambda
+import org.utbot.engine.util.lambda.constructStaticLambda
+import org.utbot.framework.concrete.mock.InstanceMockController
+import org.utbot.framework.concrete.mock.InstrumentationContext
+import org.utbot.framework.concrete.mock.MethodMockController
+import org.utbot.framework.concrete.mock.MockController
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -20,6 +35,7 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtMockValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
@@ -31,25 +47,12 @@ import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.jField
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
-import java.io.Closeable
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import kotlin.reflect.KClass
-import org.mockito.Mockito
-import org.mockito.stubbing.Answer
-import org.objectweb.asm.Type
-import org.utbot.common.Reflection
-import org.utbot.engine.util.lambda.CapturedArgument
-import org.utbot.engine.util.lambda.constructLambda
-import org.utbot.engine.util.lambda.constructStaticLambda
-import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.instrumentation.process.runSandbox
 
 /**

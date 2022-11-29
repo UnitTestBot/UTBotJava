@@ -3,9 +3,12 @@ package org.utbot.python.newtyping.ast
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.Block
 import org.parsers.python.ast.FunctionDefinition
+import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.ast.visitor.Visitor
-import org.utbot.python.newtyping.ast.visitor.hints.FunctionParameter
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
+import org.utbot.python.newtyping.createPythonCallableType
+import org.utbot.python.newtyping.general.FunctionTypeCreator
+import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.readMypyAnnotationStorage
 
@@ -36,9 +39,17 @@ fun main() {
     val root = PythonParser(content).Module()
     val functionBlock = root.children().first { it is FunctionDefinition }.children().first { it is Block }
     val collector = HintCollector(
-        listOf(FunctionParameter("x", pythonAnyType), FunctionParameter("i", pythonAnyType))
+        createPythonCallableType(
+            0,
+            listOf(PythonCallableTypeDescription.ArgKind.Positional, PythonCallableTypeDescription.ArgKind.Positional),
+            listOf("x", "i"),
+            isClassMethod = false,
+            isStaticMethod = false
+        ) {
+            FunctionTypeCreator.InitializationData(listOf(pythonAnyType, pythonAnyType), pythonAnyType)
+        }
     )
     val visitor = Visitor(listOf(collector))
     visitor.visit(functionBlock)
-    val x = root.beginLine
+    BaselineAlgorithm.run(collector.result)
 }

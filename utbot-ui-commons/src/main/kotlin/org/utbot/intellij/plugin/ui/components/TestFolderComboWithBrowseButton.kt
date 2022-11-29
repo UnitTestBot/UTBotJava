@@ -8,6 +8,7 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ComponentWithBrowseButton
 import com.intellij.openapi.ui.FixedSizeButton
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
@@ -26,10 +27,12 @@ import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.dedicatedTestSourceRootName
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
+private const val SET_TEST_FOLDER = "set test folder"
+private val SRC_MAIN = FileUtil.toSystemDependentName("src/main/")
+
 class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
 
-    private val SET_TEST_FOLDER = "set test folder"
 
     init {
         if (model.project.isBuildWithGradle) {
@@ -95,6 +98,8 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
                 StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
             }
         }
+        //Remove standard suffix that may prevent exact module path matching
+        commonModuleSourceDirectory = StringUtil.trimEnd(commonModuleSourceDirectory, SRC_MAIN)
 
         return getAllTestSourceRoots().distinct().toMutableList().sortedWith(
             compareByDescending<TestSourceRoot> {

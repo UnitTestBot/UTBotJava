@@ -2,13 +2,13 @@ package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 
 import org.utbot.engine.greyboxfuzzer.generator.DataGenerator
 import org.utbot.engine.greyboxfuzzer.generator.createParameterContextForParameter
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator
 import org.utbot.engine.greyboxfuzzer.util.constructAssembleModelUsingMethodInvocation
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
@@ -21,6 +21,7 @@ class ExecutableInvoker(
     private val genericsContext: GenericsContext?,
     private val sourceOfRandomness: SourceOfRandomness,
     private val generationStatus: GenerationStatus,
+    private val generatorContext: GeneratorContext,
     private val depth: Int
 ) {
     fun invoke(): UtModel {
@@ -31,12 +32,13 @@ class ExecutableInvoker(
                 } else {
                     ParameterTypeContext.forParameter(indexedParameter.value)
                 }
-            DataGenerator.generate(parameterContext, sourceOfRandomness, generationStatus, depth)?: UtNullModel(parameterContext.rawClass.id)
+            DataGenerator.generateUtModel(parameterContext, depth, generatorContext, sourceOfRandomness, generationStatus)
         }
-        return UtModelGenerator.utModelConstructor.constructAssembleModelUsingMethodInvocation(
+        return generatorContext.utModelConstructor.constructAssembleModelUsingMethodInvocation(
             clazz,
             executableId,
-            parameterValues
+            parameterValues,
+            generatorContext
         )
     }
 }

@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
 import org.utbot.quickcheck.generator.DecimalGenerator
@@ -36,7 +36,7 @@ class DoubleGenerator : DecimalGenerator(listOf(Double::class.javaObjectType)) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(generateValue(random, status), doubleWrapperClassId)
+        return generatorContext.utModelConstructor.construct(generateValue(random, status), doubleWrapperClassId)
     }
 
     fun generateValue(

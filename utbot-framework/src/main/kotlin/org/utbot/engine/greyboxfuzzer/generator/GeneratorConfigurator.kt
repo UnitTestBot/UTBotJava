@@ -26,7 +26,7 @@ object GeneratorConfigurator {
     private val minDouble: Double = -100.0
     private val maxDouble: Double = 100.0
     private val minStringLength: Int = 1
-    private val maxStringLength: Int = 10
+    private val maxStringLength: Int = 5
     val minCollectionSize: Int = 1
     val maxCollectionSize: Int = 5
 
@@ -92,10 +92,14 @@ object GeneratorConfigurator {
             is MapGenerator -> generator.configure(sizeAnnotationInstance)
             is StringGenerator -> generator.configure(
                 if (Random.getTrue(50)) {
-                    setOf('a'.code..'z'.code)
+                    if (Random.getTrue(50)) {
+                        setOf('a'.code..'z'.code)
+                    } else {
+                        setOf('A'.code..'Z'.code)
+                    }
                 } else {
                     setOf(' '.code..'~'.code)
-                }
+                }, minStringLength..maxStringLength
             )
             else -> Unit
         }

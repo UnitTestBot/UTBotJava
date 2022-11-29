@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.time
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -45,7 +45,7 @@ class YearGenerator : Generator(Year::class.java) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             Year.of(random.nextInt(min.value, max.value)),
             Year::class.id
         )

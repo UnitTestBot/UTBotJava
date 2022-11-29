@@ -1,10 +1,11 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.Size
 import org.utbot.quickcheck.random.SourceOfRandomness
 
 /**
@@ -16,18 +17,20 @@ import org.utbot.quickcheck.random.SourceOfRandomness
  * [GenerationStatus.size].
  */
 abstract class AbstractStringGenerator : Generator(String::class.java) {
+    protected open var lengthRange: IntRange? = null
+
     override fun generate(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(generateValue(random, status), stringClassId)
+        return generatorContext.utModelConstructor.construct(generateValue(random, status), stringClassId)
     }
 
     fun generateValue(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): String {
-        val codePoints = IntArray(status.size())
+        val codePoints = IntArray(lengthRange?.randomOrNull() ?: status.size())
         for (i in codePoints.indices) codePoints[i] = nextCodePoint(random)
         return String(codePoints, 0, codePoints.size)
     }

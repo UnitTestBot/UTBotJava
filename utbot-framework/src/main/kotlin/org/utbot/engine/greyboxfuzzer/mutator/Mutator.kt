@@ -6,11 +6,13 @@ import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.engine.logger
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.fieldId
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.quickcheck.generator.GenerationState
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
@@ -40,6 +42,7 @@ object Mutator {
         val randomParameter = seedCopy.parameters.getOrNull(randomParameterIndex) ?: return seedCopy
         val randomParameterGenerator = randomParameter.generator ?: return seedCopy
         randomParameterGenerator.generationState = GenerationState.MODIFY
+        randomParameterGenerator.generatorContext.startCheckpoint()
         val newUtModel = randomParameterGenerator.generateImpl(sourceOfRandomness, genStatus)
         val newFParameter = randomParameter.replaceUtModel(newUtModel)
         return seedCopy.replaceFParameter(randomParameterIndex, newFParameter)
@@ -48,32 +51,36 @@ object Mutator {
     fun regenerateFields(
         clazz: Class<*>,
         classInstance: UtAssembleModel,
-        fieldsToRegenerate: List<Field>
+        fieldsToRegenerate: List<Field>,
+        generatorContext: GeneratorContext
     ): UtModel {
         val parameterTypeContext = ParameterTypeContext.forClass(clazz)
         val modifications =
-            fieldsToRegenerate.mapNotNull { setNewFieldValue(it, parameterTypeContext.generics, classInstance) }
+            fieldsToRegenerate.mapNotNull { setNewFieldValue(it, parameterTypeContext.generics, classInstance, generatorContext) }
         return classInstance.addModification(modifications)
     }
 
     fun regenerateFieldsWithContext(
         genericsContext: GenericsContext,
         classInstance: UtAssembleModel,
-        fieldsToRegenerate: List<Field>
+        fieldsToRegenerate: List<Field>,
+        generatorContext: GeneratorContext
     ): UtModel {
-        val modifications = fieldsToRegenerate.mapNotNull { setNewFieldValue(it, genericsContext, classInstance) }
+        val modifications = fieldsToRegenerate.mapNotNull { setNewFieldValue(it, genericsContext, classInstance, generatorContext) }
         return classInstance.addModification(modifications)
     }
 
     fun regenerateFieldWithContext(
         genericsContext: GenericsContext,
         classInstance: UtAssembleModel,
-        fieldToRegenerate: Field
+        fieldToRegenerate: Field,
+        generatorContext: GeneratorContext,
     ): Pair<UtModel, Generator>? =
         setNewFieldValueWithGenerator(
             fieldToRegenerate,
             genericsContext,
-            classInstance
+            classInstance,
+            generatorContext
         )?.let { (generator, modification) ->
             classInstance.addOrReplaceModification(modification) to generator
         }
@@ -81,9 +88,10 @@ object Mutator {
     private fun setNewFieldValueWithGenerator(
         field: Field,
         genericsContext: GenericsContext,
-        clazzInstance: UtAssembleModel
+        clazzInstance: UtAssembleModel,
+        generatorContext: GeneratorContext,
     ): Pair<Generator, UtStatementModel>? {
-        if (field.hasAtLeastOneOfModifiers(
+        if (field.hasModifiers(
                 Modifier.STATIC,
                 Modifier.FINAL
             )
@@ -98,12 +106,19 @@ object Mutator {
             genericsContext
         )
         val generatorForField =
-            GreyBoxFuzzerGenerators.generatorRepository.getOrProduceGenerator(parameterTypeContextForResolvedType, 0)
+            GreyBoxFuzzerGenerators.generatorRepository.getOrProduceGenerator(parameterTypeContextForResolvedType, generatorContext, 0)
                 ?: return null
-        val newFieldValue = generatorForField.generateImpl(
-            GreyBoxFuzzerGenerators.sourceOfRandomness,
-            GreyBoxFuzzerGenerators.genStatus
-        )
+        var newFieldValue: UtModel = UtNullModel(parameterTypeContextForResolvedType.rawClass.id)
+        for (i in 0 until 3) {
+            try {
+                generatorForField.generationState = GenerationState.REGENERATE
+                generatorForField.generatorContext.startCheckpoint()
+                newFieldValue = generatorForField.generateImpl(GreyBoxFuzzerGenerators.sourceOfRandomness, GreyBoxFuzzerGenerators.genStatus)
+                if (newFieldValue !is UtNullModel) break
+            } catch (e: Throwable) {
+                continue
+            }
+        }
         logger.debug { "NEW FIELD VALUE = $newFieldValue" }
         return generatorForField to UtDirectSetFieldModel(clazzInstance, field.fieldId, newFieldValue)
     }
@@ -111,12 +126,14 @@ object Mutator {
     private fun setNewFieldValue(
         field: Field,
         genericsContext: GenericsContext,
-        clazzInstance: UtAssembleModel
-    ): UtStatementModel? = setNewFieldValueWithGenerator(field, genericsContext, clazzInstance)?.second
+        clazzInstance: UtAssembleModel,
+        generatorContext: GeneratorContext,
+    ): UtStatementModel? = setNewFieldValueWithGenerator(field, genericsContext, clazzInstance, generatorContext)?.second
 
     fun mutateThisInstance(
         thisInstance: ThisInstance,
-        fieldsToRegenerate: List<Field>
+        fieldsToRegenerate: List<Field>,
+        generatorContext: GeneratorContext
     ): ThisInstance {
         if (thisInstance !is NormalMethodThisInstance) return thisInstance
         val thisInstanceAsUtModel = thisInstance.utModel as UtAssembleModel
@@ -124,13 +141,15 @@ object Mutator {
             regenerateFields(
                 thisInstance.classId.jClass,
                 thisInstanceAsUtModel,
-                fieldsToRegenerate
+                fieldsToRegenerate,
+                generatorContext
             )
         return NormalMethodThisInstance(mutationResult, thisInstance.generator, thisInstance.classId)
     }
 
     fun mutateParameter(
-        fParameter: FParameter
+        fParameter: FParameter,
+        generatorContext: GeneratorContext,
     ): FParameter {
         val originalParameter = fParameter.parameter
         val originalUtModel = fParameter.utModel
@@ -149,7 +168,7 @@ object Mutator {
                 val resolvedParameterCtx =
                     originalParameter.resolveParameterTypeAndBuildParameterContext(index, randomMethod.method)
                 val generatorForParameter =
-                    GreyBoxFuzzerGenerators.generatorRepository.getOrProduceGenerator(resolvedParameterCtx, 0)
+                    GreyBoxFuzzerGenerators.generatorRepository.getOrProduceGenerator(resolvedParameterCtx, generatorContext, 0)
                         ?: return fParameter
                 DataGenerator.generate(
                     generatorForParameter,

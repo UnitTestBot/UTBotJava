@@ -6,6 +6,7 @@ import org.utbot.engine.greyboxfuzzer.util.toClass
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Method
@@ -18,6 +19,7 @@ internal class StaticsMethodBasedInstanceGenerator(
     private val gctx: GenericsContext,
     private val sourceOfRandomness: SourceOfRandomness,
     private val generationStatus: GenerationStatus,
+    private val generatorContext: GeneratorContext,
     private val depth: Int
 ) : InstanceGenerator {
     override fun generate(): UtModel =
@@ -35,6 +37,7 @@ internal class StaticsMethodBasedInstanceGenerator(
                 resolvedMethodContext,
                 sourceOfRandomness,
                 generationStatus,
+                generatorContext,
                 depth
             ).invoke()
         } ?: UtNullModel(clazz.id)

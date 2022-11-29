@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util.concurrent
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.ComponentizedGenerator
@@ -19,7 +19,7 @@ class CallableGenerator<V> : ComponentizedGenerator(Callable::class.java) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             makeLambda(
                 Callable::class.java,
                 componentGenerators()[0],

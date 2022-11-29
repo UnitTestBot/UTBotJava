@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.time
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
@@ -55,9 +55,9 @@ class ClockGenerator : Generator(Clock::class.java) {
     ): UtModel {
         val instant = random.nextInstant(min, max)
         val zoneId = UTC_ZONE_ID
-        val instantModel = utModelConstructor.construct(instant, Instant::class.id)
-        val zoneIdModel = utModelConstructor.construct(zoneId, ZoneId::class.id)
-        val modelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val instantModel = generatorContext.utModelConstructor.construct(instant, Instant::class.id)
+        val zoneIdModel = generatorContext.utModelConstructor.construct(zoneId, ZoneId::class.id)
+        val modelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         val constructorId = Clock::fixed.executableId
         return UtAssembleModel(
             id = modelId,

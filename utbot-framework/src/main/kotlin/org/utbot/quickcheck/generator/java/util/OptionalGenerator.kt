@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
@@ -23,14 +23,14 @@ class OptionalGenerator : ComponentizedGenerator(Optional::class.java) {
         val trial = random.nextDouble()
         val classId = Optional::class.id
         if (trial < 0.25) {
-            return utModelConstructor.construct(
+            return generatorContext.utModelConstructor.construct(
                 Optional.empty<Any>(),
                 classId
             )
         }
         val value = componentGenerators().first().generateImpl(random, status)
         val constructorId = methodId(classId, "of", classId, objectClassId)
-        val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val generatedModelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         return UtAssembleModel(
             generatedModelId,
             classId,

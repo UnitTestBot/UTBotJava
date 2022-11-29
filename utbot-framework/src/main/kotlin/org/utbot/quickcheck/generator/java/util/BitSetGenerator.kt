@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -21,6 +21,6 @@ class BitSetGenerator : Generator(BitSet::class.java) {
         for (i in 0 until size) {
             bits[i] = random.nextBoolean()
         }
-        return utModelConstructor.construct(bits, BitSet::class.id)
+        return generatorContext.utModelConstructor.construct(bits, BitSet::class.id)
     }
 }

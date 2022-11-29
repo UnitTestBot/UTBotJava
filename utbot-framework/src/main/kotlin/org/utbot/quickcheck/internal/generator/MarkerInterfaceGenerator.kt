@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.internal.generator
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -16,7 +16,7 @@ class MarkerInterfaceGenerator(private val markerType: Class<*>) : Generator(mar
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             markerType.cast(
                 Proxy.newProxyInstance(
                     markerType.classLoader, arrayOf(markerType),

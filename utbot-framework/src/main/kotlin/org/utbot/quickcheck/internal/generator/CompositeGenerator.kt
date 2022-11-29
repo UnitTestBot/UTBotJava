@@ -127,7 +127,7 @@ class CompositeGenerator(composed: List<Weighted<Generator>>) : Generator(Any::c
             it.generatedUtModel = generatedUtModel
             it.generationState = generationState
             it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
-            GeneratorConfigurator.configureGenerator(it, 85)
+            GeneratorConfigurator.configureGenerator(it, 100)
         }
     }
 

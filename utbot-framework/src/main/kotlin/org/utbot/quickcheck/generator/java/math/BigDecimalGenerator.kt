@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.math
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.DecimalGenerator
@@ -91,7 +91,7 @@ class BigDecimalGenerator : DecimalGenerator(BigDecimal::class.java) {
             generated = random.nextBigInteger(range.bitLength())
         } while (generated >= range)
 
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             minShifted.add(BigDecimal(generated)).movePointLeft(scale),
             BigDecimal::class.id
         )

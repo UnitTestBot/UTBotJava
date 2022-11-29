@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.time
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -53,7 +53,7 @@ class YearMonthGenerator : Generator(YearMonth::class.java) {
             min.year * 12L + min.monthValue - 1,
             max.year * 12L + max.monthValue - 1
         )
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             YearMonth.of(
                 (generated / 12).toInt(),
                 abs(generated % 12).toInt() + 1

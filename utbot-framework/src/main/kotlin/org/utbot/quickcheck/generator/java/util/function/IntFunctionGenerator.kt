@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util.function
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.generator.ComponentizedGenerator
@@ -23,7 +23,7 @@ class IntFunctionGenerator<R> : ComponentizedGenerator(IntFunction::class.java) 
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             makeLambda(
                 IntFunction::class.java,
                 componentGenerators()[0],

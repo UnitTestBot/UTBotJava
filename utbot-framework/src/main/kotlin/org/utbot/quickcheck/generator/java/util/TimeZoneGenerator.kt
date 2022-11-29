@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -16,7 +16,7 @@ class TimeZoneGenerator : Generator(TimeZone::class.java) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             TimeZone.getTimeZone(random.choose(AVAILABLE_IDS)),
             classIdForType(TimeZone::class.java)
         )

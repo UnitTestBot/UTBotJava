@@ -4,44 +4,62 @@ import org.utbot.engine.greyboxfuzzer.util.getTrue
 import kotlin.math.abs
 import kotlin.random.Random
 
-class SeedCollector(private val maxSize: Int = 50) {
-    private val seeds = sortedSetOf(
-        comparator =
-        compareByDescending { seed: Seed -> seed.score }.thenComparator { seed1, seed2 -> if (seed1 === seed2) 0 else 1 }
-    )
+class SeedCollector(private val maxSize: Int = 50, private val methodLines: Set<Int>) {
+    private val seeds = ArrayList<Seed>(maxSize)
+//        sortedSetOf(
+//            comparator =
+//            compareByDescending { seed: Seed -> seed.score }.thenComparator { seed1, seed2 -> if (seed1 === seed2) 0 else 1 }
+//        )
 
-    fun addSeed(seed: Seed) {
-        seeds.add(seed)
-        while (seeds.size >= maxSize) {
-            seeds.remove(seeds.last())
+    fun calcSeedScore(coverage: Set<Int>): Double =
+        coverage.sumOf { line ->
+            val numOfSeedCoveredLine = seeds.count { it.lineCoverage.contains(line) }
+            if (numOfSeedCoveredLine == 0) {
+                Double.MAX_VALUE
+            } else {
+                1.0 / numOfSeedCoveredLine
+            }
+        }
+
+    private fun recalculateSeedScores() {
+        seeds.forEach { seed ->
+            seed.score = calcSeedScore(seed.lineCoverage)
         }
     }
 
-//    fun getRandomWeightedSeed(): Seed {
-//        val priorityWeightedFunction = { a: Double -> exp(a).pow(2) }
-//        val minPriority = seeds.last().priority
-//        val maxPriority = seeds.first().priority
-//        val priorityDiffs = if (maxPriority == minPriority) 1.0 else maxPriority - minPriority
-//        val normalizedSeeds = seeds.map { it to (it.priority - minPriority) / priorityDiffs }
-//        val sumOfSeedPriorities = normalizedSeeds.sumOf { priorityWeightedFunction.invoke(it.second) }
-//        val randomSeedPriority = Random.nextDouble(0.0, sumOfSeedPriorities)
-//        var priorityCounter = 0.0
-//        normalizedSeeds.forEach { (seed, priority) ->
-//            priorityCounter += priorityWeightedFunction.invoke(priority)
-//            if (priorityCounter >= randomSeedPriority) {
-//                return seed
-//            }
-//        }
-//        return seeds.first()
-//    }
-
-    fun getRandomWeightedSeed() =
-        if (Random.getTrue(75)) {
-            val bestSeed = getBestSeed().score
-            seeds.filter { abs(it.score - bestSeed) < 1e-5 }.randomOrNull()
-        } else {
-            seeds.randomOrNull()
+    //
+    fun addSeed(seed: Seed) {
+        if (seeds.isEmpty()) {
+            seeds.add(seed)
+            return
         }
+        val indexToInsert = seeds.indexOfFirst { it.score <= seed.score }
+        if (indexToInsert == -1 && seeds.size < maxSize - 1) {
+            seeds.add(seed)
+            recalculateSeedScores()
+            seeds.sortByDescending { it.score }
+            return
+        }
+        seeds.add(indexToInsert, seed)
+        recalculateSeedScores()
+        seeds.sortByDescending { it.score }
+        while (seeds.size >= maxSize) {
+            seeds.removeLast()
+        }
+    }
+
+    fun getRandomWeightedSeed(): Seed {
+        val scoreSum = seeds.sumOf { it.score }
+        val randomScore = Random.nextDouble(0.0, scoreSum)
+        var scoreCounter = 0.0
+        seeds.forEach { seed ->
+            scoreCounter += seed.score
+            if (scoreCounter >= randomScore) {
+                return seed
+            }
+        }
+        return seeds.first()
+    }
 
     fun getBestSeed() = seeds.first()
     fun removeSeed(seed: Seed) = seeds.remove(seed)

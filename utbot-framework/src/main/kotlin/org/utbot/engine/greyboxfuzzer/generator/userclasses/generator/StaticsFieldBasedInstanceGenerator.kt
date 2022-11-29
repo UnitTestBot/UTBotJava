@@ -1,7 +1,7 @@
 package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 
 import org.utbot.engine.greyboxfuzzer.util.SootStaticsCollector
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.engine.greyboxfuzzer.util.hasModifiers
 import org.utbot.engine.greyboxfuzzer.util.toClass
 import org.utbot.external.api.classIdForType
@@ -19,11 +19,12 @@ import java.util.*
 
 internal class StaticsFieldBasedInstanceGenerator(
     private val clazz: Class<*>,
-    private val gctx: GenericsContext
+    private val gctx: GenericsContext,
+    private val generatorContext: GeneratorContext
 ) : InstanceGenerator {
     override fun generate(): UtModel =
         getRandomStaticToProduceInstanceUsingSoot()?.let { fieldToProvideInstance ->
-            createUtModelForStaticFieldInvocation(UtModelGenerator.utModelConstructor, fieldToProvideInstance)
+            createUtModelForStaticFieldInvocation(generatorContext.utModelConstructor, fieldToProvideInstance)
         } ?: UtNullModel(clazz.id)
 
     //In case of no Soot

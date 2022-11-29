@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.intWrapperClassId
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -34,7 +34,7 @@ class IntegerGenerator : IntegralGenerator(listOf(Int::class.javaObjectType)) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(generateValue(random), intWrapperClassId)
+        return generatorContext.utModelConstructor.construct(generateValue(random), intWrapperClassId)
     }
 
     fun generateValue(

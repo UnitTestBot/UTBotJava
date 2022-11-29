@@ -2,9 +2,6 @@
 
 package org.utbot.engine.greyboxfuzzer.generator.userclasses
 
-import org.utbot.quickcheck.generator.ComponentizedGenerator
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.Generator
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import org.javaruntype.type.TypeParameter
@@ -13,13 +10,11 @@ import org.utbot.engine.greyboxfuzzer.generator.userclasses.generator.*
 import org.utbot.engine.greyboxfuzzer.mutator.Mutator
 import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.engine.logger
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.quickcheck.generator.GenerationState
+import org.utbot.quickcheck.generator.*
 import java.lang.reflect.*
 import kotlin.random.Random
 
@@ -37,7 +32,12 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
             it.depth = depth
             it.parameterTypeContext = parameterTypeContext
             it.generationMethod = generationMethod
-            it.mutatedFields.putAll(mutatedFields)
+            it.generatedUtModel = generatedUtModel
+            it.generationState = generationState
+            if (isGeneratorContextInitialized()) {
+                it.generatorContext = generatorContext
+            }
+            it.mutatedFields.putAll(mutatedFields.entries.map { it.key to it.value.copy() })
         }
     }
 
@@ -49,17 +49,22 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
         return parameterTypeContext?.resolved?.typeParameters?.size ?: 0
     }
 
-    fun generate(random: SourceOfRandomness, status: GenerationStatus, generationMethod: GenerationMethod): UtModel? {
+    fun generate(random: SourceOfRandomness, status: GenerationStatus, generationMethod: GenerationMethod): UtModel {
         this.generationMethod = generationMethod
         return generateImpl(random, status)
     }
 
     private fun regenerate(random: SourceOfRandomness, status: GenerationStatus): UtModel {
         logger.debug { "Trying to generate ${parameterTypeContext!!.resolved}. Current depth depth: $depth" }
-        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return TODO("null")
+        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return UtNullModel(clazz!!.id)
         val immutableClazz = clazz!!
-        if (immutableClazz == Any::class.java) return ObjectGenerator(random, status).generate()
-        if (immutableClazz == Class::class.java) return ReflectionClassGenerator(parameterTypeContext!!).generate()
+        when (immutableClazz) {
+            Any::class.java -> return ObjectGenerator(parameterTypeContext!!, random, status, generatorContext).generate()
+            Class::class.java -> return ReflectionClassGenerator(parameterTypeContext!!, generatorContext).generate()
+            Type::class.java -> return ReflectionTypeGenerator(parameterTypeContext!!, generatorContext).generate()
+            //TODO implement field generator
+            Field::class.java -> return UtNullModel(fieldClassId)
+        }
         //TODO! generate inner classes instances
         if (immutableClazz.declaringClass != null && !immutableClazz.hasModifiers(Modifier.STATIC)) {
             return UtNullModel(immutableClazz.id)
@@ -72,6 +77,7 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
                 gctx,
                 GreyBoxFuzzerGenerators.sourceOfRandomness,
                 GreyBoxFuzzerGenerators.genStatus,
+                generatorContext,
                 depth
             ).generate()
         }
@@ -82,13 +88,14 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
             generationMethod,
             GreyBoxFuzzerGenerators.sourceOfRandomness,
             GreyBoxFuzzerGenerators.genStatus,
+            generatorContext,
             depth
         ).generate()
     }
 
     override fun modify(random: SourceOfRandomness, status: GenerationStatus): UtModel {
-        val cachedUtModel =
-            generatedUtModel as? UtAssembleModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        val cachedUtModel = generatedUtModel as? UtAssembleModel ?: return generatedUtModel!!.copy()
         return if (Random.getTrue(80) && mutatedFields.isNotEmpty()) {
             regenerateField(random, status, cachedUtModel)
         } else {
@@ -120,7 +127,7 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
         val resolvedJavaType = parameterTypeContext!!.generics.resolveType(parameterTypeContext!!.type())
         val gctx = resolvedJavaType.createGenericsContext(clazz!!)
         if (clazz == randomFieldDeclaringClass) {
-            return Mutator.regenerateFieldWithContext(gctx, cachedUtModel, randomField)?.let {
+            return Mutator.regenerateFieldWithContext(gctx, cachedUtModel, randomField, generatorContext)?.let {
                 mutatedFields[randomField] = it.second
                 it.first
             } ?: cachedUtModel
@@ -140,7 +147,7 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
                     clazz!!,
                     chain.map { it!! }.reversed().drop(1)
                 ) ?: return cachedUtModel
-            return Mutator.regenerateFieldWithContext(genericsContext, cachedUtModel, randomField)?.let {
+            return Mutator.regenerateFieldWithContext(genericsContext, cachedUtModel, randomField, generatorContext)?.let {
                 mutatedFields[randomField] = it.second
                 it.first
             } ?: cachedUtModel

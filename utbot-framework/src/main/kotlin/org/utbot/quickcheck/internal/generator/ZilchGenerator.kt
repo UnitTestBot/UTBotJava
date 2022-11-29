@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.internal.generator
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -15,6 +15,6 @@ class ZilchGenerator : Generator(Zilch::class.java) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return UtNullModel(objectClassId)//utModelConstructor.construct(Zilch, classIdForType(Zilch::class.java))
+        return UtNullModel(objectClassId)// generatorContext.utModelConstructor.construct(Zilch, classIdForType(Zilch::class.java))
     }
 }

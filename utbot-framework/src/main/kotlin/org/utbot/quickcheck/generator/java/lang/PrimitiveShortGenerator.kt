@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -34,6 +34,6 @@ class PrimitiveShortGenerator : IntegralGenerator(listOf(Short::class.javaPrimit
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(random.nextShort(min, max), shortClassId)
+        return generatorContext.utModelConstructor.construct(random.nextShort(min, max), shortClassId)
     }
 }

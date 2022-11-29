@@ -12,6 +12,7 @@ import org.utbot.engine.logger
 import org.utbot.engine.rawType
 import org.utbot.quickcheck.generator.ComponentizedGenerator
 import org.utbot.quickcheck.generator.Generator
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.internal.generator.ArrayGenerator
@@ -58,17 +59,31 @@ fun GeneratorRepository.produceUserClassGenerator(
     return userClassGenerator
 }
 
-fun GeneratorRepository.getOrProduceGenerator(field: Field, depth: Int = 0): Generator? =
-    getOrProduceGenerator(ParameterTypeContext.forField(field), depth)
+fun GeneratorRepository.getOrProduceGenerator(
+    field: Field,
+    generatorContext: GeneratorContext,
+    depth: Int = 0
+): Generator? =
+    getOrProduceGenerator(ParameterTypeContext.forField(field), generatorContext, depth)
 
-fun GeneratorRepository.getOrProduceGenerator(param: Parameter, parameterIndex: Int, depth: Int = 0): Generator? =
-    getOrProduceGenerator(param.createParameterTypeContext(parameterIndex), depth)
+fun GeneratorRepository.getOrProduceGenerator(
+    param: Parameter,
+    parameterIndex: Int,
+    generatorContext: GeneratorContext,
+    depth: Int = 0
+): Generator? =
+    getOrProduceGenerator(param.createParameterTypeContext(parameterIndex), generatorContext, depth)
 
-fun GeneratorRepository.getOrProduceGenerator(clazz: Class<*>, depth: Int = 0): Generator? =
-    getOrProduceGenerator(clazz.createParameterTypeContext(), depth)
+fun GeneratorRepository.getOrProduceGenerator(
+    clazz: Class<*>,
+    generatorContext: GeneratorContext,
+    depth: Int = 0
+): Generator? =
+    getOrProduceGenerator(clazz.createParameterTypeContext(), generatorContext, depth)
 
 fun GeneratorRepository.getOrProduceGenerator(
     parameterTypeContext: ParameterTypeContext,
+    generatorContext: GeneratorContext,
     depth: Int
 ): Generator? {
     val producedUserClassesGenerators = mutableListOf<UserClassGenerator>()
@@ -78,7 +93,11 @@ fun GeneratorRepository.getOrProduceGenerator(
                 this.produceGenerator(typeContext)
                 //TODO catch specific exception
             } catch (e: Exception) {
-                producedUserClassesGenerators += produceUserClassGenerator(typeContext.rawClass, typeContext, depth + 1)
+                producedUserClassesGenerators += produceUserClassGenerator(
+                    typeContext.rawClass,
+                    typeContext,
+                    depth + 1
+                )
             }
         }
     val generator =
@@ -90,9 +109,9 @@ fun GeneratorRepository.getOrProduceGenerator(
         } finally {
             producedUserClassesGenerators.forEach { removeGenerator(it.parameterTypeContext!!.resolved.rawClass) }
         }
-//    (listOf(generator) + generator.getAllComponents()).forEach {
-//        GeneratorConfigurator.configureGenerator(it, 85)
-//    }
+    (listOf(generator) + generator.getAllComponents()).forEach {
+        it.generatorContext = generatorContext
+    }
     return generator
 }
 
@@ -152,7 +171,11 @@ fun Class<*>.createParameterTypeContext(): ParameterTypeContext {
     val generics = GenericsResolver.resolve(this)
     val resolvedGenerics =
         generics.resolveTypeGenerics(this).map { createStandardTypeParameter(Types.forJavaLangReflectType(it)) }
-    val resolvedType = Types.forClass(this, *resolvedGenerics.toTypedArray())
+    val resolvedType = try {
+        Types.forClass(this, *resolvedGenerics.toTypedArray())
+    } catch (e: Throwable) {
+        Types.forClass(this)
+    }
     return ParameterTypeContext(
         this.typeName,
         FakeAnnotatedTypeFactory.makeFrom(this),
@@ -264,7 +287,12 @@ object QuickCheckExtensions {
         val m = mutableMapOf(prevImplementer to gm)
         return GenericsContext(GenericsInfo(prevImplementer, m), prevImplementer)
     }
-    fun buildGenericsContextForInterfaceParent(resolvedType: Type, clazz: Class<*>, parentChain: List<Class<*>>): GenericsContext? {
+
+    fun buildGenericsContextForInterfaceParent(
+        resolvedType: Type,
+        clazz: Class<*>,
+        parentChain: List<Class<*>>
+    ): GenericsContext? {
         val generics = mutableListOf<Pair<Type, MutableList<Type>>>()
         var curClass = clazz
         resolvedType.getActualTypeArguments().forEachIndexed { index, typeVariable ->

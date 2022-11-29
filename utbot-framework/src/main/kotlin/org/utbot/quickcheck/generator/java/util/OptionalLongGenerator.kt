@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -36,6 +36,6 @@ class OptionalLongGenerator : Generator(OptionalLong::class.java) {
     ): UtModel {
         val trial = random.nextDouble()
         val generated = if (trial < 0.25) OptionalLong.empty() else OptionalLong.of(longs.generateValue(random, status))
-        return utModelConstructor.construct(generated, classIdForType(OptionalLong::class.java))
+        return generatorContext.utModelConstructor.construct(generated, classIdForType(OptionalLong::class.java))
     }
 }

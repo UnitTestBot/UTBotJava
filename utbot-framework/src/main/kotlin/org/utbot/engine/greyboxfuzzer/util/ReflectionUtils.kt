@@ -166,12 +166,7 @@ fun ru.vyarus.java.generics.resolver.context.container.ParameterizedTypeImpl.get
 }
 
 fun List<Constructor<*>>.chooseRandomConstructor() =
-    if (Random.getTrue(75)) {
-        this.shuffled().minByOrNull { it.parameterCount }
-    } else this.randomOrNull()
-
-fun List<Method>.chooseRandomMethodToGenerateInstance() =
-    if (Random.getTrue(75)) {
+    if (Random.getTrue(60)) {
         this.shuffled().minByOrNull { it.parameterCount }
     } else this.randomOrNull()
 
@@ -201,7 +196,15 @@ object ReflectionUtils {
                     Any::class.java.rawType
                 }
             } else type
-        return Types.forJavaLangReflectType(safeType)
+        return try {
+            Types.forJavaLangReflectType(safeType)
+        } catch (e: Throwable) {
+            try {
+                Types.forJavaLangReflectType(safeType.toClass())
+            } catch (e: Throwable) {
+                Types.forJavaLangReflectType(Any::class.java)
+            }
+        }
     }
 
 }

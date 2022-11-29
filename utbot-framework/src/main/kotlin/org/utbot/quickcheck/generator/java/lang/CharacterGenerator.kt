@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.charWrapperClassId
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -38,6 +38,6 @@ class CharacterGenerator : Generator(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(random.nextChar(min, max), charWrapperClassId)
+        return generatorContext.utModelConstructor.construct(random.nextChar(min, max), charWrapperClassId)
     }
 }

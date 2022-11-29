@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.internal.generator
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -14,6 +14,6 @@ class EnumGenerator(private val enumType: Class<*>) : Generator(Enum::class.java
     ): UtModel {
         val values = enumType.enumConstants
         val index = random.nextInt(0, values.size - 1)
-        return utModelConstructor.construct(values[index], Enum::class.id)
+        return generatorContext.utModelConstructor.construct(values[index], Enum::class.id)
     }
 }

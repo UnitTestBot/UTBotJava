@@ -1,6 +1,7 @@
 package org.utbot.engine.greyboxfuzzer.util
 
 import org.utbot.framework.plugin.api.util.signature
+import soot.ArrayType
 import soot.Hierarchy
 import soot.RefType
 import soot.Scene
@@ -47,14 +48,49 @@ fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
     return res
 }
 
-fun SootMethod.getAllTypesFromCastAndInstanceOfInstructions(): Set<SootClass> =
+fun SootMethod.getAllTypesFromCastAndInstanceOfInstructions(): Set<Class<*>> =
     this.activeBody.units.asSequence().filterIsInstance<JAssignStmt>()
         .map { it.rightOp }
         .filter { it is JCastExpr || it is JInstanceOfExpr }
         .mapNotNull {
             when (it) {
-                is JCastExpr -> (it.type as? RefType)?.sootClass
-                else -> ((it as JInstanceOfExpr).checkType as? RefType)?.sootClass
+                is JCastExpr -> {
+                    val type = it.type
+                    when (type) {
+                        is RefType -> type.sootClass?.toJavaClass()
+                        is ArrayType -> {
+                            if (type.elementType is RefType) {
+                                try {
+                                    Class.forName("[L${type.elementType};")
+                                } catch (e: Throwable) {
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                        }
+                        else -> null
+                    }
+                    //(it.type as? RefType)?.sootClass?.toJavaClass()
+                }
+                else -> {
+                    val type = (it as JInstanceOfExpr).checkType
+                    when (type) {
+                        is RefType -> type.sootClass?.toJavaClass()
+                        is ArrayType -> {
+                            if (type.elementType is RefType) {
+                                try {
+                                    Class.forName("[L${type.elementType};")
+                                } catch (e: Throwable) {
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                        }
+                        else -> null
+                    }
+                }
             }
         }.toSet()
 

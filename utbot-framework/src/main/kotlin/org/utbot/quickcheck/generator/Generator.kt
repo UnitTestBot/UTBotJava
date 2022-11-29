@@ -8,6 +8,8 @@ import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
 import org.utbot.engine.greyboxfuzzer.util.getImplementersOfWithChain
 import org.utbot.engine.greyboxfuzzer.util.removeIfAndReturnRemovedElements
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.quickcheck.internal.Reflection
 import org.utbot.quickcheck.internal.ReflectionException
 import org.utbot.quickcheck.random.SourceOfRandomness
@@ -28,9 +30,13 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
     var generatedUtModel: UtModel? = null
     var generationState = GenerationState.REGENERATE
     var nestedGenerators = mutableListOf<Generator>()
+    lateinit var generatorContext: GeneratorContext
 
-    open fun generateImpl(random: SourceOfRandomness, status: GenerationStatus): UtModel =
-        when (generationState) {
+    open fun generateImpl(random: SourceOfRandomness, status: GenerationStatus): UtModel {
+        if (generatorContext.checkPoint()) {
+            return UtNullModel(objectClassId)
+        }
+        return when (generationState) {
             GenerationState.REGENERATE -> {
                 generate(random, status).also {
                     generatedUtModel = it
@@ -56,6 +62,7 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
                 }
             }
         }
+    }
 
     private fun flattenedTo(destination: MutableList<Generator>) {
         destination.add(this)
@@ -250,6 +257,7 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
         repo = provided
     }
 
+    fun isGeneratorContextInitialized() = this::generatorContext.isInitialized
     /**
      * Used by the framework to make a copy of the receiver.
      *
@@ -260,7 +268,10 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
             it.generatedUtModel = generatedUtModel
             it.generationState = generationState
             it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
-            GeneratorConfigurator.configureGenerator(it, 85)
+            if (isGeneratorContextInitialized()) {
+                it.generatorContext = generatorContext
+            }
+            GeneratorConfigurator.configureGenerator(it, 95)
         }
     }
 

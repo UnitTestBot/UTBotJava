@@ -2,7 +2,7 @@ package org.utbot.quickcheck.internal.generator
 
 import org.utbot.engine.greyboxfuzzer.generator.GeneratorConfigurator
 import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -91,7 +91,7 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
         nestedGenerators.clear()
         val length = length(random, status)
         val componentTypeId = classIdForType(componentType)
-        val modelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val modelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         return UtArrayModel(
             modelId,
             getClassIdForArrayType(componentType),
@@ -157,12 +157,15 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
     }
 
     override fun copy(): Generator {
-        val gen = Reflection.instantiate(ArrayGenerator::class.java.constructors.first(), componentType, component.copy()) as Generator
+        val gen = Reflection.instantiate(ArrayGenerator::class.java.constructors.first(), componentType, component.copy()) as ArrayGenerator
         return gen.also {
             it.generatedUtModel = generatedUtModel
             it.generationState = generationState
+            if (isGeneratorContextInitialized()) {
+                it.generatorContext = generatorContext
+            }
             it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
-            GeneratorConfigurator.configureGenerator(it, 85)
+            GeneratorConfigurator.configureGenerator(it, 100)
         }
     }
 }

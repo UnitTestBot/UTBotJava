@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.byteWrapperClassId
@@ -35,6 +35,6 @@ class ByteGenerator : IntegralGenerator(listOf(Byte::class.javaObjectType)) {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(random.nextByte(min, max), byteWrapperClassId)
+        return generatorContext.utModelConstructor.construct(random.nextByte(min, max), byteWrapperClassId)
     }
 }

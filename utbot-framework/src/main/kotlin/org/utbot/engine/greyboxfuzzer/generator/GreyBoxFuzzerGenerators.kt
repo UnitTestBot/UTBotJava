@@ -14,7 +14,7 @@ import java.util.*
 object GreyBoxFuzzerGenerators {
 
     const val seed = 42L
-    const val maxDepthOfGeneration = 4
+    const val maxDepthOfGeneration = 7
     val sourceOfRandomness = SourceOfRandomness(Random(seed))
     val genStatus = NonTrackingGenerationStatus(sourceOfRandomness)
 
@@ -41,7 +41,6 @@ object GreyBoxFuzzerGenerators {
             it.register(ShortGenerator())
             it.register(BooleanGenerator())
             it.register(IntegerGenerator())
-            it.register(Encoded())
             it.register(ByteGenerator())
             it.register(StringGenerator())
             it.register(LongGenerator())

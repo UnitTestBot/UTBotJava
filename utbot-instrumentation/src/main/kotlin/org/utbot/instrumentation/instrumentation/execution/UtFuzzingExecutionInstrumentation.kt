@@ -77,11 +77,16 @@ object UtFuzzingExecutionInstrumentation : Instrumentation<UtFuzzingConcreteExec
                 traceHandler.resetTrace()
                 val stopWatch = StopWatch()
                 val context = UtContext(utContext.classLoader, stopWatch)
-                val concreteResult = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout, stopWatch) {
-                    withUtContext(context) {
-                        delegateInstrumentation.invoke(clazz, methodSignature, params.map { it.value })
+                val concreteResult =
+                    try {
+                        ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout, stopWatch) {
+                            withUtContext(context) {
+                                delegateInstrumentation.invoke(clazz, methodSignature, params.map { it.value })
+                            }
+                        }?.getOrThrow() as? Result<*> ?: Result.failure<Any?>(TimeoutException("Timeout $timeout elapsed"))
+                    } catch (e: Throwable) {
+                        null
                     }
-                }?.getOrThrow() as? Result<*> ?: Result.failure<Any?>(TimeoutException("Timeout $timeout elapsed"))
                 val traceList = traceHandler.computeInstructionList()
 
                 val cache = constructor.objectToModelCache
@@ -89,11 +94,11 @@ object UtFuzzingExecutionInstrumentation : Instrumentation<UtFuzzingConcreteExec
                     ConstructOnlyUserClassesOrCachedObjectsStrategy(pathsToUserClasses, cache)
                 val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
                 utModelConstructor.run {
-                    val concreteUtModelResult = concreteResult.fold({
+                    val concreteUtModelResult = concreteResult?.fold({
                         UtExecutionSuccessConcrete(it)
                     }) {
                         sortOutException(it)
-                    }
+                    } ?: UtExecutionSuccessConcrete(null)
                     UtFuzzingConcreteExecutionResult(
                         concreteUtModelResult,
                         traceList.toApiCoverage(

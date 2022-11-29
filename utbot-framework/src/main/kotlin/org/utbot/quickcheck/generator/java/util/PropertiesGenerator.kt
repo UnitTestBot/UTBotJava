@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
@@ -11,8 +11,6 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.quickcheck.generator.GenerationStatus
 import org.utbot.quickcheck.generator.Generator
 import org.utbot.quickcheck.generator.java.lang.AbstractStringGenerator
-import org.utbot.quickcheck.generator.java.lang.Encoded
-import org.utbot.quickcheck.generator.java.lang.Encoded.InCharset
 import org.utbot.quickcheck.generator.java.lang.StringGenerator
 import org.utbot.quickcheck.random.SourceOfRandomness
 import java.util.Dictionary
@@ -23,12 +21,12 @@ import java.util.Properties
  * Produces values of type [Properties].
  */
 class PropertiesGenerator : Generator(Properties::class.java) {
-    private var stringGenerator: AbstractStringGenerator = StringGenerator()
-    fun configure(charset: InCharset?) {
-        val encoded = Encoded()
-        encoded.configure(charset!!)
-        stringGenerator = encoded
-    }
+    private var stringGenerator: StringGenerator = StringGenerator()
+//    fun configure(charset: InCharset?) {
+//        val encoded = Encoded()
+//        encoded.configure(charset!!)
+//        stringGenerator = encoded
+//    }
 
     override fun generate(
         random: SourceOfRandomness,
@@ -37,7 +35,7 @@ class PropertiesGenerator : Generator(Properties::class.java) {
         val size = status.size()
         val classId = Properties::class.id
 
-        val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val generatedModelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         val constructorId = ConstructorId(classId, emptyList())
         return UtAssembleModel(
             generatedModelId,

@@ -6,41 +6,53 @@ import org.utbot.common.isAbstract
 import org.utbot.engine.greyboxfuzzer.generator.DataGenerator
 import org.utbot.engine.greyboxfuzzer.generator.QuickCheckExtensions
 import org.utbot.engine.greyboxfuzzer.util.*
+import org.utbot.engine.logger
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
-import ru.vyarus.java.generics.resolver.context.GenericsInfo
 import java.lang.reflect.Type
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 class InterfaceImplementationsInstanceGenerator(
     private val resolvedType: Type,
     private val typeContext: GenericsContext,
     private val sourceOfRandomness: SourceOfRandomness,
     private val generationStatus: GenerationStatus,
+    private val generatorContext: GeneratorContext,
     private val depth: Int
 ) : InstanceGenerator {
     override fun generate(): UtModel {
         //Try to generate with statics with some probability
         val clazz = resolvedType.toClass() ?: return UtNullModel(objectClassId)
         if (Random.getTrue(50)) {
-            StaticsBasedInstanceGenerator(
-                clazz,
-                typeContext,
-                sourceOfRandomness,
-                generationStatus,
-                depth
-            ).generate().let {
-                return it
+            try {
+                StaticsBasedInstanceGenerator(
+                    clazz,
+                    typeContext,
+                    sourceOfRandomness,
+                    generationStatus,
+                    generatorContext,
+                    depth
+                ).generate().let {
+                    if (it !is UtNullModel) return it
+                }
+            } catch (e: Throwable) {
+                logger.error { "Something wrong during StaticsBasedInstanceGenerator work" }
             }
         }
-        val genericsContext = QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType) ?: return generateMock(clazz, resolvedType, typeContext)
+        val genericsContext =
+            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType) ?: return generateMock(
+                clazz,
+                resolvedType,
+                typeContext,
+                generatorContext
+            )
         return ClassesInstanceGenerator(
             genericsContext.currentClass(),
             genericsContext,
@@ -48,16 +60,17 @@ class InterfaceImplementationsInstanceGenerator(
             GenerationMethod.ANY,
             sourceOfRandomness,
             generationStatus,
+            generatorContext,
             depth
         ).generate().let {
-            if (it is UtNullModel && Random.getTrue(50)) generateMock(clazz, resolvedType, typeContext) else it
+            if (it is UtNullModel && Random.getTrue(50)) generateMock(clazz, resolvedType, typeContext, generatorContext) else it
         }
     }
 
-    private fun generateMock(clazz: Class<*>, resolvedType: Type, typeContext: GenericsContext): UtModel {
+    private fun generateMock(clazz: Class<*>, resolvedType: Type, typeContext: GenericsContext, generatorContext: GeneratorContext,): UtModel {
         if (!clazz.isInterface) return UtNullModel(clazz.id)
         val sootClazz = clazz.toSootClass() ?: return UtNullModel(clazz.id)
-        val constructor = UtModelGenerator.utModelConstructor
+        val constructor = generatorContext.utModelConstructor
         val allNeededInterfaces = clazz.methods.map { it.declaringClass }.filter { it != clazz }.toSet()
         val chainToGenericsContext = allNeededInterfaces.map { cl ->
             val chain = cl.toSootClass()
@@ -69,14 +82,19 @@ class InterfaceImplementationsInstanceGenerator(
             if (chain == null || chain.any { it == null }) {
                 null
             } else {
-                cl to QuickCheckExtensions.buildGenericsContextForInterfaceParent(resolvedType, clazz, chain.map { it!! }.reversed().drop(1))
+                cl to QuickCheckExtensions.buildGenericsContextForInterfaceParent(
+                    resolvedType,
+                    clazz,
+                    chain.map { it!! }.reversed().drop(1)
+                )
             }
         }
         val allChainToGenericsContext = chainToGenericsContext + (clazz to typeContext)
         val mocks = clazz.methods
             .filter { it.isAbstract }
             .associateTo(mutableMapOf()) { method ->
-                val genericsContextForMethod = allChainToGenericsContext.find { it!!.first == method.declaringClass }?.second
+                val genericsContextForMethod =
+                    allChainToGenericsContext.find { it!!.first == method.declaringClass }?.second
                 val methodReturnType =
                     if (genericsContextForMethod != null) {
                         genericsContextForMethod.method(method).resolveReturnType().let {
@@ -87,7 +105,11 @@ class InterfaceImplementationsInstanceGenerator(
                     }
                 val parameterTypeContext = ParameterTypeContext.forType(methodReturnType, genericsContextForMethod)
                 val generatedUtModelWithReturnType =
-                    DataGenerator.generate(parameterTypeContext, sourceOfRandomness, generationStatus) ?: UtNullModel(methodReturnType.toClass()!!.id)
+                    try {
+                        DataGenerator.generateUtModel(parameterTypeContext, depth, generatorContext, sourceOfRandomness, generationStatus)
+                    } catch (_: Throwable) {
+                        UtNullModel(methodReturnType.toClass()!!.id)
+                    }
                 method.executableId as ExecutableId to listOf(generatedUtModelWithReturnType)
             }
         return UtCompositeModel(constructor.computeUnusedIdAndUpdate(), clazz.id, isMock = true, mocks = mocks)

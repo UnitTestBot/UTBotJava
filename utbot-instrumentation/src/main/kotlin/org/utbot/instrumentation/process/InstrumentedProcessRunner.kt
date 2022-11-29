@@ -19,11 +19,13 @@ class InstrumentedProcessRunner {
     private val cmds: List<String> by lazy {
         val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { UtSettings.runInstrumentedProcessWithDebug })
         val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
+        val memoryLimit = listOf("-Xmx1g")
         val pathToJava = JdkInfoService.provide().path
 
         listOf(pathToJava.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()) +
             debugCmd +
             javaVersionSpecificArguments +
+            memoryLimit +
             listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
     }
 

@@ -1,7 +1,7 @@
 package org.utbot.quickcheck.generator.java.util
 
 import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
@@ -91,7 +91,7 @@ abstract class CollectionGenerator(type: Class<*>) : ComponentizedGenerator(type
         nestedGenerators.clear()
         val collectionClassId = types().single().id
         val collectionConstructorId = ConstructorId(collectionClassId, emptyList())
-        val genId = utModelConstructor.computeUnusedIdAndUpdate()
+        val genId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         return UtAssembleModel(
             genId,
             collectionClassId,

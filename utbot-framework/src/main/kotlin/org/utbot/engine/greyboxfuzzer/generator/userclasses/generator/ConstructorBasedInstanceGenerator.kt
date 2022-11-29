@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Constructor
@@ -19,6 +20,7 @@ class ConstructorBasedInstanceGenerator(
     private val initialGenericContext: GenericsContext?,
     private val sourceOfRandomness: SourceOfRandomness,
     private val generationStatus: GenerationStatus,
+    private val generatorContext: GeneratorContext,
     private val depth: Int
 ): InstanceGenerator {
 
@@ -45,6 +47,7 @@ class ConstructorBasedInstanceGenerator(
             resolvedConstructor,
             sourceOfRandomness,
             generationStatus,
+            generatorContext,
             depth
         ).invoke()
     }

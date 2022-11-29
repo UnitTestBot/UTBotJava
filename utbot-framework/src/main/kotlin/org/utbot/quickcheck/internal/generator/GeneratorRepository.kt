@@ -103,8 +103,8 @@ open class GeneratorRepository private constructor(
             generator = NullableGenerator(generator)
         }
         generator.provide(this)
-        generator.configure(parameter.annotatedType())
-        if (parameter.topLevel()) generator.configure(parameter.annotatedElement())
+        //generator.configure(parameter.annotatedType())
+        //if (parameter.topLevel()) generator.configure(parameter.annotatedElement())
         return generator
     }
 
@@ -124,7 +124,7 @@ open class GeneratorRepository private constructor(
         parameter: ParameterTypeContext
     ): ArrayGenerator {
         val component = parameter.arrayComponentContext()
-        return ArrayGenerator(component.rawClass, generatorFor(component))
+        return ArrayGenerator(component.rawClass, generatorFor(component)).copy() as ArrayGenerator
     }
 
     private fun matchingGenerators(
@@ -182,7 +182,7 @@ open class GeneratorRepository private constructor(
         if (method != null) {
             val returnType = parameter.methodReturnTypeContext(method)
             val returnTypeGenerator = generatorFor(returnType)
-            matches += LambdaGenerator(parameter.rawClass, returnTypeGenerator)
+            matches += LambdaGenerator(parameter.rawClass, returnTypeGenerator).copy() as LambdaGenerator<*>
         }
     }
 

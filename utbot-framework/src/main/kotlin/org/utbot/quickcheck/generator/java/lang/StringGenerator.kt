@@ -11,26 +11,29 @@ import kotlin.random.Random
 class StringGenerator : AbstractStringGenerator() {
 
     private var codePoints = setOf(0 until Character.MIN_SURROGATE.code)
+    override var lengthRange: IntRange? = null
 
     override fun nextCodePoint(random: SourceOfRandomness): Int {
+        return codePoints.random().random()
         val codePoint = chooseRandomCodePoint()
         return codePoint.random()
     }
 
     private fun chooseRandomCodePoint(): IntRange {
-        val size = codePoints.sumOf { it.last - it.first }
-        val randomIntToSize = Random.nextInt(size)
-        var curSum = 0
-        for (codePoint in codePoints) {
-            val codePointSize = codePoint.last - codePoint.first
-            curSum += codePointSize
-            if (curSum >= randomIntToSize) {
-                return codePoint
-            }
-        }
+//        val size = codePoints.sumOf { it.last - it.first }
+//        val randomIntToSize = Random.nextInt(size)
+//        var curSum = 0
+//        for (codePoint in codePoints) {
+//            val codePointSize = codePoint.last - codePoint.first
+//            curSum += codePointSize
+//            if (curSum >= randomIntToSize) {
+//                return codePoint
+//            }
+//        }
         return codePoints.random()
     }
-    fun configure(codePoints: Set<IntRange>) {
+    fun configure(codePoints: Set<IntRange>, lengthRange: IntRange) {
         this.codePoints = codePoints
+        this.lengthRange = lengthRange
     }
 }

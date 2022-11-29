@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.util
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -62,7 +62,7 @@ object RFC4122 {
             setVersion(hash, versionMask.toByte())
             setVariant(hash)
             val generatedUUID = newUUID(hash)
-            return utModelConstructor.construct(generatedUUID, classIdForType(UUID::class.java))
+            return generatorContext.utModelConstructor.construct(generatedUUID, classIdForType(UUID::class.java))
         }
 
         protected fun setNamespace(namespace: Namespace?) {
@@ -115,7 +115,7 @@ object RFC4122 {
             setVersion(bytes, 0x40.toByte())
             setVariant(bytes)
             val generatedUUID = newUUID(bytes)
-            return utModelConstructor.construct(generatedUUID, classIdForType(UUID::class.java))
+            return generatorContext.utModelConstructor.construct(generatedUUID, classIdForType(UUID::class.java))
         }
     }
 

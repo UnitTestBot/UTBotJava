@@ -10,6 +10,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.quickcheck.internal.ParameterTypeContext
 import org.utbot.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
@@ -18,27 +19,30 @@ import kotlin.random.Random
 class ObjectGenerator(
     private val parameterTypeContext: ParameterTypeContext,
     private val sourceOfRandomness: SourceOfRandomness,
-    private val generationStatus: GenerationStatus
+    private val generationStatus: GenerationStatus,
+    private val generatorContext: GeneratorContext
 ) : InstanceGenerator {
     override fun generate(): UtModel {
         val currentSootMethod =
             (parameterTypeContext.generics as? MethodGenericsContext)?.currentMethod()?.toSootMethod()
         val potentialUsefulClasses =
-            currentSootMethod?.getAllTypesFromCastAndInstanceOfInstructions()?.mapNotNull { it.toJavaClass() }
+            currentSootMethod?.getAllTypesFromCastAndInstanceOfInstructions()
         val potentialInterestingObjectReplacement =
-            if (potentialUsefulClasses?.isNotEmpty() == true && Random.getTrue(50)) {
+            if (potentialUsefulClasses?.isNotEmpty() == true && Random.getTrue(70)) {
                 val randomClass = potentialUsefulClasses.random()
-                GreyBoxFuzzerGenerators.generatorRepository
-                    .getOrProduceGenerator(randomClass)
-                    ?.generateImpl(sourceOfRandomness, generationStatus)
+                val generator = GreyBoxFuzzerGenerators.generatorRepository
+                    .getOrProduceGenerator(randomClass, generatorContext)
+                generator?.generatorContext?.startCheckpoint()
+                generator?.generateImpl(sourceOfRandomness, generationStatus)
             } else null
         potentialInterestingObjectReplacement?.let { return it }
-        return GreyBoxFuzzerGenerators.generatorRepository
+        val generator = GreyBoxFuzzerGenerators.generatorRepository
             .getGenerators()
             .toList()
             .flatMap { it.second }
             .filter { !it.hasComponents() }
             .randomOrNull()
-            ?.generateImpl(sourceOfRandomness, generationStatus) ?: UtNullModel(parameterTypeContext.rawClass.id)
+        generator?.generatorContext?.startCheckpoint()
+        return generator?.generateImpl(sourceOfRandomness, generationStatus) ?: UtNullModel(parameterTypeContext.rawClass.id)
     }
 }

@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.time
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -50,7 +50,7 @@ class ZoneOffsetGenerator : Generator(ZoneOffset::class.java) {
         val minSeconds = min.totalSeconds
         val maxSeconds = max.totalSeconds
 
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             ZoneOffset.ofTotalSeconds(
                 if (minSeconds <= maxSeconds) random.nextInt(minSeconds, maxSeconds) else random.nextInt(
                     maxSeconds,

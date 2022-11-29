@@ -50,16 +50,6 @@ data class FParameter(
         return res
     }
 
-    fun regenerateFields() {
-        regenerateFields(classId.jClass.getAllDeclaredFields())
-    }
-
-    fun regenerateFields(fieldsToRegenerate: List<Field>) {
-        if (utModel is UtAssembleModel) {
-            utModel = Mutator.regenerateFields(classId.jClass, utModel as UtAssembleModel, fieldsToRegenerate)
-        }
-    }
-
     fun copy(): FParameter = FParameter(
         parameter,
         value,

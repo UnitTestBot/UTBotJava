@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.time
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -53,7 +53,7 @@ class OffsetDateTimeGenerator : Generator(
     ): UtModel {
 
         // Project the OffsetDateTime to an Instant for easy long-based generation.
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             OffsetDateTime.ofInstant(
                 random.nextInstant(min.toInstant(), max.toInstant()),
                 UTC_ZONE_ID

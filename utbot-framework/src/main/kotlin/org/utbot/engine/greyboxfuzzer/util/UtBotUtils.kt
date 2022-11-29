@@ -5,6 +5,7 @@ import org.utbot.engine.greyboxfuzzer.generator.*
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.*
+import org.utbot.quickcheck.generator.GeneratorContext
 import java.lang.reflect.Method
 import java.lang.reflect.Parameter
 
@@ -66,9 +67,10 @@ fun UtModel.copy(): UtModel =
 fun UtModelConstructor.constructAssembleModelUsingMethodInvocation(
     clazz: Class<*>,
     methodExecutableId: ExecutableId,
-    parameterValues: List<UtModel>
+    parameterValues: List<UtModel>,
+    generatorContext: GeneratorContext
 ): UtAssembleModel {
-    val genId = UtModelGenerator.utModelConstructor.computeUnusedIdAndUpdate()
+    val genId = generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
     return UtAssembleModel(
         genId,
         classIdForType(clazz),

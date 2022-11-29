@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.math
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -50,14 +50,14 @@ class BigIntegerGenerator : IntegralGenerator(BigInteger::class.java) {
     ): UtModel {
         val numberOfBits = status.size() + 1
         if (min == null && max == null)
-            return utModelConstructor.construct(
+            return generatorContext.utModelConstructor.construct(
                 random.nextBigInteger(numberOfBits),
                 BigInteger::class.id
             )
 
         val minToUse = min ?: max!!.subtract(BigInteger.TEN.pow(numberOfBits))
         val maxToUse = max ?: minToUse.add(BigInteger.TEN.pow(numberOfBits))
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             Ranges.choose(random, minToUse, maxToUse),
             BigInteger::class.id
         )

@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.lang
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.booleanWrapperClassId
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -19,6 +19,6 @@ class BooleanGenerator : Generator(
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        return utModelConstructor.construct(random.nextBoolean(), booleanWrapperClassId)
+        return generatorContext.utModelConstructor.construct(random.nextBoolean(), booleanWrapperClassId)
     }
 }

@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.nio.charset
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
@@ -21,9 +21,9 @@ class CharsetGenerator : Generator(Charset::class.java) {
         status: GenerationStatus
     ): UtModel {
         val charsetName = random.choose(Charset.availableCharsets().keys)
-        val charsetNameModel = utModelConstructor.construct(charsetName, stringClassId)
+        val charsetNameModel = generatorContext.utModelConstructor.construct(charsetName, stringClassId)
         val charsetForNameId = Charset::forName.executableId
-        val modelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val modelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         return UtAssembleModel(
             modelId,
             Charset::class.id,

@@ -431,7 +431,12 @@ class UtBotSymbolicEngine(
             }
 
             try {
-                GreyBoxFuzzer(concreteExecutor.pathsToUserClasses, concreteExecutor.pathsToDependencyClasses, methodUnderTest).fuzz()
+                GreyBoxFuzzer(
+                    concreteExecutor.pathsToUserClasses,
+                    concreteExecutor.pathsToDependencyClasses,
+                    methodUnderTest,
+                    120_000L
+                ).fuzz()
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }
             } catch (e: Throwable) {

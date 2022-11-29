@@ -1,7 +1,7 @@
 package org.utbot.quickcheck.generator.java.util
 
 import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
@@ -86,7 +86,7 @@ abstract class MapGenerator protected constructor(type: Class<*>) : Componentize
         val size = size(random, status)
         val classId = types().single().id
 
-        val generatedModelId = utModelConstructor.computeUnusedIdAndUpdate()
+        val generatedModelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         val constructorId = ConstructorId(classId, emptyList())
         nestedGenerators.clear()
         return UtAssembleModel(

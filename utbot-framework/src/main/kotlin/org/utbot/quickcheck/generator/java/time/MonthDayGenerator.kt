@@ -1,6 +1,6 @@
 package org.utbot.quickcheck.generator.java.time
 
-import org.utbot.engine.greyboxfuzzer.util.UtModelGenerator.utModelConstructor
+import org.utbot.quickcheck.generator.GeneratorContext
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.quickcheck.generator.GenerationStatus
@@ -54,7 +54,7 @@ class MonthDayGenerator : Generator(MonthDay::class.java) {
         val minEpochDay = min.atYear(2000).toEpochDay()
         val maxEpochDay = max.atYear(2000).toEpochDay()
         val date = LocalDate.ofEpochDay(random.nextLong(minEpochDay, maxEpochDay))
-        return utModelConstructor.construct(
+        return generatorContext.utModelConstructor.construct(
             MonthDay.of(date.monthValue, date.dayOfMonth),
             MonthDay::class.id
         )

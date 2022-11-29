@@ -15,6 +15,7 @@ import parser.ast.ImportDeclarationNode
 import parser.ast.MethodDeclarationNode
 import parser.ast.NumericLiteralNode
 import parser.ast.ParameterNode
+import parser.ast.PropertyAccessExpressionNode
 import parser.ast.PropertyDeclarationNode
 import parser.ast.VariableDeclarationNode
 import parser.ast.VariableStatementNode
@@ -154,6 +155,7 @@ object TsParserUtils {
             "Constructor" -> ConstructorNode(this, parent)
             "NumericLiteral" -> NumericLiteralNode(this, parent)
             "ImportDeclaration" -> ImportDeclarationNode(this, parent)
+            "PropertyAccessExpression" -> PropertyAccessExpressionNode(this, parent)
             // Currently not supporting method access calls
             "CallExpression" -> try {
                 CallExpressionNode(this, parent)

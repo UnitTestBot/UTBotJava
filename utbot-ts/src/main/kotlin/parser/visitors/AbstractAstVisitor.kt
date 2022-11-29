@@ -17,6 +17,7 @@ import parser.ast.MathBinaryOperatorNode
 import parser.ast.MethodDeclarationNode
 import parser.ast.NumericLiteralNode
 import parser.ast.ParameterNode
+import parser.ast.PropertyAccessExpressionNode
 import parser.ast.PropertyDeclarationNode
 import parser.ast.VariableDeclarationNode
 import parser.ast.VariableStatementNode
@@ -41,6 +42,7 @@ abstract class AbstractAstVisitor {
             is NumericLiteralNode -> visitNumericLiteralNode(root)
             is ParameterNode -> visitParameterNode(root)
             is PropertyDeclarationNode -> visitPropertyDeclarationNode(root)
+            is PropertyAccessExpressionNode -> visitPropertyAccessExpressionNode(root)
             is FunctionTypeNode -> visitFunctionTypeNode(root)
             is VariableDeclarationNode -> visitVariableDeclarationNode(root)
             is VariableStatementNode -> visitVariableStatementNode(root)
@@ -82,6 +84,8 @@ abstract class AbstractAstVisitor {
     open fun visitNumericLiteralNode(node: NumericLiteralNode): Boolean = true
 
     open fun visitImportDeclarationNode(node: ImportDeclarationNode): Boolean = true
+
+    open fun visitPropertyAccessExpressionNode(node: PropertyAccessExpressionNode): Boolean = true
 
     open fun visitFunctionTypeNode(node: FunctionTypeNode): Boolean = true
 

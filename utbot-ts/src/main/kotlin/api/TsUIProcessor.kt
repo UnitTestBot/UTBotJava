@@ -10,7 +10,6 @@ class TsUIProcessor {
 
     fun traverseCallGraph(rootNode: AstNode) {
         buildContext(rootNode)
-        val kke = 0
     }
 
     private val nodeToContext = mutableMapOf<AstNode, Context>()

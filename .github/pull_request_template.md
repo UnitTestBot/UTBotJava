@@ -18,8 +18,7 @@ Please delete options that are not relevant.
 
 ## Unit tests
 
-You _must_ provide unit tests for the proposed code changes. If you don't do that, your reviewer will reject your PR 
-unless you clearly explain why it is impossible to submit unit tests in your case.
+Please, provide regression or integration tests for your code changes. If you don't do that, the reviewer can and highly likely **_will reject_** the PR. It is the contributor's responsibility to provide such tests or to reason why they are missing.
 
 ## Automated Testing
 

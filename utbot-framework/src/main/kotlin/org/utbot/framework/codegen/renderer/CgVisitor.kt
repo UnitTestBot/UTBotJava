@@ -75,6 +75,7 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
+import org.utbot.framework.codegen.domain.models.CgDocRegularLineStmt
 import org.utbot.framework.codegen.domain.models.CgNestedClassesRegion
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodCluster
@@ -132,6 +133,7 @@ interface CgVisitor<R> {
     fun visit(element: CgCustomTagStatement): R
     fun visit(element: CgDocCodeStmt): R
     fun visit(element: CgDocRegularStmt): R
+    fun visit(element: CgDocRegularLineStmt): R
     fun visit(element: CgDocClassLinkStmt): R
     fun visit(element: CgDocMethodLinkStmt): R
 

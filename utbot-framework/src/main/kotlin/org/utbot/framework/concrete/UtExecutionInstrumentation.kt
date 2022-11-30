@@ -52,12 +52,12 @@ import kotlin.reflect.jvm.javaMethod
  * @property [stateBefore] is necessary for construction of parameters of a concrete call.
  * @property [instrumentation] is necessary for mocking static methods and new instances.
  * @property [timeout] is timeout for specific concrete execution (in milliseconds).
- * By default is initialized from [UtSettings.concreteExecutionTimeoutInChildProcess]
+ * By default is initialized from [UtSettings.concreteExecutionTimeoutInInstrumentedProcess]
  */
 data class UtConcreteExecutionData(
     val stateBefore: EnvironmentModels,
     val instrumentation: List<UtInstrumentation>,
-    val timeout: Long = UtSettings.concreteExecutionTimeoutInChildProcess
+    val timeout: Long = UtSettings.concreteExecutionTimeoutInInstrumentedProcess
 )
 
 class UtConcreteExecutionResult(

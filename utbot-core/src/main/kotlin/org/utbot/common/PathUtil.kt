@@ -10,6 +10,12 @@ import java.util.*
 
 object PathUtil {
 
+    fun String.toPathOrNull(): Path? = try {
+        Paths.get(this)
+    } catch (e: Throwable) {
+        null
+    }
+
     /**
      * Creates a Path from the String.
      */

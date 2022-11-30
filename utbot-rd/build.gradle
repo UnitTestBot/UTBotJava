@@ -1,5 +1,5 @@
 plugins {
-    id 'com.jetbrains.rdgen' version "2022.3.1"
+    id 'com.jetbrains.rdgen' version "2022.3.4"
 }
 
 import com.jetbrains.rd.generator.gradle.RdGenExtension
@@ -48,14 +48,14 @@ sourceSets {
 
 dependencies {
     implementation project(':utbot-core')
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
     processWithRdServerMockImplementation project(':utbot-rd')
 
-    rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: '2022.3.1'
+    rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: rdVersion
 }
 
 task lifetimedProcessMockJar(type: Jar) {
@@ -99,7 +99,7 @@ test {
     systemProperty("PROCESS_WITH_RD_SERVER_MOCK", processWithRdServerMockJar.archiveFile.get().getAsFile().canonicalPath)
 }
 
-task generateChildProcessProtocolModels(type: RdGenTask) {
+task generateInstrumentedProcessModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir
     def instrumentationProjectDir = project.rootProject.childProjects["utbot-instrumentation"].projectDir
     def generatedOutputDir = new File(instrumentationProjectDir, "src/main/kotlin/org/utbot/instrumentation/rd/generated")
@@ -117,14 +117,14 @@ task generateChildProcessProtocolModels(type: RdGenTask) {
     rdParams.generator {
         language = "kotlin"
         transform = "symmetric"
-        root = "org.utbot.rd.models.ChildProcessProtocolRoot"
+        root = "org.utbot.rd.models.InstrumentedProcessRoot"
 
         directory = generatedOutputDir.canonicalPath
-        namespace = "org.utbot.instrumentation.rd.generated"
+        namespace = "org.utbot.instrumentation.process.generated"
     }
 }
 
-task generateEngineProcessProtocolModels(type: RdGenTask) {
+task generateEngineProcessModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir
     def ideaPluginProjectDir = project.rootProject.childProjects["utbot-framework"].projectDir
     def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/framework/process/generated")
@@ -142,22 +142,14 @@ task generateEngineProcessProtocolModels(type: RdGenTask) {
     rdParams.generator {
         language = "kotlin"
         transform = "symmetric"
-        root = "org.utbot.rd.models.EngineProcessProtocolRoot"
-
-        directory = generatedOutputDir.canonicalPath
-        namespace = "org.utbot.framework.process.generated"
-    }
-    rdParams.generator {
-        language = "kotlin"
-        transform = "symmetric"
-        root = "org.utbot.rd.models.SettingsProtocolRoot"
+        root = "org.utbot.rd.models.EngineProcessRoot"
 
         directory = generatedOutputDir.canonicalPath
         namespace = "org.utbot.framework.process.generated"
     }
 }
 
-task generateSynchronizationModels(type: RdGenTask) {
+task generateCommonModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir
     def ideaPluginProjectDir = project.rootProject.childProjects["utbot-rd"].projectDir
     def generatedOutputDir = new File(ideaPluginProjectDir, "src/main/kotlin/org/utbot/rd/generated")
@@ -175,7 +167,16 @@ task generateSynchronizationModels(type: RdGenTask) {
     rdParams.generator {
         language = "kotlin"
         transform = "symmetric"
-        root = "org.utbot.rd.models.SynchronizationModelRoot"
+        root = "org.utbot.rd.models.SynchronizationRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "org.utbot.rd.generated"
+    }
+
+    rdParams.generator {
+        language = "kotlin"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.SettingsRoot"
 
         directory = generatedOutputDir.canonicalPath
         namespace = "org.utbot.rd.generated"

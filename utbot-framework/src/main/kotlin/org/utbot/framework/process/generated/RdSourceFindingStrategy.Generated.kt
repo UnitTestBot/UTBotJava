@@ -42,12 +42,9 @@ class RdSourceFindingStrategy private constructor(
         @JvmStatic
         @Deprecated("Use protocol.rdSourceFindingStrategy or revise the extension scope instead", ReplaceWith("protocol.rdSourceFindingStrategy"))
         fun create(lifetime: Lifetime, protocol: IProtocol): RdSourceFindingStrategy  {
-            EngineProcessProtocolRoot.register(protocol.serializers)
+            EngineProcessRoot.register(protocol.serializers)
             
-            return RdSourceFindingStrategy().apply {
-                identify(protocol.identity, RdId.Null.mix("RdSourceFindingStrategy"))
-                bind(lifetime, protocol, "RdSourceFindingStrategy")
-            }
+            return RdSourceFindingStrategy()
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()

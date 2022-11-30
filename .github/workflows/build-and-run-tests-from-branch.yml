@@ -131,7 +131,7 @@ jobs:
           name: utbot_temp ${{ matrix.project.PART_NAME }}
           path: |
             /tmp/UTBot/generated*/*
-            /tmp/UTBot/utbot-childprocess-errors/*
+            /tmp/UTBot/utbot-instrumentedprocess-errors/*
       - name: Upload test report if tests have failed
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3

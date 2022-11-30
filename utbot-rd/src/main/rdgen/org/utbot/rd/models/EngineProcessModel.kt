@@ -2,9 +2,9 @@ package org.utbot.rd.models
 
 import com.jetbrains.rd.generator.nova.*
 
-object EngineProcessProtocolRoot : Root()
+object EngineProcessRoot : Root()
 
-object RdInstrumenterAdapter: Ext(EngineProcessProtocolRoot) {
+object RdInstrumenterAdapter: Ext(EngineProcessRoot) {
     val computeSourceFileByClassArguments = structdef {
         field("className", PredefinedType.string)
         field("packageName", PredefinedType.string.nullable)
@@ -14,7 +14,7 @@ object RdInstrumenterAdapter: Ext(EngineProcessProtocolRoot) {
     }
 }
 
-object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
+object RdSourceFindingStrategy : Ext(EngineProcessRoot) {
     val sourceStrategyMethodArgs = structdef {
         field("testSetId", PredefinedType.long)
         field("classFqn", PredefinedType.string)
@@ -28,7 +28,7 @@ object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
     }
 }
 
-object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
+object EngineProcessModel : Ext(EngineProcessRoot) {
     val jdkInfo = structdef {
         field("path", PredefinedType.string)
         field("version", PredefinedType.int)

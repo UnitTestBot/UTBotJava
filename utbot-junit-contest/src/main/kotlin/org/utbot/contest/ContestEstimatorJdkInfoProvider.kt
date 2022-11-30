@@ -9,7 +9,7 @@ import java.io.InputStreamReader
 
 /**
  * This class is used to provide a path to jdk and its version in [ContestEstimator]
- * into the child process for concrete execution.
+ * into the instrumented process for concrete execution.
  */
 class ContestEstimatorJdkInfoProvider(private val path: String) : JdkInfoDefaultProvider() {
     override val info: JdkInfo

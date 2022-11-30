@@ -67,7 +67,7 @@ jobs:
           name: generated-tests
           path: |
             /tmp/UTBot/generated*/*
-            /tmp/UTBot/utbot-childprocess-errors/*
+            /tmp/UTBot/utbot-instrumentedprocess-errors/*
       - name: Upload utbot-framework logs
         if: ${{ always() && github.event.inputs.project-name == 'utbot-framework' }}
         uses: actions/upload-artifact@v3

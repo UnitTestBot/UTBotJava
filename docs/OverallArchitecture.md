@@ -84,12 +84,7 @@ sequenceDiagram
     ij ->> ij: Calculate what jar need to be installed
         
     opt Some jars need to be installed  
-        ij ->> user: Do you accept new jars installed?
-        user -->> ij: [Accept/reject]
-        
-        alt Accepted
             ij ->> ij: Install jars
-        end
     end
 
     ij ->> engine: Start process

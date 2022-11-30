@@ -1,5 +1,5 @@
 @file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
-package org.utbot.framework.process.generated
+package org.utbot.rd.generated
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.base.*
@@ -41,12 +41,9 @@ class SettingsModel private constructor(
         @JvmStatic
         @Deprecated("Use protocol.settingsModel or revise the extension scope instead", ReplaceWith("protocol.settingsModel"))
         fun create(lifetime: Lifetime, protocol: IProtocol): SettingsModel  {
-            SettingsProtocolRoot.register(protocol.serializers)
+            SettingsRoot.register(protocol.serializers)
             
-            return SettingsModel().apply {
-                identify(protocol.identity, RdId.Null.mix("SettingsModel"))
-                bind(lifetime, protocol, "SettingsModel")
-            }
+            return SettingsModel()
         }
         
         

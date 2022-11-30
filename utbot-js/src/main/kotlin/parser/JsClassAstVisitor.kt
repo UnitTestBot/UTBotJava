@@ -1,26 +1,26 @@
 package parser
 
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.js.parser.ir.LexicalContext
-import com.oracle.js.parser.ir.visitor.NodeVisitor
+import com.google.javascript.jscomp.NodeUtil
+import com.google.javascript.rhino.Node
+import parser.JsParserUtils.getClassName
 
 class JsClassAstVisitor(
     private val target: String?
-) : NodeVisitor<LexicalContext>(LexicalContext()) {
+): IAstVisitor {
 
-    lateinit var targetClassNode: ClassNode
-    lateinit var atLeastSomeClassNode: ClassNode
+    lateinit var targetClassNode: Node
+    lateinit var atLeastSomeClassNode: Node
     var classNodesCount = 0
 
-    override fun enterClassNode(classNode: ClassNode?): Boolean {
-        classNode?.let {
-            classNodesCount++
-            atLeastSomeClassNode = it
-            if (it.ident.name.toString() == target) {
-                targetClassNode = it
-                return false
+    override fun accept(rootNode: Node) =
+        NodeUtil.visitPreOrder(rootNode) {
+            if (it.isClass) {
+                classNodesCount++
+                atLeastSomeClassNode = it
+                if (it.getClassName() == target) {
+                    targetClassNode = it
+                    return@visitPreOrder
+                }
             }
         }
-        return true
-    }
 }

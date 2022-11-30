@@ -1361,7 +1361,12 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
-                val statics = currentExecution!!.stateBefore.statics
+                //Enum constants are static, but there is no need to store and recover value for them
+                val statics = currentExecution!!.stateBefore
+                    .statics
+                    .filterNot { it.value is UtEnumConstantModel }
+                    .filterNot { it.value.classId.outerClass?.isEnum == true }
+
                 rememberInitialStaticFields(statics)
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()

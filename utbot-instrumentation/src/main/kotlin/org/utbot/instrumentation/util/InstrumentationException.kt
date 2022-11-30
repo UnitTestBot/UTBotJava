@@ -26,9 +26,9 @@ class WritingToKryoException(e: Throwable) :
 
 /**
  * this exception is thrown only in main process.
- * currently it means that {e: Throwable} happened in child process,
- * but child process still can operate and not dead.
- * on child process death - ConcreteExecutionFailureException is thrown
+ * currently it means that {e: Throwable} happened in instrumented process,
+ * but instrumented process still can operate and not dead.
+ * on instrumented process death - ConcreteExecutionFailureException is thrown
 */
-class ChildProcessError(e: Throwable) :
-    InstrumentationException("Error in the child process |> ${e.stackTraceToString()}", e)
+class InstrumentedProcessError(e: Throwable) :
+    InstrumentationException("Error in the instrumented process |> ${e.stackTraceToString()}", e)

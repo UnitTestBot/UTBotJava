@@ -16,6 +16,11 @@ Please delete options that are not relevant.
 
 # How Has This Been Tested?
 
+## Unit tests
+
+You _must_ provide unit tests for the proposed code changes. If you don't do that, your reviewer will reject your PR 
+unless you clearly explain why it is impossible to submit unit tests in your case.
+
 ## Automated Testing
 
 Specify tests that help to verify the change automatically.  

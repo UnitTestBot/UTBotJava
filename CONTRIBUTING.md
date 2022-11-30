@@ -63,7 +63,7 @@ Do you need to create an issue if you want to fix a bug?
    style** and
    **steps for building the project**.
 5. Test your code:
-   * Before creating the pull request perform the tests you find necessary for your code changes.
+   * Please, provide regression or integration tests for your code changes. If you don't do that, the reviewer can and highly likely **_will reject_** the PR. It is the contributor's responsibility to provide such tests or to reason why they are missing.
    * When implementing something new, it's great to find real users and ask them to try out your feature — to prove
      the necessity and quality of your suggestion.
 6. Check with the [Naming and labeling conventions](docs/contributing/Conventions.md).

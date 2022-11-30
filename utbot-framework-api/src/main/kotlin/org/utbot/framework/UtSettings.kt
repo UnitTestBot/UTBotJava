@@ -133,17 +133,42 @@ object UtSettings : AbstractSettings(
     var testDisplayName by getBooleanProperty(true)
 
     /**
-     * Generate summaries using plugin's custom JavaDoc tags.
-     */
-    var useCustomJavaDocTags by getBooleanProperty(true)
-
-    /**
      * Enable the Summarization module to generate summaries for methods under test.
      * True by default.
      *
      * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
      */
     var enableSummariesGeneration by getBooleanProperty(true)
+
+    /**
+     * If True test comments will be generated.
+     */
+    var enableJavaDocGeneration = true
+
+    /**
+     * If True cluster comments will be generated.
+     */
+    var enableClusterCommentsGeneration = true
+
+    /**
+     * If True names for tests will be generated.
+     */
+    var enableTestNamesGeneration = true
+
+    /**
+     * If True display names for tests will be generated.
+     */
+    var enableDisplayNameGeneration = true
+
+    /**
+     *  If True display name in from -> to style will be generated.
+     */
+    var useDisplayNameArrowStyle = true
+
+    /**
+     * Generate summaries using plugin's custom JavaDoc tags.
+     */
+    var useCustomJavaDocTags by getBooleanProperty(true)
 
     /**
      * Options below regulate which [NullPointerException] check should be performed.
@@ -168,7 +193,6 @@ object UtSettings : AbstractSettings(
      * with symbolic variable to try to set them another value than in initializer.
      */
     var substituteStaticsWithSymbolicVariable by getBooleanProperty(true)
-
 
     /**
      * Use concrete execution.

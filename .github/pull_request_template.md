@@ -16,7 +16,7 @@ Please delete options that are not relevant.
 
 # How Has This Been Tested?
 
-## Unit tests
+## Regression and integration tests
 
 Please, provide regression or integration tests for your code changes. If you don't do that, the reviewer can and highly likely **_will reject_** the PR. It is the contributor's responsibility to provide such tests or to reason why they are missing.
 

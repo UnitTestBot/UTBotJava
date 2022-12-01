@@ -1,13 +1,18 @@
 package org.utbot.python.newtyping.general
 
 object TypeCreator {
-    fun create(parameters: List<Type>, meta: TypeMetaData): Type {
-        return Original(parameters, meta)
+    fun create(numberOfParameters: Int, meta: TypeMetaData, initialization: (Original) -> Unit): Type {
+        val result = Original(numberOfParameters, meta)
+        initialization(result)
+        return result
     }
     class Original(
-        override val parameters: List<Type>,
+        numberOfParameters: Int,
         override val meta: TypeMetaData
-    ): Type
+    ): Type {
+        override val parameters: MutableList<TypeParameter> =
+            List(numberOfParameters) { TypeParameter(this) }.toMutableList()
+    }
 }
 
 object FunctionTypeCreator {
@@ -37,6 +42,7 @@ object FunctionTypeCreator {
     )
 }
 
+/*
 object StatefulTypeCreator {
     fun create(parameters: List<Type>, members: List<Type>, meta: TypeMetaData): StatefulType {
         return Original(parameters, members, meta)
@@ -47,6 +53,7 @@ object StatefulTypeCreator {
         override val meta: TypeMetaData
     ): StatefulType
 }
+ */
 
 object CompositeTypeCreator {
     fun create(

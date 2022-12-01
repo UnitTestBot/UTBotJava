@@ -17,17 +17,27 @@ import com.intellij.util.PathUtil
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
+import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryProperties
 import org.jetbrains.jps.model.library.JpsMavenRepositoryLibraryDescriptor
 import org.utbot.intellij.plugin.models.mavenCoordinates
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
-class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(project) {
+class UtIdeaProjectModelModifier(val project: Project) : IdeaProjectModelModifier(project) {
     override fun addExternalLibraryDependency(
         modules: Collection<Module>,
         descriptor: ExternalLibraryDescriptor,
         scope: DependencyScope
     ): Promise<Void>? {
+        if (project.isBuildWithGradle) {
+            return null
+        }
+        for (module in modules) {
+            if (MavenProjectsManager.getInstance(project).isMavenizedModule(module)) {
+                return null
+            }
+        }
+
         val defaultRoots = descriptor.libraryClassesRoots
         val firstModule = ContainerUtil.getFirstItem(modules) ?: return null
         val classesRoots = if (defaultRoots.isNotEmpty()) {

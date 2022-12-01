@@ -2,6 +2,7 @@ package org.utbot.engine.selectors.taint
 
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.head
+import org.utbot.engine.isReturn
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.selectors.BasePathSelector
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
@@ -11,6 +12,7 @@ import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.taint.TaintSinkData
 import org.utbot.engine.taint.TaintSourceData
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import soot.Scene
@@ -44,7 +46,6 @@ class NewTaintPathSelector(
     private val ExecutionState.weight: Int
         get() {
             val distance = run {
-                var previousStates: List<ExecutionStackElement> = executionStack
                 val visitedTaintSources = visitedTaintSources(taintSources)
 
                 val targetPoints = if (visitedTaintSources.isEmpty()) {
@@ -55,76 +56,71 @@ class NewTaintPathSelector(
                     taintSinksBySources(visitedTaintSources).map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
                 }
 
-                val targetMethods = targetPoints.map { it.method.sootMethod }
+                val targetMethods = targetPoints.mapTo(mutableSetOf()) { it.method.sootMethod }
 
-                // Contains all stack elements before the one, that can reach pointsToReach
-                var previousStackElements = mutableListOf<ExecutionStackElement>()
-                var methodPaths: List<MethodsPath>
-                var stateMethod: SootMethod
-                do {
-                    if (previousStates.isEmpty()) {
-                        if (lastMethod !in targetMethods) {
-                            // We didn't find a path to a source or sink
-                            // TODO give an infinite weight to this state?
-                            return@run INF
-                        } else {
-                            // We already in the target method
-                            methodPaths = emptyList()
-                            stateMethod = lastMethod!!
-                            break
-                        }
-                    }
+                val (methodsPaths, stackElementsToReturn) = pathsToMethods(targetMethods)
 
-                    val stackElement = previousStates.last()
-                    stateMethod = stackElement.method
-                    methodPaths = runDijkstra(stateMethod, targetMethods)
-                    previousStates = previousStates.subList(0, previousStates.lastIndex)
-
-                    previousStackElements += stackElement
-                } while (methodPaths.isEmpty())
-                // Drop the last stack element since we don't need to reach its exit points
-                previousStackElements = previousStackElements.subList(0, previousStackElements.lastIndex)
-
-                // Check if we are already in the required method
-                if (lastMethod in targetMethods) {
-                    val methodGraph = lastMethod!!.jimpleBody().graph()
-
-                    return@run calculateDistancesInProceduralGraphToSpecifiedStmts(
-                        stmt,
-                        methodGraph,
-                        targetPoints.map { it.stmt }
-                    ).minOfOrNull { it.value } ?: INF
+                if (methodsPaths.isEmpty()) {
+                    // Cannot reach target methods from the current state
+                    return@run INF
                 }
 
-                val theShortestInterProceduralPath = methodPaths.minByOrNull { it.size } ?: emptyList()
+//                // Check if we are already in the required method
+//                if (lastMethod in targetMethods) {
+//                    val methodGraph = lastMethod!!.jimpleBody().graph()
+//
+//                    return@run calculateDistancesInProceduralGraphToSpecifiedStmts(
+//                        stmt,
+//                        methodGraph,
+//                        targetPoints.map { it.stmt }
+//                    ).minOfOrNull { it.value } ?: INF
+//                }
+
+                val theShortestInterProceduralPath = methodsPaths.minByOrNull { it.size } ?: emptyList()
                 val sourceStmtsAlongTheShortestPath =
-                    retrieveSourceStmtsByPath(stateMethod, theShortestInterProceduralPath)
+                    retrieveStmtsToReachMethodsAlongPath(theShortestInterProceduralPath)
 
                 // If the current state has no paths to reach required points but methods before have,
                 // we need to find return statements of all states before the state with stateMethod
-                val distancesToReturnStmts = previousStackElements.map {
+                val distancesToReturnStmts = stackElementsToReturn.map {
                     val methodGraph = it.method.jimpleBody().graph()
-                    val returnStmts = methodGraph.tails.map { tail -> tail as Stmt }
+                    val returnStmts = methodGraph.tails.filterIsInstance<Stmt>().filter { tail -> tail.isReturn }
 
                     calculateDistancesInProceduralGraphToSpecifiedStmts(methodGraph.head, methodGraph, returnStmts)
                 }
 
                 // For the first method we need to calculate distances to source stmts from the current stmt
-                val currentStackStmt = previousStackElements.lastOrNull()?.caller ?: stmt
+                val stmtToStartToReachMethods = stackElementsToReturn.firstOrNull()?.caller ?: stmt
                 val firstMethodInInterProceduralPath = sourceStmtsAlongTheShortestPath.firstOrNull()
                 val distanceFromCurrentStmtToFirstNextStmts = firstMethodInInterProceduralPath?.let {
                     val methodGraph = it.first.jimpleBody().graph()
 
                     calculateDistancesInProceduralGraphToSpecifiedStmts(
-                        currentStackStmt,
+                        stmtToStartToReachMethods,
                         methodGraph,
                         firstMethodInInterProceduralPath.second
                     )
                 } ?: emptyMap()
 
-                val nextStmtsToNextMethods = if (sourceStmtsAlongTheShortestPath.isEmpty()) {
+                // For the last method we need to calculate distances to target stmts from the head
+                // (or from the current stmt, if we will be already in the target method after returning by stack)
+                val targetMethod = theShortestInterProceduralPath.last()
+                val targetMethodGraph = targetMethod.jimpleBody().graph()
+                val startStmtInTheTargetMethod = if (theShortestInterProceduralPath.size == 1) {
+                    stmtToStartToReachMethods
+                } else {
+                    targetMethodGraph.head
+                }
+                val distancesToTargetStmts = calculateDistancesInProceduralGraphToSpecifiedStmts(
+                    startStmtInTheTargetMethod,
+                    targetMethodGraph,
+                    targetPoints.filter { it.method == targetMethod.executableId }.map { it.stmt }
+                )
+
+                val nextStmtsToNextMethods = if (sourceStmtsAlongTheShortestPath.size < 2) {
                     emptyList()
                 } else {
+                    // We need to skip the first and the last methods, as they have already been counted
                     sourceStmtsAlongTheShortestPath.subList(1, sourceStmtsAlongTheShortestPath.lastIndex)
                 }
                 val distancesFromNextStmtsToNextMethods = nextStmtsToNextMethods.map {
@@ -135,9 +131,11 @@ class NewTaintPathSelector(
 
                 val innerProceduralDistance = distancesToReturnStmts.sumOf { it.values.min() } +
                         (distanceFromCurrentStmtToFirstNextStmts.minOfOrNull { it.value } ?: 0) +
-                        distancesFromNextStmtsToNextMethods.sumOf { it.values.min() }
+                        distancesFromNextStmtsToNextMethods.sumOf { it.values.min() } +
+                        (distancesToTargetStmts.minOfOrNull { it.value } ?: 0)
 
-                val interProceduralDistance = theShortestInterProceduralPath.size
+                // We don't need to count the target method
+                val interProceduralDistance = theShortestInterProceduralPath.size - 1
 
                 innerProceduralDistance * INNER_DISTANCE_COEFFICIENT + interProceduralDistance * INTER_DISTANCE_COEFFICIENT
             }
@@ -156,7 +154,7 @@ class NewTaintPathSelector(
         }
     }
 
-    private fun ExecutionState.pathsToMethods(targetMethods: List<SootMethod>): List<MethodsPath> {
+    private fun ExecutionState.pathsToMethods(targetMethods: Set<SootMethod>): MethodsPathWithStackElementsToReturn {
         var previousStateElements: List<ExecutionStackElement> = executionStack
 
         while (previousStateElements.isNotEmpty()) {
@@ -164,26 +162,69 @@ class NewTaintPathSelector(
             val methodsPaths = currentStackElement.pathsToMethods(targetMethods)
 
             if (methodsPaths.isNotEmpty()) {
-                return methodsPaths
+                return MethodsPathWithStackElementsToReturn(
+                    methodsPaths,
+                    executionStack.subList(previousStateElements.size, executionStack.size)
+                )
             }
 
             previousStateElements = previousStateElements.subList(0, previousStateElements.lastIndex)
         }
 
-        return emptyList()
+        return MethodsPathWithStackElementsToReturn(emptyList(), executionStack)
     }
 
-    private fun ExecutionStackElement.pathsToMethods(targetMethods: List<SootMethod>): List<MethodsPath> =
-        runDijkstra(method, targetMethods)
+    private data class MethodsPathWithStackElementsToReturn(
+        val methodsPath: List<MethodsPath>,
+        val stackElementsToReturn: List<ExecutionStackElement>
+    )
+
+    private fun ExecutionStackElement.pathsToMethods(targetMethods: Set<SootMethod>): List<MethodsPath> =
+//        runDijkstraInInterProceduralGraph(method, targetMethods)
+        runBfsInInterProceduralGraph(method, targetMethods)
+
+    private fun runBfsInInterProceduralGraph(start: SootMethod, targetMethods: Set<SootMethod>): List<MethodsPath> {
+        val used = mutableMapOf<SootMethod, Boolean>()
+        val distances = mutableMapOf<SootMethod, Int>()
+        val parents = mutableMapOf<SootMethod, SootMethod>()
+        val queue = ArrayDeque<SootMethod>()
+
+        queue += start
+        distances += start to 0
+        used[start] = true
+        while (!queue.isEmpty()) {
+            val srcMethod = queue.removeFirst()
+            val distanceFrom = distances.getOrDefault(srcMethod, INF)
+
+            for (edge in callGraph.edgesOutOf(srcMethod)) {
+                val targetMethod = edge.tgt.method()
+
+                if (!used.getOrDefault(targetMethod, false)) {
+                    used[targetMethod] = true
+                    queue += targetMethod
+                    distances[targetMethod] = distanceFrom + 1
+                    parents[targetMethod] = srcMethod
+                }
+            }
+        }
+
+        return targetMethods.mapNotNull {
+            if (!used.getOrDefault(it, false)) {
+                null
+            } else {
+                recoverPath(it, parents)
+            }
+        }
+    }
 
     // TODO seems we do not need dijkstra to find the shortest paths in the call graph, BFS should be enough
-    private fun runDijkstra(stateMethod: SootMethod, methodsToReach: List<SootMethod>): List<MethodsPath> {
+    private fun runDijkstraInInterProceduralGraph(start: SootMethod, targetMethods: Set<SootMethod>): List<MethodsPath> {
         val parents = mutableMapOf<SootMethod, SootMethod>()
         val distances = mutableMapOf<SootMethod, Int>()
         val queue = PriorityQueue<Pair<Int, SootMethod>>(Comparator.comparingInt { it.first })
 
-        queue += 0 to stateMethod
-        distances[stateMethod] = 0
+        queue += 0 to start
+        distances[start] = 0
         while (queue.isNotEmpty()) {
             val (d, srcMethod) = queue.poll()
             val distanceFrom = distances.getOrPut(srcMethod) { INF }
@@ -202,33 +243,34 @@ class NewTaintPathSelector(
             }
         }
 
-        // It is more convenient to think that we have reached the stateMethod from itself
-        parents[stateMethod] = stateMethod
-
-        return methodsToReach.mapNotNull {
-            recoverPath(it, stateMethod, parents).ifEmpty { null }
+        return targetMethods.mapNotNull {
+            if (distances.getOrDefault(it, INF) == INF) {
+                null
+            } else {
+                recoverPath(it, parents)
+            }
         }
     }
 
     private fun recoverPath(
-        methodToReach: SootMethod,
-        startMethod: SootMethod,
-        parents: MutableMap<SootMethod, SootMethod>
+        targetMethod: SootMethod,
+        parents: Map<SootMethod, SootMethod>
     ): MethodsPath =
-        generateSequence(parents[methodToReach]) { parentMethod ->
-            parents[parentMethod]?.let {
-                if (it == startMethod) null else it
-            }
-        }.toList().asReversed()
+        generateSequence(targetMethod) { parents[it] }
+            .toList()
+            .asReversed()
 
-    private fun retrieveSourceStmtsByPath(
-        startMethod: SootMethod,
+    private fun retrieveStmtsToReachMethodsAlongPath(
         path: MethodsPath
     ): List<Pair<SootMethod, List<Stmt>>> {
-        var curMethod = startMethod
+        if (path.isEmpty()) {
+            return emptyList()
+        }
+
+        var curMethod = path.first()
 
         val stmtsToNextMethods = mutableListOf<Pair<SootMethod, List<Stmt>>>()
-        for (nextMethod in path) {
+        for (nextMethod in path.subList(1, path.size)) {
             val stmtsToNextMethod = curMethod.activeBody.units.filter { unit ->
                 val edgesOutOfStmt = callGraph.edgesOutOf(unit)
                 val targetMethods = edgesOutOfStmt.asSequence().toList().map { it.tgt.method() }
@@ -236,8 +278,8 @@ class NewTaintPathSelector(
                 nextMethod in targetMethods
             }.map { it as Stmt }
 
-            curMethod = nextMethod
             stmtsToNextMethods += curMethod to stmtsToNextMethod
+            curMethod = nextMethod
 
             stmtsToNextMethod.forEach {
                 globalGraph.join(it, nextMethod.jimpleBody().graph(), registerEdges = false/*TODO register or not?*/)
@@ -255,7 +297,14 @@ class NewTaintPathSelector(
         val distances = calculateDistancesInProceduralGraphFromStmtWithBfs(start, graph)
 
         return targets.associateWith {
-            distances[it] ?: error("Distance from $start to $it was not calculated")
+            val i = distances[it]
+            if (i != null) {
+                i
+            } else {
+                // It means we have already skipped the target stmt, return INF
+//                org.utbot.engine.pathLogger.warn { ("$it was already skipped: now at $start") }
+                INF
+            }
         }
     }
 

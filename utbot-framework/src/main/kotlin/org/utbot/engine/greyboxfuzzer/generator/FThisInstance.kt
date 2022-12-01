@@ -3,7 +3,7 @@ package org.utbot.engine.greyboxfuzzer.generator
 import org.utbot.engine.greyboxfuzzer.util.copy
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
 
 sealed interface ThisInstance {
     val utModelForExecution: UtModel?

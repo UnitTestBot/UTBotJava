@@ -11,10 +11,10 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Type
 import kotlin.random.Random
@@ -47,12 +47,10 @@ class InterfaceImplementationsInstanceGenerator(
             }
         }
         val genericsContext =
-            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType) ?: return generateMock(
-                clazz,
-                resolvedType,
-                typeContext,
-                generatorContext
-            )
+            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType)
+        if (genericsContext == null || Random.getTrue(30)) {
+            return generateMock(clazz, resolvedType, typeContext, generatorContext)
+        }
         return ClassesInstanceGenerator(
             genericsContext.currentClass(),
             genericsContext,
@@ -63,11 +61,21 @@ class InterfaceImplementationsInstanceGenerator(
             generatorContext,
             depth
         ).generate().let {
-            if (it is UtNullModel && Random.getTrue(50)) generateMock(clazz, resolvedType, typeContext, generatorContext) else it
+            if (it is UtNullModel && Random.getTrue(50)) generateMock(
+                clazz,
+                resolvedType,
+                typeContext,
+                generatorContext
+            ) else it
         }
     }
 
-    private fun generateMock(clazz: Class<*>, resolvedType: Type, typeContext: GenericsContext, generatorContext: GeneratorContext,): UtModel {
+    private fun generateMock(
+        clazz: Class<*>,
+        resolvedType: Type,
+        typeContext: GenericsContext,
+        generatorContext: GeneratorContext
+    ): UtModel {
         if (!clazz.isInterface) return UtNullModel(clazz.id)
         val sootClazz = clazz.toSootClass() ?: return UtNullModel(clazz.id)
         val constructor = generatorContext.utModelConstructor
@@ -106,7 +114,13 @@ class InterfaceImplementationsInstanceGenerator(
                 val parameterTypeContext = ParameterTypeContext.forType(methodReturnType, genericsContextForMethod)
                 val generatedUtModelWithReturnType =
                     try {
-                        DataGenerator.generateUtModel(parameterTypeContext, depth, generatorContext, sourceOfRandomness, generationStatus)
+                        DataGenerator.generateUtModel(
+                            parameterTypeContext,
+                            depth,
+                            generatorContext,
+                            sourceOfRandomness,
+                            generationStatus
+                        )
                     } catch (_: Throwable) {
                         UtNullModel(methodReturnType.toClass()!!.id)
                     }

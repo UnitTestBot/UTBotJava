@@ -3,7 +3,7 @@ package org.utbot.engine.greyboxfuzzer.generator
 import org.utbot.engine.greyboxfuzzer.mutator.Mutator
 import org.utbot.engine.greyboxfuzzer.util.copy
 import org.utbot.engine.greyboxfuzzer.util.getAllDeclaredFields
-import org.utbot.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel

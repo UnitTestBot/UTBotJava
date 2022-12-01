@@ -4,9 +4,9 @@ import org.utbot.engine.logger
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 
 class ClassesInstanceGenerator(

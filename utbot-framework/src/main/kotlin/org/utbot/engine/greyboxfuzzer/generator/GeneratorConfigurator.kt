@@ -1,13 +1,13 @@
 package org.utbot.engine.greyboxfuzzer.generator
 
-import org.utbot.quickcheck.generator.Generator
-import org.utbot.quickcheck.generator.InRange
-import org.utbot.quickcheck.generator.Size
-import org.utbot.quickcheck.generator.java.util.CollectionGenerator
-import org.utbot.quickcheck.generator.java.util.MapGenerator
-import org.utbot.quickcheck.internal.generator.ArrayGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.InRange
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Size
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.util.CollectionGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.util.MapGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.ArrayGenerator
 import org.utbot.engine.greyboxfuzzer.util.getTrue
-import org.utbot.quickcheck.generator.java.lang.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.lang.*
 import kotlin.random.Random
 
 object GeneratorConfigurator {

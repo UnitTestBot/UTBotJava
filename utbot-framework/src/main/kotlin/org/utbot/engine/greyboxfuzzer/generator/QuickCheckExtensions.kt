@@ -10,13 +10,13 @@ import org.utbot.engine.greyboxfuzzer.generator.userclasses.UserClassGenerator
 import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.engine.logger
 import org.utbot.engine.rawType
-import org.utbot.quickcheck.generator.ComponentizedGenerator
-import org.utbot.quickcheck.generator.Generator
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.internal.FakeAnnotatedTypeFactory
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.internal.generator.ArrayGenerator
-import org.utbot.quickcheck.internal.generator.GeneratorRepository
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.ComponentizedGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.FakeAnnotatedTypeFactory
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.ArrayGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.GeneratorRepository
 import ru.vyarus.java.generics.resolver.GenericsResolver
 import ru.vyarus.java.generics.resolver.context.ConstructorGenericsContext
 import ru.vyarus.java.generics.resolver.context.GenericsContext
@@ -40,7 +40,7 @@ fun Generator.getAllComponents(): List<Generator> {
 
 fun Generator.getComponents(): List<Generator> =
     when (this) {
-        is ComponentizedGenerator -> this.componentGenerators()
+        is org.utbot.engine.greyboxfuzzer.quickcheck.generator.ComponentizedGenerator -> this.componentGenerators()
         is ArrayGenerator -> listOf(this.component)
         else -> emptyList()
     }

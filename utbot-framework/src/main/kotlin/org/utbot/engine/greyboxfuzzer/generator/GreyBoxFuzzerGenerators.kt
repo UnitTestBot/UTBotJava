@@ -1,20 +1,21 @@
 package org.utbot.engine.greyboxfuzzer.generator
 
 
-import org.utbot.quickcheck.NonTrackingGenerationStatus
-import org.utbot.quickcheck.generator.*
-import org.utbot.quickcheck.generator.java.time.*
-import org.utbot.quickcheck.generator.java.util.*
-import org.utbot.quickcheck.generator.java.lang.*
-import org.utbot.quickcheck.generator.java.math.*
-import org.utbot.quickcheck.generator.java.nio.charset.CharsetGenerator
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.NonTrackingGenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.time.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.util.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.lang.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.math.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.nio.charset.CharsetGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 
 object GreyBoxFuzzerGenerators {
 
     const val seed = 42L
-    const val maxDepthOfGeneration = 7
+    val maxDepthOfGeneration = AtomicInteger(5)
     val sourceOfRandomness = SourceOfRandomness(Random(seed))
     val genStatus = NonTrackingGenerationStatus(sourceOfRandomness)
 

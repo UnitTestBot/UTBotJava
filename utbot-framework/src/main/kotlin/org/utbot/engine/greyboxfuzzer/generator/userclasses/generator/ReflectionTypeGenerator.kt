@@ -7,8 +7,8 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
 import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
 import soot.NullType
 import soot.Scene

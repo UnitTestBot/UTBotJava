@@ -2,7 +2,7 @@
 
 package org.utbot.engine.greyboxfuzzer.util
 
-import org.utbot.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
 import org.javaruntype.type.Types
 import org.utbot.common.withAccessibility
 import org.utbot.engine.rawType

@@ -1,11 +1,11 @@
 package org.utbot.engine.greyboxfuzzer.generator
 
-import org.utbot.quickcheck.generator.Generator
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import org.utbot.engine.logger
-import org.utbot.quickcheck.internal.Zilch
-import org.utbot.quickcheck.internal.generator.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.Zilch
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.*
 
 class UTGeneratorRepository(random: SourceOfRandomness) : GeneratorRepository(random) {
 

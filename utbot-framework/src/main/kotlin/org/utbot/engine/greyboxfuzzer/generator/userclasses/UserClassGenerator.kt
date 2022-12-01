@@ -2,8 +2,8 @@
 
 package org.utbot.engine.greyboxfuzzer.generator.userclasses
 
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import org.javaruntype.type.TypeParameter
 import org.utbot.engine.greyboxfuzzer.generator.*
 import org.utbot.engine.greyboxfuzzer.generator.userclasses.generator.*
@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.quickcheck.generator.*
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.*
 import java.lang.reflect.*
 import kotlin.random.Random
 
@@ -55,8 +55,11 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
     }
 
     private fun regenerate(random: SourceOfRandomness, status: GenerationStatus): UtModel {
-        logger.debug { "Trying to generate ${parameterTypeContext!!.resolved}. Current depth depth: $depth" }
-        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration) return UtNullModel(clazz!!.id)
+        logger.debug { "Trying to generate ${parameterTypeContext!!.resolved}. Current depth: $depth" }
+        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration.toInt()) {
+            logger.debug { "Depth more than maxDepth ${GreyBoxFuzzerGenerators.maxDepthOfGeneration.toInt()}. Return UtNullModel" }
+            return UtNullModel(clazz!!.id)
+        }
         val immutableClazz = clazz!!
         when (immutableClazz) {
             Any::class.java -> return ObjectGenerator(parameterTypeContext!!, random, status, generatorContext).generate()
@@ -94,7 +97,9 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
     }
 
     override fun modify(random: SourceOfRandomness, status: GenerationStatus): UtModel {
-        generatedUtModel ?: throw FuzzerIllegalStateException("Nothing to modify")
+        if (generatedUtModel == null) {
+            return regenerate(random, status)
+        }
         val cachedUtModel = generatedUtModel as? UtAssembleModel ?: return generatedUtModel!!.copy()
         return if (Random.getTrue(80) && mutatedFields.isNotEmpty()) {
             regenerateField(random, status, cachedUtModel)

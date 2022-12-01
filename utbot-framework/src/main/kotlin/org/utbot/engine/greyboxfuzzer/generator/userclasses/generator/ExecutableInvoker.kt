@@ -5,12 +5,10 @@ import org.utbot.engine.greyboxfuzzer.generator.createParameterContextForParamet
 import org.utbot.engine.greyboxfuzzer.util.constructAssembleModelUsingMethodInvocation
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Executable
 

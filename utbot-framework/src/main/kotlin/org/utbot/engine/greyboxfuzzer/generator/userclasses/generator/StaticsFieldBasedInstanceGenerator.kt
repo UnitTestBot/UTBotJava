@@ -1,7 +1,7 @@
 package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 
 import org.utbot.engine.greyboxfuzzer.util.SootStaticsCollector
-import org.utbot.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.engine.greyboxfuzzer.util.hasModifiers
 import org.utbot.engine.greyboxfuzzer.util.toClass
 import org.utbot.external.api.classIdForType
@@ -9,8 +9,8 @@ import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Field
 import java.lang.reflect.Method

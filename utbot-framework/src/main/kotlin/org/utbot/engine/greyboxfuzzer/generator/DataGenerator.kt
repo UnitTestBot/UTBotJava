@@ -1,10 +1,10 @@
 package org.utbot.engine.greyboxfuzzer.generator
 
 import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.Generator
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import org.utbot.engine.logger
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.plugin.api.ClassId
@@ -13,8 +13,8 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.quickcheck.generator.GenerationState
-import org.utbot.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationState
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import java.lang.reflect.Parameter
 
 object DataGenerator {
@@ -28,8 +28,8 @@ object DataGenerator {
         random: SourceOfRandomness,
         status: GenerationStatus
     ): UtModel {
-        logger.debug { "Trying to generate UtModel of type 3 times" }
         val classId = parameterTypeContext.rawClass.id
+        logger.debug { "Trying to generate UtModel of type ${classId.name} 3 times" }
         var generatedInstance: UtModel? = null
         repeat(3) {
             generatedInstance =
@@ -37,7 +37,7 @@ object DataGenerator {
                     val generator =
                         generatorRepository.getOrProduceGenerator(parameterTypeContext, generatorContext, depth)
                             ?: return@repeat
-                    generator.generatorContext.startCheckpoint()
+                    //generator.generatorContext.startCheckpoint()
                     generator.generateImpl(random, status)
                 } catch (_: Throwable) {
                     null

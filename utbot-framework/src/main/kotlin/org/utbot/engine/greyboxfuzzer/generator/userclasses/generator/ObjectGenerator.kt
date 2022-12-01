@@ -9,10 +9,10 @@ import org.utbot.engine.greyboxfuzzer.util.toSootMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
 import kotlin.random.Random
 
@@ -32,7 +32,7 @@ class ObjectGenerator(
                 val randomClass = potentialUsefulClasses.random()
                 val generator = GreyBoxFuzzerGenerators.generatorRepository
                     .getOrProduceGenerator(randomClass, generatorContext)
-                generator?.generatorContext?.startCheckpoint()
+                    ?.also { it.generatorContext = generatorContext }
                 generator?.generateImpl(sourceOfRandomness, generationStatus)
             } else null
         potentialInterestingObjectReplacement?.let { return it }
@@ -42,7 +42,7 @@ class ObjectGenerator(
             .flatMap { it.second }
             .filter { !it.hasComponents() }
             .randomOrNull()
-        generator?.generatorContext?.startCheckpoint()
+            ?.also { it.generatorContext = generatorContext }
         return generator?.generateImpl(sourceOfRandomness, generationStatus) ?: UtNullModel(parameterTypeContext.rawClass.id)
     }
 }

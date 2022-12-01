@@ -1,11 +1,11 @@
 package org.utbot.engine.greyboxfuzzer.util
 
-import org.utbot.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
 import org.utbot.engine.greyboxfuzzer.generator.*
 import org.utbot.external.api.classIdForType
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.*
-import org.utbot.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import java.lang.reflect.Method
 import java.lang.reflect.Parameter
 
@@ -58,7 +58,6 @@ fun UtModel.copy(): UtModel =
         is UtArrayModel -> this.copy()
         is UtClassRefModel -> this.copy()
         is UtPrimitiveModel -> this.copy()
-        is UtReferenceModel -> this.copy()
         else -> this
     }
 

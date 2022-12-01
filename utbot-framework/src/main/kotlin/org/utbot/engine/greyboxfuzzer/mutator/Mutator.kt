@@ -9,12 +9,12 @@ import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
-import org.utbot.quickcheck.generator.GenerationState
-import org.utbot.quickcheck.generator.GenerationStatus
-import org.utbot.quickcheck.generator.Generator
-import org.utbot.quickcheck.generator.GeneratorContext
-import org.utbot.quickcheck.internal.ParameterTypeContext
-import org.utbot.quickcheck.random.SourceOfRandomness
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationState
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
+import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -22,25 +22,14 @@ import kotlin.random.Random
 
 object Mutator {
 
-    /**
-     * Mean number of mutations to perform in each round.
-     */
-    private val MEAN_MUTATION_COUNT = 8.0
-
-    /**
-     * Mean number of contiguous bytes to mutate in each mutation.
-     */
-    private val MEAN_MUTATION_SIZE = 4.0 // Bytes
-
-    private fun regenerateRandomParameter(fParameter: FParameter): FParameter? {
-        return fParameter
-    }
-
     fun mutateSeed(seed: Seed, sourceOfRandomness: SourceOfRandomness, genStatus: GenerationStatus): Seed {
         val seedCopy = seed.copy()
+        //If seed is empty mutate this
+        if (seedCopy.parameters.isEmpty()) return seed
+
         val randomParameterIndex = Random.nextInt(0, seedCopy.parameters.size)
-        val randomParameter = seedCopy.parameters.getOrNull(randomParameterIndex) ?: return seedCopy
-        val randomParameterGenerator = randomParameter.generator ?: return seedCopy
+        val randomParameter = seedCopy.parameters.getOrNull(randomParameterIndex) ?: return seed
+        val randomParameterGenerator = randomParameter.generator ?: return seed
         randomParameterGenerator.generationState = GenerationState.MODIFY
         randomParameterGenerator.generatorContext.startCheckpoint()
         val newUtModel = randomParameterGenerator.generateImpl(sourceOfRandomness, genStatus)

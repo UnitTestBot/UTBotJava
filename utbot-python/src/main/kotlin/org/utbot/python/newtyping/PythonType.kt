@@ -181,13 +181,15 @@ object PythonNoneTypeDescription: PythonSpecialAnnotation(pythonNoneName) {
 }
 
 object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
+    /*
     override fun castToCompatibleTypeApi(type: Type): StatefulType {
         return type as? StatefulType
             ?: error("Got unexpected type PythonUnionTypeDescription: $type")
     }
+     */
     override fun getMemberByName(type: Type, name: String): PythonAttribute? {
-        val statefulType = castToCompatibleTypeApi(type)
-        val children = statefulType.members.mapNotNull {
+        //val statefulType = castToCompatibleTypeApi(type)
+        val children = type.parameters.mapNotNull {
             it.getPythonAttributeByName(name)?.type
         }
         return if (children.isEmpty())
@@ -198,15 +200,17 @@ object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
                 type = createPythonUnionType(children)
             )
     }
-    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
+    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
 }
 
 object PythonOverloadTypeDescription: PythonSpecialAnnotation(overloadName) {
+    /*
     override fun castToCompatibleTypeApi(type: Type): StatefulType {
         return type as? StatefulType
             ?: error("Got unexpected type PythonOverloadTypeDescription: $type")
     }
-    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
+     */
+    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
     override fun getNamedMembers(type: Type): List<PythonAttribute> {
         val statefulType = castToCompatibleTypeApi(type)
         TODO("Not yet implemented")
@@ -214,11 +218,13 @@ object PythonOverloadTypeDescription: PythonSpecialAnnotation(overloadName) {
 }
 
 object PythonTupleTypeDescription: PythonSpecialAnnotation(pythonTupleName) {
+    /*
     override fun castToCompatibleTypeApi(type: Type): StatefulType {
         return type as? StatefulType
             ?: error("Got unexpected type PythonTupleTypeDescription: $type")
     }
-    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).members
+     */
+    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
     override fun getNamedMembers(type: Type): List<PythonAttribute> {
         val statefulType = castToCompatibleTypeApi(type)
         TODO("Not yet implemented")
@@ -232,17 +238,17 @@ val pythonTupleName = Name(listOf("typing"), "Tuple")
 val pythonCallableName = Name(listOf("typing"), "Callable")
 val overloadName = Name(emptyList(), "Overload")
 
-val pythonAnyType = TypeCreator.create(emptyList(), PythonAnyTypeDescription)
-val pythonNoneType = TypeCreator.create(emptyList(), PythonNoneTypeDescription)
+val pythonAnyType = createTypeWithMembers(PythonAnyTypeDescription, emptyList())
+val pythonNoneType = createTypeWithMembers(PythonNoneTypeDescription, emptyList())
 
-fun createPythonUnionType(members: List<Type>): StatefulType =
-    StatefulTypeCreator.create(emptyList(), members, PythonUnionTypeDescription)
+fun createPythonUnionType(members: List<Type>): Type =
+    createTypeWithMembers(PythonUnionTypeDescription, members)
 
-fun createOverload(members: List<Type>): StatefulType =
-    StatefulTypeCreator.create(emptyList(), members, PythonOverloadTypeDescription)
+fun createOverload(members: List<Type>): Type =
+    createTypeWithMembers(PythonOverloadTypeDescription, members)
 
-fun createPythonTupleType(members: List<Type>): StatefulType =
-    StatefulTypeCreator.create(emptyList(), members, PythonTupleTypeDescription)
+fun createPythonTupleType(members: List<Type>): Type =
+    createTypeWithMembers(PythonTupleTypeDescription, members)
 
 fun createPythonConcreteCompositeType(
     name: Name,
@@ -285,3 +291,24 @@ class PythonAttribute(
 
 val exactTypeRelation = TypeRelation("=")
 val upperBoundRelation = TypeRelation("<")
+
+private fun initTypeVar(param: TypeParameter) {
+    param.meta = PythonTypeVarDescription(
+        Name(emptyList(), ""), // TODO: name?
+        PythonTypeVarDescription.Variance.INVARIANT,
+        PythonTypeVarDescription.ParameterKind.WithUpperBound
+    )
+}
+
+private fun substituteMembers(origin: Type, members: List<Type>): Type =
+    DefaultSubstitutionProvider.substitute(
+        origin,
+        (origin.parameters.map { it as TypeParameter } zip members).associate { it }
+    )
+
+private fun createTypeWithMembers(description: PythonTypeDescription, members: List<Type>): Type {
+    val origin = TypeCreator.create(members.size, description) {
+        it.parameters.forEach(::initTypeVar)
+    }
+    return substituteMembers(origin, members)
+}

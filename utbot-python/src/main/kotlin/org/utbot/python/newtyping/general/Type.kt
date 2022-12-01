@@ -11,13 +11,16 @@ interface FunctionType: Type {
     val returnValue: Type
 }
 
+/*
 interface StatefulType: Type {
     val members: List<Type>
 }
+ */
 
 // members and supertypes of CompositeType instance can recursively refer to it and its parameters
-interface CompositeType: StatefulType {
+interface CompositeType: Type {
     val supertypes: List<Type>
+    val members: List<Type>
 }
 
 open class TypeMetaData

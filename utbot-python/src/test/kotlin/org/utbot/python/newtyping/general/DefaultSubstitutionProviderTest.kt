@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions.*
 internal class DefaultSubstitutionProviderTest {
     @Test
     fun test1() {
+        val unionOfTwo = TypeCreator.create(2, TypeMetaDataWithName(Name(listOf("typing"), "Union"))) {}
+
         val provider = DefaultSubstitutionProvider
         val set = CompositeTypeCreator.create(
             numberOfParameters = 1,
@@ -24,11 +26,7 @@ internal class DefaultSubstitutionProviderTest {
                             returnValue = provider.substitute(
                                 set,
                                 mapOf(
-                                    T to StatefulTypeCreator.create(
-                                        emptyList(),
-                                        listOf(T, S),
-                                        TypeMetaDataWithName(Name(listOf("typing"), "Union"))
-                                    )
+                                    T to DefaultSubstitutionProvider.substituteAll(unionOfTwo, listOf(T, S))
                                 )
                             )
                         )
@@ -46,32 +44,33 @@ internal class DefaultSubstitutionProviderTest {
         assertTrue(setOfS.members[0] is FunctionType)
         assertTrue((setOfS.members[0] as FunctionType).returnValue is CompositeType)
         // (setOfS.members[0] as FunctionType).returnValue --- Set<Union<S, S'>>
-        assertTrue(((setOfS.members[0] as FunctionType).returnValue.parameters[0] as StatefulType).members.let { it[0] != it[1] })
+        assertTrue(((setOfS.members[0] as FunctionType).returnValue.parameters[0]).parameters.let { it[0] != it[1] })
         val setOfUnionType = (setOfS.members[0] as FunctionType).returnValue as CompositeType
         assertTrue(setOfUnionType.parameters.size == 1)
-        assertTrue(setOfUnionType.parameters[0] is StatefulType)
-        assertTrue((setOfUnionType.parameters[0] as StatefulType).members.size == 2)
-        assertTrue((setOfUnionType.parameters[0] as StatefulType).members.all { it is TypeParameter })
+        assertTrue((setOfUnionType.parameters[0].meta as TypeMetaDataWithName).name.name == "Union")
+        assertTrue(setOfUnionType.parameters[0].parameters.size == 2)
+        assertTrue(setOfUnionType.parameters[0].parameters.all { it is TypeParameter })
 
         val compositeTypeDescriptor = CompositeTypeSubstitutionProvider(provider)
         val T = set.parameters.first() as TypeParameter
+        val int = TypeCreator.create(0, TypeMetaDataWithName(Name(emptyList(), "int"))) {}
         val setOfInt = compositeTypeDescriptor.substitute(
             set,
-            mapOf(T to TypeCreator.create(emptyList(), TypeMetaDataWithName(Name(emptyList(), "int"))))
+            mapOf(T to int)
         )
         assertTrue(setOfInt.members[0] is FunctionType)
         val unionMethod1 = setOfInt.members[0] as FunctionType
-        val innerUnionType = (unionMethod1.returnValue as CompositeType).parameters[0] as StatefulType
-        assertTrue(innerUnionType.members.size == 2)
-        assertTrue(((innerUnionType.members[0].meta as TypeMetaDataWithName).name.name == "int"))
-        assertTrue(innerUnionType.members[1] is TypeParameter)
+        val innerUnionType = (unionMethod1.returnValue as CompositeType).parameters[0]
+        assertTrue(innerUnionType.parameters.size == 2)
+        assertTrue(((innerUnionType.parameters[0].meta as TypeMetaDataWithName).name.name == "int"))
+        assertTrue(innerUnionType.parameters[1] is TypeParameter)
 
         val setOfSets = compositeTypeDescriptor.substitute(set, mapOf(T to setOfInt))
         assertTrue(setOfSets.members[0] is FunctionType)
         val unionMethod2 = setOfSets.members[0] as FunctionType
-        assertTrue(((unionMethod2.returnValue as CompositeType).parameters[0] as StatefulType).members.size == 2)
-        assertTrue(((unionMethod2.returnValue as CompositeType).parameters[0] as StatefulType).members[0] is CompositeType)
-        assertTrue(((unionMethod2.returnValue as CompositeType).parameters[0] as StatefulType).members[1] is TypeParameter)
+        assertTrue((unionMethod2.returnValue as CompositeType).parameters[0].parameters.size == 2)
+        assertTrue((unionMethod2.returnValue as CompositeType).parameters[0].parameters[0] is CompositeType)
+        assertTrue((unionMethod2.returnValue as CompositeType).parameters[0].parameters[1] is TypeParameter)
     }
 
     @Test
@@ -150,7 +149,7 @@ internal class DefaultSubstitutionProviderTest {
 
     @Test
     fun testSubstitutionInConstraint() {
-        val int = TypeCreator.create(emptyList(), TypeMetaDataWithName(Name(emptyList(), "int")))
+        val int = TypeCreator.create(0, TypeMetaDataWithName(Name(emptyList(), "int"))) {}
         lateinit var classA: Type
         val dummyFunction = FunctionTypeCreator.create(
             numberOfParameters = 1,

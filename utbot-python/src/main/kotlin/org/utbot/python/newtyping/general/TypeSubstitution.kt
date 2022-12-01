@@ -6,7 +6,7 @@ object DefaultSubstitutionProvider: SubstitutionProvider<Type, Type>() {
             is TypeParameter -> TypeParameterSubstitutionProvider(this).substitute(type, params)
             is FunctionType -> FunctionTypeSubstitutionProvider(this).substitute(type, params)
             is CompositeType -> CompositeTypeSubstitutionProvider(this).substitute(type, params)
-            is StatefulType -> StatefulTypeSubstitutionProvider(this).substitute(type, params)
+            // is StatefulType -> StatefulTypeSubstitutionProvider(this).substitute(type, params)
             else -> TypeSubstitutionProvider(this).substitute(type, params)
         }
 }
@@ -17,6 +17,12 @@ abstract class SubstitutionProvider<I : Type, O: Type> {
         val param = type.parameters[index] as? TypeParameter
             ?: error("Cannot substitute parameter at index $index of type $type")
         return substitute(type, mapOf(param to newParamValue))
+    }
+    fun substituteAll(type: I, newParamValues: List<Type>): O {
+        val params = type.parameters.map {
+            it as? TypeParameter ?: error("Can apply substituteAll only to types without any substitutions")
+        }
+        return substitute(type, (params zip newParamValues).associate { it })
     }
 }
 
@@ -79,6 +85,7 @@ class FunctionTypeSubstitutionProvider(
     }
 }
 
+/*
 class StatefulTypeSubstitutionProvider(
     private val provider: SubstitutionProvider<Type, Type>
 ): SubstitutionProvider<StatefulType, StatefulType>() {
@@ -95,6 +102,7 @@ class StatefulTypeSubstitutionProvider(
         }
     }
 }
+ */
 
 class CompositeTypeSubstitutionProvider(
     private val provider: SubstitutionProvider<Type, Type>
@@ -106,9 +114,12 @@ class CompositeTypeSubstitutionProvider(
         override val rawOrigin: CompositeType,
         override val params: Map<TypeParameter, Type>,
         provider: SubstitutionProvider<Type, Type>
-    ): CompositeType, StatefulTypeSubstitutionProvider.Substitution(rawOrigin, params, provider) {
+    ): CompositeType, TypeSubstitutionProvider.Substitution(rawOrigin, params, provider) {
         override val supertypes: List<Type> by lazy {
             rawOrigin.supertypes.map { provider.substitute(it, newBoundedTypeParameters + params) }
+        }
+        override val members: List<Type> by lazy {
+            rawOrigin.members.map { provider.substitute(it, newBoundedTypeParameters + params) }
         }
     }
 }

@@ -47,7 +47,7 @@ class RdInstrumenterAdapter private constructor(
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()
         
-        const val serializationHash = -671974871925861655L
+        const val serializationHash = 1502978559314472937L
         
     }
     override val serializersOwner: ISerializersOwner get() = RdInstrumenterAdapter
@@ -97,8 +97,7 @@ val IProtocol.rdInstrumenterAdapter get() = getOrCreateExtension(RdInstrumenterA
  * #### Generated from [EngineProcessModel.kt:8]
  */
 data class ComputeSourceFileByClassArguments (
-    val className: String,
-    val packageName: String?
+    val canonicalClassName: String
 ) : IPrintable {
     //companion
     
@@ -107,14 +106,12 @@ data class ComputeSourceFileByClassArguments (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ComputeSourceFileByClassArguments  {
-            val className = buffer.readString()
-            val packageName = buffer.readNullable { buffer.readString() }
-            return ComputeSourceFileByClassArguments(className, packageName)
+            val canonicalClassName = buffer.readString()
+            return ComputeSourceFileByClassArguments(canonicalClassName)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ComputeSourceFileByClassArguments)  {
-            buffer.writeString(value.className)
-            buffer.writeNullable(value.packageName) { buffer.writeString(it) }
+            buffer.writeString(value.canonicalClassName)
         }
         
         
@@ -130,24 +127,21 @@ data class ComputeSourceFileByClassArguments (
         
         other as ComputeSourceFileByClassArguments
         
-        if (className != other.className) return false
-        if (packageName != other.packageName) return false
+        if (canonicalClassName != other.canonicalClassName) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + className.hashCode()
-        __r = __r*31 + if (packageName != null) packageName.hashCode() else 0
+        __r = __r*31 + canonicalClassName.hashCode()
         return __r
     }
     //pretty print
     override fun print(printer: PrettyPrinter)  {
         printer.println("ComputeSourceFileByClassArguments (")
         printer.indent {
-            print("className = "); className.print(printer); println()
-            print("packageName = "); packageName.print(printer); println()
+            print("canonicalClassName = "); canonicalClassName.print(printer); println()
         }
         printer.print(")")
     }

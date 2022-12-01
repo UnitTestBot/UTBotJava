@@ -169,7 +169,8 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
     private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =
         DumbService.getInstance(project).runReadActionInSmartMode<String?> {
             val scope = GlobalSearchScope.allScope(project)
-            val psiClass = JavaFileManager.getInstance(project).findClass(params.className, scope)
+            // JavaFileManager requires canonical name as it is said in import
+            val psiClass = JavaFileManager.getInstance(project).findClass(params.canonicalClassName, scope)
             val sourceFile = psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
 
             logger.debug { "computeSourceFileByClass result: $sourceFile" }

@@ -18,7 +18,7 @@ import org.jetbrains.kotlin.idea.util.application.invokeLater
  * This object is required to encapsulate Android API usage and grant safe access to it.
  */
 object IntelliJApiHelper {
-    private val logger = KotlinLogging.logger {"org.utbot.IntelliJApiHelper"}
+    private val logger = KotlinLogging.logger {}
     enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
     fun run(target: Target, indicator: ProgressIndicator? = null, logMessage : String, runnable: Runnable) {

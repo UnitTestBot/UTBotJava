@@ -265,6 +265,14 @@ class Traverser(
     //HACK (long strings)
     internal var softMaxArraySize = 40
 
+    // HACK FOR TAINTS
+    private val methodsToNotMock: MutableSet<SootMethod> = mutableSetOf()
+
+    // HACk FOR TAINTS
+    internal fun addMethodsToDoNotMock(methods: Set<SootMethod>) {
+        methodsToNotMock += methods
+    }
+
     /**
      * Contains information about the generic types used in the parameters of the method under test.
      */
@@ -772,16 +780,18 @@ class Traverser(
     private fun TraversalContext.traverseAssignStmt(current: JAssignStmt) {
         val rightValue = current.rightOp
 
-        workaround(HACK) {
-            val rightType = rightValue.type
-            if (rightValue is JNewExpr && rightType is RefType) {
-                val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
-                val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
+        doNotRun {
+            workaround(HACK) {
+                val rightType = rightValue.type
+                if (rightValue is JNewExpr && rightType is RefType) {
+                    val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
+                    val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
 
-                // skip all the vertices in the CFG between `new` and `<init>` statements
-                if (rightType in throwableInheritors) {
-                    skipVerticesForThrowableCreation(current)
-                    return
+                    // skip all the vertices in the CFG between `new` and `<init>` statements
+                    if (rightType in throwableInheritors) {
+                        skipVerticesForThrowableCreation(current)
+                        return
+                    }
                 }
             }
         }
@@ -1107,10 +1117,14 @@ class Traverser(
             is JCaughtExceptionRef -> {
                 val value = localVariableMemory.local(CAUGHT_EXCEPTION)
                     ?: error("Exception wasn't caught, stmt: $current, line: ${current.lines}")
+                val taintUpdate = processTaintSourceForStatementAndValue(current, value)
+                val localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null)
+
                 val nextState = updateQueued(
                     globalGraph.succ(current),
-                    SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null))
+                    SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdates)  + taintUpdate
                 )
+
                 offerState(nextState)
             }
             else -> error("Unsupported $identityRef")
@@ -2423,29 +2437,44 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
-        val classId = exception.fold(
-            { it.javaClass.id },
-            { (exception.symbolic as ObjectValue).type.id }
+        val possibleTypesClassId = exception.fold(
+            { listOf(it.javaClass.id) },
+            { (exception.symbolic as ObjectValue).possibleConcreteTypes.map { it.classId } }
         )
-        val edge = findCatchBlock(current, classId) ?: return false
+        val edges = findCatchBlocks(current, possibleTypesClassId)
 
-        offerState(
-            updateQueued(
-                edge,
-                SymbolicStateUpdate(
-                    hardConstraints = conditions.asHardConstraint(),
-                    localMemoryUpdates = localMemoryUpdate(CAUGHT_EXCEPTION to exception.symbolic)
+        if (edges.isEmpty()) {
+            return false
+        }
+
+        edges.forEach { edge ->
+            offerState(
+                updateQueued(
+                    edge,
+                    SymbolicStateUpdate(
+                        hardConstraints = conditions.asHardConstraint(),
+                        localMemoryUpdates = localMemoryUpdate(CAUGHT_EXCEPTION to exception.symbolic)
+                    )
                 )
             )
-        )
+        }
         return true
     }
 
-    private fun findCatchBlock(current: Stmt, classId: ClassId): Edge? {
+    // TODO TAINT I'm not sure that this is right implementation, should be refactored and reconsidered in the future
+    private fun findCatchBlocks(current: Stmt, classIds: List<ClassId>): List<Edge> {
         val stmtToEdge = globalGraph.exceptionalSuccs(current).associateBy { it.dst }
-        return globalGraph.traps.asSequence().mapNotNull { (stmt, exceptionClass) ->
-            stmtToEdge[stmt]?.let { it to exceptionClass }
-        }.firstOrNull { it.second in hierarchy.ancestors(classId) }?.first
+        val traps = globalGraph.traps
+        val edgeToExceptionClass = traps.mapNotNull { (stmt, exceptionClass) -> stmtToEdge[stmt]?.let { it to exceptionClass } }
+
+        val exceptionAncestors = classIds.fold(mutableSetOf<SootClass>()) { acc, elem ->
+            acc.addAll(hierarchy.ancestors(elem))
+            acc
+        }
+
+        val reachableAncestors = edgeToExceptionClass.filter { it.second in exceptionAncestors }
+        return reachableAncestors.map { it.first }
+
     }
 
     private fun TraversalContext.invokeResult(invokeExpr: InvokeExpr): List<MethodResult> {
@@ -2743,6 +2772,17 @@ class Traverser(
     }
 
     private fun TraversalContext.specialInvoke(invokeExpr: JSpecialInvokeExpr): List<MethodResult> {
+        workaround(TAINT) { // skip an exception's init
+            val throwableType = Scene.v().getSootClass("java.lang.Throwable").type
+            val throwableInheritors = typeResolver.findOrConstructInheritorsIncludingTypes(throwableType)
+            if (invokeExpr.method.isConstructor && invokeExpr.method.declaringClass.type in throwableInheritors) {
+                globalGraph.visitEdge(environment.state.lastEdge!!)
+                globalGraph.visitNode(environment.state)
+                offerState(updateQueued(globalGraph.succ(environment.state.stmt)))
+                return emptyList()
+            }
+        }
+
         val instance = resolve(invokeExpr.base)
         if (instance !is ReferenceValue) error("We cannot run ${invokeExpr.methodRef} on $instance")
 
@@ -2906,11 +2946,6 @@ class Traverser(
         target: InvocationTarget,
         parameters: List<SymbolicValue>
     ): List<MethodResult> = with(target.method) {
-        // Make results of method invocations at big depth unbounded variables
-        if (isCallGraphTooDeep()) {
-            return treatMethodResultAsUnboundedVariable(name = "${target.method.name}DeepMock", target.method)
-        }
-
         val substitutedMethod = typeRegistry.findSubstitutionOrNull(this)
 
         if (isNative && substitutedMethod == null) {
@@ -2955,9 +2990,15 @@ class Traverser(
             declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
             isUtMockForbidClassCastException -> isUtMockDisableClassCastExceptionCheckInvoke(parameters)
             else -> {
-                val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
-                pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
-                emptyList()
+                // Make results of method invocations at big depth unbounded variables
+                // HACK FOR TAINTS
+                if (isCallGraphTooDeep() || (UtSettings.mockAllMethodsButRelatedToTaintAnalysis && target.method !in methodsToNotMock)) {
+                    treatMethodResultAsUnboundedVariable(name = "${target.method.name}DeepMock", target.method)
+                } else {
+                    val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
+                    pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
+                    emptyList()
+                }
             }
         }
     }

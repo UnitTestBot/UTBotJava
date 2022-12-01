@@ -25,11 +25,11 @@ class TaintAnalysis {
 
     // TODO public mutable - bad design
     // TODO we cannot get a value by regex key, iteration is required - perhaps traverse the whole query first and make these maps with ExecutableId as keys?
-    val sources: MutableMap<Regex, TaintSource> = mutableMapOf()
+    val sources: MutableMap<Regex, MutableList<TaintSource>> = mutableMapOf()
     val knownSourceStatements: MutableMap<Stmt, TaintKinds> = mutableMapOf()
-    val sinks: MutableMap<Regex, TaintSink> = mutableMapOf()
-    val passThrough: MutableMap<Regex, TaintPassThrough> = mutableMapOf()
-    val sanitizers: MutableMap<Regex, TaintSanitizer> = mutableMapOf()
+    val sinks: MutableMap<Regex, MutableList<TaintSink>> = mutableMapOf()
+    val passThrough: MutableMap<Regex, MutableList<TaintPassThrough>> = mutableMapOf()
+    val sanitizers: MutableMap<Regex, MutableList<TaintSanitizer>> = mutableMapOf()
 
     val ExecutableId.fullName: String
         get() {
@@ -44,19 +44,19 @@ class TaintAnalysis {
 
     // TODO maps
     fun getSourceInfo(source: ExecutableId): List<TaintSource> =
-        sources.filter { it.key.matches(source.fullName) }.entries.map { it.value }
+        sources.filter { it.key.matches(source.fullName) }.entries.flatMap { it.value }
 
     fun getTaintKindsByStatement(stmt: Stmt): TaintKinds? = knownSourceStatements[stmt]
 
     fun getSinkInfo(sink: ExecutableId): List<TaintSink> =
         // TODO not first, but union of all sinks or list of them
-        sinks.filter { it.key.matches(sink.fullName) }.entries.map { it.value }
+        sinks.filter { it.key.matches(sink.fullName) }.entries.flatMap { it.value }
 
     fun getPassThroughInfo(executableId: ExecutableId): List<TaintPassThrough> =
-        passThrough.filter { it.key.matches(executableId.fullName) }.entries.map { it.value }
+        passThrough.filter { it.key.matches(executableId.fullName) }.entries.flatMap { it.value }
 
     fun getSanitizerInfo(executableId: ExecutableId): List<TaintSanitizer> =
-        sanitizers.filter { it.key.matches(executableId.fullName) }.entries.map { it.value }
+        sanitizers.filter { it.key.matches(executableId.fullName) }.entries.flatMap { it.value }
 
     // TODO what to do with negation of kind?
     fun constructTaintedVector(flags: Set<String>): UtBvLiteral {
@@ -108,8 +108,8 @@ class TaintAnalysis {
     private fun setSources(sourceConfigurations: Collection<TaintSourceConfiguration>) {
         sourceConfigurations.forEach {
             val pattern = it.pattern
-
-            sources[pattern] = TaintSource(pattern, it.taintOutput.toSet(), it.taintKinds, it.condition)
+            sources.putIfAbsent(pattern, mutableListOf())
+            sources.getValue(pattern) += TaintSource(pattern, it.taintOutput.toSet(), it.taintKinds, it.condition)
         }
     }
 
@@ -122,7 +122,8 @@ class TaintAnalysis {
             val pattern = sinkConfiguration.pattern
 
             val taintSinks = sinkConfiguration.sinks.associate { it.index to it.condition }
-            sinks[pattern] = TaintSink(pattern, taintSinks)
+            sinks.putIfAbsent(pattern, mutableListOf())
+            sinks.getValue(pattern) += TaintSink(pattern, taintSinks)
         }
     }
 
@@ -130,14 +131,21 @@ class TaintAnalysis {
         passThroughConfigurations.forEach {
             val pattern = it.pattern
 
-            passThrough[pattern] =
-                TaintPassThrough(pattern, it.taintInput.toSet(), it.taintOutput.toSet(), it.taintKinds, it.condition)
+            passThrough.putIfAbsent(pattern, mutableListOf())
+            passThrough.getValue(pattern) += TaintPassThrough(
+                pattern,
+                it.taintInput.toSet(),
+                it.taintOutput.toSet(),
+                it.taintKinds,
+                it.condition
+            )
         }
 
         taintPassThrough.forEach { (method, arg) ->
             val pattern = "${method.classId.name}.${method.name}".toRegex()
 
-            passThrough[pattern] = TaintPassThrough(
+            passThrough.putIfAbsent(pattern, mutableListOf())
+            passThrough.getValue(pattern) += TaintPassThrough(
                 pattern, arg.keys, arg.values.map { it.first }.toSet(), TaintKinds(), condition = null
             )
         }
@@ -147,7 +155,8 @@ class TaintAnalysis {
         sanitizerConfigurations.forEach {
             val pattern = it.pattern
 
-            sanitizers[pattern] = TaintSanitizer(
+            sanitizers.putIfAbsent(pattern, mutableListOf())
+            sanitizers.getValue(pattern) += TaintSanitizer(
                 pattern,
                 it.taintOutput.toSet(),
                 it.taintKinds

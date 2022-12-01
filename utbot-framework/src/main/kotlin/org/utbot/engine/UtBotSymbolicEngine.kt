@@ -118,6 +118,7 @@ import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.fuzzer.toFuzzerType
+import soot.SootMethod
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -209,6 +210,13 @@ class UtBotSymbolicEngine(
         MockListenerController(controller)
     )
 
+    private val methodsToNotMock: MutableSet<SootMethod> = mutableSetOf()
+
+    // HACk FOR TAINTS
+    internal fun addMethodsToDoNotMock(methods: Set<SootMethod>) {
+        methodsToNotMock += methods
+    }
+
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
 
     fun detachMockListener(mockListener: MockListener) = mocker.mockListenerController?.detach(mockListener)
@@ -267,6 +275,8 @@ class UtBotSymbolicEngine(
     private fun traverseImpl(): Flow<UtResult> = flow {
 
         require(trackableResources.isEmpty())
+
+        traverser.addMethodsToDoNotMock(methodsToNotMock)
 
         if (useDebugVisualization) GraphViz(globalGraph, pathSelector)
 

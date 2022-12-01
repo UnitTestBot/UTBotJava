@@ -326,7 +326,21 @@ class UtMockWrapper(
                             )
                         )
                     )
-                listOf(MethodResult(mockValue, memoryUpdates = updates))
+                val successfulResult = MethodResult(mockValue, memoryUpdates = updates)
+
+                val failedResults = method.exceptions.map {
+                    MethodResult(
+                            explicitThrown(
+                                ObjectValue(
+                                    typeResolver.constructTypeStorage(it.type, useConcreteType = false),
+                                    findNewAddr()
+                                ),
+                                environment.state.isInNestedMethod()
+                            ),
+                        )
+                }
+
+                listOf(successfulResult) + failedResults
             }
         }
     }

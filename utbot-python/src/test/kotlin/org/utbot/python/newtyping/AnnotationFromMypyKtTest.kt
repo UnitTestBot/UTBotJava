@@ -41,10 +41,10 @@ internal class AnnotationFromMypyKtTest {
         val setOfUnion = unionMethod.returnValue as CompositeType
         assertTrue(setOfUnion.getPythonAttributes().find { it.name == "__or__" }!!.type.parameters.size == 1)
 
-        val unionType = setOfUnion.parameters[0] as StatefulType
+        val unionType = setOfUnion.parameters[0]
         assert(unionType.pythonDescription().name == pythonUnionName)
 
-        val s = unionType.members[1] as TypeParameter
+        val s = unionType.parameters[1] as TypeParameter
         val paramOfUnionMethod = setOfUnion.getPythonAttributes().find { it.name == "__or__" }!!.type.parameters[0] as TypeParameter
         assertTrue(s != paramOfUnionMethod)
     }

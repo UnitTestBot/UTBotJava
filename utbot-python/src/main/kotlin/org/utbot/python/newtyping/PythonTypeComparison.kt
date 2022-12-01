@@ -176,10 +176,10 @@ class PythonSubtypeChecker(
             is PythonTupleTypeDescription -> {
                 val leftAsCompositeType = leftMeta.castToCompatibleTypeApi(left)
                 val rightAsCompositeType = rightMeta.castToCompatibleTypeApi(right)
-                if (leftAsCompositeType.members.size != rightAsCompositeType.members.size)
+                if (leftAsCompositeType.parameters.size != rightAsCompositeType.parameters.size)
                     false
                 else {
-                    (leftAsCompositeType.members zip rightAsCompositeType.members).all { (leftMember, rightMember) ->
+                    (leftAsCompositeType.parameters zip rightAsCompositeType.parameters).all { (leftMember, rightMember) ->
                         PythonSubtypeChecker(
                             left = leftMember,
                             right = rightMember,
@@ -195,7 +195,7 @@ class PythonSubtypeChecker(
     }
     private fun caseOfLeftOverload(leftMeta: PythonOverloadTypeDescription): Boolean {
         val leftAsStatefulType = leftMeta.castToCompatibleTypeApi(left)
-        return leftAsStatefulType.members.all {
+        return leftAsStatefulType.parameters.all {
             PythonSubtypeChecker(
                 left = it,
                 right = right,
@@ -363,30 +363,3 @@ class PythonSubtypeChecker(
             ).rightIsSubtypeOfLeft()
     }
 }
-
-fun Type.isParameterBoundedTo(type: Type): Boolean =
-    (this is TypeParameter) && (this.definedAt == type)
-
-fun Type.getBoundedParametersIndexes(): List<Int> =
-    parameters.mapIndexedNotNull { index, parameter ->
-        if (parameter.isParameterBoundedTo(this)) {
-            index
-        } else {
-            null
-        }
-    }
-
-fun Type.getBoundedParameters(): List<TypeParameter> =
-    parameters.mapNotNull { parameter ->
-        if (parameter.isParameterBoundedTo(this)) {
-            parameter as TypeParameter
-        } else {
-            null
-        }
-    }
-
-fun Type.hasBoundedParameters(): Boolean =
-    parameters.any { it.isParameterBoundedTo(this) }
-
-fun Type.getOrigin(): Type =
-    if (this is TypeSubstitution) rawOrigin.getOrigin() else this

@@ -18,6 +18,10 @@ fun Type.getPythonAttributeByName(name: String): PythonAttribute? {
     return pythonDescription().getMemberByName(this, name)
 }
 
+fun Type.pythonAnnotationParameters(): List<Type> {
+    return pythonDescription().getAnnotationParameters(this)
+}
+
 object BuiltinTypes {
     lateinit var pythonObject: Type
     lateinit var pythonBool: Type
@@ -52,6 +56,8 @@ sealed class PythonTypeDescription(name: Name): TypeMetaDataWithName(name) {
     open fun getAnnotationParameters(type: Type): List<Type> = emptyList()
     open fun getMemberByName(type: Type, name: String): PythonAttribute? =  // overridden for some types
         getNamedMembers(type).find { it.name == name }
+    open fun createTypeWithNewAnnotationParameters(origin: Type, newParams: List<Type>): Type =  // overriden for Callable
+        DefaultSubstitutionProvider.substituteAll(origin, newParams)
 }
 
 sealed class PythonCompositeTypeDescription(
@@ -166,6 +172,29 @@ class PythonCallableTypeDescription(
     enum class ArgKind {
         Positional
     }
+    override fun createTypeWithNewAnnotationParameters(origin: Type, newParams: List<Type>): Type {
+        val args = newParams.dropLast(1)
+        val returnValue = newParams.last()
+        return createPythonCallableType(
+            origin.parameters.size,
+            argumentKinds,
+            argumentNames,
+            isClassMethod,
+            isStaticMethod
+        ) { self ->
+            val oldToNewParameters = (origin.parameters zip self.parameters).associate {
+                (it.first as TypeParameter) to it.second
+            }
+            val newArgs = args.map {
+                DefaultSubstitutionProvider.substitute(it, oldToNewParameters)
+            }
+            val newReturnValue = DefaultSubstitutionProvider.substitute(returnValue, oldToNewParameters)
+            FunctionTypeCreator.InitializationData(
+                arguments = newArgs,
+                returnValue = newReturnValue
+            )
+        }
+    }
 }
 
 // Special Python annotations
@@ -212,7 +241,6 @@ object PythonOverloadTypeDescription: PythonSpecialAnnotation(overloadName) {
      */
     override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
     override fun getNamedMembers(type: Type): List<PythonAttribute> {
-        val statefulType = castToCompatibleTypeApi(type)
         TODO("Not yet implemented")
     }
 }
@@ -226,7 +254,6 @@ object PythonTupleTypeDescription: PythonSpecialAnnotation(pythonTupleName) {
      */
     override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
     override fun getNamedMembers(type: Type): List<PythonAttribute> {
-        val statefulType = castToCompatibleTypeApi(type)
         TODO("Not yet implemented")
     }
 }

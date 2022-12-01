@@ -6,9 +6,9 @@ import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
 
-fun readMypyAnnotationStorage(jsonWithAnnotations: String, initBUiltins: Boolean = true): MypyAnnotationStorage {
+fun readMypyAnnotationStorage(jsonWithAnnotations: String, initBuiltins: Boolean = true): MypyAnnotationStorage {
     val result = jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
-    if (initBUiltins)
+    if (initBuiltins)
         result.definitions["builtins"]?.let { module ->
             BuiltinTypes.pythonObject = module["object"]!!.annotation.asUtBotType
             BuiltinTypes.pythonBool = module["bool"]!!.annotation.asUtBotType

@@ -74,9 +74,9 @@ data class NameInformation(
         }
     }
 
-    override fun toString(): String = nameValue ?: namePattern!!
+    override fun toString(): String = nameValue ?: "(${namePattern!!})"
 
-    fun withTrailingDot(): String = nameValue?.let { "$it." } ?: "${namePattern}\\."
+    fun withTrailingDot(): String = nameValue?.let { "$it." } ?: "(${namePattern})\\."
 }
 
 data class SinkConfigInstance(

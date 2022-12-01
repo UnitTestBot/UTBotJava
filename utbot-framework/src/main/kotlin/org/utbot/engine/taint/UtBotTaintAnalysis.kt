@@ -33,6 +33,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.toModel
+import soot.SootMethod
 import soot.jimple.Stmt
 import java.io.File
 import java.net.URL
@@ -143,6 +144,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
     private fun runTaintAnalysisJobs(
         sortedByPriorityTaintMethodsWithTimeouts: List<TaintMethodWithTimeout>,
         mutToSourceSinksPairs: MutableMap<ExecutableId, MutableMap<Stmt, MutableSet<Stmt>>>,
+        encounteredMethods: Set<SootMethod>,
         currentUtContext: UtContext,
         mockAlwaysDefaults: Set<ClassId>,
         classPath: String,
@@ -197,6 +199,8 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                             chosenClassesToMockAlways = mockAlwaysDefaults,
                             solverTimeoutInMillis = getUpdatedSolverCheckTimeoutMs(mutEndTime - mutStartTime)
                         )
+                        engine.addMethodsToDoNotMock(encounteredMethods)
+
                         controller.job = currentCoroutineContext().job
 
                         runEngine(engine, method, analysisStopReasons, executionsByExecutable, taintsToBeFound)
@@ -313,6 +317,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
     fun runTaintAnalysis(
         taintCandidates: TaintCandidates,
+        encounteredMethods: Set<SootMethod>,
         totalTimeoutMs: Long,
         classPath: String
     ): MutableMap<ExecutableId, UtBotExecutableTaints> {
@@ -367,6 +372,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val (executionsByExecutable, analysisStopReasons) = runTaintAnalysisJobs(
             sortedByPriorityTaintMethods,
             mutToSourseSinksPairs,
+            encounteredMethods,
             currentUtContext,
             mockAlwaysDefaults,
             classPath1,

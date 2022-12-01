@@ -497,6 +497,8 @@ object UtSettings : AbstractSettings(
      */
     var taintAnalysisCallDepthToMock by getIntProperty(10)
 
+    var mockAllMethodsButRelatedToTaintAnalysis by getBooleanProperty(defaultValue = false)
+
     /**
      * If this value is positive, a path selector for the symbolic engine will strictly drop loop states
      * if current step is more than this limit.

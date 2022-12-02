@@ -81,7 +81,7 @@ class PropertiesSettingsContainer(
                     properties.getProperty(property.name)?.let {
                         val parsedValue = converter.invoke(it)
                         customized = customized or (parsedValue != defaultValue)
-                        parsedValue
+                        return@SettingDelegate parsedValue
                     }
                     defaultValue
                 } catch (e: Throwable) {

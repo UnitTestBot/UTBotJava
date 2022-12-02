@@ -13,7 +13,7 @@ import java.util.function.*;
 
 public class SettingsTemplateHelper {
     private static final String[] apacheLines =
-            ("Copyright (c) " + new SimpleDateFormat("yyyy").format(System.currentTimeMillis()) + " The UnitTestBot Authors\n" +
+            ("Copyright (c) " + new SimpleDateFormat("yyyy").format(System.currentTimeMillis()) + " utbot.org\n" +
                     "\n" +
                     "Licensed under the Apache License, Version 2.0 (the \"License\");\n" +
                     "you may not use this file except in compliance with the License.\n" +

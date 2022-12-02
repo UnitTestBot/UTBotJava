@@ -143,27 +143,27 @@ object UtSettings : AbstractSettings(
     /**
      * If True test comments will be generated.
      */
-    var enableJavaDocGeneration = true
+    var enableJavaDocGeneration by getBooleanProperty(true)
 
     /**
      * If True cluster comments will be generated.
      */
-    var enableClusterCommentsGeneration = true
+    var enableClusterCommentsGeneration by getBooleanProperty(true)
 
     /**
      * If True names for tests will be generated.
      */
-    var enableTestNamesGeneration = true
+    var enableTestNamesGeneration by getBooleanProperty(true)
 
     /**
      * If True display names for tests will be generated.
      */
-    var enableDisplayNameGeneration = true
+    var enableDisplayNameGeneration by getBooleanProperty(true)
 
     /**
      *  If True display name in from -> to style will be generated.
      */
-    var useDisplayNameArrowStyle = true
+    var useDisplayNameArrowStyle by getBooleanProperty(true)
 
     /**
      * Generate summaries using plugin's custom JavaDoc tags.

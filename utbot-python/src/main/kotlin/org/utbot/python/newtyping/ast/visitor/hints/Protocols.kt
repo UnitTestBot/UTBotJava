@@ -1,7 +1,7 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
-import org.utbot.python.newtyping.BuiltinTypes
 import org.utbot.python.newtyping.PythonCallableTypeDescription
+import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.createPythonCallableType
 import org.utbot.python.newtyping.createPythonProtocol
 import org.utbot.python.newtyping.general.CompositeTypeCreator
@@ -20,8 +20,8 @@ fun operationToMagicMethod(op: String): String? =
 fun createIterableWithCustomReturn(returnType: Type): Type =
     createUnaryProtocolWithCustomReturn("__iter__", returnType)
 
-val supportsBoolProtocol: Type =
-    createUnaryProtocolWithCustomReturn("__bool__", BuiltinTypes.pythonBool)
+fun supportsBoolProtocol(storage: PythonTypeStorage): Type =
+    createUnaryProtocolWithCustomReturn("__bool__", storage.pythonBool)
 
 fun createBinaryProtocol(methodName: String, argType: Type, returnType: Type): Type =
     createPythonProtocol(

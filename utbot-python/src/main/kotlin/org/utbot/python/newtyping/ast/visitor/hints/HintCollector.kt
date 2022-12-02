@@ -13,7 +13,7 @@ import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
 import java.util.*
 
-class HintCollector(val signature: FunctionType) : Collector() {
+class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage) : Collector() {
     private val signatureDescription = signature.pythonDescription() as PythonCallableTypeDescription
     private val parameterToNode: Map<String, HintCollectorNode> =
         (signatureDescription.argumentNames zip signature.arguments).associate {
@@ -70,7 +70,7 @@ class HintCollector(val signature: FunctionType) : Collector() {
 
     private fun processKeyword(node: Keyword) {
         val type = when (node.toString()) {
-            "True", "False" -> BuiltinTypes.pythonBool
+            "True", "False" -> storage.pythonBool
             "None" -> pythonNoneType
             "for", "if", "else", "elif", "while", "in", "return", "or", "and", "not" -> return
             else -> pythonAnyType
@@ -82,16 +82,16 @@ class HintCollector(val signature: FunctionType) : Collector() {
         val type = when (node.type) {
             PythonConstants.TokenType.DECNUMBER,
             PythonConstants.TokenType.HEXNUMBER,
-            PythonConstants.TokenType.OCTNUMBER -> BuiltinTypes.pythonInt
-            PythonConstants.TokenType.FLOAT -> BuiltinTypes.pythonFloat
-            PythonConstants.TokenType.COMPLEX -> BuiltinTypes.pythonComplex
+            PythonConstants.TokenType.OCTNUMBER -> storage.pythonInt
+            PythonConstants.TokenType.FLOAT -> storage.pythonFloat
+            PythonConstants.TokenType.COMPLEX -> storage.pythonComplex
             else -> pythonAnyType
         }
         astNodeToHintCollectorNode[node] = HintCollectorNode(type)
     }
 
     private fun processStringLiteral(node: StringLiteral) {
-        astNodeToHintCollectorNode[node] = HintCollectorNode(BuiltinTypes.pythonStr)
+        astNodeToHintCollectorNode[node] = HintCollectorNode(storage.pythonStr)
     }
 
     private fun processBlock(node: Block) {
@@ -144,7 +144,7 @@ class HintCollector(val signature: FunctionType) : Collector() {
             source = EdgeSource.ForStatement,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { iterType ->
-            val iterReturnType = iterType.getPythonAttributeByName("__iter__")?.type
+            val iterReturnType = iterType.getPythonAttributeByName(storage, "__iter__")?.type
                 ?: return@HintEdgeWithBound emptyList()
             listOf(iterReturnType)
         }
@@ -155,27 +155,27 @@ class HintCollector(val signature: FunctionType) : Collector() {
 
     private fun processIfStatement(node: IfStatement) {
         val parsed = parseIfStatement(node)
-        addProtocol(astNodeToHintCollectorNode[parsed.condition]!!, supportsBoolProtocol)
+        addProtocol(astNodeToHintCollectorNode[parsed.condition]!!, supportsBoolProtocol(storage))
     }
 
     private fun processConjunction(node: Conjunction) {
         processBoolExpression(node)
         val parsed = parseConjunction(node)
-        addProtocol(astNodeToHintCollectorNode[parsed.left]!!, supportsBoolProtocol)
-        addProtocol(astNodeToHintCollectorNode[parsed.right]!!, supportsBoolProtocol)
+        addProtocol(astNodeToHintCollectorNode[parsed.left]!!, supportsBoolProtocol(storage))
+        addProtocol(astNodeToHintCollectorNode[parsed.right]!!, supportsBoolProtocol(storage))
     }
 
     private fun processDisjunction(node: Disjunction) {
         processBoolExpression(node)
         val parsed = parseDisjunction(node)
-        addProtocol(astNodeToHintCollectorNode[parsed.left]!!, supportsBoolProtocol)
-        addProtocol(astNodeToHintCollectorNode[parsed.right]!!, supportsBoolProtocol)
+        addProtocol(astNodeToHintCollectorNode[parsed.left]!!, supportsBoolProtocol(storage))
+        addProtocol(astNodeToHintCollectorNode[parsed.right]!!, supportsBoolProtocol(storage))
     }
 
     private fun processInversion(node: Inversion) {
         processBoolExpression(node)
         val parsed = parseInversion(node)
-        addProtocol(astNodeToHintCollectorNode[parsed.expr]!!, supportsBoolProtocol)
+        addProtocol(astNodeToHintCollectorNode[parsed.expr]!!, supportsBoolProtocol(storage))
     }
 
     private fun processGroup(node: Group) {
@@ -200,7 +200,7 @@ class HintCollector(val signature: FunctionType) : Collector() {
             source = EdgeSource.Operation,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { leftType ->
-            listOf((leftType.getPythonAttributeByName(methodName) ?: return@HintEdgeWithBound emptyList()).type)
+            listOf((leftType.getPythonAttributeByName(storage, methodName) ?: return@HintEdgeWithBound emptyList()).type)
         }
         val edgeFromRightToCur = HintEdgeWithBound(
             from = rightNode,
@@ -208,7 +208,7 @@ class HintCollector(val signature: FunctionType) : Collector() {
             source = EdgeSource.Operation,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { rightType ->
-            listOf((rightType.getPythonAttributeByName(methodName) ?: return@HintEdgeWithBound emptyList()).type)
+            listOf((rightType.getPythonAttributeByName(storage, methodName) ?: return@HintEdgeWithBound emptyList()).type)
         }
 
         addEdge(edgeFromLeftToCur)
@@ -219,7 +219,7 @@ class HintCollector(val signature: FunctionType) : Collector() {
 
     private fun processList(node: org.parsers.python.ast.List) {
         val parsed = parseList(node)
-        val partialType = DefaultSubstitutionProvider.substituteByIndex(BuiltinTypes.pythonList, 0, pythonAnyType)
+        val partialType = DefaultSubstitutionProvider.substituteByIndex(storage.pythonList, 0, pythonAnyType)
         val curNode = HintCollectorNode(partialType)
         astNodeToHintCollectorNode[node] = curNode
         val innerTypeNode = HintCollectorNode(pythonAnyType)
@@ -243,7 +243,7 @@ class HintCollector(val signature: FunctionType) : Collector() {
     }
 
     private fun processBoolExpression(node: Node) {
-        val hintCollectorNode = HintCollectorNode(BuiltinTypes.pythonBool)
+        val hintCollectorNode = HintCollectorNode(storage.pythonBool)
         astNodeToHintCollectorNode[node] = hintCollectorNode
     }
 

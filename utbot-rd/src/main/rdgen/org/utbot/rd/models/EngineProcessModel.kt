@@ -6,8 +6,7 @@ object EngineProcessRoot : Root()
 
 object RdInstrumenterAdapter: Ext(EngineProcessRoot) {
     val computeSourceFileByClassArguments = structdef {
-        field("className", PredefinedType.string)
-        field("packageName", PredefinedType.string.nullable)
+        field("canonicalClassName", PredefinedType.string)
     }
     init {
         call("computeSourceFileByClass", computeSourceFileByClassArguments, PredefinedType.string.nullable).async

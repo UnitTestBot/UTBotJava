@@ -294,6 +294,13 @@ object UtTestsDialogProcessor {
     }
 
     private val PsiClass.canonicalName: String
+    /*
+    This method calculates exactly name that is used by compiler convention,
+    i.e. result is the exact name of .class file for provided PsiClass.
+    This value is used to provide classes to engine process - follow usages for clarification.
+    Equivalent for Class.getCanonicalName.
+    P.S. We cannot load project class in IDEA jvm
+     */
         get() {
             return if (packageName.isEmpty()) {
                 qualifiedName?.replace(".", "$") ?: ""

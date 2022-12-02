@@ -30,9 +30,8 @@ class TSAstScrapper {
 
     fun findMethod(classKey: String, methodKey: String): MethodDeclarationNode? {
         val classNode = findClass(classKey)
-        return classNode?.methods?.find { it.name == methodKey }
+        return classNode?.methods?.find { it.name.value == methodKey }
     }
-
 
     private val importsMap = run {
         val visitor = Visitor()

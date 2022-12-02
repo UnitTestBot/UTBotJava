@@ -116,7 +116,7 @@ class TsTestGenerator(
         paramNames: MutableMap<ExecutableId, List<String>>
     ) {
         val execId = classId.allMethods.find {
-            it.name == funcNode.name
+            it.name == funcNode.name.value
         } ?: throw IllegalStateException()
         val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId)
         val (allCoveredStatements, executionResults) =
@@ -221,7 +221,7 @@ class TsTestGenerator(
         fuzzerVisitor.accept(funcNode)
         val methodUnderTestDescription =
             FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
-                compilableName = funcNode.name
+                compilableName = funcNode.name.value
                 val names = funcNode.parameters.map { it.name }
                 parameterNameMap = { index -> names.getOrNull(index) }
             }

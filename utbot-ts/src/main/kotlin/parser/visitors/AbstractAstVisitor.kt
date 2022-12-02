@@ -1,5 +1,6 @@
 package parser.visitors
 
+import parser.ast.ArrowFunctionNode
 import parser.ast.AstNode
 import parser.ast.BaseTypeNode
 import parser.ast.BinaryExpressionNode
@@ -26,6 +27,7 @@ abstract class AbstractAstVisitor {
 
     fun accept(root: AstNode) {
         val shouldContinue = when (root) {
+            is ArrowFunctionNode -> visitArrowFunctionNode(root)
             is DummyNode -> visitDummyNode(root)
             is BaseTypeNode -> visitBaseTypeNode(root)
             is BinaryExpressionNode -> visitBinaryExpressionNode(root)
@@ -52,6 +54,8 @@ abstract class AbstractAstVisitor {
             for (child in root.children) accept(child)
         }
     }
+
+    open fun visitArrowFunctionNode(node: ArrowFunctionNode): Boolean = true
 
     open fun visitDummyNode(node: DummyNode): Boolean = true
 

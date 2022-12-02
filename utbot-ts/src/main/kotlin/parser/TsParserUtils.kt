@@ -66,6 +66,15 @@ object TsParserUtils {
         }
     }
 
+    fun <T: AstNode>AstNode.findParentOfType(clazz: Class<T>): T? {
+        var currentNode = this.parent
+        while (currentNode != null && !clazz.isInstance(currentNode)) {
+            currentNode = currentNode.parent
+        }
+        @Suppress("UNCHECKED_CAST")
+        return currentNode as T?
+    }
+
     fun V8Object.getKind(): String {
         return try {
             val kind = this.getInteger("kind").toString()
@@ -137,8 +146,12 @@ object TsParserUtils {
 
     fun V8Object.getArrayAsList(arrayName: String): List<V8Object> {
         val array = this.getArray(arrayName)
-        return (0 until array.length()).map {
-            array[it] as V8Object
+        return try {
+            (0 until array.length()).map {
+                array[it] as V8Object
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 

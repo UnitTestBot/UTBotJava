@@ -49,8 +49,8 @@ private fun TsClassId.constructMethods(
         val methods = classNode?.methods?.map { methodNode ->
             TsMethodId(
                 classId = TsClassId(name),
-                name = methodNode.name,
-                returnType = methodNode.returnType.makeTsClassIdFromType(serviceContext),
+                name = methodNode.name.value,
+                returnType = methodNode.returnType.value.makeTsClassIdFromType(serviceContext),
                 parameters = methodNode.parameters.map { param -> param.type.makeTsClassIdFromType(serviceContext) }
             )
         }?.asSequence() ?:
@@ -58,8 +58,8 @@ private fun TsClassId.constructMethods(
         functions.map { functionNode ->
             TsMethodId(
                 classId = TsClassId(name),
-                name = functionNode.name,
-                returnType = functionNode.returnType.makeTsClassIdFromType(serviceContext),
+                name = functionNode.name.value,
+                returnType = functionNode.returnType.value.makeTsClassIdFromType(serviceContext),
                 parameters = functionNode.parameters.map { param -> param.type.makeTsClassIdFromType(serviceContext) },
                 staticModifier = true
             )

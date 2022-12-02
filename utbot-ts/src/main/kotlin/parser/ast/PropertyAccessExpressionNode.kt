@@ -1,8 +1,10 @@
 package parser.ast
 
 import com.eclipsesource.v8.V8Object
+import parser.TsParserUtils.findParentOfType
 import parser.TsParserUtils.getAstNodeByKind
 import parser.TsParserUtils.getChildren
+import parser.TsParserUtils.getKind
 
 class PropertyAccessExpressionNode(
     obj: V8Object,
@@ -15,5 +17,30 @@ class PropertyAccessExpressionNode(
 
     val propertyName: String = obj.getObject("name").getString("escapedText")
 
-    val className: String = obj.getObject("expression").getString("escapedText")
+    val parentName = obj.getObject("expression").getAstNodeByKind(this)
+
+    val accessChain = lazy { buildAccessChain(obj, emptyList()) }
+
+    val className: String = ""
+
+    private tailrec fun buildAccessChain(currentObj: V8Object, acc: List<String>): List<String> {
+        if (currentObj.getKind() == "ThisKeyword") {
+            return listOf(
+                this.findParentOfType(ClassDeclarationNode::class.java)?.name ?: throw IllegalStateException(),
+                *acc.toTypedArray()
+            )
+        }
+        val newList = when {
+
+            currentObj.getObject("expression").contains("escapedText") -> listOf(
+                currentObj.getObject("expression").getString("escapedText"),
+                *acc.toTypedArray()
+            )
+            else -> listOf(
+                currentObj.getObject("name").getString("escapedText"),
+                *acc.toTypedArray()
+            )
+        }
+        return buildAccessChain(currentObj.getObject("expression"), newList)
+    }
 }

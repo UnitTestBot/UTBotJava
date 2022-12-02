@@ -1,25 +1,12 @@
 package parser.ast
 
-import com.eclipsesource.v8.V8Object
-import parser.TsParserUtils.getArrayAsList
-import parser.TsParserUtils.getAstNodeByKind
-import parser.TsParserUtils.getChildren
+abstract class FunctionNode(): AstNode() {
 
-abstract class FunctionNode(
-    obj: V8Object,
-    override val parent: AstNode?
-): AstNode() {
+    abstract val name: Lazy<String>
 
-    abstract val name: String
+    abstract val parameters: List<ParameterNode>
 
-    override val children = obj.getChildren().map { it.getAstNodeByKind(this) }
+    abstract val body: List<AstNode>
 
-    @Suppress("UNCHECKED_CAST")
-    val parameters = obj.getArrayAsList("parameters").map { it.getAstNodeByKind(this) }
-            as List<ParameterNode>
-
-    val body = obj.getObject("body").getArrayAsList("statements")
-        .map { it.getAstNodeByKind(this) }
-
-   open val returnType = obj.getObject("type").getTypeNode(this)
+   abstract val returnType: Lazy<TypeNode>
 }

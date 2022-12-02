@@ -16,10 +16,9 @@ class TsUIProcessor {
     }
 
     private fun traverse(currentNode: AstNode, context: Context): Context {
-//        println("I am in $currentNode, my context is $context")
         val newContext = currentNode.processNode(context)
         if (currentNode is CallExpressionNode) {
-            val functionNode = context.functions.find { it.name == currentNode.funcName }
+            val functionNode = context.functions.find { it.name.value == currentNode.funcName }
                 ?: throw IllegalStateException()
             functionNode.body.fold(newContext) { acc, node ->
                 val result = traverse(node, acc)
@@ -52,17 +51,24 @@ class TsUIProcessor {
     }
     
     private fun AstNode.processNode(context: Context): Context = when (this) {
-        is FunctionNode -> Context(
-            context.classes,
-            setOf(this, *context.functions.toTypedArray()),
-            context.scope
-        )
-        is ClassDeclarationNode -> Context(
-            setOf(this, *context.classes.toTypedArray()),
-            context.functions,
-            context.scope
-        )
+        is FunctionNode -> {
+            println("I am in function node: $this")
+            Context(
+                context.classes,
+                setOf(this, *context.functions.toTypedArray()),
+                context.scope
+            )
+        }
+        is ClassDeclarationNode -> {
+            println("I am in class node: $this")
+            Context(
+                setOf(this, *context.classes.toTypedArray()),
+                context.functions,
+                context.scope
+            )
+        }
         is ImportDeclarationNode -> {
+            println("I am in import node: $this")
             val _classes = this.importedNodes.values.filterIsInstance<ClassDeclarationNode>()
             val _functions = this.importedNodes.values.filterIsInstance<FunctionNode>()
             Context(
@@ -72,6 +78,7 @@ class TsUIProcessor {
             )
         }
         is CallExpressionNode -> {
+            println("I am in call node: $this")
             val lambdaArgs = this.arguments.filterIsInstance<ArrowFunctionNode>().toTypedArray()
             Context(
                 context.classes,
@@ -80,6 +87,7 @@ class TsUIProcessor {
             )
         }
         is VariableStatementNode -> {
+            println("I am in variable stm node: $this")
             this.variableDeclarations.fold(context) { acc, node ->
                 if (node.value is FunctionNode) {
                     Context(
@@ -111,5 +119,4 @@ class TsUIProcessor {
     fun collectStatics(classNode: ClassDeclarationNode): List<PropertyDeclarationNode> {
         return classNode.properties.filter { it.isStatic() }
     }
-
 }

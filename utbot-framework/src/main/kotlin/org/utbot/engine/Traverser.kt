@@ -3663,7 +3663,7 @@ class Traverser(
 
                 implicitlyThrowException(
                     TaintAnalysisError(
-                        "Tainted data was passed as $parameterString into `${methodId.name}` method",
+                        "Tainted data was passed as $parameterString into \"${methodId.name}\" method",
                         environment.state.stmt,
                         sinkSourcePosition
                     ),

@@ -220,19 +220,11 @@ object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName) {
 }
 
 object PythonNoneTypeDescription: PythonSpecialAnnotation(pythonNoneName) {
-    override fun getNamedMembers(type: Type): List<PythonAttribute> =
-        TODO("Not yet implemented")
+    // TODO: override getNamedMembers and/or getMemberByName
 }
 
 object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
-    /*
-    override fun castToCompatibleTypeApi(type: Type): StatefulType {
-        return type as? StatefulType
-            ?: error("Got unexpected type PythonUnionTypeDescription: $type")
-    }
-     */
     override fun getMemberByName(storage: PythonTypeStorage, type: Type, name: String): PythonAttribute? {
-        //val statefulType = castToCompatibleTypeApi(type)
         val children = type.parameters.mapNotNull {
             it.getPythonAttributeByName(storage, name)?.type
         }
@@ -244,33 +236,17 @@ object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
                 type = createPythonUnionType(children)
             )
     }
-    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
+    override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
 }
 
 object PythonOverloadTypeDescription: PythonSpecialAnnotation(overloadName) {
-    /*
-    override fun castToCompatibleTypeApi(type: Type): StatefulType {
-        return type as? StatefulType
-            ?: error("Got unexpected type PythonOverloadTypeDescription: $type")
-    }
-     */
-    override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
-    override fun getNamedMembers(type: Type): List<PythonAttribute> {
-        TODO("Not yet implemented")
-    }
+    override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
+    // TODO: override getMemberByName
 }
 
 object PythonTupleTypeDescription: PythonSpecialAnnotation(pythonTupleName) {
-    /*
-    override fun castToCompatibleTypeApi(type: Type): StatefulType {
-        return type as? StatefulType
-            ?: error("Got unexpected type PythonTupleTypeDescription: $type")
-    }
-     */
     override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
-    override fun getNamedMembers(type: Type): List<PythonAttribute> {
-        TODO("Not yet implemented")
-    }
+    // TODO: getMemberByName and/or getNamedMembers
 }
 
 val pythonAnyName = Name(listOf("typing"), "Any")

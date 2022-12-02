@@ -11,10 +11,12 @@ import org.utbot.python.newtyping.general.TypeParameter
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonSubtypeCheckerTest {
     lateinit var storage: MypyAnnotationStorage
+    lateinit var pythonTypeStorage: PythonTypeStorage
     @BeforeAll
     fun setup() {
         val sample = PythonSubtypeCheckerTest::class.java.getResource("/subtypes_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
+        pythonTypeStorage = PythonTypeStorage.get(storage)
     }
 
     @Test
@@ -25,8 +27,8 @@ internal class PythonSubtypeCheckerTest {
         assertTrue(classS.pythonDescription() is PythonConcreteCompositeTypeDescription)
         val classS1 = storage.definitions["subtypes"]!!["S1"]!!.annotation.asUtBotType
         assertTrue(classS1.pythonDescription() is PythonConcreteCompositeTypeDescription)
-        assertTrue(checkIfRightIsSubtypeOfLeft(protocolP, classS))
-        assertFalse(checkIfRightIsSubtypeOfLeft(protocolP, classS1))
+        assertTrue(checkIfRightIsSubtypeOfLeft(protocolP, classS, pythonTypeStorage))
+        assertFalse(checkIfRightIsSubtypeOfLeft(protocolP, classS1, pythonTypeStorage))
     }
 
     @Test
@@ -35,7 +37,7 @@ internal class PythonSubtypeCheckerTest {
         assertTrue(protocolR.pythonDescription() is PythonProtocolDescription)
         val classRImpl = storage.definitions["subtypes"]!!["RImpl"]!!.annotation.asUtBotType
         assertTrue(classRImpl.pythonDescription() is PythonConcreteCompositeTypeDescription)
-        assertTrue(checkIfRightIsSubtypeOfLeft(protocolR, classRImpl))
+        assertTrue(checkIfRightIsSubtypeOfLeft(protocolR, classRImpl, pythonTypeStorage))
     }
 
     @Test
@@ -61,12 +63,12 @@ internal class PythonSubtypeCheckerTest {
         )
 
         // list is invariant
-        assertFalse(checkIfRightIsSubtypeOfLeft(listOfObj, listOfInt))
-        assertTrue(checkIfRightIsSubtypeOfLeft(listOfAny, listOfInt))
-        assertTrue(checkIfRightIsSubtypeOfLeft(listOfInt, listOfAny))
+        assertFalse(checkIfRightIsSubtypeOfLeft(listOfObj, listOfInt, pythonTypeStorage))
+        assertTrue(checkIfRightIsSubtypeOfLeft(listOfAny, listOfInt, pythonTypeStorage))
+        assertTrue(checkIfRightIsSubtypeOfLeft(listOfInt, listOfAny, pythonTypeStorage))
 
         // frozenset is covariant
-        assertTrue(checkIfRightIsSubtypeOfLeft(frozensetOfObj, frozensetOfInt))
-        assertFalse(checkIfRightIsSubtypeOfLeft(frozensetOfInt, frozensetOfObj))
+        assertTrue(checkIfRightIsSubtypeOfLeft(frozensetOfObj, frozensetOfInt, pythonTypeStorage))
+        assertFalse(checkIfRightIsSubtypeOfLeft(frozensetOfInt, frozensetOfObj, pythonTypeStorage))
     }
 }

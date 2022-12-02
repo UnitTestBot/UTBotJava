@@ -10,7 +10,6 @@ import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.impl.IdeaProjectModelModifier
 import com.intellij.openapi.roots.libraries.Library
 import com.intellij.pom.java.LanguageLevel
-import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.concurrency.Promise
 
 /*
@@ -25,9 +24,7 @@ class UtAndroidGradleJavaProjectModelModifierWrapper(val project: Project): Idea
         descriptor: ExternalLibraryDescriptor,
         scope: DependencyScope
     ): Promise<Void?>? {
-
-        val module = ContainerUtil.getFirstItem(modules) ?: return null
-        if (!isAndroidGradleProject(module.project)) {
+        if (!isAndroidGradleProject(project)) {
             return null
         }
 

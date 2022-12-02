@@ -11,6 +11,9 @@ import kotlin.reflect.KProperty
 
 interface SettingsContainer {
     fun <T> settingFor(defaultValue: T, converter: (String) -> T): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
+
+    // Returns true iff some properties have non-default values
+    fun isCustomized() = false
 }
 
 interface SettingsContainerFactory {
@@ -47,6 +50,7 @@ class PropertiesSettingsContainer(
     }
 
     private val settingsValues: MutableMap<KProperty<*>, Any?> = mutableMapOf()
+    private var customized: Boolean = false
 
     inner class SettingDelegate<T>(val property: KProperty<*>, val initializer: () -> T): ReadWriteProperty<Any?, T> {
         private var value = initializer()
@@ -74,13 +78,22 @@ class PropertiesSettingsContainer(
         return PropertyDelegateProvider { _, property ->
             SettingDelegate(property) {
                 try {
-                    properties.getProperty(property.name)?.let(converter) ?: defaultValue
+                    properties.getProperty(property.name)?.let {
+                        val parsedValue = converter.invoke(it)
+                        customized = customized or (parsedValue != defaultValue)
+                        return@SettingDelegate parsedValue
+                    }
+                    defaultValue
                 } catch (e: Throwable) {
                     logger.info(e) { e.message }
                     defaultValue
                 }
             }
         }
+    }
+
+    override fun isCustomized(): Boolean {
+        return customized
     }
 
     override fun toString(): String =
@@ -114,6 +127,8 @@ abstract class AbstractSettings(
             this.factory = factory
         }
     }
+
+    fun areCustomized(): Boolean = container.isCustomized()
 
     protected fun <T> getProperty(
         defaultValue: T,

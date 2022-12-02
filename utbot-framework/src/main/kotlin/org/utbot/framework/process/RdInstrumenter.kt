@@ -14,17 +14,17 @@ private val logger = KotlinLogging.logger { }
 
 class RdInstrumenter(private val rdInstrumenterAdapter: RdInstrumenterAdapter) : InstrumenterAdapter() {
     override fun computeSourceFileByClass(
-        className: String,
-        packageName: String?,
+        clazz: Class<*>,
         directoryToSearchRecursively: Path
     ): File? {
-        logger.debug { "starting computeSourceFileByClass with classname - $className" }
+        val canonicalClassName = clazz.canonicalName
+        logger.debug { "starting computeSourceFileByClass for class - $canonicalClassName" }
         val result = logger.logException {
-            val arguments = ComputeSourceFileByClassArguments(className, packageName)
+            val arguments = ComputeSourceFileByClassArguments(canonicalClassName)
 
             rdInstrumenterAdapter.computeSourceFileByClass.startBlocking(arguments)
         }
-        logger.debug { "computeSourceFileByClass result for $className from idea: $result" }
+        logger.debug { "computeSourceFileByClass result for $canonicalClassName from idea: $result" }
         return result?.let { File(it) }
     }
 }

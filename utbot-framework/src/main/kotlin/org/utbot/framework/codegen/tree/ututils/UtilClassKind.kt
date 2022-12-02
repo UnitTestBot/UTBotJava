@@ -2,7 +2,7 @@ package org.utbot.framework.codegen.tree.ututils
 
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
-import org.utbot.framework.codegen.domain.models.CgDocRegularStmt
+import org.utbot.framework.codegen.domain.models.CgDocRegularLineStmt
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -35,8 +35,8 @@ sealed class UtilClassKind(
     fun utilClassDocumentation(codegenLanguage: CodegenLanguage): CgDocumentationComment
         = CgDocumentationComment(
         listOf(
-            CgDocRegularStmt("$utilClassKindCommentText \n"),
-            CgDocRegularStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion(codegenLanguage)} \n"),
+            CgDocRegularLineStmt(utilClassKindCommentText),
+            CgDocRegularLineStmt("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion(codegenLanguage)}"),
         )
     )
 

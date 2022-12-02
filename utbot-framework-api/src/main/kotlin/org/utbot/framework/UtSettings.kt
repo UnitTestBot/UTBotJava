@@ -1,6 +1,7 @@
 package org.utbot.framework
 
 import com.jetbrains.rd.util.LogLevel
+import java.io.File
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
 import java.lang.reflect.Executable
@@ -9,12 +10,12 @@ private val logger = KotlinLogging.logger {}
 /**
  * Path to the utbot home folder.
  */
-internal val utbotHomePath = "${System.getProperty("user.home")}/.utbot"
+internal val utbotHomePath = "${System.getProperty("user.home")}${File.separatorChar}.utbot"
 
 /**
  * Default path for properties file
  */
-private val defaultSettingsPath = "$utbotHomePath/settings.properties"
+private val defaultSettingsPath = "$utbotHomePath${File.separatorChar}settings.properties"
 private const val defaultKeyForSettingsPath = "utbot.settings.path"
 
 /**
@@ -25,6 +26,9 @@ const val DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS = 1000L
 object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultSettingsPath) {
 
     fun defaultSettingsPath() = defaultSettingsPath
+
+    @JvmStatic
+    fun getPath(): String = System.getProperty(defaultKeyForSettingsPath)?: defaultSettingsPath
 
     /**
      * Setting to disable coroutines debug explicitly.

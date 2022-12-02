@@ -7,7 +7,6 @@ import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.renderer.CgVisitor
 import org.utbot.framework.codegen.renderer.auxiliaryClassTextById
 import org.utbot.framework.codegen.renderer.utilMethodTextById
-import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -60,6 +59,7 @@ interface CgElement {
             is CgCustomTagStatement -> visit(element)
             is CgDocCodeStmt -> visit(element)
             is CgDocRegularStmt -> visit(element)
+            is CgDocRegularLineStmt -> visit(element)
             is CgDocClassLinkStmt -> visit(element)
             is CgDocMethodLinkStmt -> visit(element)
             is CgAnonymousFunction -> visit(element)
@@ -423,7 +423,19 @@ class CgDocRegularStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
 
     override fun equals(other: Any?): Boolean =
-        if (other is CgDocCodeStmt) this.hashCode() == other.hashCode() else false
+        if (other is CgDocRegularStmt) this.hashCode() == other.hashCode() else false
+
+    override fun hashCode(): Int = stmt.hashCode()
+}
+
+/**
+ * Represents an element of a whole line of a multiline comment.
+ */
+class CgDocRegularLineStmt(val stmt: String) : CgDocStatement() {
+    override fun isEmpty(): Boolean = stmt.isEmpty()
+
+    override fun equals(other: Any?): Boolean =
+        if (other is CgDocRegularLineStmt) this.hashCode() == other.hashCode() else false
 
     override fun hashCode(): Int = stmt.hashCode()
 }

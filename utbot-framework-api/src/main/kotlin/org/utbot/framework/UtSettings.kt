@@ -232,7 +232,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Generate tests that treat assertions as error suits.
      */
-    var treatAssertAsErrorSuit: Boolean by getBooleanProperty(true)
+    var treatAssertAsErrorSuite: Boolean by getBooleanProperty(true)
 
     /**
      * Instrument all classes before start

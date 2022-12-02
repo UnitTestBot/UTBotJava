@@ -3186,7 +3186,8 @@ class Traverser(
         // If we try to override invocation itself, the target is null, and we have to process
         // the instance from the invocation, otherwise take the one from the target
         val instance = if (target == null) invocation.instance else target.instance
-        val subSignature = invocation.method.subSignature
+        val method = invocation.method
+        val subSignature = method.subSignature
 
         if (subSignature == "java.lang.Class getClass()") {
             return when (instance) {
@@ -3204,8 +3205,8 @@ class Traverser(
         }
 
         // Return an unbounded symbolic variable for any `forName` overloading
-        if (instance == null && invocation.method.name == "forName") {
-            val forNameResult = unboundedVariable(name = "classForName", invocation.method)
+        if (instance == null && method.name == "forName") {
+            val forNameResult = unboundedVariable(name = "classForName", method)
 
             return OverrideResult(success = true, forNameResult)
         }
@@ -3213,7 +3214,7 @@ class Traverser(
         // Return an unbounded symbolic variable for the `newInstance` method invocation,
         // and at the next traversing step push <init> graph of the resulted type
         if (instance?.type == CLASS_REF_TYPE && subSignature == NEW_INSTANCE_SIGNATURE) {
-            val getInstanceResult = unboundedVariable(name = "newInstance", invocation.method)
+            val getInstanceResult = unboundedVariable(name = "newInstance", method)
 
             return OverrideResult(success = true, getInstanceResult)
         }
@@ -3231,28 +3232,27 @@ class Traverser(
         }
 
         // we cannot mock synthetic methods and methods that have private or protected arguments
-        val impossibleToMock =
-            invocation.method.isSynthetic || invocation.method.isProtected || parametersContainPrivateAndProtectedTypes(
-                invocation.method
-            )
+        val impossibleToMock = method.isSynthetic
+                || method.isProtected
+                || parametersContainPrivateAndProtectedTypes(method)
 
         if (instanceAsWrapperOrNull is UtMockWrapper && impossibleToMock) {
             // TODO temporary we return unbounded symbolic variable with a wrong name.
             // TODO Probably it'll lead us to the path divergence
             workaround(HACK) {
-                val result = unboundedVariable("unbounded", invocation.method)
+                val result = unboundedVariable("unbounded", method)
                 return OverrideResult(success = true, result)
             }
         }
 
-        if (instance is ArrayValue && invocation.method.name == "clone") {
+        if (instance is ArrayValue && method.name == "clone") {
             return OverrideResult(success = true, cloneArray(instance))
         }
 
         instanceAsWrapperOrNull?.run {
             // For methods with concrete implementation (for example, RangeModifiableUnlimitedArray.toCastedArray)
             // we should not return successful override result.
-            if (!isWrappedMethod(invocation.method)) {
+            if (!isWrappedMethod(method)) {
                 return OverrideResult(success = false)
             }
 
@@ -3308,7 +3308,7 @@ class Traverser(
     private fun unboundedVariable(name: String, method: SootMethod): MethodResult {
         val value = when (val returnType = method.returnType) {
             is RefType -> {
-                val addr = findNewAddr()
+                val addr = UtAddrExpression(mkBVConst("$name${unboundedConstCounter++}", UtIntSort).toIntValue().expr)
                 createObject(
                     addr,
                     returnType,
@@ -3316,7 +3316,10 @@ class Traverser(
                     UtMockInfoGenerator { UtObjectMockInfo(returnType.id, addr) }
                 )
             }
-            is ArrayType -> createArray(findNewAddr(), returnType, useConcreteType = false)
+            is ArrayType -> {
+                val addr = UtAddrExpression(mkBVConst("$name${unboundedConstCounter++}", UtIntSort).toIntValue().expr)
+                createArray(addr, returnType, useConcreteType = false)
+            }
             else -> createConst(returnType, "$name${unboundedConstCounter++}")
         }
 

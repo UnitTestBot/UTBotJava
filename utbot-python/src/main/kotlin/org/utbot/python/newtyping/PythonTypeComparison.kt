@@ -119,6 +119,7 @@ const val MAX_RECURSION_DEPTH = 100
 class PythonSubtypeChecker(
     val left: Type,
     val right: Type,
+    val pythonTypeStorage: PythonTypeStorage,
     private val typeParameterCorrespondence: List<Pair<Type, Type>>,
     private val assumingSubtypePairs: List<Pair<PythonTypeWrapperForEqualityCheck, PythonTypeWrapperForEqualityCheck>>,
     private val recursionDepth: Int,
@@ -183,6 +184,7 @@ class PythonSubtypeChecker(
                         PythonSubtypeChecker(
                             left = leftMember,
                             right = rightMember,
+                            pythonTypeStorage,
                             typeParameterCorrespondence,
                             nextAssumingSubtypePairs,
                             recursionDepth + 1
@@ -199,6 +201,7 @@ class PythonSubtypeChecker(
             PythonSubtypeChecker(
                 left = it,
                 right = right,
+                pythonTypeStorage,
                 typeParameterCorrespondence,
                 nextAssumingSubtypePairs,
                 recursionDepth + 1
@@ -206,7 +209,7 @@ class PythonSubtypeChecker(
         }
     }
     private fun caseOfLeftCompositeType(leftMeta: PythonConcreteCompositeTypeDescription): Boolean {
-        if (PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(BuiltinTypes.pythonObject))
+        if (left.isPythonObjectType())
             return true
         return when (val rightMeta = right.pythonDescription()) {
             is PythonAnyTypeDescription -> true
@@ -229,6 +232,7 @@ class PythonSubtypeChecker(
                                 PythonSubtypeChecker(
                                     left = leftArg,
                                     right = rightArg,
+                                    pythonTypeStorage,
                                     typeParameterCorrespondence,
                                     nextAssumingSubtypePairs,
                                     recursionDepth + 1
@@ -237,6 +241,7 @@ class PythonSubtypeChecker(
                                 PythonSubtypeChecker(
                                     left = rightArg,
                                     right = leftArg,
+                                    pythonTypeStorage,
                                     reverse(typeParameterCorrespondence),
                                     nextAssumingSubtypePairs,
                                     recursionDepth + 1
@@ -248,6 +253,7 @@ class PythonSubtypeChecker(
                         PythonSubtypeChecker(
                             left = left,
                             right = it,
+                            pythonTypeStorage,
                             typeParameterCorrespondence,
                             nextAssumingSubtypePairs,
                             recursionDepth + 1
@@ -272,6 +278,7 @@ class PythonSubtypeChecker(
             PythonSubtypeChecker(
                 left = childType,
                 right = right,
+                pythonTypeStorage,
                 typeParameterCorrespondence,
                 nextAssumingSubtypePairs,
                 recursionDepth + 1
@@ -287,14 +294,15 @@ class PythonSubtypeChecker(
     private fun caseOfLeftProtocol(leftMeta: PythonProtocolDescription): Boolean {
         val membersNotToCheck = listOf("__new__", "__init__")
         return leftMeta.protocolMemberNames.subtract(membersNotToCheck).all { protocolMemberName ->
-            val neededAttribute = left.getPythonAttributeByName(protocolMemberName)!!
-            val rightAttribute = right.getPythonAttributeByName(protocolMemberName) ?: return false
+            val neededAttribute = left.getPythonAttributeByName(pythonTypeStorage, protocolMemberName)!!
+            val rightAttribute = right.getPythonAttributeByName(pythonTypeStorage, protocolMemberName) ?: return false
             val description = neededAttribute.type.pythonDescription()
             val skipFirstArgument =
                 (description is PythonCallableTypeDescription) && !description.isStaticMethod
             PythonSubtypeChecker(
                 left = neededAttribute.type,
                 right = rightAttribute.type,
+                pythonTypeStorage,
                 typeParameterCorrespondence,
                 nextAssumingSubtypePairs,
                 recursionDepth + 1,
@@ -303,7 +311,7 @@ class PythonSubtypeChecker(
         }
     }
     private fun caseOfLeftCallable(leftMeta: PythonCallableTypeDescription): Boolean {
-        val rightCallAttribute = right.getPythonAttributeByName("__call__")?.type as? FunctionType
+        val rightCallAttribute = right.getPythonAttributeByName(pythonTypeStorage, "__call__")?.type as? FunctionType
             ?: return false
         val leftAsFunctionType = leftMeta.castToCompatibleTypeApi(left)
         // TODO: more accurate work with argument binding?
@@ -326,6 +334,7 @@ class PythonSubtypeChecker(
             PythonSubtypeChecker(
                 left = rightArg,
                 right = leftArg,
+                pythonTypeStorage,
                 reverse(newCorrespondence),
                 nextAssumingSubtypePairs,
                 recursionDepth + 1
@@ -333,6 +342,7 @@ class PythonSubtypeChecker(
         } && PythonSubtypeChecker(
             left = leftAsFunctionType.returnValue,
             right = rightCallAttribute.returnValue,
+            pythonTypeStorage,
             newCorrespondence,
             nextAssumingSubtypePairs,
             recursionDepth + 1
@@ -353,10 +363,11 @@ class PythonSubtypeChecker(
         }
 
     companion object {
-        fun checkIfRightIsSubtypeOfLeft(left: Type, right: Type): Boolean =
+        fun checkIfRightIsSubtypeOfLeft(left: Type, right: Type, pythonTypeStorage: PythonTypeStorage): Boolean =
             PythonSubtypeChecker(
                 left = left,
                 right = right,
+                pythonTypeStorage,
                 emptyList(),
                 emptyList(),
                 0

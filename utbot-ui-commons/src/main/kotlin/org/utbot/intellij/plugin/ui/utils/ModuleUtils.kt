@@ -4,8 +4,6 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.intellij.plugin.ui.CommonErrorNotifier
-import org.utbot.intellij.plugin.ui.UnsupportedJdkNotifier
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.externalSystem.model.ProjectSystemId
 import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
@@ -14,9 +12,6 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessModuleDir
-import com.intellij.openapi.projectRoots.JavaSdk
-import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.roots.ModuleRootManager
@@ -29,7 +24,6 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.util.PathUtil.getParentPath
 import java.nio.file.Path
 import mu.KotlinLogging
-import org.jetbrains.android.sdk.AndroidSdkType
 import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
@@ -37,18 +31,23 @@ import org.jetbrains.kotlin.platform.TargetPlatformVersion
 
 private val logger = KotlinLogging.logger {}
 
-data class TestSourceRoot(
-    val dir: VirtualFile,
-    val expectedLanguage: CodegenLanguage
-)
+interface ITestSourceRoot {
+    val dirPath: String
+    val dirName: String
+    val dir: VirtualFile?
+    val expectedLanguage : CodegenLanguage
+}
 
-/**
- * @return jdk version of the module
- */
-fun Module.jdkVersion(): JavaSdkVersion {
-    val moduleRootManager = ModuleRootManager.getInstance(this)
-    val sdk = moduleRootManager.sdk
-    return jdkVersionBy(sdk)
+class TestSourceRoot(override val dir: VirtualFile, override val expectedLanguage: CodegenLanguage) : ITestSourceRoot {
+    override val dirPath: String = dir.toNioPath().toString()
+    override val dirName: String = dir.name
+
+    override fun toString() = dirPath
+
+    override fun equals(other: Any?) =
+        other is TestSourceRoot && dir == other.dir && expectedLanguage == other.expectedLanguage
+
+    override fun hashCode() = 31 * dir.hashCode() + expectedLanguage.hashCode()
 }
 
 /**
@@ -107,11 +106,11 @@ private fun findPotentialModulesForTests(project: Project, srcModule: Module): L
     if (modules.isNotEmpty()) return modules
 
     if (srcModule.suitableTestSourceFolders().isEmpty()) {
-        val modules = mutableSetOf<Module>()
-        ModuleUtilCore.collectModulesDependsOn(srcModule, modules)
-        modules.remove(srcModule)
+        val modulesWithTestRoot = mutableSetOf<Module>().also {
+            ModuleUtilCore.collectModulesDependsOn(srcModule, it)
+            it.remove(srcModule)
+        }.filter { it.suitableTestSourceFolders().isNotEmpty() }
 
-        val modulesWithTestRoot = modules.filter { it.suitableTestSourceFolders().isNotEmpty() }
         if (modulesWithTestRoot.size == 1) return modulesWithTestRoot
     }
     return listOf(srcModule)
@@ -165,11 +164,11 @@ val Project.isBuildWithGradle get() =
 
 const val dedicatedTestSourceRootName = "utbot_tests"
 
-fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<TestSourceRoot>, language: CodegenLanguage): VirtualFile? {
-    // Don't suggest new test source roots for Gradle project where 'unexpected' test roots won't work
+fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<ITestSourceRoot>, language: CodegenLanguage): VirtualFile? {
+    // Don't suggest new test source roots for a Gradle project where 'unexpected' test roots won't work
     if (project.isBuildWithGradle) return null
     // Dedicated test root already exists
-    if (testSourceRoots.any { root -> root.dir.name == dedicatedTestSourceRootName }) return null
+    if (testSourceRoots.any { root -> root.dir?.name == dedicatedTestSourceRootName }) return null
 
     val moduleInstance = ModuleRootManager.getInstance(this)
     val testFolder = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
@@ -254,34 +253,6 @@ fun ContentEntry.addSourceRootIfAbsent(
             model.dispose()
         }
     }
-}
-
-/**
- * Obtain JDK version and make sure that it is JDK8 or JDK11
- */
-private fun jdkVersionBy(sdk: Sdk?): JavaSdkVersion {
-    if (sdk == null) {
-        CommonErrorNotifier.notify("Failed to obtain JDK version of the project")
-    }
-    requireNotNull(sdk)
-
-    val jdkVersion = when (sdk.sdkType) {
-        is JavaSdk -> {
-            (sdk.sdkType as JavaSdk).getVersion(sdk)
-        }
-        is AndroidSdkType -> {
-            ((sdk.sdkType as AndroidSdkType).dependencyType as JavaSdk).getVersion(sdk)
-        }
-        else -> null
-    }
-    if (jdkVersion == null) {
-        CommonErrorNotifier.notify("Failed to obtain JDK version of the project")
-    }
-    requireNotNull(jdkVersion)
-    if (!jdkVersion.isAtLeast(JavaSdkVersion.JDK_1_8)) {
-        UnsupportedJdkNotifier.notify(jdkVersion.description)
-    }
-    return jdkVersion
 }
 
 private val SourceFolder.expectedLanguageForTests: CodegenLanguage?

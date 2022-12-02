@@ -14,39 +14,54 @@ fun Type.getPythonAttributes(): List<PythonAttribute> {
     return pythonDescription().getNamedMembers(this)
 }
 
-fun Type.getPythonAttributeByName(name: String): PythonAttribute? {
-    return pythonDescription().getMemberByName(this, name)
+fun Type.getPythonAttributeByName(storage: PythonTypeStorage, name: String): PythonAttribute? {
+    return pythonDescription().getMemberByName(storage, this, name)
 }
 
 fun Type.pythonAnnotationParameters(): List<Type> {
     return pythonDescription().getAnnotationParameters(this)
 }
 
-object BuiltinTypes {
-    lateinit var pythonObject: Type
-    lateinit var pythonBool: Type
-    lateinit var pythonList: Type
-    lateinit var pythonDict: Type
-    lateinit var pythonSet: Type
-    lateinit var pythonInt: Type
-    lateinit var pythonFloat: Type
-    lateinit var pythonComplex: Type
-    lateinit var pythonStr: Type
+fun Type.isPythonObjectType(): Boolean {
+    if (!isPythonType())
+        return false
+    val description = pythonDescription()
+    return description.name.prefix == listOf("builtins") && description.name.name == "object"
+}
 
-    fun checkInitialized() {
-        val inits = listOf(
-            this::pythonObject.isInitialized,
-            this::pythonBool.isInitialized,
-            this::pythonList.isInitialized,
-            this::pythonDict.isInitialized,
-            this::pythonSet.isInitialized,
-            this::pythonInt.isInitialized,
-            this::pythonFloat.isInitialized,
-            this::pythonComplex.isInitialized,
-            this::pythonStr.isInitialized
-        )
-        if (!inits.all { it })
-            error("Some types from BuiltinTypes were skipped during initialization")
+class PythonTypeStorage(
+    val pythonObject: Type,
+    val pythonBool: Type,
+    val pythonList: Type,
+    val pythonDict: Type,
+    val pythonSet: Type,
+    val pythonInt: Type,
+    val pythonFloat: Type,
+    val pythonComplex: Type,
+    val pythonStr: Type,
+    val allTypes: Set<Type>
+) {
+    companion object {
+        fun get(mypyStorage: MypyAnnotationStorage): PythonTypeStorage {
+            val module = mypyStorage.definitions["builtins"]!!
+            val allTypes: MutableSet<Type> = mutableSetOf()
+            module.values.forEach {
+                if (it.kind == DefinitionType.Type)
+                    allTypes.add(it.annotation.asUtBotType)
+            }
+            return PythonTypeStorage(
+                pythonObject = module["object"]!!.annotation.asUtBotType,
+                pythonBool = module["bool"]!!.annotation.asUtBotType,
+                pythonList = module["list"]!!.annotation.asUtBotType,
+                pythonDict = module["dict"]!!.annotation.asUtBotType,
+                pythonSet = module["set"]!!.annotation.asUtBotType,
+                pythonInt = module["int"]!!.annotation.asUtBotType,
+                pythonFloat = module["float"]!!.annotation.asUtBotType,
+                pythonComplex = module["complex"]!!.annotation.asUtBotType,
+                pythonStr = module["str"]!!.annotation.asUtBotType,
+                allTypes = allTypes
+            )
+        }
     }
 }
 
@@ -54,7 +69,7 @@ sealed class PythonTypeDescription(name: Name): TypeMetaDataWithName(name) {
     open fun castToCompatibleTypeApi(type: Type): Type = type
     open fun getNamedMembers(type: Type): List<PythonAttribute> = emptyList()  // direct members (without inheritance)
     open fun getAnnotationParameters(type: Type): List<Type> = emptyList()
-    open fun getMemberByName(type: Type, name: String): PythonAttribute? =  // overridden for some types
+    open fun getMemberByName(storage: PythonTypeStorage, type: Type, name: String): PythonAttribute? =  // overridden for some types
         getNamedMembers(type).find { it.name == name }
     open fun createTypeWithNewAnnotationParameters(origin: Type, newParams: List<Type>): Type =  // overriden for Callable
         DefaultSubstitutionProvider.substituteAll(origin, newParams)
@@ -74,15 +89,15 @@ sealed class PythonCompositeTypeDescription(
         return (memberNames zip compositeType.members).map { PythonAttribute(it.first, it.second) }
     }
     override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
-    fun mro(type: Type): List<Type> {
+    fun mro(storage: PythonTypeStorage, type: Type): List<Type> {
         val compositeType = castToCompatibleTypeApi(type)
         var bases = compositeType.supertypes
-        if (bases.isEmpty() && type.pythonDescription().name != BuiltinTypes.pythonObject.pythonDescription().name)
-            bases = listOf(BuiltinTypes.pythonObject)
+        if (bases.isEmpty() && !type.isPythonObjectType())
+            bases = listOf(storage.pythonObject)
         val linBases = (bases.map {
             val description = it.meta as? PythonCompositeTypeDescription
                 ?: error("Not a PythonCompositeType in superclasses of PythonCompositeType")
-            description.mro(it)
+            description.mro(storage, it)
         } + listOf(bases)).map { it.toMutableList() }.toMutableList()
         val result = mutableListOf(type)
         while (true) {
@@ -108,8 +123,8 @@ sealed class PythonCompositeTypeDescription(
         }
         return result
     }
-    override fun getMemberByName(type: Type, name: String): PythonAttribute? {
-        for (parent in mro(type)) {
+    override fun getMemberByName(storage: PythonTypeStorage, type: Type, name: String): PythonAttribute? {
+        for (parent in mro(storage, type)) {
             val cur = parent.getPythonAttributes().find { it.name == name }
             if (cur != null)
                 return cur
@@ -199,7 +214,7 @@ class PythonCallableTypeDescription(
 
 // Special Python annotations
 object PythonAnyTypeDescription: PythonSpecialAnnotation(pythonAnyName) {
-    override fun getMemberByName(type: Type, name: String): PythonAttribute {
+    override fun getMemberByName(storage: PythonTypeStorage, type: Type, name: String): PythonAttribute {
         return PythonAttribute(name, pythonAnyType)
     }
 }
@@ -216,10 +231,10 @@ object PythonUnionTypeDescription: PythonSpecialAnnotation(pythonUnionName) {
             ?: error("Got unexpected type PythonUnionTypeDescription: $type")
     }
      */
-    override fun getMemberByName(type: Type, name: String): PythonAttribute? {
+    override fun getMemberByName(storage: PythonTypeStorage, type: Type, name: String): PythonAttribute? {
         //val statefulType = castToCompatibleTypeApi(type)
         val children = type.parameters.mapNotNull {
-            it.getPythonAttributeByName(name)?.type
+            it.getPythonAttributeByName(storage, name)?.type
         }
         return if (children.isEmpty())
             null

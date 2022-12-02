@@ -8,10 +8,12 @@ import org.junit.jupiter.api.TestInstance
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonCompositeTypeDescriptionTest {
     lateinit var storage: MypyAnnotationStorage
+    lateinit var pythonTypeStorage: PythonTypeStorage
     @BeforeAll
     fun setup() {
         val sample = AnnotationFromMypyKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
+        pythonTypeStorage = PythonTypeStorage.get(storage)
     }
 
     @Test
@@ -19,16 +21,16 @@ internal class PythonCompositeTypeDescriptionTest {
         val counter = storage.definitions["collections"]!!["Counter"]!!.annotation.asUtBotType
         val counterDescription = counter.pythonDescription() as PythonCompositeTypeDescription
         assertTrue(
-            counterDescription.mro(counter).map { it.pythonDescription().name.name } == listOf(
+            counterDescription.mro(pythonTypeStorage, counter).map { it.pythonDescription().name.name } == listOf(
                 "Counter", "dict", "MutableMapping", "Mapping", "Collection", "Iterable", "Container", "object"
             )
         )
-        val dict = counterDescription.mro(counter).find { it.pythonDescription().name.name == "dict" }!!
+        val dict = counterDescription.mro(pythonTypeStorage, counter).find { it.pythonDescription().name.name == "dict" }!!
         assertTrue(dict.parameters.size == 2)
         assertTrue(dict.parameters[0] == counter.parameters[0])
         assertTrue(dict.parameters[1].pythonDescription().name.name == "int")
 
-        val mapping = counterDescription.mro(counter).find { it.pythonDescription().name.name == "Mapping" }!!
+        val mapping = counterDescription.mro(pythonTypeStorage, counter).find { it.pythonDescription().name.name == "Mapping" }!!
         assertTrue(mapping.parameters.size == 2)
         assertTrue(mapping.parameters[0] == counter.parameters[0])
         assertTrue(mapping.parameters[1].pythonDescription().name.name == "int")
@@ -39,7 +41,7 @@ internal class PythonCompositeTypeDescriptionTest {
         val obj = storage.definitions["builtins"]!!["object"]!!.annotation.asUtBotType
         val description = obj.pythonDescription() as PythonCompositeTypeDescription
         assertTrue(
-            description.mro(obj).map { it.pythonDescription().name.name } == listOf("object")
+            description.mro(pythonTypeStorage, obj).map { it.pythonDescription().name.name } == listOf("object")
         )
     }
 
@@ -48,11 +50,11 @@ internal class PythonCompositeTypeDescriptionTest {
         val deque = storage.definitions["collections"]!!["deque"]!!.annotation.asUtBotType
         val description = deque.pythonDescription() as PythonCompositeTypeDescription
         assertTrue(
-            description.mro(deque).map { it.pythonDescription().name.name } == listOf(
+            description.mro(pythonTypeStorage, deque).map { it.pythonDescription().name.name } == listOf(
                 "deque", "MutableSequence", "Sequence", "Collection", "Reversible", "Iterable", "Container", "object"
             )
         )
-        val iterable = description.mro(deque).find { it.pythonDescription().name.name == "Iterable" }!!
+        val iterable = description.mro(pythonTypeStorage, deque).find { it.pythonDescription().name.name == "Iterable" }!!
         assertTrue(deque.parameters.size == 1)
         assertTrue(iterable.parameters == deque.parameters)
     }

@@ -8,8 +8,6 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ComponentWithBrowseButton
 import com.intellij.openapi.ui.FixedSizeButton
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.ui.ColoredListCellRenderer
@@ -22,13 +20,12 @@ import javax.swing.JList
 import org.jetbrains.kotlin.idea.util.rootManager
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
-import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
+import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
-import org.utbot.intellij.plugin.ui.utils.dedicatedTestSourceRootName
+import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 private const val SET_TEST_FOLDER = "set test folder"
-private val SRC_MAIN = FileUtil.toSystemDependentName("src/main/")
 
 class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
     ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
@@ -61,7 +58,11 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
             }
         }
 
-        val testRoots = model.getSortedTestRoots()
+        val testRoots = getSortedTestRoots(
+            model.getAllTestSourceRoots(),
+            model.srcModule.rootManager.sourceRoots.map { file: VirtualFile -> file.toNioPath().toString() },
+            model.codegenLanguage
+        )
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)
@@ -89,35 +90,6 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
         }
     }
 
-    private fun BaseTestsModel.getSortedTestRoots(): MutableList<TestSourceRoot> {
-        var commonModuleSourceDirectory = ""
-        for ((i, sourceRoot) in srcModule.rootManager.sourceRoots.withIndex()) {
-            commonModuleSourceDirectory = if (i == 0) {
-                sourceRoot.toNioPath().toString()
-            } else {
-                StringUtil.commonPrefix(commonModuleSourceDirectory, sourceRoot.toNioPath().toString())
-            }
-        }
-        //Remove standard suffix that may prevent exact module path matching
-        commonModuleSourceDirectory = StringUtil.trimEnd(commonModuleSourceDirectory, SRC_MAIN)
-
-        return getAllTestSourceRoots().distinct().toMutableList().sortedWith(
-            compareByDescending<TestSourceRoot> {
-                // Heuristics: Dirs with proper code language should go first
-                it.expectedLanguage == codegenLanguage
-            }.thenByDescending {
-                // Heuristics: Dirs from within module 'common' directory should go first
-                it.dir.toNioPath().toString().startsWith(commonModuleSourceDirectory)
-            }.thenByDescending {
-                // Heuristics: dedicated test source root named 'utbot_tests' should go first
-                it.dir.name == dedicatedTestSourceRootName
-            }.thenBy {
-                // ABC-sorting
-                it.dir.toNioPath()
-            }
-        ).toMutableList()
-    }
-
     private fun chooseTestRoot(model: BaseTestsModel): VirtualFile? =
         ReadAction.compute<VirtualFile, RuntimeException> {
             val desc = object:FileChooserDescriptor(false, true, false, false, false, false) {
@@ -131,12 +103,12 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
             files.singleOrNull()
         }
 
-    private fun configureRootsCombo(testRoots: List<TestSourceRoot>) {
+    private fun configureRootsCombo(testRoots: List<ITestSourceRoot>) {
         val selectedRoot = testRoots.first()
 
         // do not update model.testModule here, because fake test source root could have been chosen
         model.testSourceRoot = selectedRoot.dir
-        newItemList(testRoots.map { it.dir }.toSet())
+        newItemList(testRoots.mapNotNull { it.dir }.toSet())
     }
 
     private fun newItemList(comboItems: Set<Any>) {

@@ -3,11 +3,11 @@ package org.utbot.intellij.plugin.inspection
 import com.intellij.codeInspection.*
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import org.utbot.sarif.Sarif
-import org.utbot.sarif.SarifRegion
-import org.utbot.sarif.SarifResult
+import org.jetbrains.kotlin.idea.search.allScope
+import org.utbot.sarif.*
 import java.nio.file.Path
 
 /**
@@ -34,24 +34,35 @@ class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
     override fun getGroupDisplayName() = "Errors detected by UnitTestBot"
 
     /**
-     * Appends all the errors from the SARIF report for [psiFile] to the [problemDescriptionsProcessor].
+     * Appends all the errors from the SARIF report for [srcPsiFile] to the [problemDescriptionsProcessor].
      */
     override fun checkFile(
-        psiFile: PsiFile,
+        srcPsiFile: PsiFile,
         manager: InspectionManager,
         problemsHolder: ProblemsHolder,
         globalContext: GlobalInspectionContext,
         problemDescriptionsProcessor: ProblemDescriptionsProcessor
     ) {
-        val sarifReport = srcClassPathToSarifReport[psiFile.virtualFile.toNioPath()]
+        val sarifReport = srcClassPathToSarifReport[srcPsiFile.virtualFile.toNioPath()]
             ?: return // no results for this file
 
         for (sarifResult in sarifReport.getAllResults()) {
-            val srcFileLocation = sarifResult.locations.firstOrNull()
-                ?: continue
+            val srcFilePhysicalLocation = sarifResult.locations
+                .filterIsInstance(SarifPhysicalLocationWrapper::class.java)
+                .firstOrNull()?.physicalLocation ?: continue
+            val srcFileLogicalLocation = sarifResult.locations
+                .filterIsInstance(SarifLogicalLocationsWrapper::class.java)
+                .firstOrNull()
+                ?.logicalLocations?.firstOrNull()
 
-            val errorRegion = srcFileLocation.physicalLocation.region
-            val errorTextRange = getTextRange(problemsHolder.project, psiFile, errorRegion)
+            // srcPsiFile may != errorPsiFile (if srcFileLogicalLocation != null)
+            val errorPsiFile = srcFileLogicalLocation?.fullyQualifiedName?.let { errorClassFqn ->
+                val psiFacade = JavaPsiFacade.getInstance(srcPsiFile.project)
+                val psiClass = psiFacade.findClass(errorClassFqn, srcPsiFile.project.allScope())
+                psiClass?.containingFile
+            } ?: srcPsiFile
+            val errorRegion = srcFilePhysicalLocation.region
+            val errorTextRange = getTextRange(problemsHolder.project, errorPsiFile, errorRegion)
 
             // see `org.utbot.sarif.SarifReport.processUncheckedException` for the message template
             val (exceptionMessage, testCaseMessage) =
@@ -71,7 +82,7 @@ class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
             val analyzeStackTraceFix = AnalyzeStackTraceFix(exceptionMessage, stackTraceLines)
 
             val problemDescriptor = problemsHolder.manager.createProblemDescriptor(
-                psiFile,
+                errorPsiFile,
                 errorTextRange,
                 sarifResultMessage,
                 ProblemHighlightType.ERROR,
@@ -80,7 +91,7 @@ class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
                 analyzeStackTraceFix
             )
             problemDescriptionsProcessor.addProblemElement(
-                globalContext.refManager.getReference(psiFile),
+                globalContext.refManager.getReference(errorPsiFile),
                 problemDescriptor
             )
         }

@@ -363,7 +363,7 @@ private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path):
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }
         .mapNotNull { sootMethod ->
-            val methodFile = Instrumenter.adapter.computeSourceFileByClass(
+            val methodFile = Instrumenter.adapter.computeSourceFileByNameAndPackage(
                 sootMethod.declaringClass.name,
                 sootMethod.declaringClass.javaPackageName.replace(".", File.separator),
                 searchDirectory

@@ -132,16 +132,41 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var testDisplayName by getBooleanProperty(true)
 
     /**
-     * Generate summaries using plugin's custom JavaDoc tags.
-     */
-    var useCustomJavaDocTags by getBooleanProperty(true)
-
-    /**
      * Enable the Summarization module to generate summaries for methods under test.
      *
      * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
      */
     var enableSummariesGeneration by getBooleanProperty(true)
+
+    /**
+     * If True test comments will be generated.
+     */
+    var enableJavaDocGeneration by getBooleanProperty(true)
+
+    /**
+     * If True cluster comments will be generated.
+     */
+    var enableClusterCommentsGeneration by getBooleanProperty(true)
+
+    /**
+     * If True names for tests will be generated.
+     */
+    var enableTestNamesGeneration by getBooleanProperty(true)
+
+    /**
+     * If True display names for tests will be generated.
+     */
+    var enableDisplayNameGeneration by getBooleanProperty(true)
+
+    /**
+     *  If True display name in from -> to style will be generated.
+     */
+    var useDisplayNameArrowStyle by getBooleanProperty(true)
+
+    /**
+     * Generate summaries using plugin's custom JavaDoc tags.
+     */
+    var useCustomJavaDocTags by getBooleanProperty(true)
 
     /**
      * This option regulates which [NullPointerException] check should be performed for nested methods.
@@ -172,7 +197,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * with symbolic variable to try to set them another value than in initializer.
      */
     var substituteStaticsWithSymbolicVariable by getBooleanProperty(true)
-
 
     /**
      * Use concrete execution.

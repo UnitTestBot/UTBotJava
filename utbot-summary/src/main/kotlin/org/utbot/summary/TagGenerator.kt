@@ -16,7 +16,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.summary.UtSummarySettings.MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING
+import org.utbot.summary.DBSCANClusteringConstants.MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING
 import org.utbot.summary.clustering.MatrixUniqueness
 import org.utbot.summary.clustering.SplitSteps
 import org.utbot.summary.tag.TraceTag

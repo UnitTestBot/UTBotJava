@@ -8,7 +8,8 @@ UnitTestBot consists of three processes:
 2. `Engine process` — the process where the test generation engine executes.
 3. `Instrumented process` — the process where concrete execution takes place.
 
-These processes are built on top of the [Reactive distributed communication framework (Rd)](https://github.com/JetBrains/rd) developed by JetBrains. Understanding Rd is crucial for understanding UnitTestBot, so we briefly describe this library here.
+These processes are built on top of the [Reactive distributed communication framework (Rd)](https://github.com/JetBrains/rd) developed by JetBrains. Rd plays a crucial role in UnitTestBot machinery, so we briefly 
+describe this library here.
 
 To gain an insight into Rd, one should grasp these Rd concepts:
 1. Lifetime
@@ -31,36 +32,43 @@ Though, releasing resources upon the object's death is still problematic:
  
 So, Rd introduces the concept of `Lifetime`.
 
-### `Lifetime` class
+### `Lifetime`
 
-`Lifetime` is an abstract class, with `Lifetime` and `LifetimeDefinition` as its inheritors. The `Lifetime` objects are 
-instances of `LifetimeDefinition` and thus they can be terminated. You can register callbacks in the `Lifetime` object and then terminate it — all the registered callbacks will be executed upon the termination.
+_Note:_ the described relationships and behavior refer to the JVM-related part of Rd.
+
+`Lifetime` is an abstract class, with `LifetimeDefinition` as its inheritor. `LifetimeDefinition` 
+has only one difference from its parent: `LifetimeDefinition` can be terminated.
+Each `Lifetime` variable is an instance of `LifetimeDefinition` (we later call it "`Lifetime` instance"). You 
+can register callbacks in this `Lifetime` instance — all of them will be executed upon the termination.
 
 Though all `Lifetime` objects are instances of `LifetimeDefinition`, there are conventions for using them:
 1. Do not cast `Lifetime` to `LifetimeDefinion` unless you are the one who created `LifetimeDefinition`.
 2. If you introduce `LifetimeDefinition` somewhere, you should attach it to another `Lifetime` or provide 
    the code that terminates it.
 
-A `Lifetime` object has these useful methods:
-- `onTermination` executes _lambda_/_closeable_ when the `Lifetime` object is terminated. If an object has been 
+A `Lifetime` instance has these useful methods:
+- `onTermination` executes _lambda_/_closeable_ when the `Lifetime` instance is terminated. If an instance has been 
   already terminated, it executes _lambda_/_closeable_ instantly. Termination proceeds on a thread that has invoked 
   `LifetimeDefinition.terminate`. Callbacks are executed in the **reversed order**, which is _LIFO_: the last added 
   callback is executed first.
 - `onTerminationIfAlive` is the same as `onTermination`, but the callback is executed only if the `Lifetime` 
-  object is `Alive`.
-- `executeIfAlive` executes _lambda_ if the `Lifetime` object is `Alive`. This method guarantees that the `Lifetime` 
-  object is not terminated until _lambda_ execution is complete.
-- `createdNested` creates the _child_ `LifetimeDefinition` object that is terminated along with the _parent_ one.
+  instance is `Alive`.
+- `executeIfAlive` executes _lambda_ if the `Lifetime` instance is `Alive`. This method guarantees that the `Lifetime` 
+  instance is alive (i.e. will not be terminated) during the whole time of _lambda_ execution.
+- `createdNested` creates the _child_ `LifetimeDefinition` instance: it can be terminated if the _parent_ 
+  instance is terminated as well; or it can be terminated separately, while the parent instance stays alive.
 - `usingNested` is the same as the `createNested` method, but behaves like the `Closeable.use` pattern.
-- `Eternal` prevents a `Lifetime` object from being terminated.
-- `Terminated` makes a `Lifetime` object terminated.
-- `status` — see more details in the 
+
+See also:
+- `Lifetime.Eternal` is a global `Lifetime` instance that is never terminated.
+- `Lifetime.Terminated` is a global `Lifetime` instance that has been already terminated.
+- `status` — find more details in the 
 [LifetimeStatus.kt](https://github.com/JetBrains/rd/blob/9b806ccc770515f6288c778581c54607420c16a7/rd-kt/rd-core/src/main/kotlin/com/jetbrains/rd/util/lifetime/LifetimeStatus.kt) class from the Rd repository. There are three 
   convenient methods: `IsAlive`, `IsNotAlive`, `IsTerminated`.
 
-### `LifetimeDefinition` class
+### `LifetimeDefinition`
 
-`LifetimeDefinition` instances have the `terminate` method that terminates a `Lifetime` object and invokes all 
+`LifetimeDefinition` instances have the `terminate` method that terminates a `Lifetime` instance and invokes all 
 the registered callbacks. If multiple concurrent terminations occur, the method may sometimes return before 
 executing all the callbacks because some other thread executes them.
 
@@ -69,9 +77,9 @@ executing all the callbacks because some other thread executes them.
 Rd is a light-weight reactive one-to-one RPC protocol, which is cross-language as well as cross-platform. It can 
 work on the same or different machines via Internet.
 
-These are Rd entities:
+These are some of Rd entities:
 - `Protocol` encapsulates the logic of all Rd communications. All the entities should be bound to `Protocol` before 
-  being used. `Protocol` contains `IScheduler`, which executes a _runnable_ object on a different thread.
+  being used. `Protocol` contains `IScheduler`, which executes a _runnable_ instance on a different thread.
 - `RdSignal` is an entity allowing one to **fire and forget**. You can add a callback for every received message 
   via the `advise(lifetime, callback)` method. There are two interfaces: `ISink` that only allows advising for 
   messages and `ISignal` that can also `fire` events.  There is also a `Signal` class with the same behavior 
@@ -82,7 +90,7 @@ messages from the other process, but also the ones you `fire`.
 
 - `RdProperty` is a stateful property. You can get the current value and advise the callback — an advised 
   callback is executed on a current value and on every change.
-- `RdCall`is the remote procedure call.
+- `RdCall` is the remote procedure call.
 
 There are `RdSet`, `RdMap`, and other entities.
 
@@ -137,7 +145,8 @@ Useful properties in DSL entities:
 - `sources` — the folders with DSL `.kt` files. If there are no `sources`, scan classpath for the inheritors of `Root` 
   and `Ext`.
 - `hashfile` — a folder to store the `.rdgen` hash file for incremental generation.
-- `packages` — `.java` package names to search in toplevels, delimited by `,`. Example: `com.jetbrains.rd.model.nova,com,org`.
+- `packages` — Java package names to search in toplevels, delimited by `,`. Example: `com.jetbrains.rd.model.nova,com,
+  org`.
 
 Configure model generation with the `RdGenExtension.generator` method:
 - `root` — for which root this generator is declared.
@@ -167,7 +176,7 @@ The _IDE process_ starts the _Engine process_. The _IDE process_ keeps the `UtSe
 the plugin JAR-files (it uses the plugin classpath). 
 
 The _Engine process_ _**must**_ run on the JDK that is used in the project under analysis. Otherwise, there will be 
-numerous problems with code analysis, `soot`, Reflection, and the divergence of the generated code Java API will occur.
+numerous problems with code analysis, `soot`, _Reflection_, and the divergence of the generated code Java API will occur.
 
 Currently, it is prohibited to run more than **one** generation process simultaneously (the limitation is related to 
 the characteristics of the native libraries). The process logging mechanism relies on 
@@ -205,7 +214,7 @@ Sometimes the _Instrumented process_ may unexpectedly die due to concrete execut
 3. How `ProcessWithRdServer` communication works:
 	- Choose a free port.
 	- Create a client process, pass the port as an argument.
-	- Both processes create protocols. Bind the model and setup callbacks.
+	- Both processes create protocols, bind the model and setup callbacks.
 	- A server process cannot send messages until the _child_ creates a protocol (otherwise, messages are lost), so 
 	  the client process have to signal that it is ready.
 	- The client process creates a special file in the `temp` directory, which is observed by a _parent_ process.

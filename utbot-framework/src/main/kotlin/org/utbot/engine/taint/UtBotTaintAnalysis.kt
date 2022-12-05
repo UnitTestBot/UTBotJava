@@ -17,14 +17,17 @@ import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.logger
+import org.utbot.engine.pathSelector
 import org.utbot.engine.selectors.strategies.DistanceStatistics
 import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
+import org.utbot.engine.selectors.taint.NeverDroppingStrategy
 import org.utbot.engine.selectors.taint.NewTaintPathSelector
 import org.utbot.engine.taint.priority.SimpleTaintMethodsAnalysisPrioritizer
 import org.utbot.engine.taint.priority.TaintMethodsAnalysisPrioritizer
 import org.utbot.engine.taint.timeout.SimpleTaintTimeoutStrategy
 import org.utbot.engine.taint.timeout.TaintTimeoutStrategy
 import org.utbot.framework.AnalysisMode
+import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -213,13 +216,16 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                         controller.job = currentCoroutineContext().job
                         val graph = method.sootMethod.jimpleBody().graph()
                         val globalGraph = InterProceduralUnitGraph(graph)
-                        engine.pathSelector = NewTaintPathSelector(
-                            graph,
-                            taintCandidates[method] ?: emptyMap(),
-                            DistanceStatistics(globalGraph),
-                            StepsLimitStoppingStrategy(3500, globalGraph)
-                        )
-
+                        engine.pathSelector = if (UtSettings.pathSelectorType == PathSelectorType.NEW_TAINT_SELECTOR) {
+                            NewTaintPathSelector(
+                                graph,
+                                taintCandidates[method] ?: emptyMap(),
+                                NeverDroppingStrategy(globalGraph),
+                                StepsLimitStoppingStrategy(3500, globalGraph)
+                            )
+                        } else {
+                            pathSelector(engine.globalGraph, engine.typeRegistry)
+                        }
                         runEngine(engine, method, analysisStopReasons, executionsByExecutable, taintsToBeFound)
                     }
                 }

@@ -4,13 +4,16 @@ import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.head
 import org.utbot.engine.isReturn
 import org.utbot.engine.jimpleBody
+import org.utbot.engine.pathLogger
 import org.utbot.engine.selectors.BasePathSelector
+import org.utbot.engine.selectors.nurs.InheritorsSelector
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.taint.TaintSinkData
 import org.utbot.engine.taint.TaintSourceData
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
@@ -28,22 +31,63 @@ class NewTaintPathSelector(
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy
 ) : BasePathSelector(choosingStrategy, stoppingStrategy) {
-    private val executionQueue: PriorityQueue<ExecutionState> = PriorityQueue(Comparator.comparingInt { it.weight })
+    private val executionQueue: PriorityQueue<StateWithWeight> = PriorityQueue(Comparator.comparingLong { it.weight!! })
     private val taintSources: Set<TaintSourceData> = taintsToBeFound.keys
     private val callGraph: CallGraph = Scene.v().callGraph
     private val globalGraph: InterProceduralUnitGraph = InterProceduralUnitGraph(graph)
+    private val alreadyPushedStateHashes: MutableSet<Int> = mutableSetOf()
 
-    override fun removeImpl(state: ExecutionState): Boolean = executionQueue.remove(state)
+    private var counter: Int = 0
 
-    override fun pollImpl(): ExecutionState? = executionQueue.peek()?.also { executionQueue.remove(it) }
+    override fun removeImpl(state: ExecutionState): Boolean = executionQueue.remove(StateWithWeight(state))
 
-    override fun peekImpl(): ExecutionState? = if (executionQueue.isEmpty()) null else executionQueue.peek()
+    override fun pollImpl(): ExecutionState? = if (executionQueue.isEmpty()) null else executionQueue.poll().executionState
+
+    override fun peekImpl(): ExecutionState? = if (executionQueue.isEmpty()) null else executionQueue.peek().executionState
 
     override fun offerImpl(state: ExecutionState) {
-        executionQueue += state
+        if (counter++ % 5 == 0) {
+//            logQueue()
+        }
+
+        val hashCode = state.hashCode()
+        if (hashCode in alreadyPushedStateHashes) {
+            return
+        }
+
+        val weight = state.weight
+//        if (weight > MAX_DISTANCE) {
+//            return
+//        }
+
+        val weightWithLoopCoefficient = with(state) {
+            val numberOfStmtOccurrencesInPath = visitedStatementsHashesToCountInPath[stmt.hashCode()] ?: 0
+
+            // Drop loop state if it exceeds loop steps limit
+            UtSettings.loopStepsLimit
+                .takeIf { it > 0 }
+                ?.let {
+                    if (numberOfStmtOccurrencesInPath > it) {
+                        return
+                    }
+                }
+
+            weight + numberOfStmtOccurrencesInPath * InheritorsSelector.REPEATED_STMT_COEFFICIENT
+        }
+
+        executionQueue += StateWithWeight(state, weight)
+        alreadyPushedStateHashes += hashCode
     }
 
-    private val ExecutionState.weight: Int
+    private fun logQueue() {
+        queue().forEach {
+            pathLogger.warn {
+                "Method - (${it.first.lastMethod}), stmt - (${it.first.stmt}), weight - (${it.second})"
+            }
+        }
+    }
+
+    private val ExecutionState.weight: Long
         get() {
             val distance = run {
                 val visitedTaintSources = visitedTaintSources(taintSources)
@@ -53,7 +97,12 @@ class NewTaintPathSelector(
                     taintSources.map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
                 } else {
                     // Need to reach the closest corresponding sink
-                    taintSinksBySources(visitedTaintSources).map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
+                    val correspondingSinks =
+                        taintSinksBySources(visitedTaintSources).map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
+
+                    // But do not reach already visited sinks
+                    val visitedStmts = path.toSet()
+                    correspondingSinks.filterNot { it.stmt in visitedStmts }
                 }
 
                 val targetMethods = targetPoints.mapTo(mutableSetOf()) { it.method.sootMethod }
@@ -62,7 +111,7 @@ class NewTaintPathSelector(
 
                 if (methodsPaths.isEmpty()) {
                     // Cannot reach target methods from the current state
-                    return@run INF
+                    return@run MAX_DISTANCE
                 }
 
 //                // Check if we are already in the required method
@@ -81,12 +130,30 @@ class NewTaintPathSelector(
                     retrieveStmtsToReachMethodsAlongPath(theShortestInterProceduralPath)
 
                 // If the current state has no paths to reach required points but methods before have,
-                // we need to find return statements of all states before the state with stateMethod
-                val distancesToReturnStmts = stackElementsToReturn.map {
-                    val methodGraph = it.method.jimpleBody().graph()
+                // we need to find return statements of all states before the state with stateMethod.
+                // For that we need to find firstly current stmts in all state before the target state
+                val currentStmtsInStateToReturn = if (stackElementsToReturn.isEmpty()) {
+                    emptyList()
+                } else {
+                    val result = mutableListOf<Pair<ExecutionStackElement, Stmt>>()
+                    var curStateCurStmt: Stmt? = stmt
+
+                    for (i in stackElementsToReturn.lastIndex downTo 0) {
+                        val curStackElement = stackElementsToReturn[i]
+                        result += curStackElement to curStateCurStmt!!
+                        curStateCurStmt = curStackElement.caller
+                    }
+
+                    result
+                }
+
+                val distancesToReturnStmts = currentStmtsInStateToReturn.map {
+                    val (stackElement, curStmt) = it
+
+                    val methodGraph = stackElement.method.jimpleBody().graph()
                     val returnStmts = methodGraph.tails.filterIsInstance<Stmt>().filter { tail -> tail.isReturn }
 
-                    calculateDistancesInProceduralGraphToSpecifiedStmts(methodGraph.head, methodGraph, returnStmts)
+                    calculateDistancesInProceduralGraphToSpecifiedStmts(curStmt, methodGraph, returnStmts)
                 }
 
                 // For the first method we need to calculate distances to source stmts from the current stmt
@@ -129,19 +196,22 @@ class NewTaintPathSelector(
                     calculateDistancesInProceduralGraphToSpecifiedStmts(methodGraph.head, methodGraph, it.second)
                 }
 
-                val innerProceduralDistance = distancesToReturnStmts.sumOf { it.values.min() } +
-                        (distanceFromCurrentStmtToFirstNextStmts.minOfOrNull { it.value } ?: 0) +
+                val innerProceduralDistance = (distanceFromCurrentStmtToFirstNextStmts.minOfOrNull { it.value } ?: 0) +
                         distancesFromNextStmtsToNextMethods.sumOf { it.values.min() } +
                         (distancesToTargetStmts.minOfOrNull { it.value } ?: 0)
 
                 // We don't need to count the target method
                 val interProceduralDistance = theShortestInterProceduralPath.size - 1
 
-                innerProceduralDistance * INNER_DISTANCE_COEFFICIENT + interProceduralDistance * INTER_DISTANCE_COEFFICIENT
+                val returnDistances = distancesToReturnStmts.sumOf { it.values.min() }
+
+                innerProceduralDistance * INNER_DISTANCE_COEFFICIENT + returnDistances * RETURN_DISTANCE_COEFFICIENT + interProceduralDistance * INTER_DISTANCE_COEFFICIENT
             }
 
-            // The bigger distance means the less weight
-            return -distance
+//             The bigger distance means the less weight
+//            return -distance
+
+            return distance
         }
 
     override fun isEmpty(): Boolean = executionQueue.isEmpty()
@@ -150,9 +220,12 @@ class NewTaintPathSelector(
 
     override fun close() {
         executionQueue.forEach {
-            it.close()
+            it.executionState.close()
         }
     }
+
+    override fun queue(): List<Pair<ExecutionState, Double>> =
+        executionQueue.map { it.executionState to it.weight!!.toDouble() }.sortedBy { it.second }
 
     private fun ExecutionState.pathsToMethods(targetMethods: Set<SootMethod>): MethodsPathWithStackElementsToReturn {
         var previousStateElements: List<ExecutionStackElement> = executionStack
@@ -185,16 +258,16 @@ class NewTaintPathSelector(
 
     private fun runBfsInInterProceduralGraph(start: SootMethod, targetMethods: Set<SootMethod>): List<MethodsPath> {
         val used = mutableMapOf<SootMethod, Boolean>()
-        val distances = mutableMapOf<SootMethod, Int>()
+        val distances = mutableMapOf<SootMethod, Long>()
         val parents = mutableMapOf<SootMethod, SootMethod>()
         val queue = ArrayDeque<SootMethod>()
 
         queue += start
-        distances += start to 0
+        distances += start to 0L
         used[start] = true
         while (!queue.isEmpty()) {
             val srcMethod = queue.removeFirst()
-            val distanceFrom = distances.getOrDefault(srcMethod, INF)
+            val distanceFrom = distances.getOrDefault(srcMethod, MAX_DISTANCE)
 
             for (edge in callGraph.edgesOutOf(srcMethod)) {
                 val targetMethod = edge.tgt.method()
@@ -220,21 +293,21 @@ class NewTaintPathSelector(
     // TODO seems we do not need dijkstra to find the shortest paths in the call graph, BFS should be enough
     private fun runDijkstraInInterProceduralGraph(start: SootMethod, targetMethods: Set<SootMethod>): List<MethodsPath> {
         val parents = mutableMapOf<SootMethod, SootMethod>()
-        val distances = mutableMapOf<SootMethod, Int>()
-        val queue = PriorityQueue<Pair<Int, SootMethod>>(Comparator.comparingInt { it.first })
+        val distances = mutableMapOf<SootMethod, Long>()
+        val queue = PriorityQueue<Pair<Long, SootMethod>>(Comparator.comparingLong { it.first })
 
-        queue += 0 to start
-        distances[start] = 0
+        queue += 0L to start
+        distances[start] = 0L
         while (queue.isNotEmpty()) {
             val (d, srcMethod) = queue.poll()
-            val distanceFrom = distances.getOrPut(srcMethod) { INF }
+            val distanceFrom = distances.getOrPut(srcMethod) { MAX_DISTANCE }
             if (d > distanceFrom) {
                 continue
             }
 
             for (edge in callGraph.edgesOutOf(srcMethod)) {
                 val targetMethod = edge.tgt.method()
-                val distanceTo = distances.getOrPut(targetMethod) { INF }
+                val distanceTo = distances.getOrPut(targetMethod) { MAX_DISTANCE }
                 if (distanceFrom + 1 < distanceTo) {
                     distances[targetMethod] = distanceFrom + 1
                     parents[targetMethod] = srcMethod
@@ -244,7 +317,7 @@ class NewTaintPathSelector(
         }
 
         return targetMethods.mapNotNull {
-            if (distances.getOrDefault(it, INF) == INF) {
+            if (distances.getOrDefault(it, MAX_DISTANCE) == MAX_DISTANCE) {
                 null
             } else {
                 recoverPath(it, parents)
@@ -282,7 +355,7 @@ class NewTaintPathSelector(
             curMethod = nextMethod
 
             stmtsToNextMethod.forEach {
-                globalGraph.join(it, nextMethod.jimpleBody().graph(), registerEdges = false/*TODO register or not?*/)
+                globalGraph.join(it, nextMethod.jimpleBody().graph(), registerEdges = true/*TODO register or not?*/)
             }
         }
 
@@ -293,7 +366,7 @@ class NewTaintPathSelector(
         start: Stmt,
         graph: ExceptionalUnitGraph,
         targets: List<Stmt>
-    ): Map<Stmt, Int> {
+    ): Map<Stmt, Long> {
         val distances = calculateDistancesInProceduralGraphFromStmtWithBfs(start, graph)
 
         return targets.associateWith {
@@ -303,7 +376,7 @@ class NewTaintPathSelector(
             } else {
                 // It means we have already skipped the target stmt, return INF
 //                org.utbot.engine.pathLogger.warn { ("$it was already skipped: now at $start") }
-                INF
+                MAX_DISTANCE
             }
         }
     }
@@ -311,18 +384,18 @@ class NewTaintPathSelector(
     private fun calculateDistancesInProceduralGraphFromStmtWithBfs(
         start: Stmt,
         graph: ExceptionalUnitGraph
-    ): Map<Stmt, Int> {
+    ): Map<Stmt, Long> {
         val used = mutableMapOf<Stmt, Boolean>()
-        val distances = mutableMapOf<Stmt, Int>()
+        val distances = mutableMapOf<Stmt, Long>()
         val parents = mutableMapOf<Stmt, Stmt>()
         val queue = ArrayDeque<Stmt>()
 
         queue += start
-        distances += start to 0
+        distances += start to 0L
         used[start] = true
         while (!queue.isEmpty()) {
             val stmtFrom = queue.removeFirst()
-            val distanceFrom = distances.getOrDefault(stmtFrom, INF)
+            val distanceFrom = distances.getOrDefault(stmtFrom, MAX_DISTANCE)
 
             for (stmtTo in graph.getSuccsOf(stmtFrom)) {
                 stmtTo as Stmt
@@ -345,14 +418,36 @@ class NewTaintPathSelector(
 
     private data class StmtWithOuterMethod(val stmt: Stmt, val method: ExecutableId)
 
+    private class StateWithWeight(val executionState: ExecutionState, val weight: Long? = null) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as StateWithWeight
+
+            if (executionState != other.executionState) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int = executionState.hashCode()
+    }
+
     companion object {
-        const val INF: Int = Int.MAX_VALUE
-        const val INNER_DISTANCE_COEFFICIENT: Int = 1
-        const val INTER_DISTANCE_COEFFICIENT: Int = 3
+        const val MAX_DISTANCE: Long = Int.MAX_VALUE.toLong()
+        const val MIN_DISTANCE: Long = -MAX_DISTANCE
+
+        const val INNER_DISTANCE_COEFFICIENT: Long = 1L
+        const val RETURN_DISTANCE_COEFFICIENT: Long = 2L
+        const val INTER_DISTANCE_COEFFICIENT: Long = 10L
     }
 }
 
 private typealias MethodsPath = List<SootMethod>
+
+class NeverDroppingStrategy(override val graph: InterProceduralUnitGraph) : ChoosingStrategy {
+    override fun shouldDrop(state: ExecutionState): Boolean = false
+}
 
 private fun ExecutionState.visitedTaintSources(taintSources: Set<TaintSourceData>): Set<TaintSourceData> =
     path.toSet().let { pathStmts ->

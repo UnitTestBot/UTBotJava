@@ -3630,6 +3630,8 @@ class Traverser(
         base: SymbolicValue?,
         args: List<SymbolicValue>
     ) {
+        val condition = mutableListOf<UtBoolExpression>()
+
         for (parameterIndex in 0..args.size) {
             val symbolicValue = if (parameterIndex == THIS_PARAM_INDEX) base else args[parameterIndex - 1]
 
@@ -3642,40 +3644,44 @@ class Traverser(
 
                 val taintValue = memory.taintValue(symbolicValue.addr)
 
-                val notNullCondition = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
-                val condition = taintCondition.toBoolExpr(
-                    this,
-                    taintValue.toLongValue(),
-                    base,
-                    args,
-                    returnValue = null
+
+                condition += mkAnd(
+                        taintCondition.toBoolExpr(
+                        this,
+                        taintValue.toLongValue(),
+                        base,
+                        args,
+                        returnValue = null
+                    ),
+                    mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
                 )
 
                 // TODO information about arguments and source of the error
-                val parameterString = if (parameterIndex == THIS_PARAM_INDEX) {
-                    "`this` instance"
-                } else {
-                    "$parameterIndex parameter"
-                }
-
-                // -1 is returned in case unavailable source position
-                val sinkSourcePosition = environment.state.stmt.javaSourceStartLineNumber.takeIf { it != -1 }
-
-                implicitlyThrowException(
-                    TaintAnalysisError(
-                        "Tainted data was passed as $parameterString into \"${methodId.name}\" method",
-                        environment.state.stmt,
-                        sinkSourcePosition
-                    ),
-                    setOf(condition, notNullCondition)
-                )
-                // Note that we do not add negation of the condition leading to an exception.
-                // It is required to find further usages of the same `tainted` data in the following instructions
-
-                val memoryUpdate = MemoryUpdate(taintAnalysisFoundSomething = mkAnd(condition, notNullCondition))
-                queuedSymbolicStateUpdates += SymbolicStateUpdate(memoryUpdates = memoryUpdate)
+//                val parameterString = if (parameterIndex == THIS_PARAM_INDEX) {
+//                    "`this` instance"
+//                } else {
+//                    "$parameterIndex parameter"
+//                }
+//
+//                 -1 is returned in case unavailable source position
+//                val sinkSourcePosition = environment.state.stmt.javaSourceStartLineNumber.takeIf { it != -1 }
             }
         }
+
+        val taintCondition = mkOr(condition)
+        implicitlyThrowException(
+            TaintAnalysisError(
+                "Tainted data was passed into ${methodId.name} method",
+                environment.state.stmt,
+//                sinkSourcePosition
+            ),
+            setOf(taintCondition)
+        )
+        // Note that we do not add negation of the condition leading to an exception.
+        // It is required to find further usages of the same `tainted` data in the following instructions
+
+        val memoryUpdate = MemoryUpdate(taintAnalysisFoundSomething = mkAnd(taintCondition))
+        queuedSymbolicStateUpdates += SymbolicStateUpdate(memoryUpdates = memoryUpdate)
     }
 
     private fun TraversalContext.processTaintSanitizer(

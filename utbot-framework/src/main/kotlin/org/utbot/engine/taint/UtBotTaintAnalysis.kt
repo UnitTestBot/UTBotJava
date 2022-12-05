@@ -535,7 +535,7 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
 
         if (result == null) {
             logger.warn {
-                "UtBot found unexpected taint error on instruction $sink ignored due to filtering mode"
+                "UtBot found unexpected taint error on instruction $sink ignored due to filtering mode"/* + "\n" + path.joinToString("\n", postfix = "\n======================", prefix = "======================")*/
             }
         }
 

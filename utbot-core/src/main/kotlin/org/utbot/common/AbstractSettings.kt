@@ -3,6 +3,7 @@ package org.utbot.common
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.*
+import kotlin.Comparator
 import mu.KLogger
 import org.utbot.common.PathUtil.toPath
 import kotlin.properties.PropertyDelegateProvider
@@ -10,7 +11,11 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 interface SettingsContainer {
-    fun <T> settingFor(defaultValue: T, converter: (String) -> T): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
+    fun <T> settingFor(
+        defaultValue: T,
+        range : Triple<T, T, Comparator<T>>? = null,
+        converter: (String) -> T
+    ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 
     // Returns true iff some properties have non-default values
     fun isCustomized() = false
@@ -73,19 +78,25 @@ class PropertiesSettingsContainer(
 
     override fun <T> settingFor(
         defaultValue: T,
+        range : Triple<T, T, Comparator<T>>?,
         converter: (String) -> T
     ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> {
         return PropertyDelegateProvider { _, property ->
             SettingDelegate(property) {
                 try {
                     properties.getProperty(property.name)?.let {
-                        val parsedValue = converter.invoke(it)
+                        var parsedValue = converter.invoke(it)
+                        range?.let {
+                            // Coerce parsed value into the specified range
+                            parsedValue = maxOf(parsedValue, range.first, range.third)
+                            parsedValue = minOf(parsedValue, range.second, range.third)
+                        }
                         customized = customized or (parsedValue != defaultValue)
                         return@SettingDelegate parsedValue
                     }
                     defaultValue
                 } catch (e: Throwable) {
-                    logger.info(e) { e.message }
+                    logger.warn("Cannot parse value for ${property.name}, default valu[$defaultValue] will be used instead") { e }
                     defaultValue
                 }
             }
@@ -132,14 +143,24 @@ abstract class AbstractSettings(
 
     protected fun <T> getProperty(
         defaultValue: T,
+        range : Triple<T, T, Comparator<T>>?,
         converter: (String) -> T
-    ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> {
-        return container.settingFor(defaultValue, converter)
+    ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> where T: Comparable<T> {
+        return container.settingFor(defaultValue, range, converter)
     }
 
-    protected fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, String::toBoolean)
-    protected fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, String::toInt)
-    protected fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, String::toLong)
+    protected fun <T> getProperty(
+        defaultValue: T,
+        converter: (String) -> T
+    ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> {
+        return container.settingFor(defaultValue, null, converter)
+    }
+
+    protected fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, converter = String::toBoolean)
+    protected fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, converter = String::toInt)
+    protected fun getIntProperty(defaultValue: Int, minValue: Int, maxValue: Int) = getProperty(defaultValue, Triple(minValue, maxValue, Comparator(Integer::compare)), String::toInt)
+    protected fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, converter = String::toLong)
+    protected fun getLongProperty(defaultValue: Long, minValue: Long, maxValue: Long) = getProperty(defaultValue, Triple(minValue, maxValue, Comparator(Long::compareTo)), String::toLong)
     protected fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
     protected inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
         getProperty(defaultValue) { enumValueOf(it) }

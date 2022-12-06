@@ -1,6 +1,7 @@
 package org.utbot.python.newtyping.ast
 
 import org.parsers.python.Node
+import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
 
 data class ParsedForStatement(val forVariable: Name, val iterable: Node)
@@ -12,9 +13,11 @@ data class ParsedConjunction(val left: Node, val right: Node)
 data class ParsedDisjunction(val left: Node, val right: Node)
 data class ParsedInversion(val expr: Node)
 data class ParsedGroup(val expr: Node)
-data class ParsedAdditiveExpression(val left: Node, val op: Node, val right: Node)
-data class ParsedMultiplicativeExpression(val left: Node, val op: Node, val right: Node)
 data class ParsedList(val elems: List<Node>)
+sealed class ParsedAssignment
+data class SimpleAssign(val targets: List<Node>, val value: Node): ParsedAssignment()
+data class OpAssign(val target: Node, val op: Delimiter, val value: Node): ParsedAssignment()
+data class ParsedBinaryOperation(val left: Node, val op: Delimiter, val right: Node)
 
 fun isIdentification(node: Node): Boolean {
     val name = node as? Name ?: return false
@@ -53,11 +56,15 @@ fun parseInversion(node: Inversion): ParsedInversion =
 fun parseGroup(node: Group): ParsedGroup =
     ParsedGroup(node.children().first { it !is Delimiter })
 
-fun parseAdditiveExpression(node: AdditiveExpression): ParsedAdditiveExpression =
-    ParsedAdditiveExpression(node.children()[0], node.children()[1], node.children()[2])
+fun parseAdditiveExpression(node: AdditiveExpression): ParsedBinaryOperation? {
+    val op = (node.children()[1] as? Delimiter) ?: return null
+    return ParsedBinaryOperation(node.children()[0], op, node.children()[2])
+}
 
-fun parseMultiplicativeExpression(node: MultiplicativeExpression): ParsedMultiplicativeExpression =
-    ParsedMultiplicativeExpression(node.children()[0], node.children()[1], node.children()[2])
+fun parseMultiplicativeExpression(node: MultiplicativeExpression): ParsedBinaryOperation? {
+    val op = (node.children()[1] as? Delimiter) ?: return null
+    return ParsedBinaryOperation(node.children()[0], op, node.children()[2])
+}
 
 fun parseList(node: org.parsers.python.ast.List): ParsedList {
     if (node.children().size <= 2)  // only delimiters
@@ -67,4 +74,15 @@ fun parseList(node: org.parsers.python.ast.List): ParsedList {
         ParsedList(expr.children().filter { it !is Delimiter })
     else
         ParsedList(listOf(expr))
+}
+
+fun parseAssignment(node: Assignment): ParsedAssignment? {
+    val op = node.children()[1] as? Delimiter ?: return null
+    if (op.type == PythonConstants.TokenType.ASSIGN) {
+        val targets = node.children().dropLast(1).filter { it !is Delimiter }
+        return SimpleAssign(targets, node.children().last())
+    }
+    if (node.children().size != 3)
+        return null
+    return OpAssign(node.children()[0], op, node.children()[2])
 }

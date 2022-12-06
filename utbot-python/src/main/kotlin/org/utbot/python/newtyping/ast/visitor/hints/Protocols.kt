@@ -9,13 +9,37 @@ import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.Name
 import org.utbot.python.newtyping.general.Type
 
-fun operationToMagicMethod(op: String): String? =
+enum class Operation(val method: String) {
+    Add("__add__"),
+    Sub("__sub__"),
+    Mul("__mul__"),
+    TrueDiv("__truediv__"),
+    FloorDiv("__floordiv__"),
+    Mod("__mod__"),
+    Pow("__pow__"),
+    MatMul("__matmul__"),
+    And("__and__")
+}
+
+fun getOperationOfOperator(op: String): Operation? =
     when (op) {
-        "+" -> "__add__"
-        "-" -> "__sub__"
-        "*" -> "__mul__"
+        "+" -> Operation.Add
+        "-" -> Operation.Sub
+        "*" -> Operation.Mul
+        "/" -> Operation.TrueDiv
+        "//" -> Operation.FloorDiv
+        "%" -> Operation.Mod
+        "**" -> Operation.Pow
+        "@" -> Operation.MatMul
+        "&" -> Operation.And
         else -> null
     }
+
+fun getOperationOfOpAssign(op: String): Operation? {
+    if (op.last() != '=')
+        return null
+    return getOperationOfOperator(op.dropLast(1))
+}
 
 fun createIterableWithCustomReturn(returnType: Type): Type =
     createUnaryProtocolWithCustomReturn("__iter__", returnType)

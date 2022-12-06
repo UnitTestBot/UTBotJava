@@ -264,14 +264,18 @@ object UtTestsDialogProcessor {
                                         )
 
                                         if (rdGenerateResult.notEmptyCases == 0) {
-                                            if (model.srcClasses.size > 1) {
-                                                logger.error { "Failed to generate any tests cases for class $className" }
+                                            if (!indicator.isCanceled) {
+                                                if (model.srcClasses.size > 1) {
+                                                    logger.error { "Failed to generate any tests cases for class $className" }
+                                                } else {
+                                                    showErrorDialogLater(
+                                                        model.project,
+                                                        errorMessage(className, secondsTimeout),
+                                                        title = "Failed to generate unit tests for class $className"
+                                                    )
+                                                }
                                             } else {
-                                                showErrorDialogLater(
-                                                    model.project,
-                                                    errorMessage(className, secondsTimeout),
-                                                    title = "Failed to generate unit tests for class $className"
-                                                )
+                                                logger.warn { "Generation was cancelled for class $className" }
                                             }
                                         } else {
                                             testSetsByClass[srcClass] = rdGenerateResult

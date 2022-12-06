@@ -9,6 +9,9 @@ import com.intellij.psi.PsiFile
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
+import com.jetbrains.python.sdk.PythonSdkType
+import org.jetbrains.kotlin.idea.util.projectStructure.module
+import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 
 object PythonLanguageAssistant : LanguageAssistant() {
@@ -44,6 +47,9 @@ object PythonLanguageAssistant : LanguageAssistant() {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
         val element = findPsiElement(file, editor) ?: return null
+
+        if (file.module?.sdk?.sdkType !is PythonSdkType)
+            return null
 
         val containingFunction = getContainingElement<PyFunction>(element)
         val containingClass = getContainingElement<PyClass>(element)

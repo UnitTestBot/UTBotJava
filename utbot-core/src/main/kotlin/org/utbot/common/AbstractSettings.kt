@@ -96,7 +96,7 @@ class PropertiesSettingsContainer(
                     }
                     defaultValue
                 } catch (e: Throwable) {
-                    logger.warn("Cannot parse value for ${property.name}, default valu[$defaultValue] will be used instead") { e }
+                    logger.warn("Cannot parse value for ${property.name}, default value [$defaultValue] will be used instead") { e }
                     defaultValue
                 }
             }

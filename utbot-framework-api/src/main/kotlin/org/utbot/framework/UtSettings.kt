@@ -476,6 +476,11 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * It is used to do not encode big type storages due to significand performance degradation.
      */
     var maxNumberOfTypesToEncode by getIntProperty(512)
+
+    /**
+     * The behaviour of further analysis if tests generation cancellation is requested.
+     */
+    var cancellationStrategyType by getEnumProperty(CancellationStrategyType.SAVE_PROCESSED_RESULTS)
 }
 
 /**
@@ -538,6 +543,26 @@ enum class TestSelectionStrategyType {
      * Adds new test only if it increases coverage
      */
     COVERAGE_STRATEGY
+}
+
+/**
+ * Describes the behaviour if test generation is canceled.
+ */
+enum class CancellationStrategyType {
+    /**
+     * Do not react on cancellation
+     */
+    NONE,
+
+    /**
+     * Clear all generated test classes
+     */
+    CANCEL_EVERYTHING,
+
+    /**
+     * Show already processed test classes
+     */
+    SAVE_PROCESSED_RESULTS
 }
 
 /**

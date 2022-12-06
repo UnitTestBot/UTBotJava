@@ -58,21 +58,27 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
             is Inversion -> processInversion(node)
             is Group -> processGroup(node)
             is AdditiveExpression -> processAdditiveExpression(node)
+            is MultiplicativeExpression -> processMultiplicativeExpression(node)
             is org.parsers.python.ast.List -> processList(node)
-            // TODO: Assignment, MultiplicativeExpression, UnaryExpression, Power, ShiftExpression, BitwiseAnd, BitwiseOr, BitwiseXor
+            is Assignment -> processAssignment(node)
+            // TODO: UnaryExpression, Power, ShiftExpression, BitwiseAnd, BitwiseOr, BitwiseXor
             // TODO: Set, Dict, comprehensions
             // TODO: DotName, FunctionCall, SliceExpression
             is Newline, is IndentToken, is Delimiter, is Operator, is DedentToken, is ReturnStatement,
-            is Assignment, is Statement, is InvocationArguments -> Unit
+            is Statement, is InvocationArguments -> Unit
             else -> astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
         }
     }
 
     private fun processKeyword(node: Keyword) {
-        val type = when (node.toString()) {
-            "True", "False" -> storage.pythonBool
-            "None" -> pythonNoneType
-            "for", "if", "else", "elif", "while", "in", "return", "or", "and", "not" -> return
+        val type = when (node.type) {
+            PythonConstants.TokenType.TRUE, PythonConstants.TokenType.FALSE -> storage.pythonBool
+            PythonConstants.TokenType.NONE -> pythonNoneType
+            PythonConstants.TokenType.FOR, PythonConstants.TokenType.IF,
+            PythonConstants.TokenType.ELSE, PythonConstants.TokenType.ELIF,
+            PythonConstants.TokenType.WHILE, PythonConstants.TokenType.IN,
+            PythonConstants.TokenType.RETURN, PythonConstants.TokenType.OR, PythonConstants.TokenType.AND,
+            PythonConstants.TokenType.NOT -> return
             else -> pythonAnyType
         }
         astNodeToHintCollectorNode[node] = HintCollectorNode(type)
@@ -185,36 +191,17 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
     }
 
     private fun processAdditiveExpression(node: AdditiveExpression) {
-        val parsed = parseAdditiveExpression(node)
-        val leftNode = astNodeToHintCollectorNode[parsed.left]!!
-        val rightNode = astNodeToHintCollectorNode[parsed.right]!!
         val curNode = HintCollectorNode(pythonAnyType)
         astNodeToHintCollectorNode[node] = curNode
-        val methodName = operationToMagicMethod(parsed.op.toString()) ?: return
-        addProtocol(leftNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
-        addProtocol(rightNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
+        val parsed = parseAdditiveExpression(node) ?: return
+        processBinaryExpression(curNode, parsed.left, parsed.right, getOperationOfOperator(parsed.op.toString()) ?: return)
+    }
 
-        val edgeFromLeftToCur = HintEdgeWithBound(
-            from = leftNode,
-            to = curNode,
-            source = EdgeSource.Operation,
-            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
-        ) { leftType ->
-            listOf((leftType.getPythonAttributeByName(storage, methodName) ?: return@HintEdgeWithBound emptyList()).type)
-        }
-        val edgeFromRightToCur = HintEdgeWithBound(
-            from = rightNode,
-            to = curNode,
-            source = EdgeSource.Operation,
-            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
-        ) { rightType ->
-            listOf((rightType.getPythonAttributeByName(storage, methodName) ?: return@HintEdgeWithBound emptyList()).type)
-        }
-
-        addEdge(edgeFromLeftToCur)
-        addEdge(edgeFromRightToCur)
-
-        // TODO: other type dependencies (from cur to left and right, from right to left, from left to right)
+    private fun processMultiplicativeExpression(node: MultiplicativeExpression) {
+        val curNode = HintCollectorNode(pythonAnyType)
+        astNodeToHintCollectorNode[node] = curNode
+        val parsed = parseMultiplicativeExpression(node) ?: return
+        processBinaryExpression(curNode, parsed.left, parsed.right, getOperationOfOperator(parsed.op.toString()) ?: return)
     }
 
     private fun processList(node: org.parsers.python.ast.List) {
@@ -242,6 +229,54 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
         }
     }
 
+    private fun processAssignment(node: Assignment) {
+        val parsed = parseAssignment(node) ?: return
+        when (parsed) {
+            is SimpleAssign -> {
+                val targetNodes = parsed.targets.map { astNodeToHintCollectorNode[it]!! }
+                val valueNode = astNodeToHintCollectorNode[parsed.value]!!
+                targetNodes.forEach {  target ->
+                    val edgeFromValue = HintEdgeWithBound(
+                        from = valueNode,
+                        to = target,
+                        source = EdgeSource.Assign,
+                        boundType = TypeInferenceEdgeWithBound.BoundType.Lower
+                    ) { listOf(it) }
+                    val edgeFromTarget = HintEdgeWithBound(
+                        from = target,
+                        to = valueNode,
+                        source = EdgeSource.Assign,
+                        boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+                    ) { listOf(it) }
+                    addEdge(edgeFromValue)
+                    addEdge(edgeFromTarget)
+                }
+            }
+            is OpAssign -> {
+                val targetNode = astNodeToHintCollectorNode[parsed.target]!!
+                val op = getOperationOfOpAssign(parsed.op.toString()) ?: return
+                val nodeForOpResult = HintCollectorNode(pythonAnyType)
+                processBinaryExpression(nodeForOpResult, parsed.target, parsed.value, op)
+
+                val edgeToTarget = HintEdgeWithBound(
+                    from = nodeForOpResult,
+                    to = targetNode,
+                    source = EdgeSource.OpAssign,
+                    boundType = TypeInferenceEdgeWithBound.BoundType.Lower
+                ) { listOf(it) }
+                val edgeFromTarget = HintEdgeWithBound(
+                    from = targetNode,
+                    to = nodeForOpResult,
+                    source = EdgeSource.OpAssign,
+                    boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+                ) { listOf(it) }
+
+                addEdge(edgeToTarget)
+                addEdge(edgeFromTarget)
+            }
+        }
+    }
+
     private fun processBoolExpression(node: Node) {
         val hintCollectorNode = HintCollectorNode(storage.pythonBool)
         astNodeToHintCollectorNode[node] = hintCollectorNode
@@ -249,5 +284,40 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
 
     private fun addProtocol(node: HintCollectorNode, protocol: Type) {
         node.upperBounds.add(protocol)
+    }
+
+    private fun processBinaryExpression(curNode: HintCollectorNode, left: Node, right: Node, op: Operation) {
+        val leftNode = astNodeToHintCollectorNode[left]!!
+        val rightNode = astNodeToHintCollectorNode[right]!!
+        val methodName = op.method
+        addProtocol(leftNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
+        addProtocol(rightNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
+
+        val edgeFromLeftToCur = HintEdgeWithBound(
+            from = leftNode,
+            to = curNode,
+            source = EdgeSource.Operation,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
+        ) { leftType ->
+            listOf(
+                (leftType.getPythonAttributeByName(storage, methodName)
+                    ?: return@HintEdgeWithBound emptyList()).type
+            )
+        }
+        val edgeFromRightToCur = HintEdgeWithBound(
+            from = rightNode,
+            to = curNode,
+            source = EdgeSource.Operation,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
+        ) { rightType ->
+            listOf(
+                (rightType.getPythonAttributeByName(storage, methodName)
+                    ?: return@HintEdgeWithBound emptyList()).type
+            )
+        }
+        addEdge(edgeFromLeftToCur)
+        addEdge(edgeFromRightToCur)
+
+        // TODO: other type dependencies (from cur to left and right, from right to left, from left to right)
     }
 }

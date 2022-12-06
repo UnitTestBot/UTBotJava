@@ -139,7 +139,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
                         project.Locks.AssertNonMainThread(); 
                         var pluginPath = FileSystemPath.Parse(Assembly.GetExecutingAssembly().Location)
                             .Parent;
-                        var vsharpRunner = pluginPath.Combine("UtBot.VSharp.exe");
+                        var vsharpRunner = pluginPath.Combine("UtBot.VSharp");
                         var port = NetworkUtil.GetFreePort();
                         var proc = new ProcessWithRdServer(VSharpMain.VSharpProcessName, port, vsharpRunner.FullPath, project.Locks, _lifetime);
                         var projectCsprojPath = project.ProjectFileLocation.FullPath;

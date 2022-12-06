@@ -1,3 +1,5 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 val semVer: String? by rootProject
 val rdVersion: String? by rootProject
 
@@ -59,7 +61,9 @@ tasks {
     }
 
     val publishDotNet = create("publishDotNet") {
-        dependsOn(chmodDotnet)
+        if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+            dependsOn(chmodDotnet)
+        }
         group = "build"
         doLast {
             exec {

@@ -6,6 +6,13 @@ import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
 
+private val EDGES_TO_LINK = listOf(
+    EdgeSource.Identification,
+    EdgeSource.Assign,
+    EdgeSource.OpAssign,
+    EdgeSource.Operation
+)
+
 class BaselineAlgorithm(val storage: PythonTypeStorage): TypeInferenceAlgorithm() {
     override fun run(hintCollectorResult: HintCollectorResult): Sequence<Type> = sequence {
         var state = getInitialState(hintCollectorResult)
@@ -19,17 +26,17 @@ class BaselineAlgorithm(val storage: PythonTypeStorage): TypeInferenceAlgorithm(
 
     // TODO: create rating, add new nodes for generics
     private fun chooseTypeForAny(node: AnyTypeNode): Type {
-        val scores: Map<Type, Int> = storage.allTypes.associateWith { typeFromStorage ->
+        val scores: Map<Type, Int> = storage.allTypes.associate { typeFromStorage ->
             val type = DefaultSubstitutionProvider.substituteAll(
                 typeFromStorage,
                 List(typeFromStorage.parameters.size) { pythonAnyType }
             )
-            node.lowerBounds.fold(0) { acc, constraint ->
+            val score = node.lowerBounds.fold(0) { acc, constraint ->
                 acc + (if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)) 1 else 0)
-            }
-            + node.upperBounds.fold(0) { acc, constraint ->
+            } + node.upperBounds.fold(0) { acc, constraint ->
                 acc + (if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(constraint, type, storage)) 1 else 0)
             }
+            Pair(type, score)
         }
         return scores.maxBy { it.value }.key
     }
@@ -82,7 +89,7 @@ class BaselineAlgorithm(val storage: PythonTypeStorage): TypeInferenceAlgorithm(
         val argumentRootNodes = signatureDescription.argumentNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->
             val visited: MutableSet<HintCollectorNode> = mutableSetOf()
-            visitIdentificationNodes(node, visited)
+            visitLinkedNodes(node, visited)
             val lowerBounds: MutableList<Type> = mutableListOf()
             val upperBounds: MutableList<Type> = mutableListOf()
             visited.forEach { visitedNode ->
@@ -101,15 +108,14 @@ class BaselineAlgorithm(val storage: PythonTypeStorage): TypeInferenceAlgorithm(
         }
         return BaselineAlgorithmState(allNodes)
     }
-
-    private fun visitIdentificationNodes(
+    private fun visitLinkedNodes(
         node: HintCollectorNode,
         visited: MutableSet<HintCollectorNode>
     ) {
         visited.add(node)
         node.ingoingEdges.forEach { edge ->
-            if (edge is HintEdgeWithBound && edge.source == EdgeSource.Identification && !visited.contains(edge.from))
-                visitIdentificationNodes(edge.from, visited)
+            if (edge is HintEdgeWithBound && EDGES_TO_LINK.contains(edge.source) && !visited.contains(edge.from))
+                visitLinkedNodes(edge.from, visited)
         }
     }
 

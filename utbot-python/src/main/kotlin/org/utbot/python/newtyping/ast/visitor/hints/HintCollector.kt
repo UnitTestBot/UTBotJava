@@ -34,7 +34,21 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
 
     lateinit var result: HintCollectorResult
     override fun finishCollection() {
-        result = HintCollectorResult(parameterToNode, signature)
+        val allNodes: MutableSet<HintCollectorNode> = mutableSetOf()
+        parameterToNode.forEach {
+            if (!allNodes.contains(it.value))
+                collectAllNodes(it.value, allNodes)
+        }
+        result = HintCollectorResult(parameterToNode, signature, allNodes)
+    }
+
+    private fun collectAllNodes(cur: HintCollectorNode, visited: MutableSet<HintCollectorNode>) {
+        visited.add(cur)
+        cur.outgoingEdges.forEach {
+            val to = it.to
+            if (!visited.contains(to))
+                collectAllNodes(to, visited)
+        }
     }
 
     override fun collectFromNodeBeforeRecursion(node: Node) {
@@ -61,9 +75,10 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
             is MultiplicativeExpression -> processMultiplicativeExpression(node)
             is org.parsers.python.ast.List -> processList(node)
             is Assignment -> processAssignment(node)
+            is DotName -> processDotName(node)
             // TODO: UnaryExpression, Power, ShiftExpression, BitwiseAnd, BitwiseOr, BitwiseXor
             // TODO: Set, Dict, comprehensions
-            // TODO: DotName, FunctionCall, SliceExpression
+            // TODO: FunctionCall, SliceExpression
             is Newline, is IndentToken, is Delimiter, is Operator, is DedentToken, is ReturnStatement,
             is Statement, is InvocationArguments -> Unit
             else -> astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
@@ -275,6 +290,34 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
                 addEdge(edgeFromTarget)
             }
         }
+    }
+
+    private fun processDotName(node: DotName) {
+        val parsed = parseDotName(node)
+        val curNode = HintCollectorNode(pythonAnyType)
+        astNodeToHintCollectorNode[node] = curNode
+        val headNode = astNodeToHintCollectorNode[parsed.head]!!
+        val attribute = parsed.tail.toString()
+        // addProtocol(headNode, createProtocolWithAttribute(attribute, pythonAnyType))
+
+        val edgeFromHead = HintEdgeWithBound(
+            from = headNode,
+            to = curNode,
+            source = EdgeSource.Attribute,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
+        ) { headType ->
+            headType.getPythonAttributeByName(storage, attribute)?.let { listOf(it.type) } ?: emptyList()
+        }
+        val edgeToHead = HintEdgeWithBound(
+            from = curNode,
+            to = headNode,
+            source = EdgeSource.Attribute,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+        ) { curType ->
+            listOf(createProtocolWithAttribute(attribute, curType))
+        }
+        addEdge(edgeFromHead)
+        addEdge(edgeToHead)
     }
 
     private fun processBoolExpression(node: Node) {

@@ -45,9 +45,11 @@ class PythonTypeStorage(
         fun get(mypyStorage: MypyAnnotationStorage): PythonTypeStorage {
             val module = mypyStorage.definitions["builtins"]!!
             val allTypes: MutableSet<Type> = mutableSetOf()
-            module.values.forEach {
-                if (it.kind == DefinitionType.Type)
-                    allTypes.add(it.annotation.asUtBotType)
+            mypyStorage.definitions.forEach { (_, curModule) ->
+                curModule.values.forEach {
+                    if (it.kind == DefinitionType.Type)
+                        allTypes.add(it.annotation.asUtBotType)
+                }
             }
             return PythonTypeStorage(
                 pythonObject = module["object"]!!.annotation.asUtBotType,

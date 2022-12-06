@@ -57,7 +57,7 @@ A `Lifetime` instance has these useful methods:
   instance is alive (i.e. will not be terminated) during the whole time of _lambda_ execution.
 - `createdNested` creates the _child_ `LifetimeDefinition` instance: it can be terminated if the _parent_ 
   instance is terminated as well; or it can be terminated separately, while the parent instance stays alive.
-- `usingNested` is the same as the `createNested` method, but behaves like the `Closeable.use` pattern.
+- `usingNested` is the same as the `createNested` method but behaves like the `Closeable.use` pattern.
 
 See also:
 - `Lifetime.Eternal` is a global `Lifetime` instance that is never terminated.
@@ -74,8 +74,8 @@ executing all the callbacks because some other thread executes them.
 
 ## Rd entities
 
-Rd is a light-weight reactive one-to-one RPC protocol, which is cross-language as well as cross-platform. It can 
-work on the same or different machines via Internet.
+Rd is a lightweight reactive one-to-one RPC protocol, which is cross-language as well as cross-platform. It can 
+work on the same or different machines via the Internet.
 
 These are some of Rd entities:
 - `Protocol` encapsulates the logic of all Rd communications. All the entities should be bound to `Protocol` before 
@@ -89,7 +89,7 @@ These are some of Rd entities:
 messages from the other process, but also the ones you `fire`.
 
 - `RdProperty` is a stateful property. You can get the current value and advise the callback — an advised 
-  callback is executed on a current value and on every change.
+  callback is executed on a current value and every change.
 - `RdCall` is the remote procedure call.
 
 There are `RdSet`, `RdMap`, and other entities.
@@ -112,11 +112,11 @@ Examples:
 
 First, you need to define a `Root` object: only one instance of each `Root` can be assigned to `Protocol`.
 
-There is a `Root` extension — `Ext(YourRoot)` — where you can define your own types and model entities. You can assign 
+There is a `Root` extension — `Ext(YourRoot)` — where you can define custom types and model entities. You can assign 
 multiple `Root` extensions to the `Protocol`. To generate the auxiliary structures, define them as direct fields.
 
 DSL:
-- `structdef` is a structure with fields that cannot be bound to `Protocol`, but can be serialized. This structure 
+- `structdef` is a structure with fields that cannot be bound to `Protocol` but can be serialized. This structure 
   can be `openstruct`, i.e. open for inheritance, and `basestruct`, i.e. abstract. Only `field` can be a member.
 - `classdef` is a class that can be bound to a model. It can have `property`, `signal`, `call`, etc.
   as members. It is possible to inherit: the class can be `openclass`, `baseclass`.
@@ -141,7 +141,7 @@ Useful properties in DSL entities:
 
 [Example](https://github.com/korifey/rd_example/blob/main/build.gradle)
 
-`RdGenExtension` configurates `Rdgen`. The properties are:
+`RdGenExtension` configures `Rdgen`. The properties are:
 - `sources` — the folders with DSL `.kt` files. If there are no `sources`, scan classpath for the inheritors of `Root` 
   and `Ext`.
 - `hashfile` — a folder to store the `.rdgen` hash file for incremental generation.
@@ -153,8 +153,8 @@ Configure model generation with the `RdGenExtension.generator` method:
 - `namespace` — which namespace should be used in the generated source. In Kotlin, it configures the generated package 
   name.
 - `directory` — where to put the generated files.
-- `transform` — can be `symmetric`, `asis` and `reversed`. It allows to configure different model interfaces for 
-  various client-server scenarios. _Note:_ in 99% of cases you should use `symmetric`. If you really need another option, consult with someone.
+- `transform` — can be `symmetric`, `asis`, and `reversed`. It allows configuring of different model interfaces for 
+  various client-server scenarios. _Note:_ in 99% of cases you should use `symmetric`. If you need another option, consult with someone.
 - `language` — can be `kotlin`, `cpp` or `csharp`.
 
 ## UnitTestBot project
@@ -173,7 +173,7 @@ The _IDE process_ starts the _Engine process_. The _IDE process_ keeps the `UtSe
 ### Engine process
 
 `TestCaseGenerator` and `UtBotSymbolicEngine` run here, in the _Engine process_. The process classpath contains all 
-the plugin JAR-files (it uses the plugin classpath). 
+the plugin JAR files (it uses the plugin classpath). 
 
 The _Engine process_ _**must**_ run on the JDK that is used in the project under analysis. Otherwise, there will be 
 numerous problems with code analysis, `soot`, _Reflection_, and the divergence of the generated code Java API will occur.
@@ -208,28 +208,28 @@ Sometimes the _Instrumented process_ may unexpectedly die due to concrete execut
     ```
 2. There are useful classes in `utbot-rd` to work with Rd and processes:
 	- `LifetimedProcess` binds a `Lifetime` instance to a process. If the process dies, the `Lifetime` instance 
-	  terminates and vice versa. You can terminate the `Lifetime` instance manually — this will destroy the process.
-	- `ProcessWithRdServer` starts the Rd server and waits for connection. 
+	  terminates, and vice versa. You can terminate the `Lifetime` instance manually — this will destroy the process.
+	- `ProcessWithRdServer` starts the Rd server and waits for the connection. 
     - `ClientProtocolBuilder` — you can use it in a client process to correctly connect to `ProcessWithRdServer`.
 3. How `ProcessWithRdServer` communication works:
 	- Choose a free port.
-	- Create a client process, pass the port as an argument.
+	- Create a client process and pass the port as an argument.
 	- Both processes create protocols, bind the model and setup callbacks.
 	- A server process cannot send messages until the _child_ creates a protocol (otherwise, messages are lost), so 
-	  the client process have to signal that it is ready.
+	  the client process has to signal that it is ready.
 	- The client process creates a special file in the `temp` directory, which is observed by a _parent_ process.
 	- When the parent process spots the file, it deletes this file and sends a special message to the client process 
 	  confirming communication success. 
 	- Only when the answer of the client process reaches the server, the processes are ready.
 4. How to write custom RPC commands:
-	- Add new `call` in a model, for example, in `EngineProcessModel`.
+	- Add a new `call` in a model, for example, in `EngineProcessModel`.
 	- Re-generate models: there are special Gradle tasks for this in the `utbot-rd/build.gradle` file.
 	- Add a callback for the new `call` in the corresponding start files, for example, in `EngineProcessMain.kt`.
 	- **Important**: do not add [`Rdgen`](https://mvnrepository.com/artifact/com.jetbrains.rd/rd-gen) as 
-	  an implementation dependency — it breaks some JAR-files as it contains `kotlin-compiler-embeddable`.
+	  an implementation dependency — it breaks some JAR files as it contains `kotlin-compiler-embeddable`.
 5. Logging & debugging:
 	- [Interprocess logging](./contributing/InterProcessLogging.md)
     - [Interprocess debugging](./contributing/InterProcessDebugging.md)
-6. Custom protocol marshalling types: do not spend time on it until `UtModels` get simpler, e.g. compatible with 
+6. Custom protocol marshaling types: do not spend time on it until `UtModels` get simpler, e.g. compatible with 
    `kotlinx.serialization`.
 

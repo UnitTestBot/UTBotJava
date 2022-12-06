@@ -47,13 +47,13 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      *
      * Set it to 0 to disable timeout.
      */
-    var checkSolverTimeoutMillis: Int by getIntProperty(1000)
+    var checkSolverTimeoutMillis: Int by getIntProperty(1000, 0, Int.MAX_VALUE)
 
     /**
      * Timeout for symbolic execution
      *
      */
-    var utBotGenerationTimeoutInMillis by getLongProperty(60000L)
+    var utBotGenerationTimeoutInMillis by getLongProperty(60000L, 1000L, Long.MAX_VALUE)
 
     /**
      * Random seed in path selector.
@@ -223,7 +223,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Test related files from the temp directory that are older than [daysLimitForTempFiles]
      * will be removed at the beginning of the test run.
      */
-    var daysLimitForTempFiles by getIntProperty(3)
+    var daysLimitForTempFiles by getIntProperty(3, 0, 30)
 
     /**
      * Enables soft constraints in the engine.
@@ -244,12 +244,12 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Set the total attempts to improve coverage by fuzzer.
      */
-    var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE)
+    var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE, 0, Int.MAX_VALUE)
 
     /**
      * Fuzzer tries to generate and run tests during this time.
      */
-    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)
+    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L, 0, Long.MAX_VALUE)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
@@ -316,7 +316,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * The instrumented process JDWP agent's port of the instrumented process.
      * A debugger attaches to the port in order to debug the process.
      */
-    var instrumentedProcessDebugPort by getIntProperty(5006)
+    var instrumentedProcessDebugPort by getIntProperty(5006, 0, 65535)
 
     /**
      * Value of the suspend mode for the JDWP agent of the instrumented process.
@@ -436,7 +436,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Limit for number of generated tests per method (in each region)
      */
-    var maxTestsPerMethodInRegion by getIntProperty(50)
+    var maxTestsPerMethodInRegion by getIntProperty(50, 1, Integer.MAX_VALUE)
 
     /**
      * Max file length for generated test file

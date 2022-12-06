@@ -18,6 +18,7 @@ sealed class ParsedAssignment
 data class SimpleAssign(val targets: List<Node>, val value: Node): ParsedAssignment()
 data class OpAssign(val target: Node, val op: Delimiter, val value: Node): ParsedAssignment()
 data class ParsedBinaryOperation(val left: Node, val op: Delimiter, val right: Node)
+data class ParsedDotName(val head: Node, val tail: Node)
 
 fun isIdentification(node: Node): Boolean {
     val name = node as? Name ?: return false
@@ -86,3 +87,6 @@ fun parseAssignment(node: Assignment): ParsedAssignment? {
         return null
     return OpAssign(node.children()[0], op, node.children()[2])
 }
+
+fun parseDotName(node: DotName): ParsedDotName =
+    ParsedDotName(node.children()[0], node.children()[2])

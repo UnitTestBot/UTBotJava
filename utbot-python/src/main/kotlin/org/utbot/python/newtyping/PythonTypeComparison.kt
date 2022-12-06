@@ -308,7 +308,9 @@ class PythonSubtypeChecker(
     private fun caseOfLeftProtocol(leftMeta: PythonProtocolDescription): Boolean {
         val membersNotToCheck = listOf("__new__", "__init__")
         return leftMeta.protocolMemberNames.subtract(membersNotToCheck).all { protocolMemberName ->
-            val neededAttribute = left.getPythonAttributeByName(pythonTypeStorage, protocolMemberName)!!
+            // there is a tricky case: importlib.metadata._meta.SimplePath
+            val neededAttribute =
+                left.getPythonAttributeByName(pythonTypeStorage, protocolMemberName) ?: return@all true
             val rightAttribute = right.getPythonAttributeByName(pythonTypeStorage, protocolMemberName) ?: return false
             val description = neededAttribute.type.pythonDescription()
             val skipFirstArgument =

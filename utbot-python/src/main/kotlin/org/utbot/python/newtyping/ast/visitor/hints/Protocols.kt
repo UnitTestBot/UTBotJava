@@ -1,9 +1,6 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
-import org.utbot.python.newtyping.PythonCallableTypeDescription
-import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.createPythonCallableType
-import org.utbot.python.newtyping.createPythonProtocol
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeTypeCreator
 import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.Name
@@ -46,6 +43,19 @@ fun createIterableWithCustomReturn(returnType: Type): Type =
 
 fun supportsBoolProtocol(storage: PythonTypeStorage): Type =
     createUnaryProtocolWithCustomReturn("__bool__", storage.pythonBool)
+
+fun createProtocolWithAttribute(attributeName: String, attributeType: Type): Type =
+    createPythonProtocol(
+        Name(emptyList(), ""),  // TODO: name?
+        0,
+        listOf(attributeName),
+        listOf(attributeName)
+    ) {
+        CompositeTypeCreator.InitializationData(
+            members = listOf(attributeType),
+            supertypes = emptyList()
+        )
+    }
 
 fun createBinaryProtocol(methodName: String, argType: Type, returnType: Type): Type =
     createPythonProtocol(

@@ -35,7 +35,8 @@ class HintCollectorNode(override val partialType: Type): TypeInferenceNode {
 
 class HintCollectorResult(
     val parameterToNode: Map<String, HintCollectorNode>,
-    val initialSignature: FunctionType
+    val initialSignature: FunctionType,
+    val allNodes: Set<HintCollectorNode>
 )
 
 enum class EdgeSource {
@@ -44,5 +45,6 @@ enum class EdgeSource {
     Operation,
     CollectionElement,
     Assign,
-    OpAssign
+    OpAssign,
+    Attribute
 }

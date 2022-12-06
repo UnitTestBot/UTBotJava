@@ -96,7 +96,7 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
 sealed class PythonCompositeTypeDescription(
     name: Name,
     private val memberNames: List<String>
-) : PythonTypeDescription(name) {
+): PythonTypeDescription(name) {
     override fun castToCompatibleTypeApi(type: Type): CompositeType {
         return type as? CompositeType
             ?: error("Got unexpected type PythonCompositeTypeDescription: $type")

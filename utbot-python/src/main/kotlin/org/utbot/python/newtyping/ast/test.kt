@@ -17,9 +17,10 @@ fun main() {
         import collections
 
         def f(x, i, j):
-            x += [1, 2, 3]
+            y = [1, 2, 3]
+            x += y
             i = 0
-            if j:
+            if j.hour > 0:
                 return None
     """.trimIndent()
     val root = PythonParser(content).Module()
@@ -27,18 +28,18 @@ fun main() {
     val collector = HintCollector(
         createPythonCallableType(
             0,
-            listOf(PythonCallableTypeDescription.ArgKind.Positional, PythonCallableTypeDescription.ArgKind.Positional),
+            List(3) { PythonCallableTypeDescription.ArgKind.Positional },
             listOf("x", "i", "j"),
             isClassMethod = false,
             isStaticMethod = false
         ) {
-            FunctionTypeCreator.InitializationData(listOf(pythonAnyType, pythonAnyType, pythonAnyType), pythonAnyType)
+            FunctionTypeCreator.InitializationData(List(3) { pythonAnyType }, pythonAnyType)
         },
         storage
     )
     val visitor = Visitor(listOf(collector))
     visitor.visit(functionBlock)
-    BaselineAlgorithm(storage).run(collector.result).forEach {
+    BaselineAlgorithm(storage).run(collector.result).take(100).forEach {
         println(it.pythonTypeRepresentation())
     }
 }

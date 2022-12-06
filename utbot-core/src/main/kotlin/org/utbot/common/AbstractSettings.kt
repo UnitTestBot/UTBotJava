@@ -156,7 +156,12 @@ abstract class AbstractSettings(
         return container.settingFor(defaultValue, null, converter)
     }
 
-    protected fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, converter = String::toBoolean)
+    protected fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, converter = {
+        //Invalid values shouldn't be parsed as "false"
+        if (it.equals("true", true)) true
+        else if (it.equals("false", true)) false
+        else defaultValue
+    })
     protected fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, converter = String::toInt)
     protected fun getIntProperty(defaultValue: Int, minValue: Int, maxValue: Int) = getProperty(defaultValue, Triple(minValue, maxValue, Comparator(Integer::compare)), String::toInt)
     protected fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, converter = String::toLong)

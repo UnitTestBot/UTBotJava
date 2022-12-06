@@ -1,4 +1,4 @@
-package org.utbot.framework.codegen
+package org.utbot.python.framework.codegen.model
 
 import org.utbot.framework.codegen.domain.Import
 

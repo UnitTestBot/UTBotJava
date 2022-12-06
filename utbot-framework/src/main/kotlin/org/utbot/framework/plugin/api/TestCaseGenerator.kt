@@ -150,8 +150,6 @@ open class TestCaseGenerator(
                 for ((method, controller) in method2controller) {
                     controller.job = launch(currentUtContext) {
                         if (!isActive) return@launch
-                        //TODO remove
-                        //if (!method.name.contains("testFunc3")) return@launch
 
                         try {
                             //yield one to

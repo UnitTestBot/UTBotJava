@@ -82,7 +82,7 @@ class MockValueConstructor(
         }
 
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
-    private val constructedObjects = HashMap<UtReferenceModel, Any>()
+    private val constructedObjects = HashMap<UtReferenceModel, Any?>()
     private val mockInfo = mutableListOf<MockInfo>()
     private var mockTarget: MockTarget? = null
     private var mockCounter = 0
@@ -196,7 +196,12 @@ class MockValueConstructor(
             check(Reflection.isModifiersAccessible())
 
             val target = mockTarget(fieldModel) {
-                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), fieldId.name)
+                FieldMockTarget(
+                    fieldModel.classId.name,
+                    model.classId.name,
+                    UtConcreteValue(classInstance),
+                    fieldId.name
+                )
             }
             val value = construct(fieldModel, target).value
             val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
@@ -345,9 +350,10 @@ class MockValueConstructor(
                         val value = construct(elementModel, null).value
                         try {
                             java.lang.reflect.Array.set(instance, i, value)
-                        } catch (iae:IllegalArgumentException) {
+                        } catch (iae: IllegalArgumentException) {
                             throw IllegalArgumentException(
-                                iae.message + " array: ${instance.javaClass.name}; value: ${value?.javaClass?.name}" , iae
+                                iae.message + " array: ${instance.javaClass.name}; value: ${value?.javaClass?.name}",
+                                iae
                             )
                         }
                     }
@@ -360,15 +366,18 @@ class MockValueConstructor(
     /**
      * Constructs object with [UtAssembleModel].
      */
-    private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any {
+    private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any? {
         constructedObjects[assembleModel]?.let { return it }
 
         val instantiationExecutableCall = assembleModel.instantiationCall
         val result = updateWithExecutableCallModel(instantiationExecutableCall)
-        checkNotNull(result) {
-            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
-        }
+//        checkNotNull(result) {
+//            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
+//        }
         constructedObjects[assembleModel] = result
+        if (result == null) {
+            return null
+        }
 
         assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
@@ -484,8 +493,13 @@ class MockValueConstructor(
         }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.runSandbox {
-            newInstance(*args.toTypedArray())
+        try {
+            constructor.runSandbox {
+                this.isAccessible = true
+                newInstance(*args.toTypedArray())
+            }
+        } catch (e: Throwable) {
+            null
         }
 
     /**

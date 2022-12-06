@@ -15,7 +15,6 @@ import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 class GreyBoxFuzzer(
     private val pathsToUserClasses: String,
@@ -36,7 +35,6 @@ class GreyBoxFuzzer(
     private val timeOfStart = System.currentTimeMillis()
     private val percentageOfTimeBudgetToChangeMode = 10
 
-    //TODO make it return Sequence<UtExecution>
     suspend fun fuzz(): Sequence<UtExecution> {
         logger.debug { "Started to fuzz ${methodUnderTest.name}" }
         val generatorContext = GeneratorContext()
@@ -55,9 +53,7 @@ class GreyBoxFuzzer(
             if (timeRemain < 0 || isMethodCovered()) break
             exploitationStage()
         }
-        seeds.getBestSeed()
-        //UtModelGenerator.reset()
-        return sequenceOf()
+        return succeededExecutions.asSequence()
     }
 
     private suspend fun explorationStage(
@@ -90,6 +86,7 @@ class GreyBoxFuzzer(
                         thisInstancesHistory += generateThisInstance(methodUnderTest.classId, generatorContext)
                         regenerateThis = false
                     } else if (Random.getTrue(60)) {
+                        logger.debug { "Trying to mutate this instance" }
                         thisInstancesHistory += Mutator.mutateThisInstance(
                             thisInstancesHistory.last(),
                             classFieldsUsedByFunc.toList(),

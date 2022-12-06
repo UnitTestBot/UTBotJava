@@ -125,7 +125,7 @@ object Mutator {
         generatorContext: GeneratorContext
     ): ThisInstance {
         if (thisInstance !is NormalMethodThisInstance) return thisInstance
-        val thisInstanceAsUtModel = thisInstance.utModel as UtAssembleModel
+        val thisInstanceAsUtModel = thisInstance.utModel as? UtAssembleModel ?: return thisInstance
         val mutationResult =
             regenerateFields(
                 thisInstance.classId.jClass,
@@ -168,7 +168,7 @@ object Mutator {
             }
         val callModel =
             UtExecutableCallModel(fParameter.utModel as UtReferenceModel, randomMethod, parametersForMethodInvocation)
-        (originalUtModel as UtAssembleModel).addModification(listOf(callModel))
+        (originalUtModel as? UtAssembleModel)?.addModification(listOf(callModel))
         return FParameter(originalParameter, null, fParameter.utModel, fParameter.generator, fParameter.fields)
     }
 

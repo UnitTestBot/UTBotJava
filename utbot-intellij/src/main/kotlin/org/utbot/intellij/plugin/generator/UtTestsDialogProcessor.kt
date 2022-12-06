@@ -55,6 +55,8 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -139,7 +141,15 @@ object UtTestsDialogProcessor {
                     if (!LockFile.lock()) {
                         return
                     }
+
+                    UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
+                    UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+                    UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+
+                    fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+
                     try {
+                        logger.info { "Collecting information phase started at ${now()}" }
                         val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
                         indicator.isIndeterminate = false
@@ -170,6 +180,7 @@ object UtTestsDialogProcessor {
                                     indicator.isCanceled
                                 })
                             }
+
 
                             for (srcClass in model.srcClasses) {
                                 if (indicator.isCanceled) {
@@ -204,21 +215,14 @@ object UtTestsDialogProcessor {
                                     continue
                                 }
 
+                                logger.info { "Collecting information phase finished at ${now()}" }
+
                                 updateIndicator(
                                     indicator,
                                     ProgressRange.SOLVING,
                                     "Generate test cases for class $className",
                                     processedClasses.toDouble() / totalClasses
                                 )
-
-                                // set timeout for concrete execution and for generated tests
-                                UtSettings.concreteExecutionTimeoutInInstrumentedProcess =
-                                    model.hangingTestsTimeout.timeoutMs
-
-                                UtSettings.useCustomJavaDocTags =
-                                    model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-
-                                UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
 
                                 val searchDirectory = ReadAction
                                     .nonBlocking<Path> {

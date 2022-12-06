@@ -2,6 +2,7 @@ package org.utbot.common
 
 import java.io.FileInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.util.*
 import kotlin.Comparator
 import mu.KLogger
@@ -17,6 +18,8 @@ interface SettingsContainer {
         converter: (String) -> T
     ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>>
 
+    fun getInputStream() : InputStream? = null
+
     // Returns true iff some properties have non-default values
     fun isCustomized() = false
 }
@@ -28,10 +31,10 @@ interface SettingsContainerFactory {
         defaultSettingsPath: String? = null) : SettingsContainer
 }
 
-class PropertiesSettingsContainer(
+internal open class PropertiesSettingsContainer(
     private val logger: KLogger,
-    defaultKeyForSettingsPath: String,
-    defaultSettingsPath: String? = null): SettingsContainer {
+    val defaultKeyForSettingsPath: String,
+    val defaultSettingsPath: String? = null): SettingsContainer {
     companion object: SettingsContainerFactory {
         override fun createSettingsContainer(
             logger: KLogger,
@@ -41,17 +44,19 @@ class PropertiesSettingsContainer(
     }
 
     private val properties = Properties().also { props ->
+        try {
+            getInputStream()?.use {
+                props.load(it)
+            }
+        } catch (e: IOException) {
+            logger.info(e) { e.message }
+        }
+    }
+
+    override fun getInputStream() : InputStream? {
         val settingsPath = System.getProperty(defaultKeyForSettingsPath) ?: defaultSettingsPath
         val settingsPathFile = settingsPath?.toPath()?.toFile()
-        if (settingsPathFile?.exists() == true) {
-            try {
-                FileInputStream(settingsPathFile).use { reader ->
-                    props.load(reader)
-                }
-            } catch (e: IOException) {
-                logger.info(e) { e.message }
-            }
-        }
+        return if (settingsPathFile?.exists() == true) FileInputStream(settingsPathFile) else null
     }
 
     private val settingsValues: MutableMap<KProperty<*>, Any?> = mutableMapOf()
@@ -156,7 +161,12 @@ abstract class AbstractSettings(
         return container.settingFor(defaultValue, null, converter)
     }
 
-    protected fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, converter = String::toBoolean)
+    protected fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, converter = {
+        //Invalid values shouldn't be parsed as "false"
+        if (it.equals("true", true)) true
+        else if (it.equals("false", true)) false
+        else defaultValue
+    })
     protected fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, converter = String::toInt)
     protected fun getIntProperty(defaultValue: Int, minValue: Int, maxValue: Int) = getProperty(defaultValue, Triple(minValue, maxValue, Comparator(Integer::compare)), String::toInt)
     protected fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, converter = String::toLong)

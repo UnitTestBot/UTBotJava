@@ -41,7 +41,25 @@ tasks {
         version.set(semVer)
     }
 
+    buildSearchableOptions {
+        enabled = false
+    }
+
+    val chmodDotnet = create("chmodDotnet") {
+        group = "build"
+        doLast {
+            exec {
+                commandLine = listOf(
+                    "chmod",
+                    "+x",
+                    dotNetSdkCmdPath
+                )
+            }
+        }
+    }
+
     val publishDotNet = create("publishDotNet") {
+        dependsOn(chmodDotnet)
         group = "build"
         doLast {
             exec {

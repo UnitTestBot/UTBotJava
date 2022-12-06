@@ -14,7 +14,6 @@ typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescr
 class FuzzedDescription(
     val description: FuzzedMethodDescription,
     val tracer: Trie<Instruction, *>,
-    val genThisInstance: ClassId?,
 ) : Description<FuzzedType>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
@@ -47,7 +46,7 @@ suspend fun runJavaFuzzing(
     names: List<String>,
     mock: (ClassId) -> Boolean = { false },
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
-    exec: suspend (description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
+    exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val classUnderTest = methodUnderTest.classId
     val thisInstance = with(methodUnderTest) {
@@ -61,17 +60,27 @@ suspend fun runJavaFuzzing(
     val returnType = methodUnderTest.returnType
     val parameters = listOfNotNull(thisInstance) + methodUnderTest.parameters
 
-    val fmd = FuzzedMethodDescription(
+    /**
+     * To fuzz this instance the class of it is added into head of parameters list.
+     * Done for compatibility with old fuzzer logic and should be reworked more robust way.
+     */
+    fun createFuzzedMethodDescription(thisInstance: ClassId?) = FuzzedMethodDescription(
         name, returnType, parameters, constants
     ).apply {
         compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
         className = classUnderTest.simpleName
         packageName = classUnderTest.packageName
-        parameterNameMap = { index -> names.getOrNull(index) }
+        parameterNameMap = { index ->
+            when {
+                thisInstance != null && index == 0 -> "this"
+                thisInstance != null -> names.getOrNull(index - 1)
+                else -> names.getOrNull(index)
+            }
+        }
         fuzzerType = {
             try {
                 when {
-                    thisInstance != null && it == 0 -> toFuzzerType(classUnderTest.jClass)
+                    thisInstance != null && it == 0 -> toFuzzerType(methodUnderTest.executable.declaringClass)
                     thisInstance != null -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it - 1])
                     else -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it])
                 }
@@ -81,8 +90,17 @@ suspend fun runJavaFuzzing(
         }
         shouldMock = mock
     }
-    BaseFuzzing(providers, exec)
-        .fuzz(FuzzedDescription(fmd, Trie(Instruction::id), thisInstance))
+
+    val tracer = Trie(Instruction::id)
+    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer)
+    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer)
+    BaseFuzzing(providers) { d, t ->
+        if (thisInstance == null) {
+            exec(null, d, t)
+        } else {
+            exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
+        }
+    }.fuzz(descriptionWithOptionalThisInstance)
 }
 
 private fun toFuzzerType(type: Type): FuzzedType {

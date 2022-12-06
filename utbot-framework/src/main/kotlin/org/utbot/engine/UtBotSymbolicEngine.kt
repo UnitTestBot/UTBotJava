@@ -346,17 +346,13 @@ class UtBotSymbolicEngine(
             names,
             { mockStrategy.eligibleToMock(it, classUnderTest) },
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
-        ) { descr, values ->
+        ) { thisInstance, descr, values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
 
-            val initialEnvironmentModels = if (descr.genThisInstance != null) {
-                EnvironmentModels(values.first().model, values.drop(1).map { it.model }, mapOf())
-            } else {
-                EnvironmentModels(null, values.map { it.model }, mapOf())
-            }
+            val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
@@ -398,10 +394,8 @@ class UtBotSymbolicEngine(
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
                     coverage = concreteExecutionResult.coverage,
-                    fuzzingValues = if (descr.genThisInstance != null) values.drop(1) else values,
-                    fuzzedMethodDescription = if (descr.genThisInstance != null) with (descr.description) {
-                        FuzzedMethodDescription(name, returnType, parameters.drop(1), concreteValues)
-                    } else descr.description
+                    fuzzingValues = values,
+                    fuzzedMethodDescription = descr.description
                 )
             )
 

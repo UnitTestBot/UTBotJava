@@ -118,7 +118,7 @@ private fun toFuzzerType(type: Type): FuzzedType {
             }
             FuzzedType(classId)
         }
-        is Class<*> -> FuzzedType(type.id)
+        is Class<*> -> FuzzedType(type.id, type.typeParameters.map { toFuzzerType(it) })
         else -> error("Unknown type: $type")
     }
 }

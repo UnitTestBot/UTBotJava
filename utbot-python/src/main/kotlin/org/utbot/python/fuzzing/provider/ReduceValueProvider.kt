@@ -25,6 +25,17 @@ class ReduceValueProvider(
         val meta = type.meta as PythonConcreteCompositeTypeDescription
         val arguments = (type.getPythonAttributes().first { it.name == "__init__" }.type as FunctionTypeCreator.Original).arguments
         val nonSelfArgs = arguments.drop(1)
+
+        val fields = type.getPythonAttributes().filter { attr -> attr.type.getPythonAttributes().all { it.name != "__call__" }}
+
+        val modifications = emptyList<Routine.Call<Type, PythonTreeModel>>().toMutableList()
+        modifications.addAll(fields.map { field ->
+            Routine.Call(listOf(field.type)) { instance, arguments ->
+                val obj = instance.tree as PythonTree.ReduceNode
+                obj.state[field.name] = arguments.first().tree
+            }
+        })
+
         yield(Seed.Recursive(
             construct = Routine.Create(nonSelfArgs) { v ->
                 PythonTreeModel(
@@ -37,7 +48,8 @@ class ReduceValueProvider(
                     PythonClassId(meta.name.toString())
                 )
             },
-            empty = Routine.Empty { PythonTreeModel(PythonTree.fromNone(), PythonClassId(meta.name.toString())) }
+            modify = modifications.asSequence(),
+            empty = Routine.Empty { PythonTreeModel(PythonTree.fromObject(), PythonClassId(meta.name.toString())) }
         ))
     }
 }

@@ -323,7 +323,9 @@ internal class CgPythonRenderer(
         renderMethodDocumentation(element)
         renderMethodSignature(element)
         visit(element as CgMethod)
-        println("pass")
+        withIndent {
+            println("pass")
+        }
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
@@ -508,7 +510,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonTree) {
-//        element.children.forEach { it.accept(this) }
+        element.children.forEach { it.accept(this) }
         element.value.accept(this)
     }
 

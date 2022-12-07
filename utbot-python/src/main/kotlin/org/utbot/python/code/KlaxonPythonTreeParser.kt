@@ -76,7 +76,7 @@ class KlaxonPythonTreeParser(
         memory[id] = initObject
         initObject.state = parsePythonDict(value.array("state")!!).items.map {
             (it.key as PythonTree.PrimitiveNode).repr to it.value
-        }.toMap()
+        }.toMap().toMutableMap()
         initObject.listitems = parsePythonList(value.array("listitems")!!).children
         initObject.dictitems = parsePythonDict(value.array("dictitems")!!).items
         return initObject

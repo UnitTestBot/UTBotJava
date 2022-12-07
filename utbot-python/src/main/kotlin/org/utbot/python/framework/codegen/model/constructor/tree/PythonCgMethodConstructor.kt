@@ -20,6 +20,8 @@ import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
+    val maxDepth: Int = 5
+
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         pythonDeepEquals(expected, actual)
     }
@@ -47,7 +49,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
-                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
+//                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
 
                 val modificationInfo = StateModificationInfo()
                 val fieldStateManager = context.cgLanguageAssistant.getCgFieldStateManager(context)
@@ -186,6 +188,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         require(expected is CgPythonTree) {
             "Expected value have to be CgPythonTree but `${expected::class}` found"
         }
+        (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
         val expectedValue = pythonBuildObject(expected.tree)
         pythonDeepTreeEquals(expected.tree, expectedValue, actual)
     }
@@ -282,9 +285,10 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
     private fun pythonDeepTreeEquals(
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
-        actual: CgVariable
+        actual: CgVariable,
+        depth: Int = maxDepth
     ) {
-        if (expectedNode.comparable) {
+        if (expectedNode.comparable || depth == 0) {
             emptyLineIfNeeded()
             testFrameworkManager.assertEquals(
                 expected,
@@ -352,7 +356,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 )
                             )
                         }
-                        pythonDeepTreeEquals(value, fieldExpected, fieldActual)
+                        pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1)
                     }
                 } else {
                     emptyLineIfNeeded()

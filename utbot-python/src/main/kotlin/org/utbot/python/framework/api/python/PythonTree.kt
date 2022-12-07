@@ -140,7 +140,7 @@ object PythonTree {
         type: PythonClassId,
         val constructor: PythonClassId,
         val args: List<PythonTreeNode>,
-        var state: Map<String, PythonTreeNode>,
+        var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
     ) : PythonTreeNode(type) {
@@ -149,7 +149,7 @@ object PythonTree {
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ) : this(id, type, constructor, args, emptyMap(), emptyList(), emptyMap())
+        ) : this(id, type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)
@@ -183,6 +183,13 @@ object PythonTree {
                 it.typeEquals(firstElement)
             }
         }
+    }
+
+    fun fromObject(): PrimitiveNode {
+        return PrimitiveNode(
+            PythonClassId("builtins.object"),
+            "object"
+        )
     }
 
     fun fromNone(): PrimitiveNode {

@@ -10,6 +10,11 @@ class GenerateTestsAction : AnAction() {
     }
 
     override fun update(e: AnActionEvent) {
-        LanguageAssistant.get(e)?.update(e)
+        val languageAssistant = LanguageAssistant.get(e)
+        if (languageAssistant == null) {
+            e.presentation.isEnabled = false
+        } else {
+            languageAssistant.update(e)
+        }
     }
 }

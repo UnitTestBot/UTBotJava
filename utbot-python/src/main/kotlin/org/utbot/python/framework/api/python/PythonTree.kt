@@ -18,12 +18,26 @@ object PythonTree {
             else
                 false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is PythonTreeNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class PrimitiveNode(
         type: PythonClassId,
         val repr: String,
-    ) : PythonTreeNode(type)
+    ) : PythonTreeNode(type) {
+        override fun equals(other: Any?): Boolean {
+            if (other !is PrimitiveNode) {
+                return false
+            }
+            return repr == other.repr && type == other.type
+        }
+    }
 
     class ListNode(
         val items: MutableMap<Int, PythonTreeNode>
@@ -38,10 +52,17 @@ object PythonTree {
                 }
             else false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is ListNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class DictNode(
-        val items: Map<PythonTreeNode, PythonTreeNode>
+        val items: MutableMap<PythonTreeNode, PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.dict")) {
         override val children: List<PythonTreeNode>
             get() = items.values + items.keys
@@ -54,10 +75,17 @@ object PythonTree {
 
             } else false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is DictNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class SetNode(
-        val items: Set<PythonTreeNode>
+        val items: MutableSet<PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.set")) {
         override val children: List<PythonTreeNode>
             get() = items.toList()
@@ -73,6 +101,13 @@ object PythonTree {
             } else {
                 false
             }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is SetNode) {
+                return false
+            }
+            return type == other.type && children == other.children
         }
     }
 
@@ -90,6 +125,13 @@ object PythonTree {
             } else {
                 false
             }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is TupleNode) {
+                return false
+            }
+            return type == other.type && children == other.children
         }
     }
 
@@ -122,6 +164,13 @@ object PythonTree {
                     other.dictitems.containsKey(key) && value.typeEquals(other.dictitems[key])
                 }
             } else false
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is ReduceNode) {
+                return false
+            }
+            return type == other.type && children == other.children
         }
     }
 

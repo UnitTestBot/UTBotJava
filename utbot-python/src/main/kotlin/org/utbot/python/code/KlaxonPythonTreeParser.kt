@@ -87,7 +87,7 @@ class KlaxonPythonTreeParser(
     }
 
     private fun parsePythonSet(items: JsonArray<JsonObject>): PythonTree.SetNode {
-        return PythonTree.SetNode(items.map { parseToPythonTree(it) }.toSet())
+        return PythonTree.SetNode(items.map { parseToPythonTree(it) }.toMutableSet())
     }
 
     private fun parsePythonTuple(items: JsonArray<JsonObject>): PythonTree.TupleNode {
@@ -107,6 +107,6 @@ class KlaxonPythonTreeParser(
                     else
                         parseToPythonTree(key as JsonObject)
                     ) to parseToPythonTree(value)
-        })
+        }.toMutableMap())
     }
 }

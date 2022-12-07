@@ -8,4 +8,3 @@ target/
 .gradle/
 *.log
 *.rdgen
-__pycache__

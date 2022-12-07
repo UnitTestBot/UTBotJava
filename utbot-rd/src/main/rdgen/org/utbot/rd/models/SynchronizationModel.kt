@@ -1,3 +1,4 @@
+@file:Suppress("unused")
 package org.utbot.rd.models
 
 import com.jetbrains.rd.generator.nova.*

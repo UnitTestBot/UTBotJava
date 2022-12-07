@@ -30,7 +30,6 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
-import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariableConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
 import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
@@ -136,6 +135,7 @@ class PythonCodeGenerator(
             CgAssignment(
                 argument,
                 PythonCgVariableConstructor(context).getOrCreateVariable(model)
+                CgLiteral(model.classId, model.toString())
             )
         }
 

@@ -1,8 +1,11 @@
 package org.utbot.sarif
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.annotation.JsonValue
+import com.fasterxml.jackson.annotation.*
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 
@@ -17,6 +20,12 @@ data class Sarif(
     val runs: List<SarifRun>
 ) {
     companion object {
+
+        private val jsonMapper = jacksonObjectMapper()
+            .registerModule(SimpleModule()
+                .addDeserializer(SarifLocationWrapper::class.java, SarifLocationWrapperDeserializer())
+            )
+
         private const val defaultSchema =
             "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
         private const val defaultVersion =
@@ -29,11 +38,11 @@ data class Sarif(
             Sarif(defaultSchema, defaultVersion, listOf(run))
 
         fun fromJson(reportInJson: String): Sarif =
-            jacksonObjectMapper().readValue(reportInJson)
+            jsonMapper.readValue(reportInJson)
     }
 
     fun toJson(): String =
-        jacksonObjectMapper()
+        jsonMapper
             .setSerializationInclusion(JsonInclude.Include.NON_NULL)
             .writerWithDefaultPrettyPrinter()
             .writeValueAsString(this)
@@ -111,7 +120,7 @@ data class SarifResult(
     val ruleId: String,
     val level: Level,
     val message: Message,
-    val locations: List<SarifPhysicalLocationWrapper> = listOf(),
+    val locations: List<SarifLocationWrapper> = listOf(),
     val relatedLocations: List<SarifRelatedPhysicalLocationWrapper> = listOf(),
     val codeFlows: List<SarifCodeFlow> = listOf()
 ) {
@@ -145,14 +154,41 @@ data class Message(
     val markdown: String? = null
 )
 
-// physical location
+// location
 
 /**
  * [Documentation](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#location-object)
  */
+sealed class SarifLocationWrapper
+
 data class SarifPhysicalLocationWrapper(
-    val physicalLocation: SarifPhysicalLocation,
-)
+    val physicalLocation: SarifPhysicalLocation // this name used in the SarifLocationWrapperDeserializer
+) : SarifLocationWrapper()
+
+data class SarifLogicalLocationsWrapper(
+    val logicalLocations: List<SarifLogicalLocation> // this name used in the SarifLocationWrapperDeserializer
+) : SarifLocationWrapper()
+
+/**
+ * Custom JSON deserializer for sealed class [SarifLocationWrapper].
+ * Returns [SarifPhysicalLocationWrapper] or [SarifLogicalLocationsWrapper].
+ */
+class SarifLocationWrapperDeserializer : JsonDeserializer<SarifLocationWrapper>() {
+    override fun deserialize(jp: JsonParser, context: DeserializationContext?): SarifLocationWrapper {
+        val node: JsonNode = jp.codec.readTree(jp)
+        val isPhysicalLocation = node.get("physicalLocation") != null // field name
+        val isLogicalLocations = node.get("logicalLocations") != null // field name
+        return when {
+            isPhysicalLocation -> {
+                jacksonObjectMapper().readValue<SarifPhysicalLocationWrapper>(node.toString())
+            }
+            isLogicalLocations -> {
+                return jacksonObjectMapper().readValue<SarifLogicalLocationsWrapper>(node.toString())
+            }
+            else -> error("SarifLocationWrapperDeserializer: Cannot parse ${node.toPrettyString()}")
+        }
+    }
+}
 
 /**
  * [Documentation](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#physicallocation-object)
@@ -188,6 +224,15 @@ data class SarifRegion(
         }
     }
 }
+
+// logical locations
+
+/**
+ * [Documentation](https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#physical-and-logical-locations)
+ */
+data class SarifLogicalLocation(
+    val fullyQualifiedName: String
+)
 
 // related locations
 

@@ -56,6 +56,9 @@ object PythonLanguageAssistant : LanguageAssistant() {
             e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
         }
 
+        if (file.module?.sdk?.sdkType !is PythonSdkType)
+            return null
+
         val containingFunction = getContainingElement<PyFunction>(element)
         val containingClass = getContainingElement<PyClass>(element)
 

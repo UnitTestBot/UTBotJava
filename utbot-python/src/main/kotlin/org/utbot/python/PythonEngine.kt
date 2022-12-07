@@ -1,12 +1,22 @@
 package org.utbot.python
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.*
+import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.fuzz
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.fuzzing.PythonFeedbackNew
+import org.utbot.python.fuzzing.PythonFuzzing
+import org.utbot.python.fuzzing.PythonMethodDescriptionNew
+import org.utbot.python.newtyping.general.Type
+import org.utbot.python.providers.PythonFuzzedMethodDescription
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
@@ -58,7 +68,7 @@ class PythonEngine(
 
     private fun createEvaluationInputIterator(
         methodUnderTestDescription: FuzzedMethodDescription
-    ): Sequence<EvaluationInput> {
+    ): Flow<EvaluationInput> {
         val additionalModules = selectedTypeMap.values.flatMap {
             getModulesFromAnnotation(it)
         }.toSet()
@@ -85,7 +95,7 @@ class PythonEngine(
             )
         }
 
-        return evaluationInputIterator
+        return evaluationInputIterator.asFlow()
     }
 
     private fun handleSuccessResult(
@@ -135,12 +145,152 @@ class PythonEngine(
         )
     }
 
-    fun fuzzing(): Sequence<UtResult> = sequence {
+    private fun handleSuccessResultNew(
+        types: List<Type>,
+        evaluationResult: PythonEvaluationSuccess,
+        methodUnderTestDescription: PythonMethodDescriptionNew,
+        jobResult: JobResult
+    ): UtResult {
+        val (resultJSON, isException, coverage) = evaluationResult
+
+        val prohibitedExceptions = listOf(
+            "builtins.AttributeError",
+            "builtins.TypeError"
+        )
+
+        if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+            val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
+                types.joinToString { it.toString() }
+            }. Exception type: ${resultJSON.type.name}"
+
+            logger.info(errorMessage)
+
+            return UtError(errorMessage, Throwable())
+        }
+
+        val executionResult =
+            if (isException)
+                UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false)
+            else {
+                val outputType = resultJSON.type
+                val resultAsModel = PythonTreeModel(
+                    resultJSON.output,
+                    outputType
+                )
+                UtExecutionSuccess(resultAsModel)
+            }
+
+        val _methodUnderTestDescription = PythonFuzzedMethodDescription(
+            methodUnderTestDescription.name,
+            pythonAnyClassId,
+            emptyList(),
+            emptyList()
+        )
+
+        val testMethodName = suggestExecutionName(_methodUnderTestDescription, jobResult, executionResult)
+
+        return UtFuzzedExecution(
+            stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
+            stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
+            result = executionResult,
+            coverage = coverage,
+            testMethodName = testMethodName?.testName?.camelToSnakeCase(),
+            displayName = testMethodName?.displayName,
+        )
+    }
+
+    fun newFuzzing(parameters: List<Type>): Flow<UtResult> = flow {
+        val additionalModules = selectedTypeMap.values.flatMap {
+            getModulesFromAnnotation(it)
+        }.toSet()
+
+        val pmd = PythonMethodDescriptionNew(
+            methodUnderTest.name,
+            parameters,
+            emptyList()
+        )
+
+        val coveredLines = initialCoveredLines.toMutableSet()
+
+        PythonFuzzing { description, parameterValues ->
+
+            val (thisObject, modelList) =
+                if (methodUnderTest.containingPythonClassId == null)
+                    Pair(null, parameterValues)
+                else
+                    Pair(parameterValues[0], parameterValues.drop(1))
+
+            val evaluationInput = EvaluationInput(
+                methodUnderTest,
+                parameterValues,
+                directoriesForSysPath,
+                moduleToImport,
+                pythonPath,
+                timeoutForRun,
+                thisObject,
+                modelList,
+                parameterValues.map { FuzzedValue(it) },
+                additionalModules
+            )
+
+            val coveredBefore = coveredLines.size
+            val process = startEvaluationProcess(evaluationInput)
+            val startedTime = System.currentTimeMillis()
+            val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
+            val jobResult = JobResult(
+                getEvaluationResult(evaluationInput, process, wait),
+                evaluationInput.values,
+                evaluationInput.thisObject,
+                evaluationInput.modelList
+            )
+
+            when (val evaluationResult = jobResult.evalResult) {
+                is PythonEvaluationError -> {
+                    if (evaluationResult.status != 0) {
+                        emit(
+                            UtError(
+                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                            )
+                        )
+                    } else {
+                        emit(
+                            UtError(
+                                evaluationResult.message,
+                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                            )
+                        )
+                    }
+                }
+                is PythonEvaluationSuccess -> {
+                    evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+                    emit(
+                        handleSuccessResultNew(parameters, evaluationResult, description, jobResult)
+                    )
+                }
+                is PythonEvaluationTimeout -> {
+                    emit(
+                        UtError(evaluationResult.message, Throwable())
+                    )
+                }
+            }
+
+            val coveredAfter = coveredLines.size
+
+            if (coveredAfter == coveredBefore)
+                return@PythonFuzzing PythonFeedbackNew(control = Control.STOP)
+
+            return@PythonFuzzing PythonFeedbackNew(control = Control.PASS)
+
+        }.fuzz(pmd)
+    }
+
+    fun fuzzing(): Flow<UtResult> = flow {
         val types = methodUnderTest.arguments.map {
             selectedTypeMap[it.name] ?: pythonAnyClassId
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(
+        val methodUnderTestDescription = PythonFuzzedMethodDescription(
             methodUnderTest.name,
             pythonAnyClassId,
             types,
@@ -150,65 +300,50 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        val evaluationInputIterator = createEvaluationInputIterator(methodUnderTestDescription)
-
         val coveredLines = initialCoveredLines.toMutableSet()
-        evaluationInputIterator.chunked(CHUNK_SIZE).forEach { chunk ->
-            val coveredBefore = coveredLines.size
 
-            // TODO: maybe reuse processes for next chunk?
-            val processes = chunk.map { evaluationInput ->
-                startEvaluationProcess(evaluationInput)
-            }
+        val evaluationInputIterator = createEvaluationInputIterator(methodUnderTestDescription)
+        evaluationInputIterator.collect { evaluationInput ->
+            val process = startEvaluationProcess(evaluationInput)
             val startedTime = System.currentTimeMillis()
+            val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
+            val jobResult = JobResult(
+                getEvaluationResult(evaluationInput, process, wait),
+                evaluationInput.values,
+                evaluationInput.thisObject,
+                evaluationInput.modelList
+            )
 
-            val results = (processes zip chunk).map { (process, evaluationInput) ->
-                val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
-                val evalResult = getEvaluationResult(evaluationInput, process, wait)
-                JobResult(
-                    evalResult,
-                    evaluationInput.values,
-                    evaluationInput.thisObject,
-                    evaluationInput.modelList
-                )
-            }
-
-            results.forEach { jobResult ->
-                when(val evaluationResult = jobResult.evalResult) {
-                    is PythonEvaluationError -> {
-                        if (evaluationResult.status != 0) {
-                            val errorMessage = "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}, ${evaluationResult.stackTrace}"
-                            logger.info { errorMessage }
-                            yield(UtError(
-                                errorMessage,
+            when (val evaluationResult = jobResult.evalResult) {
+                is PythonEvaluationError -> {
+                    if (evaluationResult.status != 0) {
+                        emit(
+                            UtError(
+                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
                                 Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                            ))
-                        } else {
-                            logger.info { "Python evaluation error: ${evaluationResult.message}" }
-                            yield(
-                                UtError(
-                                    evaluationResult.message,
-                                    Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                                )
                             )
-                        }
-                    }
-                    is PythonEvaluationSuccess -> {
-                        evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
-                        yield(
-                            handleSuccessResult(types, evaluationResult, methodUnderTestDescription, jobResult)
+                        )
+                    } else {
+                        emit(
+                            UtError(
+                                evaluationResult.message,
+                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                            )
                         )
                     }
-                    is PythonEvaluationTimeout -> {
-                        yield(UtError(evaluationResult.message, Throwable()))
-                    }
+                }
+                is PythonEvaluationSuccess -> {
+                    evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+                    emit(
+                        handleSuccessResult(types, evaluationResult, methodUnderTestDescription, jobResult)
+                    )
+                }
+                is PythonEvaluationTimeout -> {
+                    emit(
+                        UtError(evaluationResult.message, Throwable())
+                    )
                 }
             }
-
-            val coveredAfter = coveredLines.size
-
-            if (coveredAfter == coveredBefore)
-                return@sequence
         }
     }
 }

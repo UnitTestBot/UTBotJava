@@ -73,7 +73,7 @@ class SarifReportTest {
         val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first()
-        val location = result.locations.first().physicalLocation
+        val location = result.locations.filterIsInstance<SarifPhysicalLocationWrapper>().first().physicalLocation
         val relatedLocation = result.relatedLocations.first().physicalLocation
 
         assert(location.artifactLocation.uri.contains("Main.java"))

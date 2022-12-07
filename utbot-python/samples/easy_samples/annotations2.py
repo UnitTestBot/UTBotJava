@@ -55,3 +55,7 @@ def dict_2(x: Dict[int, Union[str, bool]]):
 
 def set_1(x: Set[int]):
     return len(x)
+
+
+def any_1(x: Any):
+    return x

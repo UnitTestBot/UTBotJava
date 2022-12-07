@@ -42,4 +42,8 @@ open class TypeParameterConstraint(
     val boundary: Type
 )
 
-class Name(val prefix: List<String>, val name: String)
+class Name(val prefix: List<String>, val name: String) {
+    override fun toString(): String {
+        return "${prefix.joinToString(".")}.$name"
+    }
+}

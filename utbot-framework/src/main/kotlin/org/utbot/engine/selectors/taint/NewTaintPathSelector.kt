@@ -1,5 +1,6 @@
 package org.utbot.engine.selectors.taint
 
+import org.utbot.common.doNotRun
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.head
 import org.utbot.engine.isReturn
@@ -46,37 +47,47 @@ class NewTaintPathSelector(
     override fun peekImpl(): ExecutionState? = if (executionQueue.isEmpty()) null else executionQueue.peek().executionState
 
     override fun offerImpl(state: ExecutionState) {
-        if (counter++ % 5 == 0) {
+//        if (counter++ % 5 == 0) {
 //            logQueue()
-        }
+//        }
 
-        val hashCode = state.hashCode()
-        if (hashCode in alreadyPushedStateHashes) {
-            return
-        }
+//        if (state.stmt.toString().let { "\$stack47 = virtualinvoke \$stack46.<java.lang.StringBuilder: java.lang.StringBuilder appen" in it/* || "RabbitMqDownstream" in it*/ }) {
+//            pathLogger.warn {  }
+//        }
 
-        val weight = state.weight
-//        if (weight > MAX_DISTANCE) {
+//        val hashCode = state.hashCode()
+//        if (hashCode in alreadyPushedStateHashes) {
 //            return
 //        }
 
-        val weightWithLoopCoefficient = with(state) {
-            val numberOfStmtOccurrencesInPath = visitedStatementsHashesToCountInPath[stmt.hashCode()] ?: 0
-
-            // Drop loop state if it exceeds loop steps limit
-            UtSettings.loopStepsLimit
-                .takeIf { it > 0 }
-                ?.let {
-                    if (numberOfStmtOccurrencesInPath > it) {
-                        return
-                    }
-                }
-
-            weight + numberOfStmtOccurrencesInPath * InheritorsSelector.REPEATED_STMT_COEFFICIENT
+        val weight = state.weight
+        if (weight > MAX_DISTANCE) {
+            return
         }
 
+//        if (weight == 0L) {
+//            pathLogger.warn {  }
+//        }
+
+        // TODO use it instead of a simple weight?
+        val weightWithLoopCoefficient = doNotRun {
+            with(state) {
+                val numberOfStmtOccurrencesInPath = visitedStatementsHashesToCountInPath[stmt.hashCode()] ?: 0
+
+                // Drop loop state if it exceeds loop steps limit
+                UtSettings.loopStepsLimit
+                    .takeIf { it > 0 }
+                    ?.let {
+                        if (numberOfStmtOccurrencesInPath > it) {
+                            return
+                        }
+                    }
+
+                weight + numberOfStmtOccurrencesInPath * InheritorsSelector.REPEATED_STMT_COEFFICIENT
+            }
+        }
         executionQueue += StateWithWeight(state, weight)
-        alreadyPushedStateHashes += hashCode
+//        alreadyPushedStateHashes += hashCode
     }
 
     private fun logQueue() {
@@ -89,6 +100,11 @@ class NewTaintPathSelector(
 
     private val ExecutionState.weight: Long
         get() {
+            if (exception != null) {
+                // Process exceptions first
+                return MIN_DISTANCE
+            }
+
             val distance = run {
                 val visitedTaintSources = visitedTaintSources(taintSources)
 
@@ -113,17 +129,6 @@ class NewTaintPathSelector(
                     // Cannot reach target methods from the current state
                     return@run MAX_DISTANCE
                 }
-
-//                // Check if we are already in the required method
-//                if (lastMethod in targetMethods) {
-//                    val methodGraph = lastMethod!!.jimpleBody().graph()
-//
-//                    return@run calculateDistancesInProceduralGraphToSpecifiedStmts(
-//                        stmt,
-//                        methodGraph,
-//                        targetPoints.map { it.stmt }
-//                    ).minOfOrNull { it.value } ?: INF
-//                }
 
                 val theShortestInterProceduralPath = methodsPaths.minByOrNull { it.size } ?: emptyList()
                 val sourceStmtsAlongTheShortestPath =
@@ -208,9 +213,6 @@ class NewTaintPathSelector(
                 innerProceduralDistance * INNER_DISTANCE_COEFFICIENT + returnDistances * RETURN_DISTANCE_COEFFICIENT + interProceduralDistance * INTER_DISTANCE_COEFFICIENT
             }
 
-//             The bigger distance means the less weight
-//            return -distance
-
             return distance
         }
 
@@ -235,10 +237,52 @@ class NewTaintPathSelector(
             val methodsPaths = currentStackElement.pathsToMethods(targetMethods)
 
             if (methodsPaths.isNotEmpty()) {
-                return MethodsPathWithStackElementsToReturn(
-                    methodsPaths,
-                    executionStack.subList(previousStateElements.size, executionStack.size)
-                )
+                val stackElementsToReturn = executionStack.subList(previousStateElements.size, executionStack.size)
+
+                if (stackElementsToReturn.isEmpty()) {
+                    // If we do not need to return through the executions stack, return these paths as is
+                    return MethodsPathWithStackElementsToReturn(methodsPaths, emptyList())
+                }
+
+                // Otherwise, we need to check that we really can achieve the first method in paths starting from the last executed stmt
+                methodsPaths.filter { methodPath ->
+                    require(methodPath.isNotEmpty()) {
+                        "Empty methods path"
+                    }
+
+                    // We need to check there are stmts after the current stmt that follows the path
+                    val currentStmtInFirstStackElement = stackElementsToReturn.firstOrNull()?.caller ?: stmt
+
+                    // Traverse all stmts after the current and check whether they can reach the first method in the path
+                    val methodToReturn = executionStack.getOrNull(previousStateElements.size - 1)?.method ?: lastMethod!!
+
+                    if (methodToReturn == methodPath.last()) {
+                        return@filter true
+                    }
+
+                    val nextMethodInThePath = methodPath.getOrElse(1) { return@filter false }
+
+                    val methodStmts = methodToReturn.jimpleBody().units.toList()
+                    val currentStmtIndex = methodStmts.indexOf(currentStmtInFirstStackElement)
+
+                    for (i in currentStmtIndex + 1 until methodStmts.size) {
+                        val stmtAfter = methodStmts[i]
+                        val edgesOutOfStmt = callGraph.edgesOutOf(stmtAfter)
+
+                        val hasEdgeToTheFirstMethod = edgesOutOfStmt.asSequence().any { it.tgt() == nextMethodInThePath }
+
+                        if (hasEdgeToTheFirstMethod) {
+                            return@filter true
+                        }
+                    }
+
+                    false
+                }.let {
+                    return MethodsPathWithStackElementsToReturn(
+                        it,
+                        stackElementsToReturn
+                    )
+                }
             }
 
             previousStateElements = previousStateElements.subList(0, previousStateElements.lastIndex)
@@ -435,7 +479,7 @@ class NewTaintPathSelector(
 
     companion object {
         const val MAX_DISTANCE: Long = Int.MAX_VALUE.toLong()
-        const val MIN_DISTANCE: Long = -MAX_DISTANCE
+        const val MIN_DISTANCE: Long = 0L
 
         const val INNER_DISTANCE_COEFFICIENT: Long = 1L
         const val RETURN_DISTANCE_COEFFICIENT: Long = 2L

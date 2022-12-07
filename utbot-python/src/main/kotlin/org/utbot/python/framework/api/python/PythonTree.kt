@@ -1,5 +1,10 @@
 package org.utbot.python.framework.api.python
 
+import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonFloatClassId
+import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
+
 object PythonTree {
     open class PythonTreeNode(
         val type: PythonClassId,
@@ -21,14 +26,14 @@ object PythonTree {
     ) : PythonTreeNode(type)
 
     class ListNode(
-        val items: List<PythonTreeNode>
+        val items: MutableMap<Int, PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.list")) {
         override val children: List<PythonTreeNode>
-            get() = items
+            get() = items.values.toList()
 
         override fun typeEquals(other: Any?): Boolean {
             return if (other is ListNode)
-                items.zip(other.items).all {
+                children.zip(other.children).all {
                     it.first.typeEquals(it.second)
                 }
             else false
@@ -72,14 +77,14 @@ object PythonTree {
     }
 
     class TupleNode(
-        val items: List<PythonTreeNode>
+        val items: MutableMap<Int, PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.tuple")) {
         override val children: List<PythonTreeNode>
-            get() = items
+            get() = items.values.toList()
 
         override fun typeEquals(other: Any?): Boolean {
             return if (other is TupleNode) {
-                items.size == other.items.size && items.zip(other.items).all {
+                items.size == other.items.size && children.zip(other.children).all {
                     it.first.typeEquals(it.second)
                 }
             } else {
@@ -129,5 +134,40 @@ object PythonTree {
                 it.typeEquals(firstElement)
             }
         }
+    }
+
+    fun fromNone(): PrimitiveNode {
+        return PrimitiveNode(
+            pythonNoneClassId,
+            "None"
+        )
+    }
+
+    fun fromInt(value: Int): PrimitiveNode {
+        return PrimitiveNode(
+            pythonIntClassId,
+            value.toString()
+        )
+    }
+
+    fun fromString(value: String): PrimitiveNode {
+        return PrimitiveNode(
+            pythonIntClassId,
+            value
+        )
+    }
+
+    fun fromBool(value: Boolean): PrimitiveNode {
+        return PrimitiveNode(
+            pythonBoolClassId,
+            if (value) "True" else "False"
+        )
+    }
+
+    fun fromFloat(value: Double): PrimitiveNode {
+        return PrimitiveNode(
+            pythonFloatClassId,
+            value.toString()
+        )
     }
 }

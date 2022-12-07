@@ -226,6 +226,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
             assembleModel
         }
 
+    private val modelsInAnalysis = mutableListOf<UtCompositeModel>()
+
     /**
      * Assembles internal structure of [UtCompositeModel] if possible and handles assembling exceptions.
      */
@@ -243,7 +245,14 @@ class AssembleModelGenerator(private val basePackageName: String) {
             val constructorId = findBestConstructorOrNull(compositeModel)
                 ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.classId}")
 
-            val constructorInfo = constructorAnalyzer.analyze(constructorId)
+            // we do not analyze a constructor which is currently in the analysis
+            // thus, we do not encounter an infinite loop in self or cross-reference situations
+            val shouldAnalyzeConstructor = compositeModel !in modelsInAnalysis
+            modelsInAnalysis.add(compositeModel)
+
+            val constructorInfo =
+                if (shouldAnalyzeConstructor) constructorAnalyzer.analyze(constructorId)
+                else ConstructorAssembleInfo(constructorId)
 
             val instantiationCall = constructorCall(compositeModel, constructorInfo)
             return UtAssembleModel(
@@ -284,6 +293,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
         } catch (e: AssembleException) {
             instantiatedModels.remove(compositeModel)
             throw e
+        } finally {
+            modelsInAnalysis.remove(compositeModel)
         }
     }
 

@@ -83,7 +83,7 @@ class MapValueProvider(
                     yield(FuzzedType(java.util.TreeMap::class.id, listOf(keyGeneric, valueGeneric)))
                 }
             }
-            else -> yieldConcreteClass(type)
+            else -> yieldConcreteClass(FuzzedType(type.classId, listOf(keyGeneric, valueGeneric)))
         }
     }
 
@@ -126,7 +126,7 @@ class ListSetValueProvider(
                     yield(FuzzedType(java.util.TreeSet::class.id, listOf(generic)))
                 }
             }
-            else -> yieldConcreteClass(type)
+            else -> yieldConcreteClass(FuzzedType(type.classId, listOf(generic)))
         }
     }
 
@@ -154,7 +154,7 @@ abstract class CollectionValueProvider(
     }
 
     protected suspend fun SequenceScope<FuzzedType>.yieldConcreteClass(type: FuzzedType) {
-        if (with (type.classId) { !isAbstract && isPublic && isStatic }) {
+        if (with (type.classId) { !isAbstract && isPublic && (!isInner || isStatic) }) {
             val emptyConstructor = type.classId.allConstructors.find { it.parameters.isEmpty() }
             if (emptyConstructor != null && emptyConstructor.isPublic) {
                 yield(type)

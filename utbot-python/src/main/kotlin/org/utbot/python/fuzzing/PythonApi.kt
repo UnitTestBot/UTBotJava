@@ -21,6 +21,7 @@ import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonSetClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.api.python.util.pythonTupleClassId
 import org.utbot.python.newtyping.PythonAnyTypeDescription
@@ -140,7 +141,11 @@ class PythonFuzzing(
                                     val key = arguments[0].tree
                                     val value = arguments[1].tree
                                     val dict = instance.tree as PythonTree.DictNode
-                                    dict.items[key] = value
+                                    if (dict.items.keys.toList().contains(key)) {
+                                        dict.items.replace(key, value)
+                                    } else {
+                                        dict.items[key] = value
+                                    }
                                 })
                                 modifications.add(Routine.Call(listOf(params[0])) { instance, arguments ->
                                     val key = arguments[0].tree
@@ -159,8 +164,37 @@ class PythonFuzzing(
                                     },
                                     modify = modifications.asSequence(),
                                     empty = Routine.Empty { PythonTreeModel(
-                                        PythonTree.TupleNode(emptyMap<Int, PythonTree.PythonTreeNode>().toMutableMap()),
-                                        pythonTupleClassId
+                                        PythonTree.DictNode(emptyMap<PythonTree.PythonTreeNode, PythonTree.PythonTreeNode>().toMutableMap()),
+                                        pythonDictClassId
+                                    )}
+                                ))
+                            }
+                            "builtins.set" -> {
+                                val params = meta.getAnnotationParameters(type)
+                                val modifications = emptyList<Routine.Call<Type, PythonTreeModel>>().toMutableList()
+                                modifications.add(Routine.Call(params) { instance, arguments ->
+                                    val set = instance.tree as PythonTree.SetNode
+                                    set.items.add(arguments.first().tree)
+                                })
+                                modifications.add(Routine.Call(params) { instance, arguments ->
+                                    val set = instance.tree as PythonTree.SetNode
+                                    val value = arguments.first().tree
+                                    if (set.items.contains(value)) {
+                                        set.items.remove(value)
+                                    }
+                                })
+                                yield(Seed.Recursive(
+                                    construct = Routine.Create(emptyList()) { _ ->
+                                        val items = emptySet<PythonTree.PythonTreeNode>().toMutableSet()
+                                        PythonTreeModel(
+                                            PythonTree.SetNode(items),
+                                            pythonDictClassId
+                                        )
+                                    },
+                                    modify = modifications.asSequence(),
+                                    empty = Routine.Empty { PythonTreeModel(
+                                        PythonTree.SetNode(emptySet<PythonTree.PythonTreeNode>().toMutableSet()),
+                                        pythonSetClassId
                                     )}
                                 ))
                             }

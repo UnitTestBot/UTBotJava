@@ -1,10 +1,16 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.model.constructor.TestClassContext
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.TestFrameworkManager
-import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.codegen.domain.context.TestClassContext
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgAnnotation
+import org.utbot.framework.codegen.domain.models.CgEqualTo
+import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMultipleArgsAnnotation
+import org.utbot.framework.codegen.domain.models.CgNamedAnnotationArgument
+import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.services.framework.TestFrameworkManager
+import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId

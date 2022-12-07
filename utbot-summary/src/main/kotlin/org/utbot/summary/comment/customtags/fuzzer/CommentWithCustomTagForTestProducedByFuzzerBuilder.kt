@@ -7,6 +7,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.comment.customtags.getClassReference
+import org.utbot.summary.comment.customtags.getFullClassName
 import org.utbot.summary.comment.customtags.getMethodReferenceForFuzzingTest
 import org.utbot.summary.comment.customtags.symbolic.CustomJavaDocTagProvider
 
@@ -36,11 +37,7 @@ class CommentWithCustomTagForTestProducedByFuzzerBuilder(
         val canonicalName = methodDescription.canonicalName
 
         return if (packageName != null && className != null && methodName != null) {
-            val fullClassName = if (methodDescription.isNested && canonicalName != null) {
-                canonicalName
-            } else {
-                "$packageName.$className"
-            }
+            val fullClassName = getFullClassName(packageName, className)
 
             val methodReference = getMethodReferenceForFuzzingTest(
                 fullClassName,

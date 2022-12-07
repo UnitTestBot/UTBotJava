@@ -2,11 +2,11 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.framework.codegen.PythonSysPathImport
-import org.utbot.framework.codegen.PythonSystemImport
-import org.utbot.framework.codegen.PythonUserImport
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import org.utbot.python.framework.codegen.model.PythonSysPathImport
+import org.utbot.python.framework.codegen.model.PythonSystemImport
+import org.utbot.python.framework.codegen.model.PythonUserImport
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
@@ -187,8 +187,8 @@ object PythonTestGenerationProcessor {
                 val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->
                         CgMethodTestSet(
-                            methodIds[testSet.method] as ExecutableId,
-                            testSet.executions
+                            executableId = methodIds[testSet.method] as ExecutableId,
+                            executions = testSet.executions
                         )
                     },
                     allImports

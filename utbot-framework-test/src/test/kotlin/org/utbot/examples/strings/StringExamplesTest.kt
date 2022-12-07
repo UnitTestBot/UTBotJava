@@ -1,12 +1,5 @@
 package org.utbot.examples.strings
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.atLeast
-import org.utbot.tests.infrastructure.between
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
-import org.utbot.tests.infrastructure.keyMatch
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -15,7 +8,14 @@ import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withoutMinimization
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
+import org.utbot.testing.between
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
+import org.utbot.testing.keyMatch
 
 internal class StringExamplesTest : UtValueTestCaseChecker(
     testClass = StringExamples::class,
@@ -382,7 +382,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
             { _, i, r -> i <= 0 && r.isException<IllegalArgumentException>() },
             { cs, i, r -> i > 0 && cs == null && !r.getOrThrow() },
             { cs, i, r -> i > 0 && cs != null && cs.length > i && r.getOrThrow() },
-            coverage = DoNotCalculate // TODO: Coverage calculation fails in the child process with Illegal Argument Exception
+            coverage = DoNotCalculate // TODO: Coverage calculation fails in the instrumented process with Illegal Argument Exception
         )
     }
 

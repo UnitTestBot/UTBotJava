@@ -2,24 +2,24 @@ package codegen
 
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.HangingTestsTimeout
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RegularImport
-import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.CodeGeneratorResult
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
-import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import framework.api.js.JsClassId
+import org.utbot.framework.codegen.CodeGeneratorResult
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RegularImport
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgClassFile
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
+import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
+import org.utbot.framework.codegen.tree.CgTestClassConstructor
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 class JsCodeGenerator(
@@ -61,8 +61,9 @@ class JsCodeGenerator(
         testClassCustomName: String? = null,
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         val testClassModel = TestClassModel(classUnderTest, cgTestSets)
-        val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
-        CodeGeneratorResult(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+        val astConstructor = CgTestClassConstructor(context)
+        val testClassFile = astConstructor.construct(testClassModel)
+        CodeGeneratorResult(renderClassFile(testClassFile), astConstructor.testsGenerationReport)
     }
 
     private fun <R> withCustomContext(testClassCustomName: String? = null, block: () -> R): R {
@@ -78,7 +79,7 @@ class JsCodeGenerator(
         }
     }
 
-    private fun renderClassFile(file: CgTestClassFile): String {
+    private fun renderClassFile(file: CgClassFile): String {
         val renderer = CgAbstractRenderer.makeRenderer(context)
         file.accept(renderer)
         return renderer.toString()

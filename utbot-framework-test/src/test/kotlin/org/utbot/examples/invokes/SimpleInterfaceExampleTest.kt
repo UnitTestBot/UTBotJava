@@ -1,8 +1,8 @@
 package org.utbot.examples.invokes
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class SimpleInterfaceExampleTest : UtValueTestCaseChecker(
     testClass = SimpleInterfaceExample::class

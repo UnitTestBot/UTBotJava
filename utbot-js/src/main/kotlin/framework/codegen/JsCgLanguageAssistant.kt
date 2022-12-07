@@ -5,13 +5,13 @@ import framework.codegen.model.constructor.tree.JsCgMethodConstructor
 import framework.codegen.model.constructor.tree.JsCgStatementConstructor
 import framework.codegen.model.constructor.tree.JsCgVariableConstructor
 import framework.codegen.model.constructor.visitor.CgJsRenderer
-import org.utbot.framework.codegen.model.constructor.TestClassContext
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.util.CgPrinter
-import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
-import org.utbot.framework.codegen.model.visitor.CgRendererContext
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.context.TestClassContext
+import org.utbot.framework.codegen.renderer.CgAbstractRenderer
+import org.utbot.framework.codegen.renderer.CgPrinter
+import org.utbot.framework.codegen.renderer.CgRendererContext
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CgLanguageAssistant
 import org.utbot.framework.plugin.api.utils.testClassNameGenerator
 
 object JsCgLanguageAssistant : CgLanguageAssistant() {

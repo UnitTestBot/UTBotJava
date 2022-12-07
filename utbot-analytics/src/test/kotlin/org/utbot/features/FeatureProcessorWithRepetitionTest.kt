@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.utbot.analytics.EngineAnalyticsContext
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withFeaturePath
+import org.utbot.testing.UtValueTestCaseChecker
 import java.io.File
 import java.io.FileInputStream
 

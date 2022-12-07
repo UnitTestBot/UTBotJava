@@ -1,12 +1,17 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
-import org.utbot.framework.codegen.model.constructor.tree.CgIncompleteMethodCall
-import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.CgConstructorCall
+import org.utbot.framework.codegen.domain.models.CgExecutableCall
+import org.utbot.framework.codegen.domain.models.CgExpression
+import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
+import org.utbot.framework.codegen.domain.models.CgThisInstance
+import org.utbot.framework.codegen.services.access.CgCallableAccessManager
+import org.utbot.framework.codegen.services.access.CgIncompleteMethodCall
+import org.utbot.framework.codegen.tree.importIfNeeded
+import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId

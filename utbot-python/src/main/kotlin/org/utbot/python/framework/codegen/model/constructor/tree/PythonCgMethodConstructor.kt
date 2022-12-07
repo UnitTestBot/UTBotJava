@@ -1,8 +1,16 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
-import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgConstructorCall
+import org.utbot.framework.codegen.domain.models.CgFieldAccess
+import org.utbot.framework.codegen.domain.models.CgGetLength
+import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgReferenceExpression
+import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
@@ -76,7 +84,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
 
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
+    fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 CgLiteral(objectNode.type, objectNode.repr)

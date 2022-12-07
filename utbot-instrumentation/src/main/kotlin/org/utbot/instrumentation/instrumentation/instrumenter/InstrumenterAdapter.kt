@@ -52,12 +52,7 @@ open class InstrumenterAdapter {
             computeSourceFileByClass(it, directoryToSearchRecursively)
         }
 
-    fun computeSourceFileByClass(clazz: Class<*>, directoryToSearchRecursively: Path = Paths.get("")): File? {
-        val packageName = clazz.`package`?.name?.replace('.', File.separatorChar)
-        return computeSourceFileByClass(clazz.name, packageName, directoryToSearchRecursively)
-    }
-
-    open fun computeSourceFileByClass(
+    fun computeSourceFileByNameAndPackage(
         className: String, packageName: String?, directoryToSearchRecursively: Path
     ): File? {
         val sourceFileName = computeSourceFileName(className) ?: return null
@@ -72,5 +67,10 @@ open class InstrumenterAdapter {
             fileWithoutPackage = f.toFile()
         }
         return fileWithoutPackage
+    }
+
+    open fun computeSourceFileByClass(clazz: Class<*>, directoryToSearchRecursively: Path = Paths.get("")): File? {
+        val packageName = clazz.`package`?.name?.replace('.', File.separatorChar)
+        return computeSourceFileByNameAndPackage(clazz.name, packageName, directoryToSearchRecursively)
     }
 }

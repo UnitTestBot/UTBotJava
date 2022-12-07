@@ -4,6 +4,7 @@ val junit4Version: String by rootProject
 val sootVersion: String by rootProject
 val commonsLangVersion: String by rootProject
 val kotlinLoggingVersion: String? by rootProject
+val rdVersion: String? by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
@@ -13,8 +14,8 @@ dependencies {
     api(project(":utbot-core"))
     api(project(":utbot-api"))
     api(project(":utbot-rd"))
-    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
-    implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
     implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
         exclude(group="com.google.guava", module="guava")
     }

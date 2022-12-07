@@ -1,11 +1,9 @@
 package org.utbot.examples.objects
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.Test
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.Compilation
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class SimpleClassMultiInstanceExampleTest : UtValueTestCaseChecker(testClass =
     SimpleClassMultiInstanceExample::class) {

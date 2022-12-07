@@ -22,12 +22,15 @@ import com.intellij.task.ProjectTaskManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
-import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
+import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
+import org.utbot.framework.CancellationStrategyType.NONE
+import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
+import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
@@ -38,17 +41,22 @@ import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.intellij.plugin.util.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
+import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
+import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
+import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
+import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.rd.terminateOnException
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
-import org.utbot.framework.plugin.api.util.LockFile
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -93,7 +101,7 @@ object UtTestsDialogProcessor {
         val testModules = srcModule.testModules(project)
 
         JdkInfoService.jdkInfoProvider = PluginJdkInfoProvider(project)
-        // we want to start the child process in the same directory as the test runner
+        // we want to start the instrumented process in the same directory as the test runner
         WorkingDirService.workingDirProvider = PluginWorkingDirProvider(project)
 
         val model = GenerateTestsModel(
@@ -129,33 +137,40 @@ object UtTestsDialogProcessor {
             (object : Task.Backgroundable(project, "Generate tests") {
 
                 override fun run(indicator: ProgressIndicator) {
+                    assertIsNonDispatchThread()
                     if (!LockFile.lock()) {
                         return
                     }
+
+                    UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
+                    UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+                    UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+
+                    fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+
                     try {
-                        val ldef = LifetimeDefinition()
-                        ldef.terminateOnException { lifetime ->
-                            val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
+                        logger.info { "Collecting information phase started at ${now()}" }
+                        val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
-                            indicator.isIndeterminate = false
-                            updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
+                        indicator.isIndeterminate = false
+                        updateIndicator(indicator, ProgressRange.SOLVING, "Generate tests: read classes", 0.0)
 
-                            val buildPaths = ReadAction
-                                .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
-                                .executeSynchronously()
-                                ?: return
+                        val buildPaths = ReadAction
+                            .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
+                            .executeSynchronously()
+                            ?: return
 
-                            val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
+                        val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
-                            val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
-                            val psi2KClass = mutableMapOf<PsiClass, ClassId>()
-                            var processedClasses = 0
-                            val totalClasses = model.srcClasses.size
+                        val testSetsByClass = mutableMapOf<PsiClass, RdTestGenerationResult>()
+                        val psi2KClass = mutableMapOf<PsiClass, ClassId>()
+                        var processedClasses = 0
+                        val totalClasses = model.srcClasses.size
+                        val process = EngineProcess.createBlocking(project)
 
-                            val proc = EngineProcess(lifetime, project)
-
-                            proc.setupUtContext(buildDirs + classpathList)
-                            proc.createTestGenerator(
+                        process.terminateOnException { _ ->
+                            process.setupUtContext(buildDirs + classpathList)
+                            process.createTestGenerator(
                                 buildDirs,
                                 classpath,
                                 pluginJarsPath.joinToString(separator = File.pathSeparator),
@@ -166,11 +181,20 @@ object UtTestsDialogProcessor {
                                 })
                             }
 
+
                             for (srcClass in model.srcClasses) {
+                                if (indicator.isCanceled) {
+                                    when (UtSettings.cancellationStrategyType) {
+                                        NONE -> {}
+                                        SAVE_PROCESSED_RESULTS,
+                                        CANCEL_EVERYTHING -> break
+                                    }
+                                }
+
                                 val (methods, className) = DumbService.getInstance(project)
                                     .runReadActionInSmartMode(Computable {
                                         val canonicalName = srcClass.canonicalName
-                                        val classId = proc.obtainClassId(canonicalName)
+                                        val classId = process.obtainClassId(canonicalName)
                                         psi2KClass[srcClass] = classId
 
                                         val srcMethods = if (model.extractMembersFromSrcClasses) {
@@ -183,7 +207,7 @@ object UtTestsDialogProcessor {
                                         } else {
                                             srcClass.extractClassMethodsIncludingNested(false)
                                         }
-                                        proc.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
+                                        process.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
                                     })
 
                                 if (methods.isEmpty()) {
@@ -191,21 +215,14 @@ object UtTestsDialogProcessor {
                                     continue
                                 }
 
+                                logger.info { "Collecting information phase finished at ${now()}" }
+
                                 updateIndicator(
                                     indicator,
                                     ProgressRange.SOLVING,
                                     "Generate test cases for class $className",
                                     processedClasses.toDouble() / totalClasses
                                 )
-
-                                // set timeout for concrete execution and for generated tests
-                                UtSettings.concreteExecutionTimeoutInChildProcess =
-                                    model.hangingTestsTimeout.timeoutMs
-
-                                UtSettings.useCustomJavaDocTags =
-                                    model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-
-                                UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
 
                                 val searchDirectory = ReadAction
                                     .nonBlocking<Path> {
@@ -231,7 +248,7 @@ object UtTestsDialogProcessor {
                                             )
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
-                                        val rdGenerateResult = proc.generate(
+                                        val rdGenerateResult = process.generate(
                                             mockFrameworkInstalled,
                                             model.staticsMocking.isConfigured,
                                             model.conflictTriggers,
@@ -247,14 +264,18 @@ object UtTestsDialogProcessor {
                                         )
 
                                         if (rdGenerateResult.notEmptyCases == 0) {
-                                            if (model.srcClasses.size > 1) {
-                                                logger.error { "Failed to generate any tests cases for class $className" }
+                                            if (!indicator.isCanceled) {
+                                                if (model.srcClasses.size > 1) {
+                                                    logger.error { "Failed to generate any tests cases for class $className" }
+                                                } else {
+                                                    showErrorDialogLater(
+                                                        model.project,
+                                                        errorMessage(className, secondsTimeout),
+                                                        title = "Failed to generate unit tests for class $className"
+                                                    )
+                                                }
                                             } else {
-                                                showErrorDialogLater(
-                                                    model.project,
-                                                    errorMessage(className, secondsTimeout),
-                                                    title = "Failed to generate unit tests for class $className"
-                                                )
+                                                logger.warn { "Generation was cancelled for class $className" }
                                             }
                                         } else {
                                             testSetsByClass[srcClass] = rdGenerateResult
@@ -281,7 +302,7 @@ object UtTestsDialogProcessor {
                             // indicator.checkCanceled()
 
                             invokeLater {
-                                generateTests(model, testSetsByClass, psi2KClass, proc, indicator)
+                                generateTests(model, testSetsByClass, psi2KClass, process, indicator)
                                 logger.info { "Generation complete" }
                             }
                         }
@@ -294,6 +315,13 @@ object UtTestsDialogProcessor {
     }
 
     private val PsiClass.canonicalName: String
+    /*
+    This method calculates exactly name that is used by compiler convention,
+    i.e. result is the exact name of .class file for provided PsiClass.
+    This value is used to provide classes to engine process - follow usages for clarification.
+    Equivalent for Class.getCanonicalName.
+    P.S. We cannot load project class in IDEA jvm
+     */
         get() {
             return if (packageName.isEmpty()) {
                 qualifiedName?.replace(".", "$") ?: ""
@@ -355,6 +383,6 @@ object UtTestsDialogProcessor {
         val classpath: String,
         val classpathList: List<String>,
         val pluginJarsPath: List<String>
-        // ^ TODO: Now we collect ALL dependent libs and pass them to the child process. Most of them are redundant.
+        // ^ TODO: Now we collect ALL dependent libs and pass them to the instrumented process. Most of them are redundant.
     )
 }

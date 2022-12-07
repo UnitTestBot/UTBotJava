@@ -3,12 +3,12 @@ package framework.codegen.model.constructor.tree
 import framework.codegen.Mocha
 import framework.codegen.jsAssertEquals
 import framework.codegen.jsAssertThrows
-import org.utbot.framework.codegen.model.constructor.TestClassContext
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.TestFrameworkManager
-import org.utbot.framework.codegen.model.tree.CgAnnotation
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.context.TestClassContext
+import org.utbot.framework.codegen.domain.models.CgAnnotation
+import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 import org.utbot.framework.plugin.api.ClassId
 
 class MochaManager(context: CgContext) : TestFrameworkManager(context) {

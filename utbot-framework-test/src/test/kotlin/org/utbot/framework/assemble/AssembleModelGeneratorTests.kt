@@ -37,6 +37,7 @@ import org.utbot.examples.assemble.DefaultFieldWithDirectAccessor
 import org.utbot.examples.assemble.DefaultFieldWithSetter
 import org.utbot.examples.assemble.DefaultPackagePrivateField
 import org.utbot.examples.assemble.StaticField
+import org.utbot.framework.codegen.tree.arrayTypeOf
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -58,7 +59,6 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
 import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
-import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.

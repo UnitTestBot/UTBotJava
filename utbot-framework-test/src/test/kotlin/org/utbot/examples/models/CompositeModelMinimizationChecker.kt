@@ -1,6 +1,5 @@
 package org.utbot.examples.models
 
-import org.utbot.tests.infrastructure.UtModelTestCaseChecker
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -9,7 +8,8 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.junit.Test
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtModelTestCaseChecker
 
 internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(
     testClass = CompositeModelMinimizationExample::class,

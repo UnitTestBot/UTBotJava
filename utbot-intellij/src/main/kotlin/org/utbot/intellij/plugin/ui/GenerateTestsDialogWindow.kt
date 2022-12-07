@@ -72,6 +72,7 @@ import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
+import mu.KotlinLogging
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
@@ -80,7 +81,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.ParseException
-import java.util.Objects
 import java.util.concurrent.TimeUnit
 import javax.swing.AbstractAction
 import javax.swing.Action
@@ -97,25 +97,26 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FILE_CONTENT
-import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FOLDER
-import org.utbot.framework.codegen.model.util.MOCKITO_MOCKMAKER_FILE_NAME
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.Junit4
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.MockitoStaticMocking
+import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
+import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
+import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
 import org.utbot.framework.util.Conflict
+import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.id
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
@@ -142,6 +143,9 @@ import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.findSdkVersion
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.*
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -159,6 +163,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         const val minSupportedSdkVersion = 8
         const val maxSupportedSdkVersion = 17
     }
+
+    private val logger = KotlinLogging.logger {}
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
 
@@ -486,6 +492,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     override fun getOKAction() = okOptionAction
 
     override fun doOKAction() {
+        fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+
+        logger.info { "Tests generation instantiation phase started at ${now()}" }
+
         model.testPackageName =
             if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
 
@@ -542,7 +552,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
         } catch (e: IncorrectOperationException) {
             println(e.message)
-
         }
 
         configureJvmTargetIfRequired()
@@ -551,6 +560,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         configureStaticMockingIfRequired()
         configureParametrizedTestsIfRequired()
 
+        logger.info { "Tests generation instantiation phase finished at ${now()}" }
         super.doOKAction()
     }
 

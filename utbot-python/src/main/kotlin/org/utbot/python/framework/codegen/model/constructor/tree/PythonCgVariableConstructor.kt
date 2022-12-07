@@ -1,12 +1,12 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
-import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgConstructorCall
+import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.api.python.*

@@ -1,11 +1,11 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 internal class MockWithSideEffectExampleTest : UtValueTestCaseChecker(testClass = MockWithSideEffectExample::class) {
     @Test

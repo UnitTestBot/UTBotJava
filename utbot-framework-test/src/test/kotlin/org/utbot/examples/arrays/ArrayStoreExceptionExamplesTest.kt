@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.AtLeast
-import org.utbot.tests.infrastructure.CodeGeneration
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
+import org.utbot.testing.AtLeast
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 class ArrayStoreExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ArrayStoreExceptionExamples::class,

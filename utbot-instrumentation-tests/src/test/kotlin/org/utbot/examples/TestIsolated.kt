@@ -5,7 +5,7 @@ import org.utbot.examples.samples.ExampleClass
 import org.utbot.examples.samples.staticenvironment.StaticExampleClass
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
-import org.utbot.instrumentation.util.ChildProcessError
+import org.utbot.instrumentation.util.InstrumentedProcessError
 import org.utbot.instrumentation.util.Isolated
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -48,7 +48,7 @@ class TestIsolated {
             }
 
 
-            val exc = assertThrows<ChildProcessError> {
+            val exc = assertThrows<InstrumentedProcessError> {
                 isolatedFunction(testObject, 1, 2, 3)
             }
 

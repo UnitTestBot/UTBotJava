@@ -1,9 +1,9 @@
 package org.utbot.examples.primitives
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.isException
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.isException
 
 internal class CharExamplesTest : UtValueTestCaseChecker(testClass = CharExamples::class) {
     @Test

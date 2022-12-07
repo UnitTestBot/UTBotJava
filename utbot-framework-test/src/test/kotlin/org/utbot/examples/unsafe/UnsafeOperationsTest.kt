@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutSandbox
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class UnsafeOperationsTest : UtValueTestCaseChecker(testClass = UnsafeOperations::class) {
     @Test

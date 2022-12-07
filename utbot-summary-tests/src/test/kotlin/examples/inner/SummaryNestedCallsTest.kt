@@ -2,9 +2,9 @@ package examples.inner
 
 import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.inner.NestedCalls
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.testing.DoNotCalculate
 
 class SummaryNestedCallsTest : SummaryTestCaseGeneratorTest(
     NestedCalls::class,

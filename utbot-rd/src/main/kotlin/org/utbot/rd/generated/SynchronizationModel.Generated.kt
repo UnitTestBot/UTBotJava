@@ -39,7 +39,7 @@ class SynchronizationModel private constructor(
         @JvmStatic
         @Deprecated("Use protocol.synchronizationModel or revise the extension scope instead", ReplaceWith("protocol.synchronizationModel"))
         fun create(lifetime: Lifetime, protocol: IProtocol): SynchronizationModel  {
-            SynchronizationModelRoot.register(protocol.serializers)
+            SynchronizationRoot.register(protocol.serializers)
             
             return SynchronizationModel().apply {
                 identify(protocol.identity, RdId.Null.mix("SynchronizationModel"))

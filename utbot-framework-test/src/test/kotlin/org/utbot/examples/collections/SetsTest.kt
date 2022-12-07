@@ -1,10 +1,5 @@
 package org.utbot.examples.collections
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.AtLeast
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -12,7 +7,12 @@ import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.AtLeast
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
+import org.utbot.testing.ignoreExecutionsNumber
 
 // TODO failed Kotlin compilation SAT-1332
 internal class SetsTest : UtValueTestCaseChecker(

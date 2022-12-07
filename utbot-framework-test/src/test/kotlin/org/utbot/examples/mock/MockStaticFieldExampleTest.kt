@@ -1,11 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.mock.others.Generator
-import org.utbot.tests.infrastructure.singleMock
-import org.utbot.tests.infrastructure.singleMockOrNull
-import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.FieldMockTarget
 import org.utbot.framework.plugin.api.MockInfo
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
@@ -13,6 +8,11 @@ import kotlin.reflect.KClass
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.singleMock
+import org.utbot.testing.singleMockOrNull
+import org.utbot.testing.value
 
 internal class MockStaticFieldExampleTest : UtValueTestCaseChecker(testClass = MockStaticFieldExample::class) {
 

@@ -1,18 +1,18 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
-import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
-import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.tests.infrastructure.isException
-import org.utbot.tests.infrastructure.keyMatch
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.junit.jupiter.api.Test
+import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
+import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.testing.CodeGeneration
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
+import org.utbot.testing.isException
+import org.utbot.testing.keyMatch
 
 internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,

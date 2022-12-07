@@ -5,7 +5,8 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.summary.UtSummarySettings
+import org.utbot.summary.SummarySentenceConstants.FROM_TO_NAMES_COLON
+import org.utbot.summary.SummarySentenceConstants.FROM_TO_NAMES_TRANSITION
 import org.utbot.summary.comment.classic.fuzzer.SimpleCommentForTestProducedByFuzzerBuilder
 import org.utbot.summary.comment.customtags.fuzzer.CommentWithCustomTagForTestProducedByFuzzerBuilder
 import java.util.*
@@ -33,9 +34,9 @@ class ModelBasedNameSuggester(
 
         return sequenceOf(
             TestSuggestedInfo(
-                testName =  createTestName(description, values, result),
-                displayName = createDisplayName(description, values, result),
-                javaDoc = if (UtSummarySettings.GENERATE_COMMENTS) createJavaDoc(description, values, result) else null
+                testName =  if (UtSettings.enableTestNamesGeneration) createTestName(description, values, result) else null,
+                displayName = if (UtSettings.enableDisplayNameGeneration) createDisplayName(description, values, result) else null,
+                javaDoc = if (UtSettings.enableJavaDocGeneration) createJavaDoc(description, values, result) else null
             )
         )
     }
@@ -104,12 +105,17 @@ class ModelBasedNameSuggester(
      * Result example:
      * 1. **Full name**: `firstArg = 12, secondArg < 100.0, thirdArg = empty string -> throw IllegalArgumentException`
      * 2. **Name without appropriate information**: `arg_0 = 0 and others -> return 0`
+     *
+     * NOTE: The ```:``` symbol is used as a separator instead
+     * of ```->``` if the [UtSettings.GENERATE_DISPLAYNAME_FROM_TO_STYLE] is false.
      */
     private fun createDisplayName(
         description: FuzzedMethodDescription,
         values: List<FuzzedValue>,
         result: UtExecutionResult?
     ): String {
+        val displayNameSeparator = if (UtSettings.useDisplayNameArrowStyle) FROM_TO_NAMES_TRANSITION else FROM_TO_NAMES_COLON
+
         val summaries = values.asSequence()
             .mapIndexed { index, value ->
                 value.summary?.replace("%var%", description.parameterNameMap(index) ?: "arg_$index")
@@ -127,13 +133,13 @@ class ModelBasedNameSuggester(
         val returnValue = when (result) {
             is UtExecutionSuccess -> result.model.let { m ->
                 when {
-                    m is UtPrimitiveModel && m.classId != voidClassId -> "-> return " + m.value
-                    m is UtNullModel -> "-> return null"
+                    m is UtPrimitiveModel && m.classId != voidClassId -> "$displayNameSeparator return " + m.value
+                    m is UtNullModel -> "$displayNameSeparator return null"
                     else -> null
                 }
             }
 
-            is UtExplicitlyThrownException, is UtImplicitlyThrownException -> "-> throw ${(result as UtExecutionFailure).exception::class.java.simpleName}"
+            is UtExplicitlyThrownException, is UtImplicitlyThrownException -> "$displayNameSeparator throw ${(result as UtExecutionFailure).exception::class.java.simpleName}"
             else -> null
         }
 
@@ -176,5 +182,4 @@ class ModelBasedNameSuggester(
                 .filter { it.isUpperCase() }
                 .joinToString(separator = "")
     }
-
 }

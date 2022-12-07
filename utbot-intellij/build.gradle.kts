@@ -57,8 +57,8 @@ intellij {
         when (ideType) {
             "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
             "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins + mavenUtilsPlugins
-            "PC" -> pythonCommunityPlugins
-            "PY" -> pythonUltimatePlugins // something else, JS?
+//            "PC" -> {}
+//            "PY" -> {}// something else, JS?
             else -> jvmPlugins
         }
     )

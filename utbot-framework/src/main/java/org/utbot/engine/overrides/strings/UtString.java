@@ -876,6 +876,8 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
         // TODO HACK taint analysis
         final String[] strings = makeSymbolic();
+        // Prevent too big array
+        assume(strings.length <= 3);
         for (String s : strings) {
             assume(s != null);
         }

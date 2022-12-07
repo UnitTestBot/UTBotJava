@@ -538,7 +538,9 @@ enum class AnalysisMode(private val triggerOption: KMutableProperty0<Boolean>) {
                 useSandbox = false
                 callDepthToMock = taintAnalysisCallDepthToMock
                 loopStepsLimit = taintLoopStepsLimit
-                pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+                // Commented for simpler debug
+                // TODO uncomment before release?
+//                pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
             }
     };
 

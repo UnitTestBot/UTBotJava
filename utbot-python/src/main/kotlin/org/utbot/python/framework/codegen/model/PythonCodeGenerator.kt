@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariableConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
 import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
@@ -134,7 +135,7 @@ class PythonCodeGenerator(
         val parameters = methodArguments.zip(arguments).map { (model, argument) ->
             CgAssignment(
                 argument,
-                CgLiteral(model.classId, model.toString())
+                PythonCgVariableConstructor(context).getOrCreateVariable(model)
             )
         }
 
@@ -182,7 +183,7 @@ class PythonCodeGenerator(
         val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
         val importFunction = PythonUserImport("*", moduleToImport)
         val additionalModules = methodAnnotations.values.flatMap { annotation ->
-                getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
+            getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
         }
         val imports = listOf(importSys, importTyping) + importSysPaths + (listOf(importFunction) + additionalModules).toSet().toList()
 

@@ -1,6 +1,8 @@
 package org.utbot.python
 
+import kotlinx.coroutines.flow.takeWhile
 import mu.KotlinLogging
+import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
@@ -8,9 +10,14 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.newtyping.PythonTypeDescription
+import org.utbot.python.newtyping.general.FunctionTypeCreator
+import org.utbot.python.newtyping.readMypyAnnotationStorage
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+import org.utbot.python.utils.TemporaryFileManager
+import org.utbot.python.utils.runCommand
 import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
@@ -48,6 +55,103 @@ object PythonTestCaseGenerator {
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
     fun generate(method: PythonMethod): PythonTestSet {
+        return if (method.arguments.any {it.annotation == null}) {
+            oldGenerate(method)
+        } else {
+            newGenerate(method)
+        }
+    }
+
+    private fun newGenerate(method: PythonMethod): PythonTestSet {
+        val mypyAnnotationSource = PythonTestCaseGenerator::class.java.getResource("/mypy/extract_annotations.py")?.readText() ?: error("Didn't find /mypy/extract_annotations.py")
+        val mypyAnnotationFile = TemporaryFileManager.createTemporaryFile(mypyAnnotationSource, tag = "mypy_file")
+        val mypyAnnotationPath = mypyAnnotationFile.absolutePath
+
+        val mypyIniSource = PythonTestCaseGenerator::class.java.getResource("/mypy/mypy_config.ini")?.readText() ?: error("Didn't find /mypy/mypy_config.ini")
+        val mypyIniFile = TemporaryFileManager.createTemporaryFile(mypyIniSource, tag = "mypy_ini")
+        val mypyIniPath = mypyIniFile.absolutePath
+        val results = runCommand(
+            listOf(
+                pythonPath,
+                mypyAnnotationPath,
+                mypyIniPath,
+                method.moduleFilename,
+            )
+        )
+        val moduleName = method.moduleFilename.split("/").last().split(".").first()
+        val storage = readMypyAnnotationStorage(results.stdout)
+        val functionDef = (storage.definitions[moduleName]!![method.name]!!.annotation.asUtBotType as FunctionTypeCreator.Original)
+        val args = functionDef.arguments
+
+        storageForMypyMessages.clear()
+
+        val executions = mutableListOf<UtExecution>()
+        val errors = mutableListOf<UtError>()
+        var missingLines: Set<Int>? = null
+        val coveredLines = mutableSetOf<Int>()
+        var generated = 0
+
+        logger.debug(
+            "Existing annotations: ${
+                args.joinToString(" ") { "${it.meta}" }
+            }"
+        )
+
+        val engine = PythonEngine(
+            method,
+            directoriesForSysPath,
+            curModule,
+            pythonPath,
+            emptyList(),
+            method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation((it.second.meta as PythonTypeDescription).name.toString()) },
+            timeoutForRun,
+            coveredLines
+        )
+
+        var coverageLimit = 10
+
+        runBlockingWithCancellationPredicate(isCancelled) {
+            engine.newFuzzing(args).collect {
+                val coveredBefore = coveredLines.size
+
+                generated += 1
+                when (it) {
+                    is UtExecution -> {
+                        logger.debug("Added execution: $it")
+                        executions += it
+                        missingLines = updateCoverage(it, coveredLines, missingLines)
+                    }
+
+                    is UtError -> {
+                        logger.debug("Failed evaluation. Reason: ${it.description}")
+                        errors += it
+                    }
+                }
+                val coveredAfter = coveredLines.size
+
+                if (coveredAfter == coveredBefore)
+                    coverageLimit -= 1
+
+                if (withMinimization && missingLines?.isEmpty() == true) {//&& generated % CHUNK_SIZE == 0)
+                    coverageLimit = 0
+                }
+            }
+        }
+
+        val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
+
+        return PythonTestSet(
+            method,
+            if (withMinimization)
+                minimizeExecutions(successfulExecutions) + minimizeExecutions(failedExecutions)
+            else
+                executions,
+            errors,
+            storageForMypyMessages
+        )
+    }
+
+    private fun oldGenerate(method: PythonMethod): PythonTestSet {
         storageForMypyMessages.clear()
 
         val initialArgumentTypes = method.arguments.map {
@@ -76,10 +180,12 @@ object PythonTestCaseGenerator {
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
 
-        run breaking@{
-            annotationSequence.forEach { annotations ->
+        var stopFuzzing = false
+
+        runBlockingWithCancellationPredicate(isCancelled) {
+            annotationSequence.takeWhile { !stopFuzzing }.forEach { annotations ->
                 if (isCancelled())
-                    return@breaking
+                    return@runBlockingWithCancellationPredicate
 
                 logger.debug(
                     "Found annotations: ${
@@ -98,9 +204,14 @@ object PythonTestCaseGenerator {
                     coveredLines
                 )
 
-                engine.fuzzing().forEach {
+                var coverageLimit = 10
+
+                engine.fuzzing().takeWhile { coverageLimit > 0 }.collect {
+                    val coveredBefore = coveredLines.size
+
                     if (isCancelled())
-                        return@breaking
+                        return@collect
+
                     generated += 1
                     when (it) {
                         is UtExecution -> {
@@ -114,8 +225,14 @@ object PythonTestCaseGenerator {
                             errors += it
                         }
                     }
-                    if (withMinimization && missingLines?.isEmpty() == true && generated % CHUNK_SIZE == 0)
-                        return@breaking
+                    val coveredAfter = coveredLines.size
+
+                    if (coveredAfter == coveredBefore)
+                        coverageLimit -= 1
+
+                    if (withMinimization && missingLines?.isEmpty() == true) //&& generated % CHUNK_SIZE == 0)
+                        stopFuzzing = true
+                    return@collect
                 }
             }
         }

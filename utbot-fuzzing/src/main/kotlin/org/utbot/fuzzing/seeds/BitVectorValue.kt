@@ -126,6 +126,17 @@ class BitVectorValue : KnownValue {
         return result
     }
 
+    private fun toBigInteger(bits: Int, shift: Int = 0): BigInteger {
+        assert(bits <= 128) { "Cannot convert to long vector with more than 128 bits, but $bits is requested" }
+        var result = BigInteger("0")
+        for (i in shift until minOf(bits + shift, size)) {
+            result = result or ((if (vector[i]) BigInteger("1") else BigInteger("0") shl (i - shift)))
+        }
+        return result
+    }
+
+    fun toBigInteger() = toBigInteger(0)
+
     fun toBoolean() = vector[0]
 
     fun toByte() = toLong(8).toByte()
@@ -187,6 +198,17 @@ class BitVectorValue : KnownValue {
             val vector = BitSet(size)
             for (i in 0 until size) {
                 vector[i] = value and (1L shl i) != 0L
+            }
+            return BitVectorValue(size, vector)
+        }
+
+        fun  fromBigInteger(value: BigInteger): BitVectorValue {
+            val size = 128
+            val bits = value.bitCount()
+            assert(bits <= size) { "This value $value is too big. Max value is 2^$bits." }
+            val vector = BitSet(size)
+            for (i in 0 until size) {
+                vector[i] = value.testBit(i)
             }
             return BitVectorValue(size, vector)
         }

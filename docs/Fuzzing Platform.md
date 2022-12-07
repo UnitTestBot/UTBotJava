@@ -18,15 +18,20 @@ predefined values.
 
 General API for using fuzzer looks like this:
 
-```kotlin
+```
 fuzz(
     params = "number", "string", "object<object, number>: number, string",
+    seedGenerator = (type: Type) -> seeds
     details: (constants, providers, etc)
-).accept { values: List ->
-    val feedback = exec(values);
+).forEveryGeneratedValues { values: List ->
+    feedback = exec(values);
     return feedback
 }
 ```
+
+Fuzzer accepts list of types which can be provided in different formats: string, object or Class<*> in Java. Then seed 
+generator accepts these types and produces seeds which are used as base objects for value generation and mutations. 
+Fuzzing logic about how to choose, combine and mutate values from seed set is only fuzzing responsibility. API should not provide such abilities except general fuzzing configuring.
 
 ## Parameters
 
@@ -62,13 +67,13 @@ Thus, FP interprets the _Byte_ and _Unsigned Byte_ descriptions in different way
 
 During the fuzzing process, some parameters get the refined description, for example:
 
-```java
-    public boolean isNaN(Number n) {
-        if (!(n instanceof Double)) {
-            return false;
-        }
-        return Double.isNaN((Double) n);
+```
+public boolean isNaN(Number n) {
+    if (!(n instanceof Double)) {
+        return false;
     }
+    return Double.isNaN((Double) n);
+}
 ```
 
 In the above example, let the parameter be `Integer`. Considering the feedback, the fuzzer suggests that nothing but `Double` might increase coverage, so the type may be downcasted to `Double`. This allows for filtering out a priori unfitting values.
@@ -88,7 +93,7 @@ _Dynamic_ values are generated in two ways:
 
 Dynamic values should have the higher priority for a sample, that's why they should be chosen either first or at least more likely than the statically generated ones. In general, the algorithm that guides the fuzzing process looks like this:
 
-```python
+```
 # dynamic values are stored with respect to their return priority
 dynamic_values = empty_priority_queue()
 # static values are generated beforehand

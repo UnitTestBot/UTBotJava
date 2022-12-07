@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.Locale;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.makeSymbolic;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
@@ -869,7 +870,19 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     }
 
     public String[] split(String regex) {
-        return splitImpl(regex);
+        if (regex == null) {
+            throw new NullPointerException();
+        }
+
+        // TODO HACK taint analysis
+        final String[] strings = makeSymbolic();
+        for (String s : strings) {
+            assume(s != null);
+        }
+        return strings;
+
+        // The commented code below leads to recursive processing of this method
+//        return splitImpl(regex);
     }
 
     public String toLowerCase(Locale locale) {

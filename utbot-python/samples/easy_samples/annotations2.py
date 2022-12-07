@@ -45,3 +45,6 @@ def tuple_2(x: Tuple[int, ...]):
     return len(x)
 
 
+def dict_1(x: Dict[int, str]):
+    return len(x)
+

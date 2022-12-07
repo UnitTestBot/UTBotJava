@@ -16,6 +16,7 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonDictClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonListClassId
@@ -132,19 +133,37 @@ class PythonFuzzing(
                                         }
                                     ))
                             }
-//                            "builtins.dict" -> {
-//                                val params = meta.getAnnotationParameters(type)
-//                                yield(
-//                                    Value.Recursive(
-//                                        construct = Routine.Create(params) { v ->
-//                                            PythonTreeModel(
-//                                                PythonTree.DictNode(v.withIndex().associate { it.index to it.value.tree }.toMutableMap()),
-//                                                pythonTupleClassId
-//                                            )
-//                                        },
-//                                    )
-//                                )
-//                            }
+                            "builtins.dict" -> {
+                                val params = meta.getAnnotationParameters(type)
+                                val modifications = emptyList<Routine.Call<Type, PythonTreeModel>>().toMutableList()
+                                modifications.add(Routine.Call(params) { instance, arguments ->
+                                    val key = arguments[0].tree
+                                    val value = arguments[1].tree
+                                    val dict = instance.tree as PythonTree.DictNode
+                                    dict.items[key] = value
+                                })
+                                modifications.add(Routine.Call(listOf(params[0])) { instance, arguments ->
+                                    val key = arguments[0].tree
+                                    val dict = instance.tree as PythonTree.DictNode
+                                    if (dict.items.keys.toList().contains(key)) {
+                                        dict.items.remove(key)
+                                    }
+                                })
+                                yield(Seed.Recursive(
+                                    construct = Routine.Create(params) { v ->
+                                        val items = mapOf(v[0].tree to v[1].tree).toMutableMap()
+                                        PythonTreeModel(
+                                            PythonTree.DictNode(items),
+                                            pythonDictClassId
+                                        )
+                                    },
+                                    modify = modifications.asSequence(),
+                                    empty = Routine.Empty { PythonTreeModel(
+                                        PythonTree.TupleNode(emptyMap<Int, PythonTree.PythonTreeNode>().toMutableMap()),
+                                        pythonTupleClassId
+                                    )}
+                                ))
+                            }
                         }
                     }
                     is PythonProtocolDescription -> TODO()

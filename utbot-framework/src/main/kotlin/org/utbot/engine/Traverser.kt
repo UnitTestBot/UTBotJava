@@ -267,11 +267,11 @@ class Traverser(
     internal var softMaxArraySize = 40
 
     // HACK FOR TAINTS
-    private val methodsToNotMock: MutableSet<SootMethod> = mutableSetOf()
+    private val methodsToNotMock: MutableSet<String> = mutableSetOf()
 
     // HACk FOR TAINTS
     internal fun addMethodsToDoNotMock(methods: Set<SootMethod>) {
-        methodsToNotMock += methods
+        methodsToNotMock += methods.map { it.subSignature }
     }
 
     /**
@@ -3000,7 +3000,7 @@ class Traverser(
             else -> {
                 // Make results of method invocations at big depth unbounded variables
                 // HACK FOR TAINTS
-                if (isCallGraphTooDeep() || (UtSettings.mockAllMethodsButRelatedToTaintAnalysis && target.method !in methodsToNotMock)) {
+                if (isCallGraphTooDeep() || (UtSettings.mockAllMethodsButRelatedToTaintAnalysis && target.method.subSignature !in methodsToNotMock)) {
                     treatMethodResultAsUnboundedVariable(name = "${target.method.name}DeepMock", target.method)
                 } else {
                     val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()

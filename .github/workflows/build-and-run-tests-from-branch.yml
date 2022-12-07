@@ -19,7 +19,21 @@ env:
   IMAGE_NAME: utbot_java_cli
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
   # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+  #
+  # When configuring Gradle behavior you can use these methods,
+  # listed in order of highest to lowest precedence (first one wins):
+  # - Command-line flags such as --build-cache.
+  #   These have precedence over properties and environment variables.
+  # - System properties such as systemProp.http.proxyHost=somehost.org
+  #   stored in a gradle.properties file in a root project directory.
+  # - Gradle properties such as org.gradle.caching=true that are
+  #   typically stored in a gradle.properties file in a project
+  #   directory or in the GRADLE_USER_HOME.
+  # - Environment variables such as GRADLE_OPTS sourced by the
+  #   environment that executes Gradle.
+  #
+  # read more at: https://docs.gradle.org/current/userguide/build_environment.html
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
   PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
   ELK_HOSTNAME: logs.utbot.org
   FILEBEAT_DIR: /tmp/filebeat

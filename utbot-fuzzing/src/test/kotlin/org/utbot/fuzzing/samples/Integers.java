@@ -3,6 +3,14 @@ package org.utbot.fuzzing.samples;
 @SuppressWarnings({"unused", "RedundantIfStatement"})
 public class Integers {
 
+    public byte biting(byte a, byte b, boolean s) {
+        if (s) {
+            return a;
+        } else {
+            return b;
+        }
+    }
+
     // should cover 100%
     public static void diff(int a) {
         a = Math.abs(a);

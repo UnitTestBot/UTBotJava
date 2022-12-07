@@ -49,39 +49,32 @@ suspend fun runJavaFuzzing(
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
     val classUnderTest = methodUnderTest.classId
-    val thisInstance = with(methodUnderTest) {
-        if (!isStatic && !isConstructor) {
-            classUnderTest
-        } else {
-            null
-        }
-    }
     val name = methodUnderTest.classId.simpleName + "." + methodUnderTest.name
     val returnType = methodUnderTest.returnType
-    val parameters = listOfNotNull(thisInstance) + methodUnderTest.parameters
+    val parameters = methodUnderTest.parameters
 
     /**
      * To fuzz this instance the class of it is added into head of parameters list.
      * Done for compatibility with old fuzzer logic and should be reworked more robust way.
      */
-    fun createFuzzedMethodDescription(thisInstance: ClassId?) = FuzzedMethodDescription(
-        name, returnType, parameters, constants
+    fun createFuzzedMethodDescription(self: ClassId?) = FuzzedMethodDescription(
+        name, returnType, listOfNotNull(self) + parameters, constants
     ).apply {
         compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
         className = classUnderTest.simpleName
         packageName = classUnderTest.packageName
         parameterNameMap = { index ->
             when {
-                thisInstance != null && index == 0 -> "this"
-                thisInstance != null -> names.getOrNull(index - 1)
+                self != null && index == 0 -> "this"
+                self != null -> names.getOrNull(index - 1)
                 else -> names.getOrNull(index)
             }
         }
         fuzzerType = {
             try {
                 when {
-                    thisInstance != null && it == 0 -> toFuzzerType(methodUnderTest.executable.declaringClass)
-                    thisInstance != null -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it - 1])
+                    self != null && it == 0 -> toFuzzerType(methodUnderTest.executable.declaringClass)
+                    self != null -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it - 1])
                     else -> toFuzzerType(methodUnderTest.executable.genericParameterTypes[it])
                 }
             } catch (_: Throwable) {
@@ -91,12 +84,15 @@ suspend fun runJavaFuzzing(
         shouldMock = mock
     }
 
+    val thisInstance = with(methodUnderTest) {
+        if (!isStatic && !isConstructor) { classUnderTest } else { null }
+    }
     val tracer = Trie(Instruction::id)
     val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer)
     val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer)
-    BaseFuzzing(providers) { d, t ->
+    BaseFuzzing(providers) { _, t ->
         if (thisInstance == null) {
-            exec(null, d, t)
+            exec(null, descriptionWithOnlyParameters, t)
         } else {
             exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
         }

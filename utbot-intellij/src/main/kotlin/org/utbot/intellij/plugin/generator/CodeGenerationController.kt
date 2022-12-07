@@ -93,12 +93,11 @@ import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.assertIsDispatchThread
 import org.utbot.intellij.plugin.util.assertIsWriteThread
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
-import org.utbot.sarif.Sarif
-import org.utbot.sarif.SarifReport
 import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import org.utbot.sarif.*
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -219,7 +218,7 @@ object CodeGenerationController {
             return
         }
         UnitTestBotInspectionManager
-            .getInstance(model.project, srcClassPathToSarifReport)
+            .getInstance(model.project, SarifReport.minimizeSarifResults(srcClassPathToSarifReport))
             .createNewGlobalContext()
             .doInspections(AnalysisScope(model.project))
     }

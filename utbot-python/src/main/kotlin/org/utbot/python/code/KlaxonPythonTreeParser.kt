@@ -71,19 +71,19 @@ class KlaxonPythonTreeParser(
             id,
             PythonClassId(value.string("type")!!),
             PythonClassId(value.string("constructor")!!),
-            parsePythonList(value.array("args")!!).items,
+            parsePythonList(value.array("args")!!).children,
         )
         memory[id] = initObject
         initObject.state = parsePythonDict(value.array("state")!!).items.map {
             (it.key as PythonTree.PrimitiveNode).repr to it.value
         }.toMap()
-        initObject.listitems = parsePythonList(value.array("listitems")!!).items
+        initObject.listitems = parsePythonList(value.array("listitems")!!).children
         initObject.dictitems = parsePythonDict(value.array("dictitems")!!).items
         return initObject
     }
 
     private fun parsePythonList(items: JsonArray<JsonObject>): PythonTree.ListNode {
-        return PythonTree.ListNode(items.map { parseToPythonTree(it) })
+        return PythonTree.ListNode(items.mapIndexed { index, jsonObject -> index to parseToPythonTree(jsonObject) }.toMap().toMutableMap())
     }
 
     private fun parsePythonSet(items: JsonArray<JsonObject>): PythonTree.SetNode {
@@ -91,7 +91,7 @@ class KlaxonPythonTreeParser(
     }
 
     private fun parsePythonTuple(items: JsonArray<JsonObject>): PythonTree.TupleNode {
-        return PythonTree.TupleNode(items.map { parseToPythonTree(it) })
+        return PythonTree.TupleNode(items.mapIndexed { index, jsonObject -> index to parseToPythonTree(jsonObject) }.toMap().toMutableMap())
     }
 
     private fun parsePythonDict(items: JsonArray<JsonArray<Any>>): PythonTree.DictNode {
@@ -106,7 +106,7 @@ class KlaxonPythonTreeParser(
                         )
                     else
                         parseToPythonTree(key as JsonObject)
-            ) to parseToPythonTree(value)
+                    ) to parseToPythonTree(value)
         })
     }
 }

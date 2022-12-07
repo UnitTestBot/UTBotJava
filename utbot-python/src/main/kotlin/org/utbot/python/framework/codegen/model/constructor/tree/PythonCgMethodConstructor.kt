@@ -92,13 +92,13 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
             is PythonTree.ListNode -> {
                 CgPythonList(
-                    objectNode.items.map { pythonBuildObject(it) }
+                    objectNode.items.values.map { pythonBuildObject(it) }
                 )
             }
 
             is PythonTree.TupleNode -> {
                 CgPythonTuple(
-                    objectNode.items.map { pythonBuildObject(it) }
+                    objectNode.items.values.map { pythonBuildObject(it) }
                 )
             }
 
@@ -220,8 +220,8 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         keyName: String = "index",
     ) {
         val elements = when (expectedNode) {
-            is PythonTree.ListNode -> expectedNode.items
-            is PythonTree.TupleNode -> expectedNode.items
+            is PythonTree.ListNode -> expectedNode.items.values
+            is PythonTree.TupleNode -> expectedNode.items.values
             is PythonTree.DictNode -> expectedNode.items.values
             else -> throw UnsupportedOperationException()
         }

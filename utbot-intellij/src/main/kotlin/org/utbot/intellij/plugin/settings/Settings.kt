@@ -54,7 +54,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
         @OptionTag(converter = HangingTestsTimeoutConverter::class)
         var hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
-        var runInspectionAfterTestGeneration: Boolean = false,
+        var runInspectionAfterTestGeneration: Boolean = true,
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,

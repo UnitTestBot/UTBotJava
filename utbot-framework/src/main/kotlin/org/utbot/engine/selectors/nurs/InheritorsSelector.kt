@@ -22,6 +22,10 @@ class InheritorsSelector(
 
     override val ExecutionState.cost: Double
         get() {
+            if (this.exception != null) {
+                return 0.0
+            }
+
             val distance = choosingStrategy.distanceToUncovered(this).let { d ->
                 if (!edges.all { choosingStrategy.isCovered(it) }) {
                     pathLength.toDouble() / (edges.size + 1)

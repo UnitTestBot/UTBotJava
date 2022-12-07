@@ -274,18 +274,36 @@ data class Query(
             .simplify(newEqs, newLts, newGts)
             .toPersistentSet()
 
-        val diffHard = newHard - this.hard
+
+        // Note that it is not that important to have collisions here, but
+        // if we write `newHard - this.hard`, it causes significand performance
+        // issues because of `contains` operation for Set<UtBootExpr>
+        val diffHard = findNotAddedConstraints(newHard, this.hard)
 
         return Query(
-            newHard,
-            newSoft,
-            newAssumptions,
+            newHard, newSoft, newAssumptions,
             status.checkFastSatAndReturnStatus(diffHard),
             lastAdded = diffHard,
-            newEqs,
-            newLts,
-            newGts
+            newEqs, newLts, newGts
         )
+    }
+
+    private fun findNotAddedConstraints(
+        newHard: PersistentSet<UtBoolExpression>,
+        hard: PersistentSet<UtBoolExpression>
+    ): MutableSet<UtBoolExpression> {
+        val result = hashSetOf<UtBoolExpression>()
+
+        val newHardHashCode = newHard.associateBy { it.hashCode() }
+        val hardHashCode = hard.associateBy { it.hashCode() }
+
+        newHardHashCode.forEach { (hash, expr) ->
+            if (hash !in hardHashCode.keys) {
+                result += expr
+            }
+        }
+
+        return result
     }
 
     /**

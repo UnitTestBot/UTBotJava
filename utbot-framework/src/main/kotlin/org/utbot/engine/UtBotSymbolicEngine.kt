@@ -308,8 +308,10 @@ class UtBotSymbolicEngine(
 
                 stateSelectedCount++
                 pathLogger.trace {
+                    // Note: this log might cause performance degradation due to usage of `queue()` method
+                    // that might work in linear time
                     "traverse<$methodUnderTest>: choosing next state($stateSelectedCount), " +
-                            "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}"
+                            "queue size=${pathSelector.queue().size}"
                 }
 
                 if (useConcreteExecution && (controller.executeConcretely || statesForConcreteExecution.isNotEmpty())) {

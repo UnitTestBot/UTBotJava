@@ -519,6 +519,11 @@ object UtSettings : AbstractSettings(
      */
     var useTaintAnalysisMode by getBooleanProperty(false)
 
+    /**
+     * Determines whether we should log information about taint that were not expected.
+     */
+    var logDroppedTaintStates by getBooleanProperty(false)
+
     init {
         turnOnAnalysisModes()
     }
@@ -538,7 +543,6 @@ enum class AnalysisMode(private val triggerOption: KMutableProperty0<Boolean>) {
                 useSandbox = false
                 callDepthToMock = taintAnalysisCallDepthToMock
                 loopStepsLimit = taintLoopStepsLimit
-                pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
             }
     };
 

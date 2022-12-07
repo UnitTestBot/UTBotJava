@@ -508,8 +508,10 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         val result = path.firstOrNull { it in suitableSources.keys }
 
         if (result == null) {
-            logger.warn {
-                "UtBot found unexpected taint error on instruction $sink ignored due to filtering mode"
+            if (UtSettings.logDroppedTaintStates) {
+                logger.warn {
+                    "UtBot found unexpected taint error on instruction $sink ignored due to filtering mode"
+                }
             }
         }
 

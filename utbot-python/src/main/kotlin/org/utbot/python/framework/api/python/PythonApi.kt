@@ -60,7 +60,7 @@ class PythonTreeModel(
     override val allContainingClassIds: Set<PythonClassId>
         get() {
             val children = tree.children.map { PythonTreeModel(it, it.type) }
-            return super.allContainingClassIds + children.flatMap { it.allContainingClassIds }
+            return super.allContainingClassIds + children.filter {it.tree != tree}.flatMap { it.allContainingClassIds }
         }
 }
 

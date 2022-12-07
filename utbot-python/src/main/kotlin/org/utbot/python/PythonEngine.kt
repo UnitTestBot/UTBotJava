@@ -1,8 +1,11 @@
 package org.utbot.python
 
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.isActive
+import kotlinx.coroutines.isActive
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.*
@@ -244,6 +247,9 @@ class PythonEngine(
                 evaluationInput.modelList
             )
 
+            if (!currentCoroutineContext().isActive) {
+                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+            }
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
                     if (evaluationResult.status != 0) {

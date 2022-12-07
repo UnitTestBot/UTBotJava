@@ -58,7 +58,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
         }
     }
 
-    fun pythonBuildObject2(objectNode: PythonTree.PythonTreeNode): Pair<CgValue, List<CgStatement>> {
+    private fun pythonBuildObject2(objectNode: PythonTree.PythonTreeNode): Pair<CgValue, List<CgStatement>> {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 Pair(CgLiteral(objectNode.type, objectNode.repr), emptyList())

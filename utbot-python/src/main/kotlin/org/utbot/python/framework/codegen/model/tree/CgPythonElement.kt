@@ -26,6 +26,7 @@ interface CgPythonElement : CgElement {
                 is CgPythonSet -> visitor.visit(element)
                 is CgPythonDict -> visitor.visit(element)
                 is CgPythonTuple -> visitor.visit(element)
+                is CgPythonTree -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
         } else {
@@ -37,7 +38,19 @@ interface CgPythonElement : CgElement {
 class CgPythonTree(
     override val type: ClassId,
     val tree: PythonTree.PythonTreeNode
-) : CgValue, CgPythonElement
+) : CgValue, CgPythonElement {
+    fun getChildren(): List<CgPythonTree> {
+        return tree.children.map { CgPythonTree(it.type, it) }
+    }
+    fun getDictChildren(): Map<CgPythonTree, CgPythonTree> {
+        if (tree is PythonTree.DictNode) {
+            return tree.items.map { CgPythonTree(it.key.type, it.key) to CgPythonTree(it.value.type, it.value) }.toMap()
+        } else {
+            throw IllegalArgumentException("$tree is not a dict")
+        }
+
+    }
+}
 
 class CgPythonRepr(
     override val type: ClassId,

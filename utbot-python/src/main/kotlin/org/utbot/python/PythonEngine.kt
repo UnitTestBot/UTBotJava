@@ -12,9 +12,9 @@ import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.fuzzing.PythonFeedbackNew
+import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzing
-import org.utbot.python.fuzzing.PythonMethodDescriptionNew
+import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.providers.PythonFuzzedMethodDescription
 import org.utbot.python.providers.defaultPythonModelProvider
@@ -148,7 +148,7 @@ class PythonEngine(
     private fun handleSuccessResultNew(
         types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
-        methodUnderTestDescription: PythonMethodDescriptionNew,
+        methodUnderTestDescription: PythonMethodDescription,
         jobResult: JobResult
     ): UtResult {
         val (resultJSON, isException, coverage) = evaluationResult
@@ -204,7 +204,7 @@ class PythonEngine(
             getModulesFromAnnotation(it)
         }.toSet()
 
-        val pmd = PythonMethodDescriptionNew(
+        val pmd = PythonMethodDescription(
             methodUnderTest.name,
             parameters,
             emptyList()
@@ -278,9 +278,9 @@ class PythonEngine(
             val coveredAfter = coveredLines.size
 
             if (coveredAfter == coveredBefore)
-                return@PythonFuzzing PythonFeedbackNew(control = Control.STOP)
+                return@PythonFuzzing PythonFeedback(control = Control.STOP)
 
-            return@PythonFuzzing PythonFeedbackNew(control = Control.PASS)
+            return@PythonFuzzing PythonFeedback(control = Control.PASS)
 
         }.fuzz(pmd)
     }

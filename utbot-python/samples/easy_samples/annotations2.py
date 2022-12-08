@@ -59,3 +59,13 @@ def set_1(x: Set[int]):
 
 def any_1(x: Any):
     return x
+
+
+class Node:
+    def __init__(self, name: str):
+        self.name = name
+        self.children = []
+
+
+def reduce_1(x: Node):
+    return x.name

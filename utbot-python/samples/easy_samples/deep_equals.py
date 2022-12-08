@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import List
 
 
 class ComparableClass:
@@ -42,6 +44,9 @@ def bad_list(length: int):
 
 
 class Node:
+    name: str
+    children: List[Node]
+
     def __init__(self, name: str):
         self.name = name
         self.children = []

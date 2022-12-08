@@ -27,9 +27,10 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgMethodConstructor
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
-import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariableConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
 import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
@@ -92,9 +93,7 @@ class PythonCodeGenerator(
         fileForOutputName: String,
         coverageDatabasePath: String,
     ): String {
-        val cgRendererContext = CgRendererContext.fromCgContext(context)
-        val printer = CgPrinterImpl()
-        val renderer = CgPythonRenderer(cgRendererContext, printer)
+        val renderer = CgAbstractRenderer.makeRenderer(context) as CgPythonRenderer
 
         val executorFunctionName = "run_calculate_function_value"
         val executorModuleName = "utbot_executor.executor"
@@ -118,9 +117,10 @@ class PythonCodeGenerator(
         }
 
         val parameters = methodArguments.zip(arguments).map { (model, argument) ->
+            val obj = (context.cgLanguageAssistant.getMethodConstructorBy(context) as PythonCgMethodConstructor).pythonBuildObject((model as PythonTreeModel).tree)
             CgAssignment(
                 argument,
-                PythonCgVariableConstructor(context).getOrCreateVariable(model)
+                obj
             )
         }
 

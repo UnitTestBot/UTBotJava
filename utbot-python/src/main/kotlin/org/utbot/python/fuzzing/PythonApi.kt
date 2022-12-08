@@ -15,6 +15,7 @@ import org.utbot.python.fuzzing.provider.FloatValueProvider
 import org.utbot.python.fuzzing.provider.IntValueProvider
 import org.utbot.python.fuzzing.provider.ListValueProvider
 import org.utbot.python.fuzzing.provider.NoneValueProvider
+import org.utbot.python.fuzzing.provider.ReduceValueProvider
 import org.utbot.python.fuzzing.provider.SetValueProvider
 import org.utbot.python.fuzzing.provider.StrValueProvider
 import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
@@ -59,7 +60,7 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     TupleValueProvider,
     TupleFixSizeValueProvider,
     UnionValueProvider,
-//    ReduceValueProvider(idGenerator)
+    ReduceValueProvider(idGenerator)
 )
 
 class PythonFuzzing(

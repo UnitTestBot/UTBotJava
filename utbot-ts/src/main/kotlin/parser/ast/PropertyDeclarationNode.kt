@@ -15,7 +15,11 @@ class PropertyDeclarationNode(
 
     val name: String = obj.getObject("name").getString("escapedText")
 
-    val type = obj.getObject("type").getTypeNode(parent)
+    val type = try {
+        obj.getObject("type").getTypeNode(this)
+    } catch(e: Exception) {
+        BaseTypeNode(obj = obj, typeLiteral = "Debug", parent = this)
+    }
 
     private val modifiers = obj.getArrayAsList("modifiers").map { it.getKind() }
 

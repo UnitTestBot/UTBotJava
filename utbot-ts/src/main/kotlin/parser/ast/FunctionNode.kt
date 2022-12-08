@@ -1,6 +1,6 @@
 package parser.ast
 
-abstract class FunctionNode(): AstNode() {
+abstract class FunctionNode : AstNode() {
 
     abstract val name: Lazy<String>
 

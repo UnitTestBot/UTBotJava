@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import parser.ast.ClassDeclarationNode
+import parser.ast.PropertyDeclarationNode
 import settings.TsTestGenerationSettings.fileUnderTestAliases
 import settings.TsTestGenerationSettings.tempFileName
 import utils.TsPathResolver
@@ -26,11 +27,11 @@ class TsCoverageServiceProvider(
     private val importsSection = buildImportSection()
 
     private fun buildImportSection(): String {
-        val fileUnderTestImport = buildImportStatement(
+        val fileUnderTestImport = buildAllImport(
             fileUnderTestAliases,
             "./instr/${context.filePathToInference.substringAfterLast("/")}"
         )
-        val fsImport = buildImportStatement("fs", "fs")
+        val fsImport = buildAllImport("fs", "fs")
         val otherImports = context.imports.map { import ->
             val relPath = TsPathResolver.getRelativePath(
                 "${context.projectPath}/${context.utbotDir}",
@@ -39,7 +40,30 @@ class TsCoverageServiceProvider(
             buildImportStatement(import.alias, relPath)
         }
         return buildString {
+            if (context.settings.workMode == TsWorkMode.EXPERIMENTAL) {
+                val relPathToGodObject = TsPathResolver.getRelativePath(
+                    "${context.projectPath}/${context.utbotDir}",
+                    context.settings.godObject!!.substringBeforeLast(".")
+                ).replace("\\", "/")
+                append(
+                    buildImportStatement(
+                        context.settings.godObject.substringAfterLast("."),
+                        relPathToGodObject
+                    )
+                )
+                val relPathToDumpFunction = TsPathResolver.getRelativePath(
+                    "${context.projectPath}/${context.utbotDir}",
+                    context.settings.dumpFunction!!.substringBeforeLast(".")
+                ).replace("\\", "/")
+                append(
+                    buildImportStatement(
+                        context.settings.dumpFunction.substringAfterLast("."),
+                        relPathToDumpFunction
+                    )
+                )
+            }
             append(fileUnderTestImport)
+            append("// @ts-ignore\n")
             append(fsImport)
             otherImports.forEach {
                 append(it)
@@ -49,7 +73,10 @@ class TsCoverageServiceProvider(
     }
 
     private fun buildImportStatement(alias: String, path: String): String =
-        "const $alias = require(\"$path\")\n"
+        "import { $alias } from \"${path.removeSuffix(".ts")}\";\n"
+
+    private fun buildAllImport(alias: String, path: String): String =
+        "import * as $alias from \"${path.removeSuffix(".ts")}\";\n"
 
     private fun makeConfigFile(projectPath: String, tsNycPath: String) {
         val configFile = File("$projectPath/.nycrc.json")
@@ -62,17 +89,19 @@ class TsCoverageServiceProvider(
     }
 
     fun get(
-        mode: TsCoverageMode,
+        coverageMode: TsCoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: TsMethodId,
-        classNode: ClassDeclarationNode?
+        classNode: ClassDeclarationNode?,
+        statics: Set<PropertyDeclarationNode> = emptySet()
     ): Pair<List<Set<Int>>, List<String>> {
-        return when (mode) {
+        return when (coverageMode) {
             TsCoverageMode.FAST -> runFastCoverageAnalysis(
                 context,
                 fuzzedValues,
                 execId,
-                classNode
+                classNode,
+                statics
             )
 
             TsCoverageMode.BASIC -> runBasicCoverageAnalysis(
@@ -102,7 +131,7 @@ class TsCoverageServiceProvider(
                     ))
                     appendLine(buildImportStatement("fs", "fs"))
                 }
-                importSection + makeStringForRunJs(
+                importSection + makeStringForRunTs(
                     fuzzedValue = fuzzedValues[it],
                     method = execId,
                     containingClass = classNode?.name,
@@ -125,18 +154,33 @@ class TsCoverageServiceProvider(
         fuzzedValues: List<List<FuzzedValue>>,
         execId: TsMethodId,
         classNode: ClassDeclarationNode?,
+        statics: Set<PropertyDeclarationNode>
     ): Pair<List<Set<Int>>, List<String>> {
         val covFunName = TsFastCoverageService.instrument(context)
         val tempScriptTexts = fuzzedValues.indices.map {
-            makeStringForRunJs(
-                fuzzedValue = fuzzedValues[it],
-                method = execId,
-                containingClass = classNode?.name,
-                covFunName = covFunName,
-                index = it,
-                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
-                mode = TsCoverageMode.FAST
-            )
+            when (context.settings.workMode) {
+                TsWorkMode.PLANE -> makeStringForRunTs(
+                    fuzzedValue = fuzzedValues[it],
+                    method = execId,
+                    containingClass = classNode?.name,
+                    covFunName = covFunName,
+                    index = it,
+                    resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
+                    mode = TsCoverageMode.FAST
+                )
+                else -> makeStringForRunExperimentalTs(
+                    fuzzedValue = fuzzedValues[it],
+                    method = execId,
+                    containingClass = classNode?.name,
+                    covFunName = covFunName,
+                    index = it,
+                    resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
+                    mode = TsCoverageMode.FAST,
+                    godObjectName = context.settings.godObject!!.substringAfterLast("."),
+                    dumpFunctionName = context.settings.dumpFunction!!.substringAfterLast("."),
+                    statics = statics
+                )
+            }
         }
         val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${context.projectPath}/${context.utbotDir}/${tempFileName}Base.json")
         val coverageService = TsFastCoverageService(
@@ -178,7 +222,49 @@ json.s = $fileUnderTestAliases.$covFunName().s
 fs.writeFileSync("$resFilePath", JSON.stringify(json))
         """
 
-    private fun makeStringForRunJs(
+    private fun makeStringForRunExperimentalTs(
+        fuzzedValue: List<FuzzedValue>,
+        method: TsMethodId,
+        containingClass: String?,
+        covFunName: String = "",
+        index: Int,
+        resFilePath: String,
+        mode: TsCoverageMode,
+        godObjectName: String,
+        dumpFunctionName: String,
+        statics: Set<PropertyDeclarationNode>
+    ): String =
+        """
+let json$index = {}
+
+let res$index
+try {
+    ${buildStaticsSection(fuzzedValue, statics, godObjectName)}
+    res$index = $dumpFunctionName(${makeCallFunctionString(emptyList(), method, containingClass)})
+} catch(e) {
+    // @ts-ignore
+    res$index = "Error:" + e.message
+}
+${
+"// @ts-ignore\n" +
+"json$index.result = res$index\n" +
+"// @ts-ignore\n" +
+if (mode == TsCoverageMode.FAST ) "json$index.index = $index\n" +
+"// @ts-ignore\n" +
+"json$index.s = $fileUnderTestAliases.$covFunName().s\n" else ""
+}            
+fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
+        """
+
+    private fun buildStaticsSection(fuzzedValue: List<FuzzedValue>, statics: Set<PropertyDeclarationNode>, name: String): String {
+        return buildString {
+            statics.forEachIndexed { index, node ->
+                appendLine("$name.${node.name} = ${fuzzedValue[index].model.toCallString()}")
+            }
+        }
+    }
+
+    private fun makeStringForRunTs(
         fuzzedValue: List<FuzzedValue>,
         method: TsMethodId,
         containingClass: String?,
@@ -219,7 +305,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             } else "$fileUnderTestAliases.$it."
         } ?: "$fileUnderTestAliases."
         var callString = "$initClass${method.name}"
-        callString += fuzzedValue.joinToString(
+        if (context.settings.workMode == TsWorkMode.PLANE) callString += fuzzedValue.joinToString(
             prefix = "(",
             postfix = ")",
         ) { value -> value.model.toCallString() }

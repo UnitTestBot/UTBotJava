@@ -26,7 +26,6 @@ object TsParserUtils {
 
     private lateinit var syntaxKind: V8Object
     private lateinit var parser: TsParser
-    lateinit var astScrapper: TSAstScrapper
 
     /*
         I dislike this function, but it removes typescript V8Object from the parser API, and we don't
@@ -35,7 +34,6 @@ object TsParserUtils {
     fun initParserUtils(ts: V8Object, tsParser: TsParser) {
         syntaxKind = ts.getObject("SyntaxKind")
         parser = tsParser
-        astScrapper = TSAstScrapper()
     }
 
     @Suppress("NAME_SHADOWING")

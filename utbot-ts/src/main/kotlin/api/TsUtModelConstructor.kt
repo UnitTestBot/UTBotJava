@@ -13,8 +13,9 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
+import settings.TsDynamicSettings
 
-class TsUtModelConstructor : UtModelConstructorInterface {
+class TsUtModelConstructor(settings: TsDynamicSettings) : UtModelConstructorInterface {
 
     // TODO SEVERE: Requires substantial expansion to other types
     @Suppress("NAME_SHADOWING")

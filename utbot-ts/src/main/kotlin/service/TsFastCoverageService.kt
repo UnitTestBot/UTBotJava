@@ -52,7 +52,7 @@ class TsFastCoverageService(
         private fun fixImportsInInstrumentedFile(filePath: String, context: TsServiceContext): String {
             with(context) {
                 // nyc poorly handles imports paths in file to instrument. Manual fix required.
-                val importRegex = Regex("import\\{.*}from\"(.*)\"")
+                val importRegex = Regex("import\\{.*?}from\"(.*?)\";")
                 val fileText = File(filePath).readText()
                 val newFileText = importRegex.findAll(fileText).fold(fileText) { acc, it ->
                     val importRange = it.groups[1]?.range ?: throw IllegalStateException()
@@ -61,13 +61,13 @@ class TsFastCoverageService(
                         "${projectPath}/${utbotDir}/instr",
                         File(filePathToInference).parent
                     )).resolve(importValue).pathString.replace("\\", "/")
-                    val newFileText = acc.replaceRange(importRange, relPath)
+                    val newFileText = acc.replace(importValue, relPath)
                     newFileText
                 }
                 val covFunRegex = Regex("function (cov_.*)\\(\\).*")
                 val covFunName = covFunRegex.find(newFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
                     ?: throw IllegalStateException("No coverage function was found in instrumented source file!")
-                val fixedFileText = "$newFileText\nexports.$covFunName = $covFunName"
+                val fixedFileText = "export $newFileText"
                 File(filePath).writeText(fixedFileText)
                 return covFunName
             }
@@ -136,15 +136,15 @@ class TsFastCoverageService(
     }
 
     private fun removeTempFiles() {
-        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
-        File("$utbotDirPath/${tempFileName}Base.ts").delete()
-        File("$utbotDirPath/${tempFileName}Base.json").delete()
-        for (index in testCaseIndices) {
-            File("$utbotDirPath/$tempFileName$index.json").delete()
-        }
-        for (index in scriptTexts.indices) {
-            File("$utbotDirPath/$tempFileName$index.ts").delete()
-        }
+//        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
+//        File("$utbotDirPath/${tempFileName}Base.ts").delete()
+//        File("$utbotDirPath/${tempFileName}Base.json").delete()
+//        for (index in testCaseIndices) {
+//            File("$utbotDirPath/$tempFileName$index.json").delete()
+//        }
+//        for (index in scriptTexts.indices) {
+//            File("$utbotDirPath/$tempFileName$index.ts").delete()
+//        }
     }
 
 

@@ -21,5 +21,5 @@ class FunctionDeclarationNode(
     override val body = obj.getObject("body").getArrayAsList("statements")
         .map { it.getAstNodeByKind(this) }
 
-    override val returnType: Lazy<TypeNode> = lazy { CustomTypeNode(obj, parent = this, typeLiteral = name.value) }
+    override val returnType: Lazy<TypeNode> = lazy { obj.getObject("type").getTypeNode(this) }
 }

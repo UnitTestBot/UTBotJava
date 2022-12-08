@@ -9,6 +9,7 @@ import parser.ast.BaseTypeNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.CustomTypeNode
 import parser.ast.FunctionNode
+import parser.ast.FunctionTypeNode
 import parser.ast.TypeNode
 import service.TsServiceContext
 
@@ -83,8 +84,12 @@ fun TypeNode.makeTsClassIdFromType(serviceContext: TsServiceContext): TsClassId 
                     classNode = it,
                     serviceContext = serviceContext
                 )
-            } ?: throw IllegalStateException("Could not build instance of ${stringTypeName}")
+            } ?: run {
+                val kek = 1
+                throw IllegalStateException("Could not build instance of $stringTypeName")
+            }
         }
-        else -> throw IllegalStateException("")
+        is FunctionTypeNode -> TsClassId(stringTypeName)
+        else -> throw IllegalStateException(this.stringTypeName)
     }
 }

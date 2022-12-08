@@ -5,6 +5,7 @@ import java.io.File
 import java.nio.file.Paths
 import parser.TsParser
 import parser.ast.AstNode
+import parser.ast.EmptyNode
 import parser.ast.ImportDeclarationNode
 
 class TsImportsAstVisitor(
@@ -47,8 +48,11 @@ class TsImportsAstVisitor(
             classAstVisitor.accept(this)
             classAstVisitor.targetClassNode
         } catch (e: Exception) {
-            val functionAstVisitor = TsFunctionAstVisitor(key, null)
-            functionAstVisitor.accept(this)
-            functionAstVisitor.targetFunctionNode
+            try {
+                val functionAstVisitor = TsFunctionAstVisitor(key, null)
+                functionAstVisitor.accept(this)
+                functionAstVisitor.targetFunctionNode
+                // TODO: support enums, interfaces, etc.
+            } catch (ee: Exception) { EmptyNode() }
         }
 }

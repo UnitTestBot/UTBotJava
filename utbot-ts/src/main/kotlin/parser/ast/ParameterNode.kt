@@ -11,7 +11,14 @@ class ParameterNode(
 
     override val children = obj.getChildren().map { it.getAstNodeByKind(this) }
 
-    val type = obj.getObject("type").getTypeNode(this)
+    // Implemented not to fail with "keyof typeof" constructions
+    // TODO: Research type operators and support them.
+    val type = try {
+        obj.getObject("type").getTypeNode(this)
+    } catch(e: Exception) {
+        BaseTypeNode(obj = obj, typeLiteral = "Debug", parent = this)
+    }
+
 
     val name: String = obj.getObject("name").getString("escapedText")
 }

@@ -31,16 +31,22 @@ class PropertyAccessExpressionNode(
             )
         }
         val newList = when {
-
-            currentObj.getObject("expression").contains("escapedText") -> listOf(
+            currentObj.contains("expression") && currentObj.getObject("expression")
+                .contains("escapedText") -> listOf(
                 currentObj.getObject("expression").getString("escapedText"),
                 *acc.toTypedArray()
             )
-            else -> listOf(
-                currentObj.getObject("name").getString("escapedText"),
-                *acc.toTypedArray()
-            )
+
+            else -> acc
+        } + run {
+            if (currentObj.contains("name")) {
+                listOf(currentObj.getObject("name").getString("escapedText"))
+            } else emptyList<String>()
         }
+        if (currentObj.contains("expression") && currentObj.getObject("expression")
+                .contains("escapedText")
+        ) return newList
+
         return buildAccessChain(currentObj.getObject("expression"), newList)
     }
 }

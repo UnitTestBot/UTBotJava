@@ -9,11 +9,12 @@ import parser.visitors.AbstractAstVisitor
 import parser.visitors.TsClassAstVisitor
 import parser.visitors.TsFunctionAstVisitor
 
-class TSAstScrapper {
+class TSAstScrapper(private val parsedFile: AstNode) {
 
     fun findFunction(key: String): FunctionDeclarationNode? {
         if (importsMap[key] is FunctionDeclarationNode) return importsMap[key] as FunctionDeclarationNode
         val functionVisitor = TsFunctionAstVisitor(key, null)
+        functionVisitor.accept(parsedFile)
         return try {
             functionVisitor.targetFunctionNode as FunctionDeclarationNode
         } catch(e: Exception) { null }
@@ -23,6 +24,7 @@ class TSAstScrapper {
     fun findClass(key: String): ClassDeclarationNode? {
         if (importsMap[key] is ClassDeclarationNode) return importsMap[key] as ClassDeclarationNode
         val classVisitor = TsClassAstVisitor(key)
+        classVisitor.accept(parsedFile)
         return try {
             classVisitor.targetClassNode
         } catch (e: Exception) { null }
@@ -35,6 +37,7 @@ class TSAstScrapper {
 
     private val importsMap = run {
         val visitor = Visitor()
+        visitor.accept(parsedFile)
         visitor.importNodes.fold(emptyMap<String, AstNode>()) { acc, node ->
             mapOf(*acc.toList().toTypedArray(), *node.importedNodes.toList().toTypedArray())
         }

@@ -4,6 +4,7 @@ import codegen.TsCodeGenerator
 import framework.api.ts.TsClassId
 import framework.api.ts.TsMethodId
 import framework.api.ts.util.tsErrorClassId
+import framework.api.ts.util.tsStringClassId
 import fuzzer.TsFuzzer
 import fuzzer.providers.TsObjectModelProvider
 import java.io.File
@@ -23,11 +24,13 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
+import parser.TSAstScrapper
 import parser.TsParser
 import parser.TsParserUtils
 import parser.ast.AstNode
 import parser.ast.ClassDeclarationNode
 import parser.ast.FunctionNode
+import parser.ast.PropertyDeclarationNode
 import parser.visitors.TsClassAstVisitor
 import parser.visitors.TsFunctionAstVisitor
 import parser.visitors.TsFuzzerAstVisitor
@@ -35,8 +38,10 @@ import parser.visitors.TsImportsAstVisitor
 import parser.visitors.TsToplevelFunctionAstVisitor
 import service.TsCoverageServiceProvider
 import service.TsServiceContext
+import service.TsWorkMode
 import settings.TsDynamicSettings
 import utils.constructClass
+import utils.makeTsClassIdFromType
 import utils.toTsAny
 
 class TsTestGenerator(
@@ -92,13 +97,21 @@ class TsTestGenerator(
                 strict = selectedMethods?.isNotEmpty() ?: false,
                 parsedImportedFiles = importsVisitor.parsedFiles,
             )
-        TsUIProcessor().traverseCallGraph(parsedFile)
+        val statics = settings.godObject?.let { line ->
+            val pathToObjectFile = line.substringBeforeLast(".")
+            val objectName = line.substringAfterLast(".")
+            val parsedFile = tsParser.parse(File(pathToObjectFile).readText())
+            val godObject = TSAstScrapper(parsedFile).findClass(objectName) ?: throw IllegalStateException()
+            val proc = TsUIProcessor()
+            proc.traverseCallGraph(parsedFile, godObject)
+            proc.staticSet
+        }
         parentClassName = classNode?.name
         val classId = makeTsClassId(classNode, context)
         val methods = makeMethodsToTest()
         if (methods.isEmpty()) throw IllegalArgumentException("No methods to test were found!")
         methods.forEach { funcNode ->
-            makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
+            makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames, statics ?: emptySet())
         }
         val codeGen = TsCodeGenerator(
             classUnderTest = classId,
@@ -113,18 +126,20 @@ class TsTestGenerator(
         classNode: ClassDeclarationNode?,
         context: TsServiceContext,
         testSets: MutableList<CgMethodTestSet>,
-        paramNames: MutableMap<ExecutableId, List<String>>
+        paramNames: MutableMap<ExecutableId, List<String>>,
+        statics: Set<PropertyDeclarationNode>
     ) {
         val execId = classId.allMethods.find {
             it.name == funcNode.name.value
         } ?: throw IllegalStateException()
-        val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId)
+        val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId, statics, context)
         val (allCoveredStatements, executionResults) =
             TsCoverageServiceProvider(context).get(
                 settings.coverageMode,
                 fuzzedValues,
                 execId,
-                classNode
+                classNode,
+                statics
             )
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
@@ -142,7 +157,8 @@ class TsTestGenerator(
             val result =
                 getUtModelResult(
                     execId = execId,
-                    returnText = executionResults[paramIndex]
+                    returnText = executionResults[paramIndex],
+                    mode = settings.workMode
                 )
             val thisInstance = makeThisInstance(execId, classId, concreteValues)
             val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
@@ -203,10 +219,14 @@ class TsTestGenerator(
 
     private fun getUtModelResult(
         execId: TsMethodId,
-        returnText: String
+        returnText: String,
+        mode: TsWorkMode
     ): UtExecutionResult {
-        val (returnValue, valueClassId) = returnText.toTsAny(execId.returnType)
-        val result = TsUtModelConstructor().construct(returnValue, valueClassId)
+        val (returnValue, valueClassId) = when (mode) {
+            TsWorkMode.PLANE -> returnText.toTsAny(execId.returnType)
+            TsWorkMode.EXPERIMENTAL -> returnText to tsStringClassId
+        }
+        val result = TsUtModelConstructor(settings).construct(returnValue, valueClassId)
         return when (result.classId) {
             tsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
             else -> UtExecutionSuccess(result)
@@ -215,19 +235,43 @@ class TsTestGenerator(
 
     private fun runFuzzer(
         funcNode: FunctionNode,
-        execId: TsMethodId
+        execId: TsMethodId,
+        statics: Set<PropertyDeclarationNode> = emptySet(),
+        serviceContext: TsServiceContext,
     ): Pair<Set<FuzzedConcreteValue>, List<List<FuzzedValue>>> {
-        val fuzzerVisitor = TsFuzzerAstVisitor()
-        fuzzerVisitor.accept(funcNode)
-        val methodUnderTestDescription =
-            FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
-                compilableName = funcNode.name.value
-                val names = funcNode.parameters.map { it.name }
-                parameterNameMap = { index -> names.getOrNull(index) }
+        when (settings.workMode) {
+            TsWorkMode.PLANE -> {
+                val fuzzerVisitor = TsFuzzerAstVisitor()
+                fuzzerVisitor.accept(funcNode)
+                val methodUnderTestDescription =
+                    FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
+                        compilableName = funcNode.name.value
+                        val names = funcNode.parameters.map { it.name }
+                        parameterNameMap = { index -> names.getOrNull(index) }
+                    }
+                val fuzzedValues =
+                    TsFuzzer.tsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
+                return fuzzerVisitor.fuzzedConcreteValues.toSet() to fuzzedValues
             }
-        val fuzzedValues =
-            TsFuzzer.tsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
-        return fuzzerVisitor.fuzzedConcreteValues.toSet() to fuzzedValues
+            TsWorkMode.EXPERIMENTAL -> {
+                val newExecId = TsMethodId(
+                    classId = execId.classId,
+                    name = execId.name,
+                    returnType = execId.returnType,
+                    parameters = statics.map { stat -> stat.type.makeTsClassIdFromType(serviceContext) }
+                )
+                val methodUnderTestDescription =
+                    FuzzedMethodDescription(newExecId, emptySet()).apply {
+                        compilableName = funcNode.name.value
+                        val names = statics.map { it.name }
+                        parameterNameMap = { index -> names.getOrNull(index) }
+                    }
+                val fuzzedValues =
+                    TsFuzzer.tsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
+                return emptySet<FuzzedConcreteValue>() to fuzzedValues
+            }
+        }
+
     }
 
     private fun makeMethodsToTest(): List<FunctionNode> =

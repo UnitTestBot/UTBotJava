@@ -11,5 +11,6 @@ data class TsDynamicSettings (
     val tsNodePath: String = "ts-node",
     val tsModulePath: String,
     val godObject: String? = null,
-    val workMode: TsWorkMode = TsWorkMode.PLANE
+    val workMode: TsWorkMode = TsWorkMode.PLANE,
+    val dumpFunction: String? = null,
 )

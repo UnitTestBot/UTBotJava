@@ -109,6 +109,11 @@ class TsGenerateTestsCommand :
         help = "Specifies class that will be taken as god object for test generation"
     )
 
+    private val dumpFunction by option(
+        "--dump-function",
+        help = "TODO"
+    )
+
     private val workMode by option(
         "--work-mode",
         help = "Specifies the work mode for UTBot-TS. Check docs for more info."
@@ -145,6 +150,7 @@ class TsGenerateTestsCommand :
                     tsModulePath = pathToTsModule,
                     godObject = godObjectClass,
                     workMode = workMode,
+                    dumpFunction = dumpFunction,
                 )
 
             )

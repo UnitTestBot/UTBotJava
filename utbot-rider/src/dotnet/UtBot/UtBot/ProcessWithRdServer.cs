@@ -41,7 +41,7 @@ public class ProcessWithRdServer
                 var wire = new SocketWire.Server(Lifetime, scheduler, socket);
                 var serializers = new Serializers();
                 var identities = new Identities(IdKind.Server);
-                var startInfo = new ProcessStartInfo(exePath, $"{port}");
+                var startInfo = new ProcessStartInfo("dotnet", $"{exePath} {port}");
                 Protocol = new Protocol(name, serializers, identities, scheduler, wire, Lifetime);
                 scheduler.Queue(() =>
                 {
@@ -53,14 +53,10 @@ public class ProcessWithRdServer
                             blockingCollection.TryAdd(s);
                         }
                     });
-                    // VSharpModel.?
                 });
                 _process = new Process();
-                // _process.ErrorDataReceived;
-                // _process.EnableRaisingEvents;
-                // _process.
-                Lifetime.OnTermination(() => _process.Kill(entireProcessTree: true));
                 _process.StartInfo = startInfo;
+                Lifetime.OnTermination(() => _process.Kill(entireProcessTree: true));
                 if (_process.Start())
                     _process.Exited += (_, _) => _ldef.Terminate();
                 else

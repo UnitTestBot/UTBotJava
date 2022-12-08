@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Debug Instrumented Process" type="CompoundRunConfigurationType">
-    <toRun name="Run IDE" type="GradleRunConfiguration" />
+    <toRun name="Run IDEA" type="GradleRunConfiguration" />
     <toRun name="Listen for Instrumented Process" type="Remote" />
     <method v="2" />
   </configuration>

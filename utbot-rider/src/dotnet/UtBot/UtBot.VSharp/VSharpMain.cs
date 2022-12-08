@@ -21,7 +21,6 @@ public static class VSharpMain
     public static readonly string VSharpProcessName = "VSharp";
     public static void Main(string[] args)
     {
-        // TextWriter);
         using var blockingQueue = new BlockingCollection<string>(1);
         var port = int.Parse(args[0]);
         var ldef = new LifetimeDefinition();

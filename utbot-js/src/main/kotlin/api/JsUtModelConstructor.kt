@@ -1,7 +1,7 @@
 package api
 
 import fuzzer.providers.JsObjectModelProvider
-import org.utbot.framework.concrete.UtModelConstructorInterface
+import org.utbot.framework.concrete.contructors.UtModelConstructorInterface
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel

@@ -1,5 +1,10 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.concrete.constructors
 
+import java.util.Optional
+import java.util.OptionalDouble
+import java.util.OptionalInt
+import java.util.OptionalLong
+import kotlin.reflect.KFunction1
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -10,11 +15,6 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectClassId
-import java.util.Optional
-import java.util.OptionalDouble
-import java.util.OptionalInt
-import java.util.OptionalLong
-import kotlin.reflect.KFunction1
 
 
 internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase() {

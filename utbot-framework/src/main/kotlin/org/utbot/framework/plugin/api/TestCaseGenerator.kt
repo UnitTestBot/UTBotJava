@@ -27,7 +27,7 @@ import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.UtModelConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.minimization.minimizeTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id

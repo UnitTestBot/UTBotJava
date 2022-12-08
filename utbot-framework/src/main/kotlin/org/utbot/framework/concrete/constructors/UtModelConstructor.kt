@@ -1,5 +1,8 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.concrete.constructors
 
+import java.lang.reflect.Modifier
+import java.util.IdentityHashMap
+import java.util.stream.BaseStream
 import org.utbot.common.asPathToFile
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
@@ -14,7 +17,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -30,12 +32,10 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.framework.util.valueToClassId
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import java.util.stream.BaseStream
-import org.utbot.framework.plugin.api.util.utContext
 
 /**
  * Represents common interface for model constructors.

@@ -1,4 +1,4 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.concrete.constructors
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId

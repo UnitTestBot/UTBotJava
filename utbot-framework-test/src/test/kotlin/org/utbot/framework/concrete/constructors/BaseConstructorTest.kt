@@ -1,7 +1,6 @@
 package org.utbot.framework.concrete.constructors
 
 import org.utbot.engine.ValueConstructor
-import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id

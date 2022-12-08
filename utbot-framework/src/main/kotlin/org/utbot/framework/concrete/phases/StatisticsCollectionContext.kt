@@ -11,6 +11,9 @@ class StatisticsCollectionPhaseError(cause: Throwable) : PhaseError(
     cause
 )
 
+/**
+ * This phase is about collection statistics such as coverage.
+ */
 class StatisticsCollectionContext(
     private val traceHandler: TraceHandler
 ) : PhaseContext<StatisticsCollectionPhaseError> {

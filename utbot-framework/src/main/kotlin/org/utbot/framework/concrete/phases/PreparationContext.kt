@@ -11,6 +11,9 @@ class PreparationPhaseError(cause: Throwable) : PhaseError(
     cause
 )
 
+/**
+ * The responsibility of this phase is environment preparation before execution.
+ */
 class PreparationContext(
     private val traceHandler: TraceHandler
 ) : PhaseContext<PreparationPhaseError> {

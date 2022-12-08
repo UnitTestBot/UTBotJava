@@ -9,6 +9,9 @@ class PostprocessingPhaseError(cause: Throwable) : PhaseError(
     cause
 )
 
+/**
+ * The responsibility of this phase is resetting environment to the initial state.
+ */
 class PostprocessingContext : PhaseContext<PostprocessingPhaseError> {
 
     override fun wrapError(error: Throwable): PostprocessingPhaseError =

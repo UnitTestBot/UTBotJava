@@ -18,6 +18,9 @@ class ValueConstructionPhaseError(cause: Throwable) : PhaseError(
     cause
 )
 
+/**
+ * This phase of values instantiation from given models.
+ */
 class ValueConstructionContext(
     instrumentationContext: InstrumentationContext
 ) : PhaseContext<ValueConstructionPhaseError>, Closeable {

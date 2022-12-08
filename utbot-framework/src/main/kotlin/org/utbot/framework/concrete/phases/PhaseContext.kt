@@ -1,9 +1,6 @@
 package org.utbot.framework.concrete.phases
 
-abstract class PhaseError(message: String, cause: Throwable) : Exception(message, cause) {
-    override val cause: Throwable = super.cause!!
-}
-
+abstract class PhaseError(message: String, override val cause: Throwable) : Exception(message)
 interface PhaseContext<E: PhaseError> {
     fun wrapError(error: Throwable): E
 }

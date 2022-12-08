@@ -29,6 +29,9 @@ class ModelConstructionPhaseError(cause: Throwable) : PhaseError(
     cause
 )
 
+/**
+ * This phase of model construction from concrete values.
+ */
 class ModelConstructionContext(
     private val traceHandler: TraceHandler
 ) : PhaseContext<ModelConstructionPhaseError> {

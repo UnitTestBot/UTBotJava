@@ -13,6 +13,9 @@ class InvocationPhaseError(cause: Throwable) : PhaseError(
     cause
 )
 
+/**
+ * This phase is about invoking user's code using [delegateInstrumentation].
+ */
 class InvocationContext(
     private val delegateInstrumentation: Instrumentation<Result<*>>
 ) : PhaseContext<InvocationPhaseError> {

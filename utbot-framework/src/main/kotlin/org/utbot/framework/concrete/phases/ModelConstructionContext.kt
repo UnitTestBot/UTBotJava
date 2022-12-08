@@ -6,6 +6,7 @@ import org.utbot.common.withAccessibility
 import org.utbot.framework.concrete.constructors.UtCompositeModelStrategy
 import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtConcreteValue
@@ -58,11 +59,20 @@ class ModelConstructionContext(
             constructor.construct(it.value, it.clazz.id)
         }
 
-    fun constructStatics(staticFields: Set<FieldId>): Map<FieldId, UtModel> =
-        staticFields.associateWith { fieldId ->
+    fun constructStatics(
+        stateBefore: EnvironmentModels,
+        staticFields: Map<FieldId, UtConcreteValue<*>>
+    ): Map<FieldId, UtModel> =
+        staticFields.keys.associateWith { fieldId ->
             fieldId.jField.run {
                 val computedValue = withAccessibility { get(null) }
-                constructor.construct(computedValue, fieldId.type)
+                val knownModel = stateBefore.statics[fieldId]
+                val knownValue = staticFields[fieldId]?.value
+                if (knownModel != null && knownValue != null && knownValue == computedValue) {
+                    knownModel
+                } else {
+                    constructor.construct(computedValue, fieldId.type)
+                }
             }
         }
 

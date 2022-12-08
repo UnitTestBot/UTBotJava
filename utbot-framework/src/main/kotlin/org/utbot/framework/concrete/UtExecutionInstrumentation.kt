@@ -169,7 +169,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     val executionResult = convertToExecutionResult(concreteResult, returnClassId)
 
                     val stateAfterParametersWithThis = constructParameters(params)
-                    val stateAfterStatics = constructStatics(statics.keys/* + traceHandler.computePutStatics()*/)
+                    val stateAfterStatics = constructStatics(stateBefore, statics)
                     val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
                         null to stateAfterParametersWithThis
                     } else {

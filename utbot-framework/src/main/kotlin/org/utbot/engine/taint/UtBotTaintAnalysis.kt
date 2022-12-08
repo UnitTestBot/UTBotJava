@@ -324,6 +324,11 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
                     val sink = exception.taintSink
                     val source = retrieveSource(path, taintsToBeFound, sink) ?: return@collect
 
+                    (engine.pathSelector as? NewTaintPathSelector)?.let {
+                        // Mark source/sink pairs as visited
+                        it.visitedTaintPairs += NewTaintPathSelector.TaintPair(source, sink)
+                    }
+
                     taintsToBeFound[source]?.remove(sink)
                     if (taintsToBeFound[source]?.isEmpty() == true) {
                         taintsToBeFound.remove(source)

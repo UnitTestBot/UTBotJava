@@ -34,9 +34,21 @@ class NewTaintPathSelector(
 ) : BasePathSelector(choosingStrategy, stoppingStrategy) {
     private val executionQueue: PriorityQueue<StateWithWeight> = PriorityQueue(Comparator.comparingLong { it.weight!! })
     private val taintSources: Set<TaintSourceData> = taintsToBeFound.keys
+    private val taintSinks: Set<TaintSinkData> = taintsToBeFound.values.flatMapTo(mutableSetOf()) { it }
     private val callGraph: CallGraph = Scene.v().callGraph
     private val globalGraph: InterProceduralUnitGraph = InterProceduralUnitGraph(graph)
     private val alreadyPushedStateHashes: MutableSet<Int> = mutableSetOf()
+    val visitedTaintPairs: MutableSet<TaintPair> = mutableSetOf()
+
+    private val taintSourcesToVisit: Set<TaintSourceData>
+        get() =
+            taintsToBeFound.entries.filterNot {
+                val sourceWithCorrespondingSinks = it.value.map { sink ->
+                    TaintPair(it.key.stmt, sink.stmt)
+                }
+
+                visitedTaintPairs.containsAll(sourceWithCorrespondingSinks)
+            }.mapTo(mutableSetOf()) { it.key }
 
     private var counter: Int = 0
 
@@ -51,7 +63,7 @@ class NewTaintPathSelector(
 //            logQueue()
 //        }
 
-//        if (state.stmt.toString().let { "\$stack47 = virtualinvoke \$stack46.<java.lang.StringBuilder: java.lang.StringBuilder appen" in it/* || "RabbitMqDownstream" in it*/ }) {
+//        if (state.stmt.toString().let { "exchange" in it }) {
 //            pathLogger.warn {  }
 //        }
 
@@ -65,9 +77,9 @@ class NewTaintPathSelector(
             return
         }
 
-//        if (weight == 0L) {
+        if (weight == 0L) {
 //            pathLogger.warn {  }
-//        }
+        }
 
         // TODO use it instead of a simple weight?
         val weightWithLoopCoefficient = doNotRun {
@@ -100,30 +112,37 @@ class NewTaintPathSelector(
 
     private val ExecutionState.weight: Long
         get() {
-            if (exception != null) {
-                // Process exceptions first
-                return MIN_DISTANCE
-            }
-
             val distance = run {
-                val visitedTaintSources = visitedTaintSources(taintSources)
+                val remainingTaintSourcesToVisit = taintSourcesToVisit
+                val visitedTaintSources = visitedTaintSources(remainingTaintSourcesToVisit)
 
                 val targetPoints = if (visitedTaintSources.isEmpty()) {
-                    // Need to reach any of taint sources (or the closest?)
-                    taintSources.map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
+                    // Need to reach any of non fully visited (with all corresponding sinks) taint sources (or the closest?)
+                    remainingTaintSourcesToVisit.map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
                 } else {
                     // Need to reach the closest corresponding sink
-                    val correspondingSinks =
-                        taintSinksBySources(visitedTaintSources).map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
+                    val sourcesAndCorrespondingSinks = visitedTaintSources.associateWith {
+                        taintSinksBySource(it)
+                    }.entries.flatMapTo(mutableSetOf()) {
+                        it.value.map { sink -> it.key to sink }
+                    }
 
-                    // But do not reach already visited sinks
-                    val visitedStmts = path.toSet()
-                    correspondingSinks.filterNot { it.stmt in visitedStmts }
+                    // But do not reach already visited source/sink pairs
+                    sourcesAndCorrespondingSinks
+                        .filterNot { TaintPair(it.first.stmt, it.second.stmt) in visitedTaintPairs }
+                        .map { StmtWithOuterMethod(it.second.stmt, it.second.outerMethod) }
+
+
+//                    // Need to reach the closest corresponding sink
+//                    val sourcesAndCorrespondingSinks =
+//                        taintSinksBySources(visitedTaintSources).map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
+//
+//                    // But do not reach already visited sinks
+//                    val visitedStmts = path.toSet()
+//                    sourcesAndCorrespondingSinks.filterNot { it.stmt in visitedStmts }
                 }
 
-                val targetMethods = targetPoints.mapTo(mutableSetOf()) { it.method.sootMethod }
-
-                val (methodsPaths, stackElementsToReturn) = pathsToMethods(targetMethods)
+                val (methodsPaths, stackElementsToReturn) = pathsToMethods(targetPoints)
 
                 if (methodsPaths.isEmpty()) {
                     // Cannot reach target methods from the current state
@@ -229,24 +248,48 @@ class NewTaintPathSelector(
     override fun queue(): List<Pair<ExecutionState, Double>> =
         executionQueue.map { it.executionState to it.weight!!.toDouble() }.sortedBy { it.second }
 
-    private fun ExecutionState.pathsToMethods(targetMethods: Set<SootMethod>): MethodsPathWithStackElementsToReturn {
+    private fun ExecutionState.pathsToMethods(targetMethods: List<StmtWithOuterMethod>): MethodsPathWithStackElementsToReturn {
         var previousStateElements: List<ExecutionStackElement> = executionStack
 
         while (previousStateElements.isNotEmpty()) {
             val currentStackElement = previousStateElements.last()
-            val methodsPaths = currentStackElement.pathsToMethods(targetMethods)
+            val methodsPathsWithTargetStmts = currentStackElement.pathsToMethods(targetMethods)
 
-            if (methodsPaths.isNotEmpty()) {
+            if (methodsPathsWithTargetStmts.isNotEmpty()) {
                 val stackElementsToReturn = executionStack.subList(previousStateElements.size, executionStack.size)
 
                 if (stackElementsToReturn.isEmpty()) {
-                    // If we do not need to return through the executions stack, return these paths as is
-                    return MethodsPathWithStackElementsToReturn(methodsPaths, emptyList())
+                    // If we do not need to return through the executions stack, return these paths
+                    // But firstly filter out methods that already skipped target stmts
+                    methodsPathsWithTargetStmts.filter { (methodsPath, targetStmt) ->
+                        // And then check that we have not already skipped the target stmt
+
+                        val currentStmtInFirstStackElement = stackElementsToReturn.firstOrNull()?.caller ?: stmt
+                        val firstMethod = methodsPath.first()
+                        val firstMethodStmts = firstMethod.jimpleBody().units.toList()
+
+                        val currentStmtIndex = firstMethodStmts.indexOf(currentStmtInFirstStackElement)
+                        val targetStmtIndex = firstMethodStmts.indexOf(targetStmt)
+
+                        if (targetStmtIndex != -1 && currentStmtIndex > targetStmtIndex) {
+                            return@filter false
+                        }
+
+                        true
+                    }.let { filteredMethodPathsWithTargetStmts ->
+                        if (filteredMethodPathsWithTargetStmts.isNotEmpty()) {
+                            return MethodsPathWithStackElementsToReturn(
+                                filteredMethodPathsWithTargetStmts.map { it.first },
+                                emptyList()
+                            )
+                        }
+                    }
                 }
 
                 // Otherwise, we need to check that we really can achieve the first method in paths starting from the last executed stmt
-                methodsPaths.filter { methodPath ->
-                    require(methodPath.isNotEmpty()) {
+                methodsPathsWithTargetStmts.filter { methodPathWithTargetStmt ->
+                    val methodsPath = methodPathWithTargetStmt.first
+                    require(methodsPath.isNotEmpty()) {
                         "Empty methods path"
                     }
 
@@ -256,11 +299,11 @@ class NewTaintPathSelector(
                     // Traverse all stmts after the current and check whether they can reach the first method in the path
                     val methodToReturn = executionStack.getOrNull(previousStateElements.size - 1)?.method ?: lastMethod!!
 
-                    if (methodToReturn == methodPath.last()) {
+                    if (methodToReturn == methodsPath.last()) {
                         return@filter true
                     }
 
-                    val nextMethodInThePath = methodPath.getOrElse(1) { return@filter false }
+                    val nextMethodInThePath = methodsPath.getOrElse(1) { return@filter false }
 
                     val methodStmts = methodToReturn.jimpleBody().units.toList()
                     val currentStmtIndex = methodStmts.indexOf(currentStmtInFirstStackElement)
@@ -277,11 +320,28 @@ class NewTaintPathSelector(
                     }
 
                     false
-                }.let {
-                    return MethodsPathWithStackElementsToReturn(
-                        it,
-                        stackElementsToReturn
-                    )
+                }.filter { (methodsPath, targetStmt) ->
+                    // And then check that we have not already skipped the target stmt
+
+                    val currentStmtInFirstStackElement = stackElementsToReturn.firstOrNull()?.caller ?: stmt
+                    val firstMethod = methodsPath.first()
+                    val firstMethodStmts = firstMethod.jimpleBody().units.toList()
+
+                    val currentStmtIndex = firstMethodStmts.indexOf(currentStmtInFirstStackElement)
+                    val targetStmtIndex = firstMethodStmts.indexOf(targetStmt)
+
+                    if (targetStmtIndex != -1 && currentStmtIndex > targetStmtIndex) {
+                        return@filter false
+                    }
+
+                    true
+                }.let { filteredMethodPathsWithTargetStmts ->
+                    if (filteredMethodPathsWithTargetStmts.isNotEmpty()) {
+                        return MethodsPathWithStackElementsToReturn(
+                            filteredMethodPathsWithTargetStmts.map { it.first },
+                            stackElementsToReturn
+                        )
+                    }
                 }
             }
 
@@ -296,11 +356,11 @@ class NewTaintPathSelector(
         val stackElementsToReturn: List<ExecutionStackElement>
     )
 
-    private fun ExecutionStackElement.pathsToMethods(targetMethods: Set<SootMethod>): List<MethodsPath> =
+    private fun ExecutionStackElement.pathsToMethods(targetPoints: List<StmtWithOuterMethod>): List<Pair<MethodsPath, Stmt>> =
 //        runDijkstraInInterProceduralGraph(method, targetMethods)
-        runBfsInInterProceduralGraph(method, targetMethods)
+        runBfsInInterProceduralGraph(method, targetPoints)
 
-    private fun runBfsInInterProceduralGraph(start: SootMethod, targetMethods: Set<SootMethod>): List<MethodsPath> {
+    private fun runBfsInInterProceduralGraph(start: SootMethod, targetPoints: List<StmtWithOuterMethod>): List<Pair<MethodsPath, Stmt>> {
         val used = mutableMapOf<SootMethod, Boolean>()
         val distances = mutableMapOf<SootMethod, Long>()
         val parents = mutableMapOf<SootMethod, SootMethod>()
@@ -325,11 +385,13 @@ class NewTaintPathSelector(
             }
         }
 
-        return targetMethods.mapNotNull {
-            if (!used.getOrDefault(it, false)) {
+        return targetPoints.mapNotNull {
+            val sootMethod = it.method.sootMethod
+
+            if (!used.getOrDefault(sootMethod, false)) {
                 null
             } else {
-                recoverPath(it, parents)
+                recoverPath(sootMethod, parents) to it.stmt
             }
         }
     }
@@ -476,6 +538,8 @@ class NewTaintPathSelector(
 
         override fun hashCode(): Int = executionState.hashCode()
     }
+
+    data class TaintPair(val taintSourceStmt: Stmt, val taintSinkStmt: Stmt)
 
     companion object {
         const val MAX_DISTANCE: Long = Int.MAX_VALUE.toLong()

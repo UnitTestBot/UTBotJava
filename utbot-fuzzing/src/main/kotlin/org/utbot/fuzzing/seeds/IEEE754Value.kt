@@ -57,7 +57,7 @@ class IEEE754Value : KnownValue {
     }
 
     constructor(value: IEEE754Value, mutation: Mutation<KnownValue>? = null) {
-        this.vector = value.vector
+        this.vector = BitVectorValue(value.vector)
         this.mantissaSize = value.mantissaSize
         this.exponentSize = value.exponentSize
         this.lastMutation = mutation

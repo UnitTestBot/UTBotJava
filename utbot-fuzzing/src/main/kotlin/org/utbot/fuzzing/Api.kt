@@ -79,7 +79,7 @@ sealed interface Seed<TYPE, RESULT> {
      *
      * This task creates a tree of object values.
      */
-    open class Recursive<TYPE, RESULT>(
+    class Recursive<TYPE, RESULT>(
         val construct: Routine.Create<TYPE, RESULT>,
         val modify: Sequence<Routine.Call<TYPE, RESULT>> = emptySequence(),
         val empty: Routine.Empty<TYPE, RESULT>
@@ -91,7 +91,7 @@ sealed interface Seed<TYPE, RESULT> {
      * 1. Construction the collection
      * 2. Modification of the collections that depends on some number of iterations.
      */
-    open class Collection<TYPE, RESULT>(
+    class Collection<TYPE, RESULT>(
         val construct: Routine.Collection<TYPE, RESULT>,
         val modify: Routine.ForEach<TYPE, RESULT>
     ) : Seed<TYPE, RESULT>
@@ -465,7 +465,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             val mutations = resultToMutate.value.mutations()
             if (mutations.isNotEmpty()) {
                 Result.Known(
-                    mutations.random().mutate(resultToMutate.value, random, configuration),
+                    mutations.random(random).mutate(resultToMutate.value, random, configuration),
                     resultToMutate.build as KnownValue.() -> RESULT
                 )
             } else {

@@ -23,4 +23,14 @@ public class Objects {
         return false;
     }
 
+    private int data;
+
+    public static void foo(Objects a, Objects b) {
+        a.data = 1;
+        b.data = 2;
+        //noinspection ConstantValue
+        if (a.data == b.data) {
+            throw new IllegalArgumentException();
+        }
+    }
 }

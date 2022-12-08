@@ -71,7 +71,7 @@ object JavaFuzzing : Fuzzing<Class<*>, Any?, Description<Class<*>>, Feedback<Cla
         }
     }
 
-    override suspend fun run(description: Description<Class<*>>, values: List<Any?>): Feedback<Class<*>, Any?> {
+    override suspend fun handle(description: Description<Class<*>>, values: List<Any?>): Feedback<Class<*>, Any?> {
         println(values.joinToString {
             when (it) {
                 is BooleanArray -> it.contentToString()

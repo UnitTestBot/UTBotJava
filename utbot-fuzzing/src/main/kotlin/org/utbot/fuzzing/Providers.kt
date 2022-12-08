@@ -1,8 +1,22 @@
 package org.utbot.fuzzing
 
 import mu.KotlinLogging
+import kotlin.random.Random
 
 private val logger by lazy { KotlinLogging.logger {} }
+
+/**
+ * Entry point to run fuzzing.
+ */
+suspend fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<TYPE, RESULT>> runFuzzing(
+    provider: ValueProvider<TYPE, RESULT, DESCRIPTION>,
+    description: DESCRIPTION,
+    random: Random = Random(0),
+    configuration: Configuration = Configuration(),
+    handle: suspend (description: DESCRIPTION, values: List<RESULT>) -> FEEDBACK
+) {
+    BaseFuzzing(listOf(provider), handle).fuzz(description, random, configuration)
+}
 
 /**
  * Implements base concepts that use providers to generate values for some types.
@@ -32,7 +46,7 @@ class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
         }
     }
 
-    override suspend fun run(description: D, values: List<R>): F {
+    override suspend fun handle(description: D, values: List<R>): F {
         return exec(description, values)
     }
 }

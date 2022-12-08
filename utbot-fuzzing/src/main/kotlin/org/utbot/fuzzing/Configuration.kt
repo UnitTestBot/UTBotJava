@@ -18,8 +18,6 @@ class Configuration(
      */
     var collectionIterations: Int = 5,
 
-    var maximumObjectModifications: Int = Int.MAX_VALUE,
-
     /**
      * Energy function that is used to choose seeded value.
      */
@@ -39,6 +37,11 @@ class Configuration(
      * Probability to prefer change constructor instead of modification.
      */
     var probConstructorMutationInsteadModificationMutation: Int = 90,
+
+    /**
+     * Probability to shuffle modification list of the recursive object
+     */
+    var probShuffleAndCutRecursiveObjectModificationMutation: Int = 10,
 
     /**
      * Probability to prefer create rectangle collections instead of creating saw-like one.
@@ -64,4 +67,9 @@ class Configuration(
      * Probability of removing an old character from StringValue when mutating
      */
     var probStringRemoveCharacter: Int = 50,
+
+    /**
+     * Probability of reusing same generated value when 2 or more parameters have the same type.
+     */
+    var probReuseGeneratedValueForSameType: Int = 1
 )

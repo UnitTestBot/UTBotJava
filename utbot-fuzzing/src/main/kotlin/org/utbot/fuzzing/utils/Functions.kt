@@ -81,6 +81,10 @@ internal enum class BinaryFormat : (Int) -> Boolean {
     DOUBLE { override fun invoke(index: Int) = index % 16 == 0 && index != 0 },
 }
 
+internal fun <T> List<T>.transformIfNotEmpty(transform: List<T>.() -> List<T>): List<T> {
+    return if (isNotEmpty()) transform() else this
+}
+
 fun main() {
     val endian = Endian.BE
     println(255.toUByte().toBinaryString(endian))

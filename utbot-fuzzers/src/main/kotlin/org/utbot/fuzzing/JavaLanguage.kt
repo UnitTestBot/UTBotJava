@@ -90,13 +90,13 @@ suspend fun runJavaFuzzing(
     val tracer = Trie(Instruction::id)
     val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer)
     val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer)
-    BaseFuzzing(providers) { _, t ->
+    runFuzzing(ValueProvider.of(providers), descriptionWithOptionalThisInstance) { _, t ->
         if (thisInstance == null) {
             exec(null, descriptionWithOnlyParameters, t)
         } else {
             exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
         }
-    }.fuzz(descriptionWithOptionalThisInstance)
+    }
 }
 
 private fun toFuzzerType(type: Type): FuzzedType {

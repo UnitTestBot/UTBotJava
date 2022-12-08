@@ -47,7 +47,7 @@ suspend fun main() {
          * This implementation just calls the target function and returns a result. After it returns an empty feedback.
          * If some returned value equals to the length of the source string then feedback returns 'stop' signal.
          */
-        override suspend fun run(description: Description<Unit>, values: List<String>): BaseFeedback<Int, Unit, String> {
+        override suspend fun handle(description: Description<Unit>, values: List<String>): BaseFeedback<Int, Unit, String> {
             check(values.size == 1) {
                 "Only one value must be generated because of `description.parameters.size = ${description.parameters.size}`"
             }

@@ -30,7 +30,3 @@ in the local file system as `{home}/.utbot/settings.properties`:
 * If there is no such file, it is created (along with the hidden `{home}/.utbot` directory if needed).
 * An existing file is updated with new settings and corresponding info if necessary.
 * UnitTestBot does not re-write `settings.properties` if the file exists and has already been customized.
-
-## How to test `settings.properties` auto-generation
-
-[//]: # (For testing scenarios, please refer to #TODO.)

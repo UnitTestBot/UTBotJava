@@ -1,11 +1,11 @@
-# Contest Estimator
+# Contest estimator
 
-The main responsibility of Contest estimator is running UTBot on prepared projects in advance and providing some statistics such as instruction coverage.
+Contest estimator runs UnitTestBot on the provided projects and returns the generation statistics such as instruction coverage.
 
-There are several entry points:
-- [ContestEstimator.kt][ep 1] - the main entry point of Contest estimator, it runs UTBot on specified projects, calculates some statistics for target classes and projects and outputs them in a console.
-- [StatisticsMonitoring.kt][ep 2] - an additional entry point of Contest estimator which does the same as the previous one, but can be configured from a file and dumps output statistics to a file.
-It is used to [monitor and chart][monitoring] statistics every night.
+There are two entry points:
+- [ContestEstimator.kt][ep 1] is the main entry point. It runs UnitTestBot on the specified projects, calculates statistics for the target classes and projects, and outputs them to a console.
+- [StatisticsMonitoring.kt][ep 2] is an additional entry point, which does the same as the previous one but can be configured from a file and dumps the resulting statistics to a file.
+It is used to [monitor and chart][monitoring] statistics nightly.
 
 
 [ep 1]: src/main/kotlin/org/utbot/contest/ContestEstimator.kt
@@ -14,32 +14,31 @@ It is used to [monitor and chart][monitoring] statistics every night.
 
 ## Key functions
 
-| Function name | File name           | Description                                                                                               |
-|---------------|---------------------|-----------------------------------------------------------------------------------------------------------|
-| runGeneration | Contest.kt          | This function runs UTBot and manage it's work                                                             |
-| runEstimator  | ContestEstimator.kt | This function configure a project's classpath and does main loop of generation with collection statistics |
+| Function name | File name           | Description                                                                            |
+|---------------|---------------------|----------------------------------------------------------------------------------------|
+| runGeneration | Contest.kt          | Runs UnitTestBot and manages its work                                                  |
+| runEstimator  | ContestEstimator.kt | Configures a project classpath, runs the main generation loop, and collects statistics |
 
 
 ## Projects
 
-There are some prepared projects in advance.
+The projects are provided to Contest estimator in advance.
 
 ### Structure
-All available projects are placed in [resources][resources] folder.
-There are two folders:
-- [projects][projects] - consists of folders with projects' jar files.
-- [classes][classes] - consists of folders which are named as projects and contains `list` file with a list of fully qualified names of classes.
+All available projects are placed in the [resources][resources] folder, which contains:
+- [projects][projects] consisting of the folders with the project JAR files in them.
+- [classes][classes] consisting of the folders — each named after the project and containing the `list` file with the fully qualified class names.
 
-### How to add a new project?
-You can add jar files to the `projects` folder described above, and also add `list` file with a list of classes that will be provided to generation.
+### How to add a new project
+You should add both the JAR files to the `projects` folder and the file with a list of classes to the `classes` folder.
 
 [resources]: src/main/resources
 [projects]: src/main/resources/projects
 [classes]: src/main/resources/classes
 
 ## Statistics
-Now statistics are collected and memorised by some classes placed in [Statistics.kt][statistics]. 
-Then [monitoring][ep 2] dumps them using auxiliary classes defined in [MonitoringReport.kt][report] which describe format of output data. 
+Statistics are collected and memorized by the corresponding classes placed in [Statistics.kt][statistics].
+Then [monitoring][ep 2] dumps them using auxiliary classes that are defined in [MonitoringReport.kt][report] — they describe the format of output data. 
 
 [statistics]: src/main/kotlin/org/utbot/contest/Statistics.kt
 [report]: src/main/kotlin/org/utbot/monitoring/MonitoringReport.kt

@@ -23,67 +23,22 @@ class ObjectValueProvider(
         NumberValueProvider.classId
     )
 
-    override fun accept(type: FuzzedType) = !shouldPass(type.classId)
+    override fun accept(type: FuzzedType) = !isIgnored(type.classId)
 
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence {
         val classId = type.classId
-        // this adds mock support, but we should discuss first if mock is really needed
-//        if (description.description.shouldMock(classId)) {
-//            yield(createMock(classId, description))
-//        } else {
-            // prefer constructors without recursion call, but use them if no other options
-            val constructors = findTypesOfNonRecursiveConstructor(type, description.description.packageName)
-                .takeIf { it.isNotEmpty() }
-                ?.asSequence()
-                ?: classId.allConstructors.filter {
-                    isAccessible(it.constructor, description.description.packageName)
-                }
-            constructors.forEach { constructorId ->
-                yield(createValue(classId, constructorId, description))
+        val constructors = findTypesOfNonRecursiveConstructor(type, description.description.packageName)
+            .takeIf { it.isNotEmpty() }
+            ?.asSequence()
+            ?: classId.allConstructors.filter {
+                isAccessible(it.constructor, description.description.packageName)
             }
-//        }
-    }
-
-    @Suppress("unused")
-    private fun createMock(classId: ClassId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
-        return Seed.Recursive(
-            construct = Routine.Create(emptyList()) {
-                UtCompositeModel(
-                    id = idGenerator.createId(),
-                    classId = classId,
-                    isMock = true,
-                ).fuzzed {
-                    summary = "%var% = mock"
-                }
-            },
-            modify = sequence {
-                findSuitableFields(classId, description.description.packageName).forEach { fd ->
-                    when {
-                        fd.canBeSetDirectly -> {
-                            yield(Routine.Call(listOf(FuzzedType(fd.classId))) { self, values ->
-                                val model = self.model as UtCompositeModel
-                                model.fields[FieldId(classId, fd.name)] = values.first().model
-                            })
-                        }
-
-                        fd.setter != null && fd.getter != null -> {
-                            yield(Routine.Call(listOf(FuzzedType(fd.classId))) { self, values ->
-                                val model = self.model as UtCompositeModel
-                                model.mocks[fd.getter.executableId] = values.map { it.model }
-                            })
-                        }
-                    }
-                }
-            },
-            empty = Routine.Empty {
-                UtNullModel(classId).fuzzed {
-                    summary = "%var% = null"
-                }
-            }
-        )
+        constructors.forEach { constructorId ->
+            yield(createValue(classId, constructorId, description))
+        }
     }
 
     private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
@@ -104,7 +59,7 @@ class ObjectValueProvider(
                 }
             },
             modify = sequence {
-                findSuitableFields(classId, description.description.packageName).forEach { fd ->
+                findAccessibleModifableFields(classId, description.description.packageName).forEach { fd ->
                     when {
                         fd.canBeSetDirectly -> {
                             yield(Routine.Call(listOf(FuzzedType(fd.classId))) { self, values ->
@@ -137,8 +92,9 @@ class ObjectValueProvider(
         )
     }
 
-    private fun shouldPass(type: ClassId): Boolean {
+    private fun isIgnored(type: ClassId): Boolean {
         return unwantedConstructorsClasses.contains(type)
+                || type.isIterableOrMap
                 || type.isPrimitiveWrapper
                 || type.isEnum
                 || type.isAbstract
@@ -193,7 +149,7 @@ internal class FieldDescription(
     val getter: Method?
 )
 
-internal fun findSuitableFields(classId: ClassId, packageName: String?): List<FieldDescription>  {
+internal fun findAccessibleModifableFields(classId: ClassId, packageName: String?): List<FieldDescription>  {
     val jClass = classId.jClass
     return jClass.declaredFields.map { field ->
         val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)

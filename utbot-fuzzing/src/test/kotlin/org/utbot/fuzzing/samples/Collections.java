@@ -128,7 +128,20 @@ public class Collections {
         return false;
     }
 
-    public static class ConcreteList<T> extends LinkedList<T> {}
+    public static class ConcreteList<T extends Number> extends LinkedList<T> {
+        public boolean equals(Collection<T> collection) {
+            if (collection.size() != size()) {
+                return false;
+            }
+            int i = 0;
+            for (T t : collection) {
+                if (!java.util.Objects.equals(get(i), t)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
 
     /**
      * Should create concrete class

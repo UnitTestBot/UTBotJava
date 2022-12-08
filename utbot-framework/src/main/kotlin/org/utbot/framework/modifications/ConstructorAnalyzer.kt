@@ -33,9 +33,9 @@ import soot.jimple.internal.JimpleLocal
  * */
 data class ConstructorAssembleInfo(
     val constructorId: ConstructorId,
-    val params: Map<Int, FieldId>,
-    val setFields: Set<FieldId>,
-    val affectedFields: Set<FieldId>
+    val params: Map<Int, FieldId> = mapOf(),
+    val setFields: Set<FieldId> = setOf(),
+    val affectedFields: Set<FieldId> = setOf()
 )
 
 /**
@@ -109,18 +109,11 @@ class ConstructorAnalyzer {
         return jimpleLocal.name.first() != '$'
     }
 
-    private val visitedConstructors = mutableSetOf<SootMethod>()
-
     private fun analyze(
         sootConstructor: SootMethod,
         setFields: MutableSet<FieldId>,
         affectedFields: MutableSet<FieldId>,
     ): Map<Int, FieldId> {
-        if (sootConstructor in visitedConstructors) {
-            return emptyMap()
-        }
-        visitedConstructors.add(sootConstructor)
-
         val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return emptyMap()
         analyzeAssignments(jimpleBody, setFields, affectedFields)
 

@@ -153,12 +153,17 @@ class SarifReport(
         val methodArguments = utExecution.stateBefore.parameters
             .joinToString(prefix = "", separator = ", ", postfix = "") { it.preview() }
 
+        val errorMessage = if (executionFailure is UtTimeoutException)
+            "Unexpected behavior: ${executionFailure.exception.message}"
+        else
+            "Unexpected exception: ${executionFailure.exception}"
+
         val sarifResult = SarifResult(
             ruleId,
             Level.Error,
             Message(
                 text = """
-                    Unexpected exception: ${executionFailure.exception}.
+                    $errorMessage.
                     Test case: `$methodName($methodArguments)`
                     [Generated test for this case]($relatedLocationId)
                 """.trimIndent()
@@ -229,8 +234,10 @@ class SarifReport(
         val stackTraceResolved = filterStackTrace(method, utExecution, executionFailure)
             .mapNotNull { findStackTraceElementLocation(it) }
             .toMutableList()
-        if (stackTraceResolved.isEmpty())
-            return listOf() // empty stack trace is not shown
+
+        if (stackTraceResolved.isEmpty()) {
+            stackTraceResolved += stackTraceFromCoverage(utExecution) // fallback logic
+        }
 
         // prepending stack trace by `method` call in generated tests
         val methodCallLocation: SarifPhysicalLocation? =
@@ -279,6 +286,10 @@ class SarifReport(
         if (lastMethodCallIndex != -1) {
             // taking all elements before the last `method` call
             stackTrace = stackTrace.take(lastMethodCallIndex + 1)
+        } else { // no `method` call in the stack trace
+            if (executionFailure.exception !is StackOverflowError) {
+                stackTrace = listOf() // (likely) the stack trace contains only our internal calls
+            }
         }
 
         if (executionFailure.exception is StackOverflowError) {
@@ -290,6 +301,39 @@ class SarifReport(
         }
 
         return stackTraceFiltered
+    }
+
+    /**
+     * Constructs the stack trace from the list of covered instructions.
+     */
+    private fun stackTraceFromCoverage(utExecution: UtExecution): List<SarifFlowLocationWrapper> {
+        val coveredInstructions = utExecution.coverage?.coveredInstructions
+            ?: return listOf()
+
+        val executionTrace = coveredInstructions.groupBy { instruction ->
+            instruction.className to instruction.methodSignature // group by method
+        }.map { (_, instructionsForOneMethod) ->
+            instructionsForOneMethod.last() // we need only last to construct the stack trace
+        }
+
+        val sarifExecutionTrace = executionTrace.map { instruction ->
+            val classFqn = instruction.className.replace('/', '.')
+            val methodName = instruction.methodSignature.substringBefore('(')
+            val lineNumber = instruction.lineNumber
+
+            val sourceFilePath = sourceFinding.getSourceRelativePath(classFqn)
+            val sourceFileName = sourceFilePath.substringAfterLast('/')
+
+            SarifFlowLocationWrapper(SarifFlowLocation(
+                message = Message("$classFqn.$methodName($sourceFileName:$lineNumber)"),
+                physicalLocation = SarifPhysicalLocation(
+                    SarifArtifact(uri = sourceFilePath),
+                    SarifRegion(startLine = lineNumber)
+                )
+            ))
+        }
+
+        return sarifExecutionTrace.reversed() // to stack trace
     }
 
     private fun findStackTraceElementLocation(stackTraceElement: StackTraceElement): SarifFlowLocationWrapper? {
@@ -429,6 +473,7 @@ class SarifReport(
         val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
         val assertionError = result is UtExplicitlyThrownException && result.exception is AssertionError
         val sandboxFailure = result is UtSandboxFailure
-        return implicitlyThrown || overflowFailure || assertionError || sandboxFailure
+        val timeoutException = result is UtTimeoutException
+        return implicitlyThrown || overflowFailure || assertionError || sandboxFailure || timeoutException
     }
 }

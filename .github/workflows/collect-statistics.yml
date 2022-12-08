@@ -115,14 +115,10 @@ jobs:
           for i in $(seq ${{ inputs.run_number }})
           do
             java -jar \
-              -Dutbot.settings.path=$utbot_settings \
               -Dutbot.monitoring.settings.path=$monitoring_properties \
               utbot-junit-contest/build/libs/monitoring.jar \
               stats-$i.json
             mv logs/utbot.log logs/utbot-$i.log
-            mv /tmp/UTBot/utbot-childprocess-errors logs/utbot-childprocess-errors-$i
-            mv /tmp/UTBot/rdEngineProcessLogs logs/rdEngineProcessLogs-$i
-            mv /tmp/UTBot/generated* generated-tests/generated-$i/
           done
 
       - name: Get current date
@@ -204,10 +200,3 @@ jobs:
         with:
           name: logs-${{ matrix.value }}
           path: logs/
-
-      - name: Upload generated
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: generated-${{ matrix.value }}
-          path: generated-tests/

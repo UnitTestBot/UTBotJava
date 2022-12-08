@@ -4,6 +4,7 @@ import framework.api.ts.util.toTsClassId
 import java.lang.reflect.Modifier
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.primitiveModelValueToClassId
@@ -73,6 +74,23 @@ class TsMethodId(
         get() = if (staticModifier) Modifier.STATIC else 0
 
 }
+
+class TsFieldId(
+    override val declaringClass: TsClassId,
+    override val name: String,
+    _type: TsClassId
+): FieldId(declaringClass, name) {
+
+    override val type: ClassId = _type
+
+    override fun toString() = "$declaringClass.$name"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        return false
+    }
+}
+
 
 class TsConstructorId(
     override var classId: TsClassId,

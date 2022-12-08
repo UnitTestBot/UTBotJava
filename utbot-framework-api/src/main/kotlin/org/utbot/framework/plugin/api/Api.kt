@@ -942,7 +942,7 @@ class BuiltinClassId(
  *
  * Created to avoid usage String objects as a key.
  */
-open class FieldId(val declaringClass: ClassId, val name: String) {
+open class FieldId(open val declaringClass: ClassId, open val name: String) {
     open val modifiers: Int
         get() = jField.modifiers
 

@@ -4,6 +4,7 @@ import framework.api.ts.TsClassId
 import java.security.AccessControlException
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
+import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodType
 import org.utbot.framework.codegen.model.tree.CgValue
@@ -11,8 +12,10 @@ import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -22,6 +25,36 @@ class TsCgMethodConstructor(ctx: CgContext) : CgMethodConstructor(ctx) {
 
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         testFrameworkManager.assertEquals(expected, actual)
+    }
+
+    override fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
+        for ((field, _) in statics) {
+            val declaringClass = field.declaringClass
+
+            // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
+            val prevValue = newVar(
+                CgClassId(field.type, isNullable = false),
+                "prev${field.name.capitalize()}"
+            ) {
+                declaringClass[field]
+            }
+            // remember the previous value of a static field to recover it at the end of the test
+            prevStaticFieldValues[field] = prevValue
+        }
+    }
+
+    override fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean) {
+        for ((field, model) in statics) {
+            val declaringClass = field.declaringClass
+            val fieldValue = variableConstructor.getOrCreateVariable(model, field.name)
+            declaringClass[field] `=` fieldValue
+        }
+    }
+
+    override fun recoverStaticFields() {
+        for ((field, prevValue) in prevStaticFieldValues) {
+            field.declaringClass[field] `=` prevValue
+        }
     }
 
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =

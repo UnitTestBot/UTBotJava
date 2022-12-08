@@ -21,7 +21,10 @@ class PropertyDeclarationNode(
         BaseTypeNode(obj = obj, typeLiteral = "Debug", parent = this)
     }
 
+    val parentClass = lazy { (parent as? ClassDeclarationNode) ?: throw UnsupportedOperationException() }
+
     private val modifiers = obj.getArrayAsList("modifiers").map { it.getKind() }
 
     fun isStatic() = modifiers.contains("StaticKeyword")
+
 }

@@ -237,7 +237,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      * Thus, this method only caches an actual initial static fields state in order to recover it
      * at the end of the test, and it has nothing to do with the 'before' and 'after' caches.
      */
-    protected fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
+    open fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
@@ -262,7 +262,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    protected fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
+    open fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
@@ -285,7 +285,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
-    protected fun recoverStaticFields() {
+    open fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
             if (field.canBeSetFrom(context)) {
                 field.declaringClass[field] `=` prevValue

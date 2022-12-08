@@ -2,6 +2,7 @@ package api
 
 import codegen.TsCodeGenerator
 import framework.api.ts.TsClassId
+import framework.api.ts.TsFieldId
 import framework.api.ts.TsMethodId
 import framework.api.ts.util.tsErrorClassId
 import framework.api.ts.util.tsStringClassId
@@ -161,7 +162,14 @@ class TsTestGenerator(
                     mode = settings.workMode
                 )
             val thisInstance = makeThisInstance(execId, classId, concreteValues)
-            val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
+            val initEnv = when (context.settings.workMode) {
+                TsWorkMode.EXPERIMENTAL -> EnvironmentModels(thisInstance, emptyList(), buildMap {
+                    statics.forEachIndexed { index, st ->
+                        this[TsFieldId(TsClassId(st.parentClass.value.name), st.name, st.type.makeTsClassIdFromType(context))] = param[index].model
+                    }
+                })
+                else -> EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
+            }
             testsForGenerator.add(
                 UtFuzzedExecution(
                     stateBefore = initEnv,

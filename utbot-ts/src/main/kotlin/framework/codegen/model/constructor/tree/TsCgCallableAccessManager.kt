@@ -24,9 +24,7 @@ class TsCgCallableAccessManager(context: CgContext) : CgCallableAccessManager,
         TODO("Not yet implemented")
     }
 
-    override fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
-        TODO("Not yet implemented")
-    }
+    override operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess  = CgStaticFieldAccess(fieldId)
 
     override operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()

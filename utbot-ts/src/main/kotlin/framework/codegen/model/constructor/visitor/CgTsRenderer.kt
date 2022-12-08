@@ -284,7 +284,14 @@ internal class CgTsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
                 print(line)
             }
         }
+        if (element.arguments.isEmpty()) {
+            print("dump(")
+        }
         print(element.executableId.name.escapeNamePossibleKeyword())
+        if (element.arguments.isEmpty()) {
+            print(")")
+            return
+        }
         renderTypeParameters(element.typeParameters)
         if (element.type.name == "error") {
             print("(")

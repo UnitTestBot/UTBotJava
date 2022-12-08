@@ -524,6 +524,11 @@ object UtSettings : AbstractSettings(
      */
     var logDroppedTaintStates by getBooleanProperty(false)
 
+    /**
+     * Depending on this option, clinit sectons might be analyzed or not.
+     */
+    var disableClinitSectionsAnalysis by getBooleanProperty(false)
+
     init {
         turnOnAnalysisModes()
     }

@@ -75,6 +75,10 @@ fun getClassReference(fullClassName: String): String {
 }
 
 /** Returns correct full class name. */
-fun getFullClassName(packageName: String, className: String): String {
-    return if (packageName.isEmpty()) className else "$packageName.$className"
+fun getFullClassName(canonicalName: String?, packageName: String, className: String, isNested: Boolean): String {
+    return if (isNested && canonicalName != null) {
+        canonicalName
+    } else {
+        if (packageName.isEmpty()) className else "$packageName.$className"
+    }
 }

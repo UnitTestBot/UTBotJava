@@ -183,7 +183,8 @@ class PythonCallableTypeDescription(
     val argumentNames: List<String>,
     val isClassMethod: Boolean,
     val isStaticMethod: Boolean
-) : PythonTypeDescription(pythonCallableName) {
+): PythonTypeDescription(pythonCallableName) {
+    val numberOfArguments = argumentNames.size
     override fun castToCompatibleTypeApi(type: Type): FunctionType {
         return type as? FunctionType
             ?: error("Got unexpected type PythonCallableTypeDescription: $type")

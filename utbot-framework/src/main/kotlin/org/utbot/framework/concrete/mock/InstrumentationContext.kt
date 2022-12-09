@@ -1,4 +1,4 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.concrete.mock
 
 import java.lang.reflect.Method
 import java.util.IdentityHashMap

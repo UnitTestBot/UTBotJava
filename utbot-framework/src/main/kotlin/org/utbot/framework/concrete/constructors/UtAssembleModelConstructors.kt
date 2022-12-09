@@ -1,18 +1,17 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.concrete.constructors
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.primitiveWrappers
-import org.utbot.framework.plugin.api.util.voidWrapperClassId
-import org.utbot.framework.util.nextModelName
 import java.util.stream.BaseStream
 import java.util.stream.DoubleStream
 import java.util.stream.IntStream
 import java.util.stream.LongStream
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.primitiveWrappers
+import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.framework.util.nextModelName
 
 private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleModelConstructorBase>(
     /**

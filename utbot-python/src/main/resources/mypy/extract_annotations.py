@@ -137,7 +137,7 @@ class CompositeAnnotationNode(AnnotationNode):
         self.type_vars: tp.List[Annotation] = [
             get_annotation(x, self.namespace) for x in self.raw_type_vars
         ]
-        self.bases = [get_annotation(x, self.namespace) for x in symbol_node.bases]
+        self.bases: tp.List[Annotation] = [get_annotation(x, self.namespace) for x in symbol_node.bases]
 
     def encode(self):
         superclass_dict = super().encode()
@@ -157,10 +157,13 @@ class ConcreteAnnotationNode(CompositeAnnotationNode):
     def __init__(self, symbol_node: mypy.nodes.TypeInfo, id_, namespace: Meta):
         assert not symbol_node.is_protocol
         super().__init__("Concrete", symbol_node, id_, namespace)
+        self.is_abstract: bool = symbol_node.is_abstract
 
     def encode(self):
-        return super().encode()
-        
+        superclass_dict = super().encode()
+        subclass_dict = {"isAbstract": self.is_abstract}
+        return dict(superclass_dict, **subclass_dict)
+
 
 class ProtocolAnnotationNode(CompositeAnnotationNode):
     def __init__(self, symbol_node: mypy.nodes.TypeInfo, id_, namespace: Meta):

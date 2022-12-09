@@ -8,11 +8,6 @@ import org.utbot.framework.plugin.api.UtExecutionCluster
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
-import org.utbot.summary.UtSummarySettings.GENERATE_CLUSTER_COMMENTS
-import org.utbot.summary.UtSummarySettings.GENERATE_COMMENTS
-import org.utbot.summary.UtSummarySettings.GENERATE_DISPLAYNAME_FROM_TO_STYLE
-import org.utbot.summary.UtSummarySettings.GENERATE_DISPLAY_NAMES
-import org.utbot.summary.UtSummarySettings.GENERATE_NAMES
 import org.utbot.summary.analysis.ExecutionStructureAnalysis
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.ast.SourceCodeParser
@@ -23,6 +18,12 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
+import org.utbot.framework.UtSettings.enableClusterCommentsGeneration
+import org.utbot.framework.UtSettings.enableJavaDocGeneration
+import org.utbot.framework.UtSettings.useDisplayNameArrowStyle
+import org.utbot.framework.UtSettings.enableDisplayNameGeneration
+import org.utbot.framework.UtSettings.enableTestNamesGeneration
+import org.utbot.framework.UtSettings.useCustomJavaDocTags
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -86,7 +87,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
         executionClusters += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
 
-        return if (GENERATE_CLUSTER_COMMENTS && executionClusters.size > 0)
+        return if (enableClusterCommentsGeneration && executionClusters.size > 0)
             executionClusters
         else
             listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
@@ -110,9 +111,9 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
             jimpleBodyAnalysis.traceStructuralAnalysis(jimpleBody, clusteredTags, methodUnderTest, invokeDescriptions)
             val numberOfSuccessfulClusters = clusteredTags.filter { it.isSuccessful }.size
             for (clusterTraceTags in clusteredTags) {
-                val clusterHeader = clusterTraceTags.clusterHeader.takeIf { GENERATE_CLUSTER_COMMENTS }
+                val clusterHeader = clusterTraceTags.clusterHeader.takeIf { enableClusterCommentsGeneration }
                 val clusterContent = if (
-                    GENERATE_CLUSTER_COMMENTS && clusterTraceTags.isSuccessful // add only for successful executions
+                    enableClusterCommentsGeneration && clusterTraceTags.isSuccessful // add only for successful executions
                     && numberOfSuccessfulClusters > 1 // there is more than one successful execution
                     && clusterTraceTags.traceTags.size > 1 // add if there is more than 1 execution
                 ) {
@@ -130,8 +131,8 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 }
 
                 for (traceTags in clusterTraceTags.traceTags) {
-                    if (GENERATE_COMMENTS) {
-                        if (UtSettings.useCustomJavaDocTags) {
+                    if (enableJavaDocGeneration) {
+                        if (useCustomJavaDocTags) {
                             traceTags.execution.summary =
                                 CustomJavaDocCommentBuilder(traceTags, sootToAST).buildDocStatements(methodUnderTest)
                         } else {
@@ -140,7 +141,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                         }
                     }
 
-                    if (GENERATE_DISPLAY_NAMES || GENERATE_NAMES) {
+                    if (enableDisplayNameGeneration || enableTestNamesGeneration) {
                         val simpleNameBuilder = SimpleNameBuilder(traceTags, sootToAST, methodUnderTest)
                         val name = simpleNameBuilder.name
                         val displayName = simpleNameBuilder.displayName
@@ -148,14 +149,14 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                         val nameIndex = namesCounter.getOrPut(name) { 0 }
                         namesCounter[name] = nameIndex + 1
                         updatedExecutions += traceTags.execution
-                        if (GENERATE_DISPLAY_NAMES) {
-                            if (!GENERATE_DISPLAYNAME_FROM_TO_STYLE) {
+                        if (enableDisplayNameGeneration) {
+                            if (!useDisplayNameArrowStyle) {
                                 traceTags.execution.displayName = displayName
                             } else {
                                 traceTags.execution.displayName = fromToName
                             }
                         }
-                        if (GENERATE_NAMES) {
+                        if (enableTestNamesGeneration) {
                             traceTags.execution.testMethodName = name
                             if (nameIndex != 0) traceTags.execution.testMethodName += "_$nameIndex"
                         }
@@ -362,7 +363,7 @@ private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path):
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }
         .mapNotNull { sootMethod ->
-            val methodFile = Instrumenter.adapter.computeSourceFileByClass(
+            val methodFile = Instrumenter.adapter.computeSourceFileByNameAndPackage(
                 sootMethod.declaringClass.name,
                 sootMethod.declaringClass.javaPackageName.replace(".", File.separator),
                 searchDirectory

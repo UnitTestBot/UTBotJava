@@ -9,7 +9,7 @@ import com.intellij.psi.PsiClass
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
+import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
@@ -48,7 +48,7 @@ open class BaseTestsModel(
         srcClasses.map { it.packageName }.distinct().size != 1
     }
 
-    fun getAllTestSourceRoots() : MutableList<TestSourceRoot> {
+    fun getAllTestSourceRoots() : MutableList<out ITestSourceRoot> {
         with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
             return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
         }

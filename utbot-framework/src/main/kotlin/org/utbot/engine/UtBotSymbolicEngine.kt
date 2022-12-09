@@ -432,6 +432,8 @@ class UtBotSymbolicEngine(
         val methodUnderTestDescription = FuzzedMethodDescription(methodUnderTest, collectConstantsForFuzzer(graph)).apply {
             compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
             className = classUnderTest.simpleName
+            canonicalName = classUnderTest.canonicalName
+            isNested = classUnderTest.isNested
             packageName = classUnderTest.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }

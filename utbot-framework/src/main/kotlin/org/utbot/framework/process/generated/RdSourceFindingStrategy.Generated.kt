@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:17]
+ * #### Generated from [EngineProcessModel.kt:16]
  */
 class RdSourceFindingStrategy private constructor(
     private val _testsRelativePath: RdCall<Long, String>,
@@ -44,7 +44,10 @@ class RdSourceFindingStrategy private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): RdSourceFindingStrategy  {
             EngineProcessRoot.register(protocol.serializers)
             
-            return RdSourceFindingStrategy()
+            return RdSourceFindingStrategy().apply {
+                identify(protocol.identity, RdId.Null.mix("RdSourceFindingStrategy"))
+                bind(lifetime, protocol, "RdSourceFindingStrategy")
+            }
         }
         
         private val __StringNullableSerializer = FrameworkMarshallers.String.nullable()
@@ -108,7 +111,7 @@ val IProtocol.rdSourceFindingStrategy get() = getOrCreateExtension(RdSourceFindi
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:18]
+ * #### Generated from [EngineProcessModel.kt:17]
  */
 data class SourceStrategyMethodArgs (
     val testSetId: Long,

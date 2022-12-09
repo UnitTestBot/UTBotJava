@@ -3006,7 +3006,7 @@ class Traverser(
             else -> {
                 // Make results of method invocations at big depth unbounded variables
                 // HACK FOR TAINTS
-                if (isCallGraphTooDeep() || (UtSettings.mockAllMethodsButRelatedToTaintAnalysis && target.method.subSignature !in methodsToNotMock)) {
+                if (isCallGraphTooDeep() || (UtSettings.mockAllMethodsButRelatedToTaintAnalysis && target.method.subSignature !in methodsToNotMock && !target.method.name.contains("bootstrap\$"))) {
                     treatMethodResultAsUnboundedVariable(name = "${target.method.name}DeepMock", target.method)
                 } else {
                     val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()

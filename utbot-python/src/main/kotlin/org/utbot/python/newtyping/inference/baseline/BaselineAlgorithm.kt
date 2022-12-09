@@ -15,6 +15,8 @@ private val EDGES_TO_LINK = listOf(
     EdgeSource.Operation
 )
 
+private const val MAX_NESTING = 3
+
 class BaselineAlgorithm(val storage: PythonTypeStorage) : TypeInferenceAlgorithm() {
     override fun run(hintCollectorResult: HintCollectorResult): Sequence<Type> = sequence {
         val generalRating = createGeneralTypeRating(hintCollectorResult)
@@ -51,15 +53,22 @@ class BaselineAlgorithm(val storage: PythonTypeStorage) : TypeInferenceAlgorithm
         }
         return createTypeRating(
             storage.allTypes.filter {
-                !it.pythonDescription().name.name.startsWith("_") && it.pythonDescription() !is PythonProtocolDescription
+                val description = it.pythonDescription()
+                !description.name.name.startsWith("_")
+                        && description is PythonConcreteCompositeTypeDescription
+                        && !description.isAbstract
             },
             allLowerBounds,
             allUpperBounds,
-            storage
+            storage,
+            1
         )
     }
 
-    private fun getInitialState(hintCollectorResult: HintCollectorResult, generalRating: List<Type>): BaselineAlgorithmState {
+    private fun getInitialState(
+        hintCollectorResult: HintCollectorResult,
+        generalRating: List<Type>
+    ): BaselineAlgorithmState {
         val signatureDescription =
             hintCollectorResult.initialSignature.pythonDescription() as PythonCallableTypeDescription
         val root = PartialTypeNode(hintCollectorResult.initialSignature, true)
@@ -75,7 +84,7 @@ class BaselineAlgorithm(val storage: PythonTypeStorage) : TypeInferenceAlgorithm
                 lowerBounds.addAll(visitedNode.lowerBounds + lowerFromEdges + visitedNode.partialType)
                 upperBounds.addAll(visitedNode.upperBounds + upperFromEdges + visitedNode.partialType)
             }
-            val decomposed = decompose(node.partialType, lowerBounds, upperBounds)
+            val decomposed = decompose(node.partialType, lowerBounds, upperBounds, 1)
             allNodes.addAll(decomposed.nodes)
             val edge = BaselineAlgorithmEdge(
                 from = decomposed.root,
@@ -124,7 +133,7 @@ class BaselineAlgorithmState(
     private val anyNodes: List<AnyTypeNode> = nodes.mapNotNull { it as? AnyTypeNode }
     private val anyNodesTypeRatings: List<List<Type>> =
         anyNodes.map {
-            createTypeRating(generalRating, it.lowerBounds, it.upperBounds, typeStorage)
+            createTypeRating(generalRating, it.lowerBounds, it.upperBounds, typeStorage, it.nestedLevel)
         }
     private val typeChoices = PriorityCartesianProduct(anyNodesTypeRatings).getSequence().iterator()
     fun makeMove(): BaselineAlgorithmState? {
@@ -159,9 +168,10 @@ class PartialTypeNode(override val partialType: Type, isRoot: Boolean) : Baselin
     override fun copy(): BaselineAlgorithmNode = PartialTypeNode(partialType, isRoot)
 }
 
-class AnyTypeNode(val lowerBounds: List<Type>, val upperBounds: List<Type>) : BaselineAlgorithmNode(false) {
+class AnyTypeNode(val lowerBounds: List<Type>, val upperBounds: List<Type>, val nestedLevel: Int) :
+    BaselineAlgorithmNode(false) {
     override val partialType: Type = pythonAnyType
-    override fun copy(): BaselineAlgorithmNode = AnyTypeNode(lowerBounds, upperBounds)
+    override fun copy(): BaselineAlgorithmNode = AnyTypeNode(lowerBounds, upperBounds, nestedLevel)
 }
 
 private fun equalTypes(left: Type, right: Type): Boolean =
@@ -171,19 +181,47 @@ private fun createTypeRating(
     initialRating: List<Type>,
     lowerBounds: List<Type>,
     upperBounds: List<Type>,
-    storage: PythonTypeStorage
+    storage: PythonTypeStorage,
+    level: Int
 ): List<Type> {
-    val scores: List<Pair<Type, Int>> = initialRating.map { typeFromList ->
+    val eps = 1
+    val hintScores = mutableMapOf<PythonTypeWrapperForEqualityCheck, Double>()
+    lowerBounds.forEach { constraint ->
+        val fitting = initialRating.filter { typeFromList ->
+            val type = DefaultSubstitutionProvider.substitute(
+                typeFromList,
+                typeFromList.getBoundedParameters().associateWith { pythonAnyType }
+            )
+            PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)
+        }
+        fitting.forEach {
+            val wrapper = PythonTypeWrapperForEqualityCheck(it)
+            hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
+        }
+    }
+    upperBounds.forEach { constraint ->
+        val fitting = initialRating.filter { typeFromList ->
+            val type = DefaultSubstitutionProvider.substitute(
+                typeFromList,
+                typeFromList.getBoundedParameters().associateWith { pythonAnyType }
+            )
+            PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(constraint, type, storage)
+        }
+        if (fitting.isNotEmpty())
+            fitting.forEach {
+                val wrapper = PythonTypeWrapperForEqualityCheck(it)
+                hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
+            }
+    }
+    val scores: List<Pair<Type, Double>> = initialRating.mapNotNull { typeFromList ->
+        if (level == MAX_NESTING && typeFromList.getBoundedParameters().isNotEmpty())
+            return@mapNotNull null
         val type = DefaultSubstitutionProvider.substitute(
             typeFromList,
             typeFromList.getBoundedParameters().associateWith { pythonAnyType }
         )
-        val score = lowerBounds.fold(0) { acc, constraint ->
-            acc + (if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)) 1 else 0)
-        } + upperBounds.fold(0) { acc, constraint ->
-            acc + (if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(constraint, type, storage)) 1 else 0)
-        }
-        Pair(type, score)
+        val wrapper = PythonTypeWrapperForEqualityCheck(type)
+        Pair(type, (hintScores[wrapper] ?: 0.0) - type.getBoundedParameters().size * eps * level)
     }
     return scores.toList().sortedBy { -it.second }.map { it.first }
 }
@@ -196,7 +234,7 @@ private fun expandNode(
     storage: PythonTypeStorage
 ): Pair<BaselineAlgorithmState, Map<AnyTypeNode, AnyTypeNode>> {
     assert(state.nodes.contains(node))
-    val (newNodeForAny, additionalNodes) = decompose(newType, node.lowerBounds, node.upperBounds)
+    val (newNodeForAny, additionalNodes) = decompose(newType, node.lowerBounds, node.upperBounds, node.nestedLevel)
     val newNodeMap = expansionDFS(node, newType, newNodeForAny).toMutableMap()
     val newNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf()
     state.nodes.forEach { cur -> newNodeMap[cur] = newNodeMap[cur] ?: cur.copy() }
@@ -215,16 +253,25 @@ private fun expandNode(
     return Pair(
         BaselineAlgorithmState(newNodes + additionalNodes, generalRating, storage),
         newNodeMap.mapNotNull {
-            if (it.key !is AnyTypeNode || it.value !is AnyTypeNode) null else Pair(it.key as AnyTypeNode, it.value as AnyTypeNode)
+            if (it.key !is AnyTypeNode || it.value !is AnyTypeNode) null else Pair(
+                it.key as AnyTypeNode,
+                it.value as AnyTypeNode
+            )
         }.associate { it }
     )
 }
 
-private fun decompose(partialType: Type, lowerBounds: List<Type>, upperBounds: List<Type>): DecompositionResult {
+private fun decompose(
+    partialType: Type,
+    lowerBounds: List<Type>,
+    upperBounds: List<Type>,
+    level: Int
+): DecompositionResult {
     if (equalTypes(partialType, pythonAnyType)) {
         val root = AnyTypeNode(
             lowerBounds.filter { !equalTypes(it, pythonAnyType) },
-            upperBounds.filter { !equalTypes(it, pythonAnyType) }
+            upperBounds.filter { !equalTypes(it, pythonAnyType) },
+            level
         )
         return DecompositionResult(root, setOf(root))
     }
@@ -255,7 +302,12 @@ private fun decompose(partialType: Type, lowerBounds: List<Type>, upperBounds: L
                 }
             }
         }
-        val (childBaselineAlgorithmNode, nodes) = decompose(children[index], childLowerBounds, childUpperBounds)
+        val (childBaselineAlgorithmNode, nodes) = decompose(
+            children[index],
+            childLowerBounds,
+            childUpperBounds,
+            level + 1
+        )
         newNodes.addAll(nodes)
         val edge = BaselineAlgorithmEdge(
             from = childBaselineAlgorithmNode,

@@ -35,7 +35,7 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
     lateinit var result: HintCollectorResult
     override fun finishCollection() {
         val allNodes: MutableSet<HintCollectorNode> = mutableSetOf()
-        parameterToNode.forEach {
+        (parameterToNode + astNodeToHintCollectorNode).forEach {
             if (!allNodes.contains(it.value))
                 collectAllNodes(it.value, allNodes)
         }

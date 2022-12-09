@@ -29,6 +29,15 @@ fun Type.isPythonObjectType(): Boolean {
     return description.name.prefix == listOf("builtins") && description.name.name == "object"
 }
 
+fun Type.pythonTypeRepresentation(): String {
+    val description = pythonDescription()
+    val root = description.name.prefix.joinToString() + "." + description.name.name
+    val params = pythonAnnotationParameters()
+    if (params.isEmpty())
+        return root
+    return "$root[${params.joinToString { it.pythonTypeRepresentation() }}]"
+}
+
 class PythonTypeStorage(
     val pythonObject: Type,
     val pythonBool: Type,
@@ -74,10 +83,8 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
     open fun getMemberByName(storage: PythonTypeStorage, type: Type, name: String): PythonAttribute? =
         // overridden for some types
         getNamedMembers(type).find { it.name == name }
-
-    open fun createTypeWithNewAnnotationParameters(origin: Type, newParams: List<Type>): Type =
-        // overriden for Callable
-        DefaultSubstitutionProvider.substituteAll(origin, newParams)
+    open fun createTypeWithNewAnnotationParameters(like: Type, newParams: List<Type>): Type =  // overriden for Callable
+        DefaultSubstitutionProvider.substituteAll(like.getOrigin(), newParams)
 }
 
 sealed class PythonCompositeTypeDescription(
@@ -204,17 +211,17 @@ class PythonCallableTypeDescription(
         Positional
     }
 
-    override fun createTypeWithNewAnnotationParameters(origin: Type, newParams: List<Type>): Type {
+    override fun createTypeWithNewAnnotationParameters(like: Type, newParams: List<Type>): Type {
         val args = newParams.dropLast(1)
         val returnValue = newParams.last()
         return createPythonCallableType(
-            origin.parameters.size,
+            like.parameters.size,
             argumentKinds,
             argumentNames,
             isClassMethod,
             isStaticMethod
         ) { self ->
-            val oldToNewParameters = (origin.parameters zip self.parameters).associate {
+            val oldToNewParameters = (like.parameters zip self.parameters).associate {
                 (it.first as TypeParameter) to it.second
             }
             val newArgs = args.map {

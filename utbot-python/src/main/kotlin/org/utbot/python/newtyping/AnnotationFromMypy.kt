@@ -160,7 +160,8 @@ class ConcreteAnnotation(
     simpleName: String,
     names: Map<String, Definition>,
     typeVars: List<MypyAnnotation>,
-    bases: List<MypyAnnotation>
+    bases: List<MypyAnnotation>,
+    val isAbstract: Boolean
 ): CompositeAnnotationNode(module, simpleName, names, typeVars, bases) {
     override fun initializeType(): Type {
         assert(storage.nodeToUtBotType[this] == null)
@@ -169,7 +170,8 @@ class ConcreteAnnotation(
             typeVars.size,
             names.entries.mapNotNull {
                 if (it.value is VarDefinition) it.key else null
-            }
+            },
+            isAbstract
         ) { self -> getInitData(self) }
     }
 }

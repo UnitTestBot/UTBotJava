@@ -62,7 +62,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
-        var enableSummariesGeneration: Boolean = true
+        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,

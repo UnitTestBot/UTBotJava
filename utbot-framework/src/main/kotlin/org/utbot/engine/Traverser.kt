@@ -2447,6 +2447,10 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
+        if (exception.concrete is TaintAnalysisError) {
+            return false
+        }
+
         val possibleTypesClassId = exception.fold(
             { listOf(it.javaClass.id) },
             { (exception.symbolic as ObjectValue).possibleConcreteTypes.map { it.classId } }

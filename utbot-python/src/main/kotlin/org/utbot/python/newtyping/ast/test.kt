@@ -23,17 +23,35 @@ fun main() {
             if j.hour > 0:
                 return None
     """.trimIndent()
-    val root = PythonParser(content).Module()
+
+    val content1 = """
+        import datetime
+
+
+        def get_data_labels(dates):
+            if not dates:
+                dates.append(datetime.time(hour=23, minute=59))
+                return None
+            if all(x.hour == 0 and x.minute == 0 for x in dates):
+                return [x.strftime('%Y-%m-%d') for x in dates]
+            else:
+                return [x.strftime('%H:%M') for x in dates]
+    """.trimIndent()
+
+    val root = PythonParser(content1).Module()
     val functionBlock = root.children().first { it is FunctionDefinition }.children().first { it is Block }
     val collector = HintCollector(
         createPythonCallableType(
             0,
-            List(3) { PythonCallableTypeDescription.ArgKind.Positional },
-            listOf("x", "i", "j"),
+            //List(3) { PythonCallableTypeDescription.ArgKind.Positional },
+            listOf(PythonCallableTypeDescription.ArgKind.Positional),
+            listOf("dates"),
+            //listOf("x", "i", "j"),
             isClassMethod = false,
             isStaticMethod = false
         ) {
-            FunctionTypeCreator.InitializationData(List(3) { pythonAnyType }, pythonAnyType)
+            FunctionTypeCreator.InitializationData(listOf(pythonAnyType), pythonAnyType)
+            //FunctionTypeCreator.InitializationData(List(3) { pythonAnyType }, pythonAnyType)
         },
         storage
     )

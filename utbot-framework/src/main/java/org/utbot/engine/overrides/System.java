@@ -241,4 +241,14 @@ public class System {
         // Prevent null for taint analysis
         return UtMock.makeSymbolic();
     }
+
+    public static String getProperty(String ignoredKey) {
+        // Prevent null for taint analysis
+        return UtMock.makeSymbolic();
+    }
+
+    public static String getProperty(String ignoredKey, String ignoredDef) {
+        // Prevent null for taint analysis
+        return UtMock.makeSymbolic();
+    }
 }

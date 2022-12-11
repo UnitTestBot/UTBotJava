@@ -53,7 +53,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Timeout for symbolic execution
      *
      */
-    var utBotGenerationTimeoutInMillis by getLongProperty(60000L, 1000L, Long.MAX_VALUE)
+    var utBotGenerationTimeoutInMillis by getLongProperty(60000L, 1000L, Int.MAX_VALUE.toLong())
 
     /**
      * Random seed in path selector.

@@ -145,6 +145,10 @@ object UtTestsDialogProcessor {
                     UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
                     UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
                     UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+                    UtSettings.enableTestNamesGeneration = model.enableTestNamesGeneration
+                    UtSettings.enableDisplayNameGeneration = model.enableDisplayNameGeneration
+                    UtSettings.enableJavaDocGeneration = model.enableJavaDocGeneration
+                    UtSettings.enableClusterCommentsGeneration = model.enableClusterCommentsGeneration
 
                     fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 

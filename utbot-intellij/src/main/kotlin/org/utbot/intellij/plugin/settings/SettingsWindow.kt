@@ -44,6 +44,10 @@ class SettingsWindow(val project: Project) {
     private lateinit var runInspectionAfterTestGenerationCheckBox: JCheckBox
     private lateinit var forceMockCheckBox: JCheckBox
     private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
+    private lateinit var enableTestNamesGenerationCheckBox: JCheckBox
+    private lateinit var enableDisplayNameGenerationCheckBox: JCheckBox
+    private lateinit var enableJavaDocGenerationCheckBox: JCheckBox
+    private lateinit var enableClusterCommentsGenerationCheckBox: JCheckBox
 
     val panel: JPanel = panel {
         row("Generated test language:") {
@@ -59,6 +63,10 @@ class SettingsWindow(val project: Project) {
                 codegenLanguageCombo.addActionListener {
                     if (!codegenLanguageCombo.item.isSummarizationCompatible()) {
                         enableSummarizationGenerationCheckBox.isSelected = false
+                        enableTestNamesGenerationCheckBox.isSelected = false
+                        enableJavaDocGenerationCheckBox.isSelected = false
+                        enableDisplayNameGenerationCheckBox.isSelected = false
+                        enableClusterCommentsGenerationCheckBox.isSelected = false
                     }
                 }
             }
@@ -110,27 +118,9 @@ class SettingsWindow(val project: Project) {
 
         mapOf(
             RuntimeExceptionTestsBehaviour::class to RuntimeExceptionTestsBehaviour.values(),
-            TreatOverflowAsError::class to TreatOverflowAsError.values(),
-            JavaDocCommentStyle::class to JavaDocCommentStyle.values()
+            TreatOverflowAsError::class to TreatOverflowAsError.values()
         ).forEach { (loader, values) ->
             valuesComboBox(loader, values)
-        }
-
-        row {
-            cell {
-                runInspectionAfterTestGenerationCheckBox = checkBox("Display detected errors on the Problems tool window")
-                    .onApply {
-                        settings.state.runInspectionAfterTestGeneration = runInspectionAfterTestGenerationCheckBox.isSelected
-                    }
-                    .onReset {
-                        runInspectionAfterTestGenerationCheckBox.isSelected = settings.state.runInspectionAfterTestGeneration
-                    }
-                    .onIsModified {
-                        runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
-                    }
-                    // .apply { ContextHelpLabel.create("Automatically run code inspection after test generation")() }
-                    .component
-            }
         }
 
         row {
@@ -146,6 +136,93 @@ class SettingsWindow(val project: Project) {
                         enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration
                     }
                     .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
+                    .component
+            }
+        }
+
+        row {
+            cell {
+                enableTestNamesGenerationCheckBox = checkBox("Enable Test Names Generation")
+                    .onApply {
+                        settings.state.enableTestNamesGeneration = enableTestNamesGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        enableTestNamesGenerationCheckBox.isSelected = settings.state.enableTestNamesGeneration
+                    }
+                    .onIsModified {
+                        enableTestNamesGenerationCheckBox.isSelected xor settings.state.enableTestNamesGeneration
+                    }
+                    .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
+                    .component
+            }
+        }
+
+        row {
+            cell {
+                enableDisplayNameGenerationCheckBox = checkBox("Enable Display Names Generation")
+                    .onApply {
+                        settings.state.enableDisplayNameGeneration = enableDisplayNameGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        enableDisplayNameGenerationCheckBox.isSelected = settings.state.enableDisplayNameGeneration
+                    }
+                    .onIsModified {
+                        enableDisplayNameGenerationCheckBox.isSelected xor settings.state.enableDisplayNameGeneration
+                    }
+                    .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
+                    .component
+            }
+        }
+
+        row {
+            cell {
+                enableJavaDocGenerationCheckBox = checkBox("Enable Javadoc Generation")
+                    .onApply {
+                        settings.state.enableJavaDocGeneration = enableJavaDocGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        enableJavaDocGenerationCheckBox.isSelected = settings.state.enableJavaDocGeneration
+                    }
+                    .onIsModified {
+                        enableJavaDocGenerationCheckBox.isSelected xor settings.state.enableJavaDocGeneration
+                    }
+                    .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
+                    .component
+            }
+        }
+
+        row {
+            cell {
+                enableClusterCommentsGenerationCheckBox = checkBox("Enable Cluster Comments Generation")
+                    .onApply {
+                        settings.state.enableClusterCommentsGeneration = enableClusterCommentsGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        enableClusterCommentsGenerationCheckBox.isSelected = settings.state.enableClusterCommentsGeneration
+                    }
+                    .onIsModified {
+                        enableClusterCommentsGenerationCheckBox.isSelected xor settings.state.enableClusterCommentsGeneration
+                    }
+                    .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
+                    .component
+            }
+        }
+
+        valuesComboBox(JavaDocCommentStyle::class, JavaDocCommentStyle.values())
+
+        row {
+            cell {
+                runInspectionAfterTestGenerationCheckBox = checkBox("Display detected errors on the Problems tool window")
+                    .onApply {
+                        settings.state.runInspectionAfterTestGeneration = runInspectionAfterTestGenerationCheckBox.isSelected
+                    }
+                    .onReset {
+                        runInspectionAfterTestGenerationCheckBox.isSelected = settings.state.runInspectionAfterTestGeneration
+                    }
+                    .onIsModified {
+                        runInspectionAfterTestGenerationCheckBox.isSelected xor settings.state.runInspectionAfterTestGeneration
+                    }
+                    // .apply { ContextHelpLabel.create("Automatically run code inspection after test generation")() }
                     .component
             }
         }
@@ -178,8 +255,6 @@ class SettingsWindow(val project: Project) {
                 }
                 .onIsModified { excludeTable.isModified() }
             forceMockCheckBox.addActionListener { updater.run() }
-
-
         }
 
         val fuzzLabel = JBLabel("Fuzzing")

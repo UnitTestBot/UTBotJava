@@ -4,12 +4,11 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedContext
+import org.utbot.fuzzer.FuzzedContext.Comparison.*
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
-import org.utbot.fuzzing.FuzzedDescription
-import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
+import org.utbot.fuzzing.*
 import org.utbot.fuzzing.seeds.*
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
@@ -24,27 +23,70 @@ abstract class PrimitiveValueProvider(
 
     protected suspend fun <T : KnownValue> SequenceScope<Seed<FuzzedType, FuzzedValue>>.yieldKnown(
         value: T,
-        description: String = value.toString(),
         toValue: T.() -> Any
     ) {
         yield(Seed.Known(value) { known ->
             UtPrimitiveModel(toValue(known)).fuzzed {
                 summary = buildString {
-                    append("%var% = ")
+                    append("%var% = ${known.valueToString()}")
                     if (known.mutatedFrom != null) {
-                        append("mutated from ")
+                        append(" (mutated from ${known.mutatedFrom?.valueToString()})")
                     }
-                    append(description)
                 }
             }
         })
+    }
+
+    private fun <T : KnownValue> T.valueToString(): String {
+        when (this) {
+            is BitVectorValue -> {
+                for (defaultBound in Signed.values()) {
+                    if (defaultBound.test(this)) {
+                        return defaultBound.name.lowercase()
+                    }
+                }
+                return when (size) {
+                    8 -> toByte().toString()
+                    16 -> toShort().toString()
+                    32 -> toInt().toString()
+                    64 -> toLong().toString()
+                    else -> toString(10)
+                }
+            }
+            is IEEE754Value -> {
+                for (defaultBound in DefaultFloatBound.values()) {
+                    if (defaultBound.test(this)) {
+                        return defaultBound.name.lowercase().replace("_", " ")
+                    }
+                }
+                return when {
+                    is32Float() -> toFloat().toString()
+                    is64Float() -> toDouble().toString()
+                    else -> toString()
+                }
+            }
+            is StringValue -> {
+                return "'${value.substringToLength(10, "...")}'"
+            }
+            is RegexValue -> {
+                return "'${value.substringToLength(10, "...")}' from $pattern"
+            }
+            else -> return toString()
+        }
+    }
+
+    private fun String.substringToLength(size: Int, postfix: String): String {
+        return when {
+            length <= size -> this
+            else -> substring(0, size) + postfix
+        }
     }
 }
 
 object BooleanValueProvider : PrimitiveValueProvider(booleanClassId, booleanWrapperClassId) {
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence {
-        yieldKnown(Bool.TRUE(), description = "true") { toBoolean() }
-        yieldKnown(Bool.FALSE(), description = "false") { toBoolean() }
+        yieldKnown(Bool.TRUE()) { toBoolean() }
+        yieldKnown(Bool.FALSE()) { toBoolean() }
     }
 }
 
@@ -80,6 +122,15 @@ object IntegerValueProvider : PrimitiveValueProvider(
 
     private fun ClassId.cast(value: BitVectorValue): Any = tryCast(value)!!
 
+    private val randomStubWithNoUsage = Random(0)
+    private val configurationStubWithNoUsage = Configuration()
+
+    private fun BitVectorValue.change(func: BitVectorValue.() -> Unit): BitVectorValue {
+        return Mutation<KnownValue> { _, _, _ ->
+            BitVectorValue(this).apply { func() }
+        }.mutate(this, randomStubWithNoUsage, configurationStubWithNoUsage) as BitVectorValue
+    }
+
     override fun generate(
         description: FuzzedDescription,
         type: FuzzedType
@@ -90,14 +141,14 @@ object IntegerValueProvider : PrimitiveValueProvider(
                 val values = listOfNotNull(
                     value,
                     when (c) {
-                        FuzzedContext.Comparison.EQ, FuzzedContext.Comparison.NE, FuzzedContext.Comparison.LE, FuzzedContext.Comparison.GT -> BitVectorValue(value).apply { inc() }
-                        FuzzedContext.Comparison.LT, FuzzedContext.Comparison.GE -> BitVectorValue(value).apply { dec() }
+                        EQ, NE, LE, GT -> value.change { inc() }
+                        LT, GE -> value.change { dec() }
                         else -> null
                     }
                 )
                 values.forEach {
                     if (type.classId.tryCast(it) != null) {
-                        yieldKnown(it, description = "$it") {
+                        yieldKnown(it) {
                             type.classId.cast(this)
                         }
                     }
@@ -109,7 +160,7 @@ object IntegerValueProvider : PrimitiveValueProvider(
             val s = type.classId.typeSize
             val value = bound(s)
             if (type.classId.tryCast(value) != null) {
-                yieldKnown(value, description = bound.name.lowercase().replace("_", " ")) {
+                yieldKnown(value) {
                     type.classId.cast(this)
                 }
             }
@@ -143,12 +194,12 @@ object FloatValueProvider : PrimitiveValueProvider(
     ) = sequence {
         description.constants.forEach { (t, v, _) ->
             if (t in acceptableTypes) {
-                yieldKnown(IEEE754Value.fromValue(v), description = "$v") { type.classId.cast(this) }
+                yieldKnown(IEEE754Value.fromValue(v)) { type.classId.cast(this) }
             }
         }
         DefaultFloatBound.values().forEach { bound ->
             val (m, e) = type.classId.typeSize
-            yieldKnown(bound(m ,e), description = bound.name.lowercase().replace("_", " ")) {
+            yieldKnown(bound(m ,e)) {
                 type.classId.cast(this)
             }
         }
@@ -165,7 +216,7 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId) {
         val values = constants
             .mapNotNull { it.value as? String } +
                 sequenceOf("", "abc", "\n\t\r")
-        values.forEach { yieldKnown(StringValue(it), description = "predefined string") { value } }
+        values.forEach { yieldKnown(StringValue(it)) { value } }
         constants
             .filter { it.fuzzedContext.isPatterMatchingContext()  }
             .map { it.value as String }
@@ -178,7 +229,7 @@ object StringValueProvider : PrimitiveValueProvider(stringClassId) {
                     false
                 }
             }.forEach {
-                yieldKnown(RegexValue(it, Random(0)), description = "regex($it)") { value }
+                yieldKnown(RegexValue(it, Random(0))) { value }
             }
     }
 

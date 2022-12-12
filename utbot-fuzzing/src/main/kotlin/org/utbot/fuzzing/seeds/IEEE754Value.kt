@@ -112,6 +112,14 @@ class IEEE754Value : KnownValue {
         return result * if (isPositive) 1.0 else -1.0
     }
 
+    fun is32Float(): Boolean {
+        return vector.size == 32 && mantissaSize == 23 && exponentSize == 8
+    }
+
+    fun is64Float(): Boolean {
+        return vector.size == 64 && mantissaSize == 52 && exponentSize == 11
+    }
+
     override fun toString() = buildString {
         for (i in 0 until vector.size) {
             if (i == 1 || i == 1 + exponentSize) append(" ")

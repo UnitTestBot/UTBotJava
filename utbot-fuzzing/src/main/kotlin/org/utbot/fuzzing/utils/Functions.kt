@@ -85,11 +85,12 @@ internal fun <T> List<T>.transformIfNotEmpty(transform: List<T>.() -> List<T>): 
     return if (isNotEmpty()) transform() else this
 }
 
-fun main() {
-    val endian = Endian.BE
-    println(255.toUByte().toBinaryString(endian))
-    println(2.toBinaryString(endian))
-    println(BitVectorValue.fromInt(2).toBinaryString(endian))
-    print(8.75f.toBinaryString(endian))
-    print(8.75.toBinaryString(endian))
-}
+// todo move to tests
+//fun main() {
+//    val endian = Endian.BE
+//    println(255.toUByte().toBinaryString(endian))
+//    println(2.toBinaryString(endian))
+//    println(BitVectorValue.fromInt(2).toBinaryString(endian))
+//    print(8.75f.toBinaryString(endian))
+//    print(8.75.toBinaryString(endian))
+//}

@@ -62,6 +62,8 @@ suspend fun runJavaFuzzing(
     ).apply {
         compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
         className = classUnderTest.simpleName
+        canonicalName = classUnderTest.canonicalName
+        isNested = classUnderTest.isNested
         packageName = classUnderTest.packageName
         parameterNameMap = { index ->
             when {

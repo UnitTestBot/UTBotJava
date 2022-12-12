@@ -232,6 +232,8 @@ enum class Signed : Bound {
     ;
 
     operator fun invoke(size: Int) = BitVectorValue(size, this)
+
+    fun test(value: BitVectorValue) = (0..value.size).all { value[it] == initializer(it, value.size) }
 }
 
 enum class Unsigned : Bound {

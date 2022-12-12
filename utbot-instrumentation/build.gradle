@@ -9,8 +9,8 @@ dependencies {
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryoSerializersVersion
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdFrameworkVersion
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdFrameworkVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
     implementation group: 'net.java.dev.jna', name: 'jna-platform', version: jnaPlatformVersion
 
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation

@@ -99,8 +99,8 @@ tasks {
 }
 
 dependencies {
-    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdFrameworkVersion)
-    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdFrameworkVersion)
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
     implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)

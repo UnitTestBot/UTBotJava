@@ -3,7 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 val junit4Version: String by rootProject
 val sootVersion: String by rootProject
 val apacheCommonsLangVersion: String by rootProject
-val rdFrameworkVersion: String by rootProject
+val rdVersion: String by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val rdVersion: String? by rootProject
 
@@ -15,8 +15,8 @@ dependencies {
     api(project(":utbot-core"))
     api(project(":utbot-api"))
     api(project(":utbot-rd"))
-    implementation(group = "com.jetbrains.rd", name = "rd-framework", version = rdFrameworkVersion)
-    implementation(group = "com.jetbrains.rd", name = "rd-core", version = rdFrameworkVersion)
+    implementation(group = "com.jetbrains.rd", name = "rd-framework", version = rdVersion)
+    implementation(group = "com.jetbrains.rd", name = "rd-core", version = rdVersion)
     implementation(group = "org.unittestbot.soot", name = "soot-utbot-fork", version = sootVersion) {
         exclude(group="com.google.guava", module="guava")
     }

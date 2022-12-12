@@ -16,8 +16,8 @@ dependencies {
     api project(':utbot-framework-api')
     api project(':utbot-rd')
 
-    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdFrameworkVersion
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdFrameworkVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
     implementation(group: "org.unittestbot.soot", name: "soot-utbot-fork", version: sootVersion) {
         exclude group:'com.google.guava', module:'guava'

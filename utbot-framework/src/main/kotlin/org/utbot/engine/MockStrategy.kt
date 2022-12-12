@@ -27,14 +27,17 @@ enum class MockStrategy {
     THIRD_PARTY_LIBRARY_CLASSES {
         // see https://stackoverflow.com/a/1983870
         override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean {
-            if (isSystemPackage(classToMock.packageName)) {
-                return false
-            }
+            val codeSource = runCatching {
+                // In case declaring type is not presented in the classpath
+                classToMock.jClass.protectionDomain.codeSource ?: return false
+            }.onFailure {
+                // An exception here means the class is not in the classpath, so it should be from a third-party library
+                return true
+            }.getOrThrow()
 
-            val codeSource = classToMock.jClass.protectionDomain.codeSource ?: return false
             val location = codeSource.location
 
-            return location.path.endsWith("jar")
+            return location.path.endsWith("jar") && !location.path.endsWith("rt.jar") && !location.path.endsWith("jce.jar")
         }
     },
 

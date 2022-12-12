@@ -5,7 +5,6 @@ val sootVersion: String by rootProject
 val apacheCommonsLangVersion: String by rootProject
 val rdVersion: String by rootProject
 val kotlinLoggingVersion: String? by rootProject
-val rdVersion: String? by rootProject
 
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"

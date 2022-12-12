@@ -49,7 +49,7 @@ sourceSets {
 dependencies {
     implementation project(':utbot-core')
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
-    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdkVersion
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 

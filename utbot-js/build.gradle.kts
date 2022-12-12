@@ -34,20 +34,8 @@ dependencies {
     api(project(":utbot-framework"))
     implementation(project(":utbot-fuzzers"))
 
-    testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = junitJupiterVersion)
-    testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = junitJupiterVersion)
-
-    // https://mvnrepository.com/artifact/org.graalvm.js/js
-    implementation(group = "org.graalvm.js", name = "js", version = "22.1.0.1")
-
-    // https://mvnrepository.com/artifact/org.graalvm.js/js-scriptengine
-    implementation(group = "org.graalvm.js", name = "js-scriptengine", version = "22.1.0.1")
-
-    // https://mvnrepository.com/artifact/org.graalvm.truffle/truffle-api
-    implementation(group = "org.graalvm.truffle", name = "truffle-api", version = "22.1.0.1")
-
-    // https://mvnrepository.com/artifact/org.graalvm.sdk/graal-sdk
-    implementation(group = "org.graalvm.sdk", name = "graal-sdk", version = "22.1.0.1")
+    // https://mvnrepository.com/artifact/com.google.javascript/closure-compiler
+    implementation("com.google.javascript:closure-compiler:v20221102")
 
     // https://mvnrepository.com/artifact/org.json/json
     implementation(group = "org.json", name = "json", version = jsonVersion)
@@ -55,6 +43,4 @@ dependencies {
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation(group = "commons-io", name = "commons-io", version = commonsIoVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
-
-    api(group = "org.functionaljava", name = "functionaljava", version = functionaljavaVersion)
 }

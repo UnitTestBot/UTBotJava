@@ -29,6 +29,7 @@ import org.utbot.framework.codegen.domain.models.CgDocClassLinkStmt
 import org.utbot.framework.codegen.domain.models.CgDocCodeStmt
 import org.utbot.framework.codegen.domain.models.CgDocMethodLinkStmt
 import org.utbot.framework.codegen.domain.models.CgDocPreTagStatement
+import org.utbot.framework.codegen.domain.models.CgDocRegularLineStmt
 import org.utbot.framework.codegen.domain.models.CgDocRegularStmt
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
@@ -360,7 +361,12 @@ abstract class CgAbstractRenderer(
     override fun visit(element: CgDocRegularStmt){
         if (element.isEmpty()) return
 
-        print(" * " + element.stmt)
+        print(element.stmt.replace("\n", "\n * "))
+    }
+    override fun visit(element: CgDocRegularLineStmt){
+        if (element.isEmpty()) return
+
+        print(" * " + element.stmt + "\n")
     }
     override fun visit(element: CgDocClassLinkStmt) {
         if (element.isEmpty()) return

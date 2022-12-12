@@ -18,6 +18,5 @@ import org.utbot.framework.plugin.api.UtModel
  */
 open class FuzzedValue(
     val model: UtModel,
-    val createdBy: ModelProvider? = null,
     var summary: String? = null,
 )

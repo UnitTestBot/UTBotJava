@@ -54,6 +54,7 @@ import soot.jimple.Stmt
 import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import org.utbot.common.isAbstract
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -575,7 +576,7 @@ class UtLambdaModel(
     val lambdaMethodId: MethodId
         get() {
             if (isFake) {
-                val targetMethod = samType.jClass.declaredMethods.single()
+                val targetMethod = samType.jClass.declaredMethods.single { it.isAbstract }
                 return object : MethodId(
                     declaringClass,
                     fakeName,

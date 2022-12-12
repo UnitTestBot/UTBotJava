@@ -18,6 +18,7 @@ val jsIde: String? by rootProject
 
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
+val rdVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
 
@@ -51,10 +52,14 @@ intellij {
         "JavaScript"
     )
 
+    val mavenUtilsPlugins = listOf(
+        "org.jetbrains.idea.maven"
+    )
+
     plugins.set(
         when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
+            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
+            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins + mavenUtilsPlugins
             "PC" -> pythonCommunityPlugins
             "PY" -> pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
@@ -63,6 +68,7 @@ intellij {
 
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
+    SettingsTemplateHelper.proceed(project)
 }
 
 tasks {

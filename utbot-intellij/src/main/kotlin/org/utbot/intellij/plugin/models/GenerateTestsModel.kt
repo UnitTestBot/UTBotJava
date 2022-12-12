@@ -16,6 +16,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.psi.KtFile
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
@@ -46,7 +47,7 @@ class GenerateTestsModel(
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
-    var runInspectionAfterTestGeneration: Boolean = false
+    var runInspectionAfterTestGeneration: Boolean = true
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
@@ -54,7 +55,7 @@ class GenerateTestsModel(
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
     var runGeneratedTestsWithCoverage : Boolean = false
-    var enableSummariesGeneration : Boolean = true
+    var enableSummariesGeneration : Boolean = UtSettings.enableSummariesGeneration
 }
 
 val PsiClass.packageName: String

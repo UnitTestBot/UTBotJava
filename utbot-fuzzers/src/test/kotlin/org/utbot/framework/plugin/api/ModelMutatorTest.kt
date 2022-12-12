@@ -2,7 +2,7 @@ package org.utbot.framework.plugin.api
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.utbot.fuzzer.invertBit
+import org.utbot.fuzzing.utils.invertBit
 import kotlin.random.Random
 
 class ModelMutatorTest {

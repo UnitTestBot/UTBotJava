@@ -31,9 +31,11 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.fuzzing.FuzzedDescription
+import org.utbot.fuzzing.Seed
+import org.utbot.fuzzing.ValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import kotlin.reflect.jvm.kotlinFunction
@@ -160,14 +162,10 @@ object UtBotJavaApi {
                 }
                 ?.map { UtPrimitiveModel(it) } ?: emptySequence()
 
-        val customModelProvider = ModelProvider { description ->
+        val customModelProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> { _, type ->
             sequence {
-                description.parametersMap.forEach { (classId, indices) ->
-                    createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
-                        indices.forEach { index ->
-                            yieldValue(index, FuzzedValue(model))
-                        }
-                    }
+                createPrimitiveModels(primitiveValuesSupplier, type.classId).forEach { model ->
+                    yield(Seed.Simple(FuzzedValue(model)))
                 }
             }
         }

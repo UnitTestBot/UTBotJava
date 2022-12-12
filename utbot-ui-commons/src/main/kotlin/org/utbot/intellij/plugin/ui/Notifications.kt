@@ -37,7 +37,7 @@ abstract class Notifier {
     protected open val notificationDisplayType = NotificationDisplayType.BALLOON
 
     protected val notificationGroup: NotificationGroup
-        get() = NotificationGroup(displayId, notificationDisplayType)
+        get() = NotificationGroup.findRegisteredGroup(displayId) ?: NotificationGroup(displayId, notificationDisplayType)
 }
 
 abstract class WarningNotifier : Notifier() {

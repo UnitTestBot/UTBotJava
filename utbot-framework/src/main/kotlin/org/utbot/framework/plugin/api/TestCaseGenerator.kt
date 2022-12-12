@@ -27,7 +27,7 @@ import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.UtModelConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.minimization.minimizeTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
@@ -204,7 +204,7 @@ open class TestCaseGenerator(
                             method2controller.values.forEach { it.paused = true }
                             controller.paused = false
 
-                            logger.info { "|> Resuming method $method" }
+                            logger.info { "Resuming method $method" }
                             val startTime = System.currentTimeMillis()
                             while (controller.job!!.isActive &&
                                 (System.currentTimeMillis() - startTime) < executionTimeEstimator.timeslotForOneToplevelMethodTraversalInMillis
@@ -224,7 +224,7 @@ open class TestCaseGenerator(
                 }
             }
         }
-        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close child processes
+        ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
 
         return methods.map { method ->

@@ -3,8 +3,8 @@ package org.utbot.python.framework.codegen.model.constructor.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.PythonSysPathImport
+import org.utbot.python.framework.codegen.model.PythonImport
+import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
 import org.utbot.framework.codegen.domain.models.CgAbstractMultilineComment
@@ -288,7 +288,7 @@ internal class CgPythonRenderer(
             .forEach { renderPythonImport(it) }
     }
 
-    private fun renderPythonImport(pythonImport: PythonImport) {
+    fun renderPythonImport(pythonImport: PythonImport) {
         if (pythonImport is PythonSysPathImport) {
             println("sys.path.append('${pythonImport.sysPath}')")
         } else if (pythonImport.moduleName == null) {

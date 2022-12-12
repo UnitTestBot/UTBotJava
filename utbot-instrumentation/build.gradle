@@ -13,7 +13,6 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdFrameworkVersion
     implementation group: 'net.java.dev.jna', name: 'jna-platform', version: jnaPlatformVersion
 
-
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
@@ -24,12 +23,12 @@ jar {
 
     manifest {
         attributes (
-                'Main-Class': 'org.utbot.instrumentation.process.ChildProcessKt',
+                'Main-Class': 'org.utbot.instrumentation.process.InstrumentedProcessMainKt',
                 'Premain-Class': 'org.utbot.instrumentation.agent.Agent',
         )
     }
 
-    // we need only classes from implementation and utbot to execute child process
+    // we need only classes from implementation and utbot to execute instrumented process
     dependsOn configurations.compileClasspath
     from {
         configurations.compileClasspath

@@ -8,6 +8,9 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.Converter
 import com.intellij.util.xmlb.annotations.OptionTag
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Paths
 import org.utbot.common.FileUtil
 import org.utbot.engine.Mocker
 import org.utbot.framework.UtSettings
@@ -32,6 +35,7 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
+import org.utbot.common.isWindows
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 @State(
@@ -50,7 +54,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
         @OptionTag(converter = HangingTestsTimeoutConverter::class)
         var hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
-        var runInspectionAfterTestGeneration: Boolean = false,
+        var runInspectionAfterTestGeneration: Boolean = true,
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
@@ -58,7 +62,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
-        var enableSummariesGeneration: Boolean = true
+        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,
@@ -171,7 +175,27 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
     override fun initializeComponent() {
         super.initializeComponent()
-        CompletableFuture.runAsync { FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles) }
+        CompletableFuture.runAsync {
+            FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles)
+
+            // Don't replace file with custom user's settings
+            if (UtSettings.areCustomized()) return@runAsync
+            // In case settings.properties file is not yet presented
+            // (or stays with all default template values) in {homeDir}/.utbot folder
+            // we copy (or re-write) it from plugin resource file
+            val settingsClass = javaClass
+            Paths.get(UtSettings.defaultSettingsPath()).toFile().apply {
+                try {
+                    this.parentFile.apply {
+                        if (this.mkdirs() && isWindows) Files.setAttribute(this.toPath(), "dos:hidden", true)
+                    }
+                    settingsClass.getResource("../../../../../settings.properties")?.let {
+                        this.writeBytes(it.openStream().readBytes())
+                    }
+                } catch (ignored: IOException) {
+                }
+            }
+        }
     }
 
     override fun loadState(state: State) {

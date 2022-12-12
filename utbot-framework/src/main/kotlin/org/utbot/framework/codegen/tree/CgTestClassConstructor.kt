@@ -132,27 +132,25 @@ open class CgTestClassConstructor(val context: CgContext) :
     }
 
     fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
-        if (testSet.executions.isEmpty()) {
-            return null
-        }
-
-        successfulExecutionsModels = testSet
-            .executions
-            .filter { it.result is UtExecutionSuccess }
-            .map { (it.result as UtExecutionSuccess).model }
-
         val regions = mutableListOf<CgRegion<CgMethod>>()
 
-        runCatching {
-            when (context.parametrizedTestSource) {
-                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> createTest(testSet, regions)
-                ParametrizedTestSource.PARAMETRIZE ->
-                    createParametrizedTestAndDataProvider(
-                        testSet,
-                        regions
-                    )
-            }
-        }.onFailure { e -> processFailure(testSet, e) }
+        if (testSet.executions.any()) {
+            successfulExecutionsModels = testSet
+                .executions
+                .filter { it.result is UtExecutionSuccess }
+                .map { (it.result as UtExecutionSuccess).model }
+
+            runCatching {
+                when (context.parametrizedTestSource) {
+                    ParametrizedTestSource.DO_NOT_PARAMETRIZE -> createTest(testSet, regions)
+                    ParametrizedTestSource.PARAMETRIZE ->
+                        createParametrizedTestAndDataProvider(
+                            testSet,
+                            regions
+                        )
+                }
+            }.onFailure { e -> processFailure(testSet, e) }
+        }
 
         val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
@@ -160,7 +158,7 @@ open class CgTestClassConstructor(val context: CgContext) :
             testsGenerationReport.addMethodErrors(testSet, errors)
         }
 
-        return regions
+        return if (regions.any()) regions else null
     }
 
     private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {

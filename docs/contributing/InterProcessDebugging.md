@@ -2,81 +2,121 @@
 
 ### Background
 
-We have split the UnitTestBot machinery into three processes. This approach has improved UnitTestBot capabilities, e.g. 
-provided support for various JVMs and scenarios, but also complicated the debugging flow.
+We have split the UnitTestBot machinery into three processes. See the [document on UnitTestBot multiprocess
+architecture](../RD%20for%20UnitTestBot.md).
+This approach has improved UnitTestBot capabilities, e.g., provided support for various JVMs and scenarios but also
+complicated the debugging flow.
 
 These are UnitTestBot processes (according to the execution order):
 
-* IDE process
-* Engine process
-* Concrete execution process
+* _IDE process_
+* _Engine process_
+* _Instrumented process_
 
-Usually, main problems happen in the Engine process, but it is not the process we run first.
-The most straightforward way to debug the Engine process is the following.
+Usually, the main problems happen in the _Engine process_, but it is not the process we run first.
+See how to debug UnitTestBot processes effectively.
 
-### Enable debugging for the Engine process
+### Enable debugging
 
-1. Open `org/utbot/framework/UtSettings.kt`.
-2. Set `runIdeaProcessWithDebug` property to _true_. This enables `EngineProcess.debugArgument`.
-3. Find `EngineProcess.debugArgument` at `org/utbot/intellij/plugin/process/EngineProcess` and check the parameters of the debug run:
+Debugging the _IDE process_ is pretty straightforward: start the debugger session (**Shift+F9**) for the `runIde`
+Gradle task in `utbot-intellij` project from your IntelliJ IDEA.
 
-    `"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005"`
+To debug the _Engine process_ and the _Instrumented process_, you need to enable the debugging options:
+1. Open [`UtSettings.kt`](../../utbot-framework-api/src/main/kotlin/org/utbot/framework/UtSettings.kt).
+2. There are two similar options: `runEngineProcessWithDebug` and `runInstrumentedProcessWithDebug` — enable the
+   relevant one(s). There are two ways to do this:
+   * You can create the `~/.utbot/settings.properties` file and write the following:
 
-* The `suspend` mode is enabled. Modify it in the case of some tricky timeouts in your scenario.
-* The port that will be used for debugging (`address`) is set to `5005`. Modify it if the port is already in use on your system.
+   ```
+   runEngineProcessWithDebug=true
+   runInstrumentedProcessWithDebug=true
+   ```
+   Then restart the IntelliJ IDEA instance you want to debug.
 
-### Create a new run configuration for debugging the Engine process
+   * **Discouraged**: you can change the options in the source file, but this will involve moderate project
+     recompilation.
+4. You can set additional options for the Java Debug Wire Protocol (JDWP) agent if debugging is enabled:
+   * `engineProcessDebugPort` and `instrumentedProcessDebugPort` are the ports for debugging.
 
-In addition to the `runIde` Gradle task that is supposed to run a new IDE instance, we should create another run 
-configuration.
+     Default values:
+      - 5005 for the _Engine process_
+      - 5006 for the _Instrumented process_
 
-1. In your IntelliJ IDEA go to **Ru**n > **Edit configurations…**.
-2. In the **Run/Debug Configuration** dialog, click **`+`** on the toolbar.
-3. In the **Run/Debug Configuration Templates** dialog that opens, select a **Remote JVM Debug** configuration type.
-4. Check that **Port** has the same number as the `address` parameter from the `EngineProcess.debugArgument` mentioned above.
-5. Give the new run configuration a meaningful name and save the run configuration.
+   * `suspendEngineProcessExecutionInDebugMode` and `suspendInstrumentedProcessExecutionInDebugMode` define whether
+     the JDWP agent should suspend the process until the debugger is connected.
+
+   More formally, if debugging is enabled, the following switch is added to the _Engine process_ JVM at the start by
+   default:
+   ```
+   "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005"
+   ```
+
+   These options set `suspend` and `address` values. For example, with the following options in `~/.utbot/settings.properties`:
+   ```
+   runEngineProcessWithDebug=true
+   engineProcessDebugPort=12345
+   suspendEngineProcessExecutionInDebugMode=false
+   ```
+   the resulting switch will be:
+   ```
+   "-agentlib:jdwp=transport=dt_socket,server=n,suspend=n,quiet=y,address=12345"
+   ```
+   See `org.utbot.intellij.plugin.process.EngineProcess.Companion.debugArgument` for switch implementation.
+5. For information about logs, refer to the [Interprocess logging](InterProcessLogging.md) guide.
+
+### Run configurations for debugging the Engine process
+
+There are three basic run configurations:
+1. `Run IDE` configuration allows running the plugin in IntelliJ IDEA.
+2. `Utility Configurations/Listen for Instrumented Process` configuration allows listening to port 5006 to check if 
+   the _Instrumented process_ is available for debugging.
+3. `Utility Configurations/Listen for Engine Process` configuration allows listening to port 5005 to check if the _Engine process_ is available for debugging.
+
+On top of them, there are three compound run configurations for debugging:
+1. `Debug Engine Process` and `Debug Instrumented Process` — a combination for debugging the _IDE process_ and
+   the selected process.
+3. `Debug All` — a combination for debugging all three processes.
+
+To make debug configurations work properly, you need to set the required properties in `~/.utbot/settings.properties`. If you change the _port number_ and/or the _suspend mode_, do change these default values in the corresponding Utility Configuration.
 
 ### How to debug
 
-1. In your current IntelliJ IDEA, use breakpoints to define where the program needs to be stopped. For example, set the breakpoints at
+Let's walk through an example illustrating how to debug the "_IDE process_ → _Engine process_" communication.
 
-    `EngineProcess.createTestGenerator()`<br>
-    `engineModel().createTestGenerator.startSuspending()`
-
-2. Start the debugger session (**Shift+F9**) for the `runIde` Gradle task (wait for the debug IDE instance to open).
-3. Generate tests with UnitTestBot in the debug IDE instance. Make sure symbolic execution is turned on.
-4. The debug IDE instance will stop generation (if you have not changed the debug parameters). If you take no action, test generation will be cancelled by timeout.
-5. When the Engine process started (build processes have finished, and the progress bar says: _"Generate tests: read 
-   classes"_), start the debugger session (**Shift+F9**) for your newly created Remote JVM Debug run configuration.
-6. Wait for the program to be suspended upon reaching the first breakpoint.
+1. In your current IntelliJ IDEA with source code, use breakpoints to define where the program needs to be stopped. For example, set the breakpoints at `EngineProcess.generate` and somewhere in `watchdog.wrapActiveCall(generate)`.
+2. Select the `Debug Engine Process` configuration, add the required parameters to `~/.utbot/settings.properties` and 
+   start the debugger session. 
+3. Generate tests with UnitTestBot in the debug IDE instance. Make sure symbolic execution is turned on, otherwise some processes do not even start. 
+4. The debug IDE instance will stop generation (if you have not changed the debug parameters). If you take no action, test generation will be canceled by timeout. 
+5. When the _Engine process_ has started (build processes have finished, and the progress bar says: _"Generate 
+   tests: read classes"_), there will be another debug window — "Listen for Engine Process", — which automatically 
+   connects and starts debugging. 
+6. Wait for the program to be suspended upon reaching the first breakpoint in the _Engine process_.
 
 ### Interprocess call mapping
 
-Now you are standing on a breakpoint in the IDE process, for example, the process stopped on:
+Now you are standing on a breakpoint in the _IDE process_, for example, the process stopped on:
 
-    `EngineProcess.createTestGenerator()`
+    EngineProcess.generate()
 
-If you resume the process it reaches the next breakpoint (you are still in the IDE process):
+If you go along the execution, it reaches the next line (you are still in the _IDE process_):
 
-    `engineModel().createTestGenerator.startSuspending()`
+    engineModel.generate.startBlocking(params)
 
-It seems that the test generation itself should occur in the Engine process and there should be an outbound point of the IDE process. How can we find it? An how can we reach the inbound point of the Engine process?
+It seems that test generation itself should occur in the _Engine process_ and there should be an entry point in the _Engine process_.
+How can we find it?
 
-Standing on the breakpoint` engineModel().createTestGenerator.startSuspending()`, you may **Go to Declaration or 
-Usage** and navigate to the definition of `RdCall` (which is responsible for cross-process communication) in `EngineProcessModel.createTestGenerator`.
+Standing on the breakpoint at `engineModel.generate.startBlocking(params)`, right-click on
+`EngineProcessModel.generate` and **Go to** > **Declaration or Usages**. This navigates to the `RdCall` definition (which is
+responsible for cross-process communication) in the `EngineProcesModel.Generated.kt` file.
 
-Now **Find Usages** for `EngineProcessModel.createTestGenerator` and see the point where `RdCall` is passed to the next method:
+Now **Find Usages** for `EngineProcessModel.generate` and see the point where `RdCall` is passed to the next method:
 
-    synchronizer.measureExecutionForTermination()
+    watchdog.wrapActiveCall(generate)
 
-This is the point where `RdCall` is called in the Engine process.
+This is the point where `RdCall` is called in the _Engine process_.
 
-Actually you could have skipped the previous step and used **Find Usages** right away, but it is useful to know where `RdCall` is defined.
+You could have skipped the previous step and used **Find Usages** right away, but it is useful to know
+where `RdCall` is defined.
 
-If you are interested in the trailing lambda of `synchronizer.measureExecutionForTermination()`, set the breakpoint here.
-
-#### Architectural notice
-
-We must place the outbound point of the IDE process and the inbound point of the Engine process as close as possible. 
-They may be two lambda-parameters of the same function. In this case we hope that the developer will not spend time on straying around.
-
+If you are interested in the trailing lambda of `watchdog.wrapActiveCall(generate)`, set the breakpoint here.

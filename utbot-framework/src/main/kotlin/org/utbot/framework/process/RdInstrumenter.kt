@@ -1,36 +1,30 @@
 package org.utbot.framework.process
 
-import com.jetbrains.rd.framework.IProtocol
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.utbot.common.logException
 import org.utbot.framework.process.generated.ComputeSourceFileByClassArguments
-import org.utbot.framework.process.generated.rdInstrumenterAdapter
+import org.utbot.framework.process.generated.RdInstrumenterAdapter
 import org.utbot.instrumentation.instrumentation.instrumenter.InstrumenterAdapter
+import org.utbot.rd.startBlocking
 import java.io.File
 import java.nio.file.Path
 
 private val logger = KotlinLogging.logger { }
 
-class RdInstrumenter(private val protocol: IProtocol): InstrumenterAdapter() {
+class RdInstrumenter(private val rdInstrumenterAdapter: RdInstrumenterAdapter) : InstrumenterAdapter() {
     override fun computeSourceFileByClass(
-        className: String,
-        packageName: String?,
+        clazz: Class<*>,
         directoryToSearchRecursively: Path
-    ): File? = runBlocking {
-        logger.debug { "starting computeSourceFileByClass with classname - $className" }
-        val result = try {
-             protocol.rdInstrumenterAdapter.computeSourceFileByClass.startSuspending(
-                ComputeSourceFileByClassArguments(
-                    className,
-                    packageName
-                )
-            )
+    ): File? {
+        val canonicalClassName = clazz.canonicalName
+        logger.debug { "starting computeSourceFileByClass for class - $canonicalClassName" }
+        val result = logger.logException {
+            val arguments = ComputeSourceFileByClassArguments(canonicalClassName)
+
+            rdInstrumenterAdapter.computeSourceFileByClass.startBlocking(arguments)
         }
-        catch(e: Exception) {
-            logger.error(e) { "error during computeSourceFileByClass" }
-            throw e
-        }
-        logger.debug { "computeSourceFileByClass result for $className from idea: $result"}
-        return@runBlocking result?.let { File(it) }
+        logger.debug { "computeSourceFileByClass result for $canonicalClassName from idea: $result" }
+        return result?.let { File(it) }
     }
 }

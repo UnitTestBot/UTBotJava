@@ -19,7 +19,6 @@ open class FuzzedMethodDescription(
     val parameters: List<ClassId>,
     val concreteValues: Collection<FuzzedConcreteValue> = emptyList()
 ) {
-
     /**
      * Name that can be used to generate test names
      */
@@ -34,6 +33,16 @@ open class FuzzedMethodDescription(
      * Package Name
      */
     var packageName: String? = null
+
+    /**
+     * Canonical name.
+     */
+    var canonicalName: String? = null
+
+    /**
+     * True, if class is nested.
+     */
+    var isNested: Boolean = false
 
     /**
      * Returns parameter name by its index in the signature

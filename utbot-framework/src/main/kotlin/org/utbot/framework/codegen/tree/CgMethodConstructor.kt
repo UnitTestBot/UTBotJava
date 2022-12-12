@@ -405,7 +405,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
-        if (UtSettings.treatAssertAsErrorSuit && exception is AssertionError) return false
+        if (UtSettings.treatAssertAsErrorSuite && exception is AssertionError) return false
 
         val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
         val exceptionIsExplicit = execution.result is UtExplicitlyThrownException
@@ -1361,7 +1361,12 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
-                val statics = currentExecution!!.stateBefore.statics
+                //Enum constants are static, but there is no need to store and recover value for them
+                val statics = currentExecution!!.stateBefore
+                    .statics
+                    .filterNot { it.value is UtEnumConstantModel }
+                    .filterNot { it.value.classId.outerClass?.isEnum == true }
+
                 rememberInitialStaticFields(statics)
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()

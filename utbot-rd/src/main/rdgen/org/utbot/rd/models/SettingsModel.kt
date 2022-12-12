@@ -1,10 +1,12 @@
+@file:Suppress("unused")
+
 package org.utbot.rd.models
 
 import com.jetbrains.rd.generator.nova.*
 
-object SettingsProtocolRoot: Root()
+object SettingsRoot: Root()
 
-object SettingsModel : Ext(SettingsProtocolRoot) {
+object SettingsModel : Ext(SettingsRoot) {
     val settingForArgument = structdef {
         field("key", PredefinedType.string)
         field("propertyName", PredefinedType.string)

@@ -156,7 +156,7 @@ fun interface ModelProvider {
         }
     }
 
-    fun UtModel.fuzzed(block: FuzzedValue.() -> Unit = {}): FuzzedValue = FuzzedValue(this, this@ModelProvider).apply(block)
+    fun UtModel.fuzzed(block: FuzzedValue.() -> Unit = {}): FuzzedValue = FuzzedValue(this).apply(block)
 }
 
 inline fun <reified T> ModelProvider.exceptIsInstance(): ModelProvider {

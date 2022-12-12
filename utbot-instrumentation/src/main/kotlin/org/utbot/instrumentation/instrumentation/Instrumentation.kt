@@ -28,7 +28,7 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
     fun getStaticField(fieldId: FieldId): Result<*>
 
     /**
-     * Will be called in the very beginning in the child process.
+     * Will be called in the very beginning in the instrumented process.
      */
     fun init(pathsToUserClasses: Set<String>) {}
 }

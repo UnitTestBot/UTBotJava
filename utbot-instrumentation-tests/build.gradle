@@ -14,7 +14,7 @@ dependencies {
 }
 
 processResources {
-    // We will extract this jar in `ChildProcessRunner` class.
+    // We will extract this jar in `InstrumentedProcessRunner` class.
     from(configurations.fetchInstrumentationJar) {
         into "instrumentation-lib"
     }

@@ -78,8 +78,13 @@ jobs:
 
       - name: Create matrix
         id: set-matrix
+        shell: bash
         run: |
-          projects=$(echo [$(ls --format=commas --indicator-style=none $monitoring_projects)])
+          read -r -a projects <<< $(ls --format=horizontal --indicator-style=none $monitoring_projects)
+          projects=(${projects[@]/#/\"})
+          projects=(${projects[@]/%/\"})
+          printf -v projects '%s,' "${projects[@]}"
+          projects=$(echo [${projects%,}])
           echo "projects=$projects" >> $GITHUB_OUTPUT
           echo $projects
           

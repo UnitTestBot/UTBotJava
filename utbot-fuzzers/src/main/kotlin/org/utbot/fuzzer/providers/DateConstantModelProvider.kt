@@ -5,7 +5,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.dateClassId
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -23,7 +22,7 @@ import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.hex
+import org.utbot.fuzzing.utils.hex
 import org.utbot.fuzzer.objects.assembleModel
 
 class DateConstantModelProvider(

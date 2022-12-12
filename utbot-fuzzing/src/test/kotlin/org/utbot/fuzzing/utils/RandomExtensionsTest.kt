@@ -1,11 +1,9 @@
-package org.utbot.framework.plugin.api
+package org.utbot.fuzzing.utils
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import org.utbot.fuzzer.chooseOne
-import org.utbot.fuzzer.flipCoin
 import kotlin.math.abs
 import kotlin.random.Random
 

@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelMutator
-import org.utbot.fuzzer.invertBit
+import org.utbot.fuzzing.utils.invertBit
 import kotlin.random.Random
 
 /**

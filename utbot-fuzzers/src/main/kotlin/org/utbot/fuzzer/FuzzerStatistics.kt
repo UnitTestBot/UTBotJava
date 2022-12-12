@@ -1,5 +1,7 @@
 package org.utbot.fuzzer
 
+import org.utbot.fuzzing.utils.Trie
+import org.utbot.fuzzing.utils.chooseOne
 import kotlin.math.pow
 import kotlin.random.Random
 

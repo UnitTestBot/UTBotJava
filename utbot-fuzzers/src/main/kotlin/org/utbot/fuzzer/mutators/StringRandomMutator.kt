@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelMutator
-import org.utbot.fuzzer.flipCoin
+import org.utbot.fuzzing.utils.flipCoin
 import kotlin.random.Random
 
 /**

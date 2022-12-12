@@ -1,4 +1,4 @@
-package org.utbot.fuzzer
+package org.utbot.fuzzing.utils
 
 fun <T> trieOf(vararg values: Iterable<T>): Trie<T, T> = IdentityTrie<T>().apply {
     values.forEach(this::add)
@@ -169,4 +169,22 @@ open class Trie<T, K>(
         override var count: Int = 0,
         val children: MutableMap<K, NodeImpl<T, K>> = HashMap(),
     ) : Node<T>
+
+    private object EmptyNode : Node<Any> {
+        override val data: Any
+            get() = error("empty node has no data")
+        override val count: Int
+            get() = 0
+        override fun equals(other: Any?): Boolean {
+            return false
+        }
+        override fun hashCode(): Int {
+            return 0
+        }
+    }
+
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun <T> emptyNode() = EmptyNode as Node<T>
+    }
 }

@@ -1,4 +1,4 @@
-package org.utbot.fuzzer
+package org.utbot.fuzzing.utils
 
 /**
  * Enumerates all possible combinations for a given list of maximum numbers of elements for every position.

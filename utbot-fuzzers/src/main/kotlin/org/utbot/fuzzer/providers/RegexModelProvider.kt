@@ -65,4 +65,4 @@ object RegexModelProvider : ModelProvider {
     }
 }
 
-class RegexFuzzedValue(value: FuzzedValue, val regex: String) : FuzzedValue(value.model, value.createdBy)
+class RegexFuzzedValue(value: FuzzedValue, val regex: String) : FuzzedValue(value.model)

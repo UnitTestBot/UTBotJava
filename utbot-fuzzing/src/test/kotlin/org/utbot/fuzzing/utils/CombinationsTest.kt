@@ -1,7 +1,5 @@
-package org.utbot.framework.plugin.api
+package org.utbot.fuzzing.utils
 
-import org.utbot.fuzzer.CartesianProduct
-import org.utbot.fuzzer.Combinations
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -11,7 +9,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import org.utbot.fuzzer.TooManyCombinationsException
 import java.util.BitSet
 import kotlin.math.pow
 import kotlin.random.Random

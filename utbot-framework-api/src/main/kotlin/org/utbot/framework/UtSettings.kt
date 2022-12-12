@@ -529,6 +529,26 @@ object UtSettings : AbstractSettings(
      */
     var disableClinitSectionsAnalysis by getBooleanProperty(false)
 
+    /**
+     * Depending on this option, some settings will be changed to
+     * improve performance of the analysis losing its precision.
+     */
+    var setLessPrecision by getBooleanProperty(false)
+
+    /**
+     * Number of cases for which we will change analysis mode.
+     */
+    var taintPrecisionThreshold by getIntProperty(128)
+
+    /**
+     * Determines whether we should assume that something might happen
+     * between static initialization and entry point of the analysis or not.
+     *
+     * If it is true, such static will be substituted with unbounded variables.
+     * Otherwise, they will have values they got from their init section.
+     */
+    var resetStaticAfterInitializer by getBooleanProperty(true)
+
     init {
         turnOnAnalysisModes()
     }
@@ -548,6 +568,12 @@ enum class AnalysisMode(private val triggerOption: KMutableProperty0<Boolean>) {
                 useSandbox = false
                 callDepthToMock = taintAnalysisCallDepthToMock
                 loopStepsLimit = taintLoopStepsLimit
+                resetStaticAfterInitializer = false
+
+                if (setLessPrecision) {
+                    mockAllMethodsButRelatedToTaintAnalysis = true
+                    disableClinitSectionsAnalysis = true
+                }
             }
     };
 

@@ -4116,28 +4116,30 @@ class Traverser(
 
         // we assign unbounded symbolic variables for every non-final meaningful field of the class
         // fields from predefined library classes are excluded, because there are not meaningful
-        typeResolver
-            .findFields(declaringClass.type)
-            .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
-            .forEach {
-                // remove updates from clinit, because we'll replace those values
-                // with new unbounded symbolic variable
-                staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
+        if (UtSettings.resetStaticAfterInitializer) {
+            typeResolver
+                .findFields(declaringClass.type)
+                .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
+                .forEach {
+                    // remove updates from clinit, because we'll replace those values
+                    // with new unbounded symbolic variable
+                    staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
 
-                val value = createConst(it.type, it.name)
-                val valueToStore = if (value is ReferenceValue) {
-                    value.addr
-                } else {
-                    (value as PrimitiveValue).expr
+                    val value = createConst(it.type, it.name)
+                    val valueToStore = if (value is ReferenceValue) {
+                        value.addr
+                    } else {
+                        (value as PrimitiveValue).expr
+                    }
+
+                    // we always know that this instance exists because we've just returned from its clinit method
+                    // in which we had to create such instance
+                    val staticObject = updates.staticInstanceStorage.getValue(declaringClassId)
+                    staticFieldsUpdates += StaticFieldMemoryUpdateInfo(it.fieldId, value)
+
+                    objectUpdates += objectUpdate(staticObject, it, valueToStore).stores
                 }
-
-                // we always know that this instance exists because we've just returned from its clinit method
-                // in which we had to create such instance
-                val staticObject = updates.staticInstanceStorage.getValue(declaringClassId)
-                staticFieldsUpdates += StaticFieldMemoryUpdateInfo(it.fieldId, value)
-
-                objectUpdates += objectUpdate(staticObject, it, valueToStore).stores
-            }
+        }
 
         return updates.copy(
             stores = updates.stores.addAll(objectUpdates),

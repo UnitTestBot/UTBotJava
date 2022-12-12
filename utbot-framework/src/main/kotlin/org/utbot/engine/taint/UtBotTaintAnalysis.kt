@@ -367,6 +367,9 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         UtSettings.enableSummariesGeneration = false
         UtSettings.checkNpeInNestedNotPrivateMethods = true
         UtSettings.preferredCexOption = false
+        if (taintCandidates.size < UtSettings.taintPrecisionThreshold) {
+            UtSettings.setLessPrecision = true
+        }
         AnalysisMode.TAINT.applyMode()
         // TODO move to the TAINT analysis mode?
         UtSettings.useOnlyTaintAnalysis = true

@@ -1219,7 +1219,13 @@ class Traverser(
         method: ExecutableId,
         index: Int
     ): java.lang.reflect.Type? {
-        val callable = method.executable
+        val callable = runCatching {
+            method.executable
+        }.onFailure {
+            // In case declaring class is not presented in the classpath
+            return null
+        }.getOrThrow()
+
         val type = if (index == 0) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (method.isConstructor) {

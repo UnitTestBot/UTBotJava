@@ -117,6 +117,7 @@ import org.utbot.engine.taint.taintAnalysis
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.UtSettings.useConcreteExecution
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtSandboxFailure
@@ -606,8 +607,14 @@ class UtBotSymbolicEngine(
 
         val symbolicExecutionResult = resolver.resolveResult(symbolicResult)
 
-        val stateBefore = modelsBefore.constructStateForMethod(methodUnderTest)
-        val stateAfter = modelsAfter.constructStateForMethod(methodUnderTest)
+        val (stateBefore, stateAfter) = workaround(WorkaroundReason.TAINT) {
+            if (!UtSettings.useOnlyTaintAnalysis) {
+                modelsAfter.constructStateForMethod(methodUnderTest) to modelsBefore.constructStateForMethod(methodUnderTest)
+            } else {
+                // Some classes may be not presented in the classpath so se cannot construct modesl
+                MissingState to MissingState
+            }
+        }
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
         val symbolicUtExecution = UtSymbolicExecution(

@@ -204,10 +204,17 @@ class Mocker(
                 return false
             }
 
+            val fieldType = runCatching {
+                // runCatching in case declaring type is not presented in the classpath
+                mockInfo.fieldId.type
+            }.onFailure {
+                return true
+            }.getOrThrow()
+
             return when {
                 declaringClass.packageName.startsWith("java.lang") -> false
-                !mockInfo.fieldId.type.isRefType -> false  // mocks are allowed for ref fields only
-                else -> return strategy.eligibleToMock(mockInfo.fieldId.type, classUnderTest) // if we have a field with Integer type, we should not mock it
+                !fieldType.isRefType -> false  // mocks are allowed for ref fields only
+                else -> return strategy.eligibleToMock(fieldType, classUnderTest) // if we have a field with Integer type, we should not mock it
             }
         }
         return strategy.eligibleToMock(type.id, classUnderTest) // strategy to decide

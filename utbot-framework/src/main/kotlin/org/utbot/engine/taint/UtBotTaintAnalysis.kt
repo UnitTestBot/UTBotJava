@@ -370,6 +370,10 @@ class UtBotTaintAnalysis(private val taintConfiguration: TaintConfiguration) {
         if (taintCandidates.size < UtSettings.taintPrecisionThreshold) {
             UtSettings.setLessPrecision = true
         }
+
+        // Some classes are missed in the classpath so we cannot construct an assemble model for them
+        UtSettings.useAssembleModelGenerator = false
+
         AnalysisMode.TAINT.applyMode()
         // TODO move to the TAINT analysis mode?
         UtSettings.useOnlyTaintAnalysis = true

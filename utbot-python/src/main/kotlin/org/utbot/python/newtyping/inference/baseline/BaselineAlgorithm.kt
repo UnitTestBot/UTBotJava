@@ -1,12 +1,19 @@
 package org.utbot.python.newtyping.inference.baseline
 
+import mu.KotlinLogging
+import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.hints.*
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.general.getBoundedParameters
 import org.utbot.python.newtyping.inference.*
+import org.utbot.python.newtyping.runmypy.checkSuggestedSignatureWithDMypy
+import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.utils.PriorityCartesianProduct
+import org.utbot.python.utils.TemporaryFileManager
+import java.io.File
 
 private val EDGES_TO_LINK = listOf(
     EdgeSource.Identification,
@@ -17,21 +24,54 @@ private val EDGES_TO_LINK = listOf(
 
 private const val MAX_NESTING = 3
 
-class BaselineAlgorithm(val storage: PythonTypeStorage) : TypeInferenceAlgorithm() {
-    override fun run(hintCollectorResult: HintCollectorResult): Sequence<Type> = sequence {
+private val logger = KotlinLogging.logger {}
+
+class BaselineAlgorithm(
+    val storage: PythonTypeStorage,
+    val pythonPath: String,
+    private val pythonMethodCopy: PythonMethod,
+    val directoriesForSysPath: Set<String>,
+    val moduleToImport: String,
+    private val initialErrorNumber: Int
+) : TypeInferenceAlgorithm() {
+    override fun run(hintCollectorResult: HintCollectorResult, isCancelled: () -> Boolean): Sequence<Type> = sequence {
         val generalRating = createGeneralTypeRating(hintCollectorResult)
         val initialState = getInitialState(hintCollectorResult, generalRating)
         val states: MutableSet<BaselineAlgorithmState> = mutableSetOf(initialState)
+        val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
+        val configFile = setConfigFile(directoriesForSysPath)
         while (states.isNotEmpty()) {
+
+            if (isCancelled())
+                break
+
             val state = chooseState(states)
             val newState = state.makeMove()
             if (newState != null) {
-                yield(newState.signature)
-                states.add(newState)
+                logger.debug("Checking ${newState.signature.pythonTypeRepresentation()}")
+                if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
+                    yield(newState.signature)
+                    states.add(newState)
+                }
             } else {
                 states.remove(state)
             }
         }
+    }
+
+    private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
+        pythonMethodCopy.type = signature
+        //print("checking: ")
+        //println(signature.pythonTypeRepresentation())
+        return checkSuggestedSignatureWithDMypy(
+            pythonMethodCopy,
+            directoriesForSysPath,
+            moduleToImport,
+            fileForMypyRuns,
+            pythonPath,
+            configFile,
+            initialErrorNumber
+        )
     }
 
     // TODO: something smarter?

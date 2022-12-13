@@ -405,7 +405,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
-        if (UtSettings.treatAssertAsErrorSuit && exception is AssertionError) return false
+        if (UtSettings.treatAssertAsErrorSuite && exception is AssertionError) return false
 
         val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
         val exceptionIsExplicit = execution.result is UtExplicitlyThrownException

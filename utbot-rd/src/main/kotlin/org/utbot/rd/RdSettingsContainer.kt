@@ -23,6 +23,7 @@ class RdSettingsContainer(val logger: KLogger, val key: String, val settingsMode
 
     override fun <T> settingFor(
         defaultValue: T,
+        range : Triple<T, T, Comparator<T>>?,
         converter: (String) -> T
     ): PropertyDelegateProvider<Any?, ReadWriteProperty<Any?, T>> {
         return PropertyDelegateProvider { _, _ ->
@@ -30,7 +31,19 @@ class RdSettingsContainer(val logger: KLogger, val key: String, val settingsMode
                 override fun getValue(thisRef: Any?, property: KProperty<*>): T {
                     val params = SettingForArgument(key, property.name)
                     return settingsModel.settingFor.startBlocking(params).value?.let {
-                        converter(it)
+                        try {
+                            return range?.run {
+                                // Coerce parsed value into the specified range
+                                minOf(
+                                    range.second,
+                                    maxOf(converter(it), range.first, range.third),
+                                    range.third
+                                )
+                            } ?: converter(it)
+                        } catch (e: Exception) {
+                            logger.warn("Cannot parse value for $key, default value [$defaultValue] will be used instead") { e }
+                            defaultValue
+                        }
                     } ?: defaultValue
                 }
 

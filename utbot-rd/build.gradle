@@ -1,5 +1,5 @@
 plugins {
-    id 'com.jetbrains.rdgen' version "2022.3.4"
+    id 'com.jetbrains.rdgen' version "2022.2.1"
 }
 
 import com.jetbrains.rd.generator.gradle.RdGenExtension
@@ -180,5 +180,29 @@ task generateCommonModels(type: RdGenTask) {
 
         directory = generatedOutputDir.canonicalPath
         namespace = "org.utbot.rd.generated"
+    }
+}
+
+task generateCSharpModels(type: RdGenTask) {
+    def currentProjectDir = project.projectDir
+    def riderPluginProjectDir = project.rootProject.projectDir.toPath().resolve("utbot-rider").toFile()
+    def generatedOutputDir = new File (riderPluginProjectDir, "src/dotnet/UtBot/UtBot.Rd/Generated")
+    def hashDir = generatedOutputDir
+    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+    def rdParams = extensions.getByName("params") as RdGenExtension
+
+    group = "rdgen"
+    rdParams.verbose = true
+    rdParams.sources(sourcesDir)
+    rdParams.hashFolder = hashDir.canonicalPath
+    rdParams.packages = "org.utbot.rd.models"
+
+    rdParams.generator {
+        language = "csharp"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.CSharpRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "UtBot.Rd.Generated"
     }
 }

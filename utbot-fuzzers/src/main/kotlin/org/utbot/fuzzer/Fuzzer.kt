@@ -27,6 +27,7 @@ import kotlin.random.Random
 import org.utbot.fuzzer.providers.DateConstantModelProvider
 import org.utbot.fuzzer.providers.PrimitiveRandomModelProvider
 import org.utbot.fuzzer.providers.RecursiveModelProvider
+import org.utbot.fuzzing.utils.CartesianProduct
 
 private val logger by lazy { KotlinLogging.logger {} }
 
@@ -119,7 +120,7 @@ fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvi
     modelProviders.forEach { fuzzingProvider ->
         fuzzingProvider.generate(description).forEach { (index, model) ->
             val mock = replaceWithMock(model.model, description.shouldMock)
-            values[index].add(FuzzedValue(mock, model.createdBy).apply {
+            values[index].add(FuzzedValue(mock).apply {
                 summary = model.summary
             })
         }

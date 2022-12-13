@@ -43,7 +43,10 @@ class SettingsModel private constructor(
         fun create(lifetime: Lifetime, protocol: IProtocol): SettingsModel  {
             SettingsRoot.register(protocol.serializers)
             
-            return SettingsModel()
+            return SettingsModel().apply {
+                identify(protocol.identity, RdId.Null.mix("SettingsModel"))
+                bind(lifetime, protocol, "SettingsModel")
+            }
         }
         
         

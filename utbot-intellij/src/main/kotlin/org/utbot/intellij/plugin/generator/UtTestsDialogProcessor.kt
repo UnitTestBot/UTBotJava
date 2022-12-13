@@ -22,13 +22,15 @@ import com.intellij.task.ProjectTaskManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.containers.nullize
 import com.intellij.util.io.exists
-import com.jetbrains.rd.util.lifetime.LifetimeDefinition
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
+import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
+import org.utbot.framework.CancellationStrategyType.NONE
+import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
+import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
@@ -39,17 +41,22 @@ import org.utbot.intellij.plugin.process.EngineProcess
 import org.utbot.intellij.plugin.process.RdTestGenerationResult
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.intellij.plugin.util.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
+import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
+import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
+import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
+import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
+import org.utbot.rd.terminateOnException
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.pathString
-import org.utbot.framework.plugin.api.util.LockFile
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.rd.terminateOnException
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object UtTestsDialogProcessor {
     private val logger = KotlinLogging.logger {}
@@ -134,7 +141,15 @@ object UtTestsDialogProcessor {
                     if (!LockFile.lock()) {
                         return
                     }
+
+                    UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
+                    UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+                    UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+
+                    fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+
                     try {
+                        logger.info { "Collecting information phase started at ${now()}" }
                         val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
                         indicator.isIndeterminate = false
@@ -166,7 +181,16 @@ object UtTestsDialogProcessor {
                                 })
                             }
 
+
                             for (srcClass in model.srcClasses) {
+                                if (indicator.isCanceled) {
+                                    when (UtSettings.cancellationStrategyType) {
+                                        NONE -> {}
+                                        SAVE_PROCESSED_RESULTS,
+                                        CANCEL_EVERYTHING -> break
+                                    }
+                                }
+
                                 val (methods, className) = DumbService.getInstance(project)
                                     .runReadActionInSmartMode(Computable {
                                         val canonicalName = srcClass.canonicalName
@@ -191,21 +215,14 @@ object UtTestsDialogProcessor {
                                     continue
                                 }
 
+                                logger.info { "Collecting information phase finished at ${now()}" }
+
                                 updateIndicator(
                                     indicator,
                                     ProgressRange.SOLVING,
                                     "Generate test cases for class $className",
                                     processedClasses.toDouble() / totalClasses
                                 )
-
-                                // set timeout for concrete execution and for generated tests
-                                UtSettings.concreteExecutionTimeoutInInstrumentedProcess =
-                                    model.hangingTestsTimeout.timeoutMs
-
-                                UtSettings.useCustomJavaDocTags =
-                                    model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-
-                                UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
 
                                 val searchDirectory = ReadAction
                                     .nonBlocking<Path> {
@@ -247,14 +264,18 @@ object UtTestsDialogProcessor {
                                         )
 
                                         if (rdGenerateResult.notEmptyCases == 0) {
-                                            if (model.srcClasses.size > 1) {
-                                                logger.error { "Failed to generate any tests cases for class $className" }
+                                            if (!indicator.isCanceled) {
+                                                if (model.srcClasses.size > 1) {
+                                                    logger.error { "Failed to generate any tests cases for class $className" }
+                                                } else {
+                                                    showErrorDialogLater(
+                                                        model.project,
+                                                        errorMessage(className, secondsTimeout),
+                                                        title = "Failed to generate unit tests for class $className"
+                                                    )
+                                                }
                                             } else {
-                                                showErrorDialogLater(
-                                                    model.project,
-                                                    errorMessage(className, secondsTimeout),
-                                                    title = "Failed to generate unit tests for class $className"
-                                                )
+                                                logger.warn { "Generation was cancelled for class $className" }
                                             }
                                         } else {
                                             testSetsByClass[srcClass] = rdGenerateResult

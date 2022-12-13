@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen
 
+import mu.KotlinLogging
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -19,6 +20,8 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 open class CodeGenerator(
     val classUnderTest: ClassId,
@@ -36,6 +39,8 @@ open class CodeGenerator(
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName,
 ) {
+
+    private val logger = KotlinLogging.logger {}
 
     open var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
@@ -71,8 +76,15 @@ open class CodeGenerator(
                 val renderer = CgAbstractRenderer.makeRenderer(context)
                 val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
 
+                fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+
+                logger.info { "Code generation phase started at ${now()}" }
                 val testClassFile = astConstructor.construct(testClassModel)
+                logger.info { "Code generation phase finished at ${now()}" }
+
+                logger.info { "Rendering phase started at ${now()}" }
                 testClassFile.accept(renderer)
+                logger.info { "Rendering phase finished at ${now()}" }
 
                 CodeGeneratorResult(
                     generatedCode = renderer.toString(),

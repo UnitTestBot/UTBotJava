@@ -23,9 +23,9 @@ private const val defaultKeyForSettingsPath = "utbot.settings.path"
  */
 const val DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS = 1000L
 
-object UtSettings : AbstractSettings(
-    logger, defaultKeyForSettingsPath, defaultSettingsPath
-) {
+object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultSettingsPath) {
+
+    fun defaultSettingsPath() = defaultSettingsPath
 
     @JvmStatic
     fun getPath(): String = System.getProperty(defaultKeyForSettingsPath)?: defaultSettingsPath
@@ -33,7 +33,7 @@ object UtSettings : AbstractSettings(
     /**
      * Setting to disable coroutines debug explicitly.
      *
-     * True by default, set it to false if debug info is required.
+     * Set it to false if debug info is required.
      */
     var disableCoroutinesDebug: Boolean by getBooleanProperty(true)
 
@@ -47,13 +47,13 @@ object UtSettings : AbstractSettings(
      *
      * Set it to 0 to disable timeout.
      */
-    var checkSolverTimeoutMillis: Int by getIntProperty(1000)
+    var checkSolverTimeoutMillis: Int by getIntProperty(1000, 0, Int.MAX_VALUE)
 
     /**
      * Timeout for symbolic execution
      *
      */
-    var utBotGenerationTimeoutInMillis by getLongProperty(60000L)
+    var utBotGenerationTimeoutInMillis by getLongProperty(60000L, 1000L, Int.MAX_VALUE.toLong())
 
     /**
      * Random seed in path selector.
@@ -91,7 +91,7 @@ object UtSettings : AbstractSettings(
     /**
      * Use debug visualization.
      *
-     * False by default, set it to true if debug visualization is needed.
+     * Set it to true if debug visualization is needed.
      */
     var useDebugVisualization by getBooleanProperty(false)
 
@@ -105,32 +105,63 @@ object UtSettings : AbstractSettings(
 
     /**
      * Set the value to true to show library classes' graphs in visualization.
-     *
-     * False by default.
      */
     val showLibraryClassesInVisualization by getBooleanProperty(false)
 
     /**
-     * Method is paused after this timeout to give an opportunity other methods
-     * to work
-     */
-    var timeslotForOneToplevelMethodTraversalMs by getIntProperty(2000)
-
-    /**
      * Use simplification of UtExpressions.
      *
-     * True by default, set it to false to disable expression simplification.
-     * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">
-     *     UtBot Expression Optimizations</a>
+     * Set it to false to disable expression simplification.
+     * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">UtBot Expression Optimizations</a>
      */
     var useExpressionSimplification by getBooleanProperty(true)
 
-    /*
-    * Activate or deactivate tests on comments && names/displayNames
-    * */
+    /**
+    * Activate or deactivate tests on comments
+    */
     var testSummary by getBooleanProperty(true)
+
+    /**
+    * Activate or deactivate tests on names
+    */
     var testName by getBooleanProperty(true)
+
+    /**
+    * Activate or deactivate tests on displayNames
+    */
     var testDisplayName by getBooleanProperty(true)
+
+    /**
+     * Enable the Summarization module to generate summaries for methods under test.
+     *
+     * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
+     */
+    var enableSummariesGeneration by getBooleanProperty(true)
+
+    /**
+     * If True test comments will be generated.
+     */
+    var enableJavaDocGeneration by getBooleanProperty(true)
+
+    /**
+     * If True cluster comments will be generated.
+     */
+    var enableClusterCommentsGeneration by getBooleanProperty(true)
+
+    /**
+     * If True names for tests will be generated.
+     */
+    var enableTestNamesGeneration by getBooleanProperty(true)
+
+    /**
+     * If True display names for tests will be generated.
+     */
+    var enableDisplayNameGeneration by getBooleanProperty(true)
+
+    /**
+     *  If True display name in from -> to style will be generated.
+     */
+    var useDisplayNameArrowStyle by getBooleanProperty(true)
 
     /**
      * Generate summaries using plugin's custom JavaDoc tags.
@@ -138,19 +169,17 @@ object UtSettings : AbstractSettings(
     var useCustomJavaDocTags by getBooleanProperty(true)
 
     /**
-     * Enable the Summarization module to generate summaries for methods under test.
-     * True by default.
-     *
-     * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
-     */
-    var enableSummariesGeneration by getBooleanProperty(true)
-
-    /**
-     * Options below regulate which [NullPointerException] check should be performed.
+     * This option regulates which [NullPointerException] check should be performed for nested methods.
      *
      * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
      */
     var checkNpeInNestedMethods by getBooleanProperty(true)
+
+    /**
+     * This option regulates which [NullPointerException] check should be performed for nested not private methods.
+     *
+     * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
+     */
     var checkNpeInNestedNotPrivateMethods by getBooleanProperty(false)
 
     /**
@@ -158,7 +187,7 @@ object UtSettings : AbstractSettings(
      * in non-application classes. Set by true, this option highly decreases test's readability in some cases
      * because of using reflection API for setting final/non-public fields in non-application classes.
      *
-     * NOTE: default false value loses some executions with NPE in system classes, but often most of these executions
+     * NOTE: With false value loses some executions with NPE in system classes, but often most of these executions
      * are not expected by user.
      */
     var maximizeCoverageUsingReflection by getBooleanProperty(false)
@@ -169,32 +198,21 @@ object UtSettings : AbstractSettings(
      */
     var substituteStaticsWithSymbolicVariable by getBooleanProperty(true)
 
-
     /**
      * Use concrete execution.
-     *
-     * True by default.
      */
     var useConcreteExecution by getBooleanProperty(true)
-
-    /**
-     * Enable check of full coverage for methods with code generations tests.
-     *
-     * TODO doesn't work for now JIRA:1407
-     */
-    var checkCoverageInCodeGenerationTests by getBooleanProperty(true)
 
     /**
      * Enable code generation tests with every possible configuration
      * for every method in samples.
      *
-     * Important: disabled by default. This check requires enormous amount of time.
+     * Important: is enabled generation requires enormous amount of time.
      */
     var checkAllCombinationsForEveryTestInSamples by getBooleanProperty(false)
 
     /**
      * Enable transformation UtCompositeModels into UtAssembleModels using AssembleModelGenerator.
-     * True by default.
      *
      * Note: false doesn't mean that there will be no assemble models, it means that the generator will be turned off.
      * Assemble models will present for lists, sets, etc.
@@ -205,12 +223,10 @@ object UtSettings : AbstractSettings(
      * Test related files from the temp directory that are older than [daysLimitForTempFiles]
      * will be removed at the beginning of the test run.
      */
-    var daysLimitForTempFiles by getIntProperty(3)
+    var daysLimitForTempFiles by getIntProperty(3, 0, 30)
 
     /**
      * Enables soft constraints in the engine.
-     *
-     * True by default.
      */
     var preferredCexOption by getBooleanProperty(true)
 
@@ -228,27 +244,23 @@ object UtSettings : AbstractSettings(
     /**
      * Set the total attempts to improve coverage by fuzzer.
      */
-    var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE)
+    var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE, 0, Int.MAX_VALUE)
 
     /**
      * Fuzzer tries to generate and run tests during this time.
      */
-    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)
+    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L, 0, Long.MAX_VALUE)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
      * that throw Arithmetic Exception.
-     *
-     * False by default.
      */
     var treatOverflowAsError: Boolean by getBooleanProperty(false)
 
     /**
      * Generate tests that treat assertions as error suits.
-     *
-     * True by default.
      */
-    var treatAssertAsErrorSuit: Boolean by getBooleanProperty(true)
+    var treatAssertAsErrorSuite: Boolean by getBooleanProperty(true)
 
     /**
      * Instrument all classes before start
@@ -304,7 +316,7 @@ object UtSettings : AbstractSettings(
      * The instrumented process JDWP agent's port of the instrumented process.
      * A debugger attaches to the port in order to debug the process.
      */
-    var instrumentedProcessDebugPort by getIntProperty(5006)
+    var instrumentedProcessDebugPort by getIntProperty(5006, 0, 65535)
 
     /**
      * Value of the suspend mode for the JDWP agent of the instrumented process.
@@ -348,16 +360,12 @@ object UtSettings : AbstractSettings(
      * It may be usefull during debug.
      *
      * Note: it might highly impact performance, so do not enable it in release mode.
-     *
-     * False by default.
      */
     var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
 
     /**
      * Enable it to process states with unknown solver status
      * from the queue to concrete execution.
-     *
-     * True by default.
      */
     var processUnknownStatesDuringConcreteExecution by getBooleanProperty(true)
 
@@ -366,11 +374,6 @@ object UtSettings : AbstractSettings(
      * See [SubpathGuidedSelector]
      */
     var subpathGuidedSelectorIndex by getIntProperty(1)
-
-    /**
-     * Set of indexes, which will use [SubpathGuidedSelector] in not single mode
-     */
-    var subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
 
     /**
      * Flag that indicates whether feature processing for execution states enabled or not
@@ -408,11 +411,6 @@ object UtSettings : AbstractSettings(
     var testCounter by getIntProperty(0)
 
     /**
-     * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
-     */
-    var singleSelector by getBooleanProperty(true)
-
-    /**
      * Flag that indicates whether tests for synthetic (see [Executable.isSynthetic]) and implicitly declared methods (like values, valueOf in enums) should be generated, or not
      */
     var skipTestGenerationForSyntheticAndImplicitlyDeclaredMethods by getBooleanProperty(true)
@@ -427,7 +425,7 @@ object UtSettings : AbstractSettings(
     /**
      * Use the sandbox in the instrumented process.
      *
-     * If true (default), the sandbox will prevent potentially dangerous calls, e.g., file access, reading
+     * If true, the sandbox will prevent potentially dangerous calls, e.g., file access, reading
      * or modifying the environment, calls to `Unsafe` methods etc.
      *
      * If false, all these operations will be enabled and may lead to data loss during code analysis
@@ -438,7 +436,7 @@ object UtSettings : AbstractSettings(
     /**
      * Limit for number of generated tests per method (in each region)
      */
-    var maxTestsPerMethodInRegion by getIntProperty(50)
+    var maxTestsPerMethodInRegion by getIntProperty(50, 1, Integer.MAX_VALUE)
 
     /**
      * Max file length for generated test file
@@ -480,8 +478,6 @@ object UtSettings : AbstractSettings(
      * Use this option to enable calculation and logging of MD5 for dropped states by statistics.
      * Example of such logging:
      *     Dropping state (lastStatus=UNDEFINED) by the distance statistics. MD5: 5d0bccc242e87d53578ca0ef64aa5864
-     *
-     * Default value is false.
      */
     var enableLoggingForDroppedStates by getBooleanProperty(false)
 
@@ -504,6 +500,11 @@ object UtSettings : AbstractSettings(
      * It is used to do not encode big type storages due to significand performance degradation.
      */
     var maxNumberOfTypesToEncode by getIntProperty(512)
+
+    /**
+     * The behaviour of further analysis if tests generation cancellation is requested.
+     */
+    var cancellationStrategyType by getEnumProperty(CancellationStrategyType.SAVE_PROCESSED_RESULTS)
 }
 
 /**
@@ -557,8 +558,35 @@ enum class PathSelectorType {
 }
 
 enum class TestSelectionStrategyType {
-    DO_NOT_MINIMIZE_STRATEGY, // Always adds new test
-    COVERAGE_STRATEGY // Adds new test only if it increases coverage
+    /**
+     * Always adds new test
+     */
+    DO_NOT_MINIMIZE_STRATEGY,
+
+    /**
+     * Adds new test only if it increases coverage
+     */
+    COVERAGE_STRATEGY
+}
+
+/**
+ * Describes the behaviour if test generation is canceled.
+ */
+enum class CancellationStrategyType {
+    /**
+     * Do not react on cancellation
+     */
+    NONE,
+
+    /**
+     * Clear all generated test classes
+     */
+    CANCEL_EVERYTHING,
+
+    /**
+     * Show already processed test classes
+     */
+    SAVE_PROCESSED_RESULTS
 }
 
 /**

@@ -1,7 +1,12 @@
 package org.utbot.python.newtyping.runmypy
 
-import org.utbot.python.newtyping.MypyAnnotationStorage
-import org.utbot.python.newtyping.readMypyAnnotationStorage
+import org.utbot.python.PythonArgument
+import org.utbot.python.PythonMethod
+import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.FunctionType
+import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
 import java.io.File
@@ -71,21 +76,49 @@ private fun setConfigFile(): File {
     return file
 }
 
+fun checkSuggestedSignatureWithDMypy(
+    method: PythonMethod,
+    directoriesForSysPath: Set<String>,
+    moduleToImport: String
+): String {
+    val description = method.type.pythonDescription() as PythonCallableTypeDescription
+    val annotationMap =
+        (description.argumentNames zip method.type.arguments.map { it.pythonTypeRepresentation() }).associate {
+            Pair(it.first, NormalizedPythonAnnotation(it.second))
+        }
+    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport)
+    return mypyCode
+}
+
 fun main() {
     TemporaryFileManager.setup()
     val configFile = setConfigFile()
-    println(
-        readMypyAnnotationStorageAndInitialErrors(
-            "python3",
-            "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/annotation_tests.py",
-            configFile
-        )
-    )
+    val filePath = "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/annotation_tests.py"
+    val (storage, mypyOut) = readMypyAnnotationStorageAndInitialErrors("python3", filePath, configFile)
+    println(mypyOut)
     println(
         checkWithDMypy(
             "python3",
-            "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/annotation_tests.py",
+            filePath,
             configFile
         )
     )
+    val type = storage.definitions["annotation_tests"]!!["same_annotations"]!!.annotation.asUtBotType as FunctionType
+    val pythonMethod = PythonMethod(
+        "same_annotations",
+        type.returnValue.pythonTypeRepresentation(),
+        (type.arguments zip (type.pythonDescription() as PythonCallableTypeDescription).argumentNames).map {
+            PythonArgument(it.second, it.first.pythonTypeRepresentation())
+        },
+        filePath,
+        null,
+        "result = set()\n" +
+                    "for elem in collection:\n" +
+                    "    result.add(elem ** 2)\n" +
+                    "return result\n"
+    )
+    pythonMethod.type = type
+    println(checkSuggestedSignatureWithDMypy(pythonMethod, emptySet(), "annotation_tests"))
+
+    Cleaner.doCleaning()
 }

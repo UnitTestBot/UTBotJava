@@ -30,12 +30,7 @@ fun Type.isPythonObjectType(): Boolean {
 }
 
 fun Type.pythonTypeRepresentation(): String {
-    val description = pythonDescription()
-    val root = description.name.prefix.joinToString() + "." + description.name.name
-    val params = pythonAnnotationParameters()
-    if (params.isEmpty())
-        return root
-    return "$root[${params.joinToString { it.pythonTypeRepresentation() }}]"
+    return pythonDescription().getTypeRepresentation(this)
 }
 
 class PythonTypeStorage(
@@ -85,6 +80,13 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
         getNamedMembers(type).find { it.name == name }
     open fun createTypeWithNewAnnotationParameters(like: Type, newParams: List<Type>): Type =  // overriden for Callable
         DefaultSubstitutionProvider.substituteAll(like.getOrigin(), newParams)
+    open fun getTypeRepresentation(type: Type): String {  // overriden for Callable
+        val root = name.prefix.joinToString() + "." + name.name
+        val params = getAnnotationParameters(type)
+        if (params.isEmpty())
+            return root
+        return "$root[${params.joinToString { it.pythonTypeRepresentation() }}]"
+    }
 }
 
 sealed class PythonCompositeTypeDescription(
@@ -233,6 +235,14 @@ class PythonCallableTypeDescription(
                 returnValue = newReturnValue
             )
         }
+    }
+
+    override fun getTypeRepresentation(type: Type): String {
+        val functionType = castToCompatibleTypeApi(type)
+        val root = name.prefix.joinToString(".") + "." + name.name
+        return "$root[[${
+            functionType.arguments.joinToString(separator = ".") { it.pythonTypeRepresentation() }
+        }], ${functionType.returnValue.pythonTypeRepresentation()}]"
     }
 }
 

@@ -62,7 +62,7 @@ object PythonTestCaseGenerator {
 
         // TODO: consider static and class methods
         if (method.containingPythonClassId != null) {
-            initialArgumentTypes[0] = NormalizedPythonAnnotation(method.containingPythonClassId!!.name)
+            initialArgumentTypes[0] = NormalizedPythonAnnotation(method.containingPythonClassId.name)
         }
 
         logger.debug("Collecting hints about arguments")

@@ -8,10 +8,15 @@ XXX = TypeVar("XXX", "A", int)
 
 
 class A(Generic[XXX]):
-    self: XXX
+    self_: XXX
 
-    def f(a, b: A[int]):
+    def f(self, a, b: A[int]):
+        self.y = b
+        self_.x = b
         pass
+
+    def g(self):
+        self.x = 1
 
 
 def square(collection: Iterable[int], x: XXX):

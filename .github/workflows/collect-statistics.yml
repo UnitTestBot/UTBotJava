@@ -96,6 +96,7 @@ jobs:
     needs: setup_matrix
     continue-on-error: true
     strategy:
+      max-parallel: 3
       matrix:
         value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}
         project: ${{ fromJson(needs.setup_matrix.outputs.projects) }}

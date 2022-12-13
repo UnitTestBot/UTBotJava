@@ -109,4 +109,11 @@ internal class AnnotationFromMypyKtTest {
             (square.pythonDescription() as PythonCallableTypeDescription).argumentNames == listOf("collection", "x")
         )
     }
+
+    @Test
+    fun testCustomClassAttributes() {
+        val A = storage.definitions["annotation_tests"]!!["A"]!!.annotation.asUtBotType
+        val attrs = A.getPythonAttributes().map { it.name }
+        assertTrue(attrs.containsAll(listOf("y", "x", "self_")))
+    }
 }

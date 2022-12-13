@@ -306,3 +306,11 @@ class UnknownAnnotationNode: PythonAnnotationNode() {
         return pythonAnyType
     }
 }
+
+fun main() {
+    val json = MypyAnnotation::class.java.getResource("/annotation_sample.json")!!.readText()
+    val storage = readMypyAnnotationStorage(json)
+    val A = storage.definitions["annotation_tests"]!!["A"]!!.annotation.asUtBotType
+    val attrs = A.getPythonAttributes().map { it.name }
+    println(attrs)
+}

@@ -245,7 +245,7 @@ class PythonCallableTypeDescription(
         val functionType = castToCompatibleTypeApi(type)
         val root = name.prefix.joinToString(".") + "." + name.name
         return "$root[[${
-            functionType.arguments.joinToString(separator = ".") { it.pythonTypeRepresentation() }
+            functionType.arguments.joinToString(separator = ", ") { it.pythonTypeRepresentation() }
         }], ${functionType.returnValue.pythonTypeRepresentation()}]"
     }
 }

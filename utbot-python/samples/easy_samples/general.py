@@ -6,6 +6,7 @@ from typing import List, Dict, Set, Optional
 from dataclasses import dataclass
 import logging
 import datetime
+import sample_classes
 
 
 class Dummy:

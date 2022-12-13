@@ -4,7 +4,7 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
 import org.utbot.python.newtyping.general.Type
 
 abstract class TypeInferenceAlgorithm {
-    abstract fun run(hintCollectorResult: HintCollectorResult): Sequence<Type>
+    abstract fun run(hintCollectorResult: HintCollectorResult, isCancelled: () -> Boolean): Sequence<Type>
 }
 
 interface TypeInferenceNode {

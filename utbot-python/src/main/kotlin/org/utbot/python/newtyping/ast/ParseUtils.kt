@@ -4,6 +4,7 @@ import org.parsers.python.Node
 import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
 
+data class ParsedFunctionDefinition(val name: Name, val body: Block)
 data class ParsedForStatement(val forVariable: Name, val iterable: Node)
 sealed class ParsedSlices
 data class SimpleSlice(val indexedValue: Node): ParsedSlices()
@@ -19,6 +20,12 @@ data class SimpleAssign(val targets: List<Node>, val value: Node): ParsedAssignm
 data class OpAssign(val target: Node, val op: Delimiter, val value: Node): ParsedAssignment()
 data class ParsedBinaryOperation(val left: Node, val op: Delimiter, val right: Node)
 data class ParsedDotName(val head: Node, val tail: Node)
+
+fun parseFunctionDefinition(node: FunctionDefinition): ParsedFunctionDefinition? {
+    val name = (node.children().first { it is Name } ?: return null) as Name
+    val body = (node.children().find { it is Block } ?: return null) as Block
+    return ParsedFunctionDefinition(name, body)
+}
 
 fun isIdentification(node: Node): Boolean {
     val name = node as? Name ?: return false

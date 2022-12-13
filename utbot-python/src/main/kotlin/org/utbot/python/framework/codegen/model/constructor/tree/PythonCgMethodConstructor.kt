@@ -30,6 +30,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                 (execution.result as UtExplicitlyThrownException).exception.message?.let {
                     emptyLineIfNeeded()
                     comment("raises $it")
+                    println("pass")
                 }
 
             else -> {
@@ -83,8 +84,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                 }
             }
         }
-
-    fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
+    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 CgLiteral(objectNode.type, objectNode.repr)

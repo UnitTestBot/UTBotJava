@@ -37,20 +37,10 @@ interface CgPythonElement : CgElement {
 
 class CgPythonTree(
     override val type: ClassId,
-    val tree: PythonTree.PythonTreeNode
-) : CgValue, CgPythonElement {
-    fun getChildren(): List<CgPythonTree> {
-        return tree.children.map { CgPythonTree(it.type, it) }
-    }
-    fun getDictChildren(): Map<CgPythonTree, CgPythonTree> {
-        if (tree is PythonTree.DictNode) {
-            return tree.items.map { CgPythonTree(it.key.type, it.key) to CgPythonTree(it.value.type, it.value) }.toMap()
-        } else {
-            throw IllegalArgumentException("$tree is not a dict")
-        }
-
-    }
-}
+    val tree: PythonTree.PythonTreeNode,
+    val value: CgValue,
+    val children: List<CgStatement> = emptyList()
+) : CgValue, CgPythonElement
 
 class CgPythonRepr(
     override val type: ClassId,

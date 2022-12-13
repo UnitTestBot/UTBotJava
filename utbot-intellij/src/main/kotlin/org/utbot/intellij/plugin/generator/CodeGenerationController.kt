@@ -18,6 +18,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
@@ -97,6 +98,7 @@ import java.nio.file.Path
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import org.utbot.intellij.plugin.util.showSettingsEditor
 import org.utbot.sarif.*
 
 object CodeGenerationController {
@@ -771,9 +773,9 @@ object CodeGenerationController {
         if (fileLength > UtSettings.maxTestFileSize && file.name != model.codegenLanguage.utilClassFileName) {
             CommonLoggingNotifier().notify(
                 "Size of ${file.virtualFile.presentableName} exceeds configured limit " +
-                        "(${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())}), reformatting was skipped. " +
-                        "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestFileSize' property",
-                model.project)
+                        "(${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())}), reformatting was skipped.",
+                model.project, model.testModule, arrayOf(DumbAwareAction.create("Configure the Limit") { showSettingsEditor(model.project, "maxTestFileSize") }
+                ))
             return
         }
 

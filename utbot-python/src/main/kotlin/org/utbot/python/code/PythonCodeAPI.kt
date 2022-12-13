@@ -27,6 +27,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.utils.moduleOfType
+import org.utbot.python.utils.moduleToString
 import java.util.*
 
 private val logger = KotlinLogging.logger {}
@@ -131,42 +132,37 @@ class PythonClass(
 }
 
 class PythonMethodBody(
-    private val ast: FunctionDef,
-    override val moduleFilename: String = "",
-    override val containingPythonClassId: PythonClassId? = null
-) : PythonMethod {
-    override val name: String
-        get() = ast.name.name
+    ast: FunctionDef,
+    moduleFilename: String = "",
+    containingPythonClassId: PythonClassId? = null
+) : PythonMethod(
+    name = ast.name.name,
+    returnAnnotation = annotationToString(ast.returns),
+    arguments = getArguments(ast),
+    moduleFilename,
+    containingPythonClassId,
+    codeAsString = moduleToString(Module(listOf(ast.body)))
+) {
 
-    override val returnAnnotation: String?
-        get() = annotationToString(ast.returns)
+    override val oldAst: FunctionDef = ast
 
-    // TODO: consider cases of default and keyword arguments
-    private val getParams: List<Parameter> =
-        if (ast.parameters.isPresent)
-            ast.parameters.get().params ?: emptyList()
-        else
-            emptyList()
+    companion object {
+        fun annotationToString(annotation: Optional<Expression>): String? =
+            if (annotation.isPresent) astToString(annotation.get()).trim() else null
 
-    override val arguments: List<PythonArgument>
-        get() = getParams.map { param ->
+        private fun getParams(ast: FunctionDef): List<Parameter> =
+            if (ast.parameters.isPresent)
+                ast.parameters.get().params ?: emptyList()
+            else
+                emptyList()
+
+        fun getArguments(ast: FunctionDef): List<PythonArgument> =
+            getParams(ast).map { param ->
             PythonArgument(
                 param.parameterName.name,
                 annotationToString(param.annotation)
             )
         }
-
-    override fun asString(): String {
-        return astToString(ast)
-    }
-
-    override fun ast(): FunctionDef {
-        return ast
-    }
-
-    companion object {
-        fun annotationToString(annotation: Optional<Expression>): String? =
-            if (annotation.isPresent) astToString(annotation.get()).trim() else null
     }
 }
 

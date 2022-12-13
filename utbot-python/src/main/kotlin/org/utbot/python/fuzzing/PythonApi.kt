@@ -82,7 +82,7 @@ class PythonFuzzing(
         }
     }
 
-    override suspend fun run(description: PythonMethodDescription, values: List<PythonTreeModel>): PythonFeedback {
+    override suspend fun handle(description: PythonMethodDescription, values: List<PythonTreeModel>): PythonFeedback {
         return execute(description, values)
     }
 }

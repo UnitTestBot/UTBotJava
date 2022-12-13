@@ -86,7 +86,6 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
                 name.name
             else
                 name.prefix.joinToString() + "." + name.name
-
         val params = getAnnotationParameters(type)
         if (params.isEmpty())
             return root

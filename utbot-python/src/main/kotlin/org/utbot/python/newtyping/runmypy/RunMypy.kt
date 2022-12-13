@@ -15,7 +15,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
     sourcePath: String,
     configFile: File
-): Pair<MypyAnnotationStorage, String> {
+): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
     val fileForAnnotationStorage = TemporaryFileManager.assignTemporaryFile(tag = "annotations.json")
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
     val fileForMypyStderr = TemporaryFileManager.assignTemporaryFile(tag = "mypy.err")
@@ -41,7 +41,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
         error("Something went wrong in initial mypy run. Stderr: $stderr")
     return Pair(
         readMypyAnnotationStorage(fileForAnnotationStorage.readText()),
-        fileForMypyStdout.readText()
+        getErrorsAndNotes(fileForMypyStdout.readText())
     )
 }
 
@@ -61,12 +61,11 @@ fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: Fil
     return result.stdout
 }
 
-private const val configFilename = "config.ini"
-
-private fun setConfigFile(): File {
+private fun setConfigFile(directoriesForSysPath: Set<String>): File {
     val file = TemporaryFileManager.assignTemporaryFile(configFilename)
     val configContent = """
             [mypy]
+            mypy_path = ${directoriesForSysPath.joinToString(separator = ":")}
             namespace_packages = True
             explicit_package_bases = True
             show_absolute_path = True
@@ -79,30 +78,59 @@ private fun setConfigFile(): File {
 fun checkSuggestedSignatureWithDMypy(
     method: PythonMethod,
     directoriesForSysPath: Set<String>,
-    moduleToImport: String
-): String {
+    moduleToImport: String,
+    fileForMypyCode: File,
+    pythonPath: String,
+    configFile: File,
+    initialErrorNumber: Int
+): Boolean {
     val description = method.type.pythonDescription() as PythonCallableTypeDescription
     val annotationMap =
         (description.argumentNames zip method.type.arguments.map { it.pythonTypeRepresentation() }).associate {
             Pair(it.first, NormalizedPythonAnnotation(it.second))
         }
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport)
-    return mypyCode
+    TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
+    val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)
+    val report = getErrorsAndNotes(mypyOutput)
+    val errorNumber = getErrorNumber(report, fileForMypyCode.canonicalPath, 0, mypyCode.length)
+    return errorNumber <= initialErrorNumber
+}
+
+private const val configFilename = "config.ini"
+
+data class MypyReportLine(
+    val line: Int,
+    val type: String,
+    val message: String,
+    val file: String
+)
+
+private fun getErrorNumber(mypyReport: List<MypyReportLine>, filename: String, startLine: Int, endLine: Int) =
+    mypyReport.count { it.type == "error" && it.file == filename && it.line >= startLine && it.line <= endLine }
+
+private fun getErrorsAndNotes(mypyOutput: String): List<MypyReportLine> {
+    val regex = Regex("(?m)^([^\n]*):([0-9]*): (error|note): ([^\n]*)\n")
+    return regex.findAll(mypyOutput).toList().map { match ->
+        val file = match.groupValues[1]
+        MypyReportLine(
+            match.groupValues[2].toInt(),
+            match.groupValues[3],
+            match.groupValues[4],
+            file
+        )
+    }
 }
 
 fun main() {
     TemporaryFileManager.setup()
-    val configFile = setConfigFile()
-    val filePath = "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/annotation_tests.py"
+    val sysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples")
+    val configFile = setConfigFile(sysPath)
+    val filePath =
+        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/annotation_tests.py"
     val (storage, mypyOut) = readMypyAnnotationStorageAndInitialErrors("python3", filePath, configFile)
-    println(mypyOut)
-    println(
-        checkWithDMypy(
-            "python3",
-            filePath,
-            configFile
-        )
-    )
+    val initialErrorNumber = getErrorNumber(mypyOut, filePath, 33, 34)
+    println(initialErrorNumber)
     val type = storage.definitions["annotation_tests"]!!["same_annotations"]!!.annotation.asUtBotType as FunctionType
     val pythonMethod = PythonMethod(
         "same_annotations",
@@ -112,13 +140,21 @@ fun main() {
         },
         filePath,
         null,
-        "result = set()\n" +
-                    "for elem in collection:\n" +
-                    "    result.add(elem ** 2)\n" +
-                    "return result\n"
+        "return x + y"
     )
     pythonMethod.type = type
-    println(checkSuggestedSignatureWithDMypy(pythonMethod, emptySet(), "annotation_tests"))
+    val fileForMypyCode = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
+    println(
+        checkSuggestedSignatureWithDMypy(
+            pythonMethod,
+            sysPath,
+            "annotation_tests",
+            fileForMypyCode,
+            "python3",
+            configFile,
+            initialErrorNumber
+        )
+    )
 
     Cleaner.doCleaning()
 }

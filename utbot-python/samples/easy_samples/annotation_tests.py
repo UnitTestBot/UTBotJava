@@ -12,7 +12,7 @@ class A(Generic[XXX]):
 
     def f(self, a, b: A[int]):
         self.y = b
-        self_.x = b
+        self.self_.x = b
         pass
 
     def g(self):

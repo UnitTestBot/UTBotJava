@@ -73,7 +73,7 @@ class NewTaintPathSelector(
 //        }
 
         val weight = state.weight
-        if (weight > MAX_DISTANCE) {
+        if (weight >= MAX_DISTANCE) {
             return
         }
 

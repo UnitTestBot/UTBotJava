@@ -62,6 +62,8 @@ class And(conditionsList: Collection<Condition>) : MultiCondition(conditionsList
         returnValue: SymbolicValue?
     ): UtBoolExpression =
         mkAnd(conditionsList.map { it.toBoolExpr(traversalContext, taintValue, base, args, returnValue) })
+
+    override fun toString(): String = "(and (${conditionsList.joinToString(", ")}))"
 }
 
 class Or(conditionsList: Collection<Condition>) : MultiCondition(conditionsList) {
@@ -73,6 +75,8 @@ class Or(conditionsList: Collection<Condition>) : MultiCondition(conditionsList)
         returnValue: SymbolicValue?
     ): UtBoolExpression =
         mkOr(conditionsList.map { it.toBoolExpr(traversalContext, taintValue, base, args, returnValue) })
+    override fun toString(): String = "(or (${conditionsList.joinToString(", ")}))"
+
 }
 
 class Not(condition: Condition) : UnaryCondition(condition) {
@@ -82,7 +86,15 @@ class Not(condition: Condition) : UnaryCondition(condition) {
         base: SymbolicValue?,
         args: List<SymbolicValue>,
         returnValue: SymbolicValue?
-    ): UtBoolExpression = mkNot(condition.toBoolExpr(traversalContext, taintValue, base, args, returnValue))
+    ): UtBoolExpression {
+        val nestedExpression = condition.toBoolExpr(traversalContext, taintValue, base, args, returnValue)
+
+        // To avoid situation when we have unsupported condition returning `true`, and
+        // a condition that looks like `not true` instead of `not matches`.
+        return if (nestedExpression is UtTrue) UtTrue else mkNot(nestedExpression)
+    }
+
+    override fun toString(): String = "(not $condition)"
 }
 
 class SinkLabel(val name: String) : Condition {
@@ -116,6 +128,8 @@ class TaintKind(val name: String) : Condition {
     override fun collectRelatedTaintKinds(taintKinds: TaintKinds) {
         TODO("Not yet implemented")
     }
+
+    override fun toString(): String = name
 }
 
 /**

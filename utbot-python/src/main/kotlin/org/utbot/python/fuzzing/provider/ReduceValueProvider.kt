@@ -17,15 +17,16 @@ class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
 ) : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        val hasInit = type.getPythonAttributes().any { it.name == "__init__" }
+        val hasInit = type.getPythonAttributes().any { it.name == "__init__" && it.type is FunctionTypeCreator.Original }
         return type.meta is PythonConcreteCompositeTypeDescription && hasInit
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
         val meta = type.meta as PythonConcreteCompositeTypeDescription
         val arguments = (type.getPythonAttributes().first { it.name == "__init__" }.type as FunctionTypeCreator.Original).arguments
+        val nonSelfArgs = arguments.drop(1)
         yield(Seed.Recursive(
-            construct = Routine.Create(arguments) { v ->
+            construct = Routine.Create(nonSelfArgs) { v ->
                 PythonTreeModel(
                     PythonTree.ReduceNode(
                         idGenerator.createId(),

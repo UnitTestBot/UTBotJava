@@ -90,7 +90,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
     private val visitor = MatchVisitor(paramNames, mutableSetOf(), GeneralStorage())
 
     init {
-        visitor.visitFunctionDef(method.ast(), collectedValues)
+        visitor.visitFunctionDef(method.oldAst, collectedValues)
     }
 
     fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()

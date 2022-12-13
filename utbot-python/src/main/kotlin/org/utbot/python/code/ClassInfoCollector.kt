@@ -25,7 +25,7 @@ class ClassInfoCollector(pyClass: PythonClass) {
             val selfName = getSelfName(method)
             if (selfName != null) {
                 val visitor = Visitor(selfName)
-                visitor.visitFunctionDef(method.ast(), storage)
+                visitor.visitFunctionDef(method.oldAst, storage)
             }
         }
         pyClass.topLevelFields.forEach { annAssign ->
@@ -36,7 +36,7 @@ class ClassInfoCollector(pyClass: PythonClass) {
     companion object {
         fun getSelfName(method: PythonMethod): String? {
             val params = method.arguments
-            if (params.isEmpty() || method.ast().decorators.any {
+            if (params.isEmpty() || method.oldAst.decorators.any {
                     listOf(
                         "staticmethod",
                         "classmethod"
@@ -46,7 +46,7 @@ class ClassInfoCollector(pyClass: PythonClass) {
         }
 
         fun isProperty(method: PythonMethod): Boolean {
-            return method.ast().decorators.any { it.name.name == "property" }
+            return method.oldAst.decorators.any { it.name.name == "property" }
         }
     }
 

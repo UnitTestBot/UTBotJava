@@ -3,16 +3,30 @@ package org.utbot.python.newtyping.ast
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.Block
 import org.parsers.python.ast.FunctionDefinition
+import org.utbot.python.PythonArgument
+import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.runmypy.getErrorNumber
+import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.runmypy.setConfigFile
+import org.utbot.python.utils.Cleaner
+import org.utbot.python.utils.TemporaryFileManager
 
 fun main() {
-    val mypyStorage = HintCollector::class.java.getResource("/annotation_sample.json")?.let { readMypyAnnotationStorage(it.readText()) }
-    val storage = PythonTypeStorage.get(mypyStorage!!)
-
+    /*
+    TemporaryFileManager.setup()
+    val path = "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/general.py"
+    val configFile = setConfigFile(setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples"))
+    val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
+        "python3",
+        path,
+        configFile
+    )
+    val storage = PythonTypeStorage.get(mypyStorage)
     val content = """
         import collections
 
@@ -55,9 +69,36 @@ fun main() {
         },
         storage
     )
+    val method = PythonMethod(
+        "get_data_labels",
+        null,
+        listOf(PythonArgument("dates", null)),
+        path,
+        null,
+        """
+        if not dates:
+            dates.append(datetime.time(hour=23, minute=59))
+            return None
+        if all(x.hour == 0 and x.minute == 0 for x in dates):
+            return [x.strftime('%Y-%m-%d') for x in dates]
+        else:
+            return [x.strftime('%H:%M') for x in dates]
+        """.trimIndent()
+    )
     val visitor = Visitor(listOf(collector))
     visitor.visit(functionBlock)
-    BaselineAlgorithm(storage).run(collector.result).take(100).forEach {
+    println("Started inference")
+    BaselineAlgorithm(
+        storage,
+        "python3",
+        method,
+        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples"),
+        moduleToImport = "general",
+        getErrorNumber(report, path, 165, 171)
+    ).run(collector.result).take(100).forEach {
         println(it.pythonTypeRepresentation())
     }
+
+    Cleaner.doCleaning()
+     */
 }

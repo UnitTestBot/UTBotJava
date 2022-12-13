@@ -26,7 +26,8 @@ class UtBotPythonCli : CliktCommand(name = "UnitTestBot Python Command Line Inte
 fun main(args: Array<String>) = try {
     UtBotPythonCli().subcommands(
         PythonGenerateTestsCommand(),
-        PythonRunTestsCommand()
+        PythonRunTestsCommand(),
+        PythonTypeInferenceCommand()
     ).main(args)
 } catch (ex: Throwable) {
     ex.printStackTrace()

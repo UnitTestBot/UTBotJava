@@ -60,6 +60,7 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
 
         val testRoots = getSortedTestRoots(
             model.getAllTestSourceRoots(),
+            model.sourceRootHistory,
             model.srcModule.rootManager.sourceRoots.map { file: VirtualFile -> file.toNioPath().toString() },
             model.codegenLanguage
         )

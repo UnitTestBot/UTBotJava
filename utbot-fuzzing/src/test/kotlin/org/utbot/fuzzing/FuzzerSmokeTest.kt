@@ -4,6 +4,8 @@ import kotlinx.coroutines.*
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.utbot.fuzzing.seeds.BitVectorValue
+import org.utbot.fuzzing.seeds.Signed
 import kotlin.reflect.KClass
 
 class FuzzerSmokeTest {
@@ -205,5 +207,47 @@ class FuzzerSmokeTest {
             delay(1000)
             deferred.cancel()
         }
+    }
+
+    @Test
+    fun `fuzzer generate same result when random is seeded`() {
+        data class B(var a: Int)
+        val provider = ValueProvider<Unit, B, Description<Unit>> { _, _ ->
+            sequenceOf(
+                Seed.Simple(B(0)) { p, r -> B(p.a + r.nextInt()) },
+                Seed.Known(BitVectorValue(32, Signed.POSITIVE)) { B(it.toInt()) },
+                Seed.Recursive(
+                    construct = Routine.Create(listOf(Unit)) { _ -> B(2) },
+                    modify = sequenceOf(
+                        Routine.Call(listOf(Unit)) { self, _ -> self.a = 3 },
+                        Routine.Call(listOf(Unit)) { self, _ -> self.a = 4 },
+                        Routine.Call(listOf(Unit)) { self, _ -> self.a = 5 },
+                        Routine.Call(listOf(Unit)) { self, _ -> self.a = 6 },
+                    ),
+                    empty = Routine.Empty { B(7) }
+                ),
+                Seed.Collection(
+                    construct = Routine.Collection { size -> B(size) },
+                    modify = Routine.ForEach(listOf(Unit)) { self, ind, v -> self.a = ind * self.a * v.first().a }
+                )
+            )
+        }
+        fun createValues(): MutableList<Int> {
+            val result = mutableListOf<Int>()
+            val probes = 1_000
+            runBlocking {
+                runFuzzing(provider, Description(listOf(Unit))) { _, v ->
+                    result.add(v.first().a)
+                    BaseFeedback(Unit, if (result.size >= probes) Control.STOP else Control.CONTINUE)
+                }
+            }
+            return result
+        }
+        val firstRun = createValues()
+        val secondRun = createValues()
+        val thirdRun = createValues()
+        Assertions.assertEquals(firstRun, secondRun)
+        Assertions.assertEquals(firstRun, thirdRun)
+        Assertions.assertEquals(secondRun, thirdRun)
     }
 }

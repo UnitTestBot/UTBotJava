@@ -631,8 +631,8 @@ private class Node<TYPE, RESULT>(
 
 
 private class Statistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> {
-    private val seeds = hashMapOf<FEEDBACK, Node<TYPE, RESULT>>()
-    private val count = hashMapOf<FEEDBACK, Long>()
+    private val seeds = linkedMapOf<FEEDBACK, Node<TYPE, RESULT>>()
+    private val count = linkedMapOf<FEEDBACK, Long>()
 
     fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) {
         if (random.flipCoin(configuration.probUpdateSeedInsteadOfKeepOld)) {

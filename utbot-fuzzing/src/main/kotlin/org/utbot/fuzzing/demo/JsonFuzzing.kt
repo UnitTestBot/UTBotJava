@@ -31,6 +31,7 @@ private class JsonBuilder(
  */
 @Suppress("RemoveExplicitTypeArguments")
 suspend fun main() {
+    var count = 0
     BaseFuzzing<CustomType, JsonBuilder, Description<CustomType>, Feedback<CustomType, JsonBuilder>>(
         TypeProvider(CustomType.INT) { _, _ ->
             for (b in Signed.values()) {
@@ -79,7 +80,7 @@ suspend fun main() {
         },
     ) { _, values ->
         println(values)
-        emptyFeedback()
+        if (++count < 1000) emptyFeedback() else error("")
     }.fuzz(
         Description(listOf(CustomType.LST, CustomType.OBJ)),
         Random(0),

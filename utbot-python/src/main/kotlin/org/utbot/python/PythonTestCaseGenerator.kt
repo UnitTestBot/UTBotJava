@@ -11,6 +11,7 @@ import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.PythonTypeDescription
+import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.runmypy.RunMypy
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
@@ -92,7 +93,8 @@ object PythonTestCaseGenerator {
             emptyList(),
             method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation((it.second.meta as PythonTypeDescription).name.toString()) },
             timeoutForRun,
-            coveredLines
+            coveredLines,
+            PythonTypeStorage.get(storage)
         )
 
         var coverageLimit = 10
@@ -192,7 +194,7 @@ object PythonTestCaseGenerator {
                     argInfoCollector.getConstants(),
                     annotations,
                     timeoutForRun,
-                    coveredLines
+                    coveredLines,
                 )
 
                 var coverageLimit = 10

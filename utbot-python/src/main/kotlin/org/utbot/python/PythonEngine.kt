@@ -18,6 +18,7 @@ import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzing
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.providers.PythonFuzzedMethodDescription
 import org.utbot.python.providers.defaultPythonModelProvider
@@ -39,7 +40,8 @@ class PythonEngine(
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
     private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>,
     private val timeoutForRun: Long,
-    private val initialCoveredLines: Set<Int>
+    private val initialCoveredLines: Set<Int>,
+    private val pythonTypeStorage: PythonTypeStorage? = null,
 ) {
 
     private data class JobResult(
@@ -215,7 +217,7 @@ class PythonEngine(
 
         val coveredLines = initialCoveredLines.toMutableSet()
 
-        PythonFuzzing { description, parameterValues ->
+        PythonFuzzing(pythonTypeStorage!!) { description, parameterValues ->
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)

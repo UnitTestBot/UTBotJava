@@ -3,6 +3,7 @@ package org.utbot.engine.selectors.taint
 import org.utbot.common.doNotRun
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.head
+import org.utbot.engine.isOverridden
 import org.utbot.engine.isReturn
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.pathLogger
@@ -112,6 +113,22 @@ class NewTaintPathSelector(
 
     private val ExecutionState.weight: Long
         get() {
+            executionStack.last().method.let {
+                val declaringClass = it.declaringClass
+
+                if (declaringClass.isOverridden) {
+                    // We need to exit from the wrappers ASAP so calculate a distance to the nearest return stmt
+                    val methodGraph = it.jimpleBody().graph()
+                    val returnStmts = methodGraph.tails.filterIsInstance<Stmt>().filter { tail -> tail.isReturn }
+
+                    val distancesToReturn =
+                        calculateDistancesInProceduralGraphToSpecifiedStmts(stmt, methodGraph, returnStmts)
+
+                    return distancesToReturn.values.minOrNull()
+                        ?: error("No reachable return stmts from $stmt in the wrapped method $it")
+                }
+            }
+
             val distance = run {
                 val remainingTaintSourcesToVisit = taintSourcesToVisit
                 val visitedTaintSources = visitedTaintSources(remainingTaintSourcesToVisit)
@@ -383,6 +400,20 @@ class NewTaintPathSelector(
                     parents[targetMethod] = srcMethod
                 }
             }
+            /*if (srcMethod.canRetrieveBody()) {
+                srcMethod.jimpleBody().units.forEach {
+                    for (edge in callGraph.edgesOutOf(it)) {
+                        val targetMethod = edge.tgt.method()
+
+                        if (!used.getOrDefault(targetMethod, false)) {
+                            used[targetMethod] = true
+                            queue += targetMethod
+                            distances[targetMethod] = distanceFrom + 1
+                            parents[targetMethod] = srcMethod
+                        }
+                    }
+                }
+            }*/
         }
 
         return targetPoints.mapNotNull {

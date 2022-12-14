@@ -66,6 +66,7 @@ import org.utbot.engine.pc.mkEq
 import org.utbot.engine.pc.mkFalse
 import org.utbot.engine.pc.mkFpConst
 import org.utbot.engine.pc.mkInt
+import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
@@ -1392,6 +1393,8 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
+        val eqToNull = mkEq(addr, nullObjectAddr)
+
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
 
@@ -1404,7 +1407,8 @@ class Traverser(
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
                 queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-                queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+                val isMockConstraints = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+                queuedSymbolicStateUpdates += mkOr(isMockConstraints, eqToNull).asHardConstraint()
 
                 return mockedObject
             }
@@ -1451,7 +1455,8 @@ class Traverser(
 
             // add typeConstraint for mocked object. It's a declared type of the object.
             queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-            queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+            val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+            queuedSymbolicStateUpdates += mkOr(isMockConstraint, eqToNull).asHardConstraint()
 
             return mockedObject
         }
@@ -1462,7 +1467,8 @@ class Traverser(
         val concreteImplementation = wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
-        queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(addr), UtFalse).asHardConstraint()
+        val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, eqToNull).asHardConstraint()
 
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
@@ -3542,6 +3548,23 @@ class Traverser(
             }
         }
 
+        // case for NPE because of the nullness of `this` argument
+        val nullnessFlagName = "NULLNESS"
+        if (taintAnalysis.containsFlag(nullnessFlagName)) {
+            val baseValue = memory.taintValue(addr)
+            val taintedBv = taintAnalysis.constructTaintedVector(setOf(nullnessFlagName))
+            val taintNullnessCondition = mkNot(mkEq(And(taintedBv.toLongValue(), baseValue.toLongValue()), mkLong(0)))
+            val nullnessConstraint = mkEq(addr, nullObjectAddr)
+
+            implicitlyThrowException(
+                TaintAnalysisError(
+                    "Null value was passed into method as `this` instance",
+                    environment.state.stmt
+                ),
+                setOf(taintNullnessCondition, nullnessConstraint)
+            )
+        }
+
         queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()
     }
 
@@ -3665,9 +3688,8 @@ class Traverser(
                     args,
                     returnValue = null
                 )
-                val notEqToNull = mkNot(mkEq(symbolicValue.addr, nullObjectAddr))
 
-                condition += mkAnd(taintBoolCondition, notEqToNull)
+                condition += mkAnd(taintBoolCondition)
             }
         }
 

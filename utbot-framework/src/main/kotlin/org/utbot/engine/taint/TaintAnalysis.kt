@@ -19,6 +19,7 @@ class TaintAnalysis {
     private val taintFlagToIdBiMap: BiMap<String, Long> = HashBiMap.create()
 
     internal fun idByFlag(flag: String): Long = taintFlagToIdBiMap.getOrPut(flag) { counter.also { counter *= 2 } }
+    internal fun containsFlag(flag: String): Boolean = flag in taintFlagToIdBiMap
     private fun flagById(id: Long): String = taintFlagToIdBiMap.inverse()[id] ?: error("Unknown flag id: $id")
 
     private var counter: Long = 1

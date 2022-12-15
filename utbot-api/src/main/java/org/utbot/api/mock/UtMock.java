@@ -1,5 +1,7 @@
 package org.utbot.api.mock;
 
+import org.utbot.api.exception.UtMockAssumptionViolatedException;
+
 public class UtMock {
     public static <T> T makeSymbolic() {
         return makeSymbolic(false);
@@ -14,14 +16,14 @@ public class UtMock {
     public static void assume(boolean predicate) {
         // to use compilers checks, i.e. for possible NPE
         if (!predicate) {
-            throw new RuntimeException();
+            throw new UtMockAssumptionViolatedException();
         }
     }
 
     @SuppressWarnings("unused")
     public static void assumeOrExecuteConcretely(boolean predicate) {
         // In oppose to assume, we don't have predicate check here
-        // to avoid RuntimeException during concrete execution
+        // to avoid UtMockAssumptionViolatedException during concrete execution
     }
 
     @SuppressWarnings("unused")

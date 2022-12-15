@@ -8,7 +8,10 @@ import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.fuzzing.provider.BoolValueProvider
 import org.utbot.python.fuzzing.provider.DictValueProvider
 import org.utbot.python.fuzzing.provider.FloatValueProvider
@@ -21,6 +24,7 @@ import org.utbot.python.fuzzing.provider.StrValueProvider
 import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
 import org.utbot.python.fuzzing.provider.TupleValueProvider
 import org.utbot.python.fuzzing.provider.UnionValueProvider
+import org.utbot.python.fuzzing.value.UndefValue
 import org.utbot.python.newtyping.PythonProtocolDescription
 import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.PythonTypeStorage
@@ -67,28 +71,44 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
 )
 
 class PythonFuzzing(
-    val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeStorage,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonTreeModel>) -> PythonFeedback,
 ) : Fuzzing<Type, PythonTreeModel, PythonMethodDescription, PythonFeedback> {
-    fun generateDefault(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonTreeModel>> {
-        val idGenerator = PythonIdGenerator()
-        return pythonDefaultValueProviders(idGenerator).asSequence().flatMap { provider ->
+    private fun generateDefault(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonTreeModel>> {
+        var providers = emptyList<Seed<Type, PythonTreeModel>>().asSequence()
+        pythonDefaultValueProviders(idGenerator).asSequence().forEach { provider ->
             if (provider.accept(type)) {
-                provider.generate(description, type)
-            } else {
-                emptySequence()
+                providers += provider.generate(description, type)
             }
         }
+        return providers
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonTreeModel>> {
-        var providers = generateDefault(description, type)
+    private fun generateSubtype(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonTreeModel>> {
+        var providers = emptyList<Seed<Type, PythonTreeModel>>().asSequence()
         if (type.meta is PythonProtocolDescription) {
             val subtypes = pythonTypeStorage.allTypes.filter {
                 PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it, pythonTypeStorage)
             }
-            subtypes.forEach { providers += generateDefault(description, it) }
+            subtypes.forEach {
+                providers += generateDefault(description, it, idGenerator)
+//                providers += generateSubtype(description, it, idGenerator)
+            }
         }
+        return providers
+    }
+
+    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonTreeModel>> {
+        val idGenerator = PythonIdGenerator()
+        var providers = emptyList<Seed<Type, PythonTreeModel>>().asSequence()
+
+        providers += generateDefault(description, type, idGenerator)
+        providers += generateSubtype(description, type, idGenerator)
+
+        if (providers.toList().isEmpty()) {
+            providers += Seed.Known(UndefValue()) {PythonTreeModel(PythonTree.fromNone(), PythonClassId("UNDEF_VALUE"))}
+        }
+
         return providers
     }
 

@@ -215,9 +215,17 @@ class PythonEngine(
             emptyList()
         )
 
+        var coverageLimit = 15
         val coveredLines = initialCoveredLines.toMutableSet()
 
         PythonFuzzing(pythonTypeStorage!!) { description, parameterValues ->
+            if (coverageLimit < 0)
+                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+
+            if (parameterValues.all { it.classId.name == "UNDEF_VALUE" }) {
+                coverageLimit--
+                return@PythonFuzzing PythonFeedback(control = Control.PASS)
+            }
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)
@@ -286,9 +294,12 @@ class PythonEngine(
             val coveredAfter = coveredLines.size
 
             if (coveredAfter == coveredBefore)
+                coverageLimit -= 1
+
+            if (coverageLimit == 0)
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
 
-            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
 
         }.fuzz(pmd)
     }

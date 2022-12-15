@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,6 +27,7 @@ using JetBrains.ReSharper.UnitTestFramework.Execution.Hosting;
 using JetBrains.ReSharper.UnitTestFramework.Exploration.Artifacts;
 using JetBrains.Rider.Model;
 using JetBrains.Util;
+using JetBrains.Util.Dotnet.TargetFrameworkIds;
 using UtBot.Rd.Generated;
 using UtBot.VSharp;
 using Thread = System.Threading.Thread;
@@ -68,7 +70,8 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var typeElement = context.ClassDeclaration.DeclaredElement;
         if (typeElement == null) return;
         if (!(typeElement is IClass) && !(typeElement is IStruct)) return;
-        var assembly = project.GetOutputFilePath(context.PsiModule.TargetFrameworkId);
+        var tfm = context.PsiModule.TargetFrameworkId;
+        var assembly = project.GetOutputFilePath(tfm);
         var descriptors = new List<UnitTestMethodDescriptor>();
         foreach (var inputElement in context.InputElements.WithProgress(progress, "Generating Unit tests")
                      .OfType<GeneratorDeclaredElement<IMethod>>())
@@ -83,7 +86,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         {
             try
             {
-                Generate(indicator, project, assembly, descriptors);
+                Generate(indicator, project, assembly, descriptors, tfm);
             }
             finally
             {
@@ -93,7 +96,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
     }
 
     private void Generate(IBackgroundProgressIndicator progressIndicator, IProject project,
-        VirtualFileSystemPath assemblyPath, List<UnitTestMethodDescriptor> descriptors)
+        VirtualFileSystemPath assemblyPath, List<UnitTestMethodDescriptor> descriptors, TargetFrameworkId tfm)
     {
         SolutionBuilderRequest buildRequest;
         var contextUnloaded = false;
@@ -136,7 +139,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
                     _logger.Verbose("Start Generation");
                     _logger.Catch(() =>
                     {
-                        project.Locks.AssertNonMainThread(); 
+                        project.Locks.AssertNonMainThread();
                         var pluginPath = FileSystemPath.Parse(Assembly.GetExecutingAssembly().Location)
                             .Parent;
                         var vsharpRunner = pluginPath.Combine("UtBot.VSharp.dll");
@@ -148,7 +151,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
                         var args = new GenerateArguments(assemblyPath.FullPath, projectCsprojPath, solutionFilePath,
                             moduleFqnName, methodToken, _generationTimeout);
                         var result = proc.VSharpModel.Generate.Sync(args, RpcTimeouts.Maximal);
-                        unitTestProjectLocation = result?.GeneratedProjectPath ?? ""; 
+                        unitTestProjectLocation = result?.GeneratedProjectPath ?? "";
                         _shellLocks.ExecuteOrQueue(_lifetime, "UnitTestBuilder::Generate", () =>
                         {
                             if (solution.IsValid())

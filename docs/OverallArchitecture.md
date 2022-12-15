@@ -162,7 +162,22 @@ TODO (Maxim Pelevin)
 TODO (Sergey Pospelov)
 
 ### Summaries
-TODO (Alexey Zinoviev)
+The summarization process includes the generation of the following meta-information:
+- method names for tests
+- display names for tests
+- JavaDocs for tests
+- simple comments for group of tests (regions)
+
+Each of these stages can be turned off by changing 
+the settings located in ```org.utbot.summary.UtSummarySettings```.
+
+If the summarization process for some reason was failed at one of the stages due to an error or insufficient information, 
+then the test method receives a unique name and no more meta-information.
+
+The approach to generating meta-information depends on the type of UtExection for which the meta-information is being created and can vary significantly.
+Also, JavaDocs built in two modes: as plain text or in especial format enriched with the custom java tags.
+
+This subsystem is fully located in the ```utbot-summary``` module.
 
 ### Sarif report
 TODO (Nikita Stroganov)

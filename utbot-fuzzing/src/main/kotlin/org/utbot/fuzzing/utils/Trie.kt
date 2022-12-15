@@ -175,12 +175,6 @@ open class Trie<T, K>(
             get() = error("empty node has no data")
         override val count: Int
             get() = 0
-        override fun equals(other: Any?): Boolean {
-            return false
-        }
-        override fun hashCode(): Int {
-            return 0
-        }
     }
 
     companion object {

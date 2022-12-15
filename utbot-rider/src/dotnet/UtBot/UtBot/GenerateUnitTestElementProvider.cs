@@ -13,6 +13,9 @@ public class GenerateUnitTestElementProvider : GeneratorProviderBase<CSharpGener
 {
     public override void Populate(CSharpGeneratorContext context)
     {
+        if (!VSharpFrameworkChecker.CanRunVSharp(context.PsiModule.TargetFrameworkId.Version))
+            return;
+        
         var memberSource = context.ExternalElementsSource?.GetTypeElement() ?? context.ClassDeclaration.DeclaredElement;
         if (memberSource == null) return;
 
@@ -21,12 +24,14 @@ public class GenerateUnitTestElementProvider : GeneratorProviderBase<CSharpGener
         var usageContext = (ITreeNode)context.ClassDeclaration.Body ?? context.ClassDeclaration;
 
         foreach (var method in memberSource.Methods)
+        {
             if (MethodFilter(method, substitution, usageContext))
             {
                 var element = new GeneratorDeclaredElement<IMethod>(method, substitution);
                 context.ProvidedElements.Add(element);
                 context.InputElements.Add(element);
             }
+        }
     }
 
     protected virtual bool MethodFilter([NotNull] IMethod method, ISubstitution substitution,

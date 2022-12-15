@@ -1,62 +1,60 @@
-# UnitTestBot Settings
+# UnitTestBot settings
 
-First, let's define the term "**settings**" as "**properties**" set. 
-Each property is of the form '_key=value_' and it may be represented as source code and as a plain text stored in a file.
-Altogether, this set affects key aspects of UnitTestBot behavior.
+First, let's define "**settings**" as the set of "**properties**". 
+Each property is a _key=value_ pair, and it may be represented as source code or plain text stored in a file.
+This property set affects the key aspects of UnitTestBot behavior.
 
-UnitTestBot works as following applications:
-- IntelliJ plugin
-- Continuous Integration tool (CI)
-- Command Line Interface (CLI)
+UnitTestBot is available as
+- an IntelliJ IDEA plugin,
+- a continuous integration (CI) tool,
+- a command-line interface (CLI).
 
-For all three types there are low-level _**core**_ settings but for plugin
-we also have per-project _**plugin-specific**_ settings. 
+These three application types have low-level _**core**_ settings. The plugin also has per-project _**plugin-specific**_ settings.
 
 ## Core settings
-Core settings are being persisted in file located in **_settings file_** `{userHome}/.utbot/settings.properties`  
-This file is designed for reading only. 
-All defaults for core settings are provided in source code (namely in `UtSettings.kt`) so the file itself may absent or exist with a few of the customized properties only, 
-for example, file with just one line like `utBotGenerationTimeoutInMillis=15000` is valid and useful.
+
+Core settings are persisted in the **_settings file_**: `{userHome}/.utbot/settings.properties`. This file is designed for reading only.
+
+The defaults for the core settings are provided in source code (namely in `UtSettings.kt`) so the file itself may be absent or exist with a few of the customized properties only. For example, a file with just one line like `utBotGenerationTimeoutInMillis=15000` is valid and useful.
 
 ##  Plugin-specific settings
-Plugin-specific settings are being persisted automatically by IDE (per-project!) 
-in **plugin configuration file** `{projectDir}/.idea/utbot-settings.xml` and nobody is expected to edit this file manually.
 
-At the moment, these two kinds of settings (core and plugin-specific) 
-have very small intersection (that means some keys of different levels control the same behavior aspects). 
-In case of properties' intersection, Core settings should act as a provider of defaults for Plugin-specific settings. 
+IDE persists the plugin-specific settings automatically (per project!) in the **plugin configuration file**: `{projectDir}/.idea/utbot-settings.xml`. Nobody is expected to edit this file manually.
+
+At the moment, the core and plugin-specific settings have very small intersection (i.e. the keys of different levels control the same behavior aspects). 
+If they still intersect, the core settings should provide the defaults for the plugin-specific settings. 
 As for now, this concept is partially implemented.
 
-## Categories of properties
-Every newly added feature tends to be represented in settings as a subset of properties,
-and the question is the choice of proper "level". There are several categories of properties we have in practice: 
-- **Hardcoded directly as constants in sourcecode**   
-_It means one can build own build of plugin with different hardcoded preset._
+## Property categories
+
+A developer usually represents the new feature settings as a subset of properties and has to choose the proper "level" for them. In practice, we have these property categories:
+
+- **Hardcoded directly as constants in source code**   
+_One can build the plugin with their own hardcoded preset._
 - **Experimental or temporary**  
-_Can disappear from the settings file or jump back to hardcoded constants. We do not expect these properties to be tweaked by end-user but still it's possible to specify them in settings file._
+_These properties can disappear from the settings file or jump back to the hardcoded constants. We do not expect the end user to change these properties, but it is still possible to specify them in the settings file._
 - **Engine-level tuning with reasonable defaults**  
-_Designed for low-level tuning during contests etc._
-- **Rarely used, good to be tweaked once per PC** 
+_Designed for low-level tuning during contests, etc._
+- **Rarely used, good to be changed once per PC** 
 - **Project-level setup in IDE**  
-_End-user can tweak them in **File** > **Settings** > **Tools** > **UnitTestBot**_  
-- **Small set of per-generation options**  
-Thereby, some properties can be considered as public API while the rest is pretty "internal".
+_The end user can change them via **File** > **Settings** > **Tools** > **UnitTestBot**_.
+- **Small set of per-generation options**
 
-For end-user there are three places to tweak UnitTestBot behavior:
-1. Settings file is PC-wide level to be read by all UnitTestBot instances across PC. 
+Thereby, some properties can be considered as public API while the rest are pretty "internal".
+
+The end user has three places to change UnitTestBot behavior:
+1. Settings file, which is PC-wide — read by all the UnitTestBot instances across PC. 
 For example, CLI and two different projects in IDE will re-use it.
-2. Plugin settings UI (**File** > **Settings** > **Tools** > **UnitTestBot**)
-3. Controls in "Generate" dialog  
+2. Plugin settings UI (**File** > **Settings** > **Tools** > **UnitTestBot**).
+3. Controls in the **Generate Tests with UnitTestBot window** dialog.
 
-
-Properties from 2 and 3 are plugin-specific, and they are automatically persisted in `{projectDir}/.idea/utbot-settings.xml`
-   (Note, only non-default values are stored here)
+Properties from the plugin settings UI and the dialog are plugin-specific, and they are automatically persisted in `{projectDir}/.idea/utbot-settings.xml`. _Note:_ only non-default values are stored here.
 
 ## Configuring UnitTestBot with auto-generated `settings.properties`
 
 Common users usually change UnitTestBot settings via UI:
 * in the **Generate Tests with UnitTestBot** dialog,
-* through **File** > **Settings** > **Tools** > **UnitTestBot**.
+* via **File** > **Settings** > **Tools** > **UnitTestBot**.
 
 Advanced users and contributors require advanced settings.
 
@@ -76,7 +74,7 @@ options, corresponding default values, and explicit descriptions for each option
 This template file is auto-generated on the basis of `UtSettings.kt` doc comments. The template file consists of
 the commented lines, so you can uncomment the line to enable the setting or easily get back to defaults.
 
-_Idea to be implemented: we can annotate properties in UtSettings.kt as @api to provide the template file with narrow subset of properties._
+_Idea to be implemented: we can annotate properties in UtSettings.kt as @api to provide the template file with a narrow subset of properties._
 
 Generating `settings.properties` is a part of a Gradle task in IntelliJ IDEA. The `settings.properties` file is
 bundled with the published UnitTestBot plugin as a top-level entry inside the `utbot-intellij-{version}.jar` file.

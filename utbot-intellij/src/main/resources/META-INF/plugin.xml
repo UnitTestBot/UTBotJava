@@ -43,35 +43,26 @@
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
-                Generate <b>unit tests</b> with a single action!
-                <br />
-                <br />
-                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
-                <br />
-                <br />
-                The engine finds potential problems in your code:
-                <br />
-                <br />
-                <ul>
-                    <li>exceptions</li>
-                    <li>hangs</li>
-                    <li>overflows</li>
-                    <li>and even native crashes</li>
-                </ul>
-                <br />
-                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
-                <br />
-                <br />
-                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
-                <br />
-                <br />
-                You can <a href="http://utbot.org">try the engine online</a> without installation.
-                <br />
-                <br />
-                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
-                <br />
-                <br />
-                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
+        UnitTestBot is the tool for automated unit test generation and precise code analysis.
+        <br/>
+        Discover UnitTestBot key features in our latest release:
+        <ul>
+            <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
+            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a></li>
+            <li>minimizing the number of tests and false positives among bugs</li>
+            <li>fine-tuned <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation#mocking-settings">mocking</a>, including mocking static methods</li>
+            <li>representing all the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results#read-test-descriptions">test descriptions</a> in a human-readable format</li>
+            <li>generating <a href="https://github.com/microsoft/sarif-tutorials/blob/main/README.md">SARIF</a> reports</li>
+        </ul>
+        UnitTestBot supports the latest JDKs, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
+        <br/>
+        Try <a href="https://www.utbot.org/demo/?language=Java&source=public%20class%20Recursion%20%7B%0A%0A%20%20public%20int%20fib(int%20n)%20%7B%0A%20%20%20%20if%20(n%20%3C%200)%20throw%20new%20IllegalArgumentException()%3B%0A%20%20%20%20if%20(n%20%3D%3D%200)%20return%200%3B%0A%20%20%20%20if%20(n%20%3D%3D%201)%20return%201%3B%0A%20%20%20%20%0A%20%20%20%20return%20fib(n%20-%201)%20%2B%20fib(n%20-%202)%3B%0A%20%20%7D%0A%7D%0A">UnitTestBot online demo</a> to see how it generates tests for your code in real time.
+        <br/>
+        Contribute to UnitTestBot via <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub</a>.
+        <br/>
+        Found a bug? File an <a href="https://github.com/UnitTestBot/UTBotJava/issues">issue</a>.
+        <br/>
+        Have an idea? Start a <a href="https://github.com/UnitTestBot/UTBotJava/discussions">discussion</a>.
         ]]>
     </description>
     <change-notes>

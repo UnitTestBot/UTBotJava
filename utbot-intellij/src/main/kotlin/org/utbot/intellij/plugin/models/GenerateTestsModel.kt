@@ -37,7 +37,7 @@ class GenerateTestsModel(
     potentialTestModules,
     srcClasses
 ) {
-
+    override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
     lateinit var testFramework: TestFramework

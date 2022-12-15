@@ -1035,7 +1035,10 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.executable
+        // If we don't have access to methodUnderTest's jClass, the engine should not fail
+        // We just won't update generic information for it
+        val callable = runCatching { methodUnderTest.executable }.getOrNull() ?: return
+
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {

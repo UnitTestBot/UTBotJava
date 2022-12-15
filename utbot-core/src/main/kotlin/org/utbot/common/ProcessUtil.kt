@@ -5,6 +5,8 @@ import com.sun.jna.Native
 import com.sun.jna.Pointer
 import com.sun.jna.platform.win32.Kernel32
 import com.sun.jna.platform.win32.WinNT
+import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 /**
  * working pid for jvm 8 and 9+
@@ -54,10 +56,9 @@ val currentProcessPid: Long
     get() =
         try {
             if (isJvm9Plus) {
-                ClassLoader.getSystemClassLoader().loadClass("java.lang.ProcessHandle").let {
-                    val handle = it.getDeclaredMethod("current").invoke(it)
-                    it.getDeclaredMethod("pid").invoke(handle) as Long
-                }
+                val handleClass = ClassLoader.getSystemClassLoader().loadClass("java.lang.ProcessHandle")
+                val handle = handleClass.getDeclaredMethod("current").invoke(handleClass)
+                handleClass.getDeclaredMethod("pid").invoke(handle) as Long
             } else {
                 if (isWindows) {
                     Kernel32.INSTANCE.GetCurrentProcessId()
@@ -68,3 +69,23 @@ val currentProcessPid: Long
         } catch (e: Throwable) {
             -1
         }
+
+
+fun isProcessAlive(pid: Int): Boolean {
+    if (isJvm9Plus) {
+        val handleClass = ClassLoader.getSystemClassLoader().loadClass("java.lang.ProcessHandle")
+        val handleOptional = handleClass.getDeclaredMethod("of").invoke(handleClass, pid.toLong()) as Optional<*>
+        val handle = handleOptional.getOrNull() ?: return false
+        return handleClass.getDeclaredMethod("isAlive").invoke(handle) as Boolean
+    }
+    else {
+        val cmd: String = if (isWindows) {
+            "cmd /c tasklist /FI \"PID eq $pid\""
+        } else {
+            "ps -p $pid"
+        }
+
+        val proc = Runtime.getRuntime().exec(cmd)
+
+    }
+}

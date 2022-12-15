@@ -406,4 +406,14 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         }
         initSourceFindingStrategies()
     }
+
+    fun <T> executeWithTimeoutSuspended(block: () -> T): T {
+        try {
+            synchronizationModel.suspendTimeoutTimer.startBlocking(true)
+            return block()
+        }
+        finally {
+            synchronizationModel.suspendTimeoutTimer.startBlocking(false)
+        }
+    }
 }

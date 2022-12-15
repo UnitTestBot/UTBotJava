@@ -167,24 +167,31 @@ object UtTestsDialogProcessor {
                             }
 
                             for (srcClass in model.srcClasses) {
-                                val (methods, className) = DumbService.getInstance(project)
-                                    .runReadActionInSmartMode(Computable {
-                                        val canonicalName = srcClass.canonicalName
-                                        val classId = process.obtainClassId(canonicalName)
-                                        psi2KClass[srcClass] = classId
+                                // yes
+                                val (methods, className) = process.executeWithTimeoutSuspended {
+                                    DumbService.getInstance(project)
+                                        .runReadActionInSmartMode(Computable {
+                                            val canonicalName = srcClass.canonicalName
+                                            val classId = process.obtainClassId(canonicalName)
+                                            psi2KClass[srcClass] = classId
 
-                                        val srcMethods = if (model.extractMembersFromSrcClasses) {
-                                            val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
-                                            val chosenNestedClasses =
-                                                model.selectedMembers.mapNotNull { it.member as? PsiClass }
-                                            chosenMethods + chosenNestedClasses.flatMap {
-                                                it.extractClassMethodsIncludingNested(false)
+                                            val srcMethods = if (model.extractMembersFromSrcClasses) {
+                                                val chosenMethods =
+                                                    model.selectedMembers.filter { it.member is PsiMethod }
+                                                val chosenNestedClasses =
+                                                    model.selectedMembers.mapNotNull { it.member as? PsiClass }
+                                                chosenMethods + chosenNestedClasses.flatMap {
+                                                    it.extractClassMethodsIncludingNested(false)
+                                                }
+                                            } else {
+                                                srcClass.extractClassMethodsIncludingNested(false)
                                             }
-                                        } else {
-                                            srcClass.extractClassMethodsIncludingNested(false)
-                                        }
-                                        process.findMethodsInClassMatchingSelected(classId, srcMethods) to srcClass.name
-                                    })
+                                            process.findMethodsInClassMatchingSelected(
+                                                classId,
+                                                srcMethods
+                                            ) to srcClass.name
+                                        })
+                                }
 
                                 if (methods.isEmpty()) {
                                     logger.error { "No methods matching selected found in class $className." }

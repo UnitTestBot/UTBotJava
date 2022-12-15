@@ -344,7 +344,6 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             collectConstantsForFuzzer(graph),
             names,
-            { mockStrategy.eligibleToMock(it, classUnderTest) },
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
         ) { thisInstance, descr, values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {

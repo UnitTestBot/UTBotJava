@@ -44,7 +44,6 @@ suspend fun runJavaFuzzing(
     methodUnderTest: ExecutableId,
     constants: Collection<FuzzedConcreteValue>,
     names: List<String>,
-    mock: (ClassId) -> Boolean = { false },
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
@@ -83,7 +82,7 @@ suspend fun runJavaFuzzing(
                 null
             }
         }
-        shouldMock = mock
+        shouldMock = { false }
     }
 
     val thisInstance = with(methodUnderTest) {

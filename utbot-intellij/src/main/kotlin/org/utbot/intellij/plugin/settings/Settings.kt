@@ -63,7 +63,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
-        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration
+        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration,
+        var enableExperimentalLanguagesSupport: Boolean = false,
     ) {
         constructor(model: GenerateTestsModel) : this(
             sourceRootHistory = model.sourceRootHistory,
@@ -154,6 +155,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     val runInspectionAfterTestGeneration: Boolean get() = state.runInspectionAfterTestGeneration
 
     val forceStaticMocking: ForceStaticMocking get() = state.forceStaticMocking
+
+    val experimentalLanguagesSupport: Boolean get () = state.enableExperimentalLanguagesSupport
 
     val treatOverflowAsError: TreatOverflowAsError get() = state.treatOverflowAsError
 

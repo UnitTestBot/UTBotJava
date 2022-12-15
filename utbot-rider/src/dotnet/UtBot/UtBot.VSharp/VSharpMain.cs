@@ -49,9 +49,8 @@ public static class VSharpMain
                     var solution = new FileInfo(solutionFilePath);
                     var declaringType = methodBase.DeclaringType;
                     Debug.Assert(declaringType != null);
-                    var (generatedProject, renderedFiles) = Renderer.Render(stat.Results(), targetProject,
-                        declaringType,
-                        assemblyLoadContext, solution);
+                    var (generatedProject, renderedFiles) =
+                        Renderer.Render(stat.Results(), targetProject, declaringType, assemblyLoadContext, solution);
                     var result = new GenerateResults(generatedProject.FullName, renderedFiles.ToArray());
                     blockingQueue.Add("End");
                     return result;

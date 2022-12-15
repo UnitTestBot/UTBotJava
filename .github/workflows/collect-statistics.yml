@@ -98,8 +98,8 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}
         project: ${{ fromJson(needs.setup_matrix.outputs.projects) }}
+        value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
@@ -154,7 +154,7 @@ jobs:
         id: insert
         shell: bash
         run: |
-          OUT_FILE="$data_path/$date-$short_commit-${{ matrix.value }}.json"
+          OUT_FILE="$data_path/$date-$short_commit-${{ matrix.project }}-${{ matrix.value }}.json"
           echo "output=$OUT_FILE" >> $GITHUB_OUTPUT
 
           INPUTS=($(seq ${{ inputs.run_number }}))
@@ -214,3 +214,11 @@ jobs:
         with:
           name: logs-${{ matrix.value }}-${{ matrix.project }}
           path: logs/
+
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-${{ matrix.value }}-${{ matrix.project }}
+          path: |
+            /tmp/UTBot/generated*/*

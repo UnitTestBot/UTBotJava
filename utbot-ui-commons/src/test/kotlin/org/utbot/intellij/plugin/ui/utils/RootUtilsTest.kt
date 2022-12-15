@@ -56,7 +56,13 @@ internal class RootUtilsTest {
             "/UTBotJavaTest/utbot-framework/src/main/kotlin",
             "/UTBotJavaTest/utbot-framework/src/main/resources",
         )
-        val sortedTestRoots = getSortedTestRoots(allTestRoots, moduleSourcePaths, CodegenLanguage.JAVA)
+        val sortedTestRoots = getSortedTestRoots(
+            allTestRoots,
+            listOf("/UTBotJavaTest/utbot-core/src/test/java"),
+            moduleSourcePaths,
+            CodegenLanguage.JAVA
+        )
         Assertions.assertEquals("/UTBotJavaTest/utbot-framework/src/test/java", sortedTestRoots.first().toString())
+        Assertions.assertEquals("/UTBotJavaTest/utbot-core/src/test/java", sortedTestRoots[1].toString())
     }
 }

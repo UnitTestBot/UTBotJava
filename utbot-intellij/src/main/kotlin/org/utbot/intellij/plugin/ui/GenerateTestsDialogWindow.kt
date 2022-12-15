@@ -519,6 +519,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         } catch (ignored: ParseException) {
         }
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
+        model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
 
         val settings = model.project.service<Settings>()
         with(settings) {

@@ -23,7 +23,6 @@ import soot.SootMethod
 import soot.Type
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
-
 /**
  * Result of method invocation: either Success or Failure with some exception
  */
@@ -41,30 +40,69 @@ data class SymbolicSuccess(val value: SymbolicValue) : SymbolicResult()
  * * inNested - exception thrown in nested call
  *
  */
-data class SymbolicFailure(
-    val symbolic: SymbolicValue,
-    val concrete: Throwable?,
-    val explicit: Boolean,
-    val inNestedMethod: Boolean
-) : SymbolicResult()
+abstract class SymbolicFailure(
+    open val symbolic: SymbolicValue,
+    open val concrete: Throwable?,
+    open val explicit: Boolean,
+    open val inNestedMethod: Boolean,
+) : SymbolicResult() {
+    fun copy(newSymbolic: SymbolicValue): SymbolicFailure = when (this) {
+        is SymbolicFailureImpl ->
+            SymbolicFailureImpl(newSymbolic, concrete, explicit, inNestedMethod)
+        is SymbolicFailureWithResult ->
+            SymbolicFailureWithResult(newSymbolic, concrete, explicit, inNestedMethod, operationResult)
+        else -> error("Cannot copy $this, it is not a data class")
+    }
+}
+
+/**
+ * Represents symbolic failure.
+ * Implements [BaseSymbolicFailure] as data class.
+ */
+data class SymbolicFailureImpl(
+    override val symbolic: SymbolicValue,
+    override val concrete: Throwable?,
+    override val explicit: Boolean,
+    override val inNestedMethod: Boolean,
+) : SymbolicFailure(symbolic, concrete, explicit, inNestedMethod)
+
+/**
+ * Represents symbolic failure having a result of operation.
+ *
+ * Contains:
+ * * everything as in [SymbolicFailure]
+ * * operationResult - result in case we do not detect Exception (e.g. overflow)
+ */
+data class SymbolicFailureWithResult(
+    override val symbolic: SymbolicValue,
+    override val concrete: Throwable?,
+    override val explicit: Boolean,
+    override val inNestedMethod: Boolean,
+    val operationResult: SymbolicValue,
+) : SymbolicFailure(symbolic, concrete, explicit, inNestedMethod)
 
 /**
  * Explicitly thrown exception. Exception cluster depends on inNestedMethod.
  */
 fun explicitThrown(symbolic: SymbolicValue, inNestedMethod: Boolean) =
-    SymbolicFailure(symbolic, extractConcrete(symbolic), explicit = true, inNestedMethod = inNestedMethod)
+    SymbolicFailureImpl(symbolic, extractConcrete(symbolic), explicit = true, inNestedMethod = inNestedMethod)
 
 /**
  * Explicitly thrown exception. Exception cluster depends on inNestedMethod.
  */
 fun explicitThrown(exception: Throwable, addr: UtAddrExpression, inNestedMethod: Boolean) =
-    SymbolicFailure(symbolic(exception, addr), exception, explicit = true, inNestedMethod = inNestedMethod)
+    SymbolicFailureImpl(symbolic(exception, addr), exception, explicit = true, inNestedMethod = inNestedMethod)
 
 /**
  * Implicitly thrown exception. There are no difference if it happens in nested call or not.
  */
-fun implicitThrown(exception: Throwable, addr: UtAddrExpression, inNestedMethod: Boolean) =
-    SymbolicFailure(symbolic(exception, addr), exception, explicit = false, inNestedMethod = inNestedMethod)
+fun implicitThrown(exception: Throwable, addr: UtAddrExpression, inNestedMethod: Boolean, operationResult: SymbolicValue? = null) =
+    if (operationResult != null) {
+        SymbolicFailureWithResult(symbolic(exception, addr), exception, explicit = false, inNestedMethod, operationResult)
+    } else {
+        SymbolicFailureImpl(symbolic(exception, addr), exception, explicit = false, inNestedMethod = inNestedMethod)
+    }
+
 
 private fun symbolic(exception: Throwable, addr: UtAddrExpression) =
     objectValue(Scene.v().getRefType(exception.javaClass.canonicalName), addr, ThrowableWrapper(exception))
@@ -75,13 +113,21 @@ private fun extractConcrete(symbolic: SymbolicValue) =
 inline fun <R> SymbolicFailure.fold(
     onConcrete: (concrete: Throwable) -> R,
     onSymbolic: (symbolic: SymbolicValue) -> R
-): R {
-    return if (concrete != null) {
-        onConcrete(concrete)
-    } else {
-        onSymbolic(symbolic)
-    }
+): R = when (this) {
+    is SymbolicFailureImpl -> fold(onConcrete, onSymbolic)
+    is SymbolicFailureWithResult -> fold(onConcrete, onSymbolic)
+    else -> error("Incorrect symbolic failure type $this")
 }
+
+inline fun <R> SymbolicFailureImpl.fold(
+    onConcrete: (concrete: Throwable) -> R,
+    onSymbolic: (symbolic: SymbolicValue) -> R
+): R = if (concrete != null) onConcrete(concrete) else onSymbolic(symbolic)
+
+inline fun <R> SymbolicFailureWithResult.fold(
+    onConcrete: (concrete: Throwable) -> R,
+    onSymbolic: (symbolic: SymbolicValue) -> R
+): R = if (concrete != null) onConcrete(concrete) else onSymbolic(symbolic)
 
 data class Parameter(private val localVariable: LocalVariable, private val type: Type, val value: SymbolicValue)
 

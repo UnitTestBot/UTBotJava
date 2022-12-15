@@ -23,6 +23,7 @@ sealed class UtExecutionFailure : UtExecutionResult() {
 
 data class UtOverflowFailure(
     override val exception: Throwable,
+    val resultModel: UtModel,
 ) : UtExecutionFailure()
 
 data class UtSandboxFailure(

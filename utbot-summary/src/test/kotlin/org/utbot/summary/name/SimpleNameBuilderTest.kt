@@ -7,6 +7,7 @@ import org.junit.jupiter.api.TestInstance
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.utbot.framework.plugin.api.UtOverflowFailure
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.tag.TraceTag
 import org.utbot.summary.tag.UniquenessTag
@@ -26,7 +27,7 @@ class SimpleNameBuilderTest {
         jimpleToASTMap = mock(JimpleToASTMap::class.java)
         sootToAst = mutableMapOf()
 
-        `when`(traceTag.result).thenReturn(UtOverflowFailure(Throwable()))
+        `when`(traceTag.result).thenReturn(UtSandboxFailure(Throwable()))
 
         sootToAst[sootMethod] = jimpleToASTMap
     }

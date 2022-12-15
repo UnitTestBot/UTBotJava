@@ -66,6 +66,8 @@ abstract class TestFrameworkManager(val context: CgContext)
     val assertTrue = context.testFramework.assertTrue
     val assertFalse = context.testFramework.assertFalse
 
+    val fail = context.testFramework.fail
+
     val assertArrayEquals = context.testFramework.assertArrayEquals
     val assertBooleanArrayEquals = context.testFramework.assertBooleanArrayEquals
     val assertByteArrayEquals = context.testFramework.assertByteArrayEquals
@@ -172,6 +174,10 @@ abstract class TestFrameworkManager(val context: CgContext)
     }
 
     fun assertBoolean(actual: CgExpression) = assertBoolean(expected = true, actual)
+
+    fun fail(actual: CgExpression) {
+        +assertions[fail](actual)
+    }
 
     // Exception expectation differs between test frameworks
     // JUnit4 requires to add a specific argument to the test method annotation

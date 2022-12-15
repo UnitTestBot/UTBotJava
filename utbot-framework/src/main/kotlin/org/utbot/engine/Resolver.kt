@@ -99,6 +99,7 @@ import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
+import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 
@@ -368,7 +369,13 @@ class Resolver(
                     val modelsAfterAssembling = assembleModelGenerator.createAssembleModels(listOf(model))
                     UtExecutionSuccess(modelsAfterAssembling.getValue(model))
                 }
-                is SymbolicFailure -> symResult.resolve()
+                is SymbolicFailure -> {
+                    when (symResult) {
+                        is SymbolicFailureImpl -> symResult.resolve()
+                        is SymbolicFailureWithResult -> symResult.resolve()
+                        else -> error("Unknown type of symbolic failure $symResult")
+                    }
+                }
             }
         }
 
@@ -390,16 +397,26 @@ class Resolver(
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
+            val isAccessControlException = exception is AccessControlException
             when {
-                // TODO SAT-1561
-                exception is ArithmeticException && exception.message?.contains("overflow") == true -> UtOverflowFailure(exception)
-                exception is AccessControlException -> UtSandboxFailure(exception)
+                isAccessControlException -> UtSandboxFailure(exception)
                 else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }
     }
 
+    private fun SymbolicFailureWithResult.resolve(): UtExecutionFailure {
+        val exception = concreteException()
+        val isOverflowException = exception is ArithmeticException && exception.message?.contains("overflow") == true
+
+        return when {
+            isOverflowException -> UtOverflowFailure(exception, resolveModel(operationResult))
+            else -> UtImplicitlyThrownException(exception, inNestedMethod)
+        }
+    }
+
     private fun SymbolicFailure.concreteException() = concrete ?: concreteException(symbolic)
+    private fun SymbolicFailureWithResult.concreteException() = concrete ?: concreteException(symbolic)
 
     /**
      * Creates concrete exception for symbolic one using conversion through model.

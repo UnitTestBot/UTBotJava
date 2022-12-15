@@ -8,6 +8,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtOverflowFailure
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.comment.classic.symbolic.SimpleCommentBuilder
 import org.utbot.summary.comment.customtags.getMethodReferenceForSymbolicTest
@@ -41,7 +42,7 @@ class SimpleCommentBuilderTest {
         `when`(step.stmt).thenReturn(statement)
         `when`(traceTag.path).thenReturn(listOf(step))
         `when`(traceTag.rootStatementTag).thenReturn(statementTag)
-        `when`(traceTag.result).thenReturn(UtOverflowFailure(Throwable()))
+        `when`(traceTag.result).thenReturn(UtSandboxFailure(Throwable()))
 
         sootToAst[sootMethod] = jimpleToASTMap
     }

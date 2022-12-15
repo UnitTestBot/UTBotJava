@@ -224,6 +224,8 @@ abstract class TestFramework(
 
     val assertTrue by lazy { assertionId("assertTrue", booleanClassId) }
 
+    val fail by lazy { assertionId("fail", objectClassId) }
+
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
     protected open fun assertionId(name: String, vararg params: ClassId): MethodId =

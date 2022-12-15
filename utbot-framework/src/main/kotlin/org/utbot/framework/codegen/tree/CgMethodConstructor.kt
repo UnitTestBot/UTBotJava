@@ -141,6 +141,7 @@ import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getS
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.baseStreamClassId
@@ -299,7 +300,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
             is MethodId -> {
                 emptyLineIfNeeded()
-                val method = currentExecutable as MethodId
                 val currentExecution = currentExecution!!
                 val executionResult = currentExecution.result
 
@@ -307,19 +307,24 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 executionResult
                     .onSuccess { resultModel ->
                         methodType = SUCCESSFUL
-
-                        // TODO possible engine bug - void method return type and result model not UtVoidModel
-                        if (resultModel.isUnit() || method.returnType == voidClassId) {
-                            +thisInstance[method](*methodArguments.toTypedArray())
-                        } else {
-                            this.resultModel = resultModel
-                            val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
-                            assertEquality(expected, actual)
-                        }
+                        generateResultAssertionsByModel(resultModel)
                     }
                     .onFailure { exception -> processExecutionFailure(exception, executionResult) }
             }
             else -> {} // TODO: check this specific case
+        }
+    }
+
+    private fun generateResultAssertionsByModel(resultModel: UtModel) {
+        val method = currentExecutable as MethodId
+
+        // TODO possible engine bug - void method return type and result model not UtVoidModel
+        if (resultModel.isUnit() || method.returnType == voidClassId) {
+            +thisInstance[method](*methodArguments.toTypedArray())
+        } else {
+            this.resultModel = resultModel
+            val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
+            assertEquality(expected, actual)
         }
     }
 
@@ -352,7 +357,14 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             }
             FAILING -> {
                 writeWarningAboutFailureTest(expectedException)
-                methodInvocationBlock()
+                when (executionResult) {
+                    is UtOverflowFailure -> {
+                        //TODO: introduce some kind of language-specific string interpolation in Codegen
+                        val failureMessage = CgVariable("\"Actual result value is \" + ${actual.name}", stringClassId)
+                        testFrameworkManager.fail(failureMessage)
+                    }
+                    else -> methodInvocationBlock()
+                }
             }
             PARAMETRIZED -> error("Unexpected $PARAMETRIZED method type for failing execution with $expectedException exception")
         }
@@ -425,7 +437,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         )
     }
 
-    protected fun writeWarningAboutFailureTest(exception: Throwable) {
+    private fun writeWarningAboutFailureTest(exception: Throwable) {
         require(currentExecutable is ExecutableId)
         val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
 
@@ -476,7 +488,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         } else {
                             //"generic" expected variable is represented with a wrapper if
                             //actual result is primitive to support cases with exceptions.
-                            this.resultModel = if (resultModel is UtPrimitiveModel) assemble(resultModel) else resultModel
+                            this.resultModel =
+                                if (resultModel is UtPrimitiveModel) assemble(resultModel) else resultModel
 
                             val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
                             val expectedExpression = CgNotNullAssertion(expectedVariable)
@@ -1088,7 +1101,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     }
 
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
-        // Can directly access field only if it is declared in variable class (or in its ancestors)
+    // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
         if (variable.type.hasField(this) && canBeReadFrom(context)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
@@ -1302,24 +1315,19 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val executionResult = currentExecution!!.result
 
         executionResult.onSuccess { resultModel ->
-            when (val executable = currentExecutable) {
+            when (currentExecutable) {
                 is ConstructorId -> {
                     // there is nothing to generate for constructors
                     return
                 }
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
                 is MethodId -> {
+                    val method = currentExecutable as MethodId
                     // TODO possible engine bug - void method return type and result model not UtVoidModel
-                    if (resultModel.isUnit() || executable.returnType == voidClassId) return
+                    if (resultModel.isUnit() || method.returnType == voidClassId) return
 
                     emptyLineIfNeeded()
-
-                    actual = newVar(
-                        CgClassId(resultModel.classId, isNullable = resultModel is UtNullModel),
-                        "actual"
-                    ) {
-                        thisInstance[executable](*methodArguments.toTypedArray())
-                    }
+                    initActualVariable(method, resultModel)
                 }
                 else -> {} // TODO: check this specific case
             }
@@ -1328,9 +1336,24 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
     }
 
+    private fun initActualVariable(method: MethodId, resultModel: UtModel) {
+        val actualClassId = CgClassId(resultModel.classId, isNullable = resultModel is UtNullModel)
+        actual = newVar(actualClassId, "actual") {
+            thisInstance[method](*methodArguments.toTypedArray())
+        }
+    }
+
     private fun processActualInvocationFailure(executionResult: UtExecutionResult) {
         when (executionResult) {
-            is UtStreamConsumingFailure -> processStreamConsumingException(executionResult.rootCauseException)
+            is UtStreamConsumingFailure -> {
+                processStreamConsumingException(executionResult.rootCauseException)
+            }
+            is UtOverflowFailure -> {
+                val method = currentExecutable as? MethodId
+                    ?: return
+                emptyLineIfNeeded()
+                initActualVariable(method, executionResult.resultModel)
+            }
             else -> {} // Do nothing for now
         }
     }
@@ -1883,7 +1906,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         return testMethod
     }
 
-    private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
+    private fun dataProviderMethod(
+        dataProviderMethodName: String,
+        body: () -> Unit
+    ): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
             returnType = testFramework.argListClassId
@@ -1931,7 +1957,10 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val pureJvmReportPath = jvmReportPath.substringAfter("# ")
 
         // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
+        return PathUtil.toHtmlLinkTag(
+            PathUtil.replaceSeparator(pureJvmReportPath),
+            fileName = "JVM crash report"
+        ) + "\n"
     }
 
     private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =

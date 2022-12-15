@@ -1380,14 +1380,16 @@ class Traverser(
                             divisionByZeroCheck(right)
                         }
 
+                        val resultValue =  doOperation(expr, left, right).toPrimitiveValue(expr.type)
+
                         if (UtSettings.treatOverflowAsError) {
                             // overflow detection
                             if (left.expr.isInteger() && right.expr.isInteger()) {
-                                intOverflowCheck(expr, left, right)
+                                intOverflowCheck(expr, left, right, resultValue)
                             }
                         }
 
-                        doOperation(expr, left, right).toPrimitiveValue(expr.type)
+                       resultValue
                     }
                     else -> TODO("Unknown op $expr for $left and $right")
                 }
@@ -3298,7 +3300,12 @@ class Traverser(
         )
     }
 
-    private fun TraversalContext.intOverflowCheck(op: BinopExpr, leftRaw: PrimitiveValue, rightRaw: PrimitiveValue) {
+    private fun TraversalContext.intOverflowCheck(
+        op: BinopExpr,
+        leftRaw: PrimitiveValue,
+        rightRaw: PrimitiveValue,
+        operationResult: SymbolicValue,
+    ) {
         // cast to the bigger type
         val sort = simpleMaxSort(leftRaw, rightRaw) as UtPrimitiveSort
         val left = leftRaw.expr.toPrimitiveValue(sort.type)
@@ -3314,15 +3321,19 @@ class Traverser(
             is JMulExpr -> when (sort.type) {
                 is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
                 is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { it: UtExpression -> it.toIntValue() }
-                is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { it: UtExpression -> it.toLongValue() }
+                is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { utExpr -> utExpr.toIntValue() }
+                is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { utExpr -> utExpr.toLongValue() }
                 else -> null
             }
             else -> null
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            implicitlyThrowException(
+                ArithmeticException("${left.type} ${op.symbol} overflow"),
+                setOf(overflow),
+                operationResult = operationResult,
+            )
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
@@ -3400,11 +3411,12 @@ class Traverser(
     private fun TraversalContext.implicitlyThrowException(
         exception: Exception,
         conditions: Set<UtBoolExpression>,
-        softConditions: Set<UtBoolExpression> = emptySet()
+        softConditions: Set<UtBoolExpression> = emptySet(),
+        operationResult: SymbolicValue? = null,
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod(), operationResult)
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(
@@ -3598,7 +3610,7 @@ class Traverser(
             simplifySymbolicValue(exception.symbolic)
         }
         return environment.state.createExceptionState(
-            exception.copy(symbolic = simplifiedResult),
+            exception.copy(newSymbolic = simplifiedResult),
             update = simplifiedUpdates
         )
     }

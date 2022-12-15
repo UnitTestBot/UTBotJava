@@ -195,7 +195,7 @@ We store the collected statistics in our repository. You can find two special br
 
 The `monitoring-data` branch is a storage for raw statistics data as well as metadata.
 
-The filename format: `<yyyy>-<mm>-<dd>-<hh>-<MM>-<ss>-<branch>-<short commit hash>-<runner number>.json`
+The filename format: `<yyyy>-<mm>-<dd>-<hh>-<MM>-<ss>-<branch>-<short commit hash>-<project name>-<runner number>.json`
 
 ### Grafana
 

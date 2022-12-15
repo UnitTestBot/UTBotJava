@@ -97,7 +97,7 @@ object PythonTestCaseGenerator {
             PythonTypeStorage.get(storage)
         )
 
-        var coverageLimit = 10
+//        var coverageLimit = 10
 
         runBlockingWithCancellationPredicate(isCancelled) {
             engine.newFuzzing(args).collect {
@@ -118,16 +118,16 @@ object PythonTestCaseGenerator {
                 }
                 val coveredAfter = coveredLines.size
 
-                if (coveredAfter == coveredBefore)
-                    coverageLimit -= 1
+//                if (coveredAfter == coveredBefore)
+//                    coverageLimit -= 1
+//
+//                if (withMinimization && missingLines?.isEmpty() == true) {//&& generated % CHUNK_SIZE == 0)
+//                    coverageLimit = 0
+//                }
 
-                if (withMinimization && missingLines?.isEmpty() == true) {//&& generated % CHUNK_SIZE == 0)
-                    coverageLimit = 0
-                }
-
-                if (coverageLimit == 0) {
-                    isCancelled = {true}
-                }
+//                if (coverageLimit == 0) {
+//                    isCancelled = {true}
+//                }
             }
         }
 

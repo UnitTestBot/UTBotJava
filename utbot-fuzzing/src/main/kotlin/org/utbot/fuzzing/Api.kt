@@ -1,6 +1,7 @@
 @file:JvmName("FuzzingApi")
 package org.utbot.fuzzing
 
+import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.utils.chooseOne
@@ -259,7 +260,7 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
     val seeds = Statistics<T, R, F>()
     run breaking@ {
         sequence {
-            while (true) {
+            while (description.parameters.isNotEmpty()) {
                 if (dynamicallyGenerated.isNotEmpty()) {
                     yield(dynamicallyGenerated.removeFirst())
                 } else {
@@ -280,15 +281,11 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
                 }
             }
         }.forEach execution@ { values ->
+            yield()
             check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
             val valuesCache = mutableMapOf<Result<T, R>, R>()
             val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
-            val feedback = try {
-                fuzzing.handle(description, result)
-            } catch (t: Throwable) {
-                logger.error(t) { "Error when running fuzzing with $values" }
-                return@execution
-            }
+            val feedback = fuzzing.handle(description, result)
             when (feedback.control) {
                 Control.CONTINUE -> {
                     seeds.put(random, configuration, feedback, values)
@@ -634,8 +631,8 @@ private class Node<TYPE, RESULT>(
 
 
 private class Statistics<TYPE, RESULT, FEEDBACK : Feedback<TYPE, RESULT>> {
-    private val seeds = hashMapOf<FEEDBACK, Node<TYPE, RESULT>>()
-    private val count = hashMapOf<FEEDBACK, Long>()
+    private val seeds = linkedMapOf<FEEDBACK, Node<TYPE, RESULT>>()
+    private val count = linkedMapOf<FEEDBACK, Long>()
 
     fun put(random: Random, configuration: Configuration, feedback: FEEDBACK, seed: Node<TYPE, RESULT>) {
         if (random.flipCoin(configuration.probUpdateSeedInsteadOfKeepOld)) {

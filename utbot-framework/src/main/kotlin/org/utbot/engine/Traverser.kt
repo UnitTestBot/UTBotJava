@@ -1035,7 +1035,10 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.executable
+        // If we don't have access to methodUnderTest's jClass, the engine should not fail
+        // We just won't update generic information for it
+        val callable = runCatching { methodUnderTest.executable }.getOrNull() ?: return
+
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
@@ -1249,6 +1252,8 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
+        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
+
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
 
@@ -1260,8 +1265,11 @@ class Traverser(
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-                queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+                val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+                val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+
+                queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
+                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
                 return mockedObject
             }
@@ -1286,8 +1294,10 @@ class Traverser(
             typeStoragePossiblyWithOverriddenTypes
         }
 
+        val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+
         wrapper(type, addr)?.let {
-            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+            queuedSymbolicStateUpdates += typeHardConstraint
             return it
         }
 
@@ -1303,8 +1313,11 @@ class Traverser(
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
             // add typeConstraint for mocked object. It's a declared type of the object.
-            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-            queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+            val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+            val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+
+            queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
+            queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
             return mockedObject
         }
@@ -1313,9 +1326,10 @@ class Traverser(
         // We should create an object with typeStorage of all possible real types and concrete implementation
         // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
         val concreteImplementation = wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
+        val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
-        queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
-        queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(addr), UtFalse).asHardConstraint()
+        queuedSymbolicStateUpdates += typeHardConstraint
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }

@@ -7,6 +7,7 @@ import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
+import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.engine.MockStrategy.NO_MOCKS
@@ -344,7 +345,6 @@ class UtBotSymbolicEngine(
             methodUnderTest,
             collectConstantsForFuzzer(graph),
             names,
-            { mockStrategy.eligibleToMock(it, classUnderTest) },
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
         ) { thisInstance, descr, values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
@@ -366,6 +366,11 @@ class UtBotSymbolicEngine(
 
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+
+            if (concreteExecutionResult.result.exceptionOrNull() is UtMockAssumptionViolatedException) {
+                logger.debug { "Generated test case by fuzzer violates the UtMock assumption" }
+                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            }
 
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             var trieNode: Trie.Node<Instruction>? = null

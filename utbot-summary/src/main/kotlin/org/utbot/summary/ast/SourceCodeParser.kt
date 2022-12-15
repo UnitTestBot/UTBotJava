@@ -55,7 +55,7 @@ class SourceCodeParser {
             val clazz = it.types.firstOrNull { clazz ->
                 clazz.name.identifier == className
             } ?: traverseInnerClassDeclarations(
-                it.types.flatMap { declaration -> declaration.childNodes },
+                it.types.flatMap { declaration -> declaration.childNodes }.filterIsInstance<ClassOrInterfaceDeclaration>(),
                 className
             )
 
@@ -84,9 +84,23 @@ class SourceCodeParser {
      * Identifier is ClassOrInterfaceDeclaration
      */
     private fun traverseInnerClassDeclarations(
-        nodes: List<Node>, className: String
-    ): TypeDeclaration<*>? = nodes.filterIsInstance<ClassOrInterfaceDeclaration>()
-        .firstOrNull { it.name.identifier == className }
+        nodes: List<ClassOrInterfaceDeclaration>, className: String
+    ): TypeDeclaration<*>? {
+        var result = nodes.firstOrNull { it.name.identifier == className }
+
+        if (result != null) return result
+
+        run childrenSearch@ {
+            nodes.forEach {
+                val childNodes = it.childNodes.filterIsInstance<ClassOrInterfaceDeclaration>()
+                if (childNodes.isNotEmpty()) {
+                    result = traverseInnerClassDeclarations(childNodes, className) as ClassOrInterfaceDeclaration?
+                    if (result!= null) return@childrenSearch
+                }
+            }
+        }
+        return result
+    }
 }
 
 /**

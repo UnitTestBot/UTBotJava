@@ -193,7 +193,7 @@ class PythonCodeGenerator(
         }
 
         val functionPrefix = "__mypy_check"
-        val functionName = "def ${functionPrefix}_{method.name}(${parameters.joinToString(", ")}):"  // TODO: in future can be "async def"
+        val functionName = "def ${functionPrefix}_${method.name}(${parameters.joinToString(", ")}):"  // TODO: in future can be "async def"
 
         val mypyCheckCode = listOf(
             renderer.toString(),

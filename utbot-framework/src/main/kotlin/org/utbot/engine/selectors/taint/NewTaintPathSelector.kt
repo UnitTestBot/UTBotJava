@@ -22,6 +22,7 @@ import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import soot.Scene
 import soot.SootMethod
+import soot.Unit
 import soot.jimple.Stmt
 import soot.jimple.toolkits.callgraph.CallGraph
 import soot.toolkits.graph.ExceptionalUnitGraph
@@ -148,15 +149,6 @@ class NewTaintPathSelector(
                     sourcesAndCorrespondingSinks
                         .filterNot { TaintPair(it.first.stmt, it.second.stmt) in visitedTaintPairs }
                         .map { StmtWithOuterMethod(it.second.stmt, it.second.outerMethod) }
-
-
-//                    // Need to reach the closest corresponding sink
-//                    val sourcesAndCorrespondingSinks =
-//                        taintSinksBySources(visitedTaintSources).map { StmtWithOuterMethod(it.stmt, it.outerMethod) }
-//
-//                    // But do not reach already visited sinks
-//                    val visitedStmts = path.toSet()
-//                    sourcesAndCorrespondingSinks.filterNot { it.stmt in visitedStmts }
                 }
 
                 val (methodsPaths, stackElementsToReturn) = pathsToMethods(targetPoints)
@@ -270,15 +262,18 @@ class NewTaintPathSelector(
 
         while (previousStateElements.isNotEmpty()) {
             val currentStackElement = previousStateElements.last()
-            val currentStmtInStackElement = if (previousStateElements.size == executionStack.size) {
+            val startingStmtsInStackElement = if (previousStateElements.size == executionStack.size) {
                 // If we did not rise up in stack, take the current stms
-                stmt
+                listOf(stmt)
             } else {
-                // Otherwise, take the stmt in the current stack element
-                executionStack[previousStateElements.lastIndex + 1].caller!!
+                // Otherwise, take the NEXT stmts in the current stack element
+                val currentStmtInTheStackElement = executionStack[previousStateElements.lastIndex + 1].caller!!
+                val graph = currentStackElement.method.jimpleBody().graph()
+
+                graph.getSuccsOf(currentStmtInTheStackElement)
             }
             val methodsPathsWithTargetStmts =
-                currentStackElement.pathsToMethods(currentStmtInStackElement, targetMethods)
+                currentStackElement.pathsToMethods(startingStmtsInStackElement, targetMethods)
 
             if (methodsPathsWithTargetStmts.isNotEmpty()) {
                 val stackElementsToReturn = executionStack.subList(previousStateElements.size, executionStack.size)
@@ -301,14 +296,13 @@ class NewTaintPathSelector(
     )
 
     private fun ExecutionStackElement.pathsToMethods(
-        currentStmtInStackElement: Stmt,
+        currentStmtsInStackElement: List<Unit>,
         targetPoints: List<StmtWithOuterMethod>
-    ): List<Pair<MethodsPath, Stmt>> =
-        runBfsInInterProceduralGraph(method, currentStmtInStackElement, targetPoints)
+    ): List<Pair<MethodsPath, Stmt>> = runBfsInInterProceduralGraph(method, currentStmtsInStackElement, targetPoints)
 
     private fun runBfsInInterProceduralGraph(
         start: SootMethod,
-        currentStmtInStackElement: Stmt,
+        currentStmtsInStackElement: List<Unit>,
         targetPoints: List<StmtWithOuterMethod>
     ): List<Pair<MethodsPath, Stmt>> {
         val used = mutableMapOf<SootMethod, Boolean>()
@@ -319,13 +313,22 @@ class NewTaintPathSelector(
         distances += start to 0L
         used[start] = true
 
-        val startStmts = start.jimpleBody().units
-        val indexOfCurrent = startStmts.indexOf(currentStmtInStackElement)
-        val nextStmtsAfterCurrentStmtIncluding = startStmts.toList().run {
-            subList(indexOfCurrent, size)
+        val nextStmtsAfterCurrentStmtIncluding = mutableListOf(currentStmtsInStackElement)
+        val uniqueNextStmts = mutableSetOf(*nextStmtsAfterCurrentStmtIncluding.single().toTypedArray())
+        while (true) {
+            val nextStmts = nextStmtsAfterCurrentStmtIncluding
+                .last()
+                .flatMap { globalGraph.succStmts(it as Stmt) }
+                .filter { it !in uniqueNextStmts }
+
+            if (!uniqueNextStmts.addAll(nextStmts)) {
+                break
+            }
+
+            nextStmtsAfterCurrentStmtIncluding += nextStmts
         }
 
-        nextStmtsAfterCurrentStmtIncluding.forEach { stmtInTheStartMethod ->
+        uniqueNextStmts.forEach { stmtInTheStartMethod ->
             val edgesOut = callGraph.edgesOutOf(stmtInTheStartMethod)
 
             edgesOut.forEach {

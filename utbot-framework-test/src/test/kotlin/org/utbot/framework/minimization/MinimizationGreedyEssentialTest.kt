@@ -68,4 +68,18 @@ class MinimizationGreedyEssentialTest {
         val minimizedExecutions = GreedyEssential.minimize(executions)
         assertEquals((1..size).toList(), minimizedExecutions.sorted())
     }
+
+    @Test
+    fun testExecutionPriority() {
+        val executions = mapOf(
+            0 to listOf(0, 1, 2, 3, 4),
+            1 to listOf(0, 1, 2, 3, 4)
+        )
+        val executionToPriority = mapOf(
+            0 to 1,
+            1 to 0
+        )
+        val minimizedExecutions = GreedyEssential.minimize(executions, executionToPriority)
+        assertEquals(listOf(1), minimizedExecutions)
+    }
 }

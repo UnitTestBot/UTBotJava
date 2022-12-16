@@ -1,8 +1,10 @@
 package org.utbot.intellij.plugin.process
 
 import com.intellij.ide.plugins.cl.PluginClassLoader
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Computable
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
@@ -30,14 +32,14 @@ import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.intellij.plugin.UtbotBundle
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
-import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
-import org.utbot.intellij.plugin.util.assertIsReadAccessAllowed
+import org.utbot.intellij.plugin.util.assertReadAccessNotAllowed
 import org.utbot.intellij.plugin.util.methodDescription
 import org.utbot.rd.*
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.SettingForResult
 import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
+import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
@@ -59,7 +61,7 @@ data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 class EngineProcessInstantDeathException :
     InstantProcessDeathException(UtSettings.engineProcessDebugPort, UtSettings.runEngineProcessWithDebug)
 
-class EngineProcess private constructor(val project: Project, rdProcess: ProcessWithRdServer) :
+class EngineProcess private constructor(val project: Project, private val classNameToPath: Map<String, String?>, rdProcess: ProcessWithRdServer) :
     ProcessWithRdServer by rdProcess {
     companion object {
         private val log4j2ConfigFile: File
@@ -123,9 +125,9 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             add(rdPortArgument(port))
         }
 
-        fun createBlocking(project: Project): EngineProcess = runBlocking { EngineProcess(project) }
+        fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 
-        suspend operator fun invoke(project: Project): EngineProcess =
+        suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =
             LifetimeDefinition().terminateOnException { lifetime ->
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     val cmd = obtainEngineProcessCommandLine(port)
@@ -150,7 +152,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
                 }
                 rdProcess.awaitProcessReady()
 
-                return EngineProcess(project, rdProcess)
+                return EngineProcess(project, classNameToPath, rdProcess)
             }
     }
 
@@ -163,7 +165,8 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
     private val sourceFindingStrategies = ConcurrentHashMap<Long, SourceFindingStrategy>()
 
     fun setupUtContext(classpathForUrlsClassloader: List<String>) {
-        engineModel.setupUtContext.start(lifetime, SetupContextParams(classpathForUrlsClassloader))
+        assertReadAccessNotAllowed()
+        engineModel.setupUtContext.startBlocking(SetupContextParams(classpathForUrlsClassloader))
     }
 
     private fun computeSourceFileByClass(params: ComputeSourceFileByClassArguments): String =
@@ -174,7 +177,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             val sourceFile = psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
 
             logger.debug { "computeSourceFileByClass result: $sourceFile" }
-            sourceFile
+            sourceFile ?: classNameToPath[params.canonicalClassName]
         }
 
     fun createTestGenerator(
@@ -184,6 +187,8 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         jdkInfo: JdkInfo,
         isCancelled: (Unit) -> Boolean
     ) {
+        assertReadAccessNotAllowed()
+
         engineModel.isCancelled.set(handler = isCancelled)
         instrumenterAdapterModel.computeSourceFileByClass.set(handler = this::computeSourceFileByClass)
 
@@ -193,19 +198,18 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             dependencyPaths,
             JdkInfo(jdkInfo.path.pathString, jdkInfo.version)
         )
-        engineModel.createTestGenerator.start(lifetime, params)
+        engineModel.createTestGenerator.startBlocking(params)
     }
 
     fun obtainClassId(canonicalName: String): ClassId {
-        assertIsNonDispatchThread()
+        assertReadAccessNotAllowed()
         return kryoHelper.readObject(engineModel.obtainClassId.startBlocking(canonicalName))
     }
 
     fun findMethodsInClassMatchingSelected(clazzId: ClassId, srcMethods: List<MemberInfo>): List<ExecutableId> {
-        assertIsNonDispatchThread()
-        assertIsReadAccessAllowed()
+        assertReadAccessNotAllowed()
 
-        val srcDescriptions = srcMethods.map { it.methodDescription() }
+        val srcDescriptions = runReadAction { srcMethods.map { it.methodDescription() } }
         val rdDescriptions = srcDescriptions.map { MethodDescription(it.name, it.containingClass, it.parameterTypes) }
         val binaryClassId = kryoHelper.writeObject(clazzId)
         val arguments = FindMethodsInClassMatchingSelectedArguments(binaryClassId, rdDescriptions)
@@ -215,10 +219,13 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
     }
 
     fun findMethodParamNames(classId: ClassId, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
-        assertIsNonDispatchThread()
-        assertIsReadAccessAllowed()
+        assertReadAccessNotAllowed()
 
-        val bySignature = methods.associate { it.methodDescription() to it.paramNames() }
+        val bySignature = executeWithTimeoutSuspended {
+            DumbService.getInstance(project).runReadActionInSmartMode(Computable {
+                methods.associate { it.methodDescription() to it.paramNames() }
+            })
+        }
         val arguments = FindMethodParamNamesArguments(
             kryoHelper.writeObject(classId),
             kryoHelper.writeObject(bySignature)
@@ -253,7 +260,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         fuzzingValue: Double,
         searchDirectory: String
     ): RdTestGenerationResult {
-        assertIsNonDispatchThread()
+        assertReadAccessNotAllowed()
         val params = GenerateParams(
             mockInstalled,
             staticsMockingIsConfigured,
@@ -290,7 +297,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         enableTestsTimeout: Boolean,
         testClassPackageName: String
     ): Pair<String, UtilClassKind?> {
-        assertIsNonDispatchThread()
+        assertReadAccessNotAllowed()
         val params = RenderParams(
             testSetsId,
             kryoHelper.writeObject(classUnderTest),
@@ -352,7 +359,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         generatedTestsCode: String,
         sourceFindingStrategy: SourceFindingStrategy
     ): String {
-        assertIsNonDispatchThread()
+        assertReadAccessNotAllowed()
 
         val params = WriteSarifReportArguments(testSetsId, reportFilePath.pathString, generatedTestsCode)
 
@@ -361,7 +368,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
     }
 
     fun generateTestsReport(model: GenerateTestsModel, eventLogMessage: String?): Triple<String, String?, Boolean> {
-        assertIsNonDispatchThread()
+        assertReadAccessNotAllowed()
 
         val forceMockWarning = UtbotBundle.takeIf(
             "test.report.force.mock.warning",
@@ -406,5 +413,17 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             })
         }
         initSourceFindingStrategies()
+    }
+
+    fun <T> executeWithTimeoutSuspended(block: () -> T): T {
+        try {
+            assertReadAccessNotAllowed()
+            protocol.synchronizationModel.suspendTimeoutTimer.startBlocking(true)
+            return block()
+        }
+        finally {
+            assertReadAccessNotAllowed()
+            protocol.synchronizationModel.suspendTimeoutTimer.startBlocking(false)
+        }
     }
 }

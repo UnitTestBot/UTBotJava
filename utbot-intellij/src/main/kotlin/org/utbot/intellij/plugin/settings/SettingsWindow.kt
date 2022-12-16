@@ -18,11 +18,6 @@ import com.intellij.ui.layout.withValueBinding
 import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JCheckBox
-import javax.swing.JPanel
-import javax.swing.JSlider
-import kotlin.reflect.KClass
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
@@ -34,6 +29,11 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.util.showSettingsEditor
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JCheckBox
+import javax.swing.JPanel
+import javax.swing.JSlider
+import kotlin.reflect.KClass
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -44,6 +44,7 @@ class SettingsWindow(val project: Project) {
     private lateinit var runInspectionAfterTestGenerationCheckBox: JCheckBox
     private lateinit var forceMockCheckBox: JCheckBox
     private lateinit var enableSummarizationGenerationCheckBox: JCheckBox
+    private lateinit var enableExperimentalLanguagesCheckBox: JCheckBox
 
     val panel: JPanel = panel {
         row("Generated test language:") {
@@ -160,6 +161,23 @@ class SettingsWindow(val project: Project) {
                     .onReset { forceMockCheckBox.isSelected = settings.forceStaticMocking == ForceStaticMocking.FORCE }
                     .onIsModified { forceMockCheckBox.isSelected xor (settings.forceStaticMocking != ForceStaticMocking.DO_NOT_FORCE) }
                     .apply { ContextHelpLabel.create("Overrides other mocking settings")() }
+                    .component
+            }
+        }
+
+        row {
+            cell {
+                enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
+                    .onApply {
+                        settings.state.enableExperimentalLanguagesSupport =
+                            enableExperimentalLanguagesCheckBox.isSelected
+                    }
+                    .onReset {
+                        enableExperimentalLanguagesCheckBox.isSelected =
+                            settings.experimentalLanguagesSupport == true
+                    }
+                    .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
+                    .apply { ContextHelpLabel.create("Enable JavaScript and Python if IDE supports them")() }
                     .component
             }
         }

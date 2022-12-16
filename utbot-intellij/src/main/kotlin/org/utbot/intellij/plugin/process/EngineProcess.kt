@@ -61,7 +61,7 @@ data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 class EngineProcessInstantDeathException :
     InstantProcessDeathException(UtSettings.engineProcessDebugPort, UtSettings.runEngineProcessWithDebug)
 
-class EngineProcess private constructor(val project: Project, rdProcess: ProcessWithRdServer) :
+class EngineProcess private constructor(val project: Project, private val classNameToPath: Map<String, String?>, rdProcess: ProcessWithRdServer) :
     ProcessWithRdServer by rdProcess {
     companion object {
         private val log4j2ConfigFile: File
@@ -125,9 +125,9 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             add(rdPortArgument(port))
         }
 
-        fun createBlocking(project: Project): EngineProcess = runBlocking { EngineProcess(project) }
+        fun createBlocking(project: Project, classNameToPath: Map<String, String?>): EngineProcess = runBlocking { EngineProcess(project, classNameToPath) }
 
-        suspend operator fun invoke(project: Project): EngineProcess =
+        suspend operator fun invoke(project: Project, classNameToPath: Map<String, String?>): EngineProcess =
             LifetimeDefinition().terminateOnException { lifetime ->
                 val rdProcess = startUtProcessWithRdServer(lifetime) { port ->
                     val cmd = obtainEngineProcessCommandLine(port)
@@ -152,7 +152,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
                 }
                 rdProcess.awaitProcessReady()
 
-                return EngineProcess(project, rdProcess)
+                return EngineProcess(project, classNameToPath, rdProcess)
             }
     }
 
@@ -177,7 +177,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             val sourceFile = psiClass?.navigationElement?.containingFile?.virtualFile?.canonicalPath
 
             logger.debug { "computeSourceFileByClass result: $sourceFile" }
-            sourceFile
+            sourceFile ?: classNameToPath[params.canonicalClassName]
         }
 
     fun createTestGenerator(

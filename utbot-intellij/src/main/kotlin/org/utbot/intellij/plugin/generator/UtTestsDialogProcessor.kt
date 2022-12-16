@@ -1,9 +1,6 @@
 package org.utbot.intellij.plugin.generator
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.*
 import com.intellij.openapi.compiler.CompilerPaths
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
@@ -166,7 +163,12 @@ object UtTestsDialogProcessor {
                         val psi2KClass = mutableMapOf<PsiClass, ClassId>()
                         var processedClasses = 0
                         val totalClasses = model.srcClasses.size
-                        val process = EngineProcess.createBlocking(project)
+                        val classNameToPath = runReadAction {
+                            model.srcClasses.map { psiClass ->
+                                psiClass.canonicalName to psiClass.containingFile.virtualFile.canonicalPath
+                            }.toMap()
+                        }
+                        val process = EngineProcess.createBlocking(project, classNameToPath)
 
                         process.terminateOnException { _ ->
                             process.setupUtContext(buildDirs + classpathList)
@@ -191,12 +193,14 @@ object UtTestsDialogProcessor {
                                     }
                                 }
 
-                                val (methods, className) = process.executeWithTimeoutSuspended {
+                                val (methods, classNameForLog) = process.executeWithTimeoutSuspended {
                                     var canonicalName = ""
                                     var srcMethods: List<MemberInfo> = emptyList()
+                                    var srcNameForLog: String? = null
                                     DumbService.getInstance(project)
                                         .runReadActionInSmartMode(Computable {
                                             canonicalName = srcClass.canonicalName
+                                            srcNameForLog = srcClass.name
                                             srcMethods = if (model.extractMembersFromSrcClasses) {
                                                 val chosenMethods =
                                                     model.selectedMembers.filter { it.member is PsiMethod }
@@ -214,11 +218,11 @@ object UtTestsDialogProcessor {
                                     process.findMethodsInClassMatchingSelected(
                                         classId,
                                         srcMethods
-                                    ) to srcClass.name
+                                    ) to srcNameForLog
                                 }
 
                                 if (methods.isEmpty()) {
-                                    logger.error { "No methods matching selected found in class $className." }
+                                    logger.error { "No methods matching selected found in class $classNameForLog." }
                                     continue
                                 }
 
@@ -227,7 +231,7 @@ object UtTestsDialogProcessor {
                                 updateIndicator(
                                     indicator,
                                     ProgressRange.SOLVING,
-                                    "Generate test cases for class $className",
+                                    "Generate test cases for class $classNameForLog",
                                     processedClasses.toDouble() / totalClasses
                                 )
 
@@ -250,7 +254,7 @@ object UtTestsDialogProcessor {
                                             updateIndicator(
                                                 indicator,
                                                 ProgressRange.SOLVING,
-                                                "Generate test cases for class $className",
+                                                "Generate test cases for class $classNameForLog",
                                                 (processedClasses.toDouble() + innerTimeoutRatio) / totalClasses
                                             )
                                         }, 0, 500, TimeUnit.MILLISECONDS)
@@ -273,16 +277,16 @@ object UtTestsDialogProcessor {
                                         if (rdGenerateResult.notEmptyCases == 0) {
                                             if (!indicator.isCanceled) {
                                                 if (model.srcClasses.size > 1) {
-                                                    logger.error { "Failed to generate any tests cases for class $className" }
+                                                    logger.error { "Failed to generate any tests cases for class $classNameForLog" }
                                                 } else {
                                                     showErrorDialogLater(
                                                         model.project,
-                                                        errorMessage(className, secondsTimeout),
-                                                        title = "Failed to generate unit tests for class $className"
+                                                        errorMessage(classNameForLog, secondsTimeout),
+                                                        title = "Failed to generate unit tests for class $classNameForLog"
                                                     )
                                                 }
                                             } else {
-                                                logger.warn { "Generation was cancelled for class $className" }
+                                                logger.warn { "Generation was cancelled for class $classNameForLog" }
                                             }
                                         } else {
                                             testSetsByClass[srcClass] = rdGenerateResult

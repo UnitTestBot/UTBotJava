@@ -93,6 +93,7 @@ val nextSynonyms = arrayOf(
 
 val skipInvokes = arrayOf(
     "<init>",
+    "<clinit>",
     "valueOf",
     "getClass"
 )

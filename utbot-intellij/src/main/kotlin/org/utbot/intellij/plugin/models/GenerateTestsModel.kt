@@ -56,6 +56,10 @@ class GenerateTestsModel(
 
     var runGeneratedTestsWithCoverage : Boolean = false
     var enableSummariesGeneration : Boolean = UtSettings.enableSummariesGeneration
+    var enableTestNamesGeneration : Boolean = UtSettings.enableTestNamesGeneration
+    var enableDisplayNameGeneration : Boolean = UtSettings.enableDisplayNameGeneration
+    var enableJavaDocGeneration : Boolean = UtSettings.enableJavaDocGeneration
+    var enableClusterCommentsGeneration : Boolean = UtSettings.enableClusterCommentsGeneration
 }
 
 val PsiClass.packageName: String

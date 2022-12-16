@@ -63,7 +63,11 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
-        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration
+        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration,
+        var enableTestNamesGeneration: Boolean = UtSettings.enableTestNamesGeneration,
+        var enableDisplayNameGeneration: Boolean = UtSettings.enableDisplayNameGeneration,
+        var enableJavaDocGeneration: Boolean = UtSettings.enableJavaDocGeneration,
+        var enableClusterCommentsGeneration: Boolean = UtSettings.enableClusterCommentsGeneration
     ) {
         constructor(model: GenerateTestsModel) : this(
             sourceRootHistory = model.sourceRootHistory,
@@ -81,7 +85,11 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             fuzzingValue = model.fuzzingValue,
             runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
             commentStyle = model.commentStyle,
-            enableSummariesGeneration = model.enableSummariesGeneration
+            enableSummariesGeneration = model.enableSummariesGeneration,
+            enableTestNamesGeneration = model.enableTestNamesGeneration,
+            enableDisplayNameGeneration = model.enableDisplayNameGeneration,
+            enableJavaDocGeneration = model.enableJavaDocGeneration,
+            enableClusterCommentsGeneration = model.enableClusterCommentsGeneration
         )
 
         override fun equals(other: Any?): Boolean {
@@ -107,6 +115,10 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
             if (commentStyle != other.commentStyle) return false
             if (enableSummariesGeneration != other.enableSummariesGeneration) return false
+            if (enableTestNamesGeneration != other.enableTestNamesGeneration) return false
+            if (enableDisplayNameGeneration != other.enableDisplayNameGeneration) return false
+            if (enableJavaDocGeneration != other.enableJavaDocGeneration) return false
+            if (enableClusterCommentsGeneration != other.enableClusterCommentsGeneration) return false
 
             return true
         }
@@ -127,6 +139,10 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
             result = 31 * result + if (enableSummariesGeneration) 1 else 0
+            result = 31 * result + if (enableTestNamesGeneration) 1 else 0
+            result = 31 * result + if (enableDisplayNameGeneration) 1 else 0
+            result = 31 * result + if (enableJavaDocGeneration) 1 else 0
+            result = 31 * result + if (enableClusterCommentsGeneration) 1 else 0
 
             return result
         }
@@ -170,8 +186,6 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         }
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
 
-    var enableSummariesGeneration = state.enableSummariesGeneration
-
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()
     }
@@ -207,6 +221,10 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         this.state = state
         if (!state.codegenLanguage.isSummarizationCompatible()) {
             this.state.enableSummariesGeneration = false
+            this.state.enableTestNamesGeneration = false
+            this.state.enableDisplayNameGeneration = false
+            this.state.enableJavaDocGeneration = false
+            this.state.enableClusterCommentsGeneration = false
         }
     }
 

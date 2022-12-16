@@ -531,6 +531,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.fuzzingValue = fuzzingValue
             model.commentStyle = javaDocCommentStyle
             model.enableSummariesGeneration = state.enableSummariesGeneration
+            model.enableTestNamesGeneration = state.enableTestNamesGeneration
+            model.enableDisplayNameGeneration = state.enableDisplayNameGeneration
+            model.enableJavaDocGeneration = state.enableJavaDocGeneration
+            model.enableClusterCommentsGeneration = state.enableClusterCommentsGeneration
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
         }
 

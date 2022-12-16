@@ -38,6 +38,7 @@ import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.SettingForResult
 import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
+import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
@@ -406,5 +407,15 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             })
         }
         initSourceFindingStrategies()
+    }
+
+    fun <T> executeWithTimeoutSuspended(block: () -> T): T {
+        try {
+            protocol.synchronizationModel.suspendTimeoutTimer.startBlocking(true)
+            return block()
+        }
+        finally {
+            protocol.synchronizationModel.suspendTimeoutTimer.startBlocking(false)
+        }
     }
 }

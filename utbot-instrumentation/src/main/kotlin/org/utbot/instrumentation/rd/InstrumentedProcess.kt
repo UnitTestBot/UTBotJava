@@ -1,6 +1,5 @@
 package org.utbot.instrumentation.rd
 
-import com.jetbrains.rd.util.lifetime.Lifetime
 import mu.KotlinLogging
 import org.utbot.framework.UtSettings
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -36,22 +35,19 @@ class InstrumentedProcess private constructor(
 
     companion object {
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
-            parent: Lifetime,
             instrumentedProcessRunner: InstrumentedProcessRunner,
             instrumentation: TInstrumentation,
             pathsToUserClasses: String,
             pathsToDependencyClasses: String,
             classLoader: ClassLoader?
-        ): InstrumentedProcess = parent.createNested().terminateOnException { lifetime ->
-            val rdProcess: ProcessWithRdServer = startUtProcessWithRdServer(
-                lifetime = lifetime
-            ) {
-                val process = instrumentedProcessRunner.start(it)
-                if (!process.isAlive) {
-                    throw InstrumentedProcessInstantDeathException()
-                }
-                process
-            }.awaitProcessReady()
+        ): InstrumentedProcess = startUtProcessWithRdServer {
+            val process = instrumentedProcessRunner.start(it)
+            if (!process.isAlive) {
+                throw InstrumentedProcessInstantDeathException()
+            }
+            process
+        }.terminateOnException { rdProcess ->
+            rdProcess.awaitProcessReady()
 
             logger.trace("rd process started")
 

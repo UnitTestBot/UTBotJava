@@ -1,10 +1,10 @@
 package org.utbot.instrumentation
 
+import com.jetbrains.rd.util.ILoggerFactory
 import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.Statics
 import com.jetbrains.rd.util.lifetime.Lifetime
-import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
-import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KCallable
@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
+import org.utbot.common.logException
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.UtContext
@@ -45,7 +46,7 @@ private val logger = KotlinLogging.logger {}
  *
  * @see [org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation].
  */
-inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withInstrumentation(
+fun <TBlockResult, TIResult, T : Instrumentation<TIResult>> withInstrumentation(
     instrumentation: T,
     pathsToUserClasses: String,
     pathsToDependencyClasses: String = ConcreteExecutor.defaultPathsToDependencyClasses,
@@ -53,46 +54,41 @@ inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withI
 ) = ConcreteExecutor(instrumentation, pathsToUserClasses, pathsToDependencyClasses).use {
     block(it)
 }
-
-class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorPoolSize) : AutoCloseable {
-    private val executors = ArrayDeque<ConcreteExecutor<*, *>>(maxCount)
-
-    /**
-     * Tries to find the concrete executor for the supplied [instrumentation] and [pathsToDependencyClasses]. If it
-     * doesn't exist, then creates a new one.
-     */
-    fun <TIResult, TInstrumentation : Instrumentation<TIResult>> get(
-        instrumentation: TInstrumentation,
-        pathsToUserClasses: String,
-        pathsToDependencyClasses: String
-    ): ConcreteExecutor<TIResult, TInstrumentation> {
-        executors.removeIf { !it.alive }
-
-        @Suppress("UNCHECKED_CAST")
-        return executors.firstOrNull {
-            it.pathsToUserClasses == pathsToUserClasses && it.instrumentation == instrumentation && it.pathsToDependencyClasses == pathsToDependencyClasses
-        } as? ConcreteExecutor<TIResult, TInstrumentation>
-            ?: ConcreteExecutor.createNew(instrumentation, pathsToUserClasses, pathsToDependencyClasses).apply {
-                executors.addFirst(this)
-                if (executors.size > maxCount) {
-                    executors.removeLast().close()
-                }
-            }
-    }
-
-    override fun close() {
-        executors.forEach { it.close() }
-        executors.clear()
-    }
-
-    fun forceTerminateProcesses() {
-        executors.forEach {
-            it.forceTerminateProcess()
-        }
-        executors.clear()
-    }
-
-}
+//
+//class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorPoolSize) : AutoCloseable {
+//    private val lockObject = Any()
+//    private val executors = ArrayDeque<ConcreteExecutor<*, *>>(maxCount)
+//
+//    /**
+//     * Tries to find the concrete executor for the supplied [instrumentation] and [pathsToDependencyClasses]. If it
+//     * doesn't exist, then creates a new one.
+//     */
+//    fun <TIResult, TInstrumentation : Instrumentation<TIResult>> get(
+//        instrumentation: TInstrumentation,
+//        pathsToUserClasses: String,
+//        pathsToDependencyClasses: String
+//    ): ConcreteExecutor<TIResult, TInstrumentation> = synchronized(lockObject) {
+//        executors.removeIf { !it.alive }
+//
+//        @Suppress("UNCHECKED_CAST")
+//        return executors.firstOrNull {
+//            it.pathsToUserClasses == pathsToUserClasses && it.instrumentation == instrumentation && it.pathsToDependencyClasses == pathsToDependencyClasses
+//        } as? ConcreteExecutor<TIResult, TInstrumentation>
+//            ?: ConcreteExecutor.createNew(instrumentation, pathsToUserClasses, pathsToDependencyClasses).apply {
+//                executors.addFirst(this)
+//                if (executors.size > maxCount) {
+//                    executors.removeLast().close()
+//                }
+//            }
+//    }
+//
+//    override fun close() = synchronized(lockObject) {
+//        executors.forEach {
+//            it.close()
+//        }
+//        executors.clear()
+//    }
+//}
 
 /**
  * Concrete executor class. Takes [pathsToUserClasses] where the instrumented process will search for the classes. Paths should
@@ -104,12 +100,11 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
  *
  * @param TIResult the return type of [Instrumentation.invoke] function for the given [instrumentation].
  */
-class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> private constructor(
+class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> internal constructor(
     internal val instrumentation: TInstrumentation,
     internal val pathsToUserClasses: String,
     internal val pathsToDependencyClasses: String
 ) : Closeable, Executor<TIResult> {
-    private val ldef: LifetimeDefinition = LifetimeDefinition()
     private val instrumentedProcessRunner: InstrumentedProcessRunner = InstrumentedProcessRunner()
 
     companion object {
@@ -120,7 +115,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             get() = sendTimestamp.get()
         val lastReceiveTimeMs: Long
             get() = receiveTimeStamp.get()
-        val defaultPool = ConcreteExecutorPool()
+//        val defaultPool = ConcreteExecutorPool()
         var defaultPathsToDependencyClasses = ""
 
         init {
@@ -131,37 +126,36 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
          * Delegates creation of the concrete executor to [defaultPool], which first searches for existing executor
          * and in case of failure, creates a new one.
          */
-        operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
-            instrumentation: TInstrumentation,
-            pathsToUserClasses: String,
-            pathsToDependencyClasses: String = defaultPathsToDependencyClasses
-        ) = defaultPool.get(instrumentation, pathsToUserClasses, pathsToDependencyClasses)
-
-        internal fun <TIResult, TInstrumentation : Instrumentation<TIResult>> createNew(
-            instrumentation: TInstrumentation,
-            pathsToUserClasses: String,
-            pathsToDependencyClasses: String
-        ) = ConcreteExecutor(instrumentation, pathsToUserClasses, pathsToDependencyClasses)
+//        operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
+//            instrumentation: TInstrumentation,
+//            pathsToUserClasses: String,
+//            pathsToDependencyClasses: String = defaultPathsToDependencyClasses
+//        ) = defaultPool.get(instrumentation, pathsToUserClasses, pathsToDependencyClasses)
+//
+//        internal fun <TIResult, TInstrumentation : Instrumentation<TIResult>> createNew(
+//            instrumentation: TInstrumentation,
+//            pathsToUserClasses: String,
+//            pathsToDependencyClasses: String
+//        ) = ConcreteExecutor(instrumentation, pathsToUserClasses, pathsToDependencyClasses)
     }
 
     var classLoader: ClassLoader? = UtContext.currentContext()?.classLoader
 
     //property that signals to executors pool whether it can reuse this executor or not
-    val alive: Boolean
-        get() = ldef.isAlive
+//    val alive: Boolean
+//        get() = processInstance
 
     private val corMutex = Mutex()
     private var processInstance: InstrumentedProcess? = null
 
     // this function is intended to be called under corMutex
     private suspend fun regenerate(): InstrumentedProcess {
-        ldef.throwIfNotAlive()
+//        ldef.throwIfNotAlive()
 
         var proc: InstrumentedProcess? = processInstance
 
         if (proc == null || !proc.lifetime.isAlive) {
             proc = InstrumentedProcess(
-                ldef,
                 instrumentedProcessRunner,
                 instrumentation,
                 pathsToUserClasses,
@@ -273,25 +267,17 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     }
 
     override fun close() {
-        forceTerminateProcess()
-    }
-
-    fun forceTerminateProcess() {
         runBlocking {
             corMutex.withLock {
-                if (alive) {
+//                if (alive) {
                     try {
-                        processInstance?.run {
-                            instrumentedProcessModel.stopProcess.start(lifetime, Unit)
-                        }
+                        processInstance?.terminate()
                     } catch (_: Exception) {}
                     processInstance = null
-                }
-                ldef.terminate()
+//                }
             }
         }
     }
-
 }
 
 fun ConcreteExecutor<*,*>.warmup() = runBlocking {

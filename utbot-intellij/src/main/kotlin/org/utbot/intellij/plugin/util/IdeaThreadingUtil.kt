@@ -10,14 +10,18 @@ fun assertIsWriteThread() {
     ApplicationManager.getApplication().isWriteThread()
 }
 
-fun assertIsReadAccessAllowed() {
+fun assertReadAccessAllowed() {
     ApplicationManager.getApplication().assertReadAccessAllowed()
 }
 
-fun assertIsWriteAccessAllowed() {
+fun assertWriteAccessAllowed() {
     ApplicationManager.getApplication().assertWriteAccessAllowed()
 }
 
 fun assertIsNonDispatchThread() {
     ApplicationManager.getApplication().assertIsNonDispatchThread()
+}
+
+fun assertReadAccessNotAllowed() {
+    ApplicationManager.getApplication().assertReadAccessNotAllowed()
 }

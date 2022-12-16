@@ -147,7 +147,23 @@ It is used to [monitor and chart][contest estimator 4] statistics nightly.
 TODO (Alexey Menshutin)
 
 ### Concrete executor
-TODO (Sergey Pospelov)
+`ConcreteExecutor` is the input point for the instrumented process which is used by our symbolic and fuzzing engines. The main purpose of this class is to provide smooth and concise interaction between the instrumented process and users whereas the instrumented process executes a given function with supplied arguments.
+
+`ConcreteExecutor` is parametrized by specific `Instrumentation` and its return type via generic arguments. `Instrumentation` is an interface, so inheritors have to implement the logic of invocation of a specific method in isolated environment as well as the `transform` function which is used for instrumenting classes. For our purposes we use `UtExecutionInstrumentation`.
+
+The main function of `ConcreteExecutor` is 
+```kotlin 
+suspend fun executeAsync(
+    kCallable: KCallable<*>,
+    arguments: Array<Any?>,
+    parameters: Any?
+): TResult
+```
+which serializes the arguments and some parameters (such as statics, etc.), sends it to the instrumented process and retrieves the result.
+
+Internally `ConcreteExecutor` uses `RD` for interprocess communication and `Kryo` for objects serialization. You don't need to provide a marshaller, as `Kryo` serializes objects by itself (but sometimes it fails).
+
+`ConcreteExecutor` is placed in the [utbot-instrumentation](../utbot-instrumentation) module and tests are placed in the [utbot-instrumentation-tests](../utbot-instrumentation-tests) module.
 
 ### Instrumented process
 TODO (Rustam Sadykov)
@@ -159,7 +175,25 @@ TODO (Egor Kulikov)
 TODO (Maxim Pelevin)
 
 ### Minimizer
-TODO (Sergey Pospelov)
+Minimization is used to decrease the amount of `UtExecution`s without coverage degradation. 
+
+The entry point is the [minimizeTestCase](https://github.com/UnitTestBot/UTBotJava/blob/d2d2e350bc75943b78f2078002a5cabc5dd62072/utbot-framework/src/main/kotlin/org/utbot/framework/minimization/Minimization.kt#L38) function. It receives a set of `UtExecution`s and a groupping function (it groups by `UtExecution::utExecutionResult`), then the minimization divides `UtExecution`s into several groups and each group is minimized independently.
+
+We have different groups, here are some of them:
+- A successfull regression suite which consists of `UtSuccess` and `UtExplicitlyThrownException` executions.
+- An error suite which consists of `UtImplicitlyThrownException` executions.
+- A timeout suite which consists of `UtTimeoutException` executions.
+- A crash suite which consists of executions where some parts of the engine failed.
+- etc.
+
+Each provided `UtExecution` should have a coverage information, otherwise we add this execution to the test suite instantly. A coverage data is usually obtained from the instrumented process and consists of covered lines.
+
+To minimize executions inside a group we use a simple greedy algorithm:
+1. Pick an execution which provides the most yet uncovered lines.
+2. Add this execution to the final suite and mark new lines as covered
+3. Repeat from the first step till there are executions which contain uncovered lines.
+
+The whole minimization code located in the [org.utbopt.framework.minimization](utbot-framework/src/main/kotlin/org/utbot/framework/minimization) package inside the [utbot-framework](../utbot-framework) module.
 
 ### Summaries
 The summarization process includes the generation of the following meta-information:

@@ -17,7 +17,7 @@ import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
-import framework.codegen.Mocha
+import org.utbot.language.ts.framework.codegen.Mocha
 import java.awt.BorderLayout
 import java.io.File
 import java.nio.file.Paths
@@ -26,7 +26,7 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
-import settings.TsTestGenerationSettings.defaultTimeout
+import org.utbot.language.ts.settings.TsTestGenerationSettings.defaultTimeout
 
 class TsDialogWindow(val model: TsTestsModel) : DialogWrapper(model.project) {
 
@@ -45,10 +45,10 @@ class TsDialogWindow(val model: TsTestsModel) : DialogWrapper(model.project) {
 
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
-    private val nycSourceFileChooserField = NycSourceFileChooser(model)
+    private val tsNycSourceFileChooserField = TsNycSourceFileChooser(model)
     private val nycModuleFileChooserField = TsNycModuleChooser(model)
     private val typescriptModuleFileChooser = TsTypescriptModuleChooser(model)
-    private val coverageMode = CoverageModeButtons
+    private val coverageMode = TsCoverageModeButtons
 
 //    private var initTestFrameworkPresenceThread: Thread
     private lateinit var panel: DialogPanel
@@ -91,7 +91,7 @@ class TsDialogWindow(val model: TsTestsModel) : DialogWrapper(model.project) {
                 )
             }
             row("Nyc source path:") {
-                component(nycSourceFileChooserField)
+                component(tsNycSourceFileChooserField)
             }
             row("Nyc ts module path") {
                 component(nycModuleFileChooserField)
@@ -134,7 +134,7 @@ class TsDialogWindow(val model: TsTestsModel) : DialogWrapper(model.project) {
         model.selectedMethods = if (selected.any()) selected else emptySet()
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
-        model.pathToNYC = nycSourceFileChooserField.text
+        model.pathToNYC = tsNycSourceFileChooserField.text
         model.tsNycModulePath = nycModuleFileChooserField.text
         model.tsModulePath = typescriptModuleFileChooser.text
         model.coverageMode = coverageMode.mode
@@ -145,7 +145,7 @@ class TsDialogWindow(val model: TsTestsModel) : DialogWrapper(model.project) {
     }
 
     override fun doValidate(): ValidationInfo? {
-        return testSourceFolderField.validatePath() ?: nycSourceFileChooserField.validateNyc()
+        return testSourceFolderField.validatePath() ?: tsNycSourceFileChooserField.validateNyc()
     }
 
     private fun updateMembersTable() {

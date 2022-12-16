@@ -1,6 +1,6 @@
 package org.utbot.intellij.plugin.language.ts
 
-import api.TsTestGenerator
+import org.utbot.language.ts.api.TsTestGenerator
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.lang.ecmascript6.psi.ES6Class
 import com.intellij.lang.javascript.psi.JSFile
@@ -21,8 +21,8 @@ import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import settings.TsDynamicSettings
-import settings.TsTestGenerationSettings.dummyClassName
+import org.utbot.language.ts.settings.TsDynamicSettings
+import org.utbot.language.ts.settings.TsTestGenerationSettings.dummyClassName
 
 object TsDialogProcessor {
 
@@ -100,7 +100,7 @@ object TsDialogProcessor {
                 )
                 val testFileName = normalizedContainingFilePath.substringAfterLast("/")
                     .replace(Regex(".ts"), "Test.ts")
-                val testGenerator = TsTestGenerator(
+                val testGenerator = org.utbot.language.ts.api.TsTestGenerator(
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),

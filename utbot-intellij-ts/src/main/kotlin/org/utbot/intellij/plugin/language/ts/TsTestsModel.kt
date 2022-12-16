@@ -6,8 +6,8 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.intellij.plugin.models.BaseTestsModel
-import service.TsCoverageMode
-import settings.TsTestGenerationSettings.defaultTimeout
+import org.utbot.language.ts.service.TsCoverageMode
+import org.utbot.language.ts.settings.TsTestGenerationSettings.defaultTimeout
 
 class TsTestsModel(
     project: Project,

@@ -115,6 +115,8 @@ dependencies {
     if (jsIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-js"))
         implementation(project(":utbot-intellij-js"))
+        implementation(project(":utbot-ts"))
+        implementation(project(":utbot-intellij-ts"))
     }
 
     implementation(project(":utbot-android-studio"))

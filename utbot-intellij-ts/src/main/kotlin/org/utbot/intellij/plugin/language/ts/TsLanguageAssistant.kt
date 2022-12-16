@@ -17,7 +17,7 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.idea.util.projectStructure.module
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
-import settings.TsTestGenerationSettings.dummyClassName
+import org.utbot.language.ts.settings.TsTestGenerationSettings.dummyClassName
 
 object TsLanguageAssistant : LanguageAssistant() {
 
@@ -112,7 +112,7 @@ object TsLanguageAssistant : LanguageAssistant() {
         var strBuilder = "\n"
         val filteredMethods = methods.filterNot { method -> method.name == "constructor" }
         filteredMethods.forEach {
-            strBuilder += it.text.replace("function ", "")
+            strBuilder += it.text.replace(Regex("function|export"), "")
         }
         // Creating a class with a random name. It won't affect user's code since it is created in abstract PsiFile.
         return "class $dummyClassName {$strBuilder}"

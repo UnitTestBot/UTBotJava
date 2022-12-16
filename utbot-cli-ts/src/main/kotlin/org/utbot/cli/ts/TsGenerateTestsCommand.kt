@@ -1,6 +1,6 @@
 package org.utbot.cli.ts
 
-import api.TsTestGenerator
+import org.utbot.language.ts.api.TsTestGenerator
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.check
@@ -10,10 +10,10 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import mu.KotlinLogging
-import service.TsCoverageMode
-import service.TsWorkMode
-import settings.TsDynamicSettings
-import settings.TsTestGenerationSettings
+import org.utbot.language.ts.service.TsCoverageMode
+import org.utbot.language.ts.service.TsWorkMode
+import org.utbot.language.ts.settings.TsDynamicSettings
+import org.utbot.language.ts.settings.TsTestGenerationSettings
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths

@@ -89,7 +89,9 @@ class PythonTypeInferenceCommand : CliktCommand(
 
             logger.info("Checking Python requirements...")
             if (!RequirementsUtils.requirementsAreInstalled(pythonPath)) {
-                logger.error("Some of the following requirements are missing: $requirements. Please install them.")
+                logger.error("Some of the following Python requirements are missing: " +
+                        "${requirements.joinToString()}. Please install them.")
+                return
             }
 
             val directoriesForSysPath = setOf(path.parent.toString())

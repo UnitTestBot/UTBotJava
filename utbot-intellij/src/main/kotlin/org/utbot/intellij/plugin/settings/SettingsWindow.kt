@@ -169,11 +169,15 @@ class SettingsWindow(val project: Project) {
             cell {
                 enableExperimentalLanguagesCheckBox = checkBox("Experimental languages support")
                     .onApply {
-                        settings.state.enableExperimentalLanguagesSupport = enableExperimentalLanguagesCheckBox.isSelected
+                        settings.state.enableExperimentalLanguagesSupport =
+                            enableExperimentalLanguagesCheckBox.isSelected
                     }
-                    .onReset { enableExperimentalLanguagesCheckBox.isSelected = settings.experimentalLanguagesSupport == true }
+                    .onReset {
+                        enableExperimentalLanguagesCheckBox.isSelected =
+                            settings.experimentalLanguagesSupport == true
+                    }
                     .onIsModified { enableExperimentalLanguagesCheckBox.isSelected xor settings.experimentalLanguagesSupport }
-                    .apply { ContextHelpLabel.create("Enable Python, JavaScript, Go support")() }
+                    .apply { ContextHelpLabel.create("Enable JavaScript and Python if IDE supports them")() }
                     .component
             }
         }

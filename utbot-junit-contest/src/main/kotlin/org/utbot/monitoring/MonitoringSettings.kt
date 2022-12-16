@@ -27,9 +27,9 @@ object MonitoringSettings : AbstractSettings(
     val runTimeoutMinutes by getIntProperty(180)
 
     /**
-     * Target projects to generate tests.
+     * The target project to generate tests.
      */
-    val projects by getListProperty(listOf("guava"))
+    val project by getStringProperty("guava")
 
     /**
      * Set up fuzzing timeout relatively total generation time.

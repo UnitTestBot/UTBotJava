@@ -2,7 +2,7 @@ package org.utbot.examples.codegen
 
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+import org.utbot.testing.UtValueTestCaseChecker
 import kotlin.reflect.KFunction3
 
 @Suppress("UNCHECKED_CAST")

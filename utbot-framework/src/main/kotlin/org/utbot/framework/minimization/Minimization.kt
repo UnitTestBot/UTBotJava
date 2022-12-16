@@ -18,6 +18,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
 
 
@@ -27,7 +28,7 @@ import org.utbot.framework.plugin.api.UtVoidModel
  * We have 4 different test suites:
  * * Regression suite
  * * Error suite (invocations in which implicitly thrown unchecked exceptions reached to the top)
- * * Crash suite (invocations in which the child process crashed or unexpected exception in our code occurred)
+ * * Crash suite (invocations in which the instrumented process crashed or unexpected exception in our code occurred)
  * * Timeout suite
  *
  * We want to minimize tests independently in each of these suites.
@@ -53,8 +54,11 @@ fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
         executions.indices.filter { executions[it].coverage?.coveredInstructions?.isEmpty() ?: true }.toSet()
     // ^^^ here we add executions with empty or null coverage, because it happens only if a concrete execution failed,
     //     so we don't know the actual coverage for such executions
-    val mapping = buildMapping(executions.filterIndexed { idx, _ -> idx !in unknownCoverageExecutions })
-    val usedExecutionIndexes = (GreedyEssential.minimize(mapping) + unknownCoverageExecutions).toSet()
+
+    val filteredExecutions = executions.filterIndexed { idx, _ -> idx !in unknownCoverageExecutions }
+    val (mapping, executionToPriorityMapping) = buildMapping(filteredExecutions)
+
+    val usedExecutionIndexes = (GreedyEssential.minimize(mapping, executionToPriorityMapping) + unknownCoverageExecutions).toSet()
 
     val usedMinimizedExecutions = executions.filterIndexed { idx, _ -> idx in usedExecutionIndexes }
 
@@ -143,13 +147,14 @@ private fun <T : Any> groupExecutionsByTestSuite(
     executions.groupBy { executionToTestSuite(it) }.values
 
 /**
- * Builds a mapping from execution id to edges id.
+ * Builds a mapping from execution id to edges id and from execution id to its priority.
  */
-private fun buildMapping(executions: List<UtExecution>): Map<Int, List<Int>> {
+private fun buildMapping(executions: List<UtExecution>): Pair<Map<Int, List<Int>>, Map<Int, Int>> {
     // (inst1, instr2) -> edge id --- edge represents as a pair of instructions, which are connected by this edge
     val allCoveredEdges = mutableMapOf<Pair<Long, Long>, Int>()
     val thrownExceptions = mutableMapOf<String, Long>()
     val mapping = mutableMapOf<Int, List<Int>>()
+    val executionToPriorityMapping = mutableMapOf<Int, Int>()
 
 
     executions.forEachIndexed { idx, execution ->
@@ -169,11 +174,12 @@ private fun buildMapping(executions: List<UtExecution>): Map<Int, List<Int>> {
                     edges += allCoveredEdges[instructions[i] to instructions[i + 1]]!!
                 }
                 mapping[idx] = edges
+                executionToPriorityMapping[idx] = execution.getExecutionPriority()
             }
         }
     }
 
-    return mapping
+    return Pair(mapping, executionToPriorityMapping)
 }
 
 /**
@@ -265,3 +271,14 @@ private fun addExtraIfLastInstructionIsException(
  */
 private fun Throwable.exceptionToInfo(): String =
     this::class.java.name + (this.stackTrace.firstOrNull()?.run { className + methodName + lineNumber } ?: "null")
+
+/**
+ * Returns an execution priority. [UtSymbolicExecution] has the highest priority
+ * over other executions like [UtFuzzedExecution], [UtFailedExecution], etc.
+ *
+ * See [https://github.com/UnitTestBot/UTBotJava/issues/1504] for more details.
+ */
+private fun UtExecution.getExecutionPriority(): Int = when (this) {
+    is UtSymbolicExecution -> 0
+    else -> 1
+}

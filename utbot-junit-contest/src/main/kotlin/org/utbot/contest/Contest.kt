@@ -10,10 +10,10 @@ import org.utbot.common.isAbstract
 import org.utbot.engine.EngineController
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.junitByVersion
-import org.utbot.framework.codegen.model.CodeGenerator
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.junitByVersion
+import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.ExecutableId
@@ -355,7 +355,7 @@ fun runGeneration(
 
                         //hack
                         if (statsForMethod.isSuspicious && (ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs) > 5000) {
-                            logger.error { "HEURISTICS: close child process, because it haven't responded for long time: ${ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs}" }
+                            logger.error { "HEURISTICS: close instrumented process, because it haven't responded for long time: ${ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs}" }
                             ConcreteExecutor.defaultPool.close()
                         }
                     }

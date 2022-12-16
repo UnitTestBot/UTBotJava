@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 package org.utbot.intellij.plugin.inspection
 
 import com.intellij.codeInspection.ex.GlobalInspectionContextImpl

@@ -2,12 +2,7 @@ package org.utbot.sarif
 
 import org.junit.Test
 import org.mockito.Mockito
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.*
 
 class SarifReportTest {
 
@@ -49,6 +44,9 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecutionAIOBE.stateBefore.parameters).thenReturn(listOf())
 
+        defaultMockCoverage(mockUtExecutionNPE)
+        defaultMockCoverage(mockUtExecutionAIOBE)
+
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecutionNPE)),
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecutionAIOBE))
@@ -72,13 +70,14 @@ class SarifReportTest {
             UtImplicitlyThrownException(NullPointerException(), false)
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
-        Mockito.`when`(mockUtExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(1337)
+        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1337)
+        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
         val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first()
-        val location = result.locations.first().physicalLocation
+        val location = result.locations.filterIsInstance<SarifPhysicalLocationWrapper>().first().physicalLocation
         val relatedLocation = result.relatedLocations.first().physicalLocation
 
         assert(location.artifactLocation.uri.contains("Main.java"))
@@ -103,6 +102,8 @@ class SarifReportTest {
             )
         )
 
+        defaultMockCoverage(mockUtExecution)
+
         val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first()
@@ -126,6 +127,8 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
 
+        defaultMockCoverage(mockUtExecution)
+
         val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first().codeFlows.first().threadFlows.first().locations.map {
@@ -135,6 +138,64 @@ class SarifReportTest {
             assert(result[index].artifactLocation.uri.contains("Main.java"))
             assert(result[index].region.startLine == 17)
         }
+    }
+
+    @Test
+    fun testProcessSandboxFailure() {
+        mockUtMethodNames()
+
+        val uncheckedException = Mockito.mock(java.security.AccessControlException::class.java)
+        Mockito.`when`(uncheckedException.stackTrace).thenReturn(arrayOf())
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtSandboxFailure(uncheckedException))
+
+        defaultMockCoverage(mockUtExecution)
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        assert(result.message.text.contains("AccessControlException"))
+    }
+
+    @Test
+    fun testProcessTimeoutException() {
+        mockUtMethodNames()
+
+        val timeoutMessage = "Timeout 1000 elapsed"
+        val timeoutException = TimeoutException(timeoutMessage)
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtTimeoutException(timeoutException))
+
+        defaultMockCoverage(mockUtExecution)
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        assert(result.message.text.contains(timeoutMessage))
+    }
+
+    @Test
+    fun testConvertCoverageToStackTrace() {
+        mockUtMethodNames()
+
+        val timeoutException = TimeoutException("Timeout 1000 elapsed")
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtTimeoutException(timeoutException))
+
+        val classMainPath = "com/abc/Main"
+        val classUtilPath = "com/cba/Util"
+        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions).thenReturn(listOf(
+            Instruction(classMainPath, "main(l)l", 3, 1),
+            Instruction(classMainPath, "main(l)l", 4, 2),
+            Instruction(classMainPath, "main(l)l", 4, 3), // last for main
+            Instruction(classUtilPath, "util(ll)l", 6, 4),
+            Instruction(classUtilPath, "util(ll)l", 7, 5), // last for util
+        ))
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        val stackTrace = result.codeFlows.first().threadFlows.first().locations
+
+        assert(stackTrace[0].location.physicalLocation.artifactLocation.uri == "$classMainPath.java")
+        assert(stackTrace[0].location.physicalLocation.region.startLine == 4)
+
+        assert(stackTrace[1].location.physicalLocation.artifactLocation.uri == "$classUtilPath.java")
+        assert(stackTrace[1].location.physicalLocation.region.startLine == 7)
     }
 
     @Test
@@ -150,6 +211,8 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
+
+        defaultMockCoverage(mockUtExecution)
 
         val report = sarifReportMain.createReport()
 
@@ -175,6 +238,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
+        defaultMockCoverage(mockUtExecution)
+
         val report = sarifReportPrivateMain.createReport()
 
         val codeFlowPhysicalLocations = report.runs[0].results[0].codeFlows[0].threadFlows[0].locations.map {
@@ -191,6 +256,8 @@ class SarifReportTest {
 
         val mockUtExecution = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
         Mockito.`when`(mockUtExecution.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
+
+        defaultMockCoverage(mockUtExecution)
 
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution)),
@@ -216,6 +283,9 @@ class SarifReportTest {
         // different ruleId's
         Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(ArithmeticException(), false))
+
+        defaultMockCoverage(mockUtExecution1)
+        defaultMockCoverage(mockUtExecution2)
 
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
@@ -243,8 +313,10 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
         // different locations
-        Mockito.`when`(mockUtExecution1.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(11)
-        Mockito.`when`(mockUtExecution2.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(22)
+        Mockito.`when`(mockUtExecution1.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(11)
+        Mockito.`when`(mockUtExecution1.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
+        Mockito.`when`(mockUtExecution2.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(22)
+        Mockito.`when`(mockUtExecution2.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
 
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
@@ -280,6 +352,9 @@ class SarifReportTest {
         Mockito.`when`(mockNPE1.stackTrace).thenReturn(arrayOf(stackTraceElement1))
         Mockito.`when`(mockNPE2.stackTrace).thenReturn(arrayOf(stackTraceElement1, stackTraceElement2))
 
+        defaultMockCoverage(mockUtExecution1)
+        defaultMockCoverage(mockUtExecution2)
+
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution2)) // duplicate with a longer stack trace
@@ -306,6 +381,11 @@ class SarifReportTest {
     private fun mockUtMethodNames() {
         Mockito.`when`(mockExecutableId.name).thenReturn("main")
         Mockito.`when`(mockExecutableId.classId.name).thenReturn("Main")
+    }
+
+    private fun defaultMockCoverage(mockExecution: UtExecution) {
+        Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1)
+        Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
     }
 
     // constants

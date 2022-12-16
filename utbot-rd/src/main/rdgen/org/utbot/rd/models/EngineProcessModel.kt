@@ -1,20 +1,20 @@
+@file:Suppress("unused")
 package org.utbot.rd.models
 
 import com.jetbrains.rd.generator.nova.*
 
-object EngineProcessProtocolRoot : Root()
+object EngineProcessRoot : Root()
 
-object RdInstrumenterAdapter: Ext(EngineProcessProtocolRoot) {
+object RdInstrumenterAdapter: Ext(EngineProcessRoot) {
     val computeSourceFileByClassArguments = structdef {
-        field("className", PredefinedType.string)
-        field("packageName", PredefinedType.string.nullable)
+        field("canonicalClassName", PredefinedType.string)
     }
     init {
         call("computeSourceFileByClass", computeSourceFileByClassArguments, PredefinedType.string.nullable).async
     }
 }
 
-object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
+object RdSourceFindingStrategy : Ext(EngineProcessRoot) {
     val sourceStrategyMethodArgs = structdef {
         field("testSetId", PredefinedType.long)
         field("classFqn", PredefinedType.string)
@@ -28,7 +28,7 @@ object RdSourceFindingStrategy : Ext(EngineProcessProtocolRoot) {
     }
 }
 
-object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
+object EngineProcessModel : Ext(EngineProcessRoot) {
     val jdkInfo = structdef {
         field("path", PredefinedType.string)
         field("version", PredefinedType.int)
@@ -86,13 +86,14 @@ object EngineProcessModel : Ext(EngineProcessProtocolRoot) {
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
-    val signature = structdef {
+    val methodDescription = structdef {
         field("name", PredefinedType.string)
+        field("containingClass", PredefinedType.string.nullable)
         field("parametersTypes", immutableList(PredefinedType.string.nullable))
     }
     val findMethodsInClassMatchingSelectedArguments = structdef {
         field("classId", array(PredefinedType.byte))
-        field("signatures", immutableList(signature))
+        field("methodDescriptions", immutableList(methodDescription))
     }
     val findMethodsInClassMatchingSelectedResult = structdef {
         field("executableIds", array(PredefinedType.byte))

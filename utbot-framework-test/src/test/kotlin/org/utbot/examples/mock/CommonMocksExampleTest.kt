@@ -1,10 +1,10 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = CommonMocksExample::class) {
     @Test
@@ -53,6 +53,16 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             eq(1),
             { r -> r == -420 },
             mockStrategy = MockStrategyApi.OTHER_CLASSES,
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun testMocksForNullOfDifferentTypes() {
+        check(
+            CommonMocksExample::mocksForNullOfDifferentTypes,
+            eq(1),
+            mockStrategy = MockStrategyApi.OTHER_PACKAGES,
             coverage = DoNotCalculate
         )
     }

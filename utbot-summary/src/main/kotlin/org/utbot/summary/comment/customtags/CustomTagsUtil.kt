@@ -73,3 +73,12 @@ private fun formMethodReferenceForJavaDoc(
 fun getClassReference(fullClassName: String): String {
     return "{@link ${fullClassName.replace(JAVA_CLASS_DELIMITER, JAVA_DOC_CLASS_DELIMITER)}}".replace(CARRIAGE_RETURN, EMPTY_STRING)
 }
+
+/** Returns correct full class name. */
+fun getFullClassName(canonicalName: String?, packageName: String, className: String, isNested: Boolean): String {
+    return if (isNested && canonicalName != null) {
+        canonicalName
+    } else {
+        if (packageName.isEmpty()) className else "$packageName.$className"
+    }
+}

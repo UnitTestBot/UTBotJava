@@ -15,6 +15,7 @@ val jsIde: String? by rootProject
 
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
+val rdVersion: String? by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
 
@@ -48,10 +49,14 @@ intellij {
         "JavaScript"
     )
 
+    val mavenUtilsPlugins = listOf(
+        "org.jetbrains.idea.maven"
+    )
+
     plugins.set(
         when (ideType) {
-            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins
+            "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
+            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins + mavenUtilsPlugins
             "PC" -> pythonCommunityPlugins
             "PY" -> pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
@@ -60,6 +65,7 @@ intellij {
 
     version.set(ideVersion)
     type.set(ideTypeOrAndroidStudio)
+    SettingsTemplateHelper.proceed(project)
 }
 
 tasks {
@@ -90,8 +96,8 @@ tasks {
 }
 
 dependencies {
-    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = "2022.3.1")
-    implementation(group ="com.jetbrains.rd", name = "rd-core", version = "2022.3.1")
+    implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
+    implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
     implementation(group ="com.esotericsoftware.kryo", name = "kryo5", version = kryoVersion)
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)

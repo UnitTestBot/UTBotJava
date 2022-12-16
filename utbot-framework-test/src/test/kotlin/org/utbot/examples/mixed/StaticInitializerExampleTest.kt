@@ -3,8 +3,8 @@ package org.utbot.examples.mixed
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.StaticInitializerExample
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.testcheckers.eq
+import org.utbot.testing.UtValueTestCaseChecker
 
 @Disabled("Unknown build failure")
 internal class StaticInitializerExampleTest : UtValueTestCaseChecker(testClass = StaticInitializerExample::class) {

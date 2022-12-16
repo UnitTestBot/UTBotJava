@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.util.kotlinIntrinsicsClassId
 import soot.Scene
 import soot.SootMethod
 import soot.Type
@@ -32,9 +33,9 @@ import soot.jimple.internal.JimpleLocal
  * */
 data class ConstructorAssembleInfo(
     val constructorId: ConstructorId,
-    val params: Map<Int, FieldId>,
-    val setFields: Set<FieldId>,
-    val affectedFields: Set<FieldId>
+    val params: Map<Int, FieldId> = mapOf(),
+    val setFields: Set<FieldId> = setOf(),
+    val affectedFields: Set<FieldId> = setOf()
 )
 
 /**
@@ -108,18 +109,11 @@ class ConstructorAnalyzer {
         return jimpleLocal.name.first() != '$'
     }
 
-    private val visitedConstructors = mutableSetOf<SootMethod>()
-
     private fun analyze(
         sootConstructor: SootMethod,
         setFields: MutableSet<FieldId>,
         affectedFields: MutableSet<FieldId>,
     ): Map<Int, FieldId> {
-        if (sootConstructor in visitedConstructors) {
-            return emptyMap()
-        }
-        visitedConstructors.add(sootConstructor)
-
         val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return emptyMap()
         analyzeAssignments(jimpleBody, setFields, affectedFields)
 
@@ -173,8 +167,8 @@ class ConstructorAnalyzer {
             val jimpleLocal = assn.rightOp as? JimpleLocal ?: continue
 
             val field = (assn.leftOp as? JInstanceFieldRef)?.field ?: continue
-            val parameterIndex = jimpleBody.locals.indexOfFirst { it.name == jimpleLocal.name }
-            indexedFields[parameterIndex - 1] = FieldId(field.declaringClass.id, field.name)
+            val parameterIndex = jimpleBody.parameterLocals.indexOfFirst { it.name == jimpleLocal.name }
+            indexedFields[parameterIndex] = FieldId(field.declaringClass.id, field.name)
         }
 
         return indexedFields
@@ -226,6 +220,8 @@ class ConstructorAnalyzer {
         jimpleBody.units
             .filterIsInstance<JInvokeStmt>()
             .map { it.invokeExpr }
+            // These are instructions inserted by Kotlin compiler to check that arguments are not null, we should ignore them
+            .filterNot { it.method.declaringClass.id == kotlinIntrinsicsClassId }
 
     private fun sameParameterTypes(sootMethod: SootMethod, constructorId: ConstructorId): Boolean {
         val sootConstructorTypes = sootMethod.parameterTypes

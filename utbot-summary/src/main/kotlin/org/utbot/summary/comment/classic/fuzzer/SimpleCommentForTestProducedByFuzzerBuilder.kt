@@ -8,6 +8,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
 import org.utbot.summary.comment.customtags.getClassReference
+import org.utbot.summary.comment.customtags.getFullClassName
 import org.utbot.summary.comment.customtags.getMethodReferenceForFuzzingTest
 
 class SimpleCommentForTestProducedByFuzzerBuilder(
@@ -19,9 +20,11 @@ class SimpleCommentForTestProducedByFuzzerBuilder(
         val packageName = methodDescription.packageName
         val className = methodDescription.className
         val methodName = methodDescription.compilableName
+        val canonicalName = methodDescription.canonicalName
+        val isNested = methodDescription.isNested
 
         val result = if (packageName != null && className != null && methodName != null) {
-            val fullClassName = "$packageName.$className"
+            val fullClassName = getFullClassName(canonicalName, packageName, className, isNested)
 
             val methodReference = getMethodReferenceForFuzzingTest(
                 fullClassName,

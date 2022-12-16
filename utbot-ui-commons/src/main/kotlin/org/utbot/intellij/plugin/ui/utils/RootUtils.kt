@@ -1,6 +1,8 @@
 package org.utbot.intellij.plugin.ui.utils
 
 import com.intellij.openapi.roots.SourceFolder
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.text.StringUtil
 import org.jetbrains.jps.model.java.JavaResourceRootProperties
 import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.jps.model.java.JavaSourceRootProperties
@@ -54,4 +56,58 @@ fun SourceFolder.isForGeneratedSources(): Boolean {
         IntelliJApiHelper.isAndroidStudio() && this.file?.path?.contains("build/generated") == true
 
     return markedGeneratedSources || androidStudioGeneratedSources
+}
+
+const val SRC_MAIN = "src/main/"
+
+/**
+ * Sorting test roots, the main idea is to place 'the best'
+ * test source root the first and to provide readability in general
+ * @param allTestRoots are all test roots of a project to be sorted
+ * @param moduleSourcePaths is list of source roots for the module for which we're going to generate tests.
+ * The first test source root in the resulting list is expected
+ * to be the closest one to the module based on module source roots.
+ * @param codegenLanguage is target generation language
+ */
+fun getSortedTestRoots(
+    allTestRoots: MutableList<out ITestSourceRoot>,
+    sourceRootHistory: List<String>,
+    moduleSourcePaths: List<String>,
+    codegenLanguage: CodegenLanguage
+): MutableList<ITestSourceRoot> {
+    var commonModuleSourceDirectory = FileUtil.toSystemIndependentName(moduleSourcePaths.getCommonPrefix())
+    //Remove standard suffix that may prevent exact module path matching
+    commonModuleSourceDirectory = StringUtil.trimEnd(commonModuleSourceDirectory, SRC_MAIN)
+
+    return allTestRoots.distinct().toMutableList().sortedWith(
+        compareByDescending<ITestSourceRoot> {
+            // Heuristics: Dirs with proper code language should go first
+            it.expectedLanguage == codegenLanguage
+        }.thenByDescending {
+            // Heuristics: Dirs from within module 'common' directory should go first
+            FileUtil.toSystemIndependentName(it.dirPath).startsWith(commonModuleSourceDirectory)
+        }.thenByDescending {
+            // Heuristics: dedicated test source root named 'utbot_tests' should go first
+            it.dirName == dedicatedTestSourceRootName
+        }.thenByDescending {
+            // Recent used root should be handy too
+            sourceRootHistory.indexOf(it.dirPath)
+        }.thenBy {
+            // ABC-sorting
+            it.dirPath
+        }
+    ).toMutableList()
+}
+
+
+fun List<String>.getCommonPrefix() : String {
+    var result = ""
+    for ((i, s) in withIndex()) {
+        result = if (i == 0) {
+            s
+        } else {
+            StringUtil.commonPrefix(result, s)
+        }
+    }
+    return result
 }

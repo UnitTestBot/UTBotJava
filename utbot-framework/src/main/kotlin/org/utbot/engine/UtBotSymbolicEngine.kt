@@ -1,35 +1,27 @@
 package org.utbot.engine
 
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
+import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.engine.MockStrategy.NO_MOCKS
-import org.utbot.engine.pc.UtArraySelectExpression
-import org.utbot.engine.pc.UtBoolExpression
-import org.utbot.engine.pc.UtContextInitializer
-import org.utbot.engine.pc.UtSolver
-import org.utbot.engine.pc.UtSolverStatusSAT
-import org.utbot.engine.pc.findTheMostNestedAddr
-import org.utbot.engine.pc.mkEq
-import org.utbot.engine.pc.mkInt
-import org.utbot.engine.selectors.PathSelector
-import org.utbot.engine.selectors.StrategyOption
-import org.utbot.engine.selectors.coveredNewSelector
-import org.utbot.engine.selectors.cpInstSelector
-import org.utbot.engine.selectors.forkDepthSelector
-import org.utbot.engine.selectors.inheritorsSelector
-import org.utbot.engine.selectors.mlSelector
+import org.utbot.engine.pc.*
+import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
-import org.utbot.engine.selectors.pollUntilFastSAT
-import org.utbot.engine.selectors.randomPathSelector
-import org.utbot.engine.selectors.randomSelector
 import org.utbot.engine.selectors.strategies.GraphViz
-import org.utbot.engine.selectors.subpathGuidedSelector
+import org.utbot.engine.state.ExecutionStackElement
+import org.utbot.engine.state.ExecutionState
+import org.utbot.engine.state.StateLabel
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.engine.util.mockListeners.MockListener
 import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.PathSelectorType
@@ -43,75 +35,19 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtFailedExecution
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.graph
-import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.framework.plugin.api.util.description
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isConstructor
-import org.utbot.framework.plugin.api.util.isEnum
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.util.sootMethod
-import org.utbot.fuzzer.FallbackModelProvider
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
-import org.utbot.fuzzer.Trie
-import org.utbot.fuzzer.TrieBasedFuzzerStatistics
-import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.fuzzer.collectConstantsForFuzzer
-import org.utbot.fuzzer.defaultModelMutators
-import org.utbot.fuzzer.defaultModelProviders
-import org.utbot.fuzzer.flipCoin
-import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.providers.ObjectModelProvider
-import org.utbot.fuzzer.withMutations
+import org.utbot.fuzzer.*
+import org.utbot.fuzzing.*
+import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
-import kotlin.random.Random
 import kotlin.system.measureTimeMillis
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.yield
-import org.utbot.engine.state.ExecutionStackElement
-import org.utbot.engine.state.ExecutionState
-import org.utbot.engine.state.StateLabel
-import org.utbot.engine.types.TypeRegistry
-import org.utbot.engine.types.TypeResolver
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.UtSandboxFailure
-import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.isAbstract
-import org.utbot.fuzzer.toFuzzerType
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -387,89 +323,36 @@ class UtBotSymbolicEngine(
      * Run fuzzing flow.
      *
      * @param until is used by fuzzer to cancel all tasks if the current time is over this value
-     * @param modelProvider provides model values for a method
+     * @param transform provides model values for a method
      */
-    fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
+    fun fuzzing(until: Long = Long.MAX_VALUE, transform: (JavaValueProvider) -> JavaValueProvider = { it }) = flow {
         val isFuzzable = methodUnderTest.parameters.all { classId ->
-            classId != Method::class.java.id && // causes the child process crash at invocation
+            classId != Method::class.java.id && // causes the instrumented process crash at invocation
                 classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
-        if (!isFuzzable) {
-            return@flow
-        }
-
-        val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
-        val constantValues = collectConstantsForFuzzer(graph)
-
-        val syntheticMethodForFuzzingThisInstanceDescription =
-            FuzzedMethodDescription("thisInstance", voidClassId, listOf(classUnderTest), constantValues).apply {
-                className = classUnderTest.simpleName
-                packageName = classUnderTest.packageName
-            }
-
-        val random = Random(0)
-        val thisInstance = when {
-            methodUnderTest.isStatic -> null
-            methodUnderTest.isConstructor -> if (
-                classUnderTest.isAbstract ||  // can't instantiate abstract class
-                classUnderTest.isEnum    // can't reflectively create enum objects
-            ) {
-                return@flow
-            } else {
-                null
-            }
-            else -> {
-                ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
-                    syntheticMethodForFuzzingThisInstanceDescription
-                ).take(10).shuffled(random).map { it.value.model }.first().apply {
-                    if (this is UtNullModel) { // it will definitely fail because of NPE,
-                        return@flow
-                    }
-                }
-            }
-        }
-
-        val methodUnderTestDescription = FuzzedMethodDescription(methodUnderTest, collectConstantsForFuzzer(graph)).apply {
-            compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
-            className = classUnderTest.simpleName
-            packageName = classUnderTest.packageName
-            val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
-            parameterNameMap = { index -> names?.getOrNull(index) }
-            fuzzerType = { try { toFuzzerType(methodUnderTest.executable.genericParameterTypes[it]) } catch (_: Throwable) { null } }
-            shouldMock = { mockStrategy.eligibleToMock(it, classUnderTest) }
-        }
-        val errorStackTraceTracker = Trie(StackTraceElement::toString)
-        val coveredInstructionTracker = Trie(Instruction::id)
-        val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
-        var attempts = 0
-        val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
-        if (!hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
+        if (!isFuzzable || !hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
             // Currently, fuzzer doesn't work with static methods with empty parameters
             return@flow
         }
-        val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
-            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
-        } else {
-            // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
-            fuzz(syntheticMethodForFuzzingThisInstanceDescription, ObjectModelProvider(defaultIdGenerator).apply {
-                totalLimit = 500
-            })
-        }.withMutations(
-            TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()
-        )
-        fuzzedValues.forEach { values ->
+        val errorStackTraceTracker = Trie(StackTraceElement::toString)
+        var attempts = 0
+        val attemptsLimit = UtSettings.fuzzingMaxAttempts
+        val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
+
+        runJavaFuzzing(
+            defaultIdGenerator,
+            methodUnderTest,
+            collectConstantsForFuzzer(graph),
+            names,
+            listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
+        ) { thisInstance, descr, values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
-                return@flow
+                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
 
-            val initialEnvironmentModels = if (hasMethodUnderTestParametersToFuzz) {
-                EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
-            } else {
-                check(values.size == 1 && values.first().model is UtAssembleModel)
-                EnvironmentModels(values.first().model, emptyList(), mapOf())
-            }
+            val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
@@ -482,30 +365,30 @@ class UtBotSymbolicEngine(
             }
 
             // in case an exception occurred from the concrete execution
-            concreteExecutionResult ?: return@forEach
+            concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+
+            if (concreteExecutionResult.result.exceptionOrNull() is UtMockAssumptionViolatedException) {
+                logger.debug { "Generated test case by fuzzer violates the UtMock assumption" }
+                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            }
 
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
+            var trieNode: Trie.Node<Instruction>? = null
             if (coveredInstructions.isNotEmpty()) {
-                val coverageKey = coveredInstructionTracker.add(coveredInstructions)
-                if (coverageKey.count > 1) {
+                trieNode = descr.tracer.add(coveredInstructions)
+                if (trieNode.count > 1) {
                     if (++attempts >= attemptsLimit) {
-                        return@flow
+                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                     }
-                    // Update the seeded values sometimes
-                    // This is necessary because some values cannot do a good values in mutation in any case
-                    if (random.flipCoin(probability = 50)) {
-                        coveredInstructionValues[coverageKey] = values
-                    }
-                    return@forEach
+                    return@runJavaFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
                 }
-                coveredInstructionValues[coverageKey] = values
             } else {
-                logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
+                logger.error { "Coverage is empty for $methodUnderTest with $values" }
                 val result = concreteExecutionResult.result
                 if (result is UtSandboxFailure) {
                     val stackTraceElements = result.exception.stackTrace.reversed()
                     if (errorStackTraceTracker.add(stackTraceElements).count > 1) {
-                        return@forEach
+                        return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                     }
                 }
             }
@@ -517,9 +400,11 @@ class UtBotSymbolicEngine(
                     result = concreteExecutionResult.result,
                     coverage = concreteExecutionResult.coverage,
                     fuzzingValues = values,
-                    fuzzedMethodDescription = methodUnderTestDescription
+                    fuzzedMethodDescription = descr.description
                 )
             )
+
+            BaseFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
         }
     }
 

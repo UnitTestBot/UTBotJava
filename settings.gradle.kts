@@ -2,6 +2,7 @@ val ideType: String by settings
 
 val pythonIde: String by settings
 val jsIde: String by settings
+val includeRiderInBuild: String by settings
 
 pluginManagement {
     resolutionStrategy {
@@ -21,6 +22,7 @@ include("utbot-framework-api")
 include("utbot-intellij")
 include("utbot-sample")
 include("utbot-fuzzers")
+include("utbot-fuzzing")
 include("utbot-junit-contest")
 include("utbot-analytics")
 include("utbot-analytics-torch")
@@ -36,8 +38,13 @@ include("utbot-gradle")
 include("utbot-maven")
 include("utbot-summary-tests")
 include("utbot-framework-test")
+include("utbot-testing")
 include("utbot-rd")
 include("utbot-android-studio")
+
+if (includeRiderInBuild.toBoolean()) {
+    include("utbot-rider")
+}
 
 include("utbot-ui-commons")
 

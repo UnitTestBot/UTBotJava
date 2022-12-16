@@ -1,19 +1,17 @@
 package org.utbot.examples.mock
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.tests.infrastructure.between
 import org.utbot.examples.mock.provider.Provider
 import org.utbot.examples.mock.service.impl.ExampleClass
 import org.utbot.examples.mock.service.impl.ServiceWithField
-import org.utbot.tests.infrastructure.mocksMethod
-import org.utbot.tests.infrastructure.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.Compilation
-import org.utbot.tests.infrastructure.TestExecution
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
+import org.utbot.testing.mocksMethod
+import org.utbot.testing.value
 
 internal class FieldMockTest : UtValueTestCaseChecker(
     testClass = ServiceWithField::class,

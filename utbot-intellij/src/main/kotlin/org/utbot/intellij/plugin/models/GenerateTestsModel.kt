@@ -1,12 +1,12 @@
 package org.utbot.intellij.plugin.models
 
 import com.intellij.openapi.components.service
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.HangingTestsTimeout
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.HangingTestsTimeout
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -16,6 +16,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.psi.KtFile
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.settings.Settings
@@ -36,7 +37,7 @@ class GenerateTestsModel(
     potentialTestModules,
     srcClasses
 ) {
-
+    override var sourceRootHistory = project.service<Settings>().sourceRootHistory
     override var codegenLanguage = project.service<Settings>().codegenLanguage
 
     lateinit var testFramework: TestFramework
@@ -46,7 +47,7 @@ class GenerateTestsModel(
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
-    var runInspectionAfterTestGeneration: Boolean = false
+    var runInspectionAfterTestGeneration: Boolean = true
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
     lateinit var commentStyle: JavaDocCommentStyle
@@ -54,7 +55,7 @@ class GenerateTestsModel(
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
     var runGeneratedTestsWithCoverage : Boolean = false
-    var enableSummariesGeneration : Boolean = true
+    var enableSummariesGeneration : Boolean = UtSettings.enableSummariesGeneration
 }
 
 val PsiClass.packageName: String

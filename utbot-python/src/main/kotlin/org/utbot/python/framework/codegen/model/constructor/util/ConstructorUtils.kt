@@ -2,10 +2,10 @@ package org.utbot.python.framework.codegen.model.constructor.util
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
-import org.utbot.framework.codegen.PythonUserImport
-import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
+import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
+import org.utbot.python.framework.codegen.model.PythonUserImport
 
 internal fun CgContextOwner.importIfNeeded(method: PythonMethodId) {
     collectedImports += PythonUserImport(method.moduleName)

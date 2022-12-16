@@ -5,7 +5,7 @@ import org.utbot.common.isPublic
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.model.util.isAccessibleFrom
+import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
@@ -226,6 +226,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
             assembleModel
         }
 
+    private val modelsInAnalysis = mutableListOf<UtCompositeModel>()
+
     /**
      * Assembles internal structure of [UtCompositeModel] if possible and handles assembling exceptions.
      */
@@ -241,9 +243,16 @@ class AssembleModelGenerator(private val basePackageName: String) {
             val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
 
             val constructorId = findBestConstructorOrNull(compositeModel)
-                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.id}")
+                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.classId}")
 
-            val constructorInfo = constructorAnalyzer.analyze(constructorId)
+            // we do not analyze a constructor which is currently in the analysis
+            // thus, we do not encounter an infinite loop in self or cross-reference situations
+            val shouldAnalyzeConstructor = compositeModel !in modelsInAnalysis
+            modelsInAnalysis.add(compositeModel)
+
+            val constructorInfo =
+                if (shouldAnalyzeConstructor) constructorAnalyzer.analyze(constructorId)
+                else ConstructorAssembleInfo(constructorId)
 
             val instantiationCall = constructorCall(compositeModel, constructorInfo)
             return UtAssembleModel(
@@ -284,6 +293,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
         } catch (e: AssembleException) {
             instantiatedModels.remove(compositeModel)
             throw e
+        } finally {
+            modelsInAnalysis.remove(compositeModel)
         }
     }
 

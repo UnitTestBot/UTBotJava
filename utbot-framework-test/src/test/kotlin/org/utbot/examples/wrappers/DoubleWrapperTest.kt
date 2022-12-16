@@ -1,9 +1,9 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.UtValueTestCaseChecker
 
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleWrapperTest : UtValueTestCaseChecker(testClass = DoubleWrapper::class) {

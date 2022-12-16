@@ -1,12 +1,13 @@
 package org.utbot.framework.plugin.api
 
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.tree.Junit4Manager
-import org.utbot.framework.codegen.model.constructor.tree.Junit5Manager
-import org.utbot.framework.codegen.model.constructor.tree.TestNgManager
+import org.utbot.framework.codegen.domain.Junit4
+import org.utbot.framework.codegen.domain.Junit5
+import org.utbot.framework.codegen.domain.TestNg
+import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.services.framework.Junit4Manager
+import org.utbot.framework.codegen.services.framework.Junit5Manager
+import org.utbot.framework.codegen.services.framework.TestNgManager
+import org.utbot.framework.codegen.services.language.LanguageTestFrameworkManager
 
 class JVMTestFrameworkManager : LanguageTestFrameworkManager() {
 

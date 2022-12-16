@@ -24,11 +24,11 @@ import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import org.utbot.intellij.plugin.util.isVisible
 import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.utils.addIfNotNull
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.ui.InvalidClassNotifier
-import org.utbot.intellij.plugin.util.isAbstract
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
@@ -114,6 +114,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
                     when(it) {
                         is PsiFileSystemItem  -> srcClasses += getAllClasses(project, arrayOf(it.virtualFile))
                         is PsiClass -> srcClasses.add(it)
+                        is KtClass -> srcClasses += getClassesFromFile(it.containingKtFile)
                         is PsiElement -> {
                             srcClasses.addIfNotNull(it.getContainingClass())
                             if (it is PsiMethod) {
@@ -167,12 +168,6 @@ object JvmLanguageAssistant : LanguageAssistant() {
     private fun PsiClass.isInvalid(withWarnings: Boolean): Boolean {
         if (this.module?.let { findSdkVersionOrNull(it) } == null) {
             if (withWarnings) InvalidClassNotifier.notify("class out of module or with undefined SDK")
-            return true
-        }
-
-        val isAbstractOrInterface = this.isInterface || this.isAbstract
-        if (isAbstractOrInterface) {
-            if (withWarnings) InvalidClassNotifier.notify("abstract class or interface ${this.name}")
             return true
         }
 

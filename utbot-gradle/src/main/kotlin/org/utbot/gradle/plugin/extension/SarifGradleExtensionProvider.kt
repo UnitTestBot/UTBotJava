@@ -2,9 +2,9 @@ package org.utbot.gradle.plugin.extension
 
 import org.gradle.api.Project
 import org.utbot.common.PathUtil.toPath
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.domain.ForceStaticMocking
+import org.utbot.framework.codegen.domain.StaticsMocking
+import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework

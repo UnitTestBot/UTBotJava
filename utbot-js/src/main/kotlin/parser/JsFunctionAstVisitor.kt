@@ -1,32 +1,41 @@
 package parser
 
-import com.oracle.js.parser.ir.ClassNode
-import com.oracle.js.parser.ir.FunctionNode
-import com.oracle.js.parser.ir.LexicalContext
-import com.oracle.js.parser.ir.visitor.NodeVisitor
+import com.google.javascript.jscomp.NodeUtil
+import com.google.javascript.rhino.Node
+import java.lang.IllegalStateException
+import parser.JsParserUtils.getAbstractFunctionName
+import parser.JsParserUtils.getClassName
 
 class JsFunctionAstVisitor(
     private val target: String,
     private val className: String?
-) : NodeVisitor<LexicalContext>(LexicalContext()) {
+): IAstVisitor {
 
-    private var lastVisitedClassName: String = ""
-    lateinit var targetFunctionNode: FunctionNode
+    lateinit var targetFunctionNode: Node
 
-    override fun enterClassNode(classNode: ClassNode?): Boolean {
-        classNode?.let {
-            lastVisitedClassName = it.ident.name.toString()
-        }
-        return true
-    }
+    override fun accept(rootNode: Node) {
+        NodeUtil.visitPreOrder(rootNode) { node ->
+            when {
+                node.isMemberFunctionDef -> {
+                    val name = node.getAbstractFunctionName()
+                    if (
+                        name == target &&
+                        (node.parent?.parent?.getClassName()
+                            ?: throw IllegalStateException("Method AST node has no parent class node")) == className
+                    ) {
+                        targetFunctionNode = node
+                        return@visitPreOrder
+                    }
+                }
 
-    override fun enterFunctionNode(functionNode: FunctionNode?): Boolean {
-        functionNode?.let {
-            if (it.name.toString() == target && (className ?: "") == lastVisitedClassName) {
-                targetFunctionNode = it
-                return false
+                node.isFunction -> {
+                    val name = node.getAbstractFunctionName()
+                    if (name == target && className == null && node.parent?.isMemberFunctionDef != true) {
+                        targetFunctionNode = node
+                        return@visitPreOrder
+                    }
+                }
             }
         }
-        return true
     }
 }

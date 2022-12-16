@@ -1,13 +1,9 @@
 package org.utbot.rd.loggers
 
-import com.jetbrains.rd.util.LogLevel
-import com.jetbrains.rd.util.Logger
-import com.jetbrains.rd.util.defaultLogFormat
+import com.jetbrains.rd.util.*
 import mu.KLogger
-import org.utbot.common.dateFormatter
-import java.time.LocalDateTime
 
-class UtRdKLogger(private val realLogger: KLogger, private val category: String): Logger {
+class UtRdKLogger(private val realLogger: KLogger): Logger {
     override fun isEnabled(level: LogLevel): Boolean {
         return when (level) {
             LogLevel.Trace -> realLogger.isTraceEnabled
@@ -19,11 +15,16 @@ class UtRdKLogger(private val realLogger: KLogger, private val category: String)
         }
     }
 
+    private fun format(level: LogLevel, message: Any?, throwable: Throwable?): String {
+        val throwableToPrint = if (level < LogLevel.Error) throwable else throwable ?: Exception() //to print stacktrace
+        return "${message?.toString() ?: ""} ${throwableToPrint?.getThrowableText()?.let { "| $it" } ?: ""}"
+    }
+
     override fun log(level: LogLevel, message: Any?, throwable: Throwable?) {
         if (!isEnabled(level))
             return
 
-        val msg = LocalDateTime.now().format(dateFormatter) + " | ${defaultLogFormat(category, level, message, throwable)}"
+        val msg = format(level, message, throwable)
 
         when (level) {
             LogLevel.Trace -> realLogger.trace(msg)

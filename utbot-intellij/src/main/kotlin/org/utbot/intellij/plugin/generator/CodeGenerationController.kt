@@ -18,6 +18,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
@@ -37,13 +38,10 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
+import com.intellij.psi.codeStyle.JavaCodeStyleManager.DO_NOT_ADD_IMPORTS
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.siyeh.ig.psiutils.ImportUtils
-import java.nio.file.Path
-import java.util.concurrent.CancellationException
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.KotlinFileType
@@ -51,7 +49,6 @@ import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.ImportInsertHelperImpl
-import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -62,13 +59,16 @@ import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.utbot.common.FileUtil
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
+import org.utbot.framework.CancellationStrategyType.CANCEL_EVERYTHING
+import org.utbot.framework.CancellationStrategyType.NONE
+import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.Import
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RegularImport
-import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
+import org.utbot.framework.codegen.domain.Import
+import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.RegularImport
+import org.utbot.framework.codegen.domain.StaticImport
+import org.utbot.framework.codegen.tree.ututils.UtilClassKind
+import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.inspection.UnitTestBotInspectionManager
@@ -83,9 +83,7 @@ import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.ui.TestsReportNotifier
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
-import org.utbot.intellij.plugin.ui.utils.TestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
-import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.EDT_LATER
@@ -93,9 +91,15 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.THREAD_POOL
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.WRITE_ACTION
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
+import org.utbot.intellij.plugin.util.assertIsDispatchThread
+import org.utbot.intellij.plugin.util.assertIsWriteThread
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
-import org.utbot.sarif.Sarif
-import org.utbot.sarif.SarifReport
+import java.nio.file.Path
+import java.util.concurrent.CancellationException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import org.utbot.intellij.plugin.util.showSettingsEditor
+import org.utbot.sarif.*
 
 object CodeGenerationController {
     private val logger = KotlinLogging.logger {}
@@ -112,9 +116,10 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         classesWithTests: Map<PsiClass, RdTestGenerationResult>,
         psi2KClass: Map<PsiClass, ClassId>,
-        proc: EngineProcess,
+        process: EngineProcess,
         indicator: ProgressIndicator
     ) {
+        assertIsDispatchThread()
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
@@ -124,7 +129,14 @@ object CodeGenerationController {
         val utilClassListener = UtilClassListener()
         var index = 0
         for ((srcClass, generateResult) in classesWithTests) {
-            if (indicator.isCanceled) return
+            if (indicator.isCanceled) {
+                when (UtSettings.cancellationStrategyType) {
+                    NONE,
+                    SAVE_PROCESSED_RESULTS -> {}
+                    CANCEL_EVERYTHING -> break
+                }
+            }
+
             val (count, testSetsId) = generateResult
             if (count <= 0)  {
                 latch.countDown()
@@ -140,7 +152,7 @@ object CodeGenerationController {
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     generateCodeAndReport(
-                        proc,
+                        process,
                         testSetsId,
                         srcClass,
                         cut,
@@ -167,24 +179,22 @@ object CodeGenerationController {
             waitForCountDown(latch, indicator = indicator) {
                 run(EDT_LATER, indicator,"Go to EDT for utility class creation") {
                     run(WRITE_ACTION, indicator, "Need write action for utility class creation") {
-                        createUtilityClassIfNeed(utilClassListener, model, baseTestDirectory, indicator)
-                        run(EDT_LATER, indicator, "Proceed test report") {
-                            proceedTestReport(proc, model)
-                            run(THREAD_POOL, indicator, "Generate summary Sarif report") {
-                                val sarifReportsPath =
-                                    model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
-                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Merge Sarif reports", 0.75)
-                                mergeSarifReports(model, sarifReportsPath)
-                                if (model.runGeneratedTestsWithCoverage) {
-                                    UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 0.95)
-                                    RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
-                                }
-                                proc.forceTermination()
-                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generation finished", 1.0)
+                        createUtilityClassIfNeeded(utilClassListener, model, baseTestDirectory, indicator)
+                        run(THREAD_POOL, indicator, "Generate summary Sarif report") {
+                            proceedTestReport(process, model)
+                            val sarifReportsPath =
+                                model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+                            UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Merge Sarif reports", 0.75)
+                            mergeSarifReports(model, sarifReportsPath)
+                            if (model.runGeneratedTestsWithCoverage) {
+                                UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Start tests with coverage", 0.95)
+                                RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
+                            }
+                            process.terminate()
+                            UtTestsDialogProcessor.updateIndicator(indicator, UtTestsDialogProcessor.ProgressRange.SARIF, "Generation finished", 1.0)
 
-                                run(EDT_LATER, null, "Run sarif-based inspections") {
-                                    runInspectionsIfNeeded(model, srcClassPathToSarifReport)
-                                }
+                            run(EDT_LATER, null, "Run sarif-based inspections") {
+                                runInspectionsIfNeeded(model, srcClassPathToSarifReport)
                             }
                         }
                     }
@@ -210,12 +220,12 @@ object CodeGenerationController {
             return
         }
         UnitTestBotInspectionManager
-            .getInstance(model.project, srcClassPathToSarifReport)
+            .getInstance(model.project, SarifReport.minimizeSarifResults(srcClassPathToSarifReport))
             .createNewGlobalContext()
             .doInspections(AnalysisScope(model.project))
     }
 
-    private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) {
+    private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) = runReadAction {
         try {
             // Parametrized tests are not supported in tests report yet
             // TODO JIRA:1507
@@ -231,7 +241,7 @@ object CodeGenerationController {
             )
         }
     }
-    private fun createUtilityClassIfNeed(
+    private fun createUtilityClassIfNeeded(
         utilClassListener: UtilClassListener,
         model: GenerateTestsModel,
         baseTestDirectory: PsiDirectory,
@@ -429,6 +439,7 @@ object CodeGenerationController {
                 .map { comment -> comment.text }
                 .firstOrNull { text -> UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX in text }
                 ?.substringAfterLast(UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX)
+                ?.substringBefore("\n")
                 ?.trim()
         }
 
@@ -655,21 +666,22 @@ object CodeGenerationController {
         utilClassListener: UtilClassListener,
         indicator: ProgressIndicator
     ) {
+        assertIsWriteThread()
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
-        val paramNames = try {
-            DumbService.getInstance(model.project)
-                .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
-        } catch (e: Exception) {
-            logger.warn(e) { "Cannot find method param names for ${classUnderTest.name}" }
-            reportsCountDown.countDown()
-            return
-        }
         val testPackageName = testClass.packageName
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL, indicator, "Rendering test code") {
             val (generatedTestsCode, utilClassKind) = try {
+                val paramNames = try {
+                    DumbService.getInstance(model.project)
+                        .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
+                } catch (e: Exception) {
+                    logger.warn(e) { "Cannot find method param names for ${classUnderTest.name}" }
+                    reportsCountDown.countDown()
+                    return@run
+                }
                 proc.render(
                     testSetsId,
                     classUnderTest,
@@ -761,9 +773,9 @@ object CodeGenerationController {
         if (fileLength > UtSettings.maxTestFileSize && file.name != model.codegenLanguage.utilClassFileName) {
             CommonLoggingNotifier().notify(
                 "Size of ${file.virtualFile.presentableName} exceeds configured limit " +
-                        "(${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())}), reformatting was skipped. " +
-                        "The limit can be configured in '{HOME_DIR}/.utbot/settings.properties' with 'maxTestFileSize' property",
-                model.project)
+                        "(${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())}), reformatting was skipped.",
+                model.project, model.testModule, arrayOf(DumbAwareAction.create("Configure the Limit") { showSettingsEditor(model.project, "maxTestFileSize") }
+                ))
             return
         }
 
@@ -775,7 +787,7 @@ object CodeGenerationController {
                     val startOffset = range.startOffset
                     val endOffset = range.endOffset
                     val reformatRange = codeStyleManager.reformatRange(file, startOffset, endOffset, false)
-                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
+                    JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange, DO_NOT_ADD_IMPORTS)
                 }
                 CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
             }

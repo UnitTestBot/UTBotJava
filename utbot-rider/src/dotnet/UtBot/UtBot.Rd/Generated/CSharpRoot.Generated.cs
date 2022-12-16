@@ -36,7 +36,7 @@ namespace UtBot.Rd.Generated
   
   
   /// <summary>
-  /// <p>Generated from: CSharpModel.kt:5</p>
+  /// <p>Generated from: CSharpModel.kt:6</p>
   /// </summary>
   public class CSharpRoot : RdExtBase
   {

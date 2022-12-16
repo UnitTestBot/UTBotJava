@@ -44,15 +44,16 @@
     <description>
         <![CDATA[
         UnitTestBot is the tool for automated unit test generation and precise code analysis.
-        <br/>
+        <br/><br/>
         Discover UnitTestBot key features in our latest release:
         <ul>
             <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
-            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a></li>
-            <li>minimizing the number of tests and false positives among bugs</li>
+            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</> while keeping the number of tests minimized</li>
+            <li>finding deeply hidden code defects and expressing them as tests</li>
             <li>fine-tuned <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation#mocking-settings">mocking</a>, including mocking static methods</li>
             <li>representing all the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results#read-test-descriptions">test descriptions</a> in a human-readable format</li>
             <li>generating <a href="https://github.com/microsoft/sarif-tutorials/blob/main/README.md">SARIF</a> reports</li>
+            <li>innovative symbolic execution engine combined with a smart fuzzing platform</li>
         </ul>
         UnitTestBot supports the latest JDKs, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
         <br/>

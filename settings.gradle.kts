@@ -3,6 +3,9 @@ val ideType: String by settings
 val pythonIde: String by settings
 val jsIde: String by settings
 val includeRiderInBuild: String by settings
+val includePythonInBuild: String by settings
+val includeJsInBuild: String by settings
+val includeAndroidStudioInBuild: String by settings
 
 pluginManagement {
     resolutionStrategy {
@@ -40,7 +43,9 @@ include("utbot-summary-tests")
 include("utbot-framework-test")
 include("utbot-testing")
 include("utbot-rd")
-include("utbot-android-studio")
+if (includeAndroidStudioInBuild.toBoolean()) {
+    include("utbot-android-studio")
+}
 
 if (includeRiderInBuild.toBoolean()) {
     include("utbot-rider")
@@ -48,13 +53,13 @@ if (includeRiderInBuild.toBoolean()) {
 
 include("utbot-ui-commons")
 
-if (pythonIde.split(",").contains(ideType)) {
+if (includePythonInBuild.toBoolean() && pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
     include("utbot-cli-python")
     include("utbot-intellij-python")
 }
 
-if (jsIde.split(",").contains(ideType)) {
+if (includeJsInBuild.toBoolean() && jsIde.split(",").contains(ideType)) {
     include("utbot-js")
     include("utbot-cli-js")
     include("utbot-intellij-js")

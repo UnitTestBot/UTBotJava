@@ -1,3 +1,4 @@
 <!--Optional dependency on org.jetbrains.android-->
 <extensions defaultExtensionNs="org.jetbrains.android">
+    <projectModelModifier implementation="org.androidstudio.plugin.util.UtAndroidGradleJavaProjectModelModifierWrapper" order="first"/>
 </extensions>

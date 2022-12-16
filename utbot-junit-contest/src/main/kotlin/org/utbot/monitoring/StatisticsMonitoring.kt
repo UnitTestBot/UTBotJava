@@ -73,7 +73,7 @@ fun main(args: Array<String>) {
         }
 
         ContextManager.cancelAll()
-        ConcreteExecutor.defaultPool.forceTerminateProcesses()
+        ConcreteExecutor.defaultPool.close()
         System.gc()
     }
     if (measurementResults.isEmpty())

@@ -8,14 +8,15 @@ import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.Isolated
+import org.utbot.instrumentation.withInstrumentation
 import kotlin.system.measureNanoTime
 
 fun getBasicCoverageTime_fib(count: Int): Double {
-    var time: Long
-    ConcreteExecutor(
+    var time: Long = 0
+    withInstrumentation(
         CoverageInstrumentation,
         Fibonacci::class.java.protectionDomain.codeSource.location.path
-    ).use {
+    ) {
         val fib = Isolated(Fibonacci::calc, it)
         for (i in 0..20_000) {
             fib(1, 1, 13)
@@ -45,11 +46,11 @@ fun getNativeCallTime_fib(count: Int): Double {
 }
 
 fun getJustResultTime_fib(count: Int): Double {
-    var time: Long
-    ConcreteExecutor(
+    var time: Long = 0
+    withInstrumentation(
         InvokeInstrumentation(),
         Fibonacci::class.java.protectionDomain.codeSource.location.path
-    ).use {
+    ) {
         val fib = Isolated(Fibonacci::calc, it)
 
         for (i in 0..20_000) {

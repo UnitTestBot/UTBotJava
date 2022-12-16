@@ -7,14 +7,15 @@ import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.Isolated
 import kotlin.system.measureNanoTime
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.utbot.instrumentation.withInstrumentation
 
 
 fun getBasicCoverageTime(count: Int): Double {
-    var time: Long
-    ConcreteExecutor(
+    var time: Long = 0
+    withInstrumentation(
         CoverageInstrumentation,
         Repeater::class.java.protectionDomain.codeSource.location.path
-    ).use { executor ->
+    )  { executor ->
         val dc0 = Repeater(", ")
         val concat = Isolated(Repeater::concat, executor)
 
@@ -49,11 +50,11 @@ fun getNativeCallTime(count: Int): Double {
 }
 
 fun getJustResultTime(count: Int): Double {
-    var time: Long
-    ConcreteExecutor(
+    var time: Long = 0
+    withInstrumentation(
         InvokeInstrumentation(),
         Repeater::class.java.protectionDomain.codeSource.location.path
-    ).use {
+    ) {
         val dc0 = Repeater(", ")
         val concat = Isolated(Repeater::concat, it)
 

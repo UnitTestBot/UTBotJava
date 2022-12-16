@@ -14,16 +14,17 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.utbot.instrumentation.withInstrumentation
 
 class TestInvokeInstrumentation {
     lateinit var utContext: AutoCloseable
 
     @Test
     fun testCatchTargetException() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
 
             val testObject = ExampleClass()
 
@@ -35,10 +36,10 @@ class TestInvokeInstrumentation {
 
     @Test
     fun testWrongArgumentsException() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
             val exc = assertThrows<InstrumentedProcessError> {
                 it.execute(
@@ -56,10 +57,10 @@ class TestInvokeInstrumentation {
 
     @Test
     fun testSameResult() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
 
             val res1 = it.execute(ExampleClass::dependsOnFieldReturn, arrayOf(testObject))
@@ -72,10 +73,10 @@ class TestInvokeInstrumentation {
 
     @Test
     fun testEmptyMethod() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
 
             val res = it.execute(ExampleClass::emptyMethod, arrayOf(testObject))
@@ -86,10 +87,10 @@ class TestInvokeInstrumentation {
 
     @Test
     fun testStaticMethodCall() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val res1 = it.execute(StaticExampleClass::inc, arrayOf())
             assertEquals(0, res1.getOrNull())
 
@@ -104,10 +105,10 @@ class TestInvokeInstrumentation {
 
     @Test
     fun testNullableMethod() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val res1 = it.execute(
                 StaticExampleClass::canBeNull,
                 arrayOf(10,
@@ -135,10 +136,10 @@ class TestInvokeInstrumentation {
 
     @Test
     fun testDifferentSignaturesButSameMethodNames() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ClassWithSameMethodNames::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val clazz = ClassWithSameMethodNames::class
 
             val sumVararg = clazz.declaredMembers.first { it.parameters.size == 1 }

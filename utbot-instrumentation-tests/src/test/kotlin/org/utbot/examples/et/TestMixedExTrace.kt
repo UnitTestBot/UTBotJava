@@ -13,6 +13,7 @@ import org.utbot.instrumentation.util.Isolated
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.instrumentation.withInstrumentation
 
 class TestMixedExTrace {
     lateinit var utContext: AutoCloseable
@@ -24,10 +25,10 @@ class TestMixedExTrace {
     // `mixed calls` means such calls: A -> {B -> {A -> ...}, ... }, where A has been instrumented but B has not.
     @Test
     fun testMixedDoesNotThrow() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val A = Isolated(ClassMixedWithNotInstrumented_Instr::a, it)
             val B = Isolated(ClassMixedWithNotInstrumented_Not_Instr::b, it)
 

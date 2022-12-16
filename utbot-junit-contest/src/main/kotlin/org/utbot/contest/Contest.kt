@@ -32,7 +32,6 @@ import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.util.isKnownImplicitlyDeclaredMethod
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
@@ -118,7 +117,6 @@ fun main(args: Array<String>) {
 
     withUtContext(context) {
         logger.info().bracket("warmup: kotlin reflection :: init") {
-            prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
         }
 
@@ -150,7 +148,6 @@ fun main(args: Array<String>) {
             println("${ContestMessage.READY}")
         }
     }
-    ConcreteExecutor.defaultPool.close()
 }
 
 fun setOptions() {
@@ -200,7 +197,6 @@ fun runGeneration(
             TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
-            prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
         }
     }
@@ -352,12 +348,6 @@ fun runGeneration(
                                     }
                                 }
                             }
-
-                        //hack
-                        if (statsForMethod.isSuspicious && (ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs) > 5000) {
-                            logger.error { "HEURISTICS: close instrumented process, because it haven't responded for long time: ${ConcreteExecutor.lastSendTimeMs - ConcreteExecutor.lastReceiveTimeMs}" }
-                            ConcreteExecutor.defaultPool.close()
-                        }
                     }
                 }
                 controller.job = job

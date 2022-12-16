@@ -27,10 +27,7 @@ class TestConstructors {
 
     @Test
     fun testDefaultConstructor() {
-        ConcreteExecutor(
-            InvokeInstrumentation(),
-            CLASSPATH
-        ).use { executor ->
+        withInstrumentation(InvokeInstrumentation(), CLASSPATH) { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors
             val constr = constructors.first { it.parameters.isEmpty() }
             val res = executor.execute(constr, arrayOf())
@@ -42,10 +39,7 @@ class TestConstructors {
 
     @Test
     fun testIntConstructors() {
-        ConcreteExecutor(
-            InvokeInstrumentation(),
-            CLASSPATH
-        ).use { executor ->
+        withInstrumentation(InvokeInstrumentation(), CLASSPATH) { executor ->
             val constructors = ClassWithMultipleConstructors::class.constructors
 
             val constrI = constructors.first { it.signature == "<init>(I)V" }

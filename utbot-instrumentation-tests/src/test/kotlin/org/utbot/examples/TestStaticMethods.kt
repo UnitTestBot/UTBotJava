@@ -9,6 +9,7 @@ import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.utbot.instrumentation.withInstrumentation
 
 
 class TestStaticMethods {
@@ -16,10 +17,10 @@ class TestStaticMethods {
 
     @Test
     fun testStaticMethodCall() {
-        ConcreteExecutor(
+        withInstrumentation(
             CoverageInstrumentation,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val res1 = it.execute(StaticExampleClass::inc, arrayOf())
             val coverageInfo1 = it.collectCoverage(StaticExampleClass::class.java)
 
@@ -43,10 +44,10 @@ class TestStaticMethods {
 
     @Test
     fun testNullableMethod() {
-        ConcreteExecutor(
+        withInstrumentation(
             CoverageInstrumentation,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val res1 = it.execute(
                 StaticExampleClass::canBeNull,
                 arrayOf(10,
@@ -74,10 +75,10 @@ class TestStaticMethods {
 
     @Test
     fun testNullableMethodWithoutAnnotations() {
-        ConcreteExecutor(
+        withInstrumentation(
             CoverageInstrumentation,
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val res1 = it.execute(
                 StaticExampleClass::canBeNullWithoutAnnotations,
                 arrayOf(10,

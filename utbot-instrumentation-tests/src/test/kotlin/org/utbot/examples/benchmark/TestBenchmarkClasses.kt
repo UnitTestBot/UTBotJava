@@ -9,6 +9,7 @@ import java.math.BigInteger
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.instrumentation.withInstrumentation
 import org.utbot.test.util.UtPair
 
 class TestBenchmarkClasses {
@@ -17,10 +18,10 @@ class TestBenchmarkClasses {
     @Test
     @Disabled("Ask Sergey to check")
     fun testRepeater() {
-        ConcreteExecutor(
+        withInstrumentation(
             CoverageInstrumentation,
             Repeater::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        )  {
             val dc0 = Repeater(", ")
             val res0 = it.execute(Repeater::concat, arrayOf(dc0, "flex", "mega-", 2))
             assertEquals("mega-mega-flex", res0.getOrNull())
@@ -35,10 +36,10 @@ class TestBenchmarkClasses {
 
     @Test
     fun testFibonacci() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             Fibonacci::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val res =
                 it.execute(
                     Fibonacci::calc,

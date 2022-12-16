@@ -38,6 +38,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
+import org.utbot.instrumentation.withInstrumentation
 import kotlin.reflect.jvm.kotlinFunction
 
 object UtBotJavaApi {
@@ -67,20 +68,19 @@ object UtBotJavaApi {
 
         val testSets: MutableList<UtMethodTestSet> = generatedTestCases.toMutableList()
 
-        val concreteExecutor = ConcreteExecutor(
+        return withInstrumentation(
             UtExecutionInstrumentation,
             classpath,
             dependencyClassPath
-        )
+        ) { concreteExecutor ->
+            testSets.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))
 
-        testSets.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))
+            if (stopConcreteExecutorOnExit) {
+                concreteExecutor.close()
+            }
 
-        if (stopConcreteExecutorOnExit) {
-            concreteExecutor.close()
-        }
-
-        return withUtContext(utContext) {
-            val codeGenerator = CodeGenerator(
+            return@withInstrumentation withUtContext(utContext) {
+                val codeGenerator = CodeGenerator(
                     classUnderTest = classUnderTest.id,
                     testFramework = testFramework,
                     mockFramework = mockFramework,
@@ -91,7 +91,8 @@ object UtBotJavaApi {
                     testClassPackageName = testClassPackageName
                 )
 
-            codeGenerator.generateAsString(testSets, destinationClassName)
+                codeGenerator.generateAsString(testSets, destinationClassName)
+            }
         }
     }
 

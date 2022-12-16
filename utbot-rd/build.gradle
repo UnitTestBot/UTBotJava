@@ -181,6 +181,15 @@ task generateCommonModels(type: RdGenTask) {
         directory = generatedOutputDir.canonicalPath
         namespace = "org.utbot.rd.generated"
     }
+
+    rdParams.generator {
+        language = "kotlin"
+        transform = "symmetric"
+        root = "org.utbot.rd.models.LoggerRoot"
+
+        directory = generatedOutputDir.canonicalPath
+        namespace = "org.utbot.rd.generated"
+    }
 }
 
 task generateCSharpModels(type: RdGenTask) {

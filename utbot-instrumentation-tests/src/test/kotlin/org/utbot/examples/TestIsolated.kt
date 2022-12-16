@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import org.utbot.instrumentation.withInstrumentation
 
 class TestIsolated {
     lateinit var utContext: AutoCloseable
@@ -20,10 +21,10 @@ class TestIsolated {
     @Test
     fun testCatchTargetException() {
         val javaClass = ExampleClass::class.java
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             javaClass.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
 
             val isolatedFunction = Isolated(ExampleClass::kek2, it)
@@ -36,10 +37,10 @@ class TestIsolated {
 
     @Test
     fun testWrongArgumentsException() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
             val isolatedFunction = Isolated(ExampleClass::bar, it)
 
@@ -62,10 +63,10 @@ class TestIsolated {
 
     @Test
     fun testSameResult() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
 
             val isolatedFunction = Isolated(ExampleClass::dependsOnFieldReturn, it)
@@ -80,10 +81,10 @@ class TestIsolated {
 
     @Test
     fun testEmptyMethod() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             ExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val testObject = ExampleClass()
 
             val isolatedFunction = Isolated(ExampleClass::emptyMethod, it)
@@ -96,10 +97,10 @@ class TestIsolated {
 
     @Test
     fun testStaticMethodCall() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val isolatedFunctionInc = Isolated(StaticExampleClass::inc, it)
 
             val res1 = isolatedFunctionInc()
@@ -115,10 +116,10 @@ class TestIsolated {
 
     @Test
     fun testNullableMethod() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeInstrumentation(),
             StaticExampleClass::class.java.protectionDomain.codeSource.location.path
-        ).use {
+        ) {
             val isolatedFunction = Isolated(StaticExampleClass::canBeNull, it)
 
             val res1 = isolatedFunction(10, "123")

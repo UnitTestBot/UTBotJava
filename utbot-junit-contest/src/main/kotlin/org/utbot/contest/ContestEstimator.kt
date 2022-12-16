@@ -464,7 +464,6 @@ fun runEstimator(
     }
 
     logger.info { globalStats }
-    ConcreteExecutor.defaultPool.close()
 
     return globalStats
 }

@@ -9,11 +9,12 @@ import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentatio
 import org.utbot.instrumentation.instrumentation.coverage.collectCoverage
 import org.utbot.instrumentation.util.StaticEnvironment
 import kotlinx.coroutines.runBlocking
+import org.utbot.instrumentation.withInstrumentation
 
 fun methodCoverage(executable: ExecutableId, executions: List<UtValueExecution<*>>, classpath: String): Coverage {
     val methodSignature = executable.signature
     val classId = executable.classId
-    return ConcreteExecutor(CoverageInstrumentation, classpath).let { executor ->
+    return withInstrumentation(CoverageInstrumentation, classpath) { executor ->
         for (execution in executions) {
             val args = execution.stateBefore.params.map { it.value }.toMutableList()
             val caller = execution.stateBefore.caller

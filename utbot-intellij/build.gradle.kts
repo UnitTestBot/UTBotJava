@@ -13,6 +13,10 @@ val pythonUltimatePluginVersion: String? by rootProject
 val pythonIde: String? by rootProject
 val jsIde: String? by rootProject
 
+val includePythonInBuild: String by rootProject
+val includeJsInBuild: String by rootProject
+val includeAndroidStudioInBuild: String by rootProject
+
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
 val rdVersion: String? by rootProject
@@ -113,15 +117,17 @@ dependencies {
     implementation(project(":utbot-ui-commons"))
 
     //Family
-    if (pythonIde?.split(',')?.contains(ideType) == true) {
+    if (includePythonInBuild.toBoolean() && pythonIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-python"))
         implementation(project(":utbot-intellij-python"))
     }
 
-    if (jsIde?.split(',')?.contains(ideType) == true) {
+    if (includeJsInBuild.toBoolean() && jsIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-js"))
         implementation(project(":utbot-intellij-js"))
     }
 
-    implementation(project(":utbot-android-studio"))
+    if (includeAndroidStudioInBuild.toBoolean()) {
+        implementation(project(":utbot-android-studio"))
+    }
 }

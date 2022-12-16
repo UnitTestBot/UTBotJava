@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.instrumentation.withInstrumentation
 
 class TestInvokeWithStaticsInstrumentation {
     lateinit var utContext: AutoCloseable
@@ -34,10 +35,10 @@ class TestInvokeWithStaticsInstrumentation {
 
     @Test
     fun testIfBranches() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeWithStaticsInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val res = it.execute(StaticExampleClass::inc, arrayOf(), null)
             assertEquals(0, res.getOrNull())
 
@@ -51,10 +52,10 @@ class TestInvokeWithStaticsInstrumentation {
 
     @Test
     fun testHiddenClass1() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeWithStaticsInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val res = it.execute(TestedClass::slomayInts, arrayOf(), null)
             assertEquals(12, res.getOrNull())
 
@@ -70,10 +71,10 @@ class TestInvokeWithStaticsInstrumentation {
     @Disabled("Question: What to do when user hasn't provided all the used static fields?")
     @Test
     fun testHiddenClassRepeatCall() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeWithStaticsInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val se = StaticEnvironment(
                 TestedClass::x.fieldId to 0,
                 MyHiddenClass::var0.fieldId to 0
@@ -88,10 +89,10 @@ class TestInvokeWithStaticsInstrumentation {
 
     @Test
     fun testReferenceEquality() {
-        ConcreteExecutor(
+        withInstrumentation(
             InvokeWithStaticsInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
 
             val thisObject = ReferenceEqualityExampleClass()
 

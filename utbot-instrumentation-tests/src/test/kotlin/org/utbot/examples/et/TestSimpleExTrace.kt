@@ -19,6 +19,7 @@ import org.utbot.instrumentation.util.Isolated
 import kotlin.reflect.full.declaredFunctions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.utbot.instrumentation.withInstrumentation
 
 
 class TestSimpleExTrace {
@@ -33,10 +34,10 @@ class TestSimpleExTrace {
      */
     @Test
     fun testClassSimple() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val alwaysThrows = Isolated(ClassSimple::alwaysThrows, it)
             val maybeThrows = Isolated(ClassSimple::maybeThrows, it)
             val doesNotThrow = Isolated(ClassSimple::doesNotThrow, it)
@@ -88,10 +89,10 @@ class TestSimpleExTrace {
      */
     @Test
     fun testClasSimpleCatch() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val A = Isolated(ClassSimpleCatch::A, it)
             val A_catches = Isolated(ClassSimpleCatch::A_catches, it)
             val A_catchesWrongException = Isolated(ClassSimpleCatch::A_catchesWrongException, it)
@@ -158,10 +159,10 @@ class TestSimpleExTrace {
      */
     @Test
     fun testClassSimpleRecursive() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val A = Isolated(ClassSimpleRecursive::A, it)
             val A_recursive = Isolated(ClassSimpleRecursive::A_recursive, it)
 
@@ -227,10 +228,10 @@ class TestSimpleExTrace {
      */
     @Test
     fun testClassBinaryRecursionWithTrickyThrow() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ){
             val A = Isolated(ClassBinaryRecursionWithTrickyThrow::A, it)
             val A_catchesAll = Isolated(ClassBinaryRecursionWithTrickyThrow::A_catchesAll, it)
             val A_notAll = Isolated(ClassBinaryRecursionWithTrickyThrow::A_notAll, it)
@@ -346,10 +347,10 @@ class TestSimpleExTrace {
      */
     @Test
     fun testClassBinaryRecursionWithThrow() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val A = Isolated(ClassBinaryRecursionWithThrow::A, it)
             val B = Isolated(ClassBinaryRecursionWithThrow::class.declaredFunctions.first { it.name == "B" }, it)
 
@@ -435,10 +436,10 @@ class TestSimpleExTrace {
      */
     @Test
     fun testClassSimpleNPE() {
-        ConcreteExecutor(
+        withInstrumentation(
             ExecutionTraceInstrumentation(),
             CLASSPATH
-        ).use {
+        ) {
             val A = Isolated(ClassSimpleNPE::A, it)
             val B = Isolated(ClassSimpleNPE::B, it)
             val C = Isolated(ClassSimpleNPE::C, it)

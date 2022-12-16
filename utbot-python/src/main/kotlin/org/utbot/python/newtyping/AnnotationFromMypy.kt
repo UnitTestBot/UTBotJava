@@ -66,9 +66,16 @@ class VarDefinition(
     annotation: MypyAnnotation
 ): Definition(DefinitionType.Var, annotation)
 
+class ExpressionTypeFromMypy(
+    val startOffset: Long,
+    val endOffset: Long,
+    val type: MypyAnnotation
+)
+
 class MypyAnnotationStorage(
     val nodeStorage: Map<String, PythonAnnotationNode>,
-    val definitions: Map<String, Map<String, Definition>>
+    val definitions: Map<String, Map<String, Definition>>,
+    val types: Map<String, List<ExpressionTypeFromMypy>>
 ) {
     private fun initAnnotation(annotation: MypyAnnotation) {
         if (annotation.initialized)

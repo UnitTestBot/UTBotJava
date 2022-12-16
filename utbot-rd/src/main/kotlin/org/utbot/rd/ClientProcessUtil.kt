@@ -71,6 +71,8 @@ class IdleWatchdog(private val ldef: LifetimeDefinition, val timeout: Duration) 
         ldef.onTermination { synchronizer.close(CancellationException("Client terminated")) }
     }
 
+    var suspendTimeout = false
+
     /**
      * Execute block indicating that during this activity process should not die.
      * After block ended - idle timer restarts
@@ -105,7 +107,7 @@ class IdleWatchdog(private val ldef: LifetimeDefinition, val timeout: Duration) 
                         synchronizer.receive()
                     }
                 if (current == null) {
-                    if (lastState == State.ENDED) {
+                    if (lastState == State.ENDED && !suspendTimeout) {
                         // process is waiting for command more than expected, better die
                         logger.info { "terminating lifetime by timeout" }
                         stopProtocol()
@@ -153,12 +155,14 @@ class ClientProtocolBuilder {
                 SocketWire.Client(ldef, rdClientProtocolScheduler, port),
                 ldef
             )
-            val synchronizer = IdleWatchdog(ldef, timeout)
+            val watchdog = IdleWatchdog(ldef, timeout)
 
-            synchronizer.setupTimeout()
+            watchdog.setupTimeout()
             rdClientProtocolScheduler.pump(ldef) {
-                clientProtocol.synchronizationModel
-                clientProtocol.block(synchronizer)
+                clientProtocol.synchronizationModel.suspendTimeoutTimer.set { param ->
+                    watchdog.suspendTimeout = param
+                }
+                clientProtocol.block(watchdog)
             }
 
             signalProcessReady(port)
@@ -167,7 +171,7 @@ class ClientProtocolBuilder {
                 val answerFromMainProcess = sync.adviseForConditionAsync(ldef) {
                     if (it == "main") {
                         logger.trace { "received from main" }
-                        synchronizer.wrapActive {
+                        watchdog.wrapActive {
                             sync.fire("child")
                         }
                         true

@@ -116,17 +116,41 @@ sequenceDiagram
 
 TODO (Vassily Kudryashov)
 
-### Maven/gradle plugin
+### Gradle/Maven plugin
 
-TODO (Nikita Stroganov)
+> Modules:
+> [utbot-gradle](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-gradle),
+> [utbot-maven](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-maven)
+> 
+> Purpose: Plugins for Gradle/Maven build systems
 
-### Github action
+Plugins just provide user settings (such as test generation timeout, testing framework and so on) 
+to the `GenerateTestsAndSarifReportFacade` which runs test generation and creates SARIF reports.
 
-TODO (Nikita Stroganov)
+More information about both plugins can be found in the following design documents:
+- [utbot-gradle.md](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-gradle/docs/utbot-gradle.md)
+- [utbot-maven.md](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-maven/docs/utbot-maven.md)
+
+### GitHub action
+
+> Repository: [UTBotJava-action](https://github.com/UnitTestBot/UTBotJava-action)
+> 
+> Purpose: Display detected errors in the GitHub section "Security Code Scanning Alerts"
+
+UTBotJava-action uses our [gradle plugin](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-gradle) 
+to run UnitTestBot on the User's repository and then imports the SARIF output into the Security Code Scanning Alerts section,
+where the User can find all the displayed code errors.
+
+Please note that at the moment this action cannot work with Maven projects due to the fact that
+our [maven plugin](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-maven) is not published.
+
+More information about the action can be found [here](https://github.com/UnitTestBot/UTBotJava-action#readme).
+
+Also, there is a detailed [example](https://github.com/UnitTestBot/UTBotJava-action-example) of using UTBotJava-action.
 
 ### CLI
 
-TODO (Nikita Stroganov)
+TODO (???)
 
 ### Contest estimator
 Contest estimator runs UnitTestBot on the provided projects and returns the generation statistics such as instruction coverage.
@@ -213,10 +237,34 @@ Also, JavaDocs built in two modes: as plain text or in especial format enriched 
 
 This subsystem is fully located in the ```utbot-summary``` module.
 
-### Sarif report
-TODO (Nikita Stroganov)
+### SARIF report
 
+SARIF (Static Analysis Results Interchange Format) is a JSON–based format for displaying static analysis results. 
 
+All the necessary information about the format and its use can be found
+in the [official documentation](https://github.com/microsoft/sarif-tutorials/blob/main/README.md)
+and in the [GitHub wiki](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning) about it.
+
+In our project `SarifReport` class is responsible for generating reports.
+We use SARIF reports to display errors detected by UnitTestBot such as
+unchecked exceptions, overflows, assertion errors and so on.
+
+For example, for the class below
+```Java
+public class Main {
+    int example(int x) {
+        return 1 / x;
+    }
+}
+```
+
+We'll create a report which contains the following information:
+- `java.lang.ArithmeticException: / by zero` may occur in the line 3
+- The exception occurs if `x == 0`
+- To reproduce this error, the user can run the generated test `MainTest.testExampleThrowsAEWithCornerCase`
+- The exception stacktrace: 
+  - Main.example(Main.java:3)
+  - MainTest.testExampleThrowsAEWithCornerCase(MainTest.java:39)
 
 # Cross-cutting subsystems
 

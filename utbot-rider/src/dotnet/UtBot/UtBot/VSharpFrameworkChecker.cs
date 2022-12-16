@@ -1,15 +1,14 @@
-#nullable enable
 using System;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace UtBot;
 
-public class FrameworkChecker
+public class VSharpFrameworkChecker
 {
     private readonly int _majorVersion;
 
-    public FrameworkChecker()
+    public VSharpFrameworkChecker()
     {
         var dotnetInfo = RunDotnet(new ProcessStartInfo
         {
@@ -27,7 +26,7 @@ public class FrameworkChecker
             throw new Exception("Could not parse dotnet version");
     }
 
-    private static string? RunDotnet(ProcessStartInfo startInfo)
+    private static string RunDotnet(ProcessStartInfo startInfo)
     {
         startInfo.FileName = "dotnet";
         startInfo.RedirectStandardError = true;
@@ -47,5 +46,19 @@ public class FrameworkChecker
     public bool FrameworkSupportsProject(Version tfm)
     {
         return _majorVersion >= tfm.Major;
+    }
+
+    public static bool CanRunVSharp(Version tfm)
+    {
+        try
+        {
+            var checker = new VSharpFrameworkChecker();
+
+            return checker.FrameworkSupportsVSharp() && checker.FrameworkSupportsProject(tfm) && tfm.Major < 7;
+        }
+        catch (Exception _)
+        {
+            return false;
+        }
     }
 }

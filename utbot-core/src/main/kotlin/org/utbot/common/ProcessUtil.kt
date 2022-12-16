@@ -54,10 +54,9 @@ val currentProcessPid: Long
     get() =
         try {
             if (isJvm9Plus) {
-                ClassLoader.getSystemClassLoader().loadClass("java.lang.ProcessHandle").let {
-                    val handle = it.getDeclaredMethod("current").invoke(it)
-                    it.getDeclaredMethod("pid").invoke(handle) as Long
-                }
+                val handleClass = ClassLoader.getSystemClassLoader().loadClass("java.lang.ProcessHandle")
+                val handle = handleClass.getDeclaredMethod("current").invoke(handleClass)
+                handleClass.getDeclaredMethod("pid").invoke(handle) as Long
             } else {
                 if (isWindows) {
                     Kernel32.INSTANCE.GetCurrentProcessId()

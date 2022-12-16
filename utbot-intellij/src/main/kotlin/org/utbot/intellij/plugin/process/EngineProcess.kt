@@ -23,7 +23,7 @@ import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.framework.process.OpenModulesContainer
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.process.generated.Signature
+import org.utbot.framework.process.generated.MethodDescription
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.util.KryoHelper
@@ -32,12 +32,13 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
 import org.utbot.intellij.plugin.util.assertIsReadAccessAllowed
-import org.utbot.intellij.plugin.util.signature
+import org.utbot.intellij.plugin.util.methodDescription
 import org.utbot.rd.*
 import org.utbot.rd.exceptions.InstantProcessDeathException
 import org.utbot.rd.generated.SettingForResult
 import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
+import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
@@ -205,10 +206,10 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         assertIsNonDispatchThread()
         assertIsReadAccessAllowed()
 
-        val srcSignatures = srcMethods.map { it.signature() }
-        val rdSignatures = srcSignatures.map { Signature(it.name, it.parameterTypes) }
+        val srcDescriptions = srcMethods.map { it.methodDescription() }
+        val rdDescriptions = srcDescriptions.map { MethodDescription(it.name, it.containingClass, it.parameterTypes) }
         val binaryClassId = kryoHelper.writeObject(clazzId)
-        val arguments = FindMethodsInClassMatchingSelectedArguments(binaryClassId, rdSignatures)
+        val arguments = FindMethodsInClassMatchingSelectedArguments(binaryClassId, rdDescriptions)
         val result = engineModel.findMethodsInClassMatchingSelected.startBlocking(arguments)
 
         return kryoHelper.readObject(result.executableIds)
@@ -218,7 +219,7 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
         assertIsNonDispatchThread()
         assertIsReadAccessAllowed()
 
-        val bySignature = methods.associate { it.signature() to it.paramNames() }
+        val bySignature = methods.associate { it.methodDescription() to it.paramNames() }
         val arguments = FindMethodParamNamesArguments(
             kryoHelper.writeObject(classId),
             kryoHelper.writeObject(bySignature)
@@ -406,5 +407,15 @@ class EngineProcess private constructor(val project: Project, rdProcess: Process
             })
         }
         initSourceFindingStrategies()
+    }
+
+    fun <T> executeWithTimeoutSuspended(block: () -> T): T {
+        try {
+            protocol.synchronizationModel.suspendTimeoutTimer.startBlocking(true)
+            return block()
+        }
+        finally {
+            protocol.synchronizationModel.suspendTimeoutTimer.startBlocking(false)
+        }
     }
 }

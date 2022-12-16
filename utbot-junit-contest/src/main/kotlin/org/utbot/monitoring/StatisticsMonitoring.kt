@@ -3,10 +3,6 @@ package org.utbot.monitoring
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.job
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
@@ -19,7 +15,6 @@ import org.utbot.contest.GlobalStats
 import org.utbot.contest.Paths
 import org.utbot.contest.Tool
 import org.utbot.contest.runEstimator
-import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 
@@ -35,7 +30,7 @@ fun main(args: Array<String>) {
     val processedClassesThreshold = MonitoringSettings.processedClassesThreshold
     val timeLimit = MonitoringSettings.classTimeoutSeconds
 
-    val projects = MonitoringSettings.projects
+    val projects = listOf(MonitoringSettings.project)
     methodFilter = null
 
     val runTimeout = TimeUnit.MINUTES.toMillis(MonitoringSettings.runTimeoutMinutes.toLong())

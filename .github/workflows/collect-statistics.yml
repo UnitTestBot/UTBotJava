@@ -60,7 +60,7 @@ on:
 env:
   data_branch: monitoring-data
   data_path: monitoring/data
-  monitoring_properties: monitoring/monitoring.properties
+  monitoring_projects: monitoring/projects/
   push_script: monitoring/push_with_rebase.sh
   PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
   PUSHGATEWAY_ADDITIONAL_PATH: /pushgateway-custom
@@ -70,11 +70,24 @@ jobs:
   setup_matrix:
     runs-on: ubuntu-latest
     outputs:
+      projects: ${{ steps.set-matrix.outputs.projects }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Create matrix
         id: set-matrix
+        shell: bash
         run: |
+          read -r -a projects <<< $(ls --format=horizontal --indicator-style=none $monitoring_projects)
+          projects=(${projects[@]/#/\"})
+          projects=(${projects[@]/%/\"})
+          printf -v projects '%s,' "${projects[@]}"
+          projects=$(echo [${projects%,}])
+          echo "projects=$projects" >> $GITHUB_OUTPUT
+          echo $projects
+          
           arr=$(echo [$(seq -s , ${{ inputs.runners }})])
           echo "matrix=$arr" >> $GITHUB_OUTPUT
           echo $arr
@@ -83,7 +96,9 @@ jobs:
     needs: setup_matrix
     continue-on-error: true
     strategy:
+      max-parallel: 3
       matrix:
+        project: ${{ fromJson(needs.setup_matrix.outputs.projects) }}
         value: ${{ fromJson(needs.setup_matrix.outputs.matrix) }}
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
@@ -114,7 +129,7 @@ jobs:
           for i in $(seq ${{ inputs.run_number }})
           do
             java -jar \
-              -Dutbot.monitoring.settings.path=$monitoring_properties \
+              -Dutbot.monitoring.settings.path=$monitoring_projects/${{ matrix.project }}/monitoring.properties \
               utbot-junit-contest/build/libs/monitoring.jar \
               stats-$i.json
             mv logs/utbot.log logs/utbot-$i.log
@@ -139,7 +154,7 @@ jobs:
         id: insert
         shell: bash
         run: |
-          OUT_FILE="$data_path/$date-$short_commit-${{ matrix.value }}.json"
+          OUT_FILE="$data_path/$date-$short_commit-${{ matrix.project }}-${{ matrix.value }}.json"
           echo "output=$OUT_FILE" >> $GITHUB_OUTPUT
 
           INPUTS=($(seq ${{ inputs.run_number }}))
@@ -169,7 +184,7 @@ jobs:
       - name: Upload statistics
         uses: actions/upload-artifact@v3
         with:
-          name: statistics-${{ matrix.value }}
+          name: statistics-${{ matrix.value }}-${{ matrix.project }}
           path: ${{ steps.insert.outputs.output }}
 
       - name: Commit and push statistics
@@ -188,7 +203,7 @@ jobs:
         run: |
           python monitoring/prepare_metrics.py --stats_file $stats_file --output_file grafana_metrics.json
           chmod +x scripts/project/json_to_prometheus.py
-          python3 scripts/project/json_to_prometheus.py grafana_metrics.json | curl -u "${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }}" --data-binary @- "https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway-custom/instance/run-${{ matrix.value }}${PROM_ADDITIONAL_LABELS}"
+          python3 scripts/project/json_to_prometheus.py grafana_metrics.json | curl -u "${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }}" --data-binary @- "https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway-custom/instance/run-${{ matrix.value }}-${{ matrix.project }}${PROM_ADDITIONAL_LABELS}"
           echo "Please visit Grafana to check metrics: https://monitoring.utbot.org/d/m6bagaD4z/utbot-nightly-statistic"
         env:
           stats_file: ${{ steps.insert.outputs.output }}
@@ -197,5 +212,13 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
-          name: logs-${{ matrix.value }}
+          name: logs-${{ matrix.value }}-${{ matrix.project }}
           path: logs/
+
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-${{ matrix.value }}-${{ matrix.project }}
+          path: |
+            /tmp/UTBot/generated*/*

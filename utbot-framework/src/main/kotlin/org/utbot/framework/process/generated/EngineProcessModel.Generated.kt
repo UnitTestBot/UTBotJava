@@ -42,7 +42,7 @@ class EngineProcessModel private constructor(
             serializers.register(RenderParams)
             serializers.register(RenderResult)
             serializers.register(SetupContextParams)
-            serializers.register(Signature)
+            serializers.register(MethodDescription)
             serializers.register(FindMethodsInClassMatchingSelectedArguments)
             serializers.register(FindMethodsInClassMatchingSelectedResult)
             serializers.register(FindMethodParamNamesArguments)
@@ -71,9 +71,9 @@ class EngineProcessModel private constructor(
                 bind(lifetime, protocol, "EngineProcessModel")
             }
         }
-        
-        
-        const val serializationHash = -621732450296355904L
+
+
+        const val serializationHash = -6219345436129699239L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -180,7 +180,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:99]
+ * #### Generated from [EngineProcessModel.kt:100]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -243,7 +243,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:103]
+ * #### Generated from [EngineProcessModel.kt:104]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -300,11 +300,11 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:92]
+ * #### Generated from [EngineProcessModel.kt:93]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
-    val signatures: List<Signature>
+    val methodDescriptions: List<MethodDescription>
 ) : IPrintable {
     //companion
     
@@ -312,15 +312,15 @@ data class FindMethodsInClassMatchingSelectedArguments (
         override val _type: KClass<FindMethodsInClassMatchingSelectedArguments> = FindMethodsInClassMatchingSelectedArguments::class
         
         @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodsInClassMatchingSelectedArguments  {
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodsInClassMatchingSelectedArguments {
             val classId = buffer.readByteArray()
-            val signatures = buffer.readList { Signature.read(ctx, buffer) }
-            return FindMethodsInClassMatchingSelectedArguments(classId, signatures)
+            val methodDescriptions = buffer.readList { MethodDescription.read(ctx, buffer) }
+            return FindMethodsInClassMatchingSelectedArguments(classId, methodDescriptions)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: FindMethodsInClassMatchingSelectedArguments)  {
             buffer.writeByteArray(value.classId)
-            buffer.writeList(value.signatures) { v -> Signature.write(ctx, buffer, v) }
+            buffer.writeList(value.methodDescriptions) { v -> MethodDescription.write(ctx, buffer, v) }
         }
         
         
@@ -335,17 +335,17 @@ data class FindMethodsInClassMatchingSelectedArguments (
         if (other == null || other::class != this::class) return false
         
         other as FindMethodsInClassMatchingSelectedArguments
-        
+
         if (!(classId contentEquals other.classId)) return false
-        if (signatures != other.signatures) return false
+        if (methodDescriptions != other.methodDescriptions) return false
         
         return true
     }
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + classId.contentHashCode()
-        __r = __r*31 + signatures.hashCode()
+        __r = __r * 31 + classId.contentHashCode()
+        __r = __r * 31 + methodDescriptions.hashCode()
         return __r
     }
     //pretty print
@@ -353,7 +353,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
         printer.println("FindMethodsInClassMatchingSelectedArguments (")
         printer.indent {
             print("classId = "); classId.print(printer); println()
-            print("signatures = "); signatures.print(printer); println()
+            print("methodDescriptions = "); methodDescriptions.print(printer); println()
         }
         printer.print(")")
     }
@@ -363,7 +363,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:96]
+ * #### Generated from [EngineProcessModel.kt:97]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -606,7 +606,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:111]
+ * #### Generated from [EngineProcessModel.kt:112]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -699,7 +699,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:120]
+ * #### Generated from [EngineProcessModel.kt:121]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -831,9 +831,81 @@ data class JdkInfo (
 
 
 /**
+ * #### Generated from [EngineProcessModel.kt:88]
+ */
+data class MethodDescription(
+    val name: String,
+    val containingClass: String?,
+    val parametersTypes: List<String?>
+) : IPrintable {
+    //companion
+
+    companion object : IMarshaller<MethodDescription> {
+        override val _type: KClass<MethodDescription> = MethodDescription::class
+
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): MethodDescription {
+            val name = buffer.readString()
+            val containingClass = buffer.readNullable { buffer.readString() }
+            val parametersTypes = buffer.readList { buffer.readNullable { buffer.readString() } }
+            return MethodDescription(name, containingClass, parametersTypes)
+        }
+
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: MethodDescription) {
+            buffer.writeString(value.name)
+            buffer.writeNullable(value.containingClass) { buffer.writeString(it) }
+            buffer.writeList(value.parametersTypes) { v -> buffer.writeNullable(v) { buffer.writeString(it) } }
+        }
+
+
+    }
+
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+
+        other as MethodDescription
+
+        if (name != other.name) return false
+        if (containingClass != other.containingClass) return false
+        if (parametersTypes != other.parametersTypes) return false
+
+        return true
+    }
+
+    //hash code trait
+    override fun hashCode(): Int {
+        var __r = 0
+        __r = __r * 31 + name.hashCode()
+        __r = __r * 31 + if (containingClass != null) containingClass.hashCode() else 0
+        __r = __r * 31 + parametersTypes.hashCode()
+        return __r
+    }
+
+    //pretty print
+    override fun print(printer: PrettyPrinter) {
+        printer.println("MethodDescription (")
+        printer.indent {
+            print("name = "); name.print(printer); println()
+            print("containingClass = "); containingClass.print(printer); println()
+            print("parametersTypes = "); parametersTypes.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
  * #### Generated from [EngineProcessModel.kt:64]
  */
-data class RenderParams (
+data class RenderParams(
     val testSetsId: Long,
     val classUnderTest: ByteArray,
     val paramNames: ByteArray,
@@ -1092,69 +1164,6 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:88]
- */
-data class Signature (
-    val name: String,
-    val parametersTypes: List<String?>
-) : IPrintable {
-    //companion
-    
-    companion object : IMarshaller<Signature> {
-        override val _type: KClass<Signature> = Signature::class
-        
-        @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): Signature  {
-            val name = buffer.readString()
-            val parametersTypes = buffer.readList { buffer.readNullable { buffer.readString() } }
-            return Signature(name, parametersTypes)
-        }
-        
-        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: Signature)  {
-            buffer.writeString(value.name)
-            buffer.writeList(value.parametersTypes) { v -> buffer.writeNullable(v) { buffer.writeString(it) } }
-        }
-        
-        
-    }
-    //fields
-    //methods
-    //initializer
-    //secondary constructor
-    //equals trait
-    override fun equals(other: Any?): Boolean  {
-        if (this === other) return true
-        if (other == null || other::class != this::class) return false
-        
-        other as Signature
-        
-        if (name != other.name) return false
-        if (parametersTypes != other.parametersTypes) return false
-        
-        return true
-    }
-    //hash code trait
-    override fun hashCode(): Int  {
-        var __r = 0
-        __r = __r*31 + name.hashCode()
-        __r = __r*31 + parametersTypes.hashCode()
-        return __r
-    }
-    //pretty print
-    override fun print(printer: PrettyPrinter)  {
-        printer.println("Signature (")
-        printer.indent {
-            print("name = "); name.print(printer); println()
-            print("parametersTypes = "); parametersTypes.print(printer); println()
-        }
-        printer.print(")")
-    }
-    //deepClone
-    //contexts
-}
-
-
-/**
  * #### Generated from [EngineProcessModel.kt:36]
  */
 data class TestGeneratorParams (
@@ -1230,7 +1239,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:106]
+ * #### Generated from [EngineProcessModel.kt:107]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

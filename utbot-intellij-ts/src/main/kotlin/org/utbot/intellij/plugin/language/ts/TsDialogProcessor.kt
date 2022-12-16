@@ -1,6 +1,6 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
-import api.JsTestGenerator
+import api.TsTestGenerator
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.lang.ecmascript6.psi.ES6Class
 import com.intellij.lang.javascript.psi.JSFile
@@ -15,19 +15,16 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
-import com.intellij.util.concurrency.AppExecutorUtil
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import settings.JsDynamicSettings
-import settings.JsExportsSettings.endComment
-import settings.JsExportsSettings.startComment
-import settings.JsTestGenerationSettings.dummyClassName
+import settings.TsDynamicSettings
+import settings.TsTestGenerationSettings.dummyClassName
 
-object JsDialogProcessor {
+object TsDialogProcessor {
 
     fun createDialogAndGenerateTests(
         project: Project,
@@ -41,7 +38,7 @@ object JsDialogProcessor {
         createDialog(project, srcModule, fileMethods, focusedMethod, containingFilePath, file)?.let { dialogProcessor ->
             if (!dialogProcessor.showAndGet()) return
             /*
-                Since Tern.js accesses containing file, sync with file system required before test generation.
+                Since Tern.ts accesses containing file, sync with file system required before test generation.
              */
             runWriteAction {
                 with(FileDocumentManager.getInstance()) {
@@ -59,7 +56,7 @@ object JsDialogProcessor {
         focusedMethod: JSMemberInfo?,
         filePath: String,
         file: JSFile
-    ): JsDialogWindow? {
+    ): TsDialogWindow? {
         val testModules = srcModule.testModules(project)
 
         if (testModules.isEmpty()) {
@@ -71,8 +68,8 @@ object JsDialogProcessor {
             return null
         }
 
-        return JsDialogWindow(
-            JsTestsModel(
+        return TsDialogWindow(
+            TsTestsModel(
                 project = project,
                 srcModule = srcModule,
                 potentialTestModules = testModules,
@@ -92,7 +89,7 @@ object JsDialogProcessor {
         }
     }
 
-    private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor) {
+    private fun createTests(model: TsTestsModel, containingFilePath: String, editor: Editor) {
         val normalizedContainingFilePath = containingFilePath.replace(File.separator, "/")
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {
@@ -102,9 +99,8 @@ object JsDialogProcessor {
                     model.testSourceRoot!!
                 )
                 val testFileName = normalizedContainingFilePath.substringAfterLast("/")
-                    .replace(Regex(".js"), "Test.js")
-                val testGenerator = JsTestGenerator(
-                    fileText = editor.document.text,
+                    .replace(Regex(".ts"), "Test.ts")
+                val testGenerator = TsTestGenerator(
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),
@@ -118,13 +114,12 @@ object JsDialogProcessor {
                         if (name == dummyClassName) null else name
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace(File.separator, "/"),
-                    exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project),
-                    settings = JsDynamicSettings(
-                        pathToNode = model.pathToNode,
+                    settings = TsDynamicSettings(
                         pathToNYC = model.pathToNYC,
-                        pathToNPM = model.pathToNPM,
                         timeout = model.timeout,
-                        coverageMode = model.coverageMode
+                        coverageMode = model.coverageMode,
+                        tsNycModulePath = model.tsNycModulePath,
+                        tsModulePath = model.tsModulePath,
                     )
                 )
 
@@ -136,7 +131,7 @@ object JsDialogProcessor {
                     runWriteAction {
                         val testPsiFile =
                             testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
-                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                                .createFileFromText(testFileName, TsLanguageAssistant.tsLanguage, generatedCode)
                         val testFileEditor =
                             CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
                         unblockDocument(project, testFileEditor.document)
@@ -147,63 +142,5 @@ object JsDialogProcessor {
                 }
             }
         }).queue()
-    }
-
-    private fun <A, B, C> partialApplication(f: (A, B, C) -> Unit, a: A, b: B): (C) -> Unit {
-        return { c: C -> f(a, b, c) }
-    }
-
-    private fun manageExports(editor: Editor, project: Project, exports: List<String>) {
-        AppExecutorUtil.getAppExecutorService().submit {
-            invokeLater {
-                val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
-                val fileText = editor.document.text
-                when {
-                    fileText.contains(exportSection) -> {}
-
-                    fileText.contains(startComment) && !fileText.contains(exportSection) -> {
-                        val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
-                        regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                            val exportRegex = Regex("exports[.](.*) =")
-                            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
-                            val existingExportsSet = existingExports.map { rawLine ->
-                                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
-                            }.toSet()
-                            val resultSet = existingExportsSet + exports.toSet()
-                            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-                            runWriteAction {
-                                with(editor.document) {
-                                    unblockDocument(project, this)
-                                    setText(swappedText)
-                                    unblockDocument(project, this)
-                                }
-                                with(FileDocumentManager.getInstance()) {
-                                    saveDocument(editor.document)
-                                }
-                            }
-                        }
-                    }
-
-                    else -> {
-                        val line = buildString {
-                            append("\n$startComment\n")
-                            append(exportSection)
-                            append("\n$endComment")
-                        }
-                        runWriteAction {
-                            with(editor.document) {
-                                unblockDocument(project, this)
-                                setText(fileText + line)
-                                unblockDocument(project, this)
-                            }
-                            with(FileDocumentManager.getInstance()) {
-                                saveDocument(editor.document)
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }

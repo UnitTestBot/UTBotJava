@@ -31,6 +31,7 @@ private fun loadWithException(language: Language): Class<*>? {
         return when (language.id) {
             "Python" -> Class.forName("org.utbot.intellij.plugin.language.python.PythonLanguageAssistant")
             "ECMAScript 6" -> Class.forName("org.utbot.intellij.plugin.language.js.JsLanguageAssistant")
+            "TypeScript" -> Class.forName("org.utbot.intellij.plugin.language.ts.TsLanguageAssistant")
             "JAVA", "kotlin" -> Class.forName("org.utbot.intellij.plugin.language.JvmLanguageAssistant")
             else -> error("Unknown language id: ${language.id}")
         }

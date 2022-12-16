@@ -1,14 +1,14 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import org.utbot.common.PathUtil.replaceSeparator
-import settings.JsDynamicSettings
+import settings.TsDynamicSettings
 
 
-class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton() {
+class NycSourceFileChooser(val model: TsTestsModel) : TextFieldWithBrowseButton() {
 
 
     init {
@@ -23,7 +23,7 @@ class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton(
         addBrowseFolderListener(
             TextBrowseFolderListener(descriptor, model.project)
         )
-        text = replaceSeparator(getFrameworkLibraryPath(JsDynamicSettings().pathToNYC, model) ?: "Nyc was not found")
+        text = replaceSeparator(getFrameworkLibraryPath("nyc", model) ?: "Nyc was not found")
     }
 
     fun validateNyc(): ValidationInfo? {

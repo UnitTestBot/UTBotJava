@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
 import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreterManager
 import com.intellij.lang.javascript.refactoring.ui.JSMemberSelectionTable
@@ -26,9 +26,9 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
-import settings.JsTestGenerationSettings.defaultTimeout
+import settings.TsTestGenerationSettings.defaultTimeout
 
-class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
+class TsDialogWindow(val model: TsTestsModel) : DialogWrapper(model.project) {
 
     private val items = model.fileMethods
 
@@ -40,12 +40,14 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     private val nodeInterp = try {
         NodeJsLocalInterpreterManager.getInstance().interpreters.first()
     } catch (e: NoSuchElementException) {
-        throw IllegalStateException("Node.js interpreter is not set in the IDEA settings!")
+        throw IllegalStateException("Node.ts interpreter is not set in the IDEA settings!")
     }
 
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
     private val nycSourceFileChooserField = NycSourceFileChooser(model)
+    private val nycModuleFileChooserField = TsNycModuleChooser(model)
+    private val typescriptModuleFileChooser = TsTypescriptModuleChooser(model)
     private val coverageMode = CoverageModeButtons
 
 //    private var initTestFrameworkPresenceThread: Thread
@@ -66,7 +68,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.pathToNode = "node"
         title = "Generate Tests with UtBot"
 //        initTestFrameworkPresenceThread = thread(start = true) {
-//            JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
+//            TsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
 //                it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()), model)
 //            }
 //        }
@@ -91,13 +93,19 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
             row("Nyc source path:") {
                 component(nycSourceFileChooserField)
             }
+            row("Nyc ts module path") {
+                component(nycModuleFileChooserField)
+            }
+            row("TypeScript module path") {
+                component(typescriptModuleFileChooser)
+            }
             row("Coverage mode:") {
                 panelWithHelpTooltip("Fast mode can't find timeouts, but works faster") {
                     component(coverageMode.fastButton)
                     component(coverageMode.baseButton)
                 }
             }
-            row("Timeout for Node.js (in seconds):") {
+            row("Timeout for Node.ts (in seconds):") {
                 panelWithHelpTooltip("The execution timeout") {
                     component(timeoutSpinner)
                     component(JBLabel("sec"))
@@ -127,6 +135,8 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
         model.pathToNYC = nycSourceFileChooserField.text
+        model.tsNycModulePath = nycModuleFileChooserField.text
+        model.tsModulePath = typescriptModuleFileChooser.text
         model.coverageMode = coverageMode.mode
         File(testSourceFolderField.text).mkdir()
         model.testSourceRoot =

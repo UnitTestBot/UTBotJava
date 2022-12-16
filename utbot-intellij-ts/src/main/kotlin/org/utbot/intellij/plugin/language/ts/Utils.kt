@@ -1,15 +1,15 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
 import com.intellij.openapi.ui.Messages
-import utils.JsCmdExec
-import utils.OsProvider
+import utils.TsCmdExec
+import utils.TsOsProvider
 
-fun getFrameworkLibraryPath(npmPackageName: String, model: JsTestsModel): String? {
-    val (bufferedReader, errorReader) = JsCmdExec.runCommand(
+fun getFrameworkLibraryPath(npmPackageName: String, model: TsTestsModel): String? {
+    val (bufferedReader, errorReader) = TsCmdExec.runCommand(
         dir = model.project.basePath!!,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(OsProvider.getProviderByOs().getAbstractivePathTool(), model.pathToNYC)
+        cmd = arrayOf(TsOsProvider.getProviderByOs().getAbstractivePathTool(), model.pathToNYC)
     )
     val input = bufferedReader.readText()
     val error = errorReader.readText()
@@ -33,8 +33,8 @@ fun getFrameworkLibraryPath(npmPackageName: String, model: JsTestsModel): String
     return input.substringBefore(npmPackageName) + npmPackageName
 }
 
-fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
-    val (bufferedReader, _) = JsCmdExec.runCommand(
+fun findFrameworkLibrary(npmPackageName: String, model: TsTestsModel): Boolean {
+    val (bufferedReader, _) = TsCmdExec.runCommand(
         dir = model.project.basePath!!,
         shouldWait = true,
         timeout = 10,
@@ -45,7 +45,7 @@ fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
     if (checkForPackageText == "") {
         Messages.showErrorDialog(
             model.project,
-            "Node.js is not installed",
+            "Node.ts is not installed",
             "Generation Failed",
         )
         return false

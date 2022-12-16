@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
@@ -6,10 +6,10 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.intellij.plugin.models.BaseTestsModel
-import service.CoverageMode
-import settings.JsTestGenerationSettings.defaultTimeout
+import service.TsCoverageMode
+import settings.TsTestGenerationSettings.defaultTimeout
 
-class JsTestsModel(
+class TsTestsModel(
     project: Project,
     srcModule: Module,
     potentialTestModules: List<Module>,
@@ -24,8 +24,10 @@ class JsTestsModel(
 
     lateinit var testFramework: TestFramework
     lateinit var containingFilePath: String
+    lateinit var tsNycModulePath: String
+    lateinit var tsModulePath: String
     var pathToNode: String = "node"
     var pathToNYC: String = "nyc"
     var pathToNPM: String = "npm"
-    var coverageMode: CoverageMode = CoverageMode.FAST
+    var coverageMode: TsCoverageMode = TsCoverageMode.FAST
 }

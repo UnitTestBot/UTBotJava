@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
 import com.intellij.lang.Language
 import com.intellij.lang.ecmascript6.psi.ES6Class
@@ -17,12 +17,12 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.idea.util.projectStructure.module
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
-import settings.JsTestGenerationSettings.dummyClassName
+import settings.TsTestGenerationSettings.dummyClassName
 
-object JsLanguageAssistant : LanguageAssistant() {
+object TsLanguageAssistant : LanguageAssistant() {
 
-    private const val jsId = "ECMAScript 6"
-    val jsLanguage: Language = Language.findLanguageByID(jsId) ?: error("JavaScript language wasn't found")
+    private const val tsId = "TypeScript"
+    val tsLanguage: Language = Language.findLanguageByID(tsId) ?: error("TypeScript language wasn't found")
 
     private data class PsiTargets(
         val methods: Set<JSMemberInfo>,
@@ -36,7 +36,7 @@ object JsLanguageAssistant : LanguageAssistant() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val (methods, focusedMethod, module, containingFilePath, editor, file) = getPsiTargets(e) ?: return
-        JsDialogProcessor.createDialogAndGenerateTests(
+        TsDialogProcessor.createDialogAndGenerateTests(
             project = project,
             srcModule = module,
             fileMethods = methods,
@@ -126,9 +126,9 @@ object JsLanguageAssistant : LanguageAssistant() {
     private fun generateMemberInfo(
         project: Project,
         methods: List<JSFunction>,
-        jsClass: JSClass? = null
+        tsClass: JSClass? = null
     ): Set<JSMemberInfo> {
-        jsClass?.let {
+        tsClass?.let {
             val res = mutableListOf<JSMemberInfo>()
             JSMemberInfo.extractClassMembers(it, res) { member ->
                 member is JSFunction
@@ -137,7 +137,7 @@ object JsLanguageAssistant : LanguageAssistant() {
         }
         val strClazz = buildClassStringFromMethods(methods)
         val abstractPsiFile = PsiFileFactory.getInstance(project)
-            .createFileFromText(jsLanguage, strClazz)
+            .createFileFromText(tsLanguage, strClazz)
         val clazz = PsiTreeUtil.getChildOfType(abstractPsiFile, JSClass::class.java)
         val res = mutableListOf<JSMemberInfo>()
         JSMemberInfo.extractClassMembers(clazz!!, res) { true }

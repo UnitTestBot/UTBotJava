@@ -59,7 +59,7 @@ intellij {
     )
 
     val tsPlugins = listOf(
-        "TypeScriptLanguage"
+        "JavaScript"
     )
 
     plugins.set(

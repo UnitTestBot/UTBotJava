@@ -1,11 +1,11 @@
-package org.utbot.intellij.plugin.language.js
+package org.utbot.intellij.plugin.language.ts
 
-import service.CoverageMode
 import javax.swing.JToggleButton
+import service.TsCoverageMode
 
 object CoverageModeButtons {
 
-    var mode = CoverageMode.FAST
+    var mode = TsCoverageMode.FAST
     val baseButton = JToggleButton("Basic")
     val fastButton = JToggleButton("Fast")
 
@@ -13,13 +13,13 @@ object CoverageModeButtons {
         val baseButtonModel = baseButton.model
         baseButtonModel.addChangeListener {
             if (baseButtonModel.isPressed) {
-                mode = CoverageMode.BASIC
+                mode = TsCoverageMode.BASIC
             }
         }
         val fastButtonModel = fastButton.model
         fastButtonModel.addChangeListener {
             if (baseButtonModel.isPressed) {
-                mode = CoverageMode.FAST
+                mode = TsCoverageMode.FAST
             }
         }
     }

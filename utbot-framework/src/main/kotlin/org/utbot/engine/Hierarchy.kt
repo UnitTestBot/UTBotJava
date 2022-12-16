@@ -1,7 +1,6 @@
 package org.utbot.engine
 
-import org.utbot.common.WorkaroundReason
-import org.utbot.common.workaround
+import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.TypeRegistry
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.id
@@ -35,9 +34,7 @@ class Hierarchy(private val typeRegistry: TypeRegistry) {
 
         // java.lang.Thread class has package-private fields, that can be used outside the class.
         // Since wrapper UtThread does not inherit java.lang.Thread, we cannot use this inheritance condition only
-        val realTypeHasFieldByName = workaround(WorkaroundReason.TAINT){
-            realType.sootClass.getFieldByNameUnsafe(field.name) != null
-        }
+        val realTypeHasFieldByName = realType.sootClass.getFieldByNameUnsafe(field.name) != null
         val realTypeIsInheritor = realFieldDeclaringType.sootClass in ancestors(realType.sootClass.id)
 
         if (!realTypeIsInheritor && !realTypeHasFieldByName) {

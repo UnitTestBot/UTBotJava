@@ -8,6 +8,7 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
@@ -225,7 +226,7 @@ object CodeGenerationController {
             .doInspections(AnalysisScope(model.project))
     }
 
-    private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) = runReadAction {
+    private fun proceedTestReport(proc: EngineProcess, model: GenerateTestsModel) {
         try {
             // Parametrized tests are not supported in tests report yet
             // TODO JIRA:1507
@@ -675,8 +676,7 @@ object CodeGenerationController {
         run(THREAD_POOL, indicator, "Rendering test code") {
             val (generatedTestsCode, utilClassKind) = try {
                 val paramNames = try {
-                    DumbService.getInstance(model.project)
-                        .runReadActionInSmartMode(Computable { proc.findMethodParamNames(classUnderTest, classMethods) })
+                    proc.findMethodParamNames(classUnderTest, classMethods)
                 } catch (e: Exception) {
                     logger.warn(e) { "Cannot find method param names for ${classUnderTest.name}" }
                     reportsCountDown.countDown()
@@ -833,24 +833,26 @@ object CodeGenerationController {
     }
 
 
-    private fun eventLogMessage(project: Project): String? {
-        if (ToolWindowManager.getInstance(project).getToolWindow("Event Log") != null)
-            return     """
+    private fun eventLogMessage(project: Project): String? = runReadAction {
+        return@runReadAction if (ToolWindowManager.getInstance(project).getToolWindow("Event Log") != null)
+            """
             <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.eventLogSuffix}">See details in Event Log</a>.
         """.trimIndent()
-        return null
+        else null
     }
 
     private fun showTestsReport(proc: EngineProcess, model: GenerateTestsModel) {
         val (notifyMessage, statistics, hasWarnings) = proc.generateTestsReport(model, eventLogMessage(model.project))
 
-        if (hasWarnings) {
-            WarningTestsReportNotifier.notify(notifyMessage)
-        } else {
-            TestsReportNotifier.notify(notifyMessage)
-        }
+        runReadAction {
+            if (hasWarnings) {
+                WarningTestsReportNotifier.notify(notifyMessage)
+            } else {
+                TestsReportNotifier.notify(notifyMessage)
+            }
 
-        statistics?.let { DetailsTestsReportNotifier.notify(it) }
+            statistics?.let { DetailsTestsReportNotifier.notify(it) }
+        }
     }
 
     @Suppress("unused")

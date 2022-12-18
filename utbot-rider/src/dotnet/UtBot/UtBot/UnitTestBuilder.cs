@@ -60,7 +60,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
         var descriptors = new List<MethodDescriptor>();
         foreach (var inputElement in context.InputElements.WithProgress(progress, "Generating Unit tests")
                      .OfType<GeneratorDeclaredElement<IMethod>>())
-            descriptors.Add(new MethodDescriptor(inputElement.DeclaredElement.ShortName, typeElement.ShortName));
+            descriptors.Add(new MethodDescriptor(inputElement.DeclaredElement.ShortName, typeElement.GetClrName().FullName));
 
         var progressLifetimeDef = _lifetime.CreateNested();
         var indicator =

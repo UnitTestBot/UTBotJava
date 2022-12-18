@@ -31,7 +31,7 @@ public static class VSharpMain
         using var fs = File.OpenRead(assemblyPath);
         var ass = assemblyLoadContext.LoadFromStream(fs);
         var type = ass.GetType(descriptor.TypeName, throwOnError: false);
-        if (type?.Name != descriptor.TypeName)
+        if (type?.FullName != descriptor.TypeName)
             throw new InvalidDataException($"cannot find type - {descriptor.TypeName}");
         var methodInfo = type.GetMethod(descriptor.MethodName,
             BindingFlags.Instance

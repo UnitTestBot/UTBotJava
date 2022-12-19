@@ -39,6 +39,7 @@ import soot.NullType
 import soot.PrimType
 import soot.RefType
 import soot.Scene
+import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
@@ -344,7 +345,8 @@ internal val CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR: MemoryChunkDescriptor
         IntType.v()
     )
 
-internal val CLASS_REF_SOOT_CLASS = Scene.v().getSootClass(CLASS_REF_CLASSNAME)
+internal val CLASS_REF_SOOT_CLASS: SootClass
+    get() = Scene.v().getSootClass(CLASS_REF_CLASSNAME)
 
 internal val OBJECT_TYPE: RefType
     get() = Scene.v().getSootClass(Object::class.java.canonicalName).type

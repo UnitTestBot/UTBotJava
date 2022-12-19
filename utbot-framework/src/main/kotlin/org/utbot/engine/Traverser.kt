@@ -88,6 +88,7 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.CLASS_REF_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
@@ -423,8 +424,11 @@ class Traverser(
     private fun TraversalContext.pushInitGraphAfterNewInstanceReflectionCall(stmt: JAssignStmt): Boolean {
         // Check whether the previous stmt was a `newInstance` invocation
         val lastStmt = environment.state.path.lastOrNull() as? JAssignStmt ?: return false
-        val lastStmtRight = lastStmt.rightOp as? JVirtualInvokeExpr ?: return false
-        val lastMethodInvocation = lastStmtRight.retrieveMethod()
+        if (!lastStmt.containsInvokeExpr()) {
+            return false
+        }
+
+        val lastMethodInvocation = lastStmt.invokeExpr.method
         if (lastMethodInvocation.subSignature != NEW_INSTANCE_SIGNATURE) {
             return false
         }
@@ -2963,8 +2967,9 @@ class Traverser(
             }
         }
 
-        // Return an unbounded symbolic variable for any `forName` overloading
-        if (instance == null && invocation.method.name == "forName") {
+        // Return an unbounded symbolic variable for any overloading of method `forName` of class `java.lang.Class`
+        // NOTE: we cannot match by a subsignature here since `forName` method has a few overloadings
+        if (instance == null && invocation.method.declaringClass == CLASS_REF_SOOT_CLASS && invocation.method.name == "forName") {
             val forNameResult = unboundedVariable(name = "classForName", invocation.method)
 
             return OverrideResult(success = true, forNameResult)

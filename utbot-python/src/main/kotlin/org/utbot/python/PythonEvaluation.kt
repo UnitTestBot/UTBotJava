@@ -1,6 +1,7 @@
 package org.utbot.python
 
 import com.beust.klaxon.Klaxon
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtModel
@@ -15,6 +16,7 @@ import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
 import java.io.File
 
+private val logger = KotlinLogging.logger {}
 
 sealed class PythonEvaluationResult
 
@@ -113,7 +115,14 @@ fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>, input:
 }
 
 fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): PythonEvaluationResult {
+    logger.info("Start evaluation ${input.method.name} with ${input.methodArguments}")
     val result = getResult(process.process, timeout = timeout)
+    logger.info {
+        "Evaluation with arguments ${input.methodArguments} finished:"
+        "Exit value: ${result.exitValue}"
+        "Stdout: ${result.stdout}"
+        "Stderr: ${result.stderr}"
+    }
     process.fileWithCode.delete()
 
     if (result.terminatedByTimeout)

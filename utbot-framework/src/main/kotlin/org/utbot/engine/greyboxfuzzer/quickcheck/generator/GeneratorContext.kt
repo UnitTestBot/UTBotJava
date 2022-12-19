@@ -1,6 +1,6 @@
 package org.utbot.engine.greyboxfuzzer.quickcheck.generator
 
-import org.utbot.framework.concrete.UtModelConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import java.util.*
 
 data class GeneratorContext(

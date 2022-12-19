@@ -4,7 +4,10 @@ import org.objectweb.asm.Type
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
-import org.utbot.framework.assemble.AssembleModelGenerator
+import org.utbot.framework.concrete.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.framework.concrete.constructors.MockValueConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.concrete.mock.InstrumentationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.isInaccessibleViaReflection

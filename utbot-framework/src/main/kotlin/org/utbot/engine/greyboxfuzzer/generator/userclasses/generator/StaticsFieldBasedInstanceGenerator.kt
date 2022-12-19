@@ -5,7 +5,7 @@ import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.engine.greyboxfuzzer.util.hasModifiers
 import org.utbot.engine.greyboxfuzzer.util.toClass
 import org.utbot.external.api.classIdForType
-import org.utbot.framework.concrete.UtModelConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import ru.vyarus.java.generics.resolver.context.GenericsContext

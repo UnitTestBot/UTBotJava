@@ -3,7 +3,7 @@ package org.utbot.engine.greyboxfuzzer.util
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
 import org.utbot.engine.greyboxfuzzer.generator.*
 import org.utbot.external.api.classIdForType
-import org.utbot.framework.concrete.UtModelConstructor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import java.lang.reflect.Method

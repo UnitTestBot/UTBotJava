@@ -1,5 +1,8 @@
 package org.utbot.framework.concrete
 
+import org.utbot.framework.concrete.constructors.UtAssembleModelConstructorBase
+import org.utbot.framework.concrete.constructors.UtModelConstructorInterface
+import org.utbot.framework.concrete.constructors.checkClassCast
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel

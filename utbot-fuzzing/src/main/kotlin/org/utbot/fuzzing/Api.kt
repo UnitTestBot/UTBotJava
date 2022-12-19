@@ -347,7 +347,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         }
     }
     if (candidates.isEmpty()) {
-        error("Unknown type: $type")
+        error("No seed candidates generated for type: $type")
     }
     return candidates.random(random)
 }

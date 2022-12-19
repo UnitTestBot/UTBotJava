@@ -13,7 +13,7 @@ class GenerateTestsAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
         val languageAssistant = LanguageAssistant.get(e)
-        if (languageAssistant == null) {
+        if (languageAssistant == null || !accessByProjectSettings(e)) {
             e.presentation.isEnabled = false
         } else {
             languageAssistant.update(e)

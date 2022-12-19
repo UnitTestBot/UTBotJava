@@ -339,7 +339,7 @@ class UtBotSymbolicEngine(
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names ?: emptyList()
-
+        var testEmittedByFuzzer = 0
         runJavaFuzzing(
             defaultIdGenerator,
             methodUnderTest,
@@ -349,6 +349,7 @@ class UtBotSymbolicEngine(
         ) { thisInstance, descr, values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
+                logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
 
@@ -404,6 +405,7 @@ class UtBotSymbolicEngine(
                 )
             )
 
+            testEmittedByFuzzer++
             BaseFeedback(result = trieNode ?: Trie.emptyNode(), control = Control.CONTINUE)
         }
     }

@@ -1,5 +1,6 @@
 package org.utbot.fuzzing
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.Instruction
@@ -8,6 +9,10 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.providers.*
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.*
+import java.util.concurrent.TimeUnit
+import kotlin.system.measureNanoTime
+
+private val logger = KotlinLogging.logger {}
 
 typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>
 
@@ -91,12 +96,25 @@ suspend fun runJavaFuzzing(
     val tracer = Trie(Instruction::id)
     val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer)
     val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer)
-    runFuzzing(ValueProvider.of(providers), descriptionWithOptionalThisInstance) { _, t ->
-        if (thisInstance == null) {
-            exec(null, descriptionWithOnlyParameters, t)
-        } else {
-            exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
+    try {
+        logger.info { "Starting fuzzing for method: $methodUnderTest" }
+        logger.info { "\tuse thisInstance = ${thisInstance != null}" }
+        logger.info { "\tparameters = $parameters" }
+        var totalExecutionCalled = 0
+        val totalFuzzingTime = measureNanoTime {
+            runFuzzing(ValueProvider.of(providers), descriptionWithOptionalThisInstance) { _, t ->
+                totalExecutionCalled++
+                if (thisInstance == null) {
+                    exec(null, descriptionWithOnlyParameters, t)
+                } else {
+                    exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
+                }
+            }
         }
+        logger.info { "Finishing fuzzing for method: $methodUnderTest in ${TimeUnit.NANOSECONDS.toMillis(totalFuzzingTime)} ms" }
+        logger.info { "\tTotal execution called: $totalExecutionCalled" }
+    } catch (t: Throwable) {
+        logger.info(t) { "Fuzzing is stopped because of an error" }
     }
 }
 

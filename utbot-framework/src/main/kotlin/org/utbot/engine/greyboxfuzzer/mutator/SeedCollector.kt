@@ -1,31 +1,29 @@
 package org.utbot.engine.greyboxfuzzer.mutator
 
-import org.utbot.engine.greyboxfuzzer.util.getTrue
-import kotlin.math.abs
 import kotlin.random.Random
 
-class SeedCollector(private val maxSize: Int = 50, private val methodLines: Set<Int>) {
+class SeedCollector(private val maxSize: Int = 50, private val methodInstructionsIds: Set<Long>) {
     private val seeds = ArrayList<Seed>(maxSize)
 
-    fun calcSeedScore(coverage: Set<Int>): Double =
-        coverage.sumOf { line ->
-            val numOfSeedCoveredLine = seeds.count { it.lineCoverage.contains(line) }
-            if (numOfSeedCoveredLine == 0) {
+    fun calcSeedScore(coverage: Set<Long>): Double =
+        coverage.sumOf { instruction ->
+            val numOfSeedCoveredInstructions = seeds.count { it.instructionCoverage.contains(instruction) }
+            if (numOfSeedCoveredInstructions == 0) {
                 Double.MAX_VALUE
             } else {
-                1.0 / numOfSeedCoveredLine
+                1.0 / numOfSeedCoveredInstructions
             }
         }
 
     private fun recalculateSeedScores() {
         seeds.forEach { seed ->
-            seed.score = calcSeedScore(seed.lineCoverage)
+            seed.score = calcSeedScore(seed.instructionCoverage)
         }
     }
 
     fun isSeedOpensNewCoverage(seed: Seed): Boolean {
-        val oldCoverage = seeds.flatMap { it.lineCoverage }.toSet()
-        return seed.lineCoverage.any { !oldCoverage.contains(it) }
+        val oldCoverage = seeds.flatMap { it.instructionCoverage }.toSet()
+        return seed.instructionCoverage.any { !oldCoverage.contains(it) }
     }
 
     fun addSeed(seed: Seed) {

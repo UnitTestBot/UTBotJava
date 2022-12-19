@@ -1,5 +1,7 @@
 package org.utbot.engine.greyboxfuzzer
 
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.flow
 import org.utbot.engine.*
 import org.utbot.engine.greyboxfuzzer.generator.*
 import org.utbot.engine.greyboxfuzzer.mutator.Mutator
@@ -12,8 +14,8 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.sootMethod
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
+import java.lang.reflect.Executable
 import java.lang.reflect.Field
-import java.lang.reflect.Method
 import kotlin.random.Random
 
 class GreyBoxFuzzer(
@@ -23,24 +25,19 @@ class GreyBoxFuzzer(
     private val timeBudgetInMillis: Long
 ) {
 
-    private val methodLines =
-        methodUnderTest.sootMethod.activeBody.units
-            .map { it.javaSourceStartLineNumber }
-            .filter { it != -1 }
-            .toSet()
-    private val seeds = SeedCollector(methodLines = methodLines)
-    private val succeededExecutions = mutableListOf<UtGreyBoxFuzzedExecution>()
+    private var methodInstructionsIds: Set<Long>? = null
+    private var seeds: SeedCollector? = null
     private val timeRemain
         get() = timeOfStart + timeBudgetInMillis - System.currentTimeMillis()
     private val timeOfStart = System.currentTimeMillis()
-    private val percentageOfTimeBudgetToChangeMode = 10
+    private val percentageOfTimeBudgetToChangeMode = 25
 
-    suspend fun fuzz(): Sequence<UtExecution> {
+    suspend fun fuzz() = flow {
         logger.debug { "Started to fuzz ${methodUnderTest.name}" }
         val generatorContext = GeneratorContext()
         val javaClazz = methodUnderTest.classId.jClass
         val sootMethod = methodUnderTest.sootMethod
-        val javaMethod = sootMethod.toJavaMethod()!!
+        val javaMethod = sootMethod.toJavaMethod() ?: return@flow
         val classFieldsUsedByFunc = sootMethod.getClassFieldsUsedByFunc(javaClazz)
         while (timeRemain > 0 || !isMethodCovered()) {
             explorationStage(
@@ -49,15 +46,14 @@ class GreyBoxFuzzer(
                 methodUnderTest,
                 generatorContext
             )
-            logger.debug { "SEEDS AFTER EXPLORATION STAGE = ${seeds.seedsSize()}" }
+            logger.debug { "SEEDS AFTER EXPLORATION STAGE = ${seeds?.seedsSize()}" }
             if (timeRemain < 0 || isMethodCovered()) break
             exploitationStage()
         }
-        return succeededExecutions.asSequence()
     }
 
-    private suspend fun explorationStage(
-        method: Method,
+    private suspend fun FlowCollector<UtExecution>.explorationStage(
+        method: Executable,
         classFieldsUsedByFunc: Set<Field>,
         methodUnderTest: ExecutableId,
         generatorContext: GeneratorContext
@@ -112,8 +108,8 @@ class GreyBoxFuzzer(
                             parameter,
                             index,
                             generatorContext,
-                            GreyBoxFuzzerGenerators.sourceOfRandomness,
-                            GreyBoxFuzzerGenerators.genStatus
+                            GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
+                            GreyBoxFuzzerGeneratorsAndSettings.genStatus
                         )
                     }
                 logger.debug { "Generated params = $generatedParameters" }
@@ -123,23 +119,27 @@ class GreyBoxFuzzer(
                 try {
                     logger.debug { "Execution started" }
                     val executionResult = execute(stateBefore, methodUnderTest)
+                    if (methodInstructionsIds == null) {
+                        methodInstructionsIds = executionResult.methodInstructionsIds
+                        seeds = SeedCollector(methodInstructionsIds = methodInstructionsIds!!)
+                    }
+                    seeds ?: continue
                     logger.debug { "Execution result: $executionResult" }
                     val seedCoverage = getCoverage(executionResult)
                     logger.debug { "Calculating seed score" }
-                    val seedScore = seeds.calcSeedScore(seedCoverage)
+                    val seedScore = seeds!!.calcSeedScore(seedCoverage)
                     logger.debug { "Adding seed" }
                     val seed = Seed(thisInstance, generatedParameters, seedCoverage, seedScore)
-                    if (seeds.isSeedOpensNewCoverage(seed)) {
-                        succeededExecutions.add(
+                    if (seeds!!.isSeedOpensNewCoverage(seed)) {
+                        emit(
                             UtGreyBoxFuzzedExecution(
                                 stateBefore,
-                                executionResult.result,
-                                coverage = executionResult.coverage,
-                                testMethodName = methodUnderTest.name
+                                executionResult,
+                                coverage = executionResult.coverage
                             )
                         )
                     }
-                    seeds.addSeed(seed)
+                    seeds!!.addSeed(seed)
                     logger.debug { "Execution result: ${executionResult.result}" }
                     logger.debug { "Seed score = $seedScore" }
                 } catch (e: Throwable) {
@@ -154,10 +154,10 @@ class GreyBoxFuzzer(
         }
     }
 
-    private suspend fun exploitationStage() {
+    private suspend fun FlowCollector<UtExecution>.exploitationStage() {
         logger.debug { "Exploitation began" }
-        if (seeds.seedsSize() == 0) return
-        if (seeds.all { it.parameters.isEmpty() }) return
+        if (seeds == null || seeds!!.seedsSize() == 0) return
+        if (seeds!!.all { it.parameters.isEmpty() }) return
         val startTime = System.currentTimeMillis()
         val endTime = startTime + timeBudgetInMillis / percentageOfTimeBudgetToChangeMode
         var iterationNumber = 0
@@ -167,13 +167,13 @@ class GreyBoxFuzzer(
             if (iterationNumber > 30_000) return
             logger.debug { "Func: ${methodUnderTest.name} Mutation iteration number $iterationNumber" }
             iterationNumber++
-            val randomSeed = seeds.getRandomWeightedSeed()
+            val randomSeed = seeds!!.getRandomWeightedSeed()
             logger.debug { "Random seed params = ${randomSeed.parameters}" }
             val mutatedSeed =
                 Mutator.mutateSeed(
                     randomSeed,
-                    GreyBoxFuzzerGenerators.sourceOfRandomness,
-                    GreyBoxFuzzerGenerators.genStatus
+                    GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
+                    GreyBoxFuzzerGeneratorsAndSettings.genStatus
                 )
             if (mutatedSeed == randomSeed) {
                 logger.debug { "Cant mutate seed" }
@@ -186,17 +186,16 @@ class GreyBoxFuzzer(
                 logger.debug { "Execution result: $executionResult" }
                 val seedScore = getCoverage(executionResult)
                 mutatedSeed.score = 0.0
-                if (seeds.isSeedOpensNewCoverage(mutatedSeed)) {
-                    succeededExecutions.add(
+                if (seeds!!.isSeedOpensNewCoverage(mutatedSeed)) {
+                    emit(
                         UtGreyBoxFuzzedExecution(
                             stateBefore,
-                            executionResult.result,
-                            coverage = executionResult.coverage,
-                            testMethodName = methodUnderTest.name
+                            executionResult,
+                            coverage = executionResult.coverage
                         )
                     )
                 }
-                seeds.addSeed(mutatedSeed)
+                seeds!!.addSeed(mutatedSeed)
                 logger.debug { "Execution result: ${executionResult.result}" }
                 logger.debug { "Seed score = $seedScore" }
             } catch (e: Throwable) {
@@ -208,23 +207,25 @@ class GreyBoxFuzzer(
 
     private fun getCoverage(
         executionResult: UtFuzzingConcreteExecutionResult
-    ): Set<Int> {
+    ): Set<Long> {
         val currentMethodCoverage = executionResult.coverage.coveredInstructions
             .asSequence()
+            .filter { it.className == methodUnderTest.classId.name.replace('.', '/') }
             .filter { it.methodSignature == methodUnderTest.signature }
-            .map { it.lineNumber }
-            .filter { it in methodLines }
+            .map { it.id }
+            .filter { it in methodInstructionsIds!! }
             .toSet()
-        logger.debug { "Covered lines $currentMethodCoverage from $methodLines" }
-        executionResult.coverage.coveredInstructions.forEach { CoverageCollector.coverage.add(it) }
+        logger.debug { "Covered instructions ${currentMethodCoverage.count()} from ${methodInstructionsIds!!.size}" }
+        executionResult.coverage.coveredInstructions.forEach { CoverageCollector.addCoverage(it) }
         return currentMethodCoverage
     }
 
     private fun isMethodCovered(): Boolean {
-        val coveredLines =
-            CoverageCollector.coverage.filter { it.methodSignature == methodUnderTest.signature }.map { it.lineNumber }
+        methodInstructionsIds ?: return false
+        val coveredInstructions =
+            CoverageCollector.coverage.filter { it.methodSignature == methodUnderTest.signature }.map { it.id }
                 .toSet()
-        return coveredLines.containsAll(methodLines)
+        return coveredInstructions.containsAll(methodInstructionsIds!!)
     }
 
     private suspend fun ConcreteExecutor<UtFuzzingConcreteExecutionResult, UtFuzzingExecutionInstrumentation>.executeConcretely(
@@ -253,12 +254,12 @@ class GreyBoxFuzzer(
 
 
     private fun generateThisInstance(classId: ClassId, generatorContext: GeneratorContext): ThisInstance =
-        if (!methodUnderTest.isStatic) {
+        if (!methodUnderTest.isStatic && !methodUnderTest.isConstructor) {
             DataGenerator.generateThis(
                 classId,
                 generatorContext,
-                GreyBoxFuzzerGenerators.sourceOfRandomness,
-                GreyBoxFuzzerGenerators.genStatus
+                GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
+                GreyBoxFuzzerGeneratorsAndSettings.genStatus
             )
         } else {
             StaticMethodThisInstance

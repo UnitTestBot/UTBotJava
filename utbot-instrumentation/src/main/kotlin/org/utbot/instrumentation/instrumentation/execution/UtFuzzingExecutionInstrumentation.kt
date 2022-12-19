@@ -22,7 +22,8 @@ import kotlin.reflect.jvm.javaMethod
 
 class UtFuzzingConcreteExecutionResult(
     val result: UtExecutionResult,
-    val coverage: Coverage
+    val coverage: Coverage,
+    val methodInstructionsIds: Set<Long>
 ) {}
 
 
@@ -95,17 +96,22 @@ object UtFuzzingExecutionInstrumentation : Instrumentation<UtFuzzingConcreteExec
                 val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
                 utModelConstructor.run {
                     val concreteUtModelResult = concreteResult?.fold({
-                        UtExecutionSuccessConcrete(it)
+                        UtExecutionSuccess(UtNullModel(it?.javaClass?.id ?: objectClassId))
                     }) {
                         sortOutException(it)
-                    } ?: UtExecutionSuccessConcrete(null)
+                    } ?: UtExecutionSuccess(UtNullModel(objectClassId))
+                    val coverage = traceList.toApiCoverage(
+                        traceHandler.processingStorage.getInstructionsCount(
+                            Type.getInternalName(clazz)
+                        )
+                    )
+                    val classJVMName = clazz.name.replace('.', '/')
+                    val methodInstructions = traceHandler.getMethodInstructions(classJVMName, methodSignature)
+                    val methodInstructionsIds = methodInstructions.map { it.key }.toSet()
                     UtFuzzingConcreteExecutionResult(
                         concreteUtModelResult,
-                        traceList.toApiCoverage(
-                            traceHandler.processingStorage.getInstructionsCount(
-                                Type.getInternalName(clazz)
-                            )
-                        )
+                        coverage,
+                        methodInstructionsIds
                     )
                 }
             }

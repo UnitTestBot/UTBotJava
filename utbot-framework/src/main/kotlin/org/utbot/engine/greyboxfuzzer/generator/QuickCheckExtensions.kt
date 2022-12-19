@@ -10,7 +10,6 @@ import org.utbot.engine.greyboxfuzzer.generator.userclasses.UserClassGenerator
 import org.utbot.engine.greyboxfuzzer.util.*
 import org.utbot.engine.logger
 import org.utbot.engine.rawType
-import org.utbot.engine.greyboxfuzzer.quickcheck.generator.ComponentizedGenerator
 import org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator
 import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.FakeAnnotatedTypeFactory
@@ -87,7 +86,7 @@ fun GeneratorRepository.getOrProduceGenerator(
     depth: Int
 ): Generator? {
     val producedUserClassesGenerators = mutableListOf<UserClassGenerator>()
-    parameterTypeContext.getAllSubParameterTypeContexts(GreyBoxFuzzerGenerators.sourceOfRandomness).reversed()
+    parameterTypeContext.getAllSubParameterTypeContexts(GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness).reversed()
         .forEach { typeContext ->
             try {
                 this.produceGenerator(typeContext)

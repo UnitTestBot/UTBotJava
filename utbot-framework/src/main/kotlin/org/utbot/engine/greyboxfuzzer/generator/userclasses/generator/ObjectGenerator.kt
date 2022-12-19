@@ -1,10 +1,9 @@
 package org.utbot.engine.greyboxfuzzer.generator.userclasses.generator
 
-import org.utbot.engine.greyboxfuzzer.generator.GreyBoxFuzzerGenerators
+import org.utbot.engine.greyboxfuzzer.generator.GreyBoxFuzzerGeneratorsAndSettings
 import org.utbot.engine.greyboxfuzzer.generator.getOrProduceGenerator
 import org.utbot.engine.greyboxfuzzer.util.getAllTypesFromCastAndInstanceOfInstructions
 import org.utbot.engine.greyboxfuzzer.util.getTrue
-import org.utbot.engine.greyboxfuzzer.util.toJavaClass
 import org.utbot.engine.greyboxfuzzer.util.toSootMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -30,13 +29,13 @@ class ObjectGenerator(
         val potentialInterestingObjectReplacement =
             if (potentialUsefulClasses?.isNotEmpty() == true && Random.getTrue(70)) {
                 val randomClass = potentialUsefulClasses.random()
-                val generator = GreyBoxFuzzerGenerators.generatorRepository
+                val generator = GreyBoxFuzzerGeneratorsAndSettings.generatorRepository
                     .getOrProduceGenerator(randomClass, generatorContext)
                     ?.also { it.generatorContext = generatorContext }
                 generator?.generateImpl(sourceOfRandomness, generationStatus)
             } else null
         potentialInterestingObjectReplacement?.let { return it }
-        val generator = GreyBoxFuzzerGenerators.generatorRepository
+        val generator = GreyBoxFuzzerGeneratorsAndSettings.generatorRepository
             .getGenerators()
             .toList()
             .flatMap { it.second }

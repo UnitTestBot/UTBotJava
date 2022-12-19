@@ -11,7 +11,6 @@ import ru.vyarus.java.generics.resolver.context.GenericsInfo
 import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.*
-import java.lang.reflect.Array as RArray
 import kotlin.random.Random
 
 fun Class<*>.getAllDeclaredFields(): List<Field> {
@@ -28,8 +27,9 @@ fun Class<*>.getAllDeclaredFields(): List<Field> {
     return res
 }
 
-fun Class<*>.getAllDeclaredMethods(): List<Method> {
-    val res = mutableListOf<Method>()
+fun Class<*>.getAllDeclaredMethodsAndConstructors(): List<Executable> {
+    val res = mutableListOf<Executable>()
+    res.addAll(declaredConstructors)
     var current: Class<*>? = this
     while (current != null) {
         res.addAll(current.declaredMethods)

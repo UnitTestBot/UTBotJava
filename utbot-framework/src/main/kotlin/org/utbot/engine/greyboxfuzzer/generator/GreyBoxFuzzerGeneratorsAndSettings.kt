@@ -12,7 +12,7 @@ import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
-object GreyBoxFuzzerGenerators {
+object GreyBoxFuzzerGeneratorsAndSettings {
 
     const val seed = 42L
     val maxDepthOfGeneration = AtomicInteger(5)

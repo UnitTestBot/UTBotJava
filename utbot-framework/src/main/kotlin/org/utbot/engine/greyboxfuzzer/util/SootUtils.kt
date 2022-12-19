@@ -12,6 +12,7 @@ import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JCastExpr
 import soot.jimple.internal.JInstanceFieldRef
 import soot.jimple.internal.JInstanceOfExpr
+import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -126,8 +127,8 @@ fun Method.toSootMethod(): SootMethod? {
     }
 }
 
-fun SootMethod.toJavaMethod(): Method? =
-    declaringClass.toJavaClass()?.getAllDeclaredMethods()?.find {
+fun SootMethod.toJavaMethod(): Executable? =
+    declaringClass.toJavaClass()?.getAllDeclaredMethodsAndConstructors()?.find {
         it.signature == this.bytecodeSignature.drop(1).dropLast(1).substringAfter("${declaringClass.name}: ")
     }
 
@@ -181,7 +182,7 @@ object SootStaticsCollector {
                 .filter { !it.toString().contains('$') }
                 .toList()
         }
-        val javaMethodsToProvideInstance = sootMethodsToProvideInstance.mapNotNull { it.toJavaMethod() }
+        val javaMethodsToProvideInstance = sootMethodsToProvideInstance.mapNotNull { it.toJavaMethod() as? Method }
         classToStaticMethodsInstanceProviders[clazz] = javaMethodsToProvideInstance
         return javaMethodsToProvideInstance
     }

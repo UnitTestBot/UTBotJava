@@ -22,10 +22,6 @@ sealed class UtExecutionFailure : UtExecutionResult() {
         get() = exception
 }
 
-data class UtExecutionSuccessConcrete(val result: Any?) : UtExecutionResult() {
-    override fun toString() = "$result"
-}
-
 data class UtOverflowFailure(
     override val exception: Throwable,
 ) : UtExecutionFailure()
@@ -110,11 +106,9 @@ inline fun UtExecutionResult.onFailure(action: (exception: Throwable) -> Unit): 
 fun UtExecutionResult.getOrThrow(): UtModel = when (this) {
     is UtExecutionSuccess -> model
     is UtExecutionFailure -> throw exception
-    is UtExecutionSuccessConcrete -> UtNullModel(objectClassId)
 }
 
 fun UtExecutionResult.exceptionOrNull(): Throwable? = when (this) {
     is UtExecutionFailure -> rootCauseException
     is UtExecutionSuccess -> null
-    is UtExecutionSuccessConcrete -> null
 }

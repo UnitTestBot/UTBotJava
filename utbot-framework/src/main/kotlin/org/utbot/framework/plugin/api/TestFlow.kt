@@ -61,7 +61,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
     fun build(engine: UtBotSymbolicEngine): Flow<UtResult>  {
         return when {
             generationTimeout == 0L -> emptyFlow()
-            isGreyBoxFuzzingEnabled -> engine.greyBoxFuzzing(System.currentTimeMillis() + generationTimeout)
+            isGreyBoxFuzzingEnabled -> engine.greyBoxFuzzing(generationTimeout)
             isFuzzingEnabled -> {
                 when (val value = if (isSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
                     0L -> engine.traverse()

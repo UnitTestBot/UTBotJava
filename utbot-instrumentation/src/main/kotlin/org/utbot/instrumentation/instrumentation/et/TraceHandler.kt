@@ -62,7 +62,7 @@ class ProcessingStorage {
     private val classMethodToId = mutableMapOf<ClassToMethod, Int>()
     private val idToClassMethod = mutableMapOf<Int, ClassToMethod>()
 
-    private val instructionsData = mutableMapOf<Long, InstructionData>()
+    val instructionsData = mutableMapOf<Long, InstructionData>()
     private val classToInstructionsCount = mutableMapOf<String, Long>()
 
     fun addClass(className: String): Int {
@@ -219,6 +219,12 @@ class TraceHandler {
         }
         return instructionsList!!
     }
+
+    fun getMethodInstructions(className: String, methodSignature: String) =
+        processingStorage.instructionsData.entries.filter {
+            val insClassName = processingStorage.computeClassNameAndLocalId(it.key).first
+            insClassName == className && it.value.methodSignature == methodSignature
+        }
 
     fun computePutStatics(): List<FieldId> =
         computeInstructionList().map { it.instructionData }

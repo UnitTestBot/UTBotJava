@@ -60,8 +60,8 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
         if (Random.getTrue(5)) {
             return UtNullModel(clazz!!.id)
         }
-        if (depth >= GreyBoxFuzzerGenerators.maxDepthOfGeneration.toInt()) {
-            logger.debug { "Depth more than maxDepth ${GreyBoxFuzzerGenerators.maxDepthOfGeneration.toInt()}. Return UtNullModel" }
+        if (depth >= GreyBoxFuzzerGeneratorsAndSettings.maxDepthOfGeneration.toInt()) {
+            logger.debug { "Depth more than maxDepth ${GreyBoxFuzzerGeneratorsAndSettings.maxDepthOfGeneration.toInt()}. Return UtNullModel" }
             return UtNullModel(clazz!!.id)
         }
         val immutableClazz = clazz!!
@@ -84,7 +84,7 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
         }
         val resolvedJavaType = parameterTypeContext!!.generics.resolveType(parameterTypeContext!!.type())
         val gctx =
-            if (resolvedJavaType is Class<*>) {
+            if (resolvedJavaType is Class<*> && parameterTypeContext!!.generics.genericsInfo.rootClass == immutableClazz) {
                 parameterTypeContext!!.generics
             } else {
                 resolvedJavaType.createGenericsContext(immutableClazz)
@@ -93,8 +93,8 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
             return InterfaceImplementationsInstanceGenerator(
                 resolvedJavaType,
                 gctx,
-                GreyBoxFuzzerGenerators.sourceOfRandomness,
-                GreyBoxFuzzerGenerators.genStatus,
+                GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
+                GreyBoxFuzzerGeneratorsAndSettings.genStatus,
                 generatorContext,
                 depth
             ).generate()
@@ -103,8 +103,8 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
             clazz!!,
             gctx,
             resolvedJavaType,
-            GreyBoxFuzzerGenerators.sourceOfRandomness,
-            GreyBoxFuzzerGenerators.genStatus,
+            GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
+            GreyBoxFuzzerGeneratorsAndSettings.genStatus,
             generatorContext,
             depth
         )
@@ -116,8 +116,8 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
             gctx,
             parameterTypeContext!!.generics,
             generationMethod,
-            GreyBoxFuzzerGenerators.sourceOfRandomness,
-            GreyBoxFuzzerGenerators.genStatus,
+            GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
+            GreyBoxFuzzerGeneratorsAndSettings.genStatus,
             generatorContext,
             depth
         ).generate()

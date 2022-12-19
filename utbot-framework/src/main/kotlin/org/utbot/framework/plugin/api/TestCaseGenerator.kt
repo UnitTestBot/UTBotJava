@@ -232,7 +232,7 @@ open class TestCaseGenerator(
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
         if (UtSettings.useGreyBoxFuzzing) {
-            GreyBoxFuzzingStatisticPrinter.printFuzzingStats(methods)
+            GreyBoxFuzzingStatisticPrinter.printFuzzingStats(method2executions)
         }
         return methods.map { method ->
             UtMethodTestSet(

@@ -420,8 +420,8 @@ class UtBotSymbolicEngine(
     }
 
     //Simple fuzzing
-    fun greyBoxFuzzing(until: Long = Long.MAX_VALUE) =
-        flow<UtResult> {
+    fun greyBoxFuzzing(timeBudget: Long = Long.MAX_VALUE) =
+        flow {
             GenericsInfoFactory.disableCache()
             val isFuzzable = methodUnderTest.parameters.all { classId ->
                 classId != Method::class.java.id // causes the child process crash at invocation
@@ -431,12 +431,14 @@ class UtBotSymbolicEngine(
             }
 
             try {
-                GreyBoxFuzzer(
-                    concreteExecutor.pathsToUserClasses,
-                    concreteExecutor.pathsToDependencyClasses,
-                    methodUnderTest,
-                    120_000L
-                ).fuzz()
+                emitAll(
+                    GreyBoxFuzzer(
+                        concreteExecutor.pathsToUserClasses,
+                        concreteExecutor.pathsToDependencyClasses,
+                        methodUnderTest,
+                        timeBudget
+                    ).fuzz()
+                )
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }
             } catch (e: Throwable) {

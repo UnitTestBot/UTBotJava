@@ -5,15 +5,11 @@ import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.engine.greyboxfuzzer.util.hasModifiers
 import org.utbot.engine.greyboxfuzzer.util.toClass
 import org.utbot.external.api.classIdForType
-import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GenerationStatus
-import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.GenericsContext
 import java.lang.reflect.Field
-import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.*
 

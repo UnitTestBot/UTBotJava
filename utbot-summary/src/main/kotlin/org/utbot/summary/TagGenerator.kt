@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtExecutionSuccessConcrete
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.isCheckedException
@@ -221,7 +220,6 @@ private fun UtExecutionResult.clusterKind() = when (this) {
     is UtTimeoutException -> ExecutionGroup.TIMEOUTS
     is UtConcreteExecutionFailure -> ExecutionGroup.CRASH_SUITE
     is UtSandboxFailure -> ExecutionGroup.SECURITY
-    is UtExecutionSuccessConcrete -> ExecutionGroup.SUCCESSFUL_EXECUTIONS
 }
 
 /**

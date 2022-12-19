@@ -117,12 +117,12 @@ fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>, input:
 fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): PythonEvaluationResult {
     logger.info("Start evaluation ${input.method.name} with ${input.methodArguments}")
     val result = getResult(process.process, timeout = timeout)
-    logger.info {
-        "Evaluation with arguments ${input.methodArguments} finished:"
-        "Exit value: ${result.exitValue}"
-        "Stdout: ${result.stdout}"
+    logger.info(
+        "Evaluation with arguments ${input.methodArguments} finished; " +
+        "Exit value: ${result.exitValue}; " +
+        "Stdout: ${result.stdout}; " +
         "Stderr: ${result.stderr}"
-    }
+    )
     process.fileWithCode.delete()
 
     if (result.terminatedByTimeout)
@@ -146,6 +146,8 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
         )
 
     val status = output[0]
+
+    logger.info("Evaluation status: $status")
 
     if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
         return PythonEvaluationError(

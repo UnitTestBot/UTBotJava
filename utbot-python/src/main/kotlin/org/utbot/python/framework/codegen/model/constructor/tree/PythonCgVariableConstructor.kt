@@ -29,8 +29,8 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 is PythonBoolModel -> CgLiteral(model.classId, model.value)
                 is PythonPrimitiveModel -> CgLiteral(model.classId, model.value)
                 is PythonTreeModel -> {
-                    val (value, children) = pythonBuildObject2(model.tree)
-                    CgPythonTree(model.classId, model.tree, value, children)
+                    val value = pythonBuildObject2(model.tree)
+                    CgPythonTree(model.classId, model.tree, value)
                 }
                 is PythonInitObjectModel -> constructInitObjectModel(model, baseName)
                 is PythonDictModel -> CgPythonDict(model.stores.map {
@@ -58,51 +58,45 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
         }
     }
 
-    private fun pythonBuildObject2(objectNode: PythonTree.PythonTreeNode): Pair<CgValue, List<CgStatement>> {
+    private fun pythonBuildObject2(objectNode: PythonTree.PythonTreeNode): CgValue {
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
-                Pair(CgLiteral(objectNode.type, objectNode.repr), emptyList())
+                CgLiteral(objectNode.type, objectNode.repr)
             }
 
             is PythonTree.ListNode -> {
                 val items = objectNode.items.values.map { pythonBuildObject2(it) }
-                Pair(CgPythonList(items.map { it.first }), items.flatMap { it.second })
+                CgPythonList(items)
             }
 
             is PythonTree.TupleNode -> {
                 val items = objectNode.items.values.map { pythonBuildObject2(it) }
-                Pair(CgPythonTuple(items.map { it.first }), items.flatMap { it.second })
+                CgPythonTuple(items)
             }
 
             is PythonTree.SetNode -> {
                 val items = objectNode.items.map { pythonBuildObject2(it) }
-                Pair(CgPythonSet(items.map { it.first }.toSet()), items.flatMap { it.second })
+                CgPythonSet(items.toSet())
             }
 
             is PythonTree.DictNode -> {
                 val keys = objectNode.items.keys.map { pythonBuildObject2(it) }
                 val values = objectNode.items.values.map { pythonBuildObject2(it) }
-                Pair(CgPythonDict(
-                    keys.zip(values).map { (key, value) ->
-                        key.first to value.first
-                    }.toMap()
-                ), keys.flatMap { it.second } + values.flatMap { it.second })
+                CgPythonDict(
+                    keys.zip(values).associate { (key, value) ->
+                        key to value
+                    }
+                )
             }
 
             is PythonTree.ReduceNode -> {
                 val id = objectNode.id
-                val children = emptyList<CgStatement>().toMutableList()
                 if ((context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.containsKey(id)) {
-                    return Pair(
-                        (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id]!!,
-                        children
-                    )
+                    return (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id]!!
                 }
 
                 val initArgs = objectNode.args.map {
-                    val buildObj = pythonBuildObject2(it)
-                    children += buildObj.second
-                    buildObj.first
+                    pythonBuildObject2(it)
                 }
                 val constructor = ConstructorId(
                     objectNode.constructor,
@@ -112,31 +106,27 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 val obj = newVar(objectNode.type) {
                     constructorCall
                 }
-                children.add(CgAssignment(obj, constructorCall))
+//                obj `=` constructorCall
 
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
 
                 val state = objectNode.state.map { (key, value) ->
                     val buildObj = pythonBuildObject2(value)
-                    children.addAll(buildObj.second)
-                    key to buildObj.first
+                    key to buildObj
                 }.toMap()
                 val listitems = objectNode.listitems.map {
                     val buildObj = pythonBuildObject2(it)
-                    children.addAll(buildObj.second)
-                    buildObj.first
+                    buildObj
                 }
                 val dictitems = objectNode.dictitems.map { (key, value) ->
                     val keyObj = pythonBuildObject2(key)
                     val valueObj = pythonBuildObject2(value)
-                    children.addAll(keyObj.second)
-                    children.addAll(valueObj.second)
-                    keyObj.first to valueObj.first
+                    keyObj to valueObj
                 }
 
                 state.forEach { (key, value) ->
-                    val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
-                    children.add(CgAssignment(fieldAccess, value))
+//                    val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
+                    obj[FieldId(objectNode.type, key)] `=` value
                 }
                 listitems.forEach {
                     val methodCall = CgMethodCall(
@@ -149,7 +139,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                         ),
                         listOf(it)
                     )
-                    children.add(methodCall)
+                    +methodCall
                 }
                 dictitems.forEach { (key, value) ->
                     val index = CgPythonIndex(
@@ -157,10 +147,10 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                         obj,
                         key
                     )
-                    children.add(CgAssignment(index, value))
+                    index `=` value
                 }
 
-                return Pair(obj, children)
+                return obj
             }
 
             else -> {

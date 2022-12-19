@@ -127,11 +127,11 @@ class PythonCodeGenerator(
             val parameters = methodArguments.zip(arguments).map { (model, argument) ->
                 if (model is PythonTreeModel) {
                     val obj = (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor).getOrCreateVariable(model)
-                    (obj as CgPythonTree).children.forEach { it.accept(renderer) }
+//                    (obj as CgPythonTree).children.forEach { it.accept(renderer) }
 
                     CgAssignment(
                         argument,
-                        obj.value
+                        (obj as CgPythonTree).value
                     )
                 } else {
                     CgAssignment(argument, CgLiteral(model.classId, model.toString()))

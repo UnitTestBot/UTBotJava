@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.domain.models.CgAssignment
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgExpression
+import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
 import org.utbot.framework.codegen.domain.models.CgThisInstance
@@ -36,7 +37,7 @@ class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAcce
         CgIncompleteMethodCall(staticMethodId, CgThisInstance(pythonAnyClassId))
 
     override fun CgExpression.get(fieldId: FieldId): CgExpression {
-        TODO("Not yet implemented")
+        return CgFieldAccess(this, fieldId)
     }
 
     override fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
@@ -55,7 +56,7 @@ class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAcce
         args.forEach { arg ->
             if (arg is CgPythonTree) {
                 resolvedArgs.add(arg.value)
-                arg.children.forEach { +it }
+//                arg.children.forEach { +it }
             } else {
                 resolvedArgs.add(arg as CgExpression)
             }

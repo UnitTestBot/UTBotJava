@@ -510,7 +510,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonTree) {
-        element.children.forEach { it.accept(this) }
+//        element.children.forEach { it.accept(this) }
         element.value.accept(this)
     }
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <ThresholdFilter level="DEBUG"  onMatch="NEUTRAL"   onMismatch="DENY"/>
+<!--            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>-->
+        </Console>
+        <File name="FrameworkAppender"
+              append="false"
+              fileName="logs/utbotframework.log"
+              ignoreExceptions="false">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
+        </File>
+
+    </Appenders>
+    <Loggers>
+        <Logger name="org.utbot.framework" level="debug"/>
+        <Root level="debug">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FrameworkAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

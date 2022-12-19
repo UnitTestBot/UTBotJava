@@ -4,20 +4,21 @@ import org.javaruntype.type.TypeParameter
 import org.javaruntype.type.Types
 import org.javaruntype.type.WildcardTypeParameter
 import org.utbot.engine.greyboxfuzzer.generator.GeneratorConfigurator
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.lang.*
 import org.utbot.engine.greyboxfuzzer.util.FuzzerIllegalStateException
-import org.utbot.engine.greyboxfuzzer.util.getImplementersOfWithChain
 import org.utbot.engine.greyboxfuzzer.util.removeIfAndReturnRemovedElements
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.Reflection
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ReflectionException
 import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
-import soot.SootClass
+import org.utbot.engine.greyboxfuzzer.util.getTrue
+import org.utbot.framework.plugin.api.util.*
 import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.AnnotatedType
 import java.lang.reflect.Method
 import java.util.Collections
+import kotlin.random.Random
 import java.lang.annotation.Annotation as JavaAnnotation
 
 /**
@@ -38,21 +39,28 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
         }
         return when (generationState) {
             GenerationState.REGENERATE -> {
-                generate(random, status).also {
+                val possibleConstant =
+                    if (Random.getTrue(20)) {
+                        getConstant()
+                    } else null
+                (possibleConstant ?: generate(random, status)).also {
                     generatedUtModel = it
                     nestedGeneratorsRecursive().forEach {
                         it.generationState = GenerationState.CACHE
                     }
                 }
             }
+
             GenerationState.CACHE -> {
                 generatedUtModel ?: throw FuzzerIllegalStateException("No cached model")
             }
+
             GenerationState.MODIFY -> {
                 withModification {
                     generate(random, status).also { generatedUtModel = it }
                 }
             }
+
             GenerationState.MODIFYING_CHAIN -> {
                 generate(random, status).also {
                     generatedUtModel = it
@@ -63,6 +71,28 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
             }
         }
     }
+
+    private fun getConstant(): UtModel? =
+        if (isGeneratorContextInitialized()) {
+            when (this) {
+                is IntegerGenerator -> generatorContext.constants[intWrapperClassId]?.randomOrNull()
+                is PrimitiveIntGenerator -> generatorContext.constants[intClassId]?.randomOrNull()
+                is ByteGenerator -> generatorContext.constants[byteWrapperClassId]?.randomOrNull()
+                is PrimitiveByteGenerator -> generatorContext.constants[byteClassId]?.randomOrNull()
+                is CharacterGenerator -> generatorContext.constants[charWrapperClassId]?.randomOrNull()
+                is PrimitiveCharGenerator -> generatorContext.constants[charClassId]?.randomOrNull()
+                is DoubleGenerator -> generatorContext.constants[doubleWrapperClassId]?.randomOrNull()
+                is PrimitiveDoubleGenerator -> generatorContext.constants[doubleClassId]?.randomOrNull()
+                is LongGenerator -> generatorContext.constants[longWrapperClassId]?.randomOrNull()
+                is PrimitiveLongGenerator -> generatorContext.constants[longClassId]?.randomOrNull()
+                is FloatGenerator -> generatorContext.constants[floatWrapperClassId]?.randomOrNull()
+                is PrimitiveFloatGenerator -> generatorContext.constants[floatClassId]?.randomOrNull()
+                is ShortGenerator -> generatorContext.constants[shortWrapperClassId]?.randomOrNull()
+                is PrimitiveShortGenerator -> generatorContext.constants[shortClassId]?.randomOrNull()
+                is StringGenerator -> generatorContext.constants[stringClassId]?.randomOrNull()
+                else -> null
+            }
+        } else null
 
     private fun flattenedTo(destination: MutableList<Generator>) {
         destination.add(this)
@@ -258,6 +288,7 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
     }
 
     fun isGeneratorContextInitialized() = this::generatorContext.isInitialized
+
     /**
      * Used by the framework to make a copy of the receiver.
      *

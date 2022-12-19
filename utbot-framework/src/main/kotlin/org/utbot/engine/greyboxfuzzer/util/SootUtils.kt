@@ -1,6 +1,12 @@
 package org.utbot.engine.greyboxfuzzer.util
 
-import org.utbot.framework.plugin.api.util.signature
+import org.utbot.engine.greyboxfuzzer.quickcheck.generator.java.lang.*
+import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.fuzzer.FuzzedConcreteValue
+import org.utbot.fuzzer.collectConstantsForFuzzer
 import soot.ArrayType
 import soot.Hierarchy
 import soot.RefType
@@ -8,10 +14,9 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JCastExpr
-import soot.jimple.internal.JInstanceFieldRef
-import soot.jimple.internal.JInstanceOfExpr
+import soot.jimple.Constant
+import soot.jimple.internal.*
+import soot.toolkits.graph.ExceptionalUnitGraph
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -70,10 +75,12 @@ fun SootMethod.getAllTypesFromCastAndInstanceOfInstructions(): Set<Class<*>> =
                                 null
                             }
                         }
+
                         else -> null
                     }
                     //(it.type as? RefType)?.sootClass?.toJavaClass()
                 }
+
                 else -> {
                     val type = (it as JInstanceOfExpr).checkType
                     when (type) {
@@ -89,6 +96,7 @@ fun SootMethod.getAllTypesFromCastAndInstanceOfInstructions(): Set<Class<*>> =
                                 null
                             }
                         }
+
                         else -> null
                     }
                 }
@@ -119,6 +127,7 @@ fun KFunction<*>.toSootMethod(): SootMethod? = this.javaMethod?.toSootMethod()
 
 fun Class<*>.toSootClass() =
     Scene.v().classes.find { it.name == this.name }
+
 fun Method.toSootMethod(): SootMethod? {
     val cl = declaringClass.toSootClass() ?: return null
     return cl.methods.find {
@@ -137,6 +146,35 @@ fun SootField.toJavaField(): Field? =
 
 fun Field.toSootField(): SootField? =
     declaringClass.toSootClass()?.fields?.find { it.name == name }
+
+fun SootMethod.collectConstants(utModelConstructor: UtModelConstructor): Map<ClassId, List<UtModel>> {
+    val sootGraph = ExceptionalUnitGraph(activeBody)
+
+    fun generateConstantsForBothPrimitives(classId: ClassId, value: Any, utModelConstructor: UtModelConstructor) =
+        when (classId) {
+            intWrapperClassId -> listOf(intClassId to utModelConstructor.construct(value, intClassId))
+            intClassId -> listOf(intWrapperClassId to utModelConstructor.construct(value, intWrapperClassId))
+            byteWrapperClassId -> listOf(byteClassId to utModelConstructor.construct(value, byteClassId))
+            byteClassId -> listOf(byteWrapperClassId to utModelConstructor.construct(value, byteWrapperClassId))
+            charWrapperClassId -> listOf(charClassId to utModelConstructor.construct(value, charClassId))
+            charClassId -> listOf(charWrapperClassId to utModelConstructor.construct(value, charWrapperClassId))
+            doubleWrapperClassId -> listOf(doubleClassId to utModelConstructor.construct(value, doubleClassId))
+            doubleClassId -> listOf(doubleWrapperClassId to utModelConstructor.construct(value, doubleWrapperClassId))
+            longWrapperClassId -> listOf(longClassId to utModelConstructor.construct(value, longClassId))
+            longClassId -> listOf(longWrapperClassId to utModelConstructor.construct(value, longWrapperClassId))
+            floatWrapperClassId -> listOf(floatClassId to utModelConstructor.construct(value, floatClassId))
+            floatClassId -> listOf(floatWrapperClassId to utModelConstructor.construct(value, floatWrapperClassId))
+            shortWrapperClassId -> listOf(shortClassId to utModelConstructor.construct(value, shortClassId))
+            shortClassId -> listOf(shortWrapperClassId to utModelConstructor.construct(value, shortWrapperClassId))
+            stringClassId -> listOf()
+            else -> null
+        }?.let { it + listOf(classId to utModelConstructor.construct(value, classId)) } ?: listOf()
+
+    return collectConstantsForFuzzer(sootGraph)
+        .filterDuplicatesBy { it.value }
+        .flatMap { generateConstantsForBothPrimitives(it.classId, it.value, utModelConstructor) }
+        .groupBy({ it.first }, { it.second })
+}
 
 fun SootClass.getAllAncestors(): List<SootClass> {
     val queue = ArrayDeque<SootClass>()

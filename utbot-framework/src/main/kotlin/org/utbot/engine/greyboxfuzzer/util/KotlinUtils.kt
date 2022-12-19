@@ -11,6 +11,22 @@ fun <T> List<T>.sublistBeforeLast(element: T): List<T> =
         else this.subList(0, lastIndex)
     }
 
+fun <T> Iterable<T>.filterDuplicates(comparator: Comparator<T>): List<T> {
+    val res = mutableListOf<T>()
+    this.forEach { el -> if (res.all { comparator.compare(it, el) != 0 }) res.add(el) }
+    return res
+}
+
+fun <T, R> Collection<T>.filterDuplicatesBy(f: (T) -> R): List<T> {
+    val list1 = this.zip(this.map(f))
+    val res = mutableListOf<Pair<T, R>>()
+    for (i in indices) {
+        val item = list1[i].second
+        if (res.all { it.second != item }) res.add(list1[i])
+    }
+    return res.map { it.first }
+}
+
 fun <T> MutableList<T>.removeIfAndReturnRemovedElements(cond: (T) -> Boolean): List<T> {
     val res = mutableListOf<T>()
     val iterator = this.iterator()

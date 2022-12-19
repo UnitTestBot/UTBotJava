@@ -34,10 +34,11 @@ class GreyBoxFuzzer(
 
     suspend fun fuzz() = flow {
         logger.debug { "Started to fuzz ${methodUnderTest.name}" }
-        val generatorContext = GeneratorContext()
         val javaClazz = methodUnderTest.classId.jClass
         val sootMethod = methodUnderTest.sootMethod
         val javaMethod = sootMethod.toJavaMethod() ?: return@flow
+        val generatorContext = GeneratorContext()
+            .also { it.constants.putAll(sootMethod.collectConstants(it.utModelConstructor)) }
         val classFieldsUsedByFunc = sootMethod.getClassFieldsUsedByFunc(javaClazz)
         while (timeRemain > 0 || !isMethodCovered()) {
             explorationStage(

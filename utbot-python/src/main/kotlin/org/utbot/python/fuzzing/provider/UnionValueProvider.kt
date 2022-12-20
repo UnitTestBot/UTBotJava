@@ -31,7 +31,7 @@ object UnionValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDes
         params.forEach { unionParam ->
             yield(Seed.Recursive(
                 construct = Routine.Create(listOf(unionParam)) { v -> v.first() },
-                empty = Routine.Empty { PythonTreeModel(PythonTree.fromNone(), PythonClassId(meta.name.toString())) }
+                empty = Routine.Empty { PythonTreeModel(PythonTree.fromObject(), PythonClassId(meta.name.toString())) }
             ))
         }
     }

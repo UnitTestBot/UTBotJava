@@ -222,10 +222,10 @@ class PythonEngine(
             if (coverageLimit < 0)
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
 
-            if (parameterValues.all { it.classId.name == "UNDEF_VALUE" }) {
-                coverageLimit--
-                return@PythonFuzzing PythonFeedback(control = Control.PASS)
-            }
+//            if (parameterValues.all { it.classId.name == "UNDEF_VALUE" }) {
+//                coverageLimit--
+//                return@PythonFuzzing PythonFeedback(control = Control.PASS)
+//            }
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)

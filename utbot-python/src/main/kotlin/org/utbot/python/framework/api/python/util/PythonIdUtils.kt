@@ -10,9 +10,11 @@ import org.utbot.python.framework.api.python.PythonSetModel
 
 // none annotation can be used in code only since Python 3.10
 val pythonNoneClassId = PythonClassId("types.NoneType")
+val pythonObjectClassId = PythonClassId("builtins.object")
 val pythonAnyClassId = NormalizedPythonAnnotation("typing.Any")
 val pythonIntClassId = PythonClassId("builtins.int")
 val pythonFloatClassId = PythonClassId("builtins.float")
+val pythonComplexClassId = PythonClassId("builtins.complex")
 val pythonStrClassId = PythonClassId("builtins.str")
 val pythonBoolClassId = PythonBoolModel.classId
 val pythonRangeClassId = PythonClassId("builtins.range")

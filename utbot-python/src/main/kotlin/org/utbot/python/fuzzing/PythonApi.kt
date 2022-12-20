@@ -12,7 +12,9 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.fuzzing.provider.BoolValueProvider
+import org.utbot.python.fuzzing.provider.ComplexValueProvider
 import org.utbot.python.fuzzing.provider.DictValueProvider
 import org.utbot.python.fuzzing.provider.FloatValueProvider
 import org.utbot.python.fuzzing.provider.IntValueProvider
@@ -24,7 +26,7 @@ import org.utbot.python.fuzzing.provider.StrValueProvider
 import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
 import org.utbot.python.fuzzing.provider.TupleValueProvider
 import org.utbot.python.fuzzing.provider.UnionValueProvider
-import org.utbot.python.fuzzing.value.UndefValue
+import org.utbot.python.fuzzing.value.ObjectValue
 import org.utbot.python.newtyping.PythonProtocolDescription
 import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.PythonTypeStorage
@@ -60,6 +62,7 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     BoolValueProvider,
     IntValueProvider,
     FloatValueProvider,
+    ComplexValueProvider,
     StrValueProvider,
     ListValueProvider,
     SetValueProvider,
@@ -81,6 +84,7 @@ class PythonFuzzing(
                 providers += provider.generate(description, type)
             }
         }
+        logger.info("Default ${type.meta} providers: $providers")
         return providers
     }
 
@@ -92,9 +96,9 @@ class PythonFuzzing(
             }
             subtypes.forEach {
                 providers += generateDefault(description, it, idGenerator)
-//                providers += generateSubtype(description, it, idGenerator)
             }
         }
+        logger.info("Subtype ${type.meta} providers: $providers")
         return providers
     }
 
@@ -106,7 +110,8 @@ class PythonFuzzing(
         providers += generateSubtype(description, type, idGenerator)
 
         if (providers.toList().isEmpty()) {
-            providers += Seed.Known(UndefValue()) {PythonTreeModel(PythonTree.fromNone(), PythonClassId("UNDEF_VALUE"))}
+            logger.info("Add object provider for ${type.meta}")
+            providers += Seed.Known(ObjectValue()) {PythonTreeModel(PythonTree.fromNone(), pythonObjectClassId)}
         }
 
         return providers

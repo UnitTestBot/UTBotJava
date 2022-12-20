@@ -55,3 +55,4 @@ if (jsIde.split(",").contains(ideType)) {
     include("utbot-cli-ts")
     include("utbot-intellij-ts")
 }
+include("utbot-node")

@@ -15,6 +15,7 @@ import org.utbot.engine.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.FakeAnnotatedTypeFactory
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.ArrayGenerator
+import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.CompositeGenerator
 import org.utbot.engine.greyboxfuzzer.quickcheck.internal.generator.GeneratorRepository
 import ru.vyarus.java.generics.resolver.GenericsResolver
 import ru.vyarus.java.generics.resolver.context.ConstructorGenericsContext
@@ -41,6 +42,7 @@ fun Generator.getComponents(): List<Generator> =
     when (this) {
         is org.utbot.engine.greyboxfuzzer.quickcheck.generator.ComponentizedGenerator -> this.componentGenerators()
         is ArrayGenerator -> listOf(this.component)
+        is CompositeGenerator -> this.composed.map { it.item }
         else -> emptyList()
     }
 

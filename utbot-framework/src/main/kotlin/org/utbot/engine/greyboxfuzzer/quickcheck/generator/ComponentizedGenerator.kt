@@ -16,8 +16,8 @@ import java.util.Collections
  * @param type class token for type of property parameter this generator
  * is applicable to
 </T> */
-abstract class ComponentizedGenerator constructor(type: Class<*>) : org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator(type) {
-    private val components: MutableList<org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator> = ArrayList()
+abstract class ComponentizedGenerator constructor(type: Class<*>) : Generator(type) {
+    private val components: MutableList<Generator> = ArrayList()
 
     /**
      * {@inheritDoc}
@@ -35,7 +35,7 @@ abstract class ComponentizedGenerator constructor(type: Class<*>) : org.utbot.en
     }
 
     override fun addComponentGenerators(
-        newComponents: List<org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator>
+        newComponents: List<Generator>
     ) {
         require(newComponents.size == numberOfNeededComponents()) {
             String.format(
@@ -89,12 +89,12 @@ abstract class ComponentizedGenerator constructor(type: Class<*>) : org.utbot.en
     /**
      * @return this generator's component generators
      */
-    fun componentGenerators(): List<org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator> {
+    fun componentGenerators(): List<Generator> {
         return Collections.unmodifiableList(components)
     }
 
-    override fun copy(): org.utbot.engine.greyboxfuzzer.quickcheck.generator.Generator {
-        return (super.copy() as org.utbot.engine.greyboxfuzzer.quickcheck.generator.ComponentizedGenerator).also {
+    override fun copy(): Generator {
+        return (super.copy() as ComponentizedGenerator).also {
             it.components.addAll(components.map { it.copy() })
         }
     }

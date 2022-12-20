@@ -63,7 +63,7 @@ class GreyBoxFuzzer(
         var regenerateThis = false
         val thisInstancesHistory = ArrayDeque<ThisInstance>()
         val startTime = System.currentTimeMillis()
-        val endTime = startTime + timeBudgetInMillis / percentageOfTimeBudgetToChangeMode
+        val endTime = startTime + timeBudgetInMillis / (100L / percentageOfTimeBudgetToChangeMode)
         var iterationNumber = 0
         while (System.currentTimeMillis() < endTime) {
             try {
@@ -160,7 +160,7 @@ class GreyBoxFuzzer(
         if (seeds == null || seeds!!.seedsSize() == 0) return
         if (seeds!!.all { it.parameters.isEmpty() }) return
         val startTime = System.currentTimeMillis()
-        val endTime = startTime + timeBudgetInMillis / percentageOfTimeBudgetToChangeMode
+        val endTime = startTime + timeBudgetInMillis / (100L / percentageOfTimeBudgetToChangeMode)
         var iterationNumber = 0
         while (System.currentTimeMillis() < endTime) {
             if (timeRemain < 0 || isMethodCovered()) return

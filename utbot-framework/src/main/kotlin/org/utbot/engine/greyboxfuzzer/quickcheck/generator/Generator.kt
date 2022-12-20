@@ -40,7 +40,7 @@ abstract class Generator protected constructor(types: List<Class<*>>) : Gen {
         return when (generationState) {
             GenerationState.REGENERATE -> {
                 val possibleConstant =
-                    if (Random.getTrue(20)) {
+                    if (Random.getTrue(25)) {
                         getConstant()
                     } else null
                 (possibleConstant ?: generate(random, status)).also {

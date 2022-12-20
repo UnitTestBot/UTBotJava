@@ -27,7 +27,7 @@ object GeneratorConfigurator {
     private val maxDouble: Double = 100.0
     private val minStringLength: Int = 1
     private val maxStringLength: Int = 5
-    val minCollectionSize: Int = 1
+    val minCollectionSize: Int = 0
     val maxCollectionSize: Int = 5
 
     val sizeAnnotationInstance: Size

@@ -22,7 +22,7 @@ import org.utbot.engine.greyboxfuzzer.quickcheck.random.SourceOfRandomness
  *
  * @param <T> the type of collection generated
 </T> */
-abstract class CollectionGenerator(type: Class<*>) : org.utbot.engine.greyboxfuzzer.quickcheck.generator.ComponentizedGenerator(type) {
+abstract class CollectionGenerator(type: Class<*>) : ComponentizedGenerator(type) {
     private var sizeRange: Size? = null
     private var distinct = false
 

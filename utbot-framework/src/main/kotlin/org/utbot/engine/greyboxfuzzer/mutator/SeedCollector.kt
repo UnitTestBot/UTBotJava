@@ -2,7 +2,7 @@ package org.utbot.engine.greyboxfuzzer.mutator
 
 import kotlin.random.Random
 
-class SeedCollector(private val maxSize: Int = 50, private val methodInstructionsIds: Set<Long>) {
+class SeedCollector(private val maxSize: Int = 100, private val methodInstructionsIds: Set<Long>) {
     private val seeds = ArrayList<Seed>(maxSize)
 
     fun calcSeedScore(coverage: Set<Long>): Double =

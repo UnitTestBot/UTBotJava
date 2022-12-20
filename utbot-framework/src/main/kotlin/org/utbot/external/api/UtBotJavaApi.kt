@@ -184,7 +184,7 @@ object UtBotJavaApi {
                     generationTimeoutInMillis,
                     generate = { symbolicEngine ->
                         if (isGreyBoxFuzzing) {
-                            symbolicEngine.greyBoxFuzzing()
+                            symbolicEngine.greyBoxFuzzing(generationTimeoutInMillis)
                         } else {
                             symbolicEngine.fuzzing { defaultModelProvider ->
                                 customModelProvider.withFallback(defaultModelProvider)

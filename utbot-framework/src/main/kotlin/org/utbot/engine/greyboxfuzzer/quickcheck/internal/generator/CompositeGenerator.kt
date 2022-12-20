@@ -12,7 +12,7 @@ import java.lang.reflect.AnnotatedElement
 import java.lang.reflect.AnnotatedType
 
 class CompositeGenerator(composed: List<Weighted<Generator>>) : Generator(Any::class.java) {
-    private val composed: MutableList<Weighted<Generator>>
+    val composed: MutableList<Weighted<Generator>>
     private var previousChosenGenerator: Generator? = null
 
     init {
@@ -122,10 +122,11 @@ class CompositeGenerator(composed: List<Weighted<Generator>>) : Generator(Any::c
 
     override fun copy(): Generator {
         val composedCopies = composed.map { Weighted(it.item.copy(), it.weight) }.toMutableList()
-        val gen = Reflection.instantiate(CompositeGenerator::class.java.constructors.first(), composedCopies) as Generator
+        val gen = Reflection.instantiate(CompositeGenerator::class.java.constructors.first(), composedCopies) as CompositeGenerator
         return gen.also {
             it.generatedUtModel = generatedUtModel
             it.generationState = generationState
+            it.generatorContext = generatorContext
             it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
             GeneratorConfigurator.configureGenerator(it, 100)
         }

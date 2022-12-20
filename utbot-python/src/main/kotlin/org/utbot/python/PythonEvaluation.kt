@@ -77,7 +77,7 @@ fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
         input.moduleToImport,
         input.additionalModulesToImport,
         fileForOutput.path.replace("\\", "\\\\"),
-        coverageDatabasePath.absolutePath
+        coverageDatabasePath.absolutePath.replace("\\", "\\\\")
     )
     val fileWithCode = TemporaryFileManager.createTemporaryFile(
         runCode,

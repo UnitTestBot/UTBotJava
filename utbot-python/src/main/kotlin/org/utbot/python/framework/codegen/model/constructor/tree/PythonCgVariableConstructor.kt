@@ -96,7 +96,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 }
 
                 val initArgs = objectNode.args.map {
-                    pythonBuildObject2(it)
+                    getOrCreateVariable(PythonTreeModel(it, it.type))
                 }
                 val constructor = ConstructorId(
                     objectNode.constructor,
@@ -111,16 +111,14 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
 
                 val state = objectNode.state.map { (key, value) ->
-                    val buildObj = pythonBuildObject2(value)
-                    key to buildObj
+                    key to getOrCreateVariable(PythonTreeModel(value, value.type))
                 }.toMap()
                 val listitems = objectNode.listitems.map {
-                    val buildObj = pythonBuildObject2(it)
-                    buildObj
+                    getOrCreateVariable(PythonTreeModel(it, it.type))
                 }
                 val dictitems = objectNode.dictitems.map { (key, value) ->
-                    val keyObj = pythonBuildObject2(key)
-                    val valueObj = pythonBuildObject2(value)
+                    val keyObj = getOrCreateVariable(PythonTreeModel(key, key.type))
+                    val valueObj = getOrCreateVariable(PythonTreeModel(value, value.type))
                     keyObj to valueObj
                 }
 

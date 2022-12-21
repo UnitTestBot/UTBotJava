@@ -144,7 +144,7 @@ class PythonCodeGenerator(
             arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
         )
 
-        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename}'")
+        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
         val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
         val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
 

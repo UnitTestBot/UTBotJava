@@ -233,7 +233,10 @@ object PythonDialogProcessor {
                     if (installResult.exitValue != 0) {
                         showErrorDialogLater(
                             project,
-                            "Requirements installing failed",
+                            "Requirements installing failed.<br>" +
+                                    "${installResult.stderr}<br><br>" +
+                                    "Try to install with pip:<br>" +
+                                    " ${requirements.joinToString("<br>")}",
                             "Requirements error"
                         )
                     }

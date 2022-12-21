@@ -4,7 +4,6 @@ import org.utbot.common.FileUtil
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.deleteExisting
 
 object TemporaryFileManager {
     private lateinit var tmpDirectory: Path
@@ -12,7 +11,7 @@ object TemporaryFileManager {
 
     fun setup() {
         tmpDirectory = FileUtil.createTempDirectory("python-test-generation-${nextId++}")
-        Cleaner.addFunction { tmpDirectory.deleteExisting() }
+        Cleaner.addFunction { tmpDirectory.toFile().deleteRecursively() }
     }
 
     fun assignTemporaryFile(fileName_: String? = null, tag: String? = null, addToCleaner: Boolean = true): File {

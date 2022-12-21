@@ -15,7 +15,6 @@ import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
 import java.io.File
 
-
 sealed class PythonEvaluationResult
 
 class PythonEvaluationError(
@@ -64,13 +63,18 @@ fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
         tag = "out_" + input.method.name + ".py",
         addToCleaner = false
     )
+    val coverageDatabasePath = TemporaryFileManager.assignTemporaryFile(
+        tag = "coverage_db_" + input.method.name,
+        addToCleaner = false,
+    )
     val runCode = PythonCodeGenerator.generateRunFunctionCode(
         input.method,
         input.methodArguments,
         input.directoriesForSysPath,
         input.moduleToImport,
         input.additionalModulesToImport,
-        fileForOutput.path.replace("\\", "\\\\")
+        fileForOutput.path.replace("\\", "\\\\"),
+        coverageDatabasePath.absolutePath.replace("\\", "\\\\")
     )
     val fileWithCode = TemporaryFileManager.createTemporaryFile(
         runCode,

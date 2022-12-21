@@ -104,7 +104,8 @@ class PythonCodeGenerator(
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         additionalModules: Set<String> = emptySet(),
-        fileForOutputName: String
+        fileForOutputName: String,
+        coverageDatabasePath: String,
     ): String {
         val cgRendererContext = CgRendererContext.fromCgContext(context)
         val printer = CgPrinterImpl()
@@ -143,14 +144,15 @@ class PythonCodeGenerator(
             arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
         )
 
-        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename}'")
-
+        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
         val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
+        val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
 
         val executorCall = CgPythonFunctionCall(
             pythonNoneClassId,
             executorFunctionName,
             listOf(
+                databasePath,
                 functionName,
                 args,
                 kwargs,

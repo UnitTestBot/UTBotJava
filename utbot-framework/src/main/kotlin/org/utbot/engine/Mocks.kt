@@ -188,12 +188,28 @@ class Mocker(
         if (isOverriddenClass(type)) return false  // never mock overriden classes
         if (type.isInaccessibleViaReflection) return false // never mock classes that we can't process with reflection
         if (isMakeSymbolic(mockInfo)) return true // support for makeSymbolic
-        if (type.sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
-        if (!isEngineClass(type) && (type.sootClass.isInnerClass || type.sootClass.isLocal || type.sootClass.isAnonymous)) return false // there is no reason (and maybe no possibility) to mock such classes
-        if (!isEngineClass(type) && type.sootClass.isPrivate) return false // could not mock private classes (even if it is in mock always list)
+
+        val sootClass = type.sootClass
+
+        if (sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
+
+        if (!isEngineClass(type)) {
+            // there is no reason (and maybe no possibility) to mock such classes
+            if (sootClass.isInnerClass || sootClass.isLocal || sootClass.isAnonymous) {
+                return false
+            }
+
+            // could not mock private classes (even if it is in mock always list)
+            if (sootClass.isPrivate) {
+                return false
+            }
+        }
+
         if (mockAlways(type)) return true // always mock randoms and loggers
+
         if (mockInfo is UtFieldMockInfo) {
-            val declaringClass = mockInfo.fieldId.declaringClass
+            val fieldId = mockInfo.fieldId
+            val declaringClass = fieldId.declaringClass
             val sootDeclaringClass = Scene.v().getSootClass(declaringClass.name)
 
             if (sootDeclaringClass.isArtificialEntity || sootDeclaringClass.isOverridden) {
@@ -203,12 +219,22 @@ class Mocker(
                 return false
             }
 
-            return when {
-                declaringClass.packageName.startsWith("java.lang") -> false
-                !mockInfo.fieldId.type.isRefType -> false  // mocks are allowed for ref fields only
-                else -> return strategy.eligibleToMock(mockInfo.fieldId.type, classUnderTest) // if we have a field with Integer type, we should not mock it
+            val sootField = sootDeclaringClass
+                .fields
+                .firstOrNull { it.name == fieldId.name && it.declaringClass.name == sootDeclaringClass.name }
+                ?: error("Unexpected $fieldId is provided into shouldMock function")
+
+            val sootFieldType = sootField.type
+
+            if (sootFieldType !is RefType) {
+                return false
             }
+
+            return strategy.eligibleToMock(sootFieldType.id, classUnderTest)
         }
+
+        // Note that eligibleToMock can use information retrieved from jClass
+        // Therefore, such classes should be already processed at this point
         return strategy.eligibleToMock(type.id, classUnderTest) // strategy to decide
     }
 

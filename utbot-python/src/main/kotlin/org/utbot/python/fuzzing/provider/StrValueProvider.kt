@@ -18,9 +18,9 @@ object StrValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescr
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        yieldStrings(StringValue("\"test\"")) { value }
-        yieldStrings(StringValue("\"abc\"")) { value }
-        yieldStrings(StringValue("\"\"")) { value }
+        yieldStrings(StringValue("test")) { value }
+        yieldStrings(StringValue("abc")) { value }
+        yieldStrings(StringValue("")) { value }
     }
 
     private suspend fun <T : KnownValue> SequenceScope<Seed<Type, PythonTreeModel>>.yieldStrings(value: T, block: T.() -> Any) {

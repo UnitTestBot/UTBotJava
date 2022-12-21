@@ -209,7 +209,7 @@ object PythonTree {
     fun fromString(value: String): PrimitiveNode {
         return PrimitiveNode(
             pythonIntClassId,
-            value
+            "\"$value\""
         )
     }
 

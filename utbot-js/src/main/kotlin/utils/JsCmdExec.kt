@@ -13,7 +13,7 @@ object JsCmdExec {
         shouldWait: Boolean = false,
         timeout: Long = defaultTimeout,
         vararg cmd: String,
-    ): Pair<BufferedReader, BufferedReader> {
+    ): Triple<BufferedReader, BufferedReader, Int> {
         val builder = ProcessBuilder(*OsProvider.getProviderByOs().getCmdPrefix(), *cmd)
         dir?.let {
             builder.directory(File(it))
@@ -28,6 +28,6 @@ object JsCmdExec {
                 throw TimeoutException("")
             }
         }
-        return process.inputStream.bufferedReader() to process.errorStream.bufferedReader()
+        return Triple(process.inputStream.bufferedReader(), process.errorStream.bufferedReader(), process.exitValue())
     }
 }

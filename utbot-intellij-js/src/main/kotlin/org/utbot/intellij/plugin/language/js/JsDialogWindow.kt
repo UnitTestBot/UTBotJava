@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.language.js
 
-import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreterManager
 import com.intellij.lang.javascript.refactoring.ui.JSMemberSelectionTable
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
 import com.intellij.openapi.ui.ComboBox
@@ -37,18 +36,11 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         this.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
-    private val nodeInterp = try {
-        NodeJsLocalInterpreterManager.getInstance().interpreters.first()
-    } catch (e: NoSuchElementException) {
-        throw IllegalStateException("Node.js interpreter is not set in the IDEA settings!")
-    }
-
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
     private val nycSourceFileChooserField = NycSourceFileChooser(model)
     private val coverageMode = CoverageModeButtons
 
-//    private var initTestFrameworkPresenceThread: Thread
     private lateinit var panel: DialogPanel
 
     private val timeoutSpinner =
@@ -60,16 +52,8 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         )
 
     init {
-        model.pathToNode = nodeInterp.interpreterSystemDependentPath.replace("\\", "/")
         model.pathToNPM = model.pathToNode.substringBeforeLast("/") + "/" + "npm"
-        //TODO: Find out how to find pathToNode from IDEA settings without extra actions from the user
-        model.pathToNode = "node"
         title = "Generate Tests with UtBot"
-//        initTestFrameworkPresenceThread = thread(start = true) {
-//            JsCgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
-//                it.isInstalled = findFrameworkLibrary(it.displayName.lowercase(Locale.getDefault()), model)
-//            }
-//        }
         isResizable = false
         init()
     }

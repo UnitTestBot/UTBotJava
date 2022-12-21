@@ -1,6 +1,6 @@
 # Code generation and rendering
 
-Code generation and rendering is a part of test generation process in UnitTestBot (find the overall picture in the 
+Code generation and rendering are a part of test generation process in UnitTestBot (find the overall picture in the 
 [UnitTestBot architecture 
 overview](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/OverallArchitecture.md)). 
 UnitTestBot gets the synthetic representation of generated test cases from the fuzzer or the symbolic engine. This representation, or model, is 

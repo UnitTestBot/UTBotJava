@@ -97,12 +97,8 @@ object PythonTestCaseGenerator {
             PythonTypeStorage.get(storage)
         )
 
-//        var coverageLimit = 10
-
         runBlockingWithCancellationPredicate(isCancelled) {
             engine.newFuzzing(args, isCancelled).collect {
-                val coveredBefore = coveredLines.size
-
                 generated += 1
                 when (it) {
                     is UtExecution -> {
@@ -116,18 +112,6 @@ object PythonTestCaseGenerator {
                         errors += it
                     }
                 }
-                val coveredAfter = coveredLines.size
-
-//                if (coveredAfter == coveredBefore)
-//                    coverageLimit -= 1
-//
-//                if (withMinimization && missingLines?.isEmpty() == true) {//&& generated % CHUNK_SIZE == 0)
-//                    coverageLimit = 0
-//                }
-
-//                if (coverageLimit == 0) {
-//                    isCancelled = {true}
-//                }
             }
         }
 

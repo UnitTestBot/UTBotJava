@@ -105,11 +105,11 @@ object JsDialogProcessor {
         try {
             jsTestsModel?.pathToNode = NodeJsLocalInterpreterManager.getInstance()
                 .interpreters.first().interpreterSystemIndependentPath
-            val (_, _, code) = JsCmdExec.runCommand(
+            val (_, error) = JsCmdExec.runCommand(
                 shouldWait = true,
                 cmd = arrayOf("node", "-v")
             )
-            if (code != 0) throw NoSuchElementException()
+            if (error.readText().isNotEmpty()) throw NoSuchElementException()
         } catch (e: NoSuchElementException) {
             Messages.showErrorDialog(
                 "Node.js interpreter is not found in IDEA settings.\n" +
@@ -265,7 +265,7 @@ fun installMissingRequirement(project: Project, pathToNPM: String, requirement: 
 
     if (result == Messages.CANCEL)
         return
-    
+
     val (_, errorStream) = installRequirement(pathToNPM, requirement, project.basePath)
 
     val errorText = errorStream.readText()

@@ -1,10 +1,10 @@
 package utils
 
+import org.utbot.framework.plugin.api.TimeoutException
+import settings.JsTestGenerationSettings.defaultTimeout
 import java.io.BufferedReader
 import java.io.File
 import java.util.concurrent.TimeUnit
-import org.utbot.framework.plugin.api.TimeoutException
-import settings.JsTestGenerationSettings.defaultTimeout
 
 object JsCmdExec {
 
@@ -13,7 +13,7 @@ object JsCmdExec {
         shouldWait: Boolean = false,
         timeout: Long = defaultTimeout,
         vararg cmd: String,
-    ): Triple<BufferedReader, BufferedReader, Int> {
+    ): Pair<BufferedReader, BufferedReader> {
         val builder = ProcessBuilder(*OsProvider.getProviderByOs().getCmdPrefix(), *cmd)
         dir?.let {
             builder.directory(File(it))
@@ -28,6 +28,6 @@ object JsCmdExec {
                 throw TimeoutException("")
             }
         }
-        return Triple(process.inputStream.bufferedReader(), process.errorStream.bufferedReader(), process.exitValue())
+        return Pair(process.inputStream.bufferedReader(), process.errorStream.bufferedReader())
     }
 }

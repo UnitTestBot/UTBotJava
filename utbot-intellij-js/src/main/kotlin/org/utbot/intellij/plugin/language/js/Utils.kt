@@ -43,11 +43,13 @@ fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
 }
 
 fun installRequirement(pathToNPM: String, requirement: String, installingDir: String?): Pair<BufferedReader, BufferedReader> {
-    val (buf1, buf2, _) =  JsCmdExec.runCommand(
+    val installationType = if (requirement == "mocha") "-l" else "-g"
+
+    val (buf1, buf2) = JsCmdExec.runCommand(
         dir = installingDir,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(pathToNPM, "install", "-l") + requirement
+        cmd = arrayOf(pathToNPM, "install", installationType) + requirement
     )
     return buf1 to buf2
 }

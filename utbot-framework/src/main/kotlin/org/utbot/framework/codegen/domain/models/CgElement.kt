@@ -309,6 +309,7 @@ enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
     PASSED_EXCEPTION(displayName = "Thrown exceptions marked as passed", isThrowing = true),
     FAILING(displayName = "Failing tests (with exceptions)", isThrowing = true),
     TIMEOUT(displayName = "Failing tests (with timeout)", isThrowing = true),
+    ARTIFICIAL(displayName = "Failing tests (with custom exception)", isThrowing = true),
     CRASH(displayName = "Possibly crashing tests", isThrowing = true),
     PARAMETRIZED(displayName = "Parametrized tests", isThrowing = false);
 

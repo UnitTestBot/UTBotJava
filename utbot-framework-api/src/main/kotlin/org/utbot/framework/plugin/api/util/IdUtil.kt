@@ -405,6 +405,9 @@ val ClassId.isEnum: Boolean
 val ClassId.isData: Boolean
     get() = kClass.isData
 
+val ClassId.enumConstants: List<Enum<*>>?
+    get() = jClass.enumConstants?.filterIsInstance<Enum<*>>()
+
 fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
     if (isNotSubtypeOf(fieldId.declaringClass)) {
         return null

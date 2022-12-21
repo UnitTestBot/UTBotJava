@@ -256,9 +256,9 @@ class PythonEngine(
                 evaluationInput.modelList
             )
 
-            if (!currentCoroutineContext().isActive) {
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-            }
+//            if (!currentCoroutineContext().isActive) {
+//                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+//            }
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
                     if (evaluationResult.status != 0) {

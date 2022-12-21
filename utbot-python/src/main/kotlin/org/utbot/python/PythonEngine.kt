@@ -177,8 +177,8 @@ class PythonEngine(
                 when(val evaluationResult = jobResult.evalResult) {
                     is PythonEvaluationError -> {
                         if (evaluationResult.status != 0) {
-                            val errorMessage = "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}"
-                            logger.info { "Python evaluation error: $errorMessage" }
+                            val errorMessage = "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}, ${evaluationResult.stackTrace}"
+                            logger.info { errorMessage }
                             yield(UtError(
                                 errorMessage,
                                 Throwable(evaluationResult.stackTrace.joinToString("\n"))

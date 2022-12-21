@@ -18,7 +18,7 @@ import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 private val logger = KotlinLogging.logger {}
-
+// The required part of IntelliJ API was changed to com.intellij.codeInsight.daemon.impl.MainPassesRunner that is available since 2022.1 only
 class IntentionHelper(val project: Project, private val editor: Editor, private val testFile: SmartPsiElementPointer<PsiFile>) {
     fun applyIntentions() {
         val actions =

@@ -12,6 +12,7 @@ import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
@@ -36,7 +37,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     fun testDifficultIfBranch() {
         check(
             ClassWithEnum::useEnumInDifficultIf,
-            eq(2),
+            ignoreExecutionsNumber,
             { s, r -> s.equals("TRYIF", ignoreCase = true) && r == 1 },
             { s, r -> !s.equals("TRYIF", ignoreCase = true) && r == 2 },
         )
@@ -168,7 +169,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
         withPushingStateFromPathSelectorForConcrete {
             check(
                 ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
-                eq(2),
+                ignoreExecutionsNumber,
                 { s, r -> s.equals("SUCCESS", ignoreCase = true) && r == 0 },
                 { s, r -> !s.equals("SUCCESS", ignoreCase = true) && r == 2 },
             )

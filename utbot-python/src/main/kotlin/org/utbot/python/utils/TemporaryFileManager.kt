@@ -12,6 +12,7 @@ object TemporaryFileManager {
 
     fun setup() {
         tmpDirectory = FileUtil.createTempDirectory("python-test-generation-${nextId++}")
+        Cleaner.addFunction { tmpDirectory.toFile().listFiles()?.forEach { it.delete() } }
         Cleaner.addFunction { tmpDirectory.deleteExisting() }
     }
 

@@ -16,7 +16,7 @@ fun getFrameworkLibraryPath(npmPackageName: String, model: JsTestsModel?): Strin
     val error = errorReader.readText()
 
     if ((error.isNotEmpty() or !input.contains(npmPackageName)) && !findFrameworkLibrary(npmPackageName, model)) {
-        installRequirement(model.project, model.pathToNPM, npmPackageName)
+        installMissingRequirement(model.project, model.pathToNPM, npmPackageName)
         return null
     }
     return input.substringBefore(npmPackageName) + npmPackageName
@@ -42,12 +42,12 @@ fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
     return checkForPackageText.contains(npmPackageName)
 }
 
-fun installRequirement(pathToNPM: String, requirement: String): Pair<BufferedReader, BufferedReader> {
+fun installRequirement(pathToNPM: String, requirement: String, installingDir: String?): Pair<BufferedReader, BufferedReader> {
     val (buf1, buf2, _) =  JsCmdExec.runCommand(
-        dir = null,
+        dir = installingDir,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(pathToNPM, "install", "-g") + requirement
+        cmd = arrayOf(pathToNPM, "install", "-l") + requirement
     )
     return buf1 to buf2
 }

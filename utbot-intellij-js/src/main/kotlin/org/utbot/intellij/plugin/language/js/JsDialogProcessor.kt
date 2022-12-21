@@ -248,7 +248,7 @@ object JsDialogProcessor {
 }
 
 // TODO(MINOR): Add indicator.text for each installation
-fun installRequirement(project: Project, pathToNPM: String, requirement: String) {
+fun installMissingRequirement(project: Project, pathToNPM: String, requirement: String) {
     val message = """
             Requirement is not installed:
             $requirement
@@ -265,8 +265,8 @@ fun installRequirement(project: Project, pathToNPM: String, requirement: String)
 
     if (result == Messages.CANCEL)
         return
-
-    val (_, errorStream) = installRequirement(pathToNPM, requirement)
+    
+    val (_, errorStream) = installRequirement(pathToNPM, requirement, project.basePath)
 
     val errorText = errorStream.readText()
     if (errorText.isNotEmpty()) {

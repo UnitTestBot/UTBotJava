@@ -92,7 +92,8 @@ class PythonCodeGenerator(
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         additionalModules: Set<String> = emptySet(),
-        fileForOutputName: String
+        fileForOutputName: String,
+        coverageDatabasePath: String,
     ): String = withCustomContext(testClassCustomName = null) {
         context.withTestClassFileScope {
             clearContextRelatedStorage()
@@ -144,21 +145,22 @@ class PythonCodeGenerator(
                 arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
             )
 
-            val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename}'")
+        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
+        val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
+        val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
 
-            val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
-
-            val executorCall = CgPythonFunctionCall(
-                pythonNoneClassId,
-                executorFunctionName,
-                listOf(
-                    functionName,
-                    args,
-                    kwargs,
-                    fullpath,
-                    outputPath,
-                )
+        val executorCall = CgPythonFunctionCall(
+            pythonNoneClassId,
+            executorFunctionName,
+            listOf(
+                databasePath,
+                functionName,
+                args,
+                kwargs,
+                fullpath,
+                outputPath,
             )
+        )
 
             parameters.forEach { it.accept(renderer) }
             executorCall.accept(renderer)

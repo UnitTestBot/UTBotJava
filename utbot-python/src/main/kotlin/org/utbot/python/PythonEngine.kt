@@ -335,13 +335,16 @@ class PythonEngine(
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
                     if (evaluationResult.status != 0) {
+                        val errorMessage = "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}, ${evaluationResult.stackTrace}"
+                        logger.info { errorMessage }
                         emit(
                             UtError(
-                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                                errorMessage,
                                 Throwable(evaluationResult.stackTrace.joinToString("\n"))
                             )
                         )
                     } else {
+                        logger.info { "Python evaluation error: ${evaluationResult.message}" }
                         emit(
                             UtError(
                                 evaluationResult.message,

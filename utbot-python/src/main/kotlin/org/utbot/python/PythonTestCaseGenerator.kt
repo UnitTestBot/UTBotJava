@@ -100,7 +100,7 @@ object PythonTestCaseGenerator {
 //        var coverageLimit = 10
 
         runBlockingWithCancellationPredicate(isCancelled) {
-            engine.newFuzzing(args).collect {
+            engine.newFuzzing(args, isCancelled).collect {
                 val coveredBefore = coveredLines.size
 
                 generated += 1

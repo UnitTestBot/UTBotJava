@@ -4,7 +4,6 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.isActive
 import kotlinx.coroutines.isActive
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
@@ -204,7 +203,7 @@ class PythonEngine(
         )
     }
 
-    fun newFuzzing(parameters: List<Type>): Flow<UtResult> = flow {
+    fun newFuzzing(parameters: List<Type>, isCancelled: () -> Boolean): Flow<UtResult> = flow {
         val additionalModules = selectedTypeMap.values.flatMap {
             getModulesFromAnnotation(it)
         }.toSet()
@@ -219,7 +218,7 @@ class PythonEngine(
         val coveredLines = initialCoveredLines.toMutableSet()
 
         PythonFuzzing(pythonTypeStorage!!) { description, parameterValues ->
-            if (coverageLimit < 0)
+            if (coverageLimit < 0 || isCancelled())
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
 
 //            if (parameterValues.all { it.classId.name == "UNDEF_VALUE" }) {

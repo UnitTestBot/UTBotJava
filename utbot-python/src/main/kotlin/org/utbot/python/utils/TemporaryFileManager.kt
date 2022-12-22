@@ -15,7 +15,7 @@ object TemporaryFileManager {
     }
 
     fun assignTemporaryFile(fileName_: String? = null, tag: String? = null, addToCleaner: Boolean = true): File {
-        val fileName = fileName_ ?: ("${nextId++}_" + (tag ?: ""))
+        val fileName = fileName_ ?: ("tmp_${nextId++}_" + (tag ?: ""))
         val fullpath = Paths.get(tmpDirectory.toString(), fileName)
         val result = fullpath.toFile()
         if (addToCleaner)

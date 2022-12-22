@@ -62,6 +62,7 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
+import org.utbot.python.framework.codegen.toPythonRawString
 
 internal class CgPythonRenderer(
     context: CgRendererContext,
@@ -290,7 +291,7 @@ internal class CgPythonRenderer(
 
     fun renderPythonImport(pythonImport: PythonImport) {
         if (pythonImport is PythonSysPathImport) {
-            println("sys.path.append('r${pythonImport.sysPath}')")
+            println("sys.path.append(${pythonImport.sysPath.toPythonRawString()})")
         } else if (pythonImport.moduleName == null) {
             println("import ${pythonImport.importName}")
         } else {
@@ -537,3 +538,4 @@ internal class CgPythonRenderer(
             .replace("\\f", "\\u000C")
             .replace("\\xxx", "\\\u0058\u0058\u0058")
 }
+

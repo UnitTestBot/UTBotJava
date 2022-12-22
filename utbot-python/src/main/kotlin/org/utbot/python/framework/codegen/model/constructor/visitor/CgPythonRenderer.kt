@@ -290,7 +290,7 @@ internal class CgPythonRenderer(
 
     fun renderPythonImport(pythonImport: PythonImport) {
         if (pythonImport is PythonSysPathImport) {
-            println("sys.path.append('${pythonImport.sysPath}')")
+            println("sys.path.append('r${pythonImport.sysPath}')")
         } else if (pythonImport.moduleName == null) {
             println("import ${pythonImport.importName}")
         } else {

@@ -144,9 +144,9 @@ class PythonCodeGenerator(
             arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
         )
 
-        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
-        val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
-        val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
+        val fullpath = CgLiteral(pythonStrClassId, "r'${method.moduleFilename}'")
+        val outputPath = CgLiteral(pythonStrClassId, "r'$fileForOutputName'")
+        val databasePath = CgLiteral(pythonStrClassId, "r'$coverageDatabasePath'")
 
         val executorCall = CgPythonFunctionCall(
             pythonNoneClassId,

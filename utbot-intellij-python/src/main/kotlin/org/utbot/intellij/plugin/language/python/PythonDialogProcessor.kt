@@ -276,7 +276,7 @@ fun getDirectoriesForSysPath(
 ): Pair<Set<String>, String> {
     val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
     val ancestor = ProjectFileIndex.getInstance(file.project).getContentRootForFile(file.virtualFile)
-    if (ancestor != null && !sources.contains(ancestor))
+    if (ancestor != null)
         sources.add(ancestor)
 
     // Collect sys.path directories with imported modules
@@ -285,15 +285,9 @@ fun getDirectoriesForSysPath(
             val element = it.element
             if (element != null) {
                 val directory = element.parent
-                if (directory is PsiDirectory) {
-                    if (sources.any { source ->
-                            val sourcePath = source.canonicalPath
-                            if (source.isDirectory && sourcePath != null) {
-                                directory.virtualFile.canonicalPath?.startsWith(sourcePath) ?: false
-                            } else {
-                                false
-                            }
-                        }) {
+                if (directory is PsiDirectory ) {
+                    // Add only submodules of this project
+                    if (VfsUtil.isUnder(directory.virtualFile, setOf(ancestor).toMutableSet())) {
                         sources.add(directory.virtualFile)
                     }
                 }
@@ -306,7 +300,7 @@ fun getDirectoriesForSysPath(
         importPath += "."
 
     return Pair(
-        sources.map { it.path.replace("\\", "\\\\") }.toSet(),
+        sources.map { it.path }.toSet(),
         "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".").replace("/", File.separator)
     )
 }

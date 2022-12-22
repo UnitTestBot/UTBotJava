@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
@@ -114,61 +115,68 @@ object PythonDialogProcessor {
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
-                val pythonPath = model.srcModule.sdk?.homePath
-                if (pythonPath == null) {
-                    showErrorDialogLater(
-                        project,
-                        message = "Couldn't find Python interpreter",
-                        title = "Python test generation error"
-                    )
+                if (!LockFile.lock()) {
                     return
                 }
-                val methods = findSelectedPythonMethods(model)
-                if (methods == null) {
-                    showErrorDialogLater(
-                        project,
-                        message = "Couldn't parse file. Maybe it contains syntax error?",
-                        title = "Python test generation error"
-                    )
-                    return
-                }
-                processTestGeneration(
-                    pythonPath = pythonPath,
-                    pythonFilePath = model.file.virtualFile.path,
-                    pythonFileContent = getContentFromPyFile(model.file),
-                    directoriesForSysPath = model.directoriesForSysPath,
-                    currentPythonModule = model.currentPythonModule,
-                    pythonMethods = methods,
-                    containingClassName = model.containingClass?.name,
-                    timeout = model.timeout,
-                    testFramework = model.testFramework,
-                    timeoutForRun = model.timeoutForRun,
-                    visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
-                    isCanceled = { indicator.isCanceled },
-                    checkingRequirementsAction = { indicator.text = "Checking requirements" },
-                    requirementsAreNotInstalledAction = {
-                        askAndInstallRequirementsLater(model.project, pythonPath)
-                        PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
-                    },
-                    startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
-                    startedTestGenerationAction = { indicator.text = "Generating tests" },
-                    notGeneratedTestsAction = {
+                try {
+                    val pythonPath = model.srcModule.sdk?.homePath
+                    if (pythonPath == null) {
                         showErrorDialogLater(
                             project,
-                            message = "Cannot create tests for the following functions: " + it.joinToString(),
+                            message = "Couldn't find Python interpreter",
                             title = "Python test generation error"
                         )
-                    },
-                    writeTestTextToFile = { generatedCode ->
-                        writeGeneratedCodeToPsiDocument(generatedCode, model)
-                    },
-                    processMypyWarnings = {
-                        val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
-                        WarningTestsReportNotifier.notify(message.toString())
-                    },
-                    startedCleaningAction = { indicator.text = "Cleaning up..." },
-                    pythonRunRoot = Path(model.testSourceRootPath)
-                )
+                        return
+                    }
+                    val methods = findSelectedPythonMethods(model)
+                    if (methods == null) {
+                        showErrorDialogLater(
+                            project,
+                            message = "Couldn't parse file. Maybe it contains syntax error?",
+                            title = "Python test generation error"
+                        )
+                        return
+                    }
+                    processTestGeneration(
+                        pythonPath = pythonPath,
+                        pythonFilePath = model.file.virtualFile.path,
+                        pythonFileContent = getContentFromPyFile(model.file),
+                        directoriesForSysPath = model.directoriesForSysPath,
+                        currentPythonModule = model.currentPythonModule,
+                        pythonMethods = methods,
+                        containingClassName = model.containingClass?.name,
+                        timeout = model.timeout,
+                        testFramework = model.testFramework,
+                        timeoutForRun = model.timeoutForRun,
+                        visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
+                        isCanceled = { indicator.isCanceled },
+                        checkingRequirementsAction = { indicator.text = "Checking requirements" },
+                        requirementsAreNotInstalledAction = {
+                            askAndInstallRequirementsLater(model.project, pythonPath)
+                            PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
+                        },
+                        startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
+                        startedTestGenerationAction = { indicator.text = "Generating tests" },
+                        notGeneratedTestsAction = {
+                            showErrorDialogLater(
+                                project,
+                                message = "Cannot create tests for the following functions: " + it.joinToString(),
+                                title = "Python test generation error"
+                            )
+                        },
+                        writeTestTextToFile = { generatedCode ->
+                            writeGeneratedCodeToPsiDocument(generatedCode, model)
+                        },
+                        processMypyWarnings = {
+                            val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
+                            WarningTestsReportNotifier.notify(message.toString())
+                        },
+                        startedCleaningAction = { indicator.text = "Cleaning up..." },
+                        pythonRunRoot = Path(model.testSourceRootPath)
+                    )
+                } finally {
+                    LockFile.unlock()
+                }
             }
         })
     }
@@ -271,12 +279,34 @@ fun getDirectoriesForSysPath(
     if (ancestor != null && !sources.contains(ancestor))
         sources.add(ancestor)
 
+    // Collect sys.path directories with imported modules
+    file.importTargets.forEach { importTarget ->
+        importTarget.multiResolve().forEach {
+            val element = it.element
+            if (element != null) {
+                val directory = element.parent
+                if (directory is PsiDirectory) {
+                    if (sources.any { source ->
+                            val sourcePath = source.canonicalPath
+                            if (source.isDirectory && sourcePath != null) {
+                                directory.virtualFile.canonicalPath?.startsWith(sourcePath) ?: false
+                            } else {
+                                false
+                            }
+                        }) {
+                        sources.add(directory.virtualFile)
+                    }
+                }
+            }
+        }
+    }
+
     var importPath = ancestor?.let { VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(file.virtualFile, it)) } ?: ""
     if (importPath != "")
         importPath += "."
 
     return Pair(
-        sources.map { it.path }.toSet(),
+        sources.map { it.path.replace("\\", "\\\\") }.toSet(),
         "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".").replace("/", File.separator)
     )
 }

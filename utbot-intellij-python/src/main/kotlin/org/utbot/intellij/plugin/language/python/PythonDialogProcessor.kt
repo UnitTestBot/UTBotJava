@@ -271,6 +271,20 @@ fun getDirectoriesForSysPath(
     if (ancestor != null && !sources.contains(ancestor))
         sources.add(ancestor)
 
+    // Collect sys.path directories with imported modules
+    file.importTargets.forEach { importTarget ->
+        importTarget.multiResolve().forEach {
+            val element = it.element
+            if (element != null) {
+                val directory = element.parent
+                if (directory is PsiDirectory) {
+                    sources.add(directory.virtualFile)
+                }
+            }
+
+        }
+    }
+
     var importPath = ancestor?.let { VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(file.virtualFile, it)) } ?: ""
     if (importPath != "")
         importPath += "."

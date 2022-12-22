@@ -278,10 +278,18 @@ fun getDirectoriesForSysPath(
             if (element != null) {
                 val directory = element.parent
                 if (directory is PsiDirectory) {
-                    sources.add(directory.virtualFile)
+                    if (sources.any { source ->
+                            val sourcePath = source.canonicalPath
+                            if (source.isDirectory && sourcePath != null) {
+                                directory.virtualFile.canonicalPath?.startsWith(sourcePath) ?: false
+                            } else {
+                                false
+                            }
+                        }) {
+                        sources.add(directory.virtualFile)
+                    }
                 }
             }
-
         }
     }
 
@@ -290,7 +298,7 @@ fun getDirectoriesForSysPath(
         importPath += "."
 
     return Pair(
-        sources.map { it.path }.toSet(),
+        sources.map { it.path.replace("\\", "\\\\") }.toSet(),
         "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".").replace("/", File.separator)
     )
 }

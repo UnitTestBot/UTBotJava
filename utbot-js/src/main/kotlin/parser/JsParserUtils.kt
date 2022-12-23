@@ -57,12 +57,12 @@ object JsParserUtils {
     /**
      * Called upon node with any kind of literal value token.
      */
-    fun Node.getAnyValue(): Any = when {
+    fun Node.getAnyValue(): Any? = when {
         this.isNumber -> this.double
         this.isString || this.isName -> this.string
         this.isTrue -> true
         this.isFalse -> false
-        else -> throw UnsupportedOperationException("Not yet implemented!")
+        else -> null
     }
 
     // For some reason Closure Compiler doesn't contain a built-in method

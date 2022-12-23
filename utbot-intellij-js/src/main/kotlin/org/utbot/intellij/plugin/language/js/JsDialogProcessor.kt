@@ -102,25 +102,25 @@ object JsDialogProcessor {
     private fun createDialog(
         jsTestsModel: JsTestsModel?
     ): JsDialogWindow? {
-        try {
-            jsTestsModel?.pathToNode = NodeJsLocalInterpreterManager.getInstance()
-                .interpreters.first().interpreterSystemIndependentPath
-            val (_, error) = JsCmdExec.runCommand(
-                shouldWait = true,
-                cmd = arrayOf("node", "-v")
-            )
-            if (error.readText().isNotEmpty()) throw NoSuchElementException()
-        } catch (e: NoSuchElementException) {
-            Messages.showErrorDialog(
-                "Node.js interpreter is not found in IDEA settings.\n" +
-                        "Please set it in Settings > Languages & Frameworks > Node.js",
-                "Requirement Error"
-            )
-            logger.error { "Node.js interpreter was not found in IDEA settings." }
-            return null
-        }
         return jsTestsModel?.let {
-            JsDialogWindow(it)
+            try {
+                jsTestsModel.pathToNode = NodeJsLocalInterpreterManager.getInstance()
+                    .interpreters.first().interpreterSystemIndependentPath
+                val (_, error) = JsCmdExec.runCommand(
+                    shouldWait = true,
+                    cmd = arrayOf("\"${jsTestsModel.pathToNode}\"", "-v")
+                )
+                if (error.readText().isNotEmpty()) throw NoSuchElementException()
+                JsDialogWindow(it)
+            } catch (e: NoSuchElementException) {
+                Messages.showErrorDialog(
+                    "Node.js interpreter is not found in IDEA settings.\n" +
+                            "Please set it in Settings > Languages & Frameworks > Node.js",
+                    "Requirement Error"
+                )
+                logger.error { "Node.js interpreter was not found in IDEA settings." }
+                null
+            }
         }
     }
 

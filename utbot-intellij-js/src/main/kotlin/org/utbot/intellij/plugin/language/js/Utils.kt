@@ -19,25 +19,19 @@ fun getFrameworkLibraryPath(npmPackageName: String, model: JsTestsModel?): Strin
         installMissingRequirement(model.project, model.pathToNPM, npmPackageName)
         return null
     }
-    return input.substringBefore(npmPackageName) + npmPackageName
-}
-
-private fun npmListByFlag(model: JsTestsModel, flag: String): String {
-    val (bufferReader, _) = JsCmdExec.runCommand(
-        dir = model.project.basePath!!,
-        shouldWait = true,
-        timeout = 10,
-        cmd = arrayOf(model.pathToNPM, "list", flag)
-    )
-    val packages = bufferReader.readText()
-    bufferReader.close()
-    return packages
+    return input.substringBefore(npmPackageName) + npmPackageName + ".cmd"
 }
 
 fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
-    val packageText = npmListByFlag(model, "-g") + npmListByFlag(model, "-l")
-
-    if (packageText.isEmpty()) {
+    val (bufferedReader, _) = JsCmdExec.runCommand(
+        dir = model.project.basePath!!,
+        shouldWait = true,
+        timeout = 10,
+        cmd = arrayOf("\"${model.pathToNPM}\"", "list", "-g")
+    )
+    val checkForPackageText = bufferedReader.readText()
+    bufferedReader.close()
+    if (checkForPackageText == "") {
         Messages.showErrorDialog(
             model.project,
             "Node.js is not installed",
@@ -45,7 +39,7 @@ fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
         )
         return false
     }
-    return packageText.contains(npmPackageName)
+    return checkForPackageText.contains(npmPackageName)
 }
 
 fun installRequirement(pathToNPM: String, requirement: String, installingDir: String?): Pair<BufferedReader, BufferedReader> {
@@ -55,7 +49,7 @@ fun installRequirement(pathToNPM: String, requirement: String, installingDir: St
         dir = installingDir,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(pathToNPM, "install", installationType) + requirement
+        cmd = arrayOf("\"$pathToNPM\"", "install", installationType) + requirement
     )
     return buf1 to buf2
 }

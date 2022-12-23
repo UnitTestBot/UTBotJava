@@ -14,7 +14,7 @@ object JsCmdExec {
         timeout: Long = defaultTimeout,
         vararg cmd: String,
     ): Pair<BufferedReader, BufferedReader> {
-        val builder = ProcessBuilder(*OsProvider.getProviderByOs().getCmdPrefix(), *cmd)
+        val builder = ProcessBuilder(*cmd)
         dir?.let {
             builder.directory(File(it))
         }

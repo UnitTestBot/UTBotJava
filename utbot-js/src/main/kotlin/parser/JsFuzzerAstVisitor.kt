@@ -38,7 +38,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
 
     }
 
-    private fun validateNode(value: Any) {
+    private fun validateNode(value: Any?) {
         when (value) {
             is String -> {
                 fuzzedConcreteValues.add(

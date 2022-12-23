@@ -80,7 +80,7 @@ test("${context.filePathToInference}")
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
-            cmd = arrayOf(context.settings.pathToNPM, "i", "tern", "-l")
+            cmd = arrayOf("\"${context.settings.pathToNPM}\"", "i", "tern", "-l")
         )
     }
 
@@ -96,7 +96,7 @@ test("${context.filePathToInference}")
                 dir = "$projectPath/$utbotDir/",
                 shouldWait = true,
                 timeout = 20,
-                cmd = arrayOf(settings.pathToNode, "${projectPath}/$utbotDir/ternScript.js"),
+                cmd = arrayOf("\"${settings.pathToNode}\"", "\"${projectPath}/$utbotDir/ternScript.js\""),
             )
             val text = reader.readText().replaceAfterLast("}", "")
             json = try {

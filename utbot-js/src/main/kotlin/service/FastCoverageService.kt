@@ -30,7 +30,7 @@ class FastCoverageService(
             val fileName = context.filePathToInference.substringAfterLast("/")
             with(context) {
                 JsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destination),
+                    cmd = arrayOf("\"${settings.pathToNYC}\"", "instrument", "\"$fileName\"", "\"$destination\""),
                     dir = context.filePathToInference.substringBeforeLast("/"),
                     shouldWait = true,
                     timeout = settings.timeout,
@@ -71,7 +71,7 @@ class FastCoverageService(
     private fun getBaseCoverage(): List<Int> {
         with(context) {
             JsCmdExec.runCommand(
-                cmd = arrayOf(settings.pathToNode, "$utbotDirPath/${tempFileName}Base.js"),
+                cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/${tempFileName}Base.js\""),
                 dir = context.projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
@@ -126,7 +126,7 @@ class FastCoverageService(
         scriptTexts.indices.toList().parallelStream().forEach { parallelIndex ->
             with(context) {
                 val (_, error) = JsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName$parallelIndex.js"),
+                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$parallelIndex.js\""),
                     dir = context.projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,

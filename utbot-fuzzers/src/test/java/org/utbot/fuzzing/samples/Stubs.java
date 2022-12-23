@@ -1,5 +1,7 @@
 package org.utbot.fuzzing.samples;
 
+import java.util.List;
+
 @SuppressWarnings("unused")
 public class Stubs {
 
@@ -11,5 +13,19 @@ public class Stubs {
             result++;
         }
         return result;
+    }
+
+    public static <T extends List<Number>> int types(T[] t1, T[] t2, T[] t3) {
+        return t1.length + t2.length + t3.length;
+    }
+
+    public static <T extends Number> int arrayLength(java.util.List<T>[][] test) {
+        int length = 0;
+        for (int i = 0; i < test.length; i++) {
+            for (int j = 0; j < test[i].length; j++) {
+                length += test[i][j].size();
+            }
+        }
+        return length;
     }
 }

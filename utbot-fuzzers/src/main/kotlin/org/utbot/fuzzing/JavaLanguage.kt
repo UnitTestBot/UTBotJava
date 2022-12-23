@@ -11,7 +11,7 @@ import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.*
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureNanoTime
-import java.util.IdentityHashMap
+import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
@@ -20,7 +20,8 @@ typealias JavaValueProvider = ValueProvider<FuzzedType, FuzzedValue, FuzzedDescr
 class FuzzedDescription(
     val description: FuzzedMethodDescription,
     val tracer: Trie<Instruction, *>,
-    val typeCache: IdentityHashMap<Type, FuzzedType>,
+    val typeCache: MutableMap<Type, FuzzedType>,
+    val random: Random,
 ) : Description<FuzzedType>(
     description.parameters.mapIndexed { index, classId ->
         description.fuzzerType(index) ?: FuzzedType(classId)
@@ -55,6 +56,7 @@ suspend fun runJavaFuzzing(
     providers: List<ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription>> = defaultValueProviders(idGenerator),
     exec: suspend (thisInstance: FuzzedValue?, description: FuzzedDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<Instruction>, FuzzedType, FuzzedValue>
 ) {
+    val random = Random(0)
     val classUnderTest = methodUnderTest.classId
     val name = methodUnderTest.classId.simpleName + "." + methodUnderTest.name
     val returnType = methodUnderTest.returnType
@@ -63,7 +65,7 @@ suspend fun runJavaFuzzing(
     // For a concrete fuzzing run we need to track types we create.
     // Because of generics can be declared as recursive structures like `<T extends Iterable<T>>`,
     // we should track them by reference and do not call `equals` and `hashCode` recursively.
-    val typeCache = IdentityHashMap<Type, FuzzedType>()
+    val typeCache = hashMapOf<Type, FuzzedType>()
     /**
      * To fuzz this instance, the class of it is added into head of parameters list.
      * Done for compatibility with old fuzzer logic and should be reworked more robust way.
@@ -101,15 +103,15 @@ suspend fun runJavaFuzzing(
         if (!isStatic && !isConstructor) { classUnderTest } else { null }
     }
     val tracer = Trie(Instruction::id)
-    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache)
-    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache)
+    val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache, random)
+    val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache, random)
     try {
         logger.info { "Starting fuzzing for method: $methodUnderTest" }
         logger.info { "\tuse thisInstance = ${thisInstance != null}" }
         logger.info { "\tparameters = $parameters" }
         var totalExecutionCalled = 0
         val totalFuzzingTime = measureNanoTime {
-            runFuzzing(ValueProvider.of(providers), descriptionWithOptionalThisInstance) { _, t ->
+            runFuzzing(ValueProvider.of(providers), descriptionWithOptionalThisInstance, random) { _, t ->
                 totalExecutionCalled++
                 if (thisInstance == null) {
                     exec(null, descriptionWithOnlyParameters, t)
@@ -127,13 +129,16 @@ suspend fun runJavaFuzzing(
 
 /**
  * Resolve a fuzzer type that has class info and some generics.
+ *
+ * @param type to be resolved
+ * @param cache is used to store same [FuzzedType] for same java types
  */
-internal fun toFuzzerType(type: Type, cache: IdentityHashMap<Type, FuzzedType>): FuzzedType {
+internal fun toFuzzerType(type: Type, cache: MutableMap<Type, FuzzedType>): FuzzedType {
     return toFuzzerType(
         type = type,
         classId = { t -> toClassId(t, cache) },
         generics = { t -> toGenerics(t) },
-        cache = cache
+        cache = cache,
     )
 }
 
@@ -155,27 +160,35 @@ private fun toFuzzerType(
     type: Type,
     classId: (type: Type) -> ClassId,
     generics: (parent: Type) -> Array<out Type>,
-    cache: IdentityHashMap<Type, FuzzedType>
+    cache: MutableMap<Type, FuzzedType>
 ): FuzzedType {
     val g = mutableListOf<FuzzedType>()
-    var target = cache[type]
+    val t = type.findRealTypeUntilTypeVariable()
+    var target = cache[t]
     if (target == null) {
-        target = FuzzedType(classId(type), g)
-        cache[type] = target
-        g += generics(type).map {
+        target = FuzzedType(classId(t), g)
+        cache[t] = target
+        g += generics(t).map {
             toFuzzerType(it, classId, generics, cache)
         }
     }
     return target
 }
 
-private fun toClassId(type: Type, cache: IdentityHashMap<Type, FuzzedType>): ClassId {
+private fun Type.findRealTypeUntilTypeVariable() : Type {
+    var type: Type = this
+    while (type is TypeVariable<*>) {
+        type = type.bounds.firstOrNull() ?: java.lang.Object::class.java
+    }
+    return type
+}
+
+private fun toClassId(type: Type, cache: MutableMap<Type, FuzzedType>): ClassId {
     return when (type) {
         is WildcardType -> type.upperBounds.firstOrNull()?.let { toClassId(it, cache) } ?: objectClassId
-        is TypeVariable<*> -> type.bounds.firstOrNull()?.let { toClassId(it, cache) } ?: objectClassId
         is GenericArrayType -> {
             val genericComponentType = type.genericComponentType
-            val classId = toClassId(genericComponentType, cache)
+            val classId = toFuzzerType(genericComponentType, cache).classId
             if (genericComponentType !is GenericArrayType) {
                 ClassId("[L${classId.name};", classId)
             } else {
@@ -190,8 +203,7 @@ private fun toClassId(type: Type, cache: IdentityHashMap<Type, FuzzedType>): Cla
 
 private fun toGenerics(t: Type) : Array<out Type> {
     return when (t) {
-        is TypeVariable<*> -> arrayOf(t.bounds.firstOrNull() ?: java.lang.Object::class.java)
-        is GenericArrayType -> toGenerics(t.genericComponentType)
+        is GenericArrayType -> arrayOf(t.genericComponentType)
         is ParameterizedType -> t.actualTypeArguments
         is Class<*> -> t.typeParameters
         else -> emptyArray()

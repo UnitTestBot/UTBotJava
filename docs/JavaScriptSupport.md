@@ -1,127 +1,111 @@
-# UTBot JavaScript Plugin Setup
+# UnitTestBot JavaScript plugin setup
 
-## Installing IntelliJ IDEA Ultimate
+## How to start using UnitTestBot JavaScript
 
-> Install the latest version of IntelliJ IDEA Ultimate
-> * <https://www.jetbrains.com/idea/download/>
+1. [Install](https://www.jetbrains.com/idea/download/) the latest version of IntelliJ IDEA Ultimate.
+2. [Install](https://plugins.jetbrains.com/plugin/19445-unittestbot) the latest version of UnitTestBot plugin.
+3. [Install](https://nodejs.org/en/download/) Node.js 10.0.0 or later. Add Node.js to environment variables for better experience.
+4. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools** > **UnitTestBot** and enable **Experimental languages support**.
+5. Go to **File** > **Settings** > **Languages & Frameworks**, choose **Node.js** and check if the path to Node.js executable file is specified.
+6. In a JavaScript file, press **Alt+Shift+U** to open the generation dialog.
 
+## Troubleshooting: _npm_ cannot install requirements
 
-## Installing UTBot plugin
+1. The system prohibits installation
 
-> Install the latest version of UTBot plugin
-> * <https://plugins.jetbrains.com/plugin/19445-unittestbot>
+Solution: run _cmd_ via `sudo` or with administrator access, run `npm install -g <missing requirement>`.
 
+2. Node.js is missing, or _npm_ is not installed
 
-## Prerequisites
-
-> Install Node.js 10.0.0 or higher
-> * <https://nodejs.org/en/download/>
-> 
-> Add Node.js to environment variables for better experience
-
-## Running in Intellij IDEA Ultimate
-
-> Enable experimental languages support in\
-> `File -> Settings -> Tools -> UnitTestBot -> Experimental langueges support`
-> 
-> Please check that Node.js executable file is specified in\
-> `File -> Setting -> Languages & Frameworks -> Node.js`
-
-> Open JavaScript file, use UTBot hotkey to open plugin window
-
-## Troubleshooting
-
-### Npm can't install some requirements
-> 1. System prohibits installation 
-> > Solution: run cmd via sudo / with admin access, run `npm install -g <missing requirement>`
-> 2. Node.js is missing, or npm is not installed
-> > Solution: Install Node.js from official website with default configuration 
+Solution: install Node.js with default configuration from the official website.
 
 # JavaScript Command Line Interface usage
 
 ## Build
 
-> .jar file can be built in GitHub Actions with script publish-plugin-and-cli-from-branch.
-> * <https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli-from-branch.yml>
+JAR file can be built in [GitHub Actions](https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli-from-branch.yml) with the `publish-plugin-and-cli-from-branch` script.
+
 ## Requirements
-> NodeJs 10.0.0 or higher <https://nodejs.org/en/download/>\
-> Java 11 or higher <https://www.oracle.com/java/technologies/downloads/>\
-> Nyc 15.1.0 or higher `> npm install -g nyc`\
-> Mocha 10.0.0 or higher `> npm install -g mocha`
+
+* [Install](https://nodejs.org/en/download/) Node.js 10.0.0 or later
+* [Install](https://www.oracle.com/java/technologies/downloads/) Java 11 or later
+* Install _nyc_ 15.1.0 or later: `> npm install -g nyc`
+* Install Mocha 10.0.0 or later: `> npm install -g mocha`
 
 ## Basic usage
 
-Generate tests:
+### Generate tests: `generate_js`
 
     java -jar utbot-cli.jar generate_js --source="dir/file_with_sources.js" --output="dir/generated_tests.js"
 
-This will generate tests for top-level functions from `file_with_sources.js`.
+  This will generate tests for top-level functions from `file_with_sources.js`.
 
-Run generated tests:
-
-    java -jar utbot-cli.jar run_js --fileOrDir="generated_tests.js"
-
-This will run generated tests from file or directory.
-
-Generate coverage report:
-
-    java -jar utbot-cli.jar coverage_js --source=dir/generated_tests.js
-
-This will generate coverage report from generated tests and print in `StdOut`
-
-## `generate_js` options
+#### Options
 
 - `-s, --source <path>`
 
-  (required) Source code file for a test generation.
+  _(required)_ Source code file for test generation.
 - `-c, --class <classname>`
 
-  If not specified, tests for top-level functions or single class are generated, otherwise for the specified class.
+  Specifies the class to generate tests for.
+  If not specified, tests for top-level functions or a single class are generated.
 
 - `-o, --output <dir/filename>`
 
   File for generated tests.
 - `-p, --print-test`
 
-  Specifies whether test should be printed out to `StdOut` (default = false)
+  Specifies whether a test should be printed out to `StdOut` (default = false).
 - `-t, --timeout <seconds>`
 
-  Timeout for a single test case to generate in seconds (default = 15)
+  Timeout for a single test case to generate: in seconds (default = 15).
 - `--coverage-mode <BASIC/FAST>`
 
-  Specifies the coverage mode for test generation. Fast mode can't find timeouts, but works faster (default = FAST)
+  Specifies the coverage mode for test generation (used for coverage-based optimization). For now, the fast mode cannot deal with exceeding timeouts, but works faster (default = FAST). Do not use the fast mode if you guess there might be infinite loops in your code.
 - `--path-to-node <path>`
 
-  Sets path to Node.js executable (default = "node")
+  Sets a path to Node.js executable (default = "node").
 - `--path-to-nyc <path>`
 
-  Sets path to nyc executable (default = "nyc")
+  Sets a path to _nyc_ executable (default = "nyc").
 - `--path-to-npm <path>`
 
-  Sets path to npm executable (default = "npm")
+  Sets a path to _npm_ executable (default = "npm").
 
-## `run_js` options
+### Run generated tests: `run_js`
+
+    java -jar utbot-cli.jar run_js --fileOrDir="generated_tests.js"
+
+  This will run generated tests from a file or directory.
+
+#### Options
 
 - `-f, --fileOrDir`
 
-  (required) File or directory with tests.
+  _(required)_ File or directory with tests.
 - `-o, --output`
 
-  Specifies output of .txt file for test framework result (If empty prints to `StdOut`)
+  Specifies the output TXT file for a test framework result (if empty, prints the result to `StdOut`).
 
 - `-t, --test-framework <name>`
 
-  Test framework of tests to run. (default = "Mocha")
+  Test framework to use for test running (default = "Mocha").
 
-## `coverage_js` options
+### Generate a coverage report: `coverage_js`
+
+    java -jar utbot-cli.jar coverage_js --source=dir/generated_tests.js
+
+  This will generate a coverage report for generated tests and print it to `StdOut`.
+
+#### Options
 
 - `-s, --source <file>`
 
-  (required) File with tests to generate a report.
+  _(required)_ File with tests to generate a report for.
 
 - `-o, --output`
 
-  Specifies output .json file for generated tests (If empty prints .json to `StdOut`)
+  Specifies the output JSON file for a coverage report (if empty, prints the report to `StdOut`).
 - `--path-to-nyc <path>`
 
-  Sets path to nyc executable (default = "nyc")
+  Sets a path to _nyc_ executable (default = "nyc").

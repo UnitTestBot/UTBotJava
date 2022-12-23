@@ -1,13 +1,53 @@
+# UTBot JavaScript Plugin Setup
+
+## Installing IntelliJ IDEA Ultimate
+
+> Install the latest version of IntelliJ IDEA Ultimate
+> * <https://www.jetbrains.com/idea/download/>
+
+
+## Installing UTBot plugin
+
+> Install the latest version of UTBot plugin
+> * <https://plugins.jetbrains.com/plugin/19445-unittestbot>
+
+
+## Prerequisites
+
+> Install Node.js 10.0.0 or higher
+> * <https://nodejs.org/en/download/>
+> 
+> Add Node.js to environment variables for better experience
+
+## Running in Intellij IDEA Ultimate
+
+> Enable experimental languages support in\
+> `File -> Settings -> Tools -> UnitTestBot -> Experimental langueges support`
+> 
+> Please check that Node.js executable file is specified in\
+> `File -> Setting -> Languages & Frameworks -> Node.js`
+
+> Open JavaScript file, use UTBot hotkey to open plugin window
+
+## Troubleshooting
+
+### Npm can't install some requirements
+> 1. System prohibits installation 
+> > Solution: run cmd via sudo / with admin access, run `npm install -g <missing requirement>`
+> 2. Node.js is missing, or npm is not installed
+> > Solution: Install Node.js from official website with default configuration 
+
+# JavaScript Command Line Interface usage
+
 ## Build
 
-.jar file can be built in GitHub Actions with script publish-plugin-and-cli-from-branch.
-
+> .jar file can be built in GitHub Actions with script publish-plugin-and-cli-from-branch.
+> * <https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli-from-branch.yml>
 ## Requirements
-
-* NodeJs 10.0.0 or higher (available to download https://nodejs.org/en/download/)
-* Java 11 or higher (available to download https://www.oracle.com/java/technologies/downloads/)
-* Nyc 15.1.0 or higher (`> npm install -g nyc`)
-* Mocha 10.0.0 or higher (`> npm install -g mocha`)
+> NodeJs 10.0.0 or higher <https://nodejs.org/en/download/>\
+> Java 11 or higher <https://www.oracle.com/java/technologies/downloads/>\
+> Nyc 15.1.0 or higher `> npm install -g nyc`\
+> Mocha 10.0.0 or higher `> npm install -g mocha`
 
 ## Basic usage
 

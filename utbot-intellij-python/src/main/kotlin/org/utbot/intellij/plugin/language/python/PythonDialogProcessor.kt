@@ -164,6 +164,8 @@ object PythonDialogProcessor {
                         visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
+                        installingRequirementsAction = { indicator.text = "Installing requirements..." },
+                        testFrameworkInstallationAction = { indicator.text = "Test framework installation" },
                         requirementsAreNotInstalledAction = {
                             askAndInstallRequirementsLater(model.project, model.pythonPath)
                             PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED

@@ -49,6 +49,8 @@ object PythonTestGenerationProcessor {
         withMinimization: Boolean = true,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
+        installingRequirementsAction: () -> Unit = {},
+        testFrameworkInstallationAction: () -> Unit = {},
         requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
             MissingRequirementsActionResult.NOT_INSTALLED
         },
@@ -64,11 +66,13 @@ object PythonTestGenerationProcessor {
 
         try {
             if (!testFramework.isInstalled) {
+                testFrameworkInstallationAction()
                 installRequirements(pythonPath, listOf(testFramework.mainPackage))
             }
             if (!doNotCheckRequirements) {
                 checkingRequirementsAction()
                 if (!requirementsAreInstalled(pythonPath)) {
+                    installingRequirementsAction()
                     val result = requirementsAreNotInstalledAction()
                     if (result == MissingRequirementsActionResult.NOT_INSTALLED)
                         return

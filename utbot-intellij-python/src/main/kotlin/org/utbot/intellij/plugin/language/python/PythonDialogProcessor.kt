@@ -324,7 +324,9 @@ fun getDirectoriesForSysPath(
     val importStringPath = listOf(
         importPath.toPath().joinToString("."),
         fileName
-    ).joinToString(".")
+    )
+        .filterNot { it.isEmpty() }
+        .joinToString(".")
 
     return Pair(
         sources.map { it.path }.toSet(),

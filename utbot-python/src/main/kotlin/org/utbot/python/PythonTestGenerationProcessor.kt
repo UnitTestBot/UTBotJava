@@ -22,8 +22,8 @@ import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.Cleaner
+import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
-import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 import java.nio.file.Path
@@ -63,8 +63,9 @@ object PythonTestGenerationProcessor {
         Cleaner.restart()
 
         try {
-            TemporaryFileManager.setup()
-
+            if (!testFramework.isInstalled) {
+                installRequirements(pythonPath, listOf(testFramework.mainPackage))
+            }
             if (!doNotCheckRequirements) {
                 checkingRequirementsAction()
                 if (!requirementsAreInstalled(pythonPath)) {

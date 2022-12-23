@@ -1,10 +1,10 @@
 package utils
 
+import org.utbot.framework.plugin.api.TimeoutException
+import settings.JsTestGenerationSettings.defaultTimeout
 import java.io.BufferedReader
 import java.io.File
 import java.util.concurrent.TimeUnit
-import org.utbot.framework.plugin.api.TimeoutException
-import settings.JsTestGenerationSettings.defaultTimeout
 
 object JsCmdExec {
 
@@ -28,6 +28,6 @@ object JsCmdExec {
                 throw TimeoutException("")
             }
         }
-        return process.inputStream.bufferedReader() to process.errorStream.bufferedReader()
+        return Pair(process.inputStream.bufferedReader(), process.errorStream.bufferedReader())
     }
 }

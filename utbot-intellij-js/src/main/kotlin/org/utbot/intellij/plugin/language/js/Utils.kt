@@ -22,16 +22,22 @@ fun getFrameworkLibraryPath(npmPackageName: String, model: JsTestsModel?): Strin
     return input.substringBefore(npmPackageName) + npmPackageName
 }
 
-fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
-    val (bufferedReader, _) = JsCmdExec.runCommand(
+private fun npmListByFlag(model: JsTestsModel, flag: String): String {
+    val (bufferReader, _) = JsCmdExec.runCommand(
         dir = model.project.basePath!!,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(model.pathToNPM, "list", "-g")
+        cmd = arrayOf(model.pathToNPM, "list", flag)
     )
-    val checkForPackageText = bufferedReader.readText()
-    bufferedReader.close()
-    if (checkForPackageText == "") {
+    val packages = bufferReader.readText()
+    bufferReader.close()
+    return packages
+}
+
+fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
+    val packageText = npmListByFlag(model, "-g") + npmListByFlag(model, "-l")
+
+    if (packageText.isEmpty()) {
         Messages.showErrorDialog(
             model.project,
             "Node.js is not installed",
@@ -39,7 +45,7 @@ fun findFrameworkLibrary(npmPackageName: String, model: JsTestsModel): Boolean {
         )
         return false
     }
-    return checkForPackageText.contains(npmPackageName)
+    return packageText.contains(npmPackageName)
 }
 
 fun installRequirement(pathToNPM: String, requirement: String, installingDir: String?): Pair<BufferedReader, BufferedReader> {

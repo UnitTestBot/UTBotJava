@@ -5,7 +5,6 @@ import java.util.*;
 /**
  * The base concrete class for non-terminal Nodes
  */
-@SuppressWarnings("rawtypes")
 public class BaseNode implements Node {
     private PythonLexer tokenSource;
     public PythonLexer getTokenSource() {

@@ -7,7 +7,6 @@ package org.parsers.python.ast;
 import org.parsers.python.*;
 import org.parsers.python.PythonConstants.TokenType;
 import static org.parsers.python.PythonConstants.TokenType.*;
-@SuppressWarnings("unused")
 public class StringLiteral extends Token {
     public StringLiteral(TokenType type, PythonLexer tokenSource, int beginOffset, int endOffset) {
         super(type, tokenSource, beginOffset, endOffset);

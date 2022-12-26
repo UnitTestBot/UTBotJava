@@ -6,6 +6,5 @@ package org.parsers.python.ast;
 
 import org.parsers.python.*;
 import static org.parsers.python.PythonConstants.TokenType.*;
-@SuppressWarnings("unused")
 public class Slice extends BaseNode {
 }

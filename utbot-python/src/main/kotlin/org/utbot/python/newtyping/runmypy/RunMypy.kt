@@ -17,6 +17,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
     val fileForAnnotationStorage = TemporaryFileManager.assignTemporaryFile(tag = "annotations.json")
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
     val fileForMypyStderr = TemporaryFileManager.assignTemporaryFile(tag = "mypy.err")
+    val fileForMypyExitStatus = TemporaryFileManager.assignTemporaryFile(tag = "mypy.exit")
     val result = runCommand(
         listOf(
             pythonPath,
@@ -31,12 +32,17 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--mypy_stdout",
             fileForMypyStdout.absolutePath,
             "--mypy_stderr",
-            fileForMypyStderr.absolutePath
+            fileForMypyStderr.absolutePath,
+            "--mypy_exit_status",
+            fileForMypyExitStatus.absolutePath,
         ) + if (fileForTypeImport != null) listOf("--file_for_types", fileForTypeImport) else emptyList()
     )
-    val stderr = fileForMypyStderr.readText()
-    if (result.exitValue != 0)
-        error("Something went wrong in initial mypy run. Stderr: $stderr")
+    val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
+    val mypyExitStatus = if (fileForMypyExitStatus.exists()) fileForMypyExitStatus.readText() else null
+    if (result.exitValue != 0 || mypyExitStatus != "0")
+        error("Something went wrong in initial mypy run. " +
+                "\nPython stderr ${result.stderr}" +
+                "\nMypy stderr: $stderr")
     return Pair(
         readMypyAnnotationStorage(fileForAnnotationStorage.readText()),
         getErrorsAndNotes(fileForMypyStdout.readText())

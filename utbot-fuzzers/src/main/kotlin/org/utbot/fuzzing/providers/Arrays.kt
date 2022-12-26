@@ -41,15 +41,13 @@ class ArrayValueProvider(
     /**
      * Resolves array's element type. In case a generic type is used, like `T[]` the type should pass generics.
      *
-     * For example, List<Number>[] is the target type to create, therefore the element type is set according
-     * to the generic type: List, that has only one generic type: Number.
+     * For example, List<Number>[] returns List<Number>.
      */
     private fun resolveArrayElementType(arrayType: FuzzedType): FuzzedType {
         if (!arrayType.classId.isArray) error("$arrayType is not array")
         val elementClassId = arrayType.classId.elementClassId ?: error("Element classId of $arrayType is not found")
         return if (arrayType.generics.size == 1) {
-            assert(elementClassId == arrayType.generics.first().classId)
-            FuzzedType(elementClassId, arrayType.generics.first().generics)
+            arrayType.generics.first()
         } else if (arrayType.generics.isEmpty()) {
             FuzzedType(elementClassId)
         } else {

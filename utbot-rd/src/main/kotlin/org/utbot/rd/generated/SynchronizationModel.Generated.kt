@@ -15,9 +15,10 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [SynchronizationModel.kt:7]
+ * #### Generated from [SynchronizationModel.kt:8]
  */
 class SynchronizationModel private constructor(
+    private val _suspendTimeoutTimer: RdCall<Boolean, Unit>,
     private val _synchronizationSignal: RdSignal<String>
 ) : RdExtBase() {
     //companion
@@ -48,27 +49,31 @@ class SynchronizationModel private constructor(
         }
         
         
-        const val serializationHash = -6677090974058917499L
+        const val serializationHash = 3813608056984691311L
         
     }
     override val serializersOwner: ISerializersOwner get() = SynchronizationModel
     override val serializationHash: Long get() = SynchronizationModel.serializationHash
     
     //fields
+    val suspendTimeoutTimer: RdCall<Boolean, Unit> get() = _suspendTimeoutTimer
     val synchronizationSignal: IAsyncSignal<String> get() = _synchronizationSignal
     //methods
     //initializer
     init {
+        _suspendTimeoutTimer.async = true
         _synchronizationSignal.async = true
     }
     
     init {
+        bindableChildren.add("suspendTimeoutTimer" to _suspendTimeoutTimer)
         bindableChildren.add("synchronizationSignal" to _synchronizationSignal)
     }
     
     //secondary constructor
     private constructor(
     ) : this(
+        RdCall<Boolean, Unit>(FrameworkMarshallers.Bool, FrameworkMarshallers.Void),
         RdSignal<String>(FrameworkMarshallers.String)
     )
     
@@ -78,6 +83,7 @@ class SynchronizationModel private constructor(
     override fun print(printer: PrettyPrinter)  {
         printer.println("SynchronizationModel (")
         printer.indent {
+            print("suspendTimeoutTimer = "); _suspendTimeoutTimer.print(printer); println()
             print("synchronizationSignal = "); _synchronizationSignal.print(printer); println()
         }
         printer.print(")")
@@ -85,6 +91,7 @@ class SynchronizationModel private constructor(
     //deepClone
     override fun deepClone(): SynchronizationModel   {
         return SynchronizationModel(
+            _suspendTimeoutTimer.deepClonePolymorphic(),
             _synchronizationSignal.deepClonePolymorphic()
         )
     }

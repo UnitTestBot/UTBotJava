@@ -12,6 +12,7 @@ import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.sdk.PythonSdkType
 import org.jetbrains.kotlin.idea.util.projectStructure.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
+import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 
 object PythonLanguageAssistant : LanguageAssistant() {
@@ -40,16 +41,21 @@ object PythonLanguageAssistant : LanguageAssistant() {
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabled = getPsiTargets(e) != null
+        e.presentation.isEnabled = !LockFile.isLocked() && getPsiTargets(e) != null
     }
 
     private fun getPsiTargets(e: AnActionEvent): Targets? {
-        val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
+        val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
-        val element = findPsiElement(file, editor) ?: return null
 
         if (file.module?.sdk?.sdkType !is PythonSdkType)
             return null
+
+        val element = if (editor != null) {
+            findPsiElement(file, editor) ?: return null
+        } else {
+            e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+        }
 
         val containingFunction = getContainingElement<PyFunction>(element)
         val containingClass = getContainingElement<PyClass>(element)
@@ -67,7 +73,8 @@ object PythonLanguageAssistant : LanguageAssistant() {
         if (functions.isEmpty())
             return null
 
-        val focusedFunction = if (functions.any { it.name == containingFunction?.name }) containingFunction else null
+        val focusedFunction =
+            if (functions.any { it.name == containingFunction?.name }) containingFunction else null
         return Targets(functions.toSet(), containingClass, focusedFunction, file)
     }
 

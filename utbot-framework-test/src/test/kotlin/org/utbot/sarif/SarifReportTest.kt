@@ -156,6 +156,49 @@ class SarifReportTest {
     }
 
     @Test
+    fun testProcessTimeoutException() {
+        mockUtMethodNames()
+
+        val timeoutMessage = "Timeout 1000 elapsed"
+        val timeoutException = TimeoutException(timeoutMessage)
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtTimeoutException(timeoutException))
+
+        defaultMockCoverage(mockUtExecution)
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        assert(result.message.text.contains(timeoutMessage))
+    }
+
+    @Test
+    fun testConvertCoverageToStackTrace() {
+        mockUtMethodNames()
+
+        val timeoutException = TimeoutException("Timeout 1000 elapsed")
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtTimeoutException(timeoutException))
+
+        val classMainPath = "com/abc/Main"
+        val classUtilPath = "com/cba/Util"
+        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions).thenReturn(listOf(
+            Instruction(classMainPath, "main(l)l", 3, 1),
+            Instruction(classMainPath, "main(l)l", 4, 2),
+            Instruction(classMainPath, "main(l)l", 4, 3), // last for main
+            Instruction(classUtilPath, "util(ll)l", 6, 4),
+            Instruction(classUtilPath, "util(ll)l", 7, 5), // last for util
+        ))
+
+        val report = sarifReportMain.createReport()
+        val result = report.runs.first().results.first()
+        val stackTrace = result.codeFlows.first().threadFlows.first().locations
+
+        assert(stackTrace[0].location.physicalLocation.artifactLocation.uri == "$classMainPath.java")
+        assert(stackTrace[0].location.physicalLocation.region.startLine == 4)
+
+        assert(stackTrace[1].location.physicalLocation.artifactLocation.uri == "$classUtilPath.java")
+        assert(stackTrace[1].location.physicalLocation.region.startLine == 7)
+    }
+
+    @Test
     fun testCodeFlowsStartsWithMethodCall() {
         mockUtMethodNames()
 

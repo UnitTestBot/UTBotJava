@@ -39,6 +39,6 @@ interface ModelMutator {
     ) : FuzzedValue?
 
     fun UtModel.mutatedFrom(template: FuzzedValue, block: FuzzedValue.() -> Unit = {}): FuzzedValue {
-        return FuzzedValue(this, template.createdBy).apply(block)
+        return FuzzedValue(this).apply(block)
     }
 }

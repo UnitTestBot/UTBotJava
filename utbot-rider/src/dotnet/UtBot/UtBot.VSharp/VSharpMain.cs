@@ -2,23 +2,55 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Reflection;
 using System.Runtime.Loader;
 using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
 using JetBrains.Rd;
 using JetBrains.Rd.Impl;
 using JetBrains.Rd.Tasks;
+using JetBrains.Util;
 using UtBot.Rd;
 using UtBot.Rd.Generated;
 using VSharp;
+using VSharp.System;
 using VSharp.TestRenderer;
+using Thread = System.Threading.Thread;
 
 namespace UtBot.VSharp;
 
 public static class VSharpMain
 {
     public static readonly string VSharpProcessName = "VSharp";
+
+    private static GenerateResults GenerateImpl(GenerateArguments arguments)
+    {
+        var (assemblyPath, projectCsprojPath, solutionFilePath,
+            descriptor, generationTimeout, targetFramework) = arguments;
+        var assemblyLoadContext = new AssemblyLoadContext(VSharpProcessName);
+        using var fs = File.OpenRead(assemblyPath);
+        var ass = assemblyLoadContext.LoadFromStream(fs);
+        var type = ass.GetType(descriptor.TypeName, throwOnError: false);
+        if (type?.FullName != descriptor.TypeName)
+            throw new InvalidDataException($"cannot find type - {descriptor.TypeName}");
+        var methodInfo = type.GetMethod(descriptor.MethodName,
+            BindingFlags.Instance
+            | BindingFlags.Static
+            | BindingFlags.Public);
+        if (methodInfo?.Name != descriptor.MethodName)
+            throw new InvalidDataException(
+                $"cannot find method - ${descriptor.MethodName} for type - ${descriptor.TypeName}");
+        var stat = TestGenerator.Cover(methodInfo, generationTimeout);
+        var targetProject = new FileInfo(projectCsprojPath);
+        var solution = new FileInfo(solutionFilePath);
+        var declaringType = methodInfo.DeclaringType;
+        Debug.Assert(declaringType != null);
+        var (generatedProject, renderedFiles) =
+            Renderer.Render(stat.Results(), targetProject, declaringType, assemblyLoadContext, solution, targetFramework);
+        return new GenerateResults(true, generatedProject.FullName, renderedFiles.ToArray(), null);
+        ;
+    }
+
     public static void Main(string[] args)
     {
         using var blockingQueue = new BlockingCollection<string>(1);
@@ -35,26 +67,18 @@ public static class VSharpMain
                 var vSharpModel = new VSharpModel(ldef.Lifetime, protocol);
                 vSharpModel.Generate.Set((_, arguments) =>
                 {
-                    var (assemblyPath, projectCsprojPath, solutionFilePath,
-                        moduleFqnName, methodToken, generationTimeout) = arguments;
-                    var assemblyLoadContext = new AssemblyLoadContext(VSharpProcessName);
-                    var fs = File.OpenRead(assemblyPath);
-                    var ass = assemblyLoadContext.LoadFromStream(fs);
-                    fs.Close();
-                    fs.Dispose();
-                    var methodBase = ass.GetModules().Single(module => module.FullyQualifiedName == moduleFqnName).ResolveMethod(methodToken);
-                    Debug.Assert(methodBase != null);
-                    var stat = TestGenerator.Cover(methodBase, generationTimeout);
-                    var targetProject = new FileInfo(projectCsprojPath);
-                    var solution = new FileInfo(solutionFilePath);
-                    var declaringType = methodBase.DeclaringType;
-                    Debug.Assert(declaringType != null);
-                    var (generatedProject, renderedFiles) = Renderer.Render(stat.Results(), targetProject,
-                        declaringType,
-                        assemblyLoadContext, solution);
-                    var result = new GenerateResults(generatedProject.FullName, renderedFiles.ToArray());
-                    blockingQueue.Add("End");
-                    return result;
+                    try
+                    {
+                        return GenerateImpl(arguments);
+                    }
+                    catch (Exception e)
+                    {
+                        return new GenerateResults(false, "", EmptyArray<string>.Instance, e.ToString());
+                    }
+                    finally
+                    {
+                        scheduler.Queue(() => { blockingQueue.Add("End"); });
+                    }
                 });
                 vSharpModel.Ping.Advise(ldef.Lifetime, s =>
                 {
@@ -66,6 +90,8 @@ public static class VSharpMain
             });
         });
         blockingQueue.Take();
+        // todo check if queueing take as next action is enough
+        // Thread.Sleep(1000);
         ldef.Terminate();
     }
 }

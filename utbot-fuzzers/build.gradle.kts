@@ -17,6 +17,7 @@ tasks {
 
 dependencies {
     implementation(project(":utbot-framework-api"))
+    api(project(":utbot-fuzzing"))
 
     implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
         exclude(group="com.google.guava", module="guava")

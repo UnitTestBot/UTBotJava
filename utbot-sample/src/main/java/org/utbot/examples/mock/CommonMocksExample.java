@@ -1,5 +1,7 @@
 package org.utbot.examples.mock;
 
+import org.utbot.api.mock.UtMock;
+import org.utbot.examples.mock.others.Random;
 import org.utbot.examples.mock.service.impl.ExampleClass;
 import org.utbot.examples.objects.ObjectWithFinalStatic;
 import org.utbot.examples.objects.RecursiveTypeClass;
@@ -34,5 +36,12 @@ public class CommonMocksExample {
         } else {
             return -ObjectWithFinalStatic.keyValue;
         }
+    }
+
+    public int mocksForNullOfDifferentTypes(Integer intValue, Random random) {
+        UtMock.assume(intValue == null);
+        UtMock.assume(random == null);
+
+        return 0;
     }
 }

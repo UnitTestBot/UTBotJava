@@ -10,7 +10,8 @@ private inline class LineNumber(val number: Int)
  * [Greedy essential algorithm](CONFLUENCE:Test+Minimization)
  */
 class GreedyEssential private constructor(
-    executionToCoveredLines: Map<ExecutionNumber, List<LineNumber>>
+    executionToCoveredLines: Map<ExecutionNumber, List<LineNumber>>,
+    executionToPriority: Map<ExecutionNumber, Int>
 ) {
     private val executionToUsefulLines: Map<ExecutionNumber, MutableSet<LineNumber>> =
         executionToCoveredLines
@@ -23,8 +24,11 @@ class GreedyEssential private constructor(
             .mapValues { it.value.toMutableSet() }
 
     private val executionByPriority =
-        PriorityQueue(compareByDescending<Pair<ExecutionNumber, Int>> { it.second }.thenBy { it.first.number })
-            .apply {
+        PriorityQueue(
+            compareBy<Pair<ExecutionNumber, Int>> { executionToPriority[it.first] }
+                .thenByDescending { it.second }
+                .thenBy { it.first.number }
+        ).apply {
                 addAll(
                     executionToCoveredLines
                         .keys
@@ -89,12 +93,16 @@ class GreedyEssential private constructor(
          *
          * @return retained execution ids.
          */
-        fun minimize(executions: Map<Int, List<Int>>): List<Int> {
+        fun minimize(executions: Map<Int, List<Int>>, executionToPriority: Map<Int, Int> = mapOf()): List<Int> {
             val convertedExecutions = executions
                 .entries
                 .associate { (execution, lines) -> ExecutionNumber(execution) to lines.map { LineNumber(it) } }
 
-            val prioritizer = GreedyEssential(convertedExecutions)
+            val convertedExecutionToPriority = executionToPriority
+                .entries
+                .associate { (execution, priority) -> ExecutionNumber(execution) to priority }
+
+            val prioritizer = GreedyEssential(convertedExecutions, convertedExecutionToPriority)
             val list = mutableListOf<ExecutionNumber>()
             while (prioritizer.hasMore()) {
                 list.add(prioritizer.getExecutionAndRemove())

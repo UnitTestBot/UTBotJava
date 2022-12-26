@@ -56,4 +56,14 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             coverage = DoNotCalculate
         )
     }
+
+    @Test
+    fun testMocksForNullOfDifferentTypes() {
+        check(
+            CommonMocksExample::mocksForNullOfDifferentTypes,
+            eq(1),
+            mockStrategy = MockStrategyApi.OTHER_PACKAGES,
+            coverage = DoNotCalculate
+        )
+    }
 }

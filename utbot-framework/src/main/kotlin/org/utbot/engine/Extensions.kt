@@ -68,6 +68,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.utbot.engine.types.OBJECT_TYPE
+import org.utbot.framework.plugin.api.util.enumConstants
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -286,6 +287,9 @@ val Type.defaultSymValue: UtExpression
 
 val SootField.fieldId: FieldId
     get() = FieldId(declaringClass.id, name)
+
+val SootField.isEnumConstant: Boolean
+    get() = name in declaringClass.id.enumConstants.orEmpty().map { enum -> enum.name }
 
 val UtSort.defaultValue: UtExpression
     get() = when (this) {

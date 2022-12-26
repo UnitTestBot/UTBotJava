@@ -86,13 +86,14 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
     val setupContextParams = structdef {
         field("classpathForUrlsClassloader", immutableList(PredefinedType.string))
     }
-    val signature = structdef {
+    val methodDescription = structdef {
         field("name", PredefinedType.string)
+        field("containingClass", PredefinedType.string.nullable)
         field("parametersTypes", immutableList(PredefinedType.string.nullable))
     }
     val findMethodsInClassMatchingSelectedArguments = structdef {
         field("classId", array(PredefinedType.byte))
-        field("signatures", immutableList(signature))
+        field("methodDescriptions", immutableList(methodDescription))
     }
     val findMethodsInClassMatchingSelectedResult = structdef {
         field("executableIds", array(PredefinedType.byte))

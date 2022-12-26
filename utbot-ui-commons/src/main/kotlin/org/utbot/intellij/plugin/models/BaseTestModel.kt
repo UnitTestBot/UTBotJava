@@ -14,6 +14,7 @@ import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""
+const val HISTORY_LIMIT = 10
 
 open class BaseTestsModel(
     val project: Project,
@@ -27,6 +28,7 @@ open class BaseTestsModel(
 
     var testSourceRoot: VirtualFile? = null
     var testPackageName: String? = null
+    open var sourceRootHistory : MutableList<String> = mutableListOf()
     open lateinit var codegenLanguage: CodegenLanguage
 
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
@@ -50,8 +52,15 @@ open class BaseTestsModel(
 
     fun getAllTestSourceRoots() : MutableList<out ITestSourceRoot> {
         with(if (project.isBuildWithGradle) project.allModules() else potentialTestModules) {
-            return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
+            return this.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList().distinct().toMutableList()
         }
     }
 
+    fun updateSourceRootHistory(path: String) {
+        sourceRootHistory.apply {
+            remove(path)//Remove existing entry if any
+            add(path)//Add the most recent entry to the end to be brought first at sorting, see org.utbot.intellij.plugin.ui.utils.RootUtilsKt.getSortedTestRoots
+            while (size > HISTORY_LIMIT) removeFirst()
+        }
+    }
 }

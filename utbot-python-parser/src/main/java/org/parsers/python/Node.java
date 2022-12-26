@@ -7,13 +7,13 @@ import java.lang.reflect.*;
 import java.util.function.Predicate;
 public interface Node extends Comparable<Node>  {
     /** Life-cycle hook method called after the node has been made the current
-         *  node 
-         */
+	 *  node 
+	 */
     default void open() {
     }
 
     /** 
-         * Life-cycle hook method called after all the child nodes have been
+  	 * Life-cycle hook method called after all the child nodes have been
      * added. 
      */
     default void close() {
@@ -609,7 +609,7 @@ public interface Node extends Comparable<Node>  {
             output= toString().trim();
         }
         else  {
-            output= String.format("<%s (%d, %d)-(%d-%d)>", getClass().getSimpleName(), getBeginLine(), getBeginColumn(), getEndLine(), getEndColumn());
+            output= String.format("<%s (%d, %d)-(%d, %d)>", getClass().getSimpleName(), getBeginLine(), getBeginColumn(), getEndLine(), getEndColumn());
         }
         // String output = (this instanceof Token) ? toString().trim() : getClass().getSimpleName();
         if (output.length()> 0) {
@@ -740,10 +740,10 @@ public interface Node extends Comparable<Node>  {
         }
 
         /**
-                 * Tries to invoke (via reflection) the appropriate visit(...) method
-                 * defined in a subclass. If there is none, it just calls the recurse() routine.
+		 * Tries to invoke (via reflection) the appropriate visit(...) method
+		 * defined in a subclass. If there is none, it just calls the recurse() routine.
          * @param node the Node to "visit" 
-                 */
+		 */
         public final void visit(Node node) {
             Method visitMethod= getVisitMethod(node);
             if (visitMethod== DUMMY_METHOD) {

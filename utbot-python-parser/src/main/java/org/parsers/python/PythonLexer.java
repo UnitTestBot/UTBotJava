@@ -4,6 +4,7 @@ package org.parsers.python;
 import static org.parsers.python.PythonConstants.TokenType.*;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
@@ -12,13 +13,12 @@ import java.nio.charset.CharacterCodingException;
 import static java.nio.charset.StandardCharsets.*;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.EnumMap;
 import java.util.EnumSet;
-import org.parsers.python.ast.IndentToken;
-import java.util.ArrayList;
-import java.util.List;
 import org.parsers.python.ast.DedentToken;
+import java.util.List;
 import java.util.Iterator;
+import java.util.ArrayList;
+import org.parsers.python.ast.IndentToken;
 public class PythonLexer implements PythonConstants {
     private Token danglingIndentation;
     private int bracketNesting, parenthesesNesting, braceNesting;
@@ -131,8 +131,12 @@ public class PythonLexer implements PythonConstants {
         }
     }
 
+    static final private PythonNfaData.NfaFunction[] nfaFunctions= PythonNfaData.getFunctionTableMap(null);
     static final int DEFAULT_TAB_SIZE= 1;
     private int tabSize= DEFAULT_TAB_SIZE;
+    /**
+     * set the tab size used for location reporting
+     */
     public void setTabSize(int tabSize) {
         this.tabSize= tabSize;
     }
@@ -173,7 +177,7 @@ public class PythonLexer implements PythonConstants {
     private Token[] tokenLocationTable;
     // The following two BitSets are used to store 
     // the current active NFA states in the core tokenization loop
-    private BitSet nextStates= new BitSet(684), currentStates= new BitSet(684);
+    private BitSet nextStates= new BitSet(585), currentStates= new BitSet(585);
     EnumSet<TokenType> activeTokenTypes= EnumSet.allOf(TokenType.class);
      {
         activeTokenTypes.remove(MATCH);
@@ -274,8 +278,11 @@ public class PythonLexer implements PythonConstants {
         }
         if (invalidToken!=null) cacheToken(invalidToken);
         cacheToken(token);
-        return invalidToken!=null?invalidToken:
-        token;
+        if (invalidToken!=null) {
+            goTo(invalidToken.getEndOffset());
+            return invalidToken;
+        }
+        return token;
     }
 
     /**
@@ -334,7 +341,6 @@ public class PythonLexer implements PythonConstants {
                     reachedEnd= true;
                 }
             }
-            PythonNfaData.NfaFunction[] nfaFunctions= PythonNfaData.getFunctionTableMap(lexicalState);
             // the core NFA loop
             if (!reachedEnd) do {
                 // Holder for the new type (if any) matched on this iteration
@@ -355,22 +361,17 @@ public class PythonLexer implements PythonConstants {
                     }
                 }
                 nextStates.clear();
-                if (codeUnitsRead== 0) {
-                    TokenType returnedType= nfaFunctions[0].apply(curChar, nextStates, activeTokenTypes);
+                int nextActive= codeUnitsRead== 0?0:
+                currentStates.nextSetBit(0);
+                do {
+                    TokenType returnedType= nfaFunctions[nextActive].apply(curChar, nextStates, activeTokenTypes);
                     if (returnedType!=null&&(newType== null||returnedType.ordinal()<newType.ordinal())) {
                         newType= returnedType;
                     }
+                    nextActive= codeUnitsRead== 0?-1:
+                    currentStates.nextSetBit(nextActive+1);
                 }
-                else  {
-                    int nextActive= currentStates.nextSetBit(0);
-                    while (nextActive!=-1) {
-                        TokenType returnedType= nfaFunctions[nextActive].apply(curChar, nextStates, activeTokenTypes);
-                        if (returnedType!=null&&(newType== null||returnedType.ordinal()<newType.ordinal())) {
-                            newType= returnedType;
-                        }
-                        nextActive= currentStates.nextSetBit(nextActive+1);
-                    }
-                }
+                while (nextActive!=-1);
                 ++codeUnitsRead;
                 if (curChar> 0xFFFF)++codeUnitsRead;
                 if (newType!=null) {
@@ -437,37 +438,6 @@ public class PythonLexer implements PythonConstants {
         this.bufferPosition= offset;
     }
 
-    /**
-     * The offset of the start of the given line. This is in code units
-     */
-    private int getLineStartOffset(int lineNumber) {
-        int realLineNumber= lineNumber-startingLine;
-        if (realLineNumber<=0) {
-            return 0;
-        }
-        if (realLineNumber>=lineOffsets.length) {
-            return content.length();
-        }
-        return lineOffsets[realLineNumber];
-    }
-
-    /**
-     * The offset of the end of the given line. This is in code units.
-     */
-    private int getLineEndOffset(int lineNumber) {
-        int realLineNumber= lineNumber-startingLine;
-        if (realLineNumber<0) {
-            return 0;
-        }
-        if (realLineNumber>=lineOffsets.length) {
-            return content.length();
-        }
-        if (realLineNumber== lineOffsets.length-1) {
-            return content.length()-1;
-        }
-        return lineOffsets[realLineNumber+1]-1;
-    }
-
     private int readChar() {
         while (tokenLocationTable[bufferPosition]== IGNORED&&bufferPosition<content.length()) {
             ++bufferPosition;
@@ -526,7 +496,7 @@ public class PythonLexer implements PythonConstants {
     /**
      * @return the line number from the absolute offset passed in as a parameter
      */
-    int getLineFromOffset(int pos) {
+    public int getLineFromOffset(int pos) {
         if (pos>=content.length()) {
             if (content.charAt(content.length()-1)== '\n') {
                 return startingLine+lineOffsets.length;
@@ -540,7 +510,11 @@ public class PythonLexer implements PythonConstants {
         return startingLine-(bsearchResult+2);
     }
 
-    int getCodePointColumnFromOffset(int pos) {
+    /**
+     * @return the column (1-based and in code points)
+     * from the absolute offset passed in as a parameter
+     */
+    public int getCodePointColumnFromOffset(int pos) {
         if (pos>=content.length()) return 1;
         if (pos== 0) return startingColumn;
         final int line= getLineFromOffset(pos)-startingLine;
@@ -556,7 +530,7 @@ public class PythonLexer implements PythonConstants {
         for (int i= lineStart; i<pos; i++) {
             char ch= content.charAt(i);
             if (ch== '\t') {
-                result+=DEFAULT_TAB_SIZE-(result-1)%DEFAULT_TAB_SIZE;
+                result+=tabSize-(result-1)%tabSize;
             }
             else if (Character.isHighSurrogate(ch)) {
                 ++result;
@@ -573,7 +547,7 @@ public class PythonLexer implements PythonConstants {
      * @return the text between startOffset (inclusive)
      * and endOffset(exclusive)
      */
-    String getText(int startOffset, int endOffset) {
+    public String getText(int startOffset, int endOffset) {
         StringBuilder buf= new StringBuilder();
         for (int offset= startOffset; offset<endOffset; offset++) {
             if (tokenLocationTable[offset]!=IGNORED) {
@@ -619,6 +593,7 @@ public class PythonLexer implements PythonConstants {
     private void createLineOffsetsTable() {
         if (content.length()== 0) {
             this.lineOffsets= new int[0];
+            return;
         }
         int lineCount= 0;
         int length= content.length();
@@ -663,7 +638,7 @@ public class PythonLexer implements PythonConstants {
                         }
                         else  {
                             StringBuilder buf= new StringBuilder(content);
-                            buf.append((char)'\n');
+                            buf.append('\n');
                             content= buf.toString();
                         }
                     }
@@ -689,7 +664,7 @@ public class PythonLexer implements PythonConstants {
                     else break;
                 }
                 if (numPrecedingSlashes%2== 0) {
-                    buf.append((char)'\\');
+                    buf.append('\\');
                     ++col;
                     continue;
                 }
@@ -704,7 +679,7 @@ public class PythonLexer implements PythonConstants {
                 ++col;
             }
             else if (!preserveLines&&ch== '\r') {
-                buf.append((char)'\n');
+                buf.append('\n');
                 col= 0;
                 if (index<contentLength&&content.charAt(index)== '\n') {
                     ++index;
@@ -713,7 +688,7 @@ public class PythonLexer implements PythonConstants {
             else if (ch== '\t'&&!preserveTabs) {
                 int spacesToAdd= DEFAULT_TAB_SIZE-col%DEFAULT_TAB_SIZE;
                 for (int i= 0; i<spacesToAdd; i++) {
-                    buf.append((char)' ');
+                    buf.append(' ');
                     col++;
                 }
             }
@@ -727,43 +702,9 @@ public class PythonLexer implements PythonConstants {
                 return"\n";
             }
             char lastChar= buf.charAt(buf.length()-1);
-            if (lastChar!='\n'&&lastChar!='\r') buf.append((char)'\n');
+            if (lastChar!='\n'&&lastChar!='\r') buf.append('\n');
         }
         return buf.toString();
-    }
-
-    // Utility methods. Having them here makes it easier to handle things
-    // more uniformly in other generation languages.
-    protected void setRegionIgnore(int start, int end) {
-        for (int i= start; i<end; i++) {
-            tokenLocationTable[i]= IGNORED;
-        }
-        tokenOffsets.clear(start, end);
-    }
-
-    protected boolean atLineStart(Token tok) {
-        int offset= tok.getBeginOffset();
-        while (offset> 0) {
-            --offset;
-            char c= this.content.charAt(offset);
-            if (!Character.isWhitespace(c)) return false;
-            if (c== '\n') break;
-        }
-        return true;
-    }
-
-    protected String getLine(Token tok) {
-        int lineNum= tok.getBeginLine();
-        return getText(getLineStartOffset(lineNum), getLineEndOffset(lineNum)+1);
-    }
-
-    protected void setLineSkipped(Token tok) {
-        int lineNum= tok.getBeginLine();
-        int start= getLineStartOffset(lineNum);
-        int end= getLineStartOffset(lineNum+1);
-        setRegionIgnore(start, end);
-        tok.setBeginOffset(start);
-        tok.setEndOffset(end);
     }
 
     static String displayChar(int ch) {
@@ -822,7 +763,7 @@ public class PythonLexer implements PythonConstants {
     }
 
     // Annoying kludge really...
-    static public String readToEnd(Reader reader) {
+    static String readToEnd(Reader reader) {
         try {
             return readFully(reader);
         }
@@ -832,7 +773,7 @@ public class PythonLexer implements PythonConstants {
     }
 
     static final int BUF_SIZE= 0x10000;
-    static public String readFully(Reader reader) throws IOException {
+    static String readFully(Reader reader) throws IOException {
         char[] block= new char[BUF_SIZE];
         int charsRead= reader.read(block);
         if (charsRead<0) {
@@ -911,8 +852,8 @@ public class PythonLexer implements PythonConstants {
                 c.put((char) 0xFFFD);
             }
         }
-        c.limit(c.position());
-        c.rewind();
+        ((Buffer) c).limit(c.position());
+        ((Buffer) c).rewind();
         return c.toString();
         // return new String(bytes, charset);
     }

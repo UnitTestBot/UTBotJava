@@ -89,8 +89,10 @@ class PythonTypeInferenceCommand : CliktCommand(
 
             logger.info("Checking Python requirements...")
             if (!RequirementsUtils.requirementsAreInstalled(pythonPath)) {
-                logger.error("Some of the following Python requirements are missing: " +
-                        "${requirements.joinToString()}. Please install them.")
+                logger.error(
+                    "Some of the following Python requirements are missing: " +
+                            "${requirements.joinToString()}. Please install them."
+                )
                 return
             }
 
@@ -102,8 +104,22 @@ class PythonTypeInferenceCommand : CliktCommand(
             val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
                 pythonPath,
                 path.toString(),
-                configFile
+                configFile,
+                moduleName
             )
+
+            mypyStorage.types[moduleName]!!.forEach { expressionTypeFromMypy ->
+                println("----------")
+                println(expressionTypeFromMypy.line)
+                println("${expressionTypeFromMypy.startOffset} ${expressionTypeFromMypy.endOffset}")
+                println(
+                    sourceFileContent.subSequence(
+                        expressionTypeFromMypy.startOffset.toInt(),
+                        expressionTypeFromMypy.endOffset.toInt() + 1
+                    )
+                )
+                println(expressionTypeFromMypy.type.asUtBotType.pythonTypeRepresentation())
+            }
 
             logger.info("Analyzing code...")
 
@@ -114,9 +130,16 @@ class PythonTypeInferenceCommand : CliktCommand(
             val pythonMethod = (pythonMethodOpt as Success).value
 
             val typeStorage = PythonTypeStorage.get(mypyStorage)
-            val collector = HintCollector(pythonMethod.type, typeStorage)
+            val mypyExpressionTypes = mypyStorage.types[moduleName]!!.associate {
+                Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
+            }
+            val collector = HintCollector(pythonMethod.type, typeStorage, mypyExpressionTypes)
             val visitor = Visitor(listOf(collector))
             visitor.visit(pythonMethod.newAst)
+
+            collector.astNodeToHintCollectorNode.forEach { (ast, hint) ->
+                println("${ast.beginLine}, ${ast.beginColumn}, ${ast.endLine}, ${ast.endColumn}:${ast.beginOffset}:${ast.endOffset}: ${hint.partialType.pythonTypeRepresentation()}")
+            }
 
             val algo = BaselineAlgorithm(
                 typeStorage,

@@ -195,6 +195,7 @@ public class Token implements PythonConstants, Node {
      * @return the next token of any sort (parsed or unparsed or invalid)
      */
     public Token nextCachedToken() {
+        if (getType()== TokenType.EOF) return null;
         if (appendedToken!=null) return appendedToken;
         PythonLexer tokenSource= getTokenSource();
         return tokenSource!=null?tokenSource.nextCachedToken(getEndOffset()):

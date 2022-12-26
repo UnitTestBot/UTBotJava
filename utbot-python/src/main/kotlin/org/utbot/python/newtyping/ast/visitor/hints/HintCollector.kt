@@ -13,13 +13,17 @@ import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
 import java.util.*
 
-class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage) : Collector() {
+class HintCollector(
+    private val signature: FunctionType,
+    private val storage: PythonTypeStorage,
+    private val mypyTypes: Map<Pair<Int, Int>, Type>
+) : Collector() {
     private val signatureDescription = signature.pythonDescription() as PythonCallableTypeDescription
     private val parameterToNode: Map<String, HintCollectorNode> =
         (signatureDescription.argumentNames zip signature.arguments).associate {
             it.first to HintCollectorNode(it.second)
         }
-    private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
+    val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
     private val identificationToNode: MutableMap<Block?, MutableMap<String, HintCollectorNode>> = mutableMapOf()
     private val blockStack = Stack<Block>()
 
@@ -144,9 +148,11 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
             return
         val name = node.toString()
         val block = blockStack.peek()
-        val hintNode = identificationToNode[block]!![name] ?: HintCollectorNode(pythonAnyType)
-        identificationToNode[block]!![name] = hintNode
-        astNodeToHintCollectorNode[node] = hintNode
+        if (identificationToNode[block]!![name] == null) {
+            val type = mypyTypes[node.beginOffset to node.endOffset] ?: pythonAnyType
+            identificationToNode[block]!![name] = HintCollectorNode(type)
+        }
+        astNodeToHintCollectorNode[node] = identificationToNode[block]!![name]!!
     }
 
     private fun processForStatement(node: ForStatement) {
@@ -294,7 +300,8 @@ class HintCollector(val signature: FunctionType, val storage: PythonTypeStorage)
 
     private fun processDotName(node: DotName) {
         val parsed = parseDotName(node)
-        val curNode = HintCollectorNode(pythonAnyType)
+        val type = mypyTypes[node.beginOffset to node.endOffset] ?: pythonAnyType
+        val curNode = HintCollectorNode(type)
         astNodeToHintCollectorNode[node] = curNode
         val headNode = astNodeToHintCollectorNode[parsed.head]!!
         val attribute = parsed.tail.toString()

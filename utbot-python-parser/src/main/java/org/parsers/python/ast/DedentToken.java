@@ -9,7 +9,6 @@ import org.parsers.python.PythonConstants.TokenType;
 import static org.parsers.python.PythonConstants.TokenType.*;
 import java.util.List;
 import java.util.ArrayList;
-@SuppressWarnings("unused")
 public class DedentToken extends Token {
     private List<Integer> indents;
     private int dedentAmount;

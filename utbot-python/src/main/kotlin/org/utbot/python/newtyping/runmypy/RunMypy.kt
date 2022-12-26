@@ -1,12 +1,9 @@
 package org.utbot.python.newtyping.runmypy
 
-import org.utbot.python.PythonArgument
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
 import java.io.File
@@ -14,7 +11,8 @@ import java.io.File
 fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
     sourcePath: String,
-    configFile: File
+    configFile: File,
+    moduleForTypeImport: String? = null
 ): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
     val fileForAnnotationStorage = TemporaryFileManager.assignTemporaryFile(tag = "annotations.json")
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
@@ -34,7 +32,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
             fileForMypyStdout.absolutePath,
             "--mypy_stderr",
             fileForMypyStderr.absolutePath
-        )
+        ) + if (moduleForTypeImport != null) listOf("--module_for_types", moduleForTypeImport) else emptyList()
     )
     val stderr = fileForMypyStderr.readText()
     if (result.exitValue != 0)
@@ -61,7 +59,7 @@ fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: Fil
     return result.stdout
 }
 
-private fun setConfigFile(directoriesForSysPath: Set<String>): File {
+fun setConfigFile(directoriesForSysPath: Set<String>): File {
     val file = TemporaryFileManager.assignTemporaryFile(configFilename)
     val configContent = """
             [mypy]
@@ -106,7 +104,7 @@ data class MypyReportLine(
     val file: String
 )
 
-private fun getErrorNumber(mypyReport: List<MypyReportLine>, filename: String, startLine: Int, endLine: Int) =
+fun getErrorNumber(mypyReport: List<MypyReportLine>, filename: String, startLine: Int, endLine: Int) =
     mypyReport.count { it.type == "error" && it.file == filename && it.line >= startLine && it.line <= endLine }
 
 private fun getErrorsAndNotes(mypyOutput: String): List<MypyReportLine> {
@@ -120,41 +118,4 @@ private fun getErrorsAndNotes(mypyOutput: String): List<MypyReportLine> {
             file
         )
     }
-}
-
-fun main() {
-    TemporaryFileManager.setup()
-    val sysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples")
-    val configFile = setConfigFile(sysPath)
-    val filePath =
-        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/annotation_tests.py"
-    val (storage, mypyOut) = readMypyAnnotationStorageAndInitialErrors("python3", filePath, configFile)
-    val initialErrorNumber = getErrorNumber(mypyOut, filePath, 33, 34)
-    println(initialErrorNumber)
-    val type = storage.definitions["annotation_tests"]!!["same_annotations"]!!.annotation.asUtBotType as FunctionType
-    val pythonMethod = PythonMethod(
-        "same_annotations",
-        type.returnValue.pythonTypeRepresentation(),
-        (type.arguments zip (type.pythonDescription() as PythonCallableTypeDescription).argumentNames).map {
-            PythonArgument(it.second, it.first.pythonTypeRepresentation())
-        },
-        filePath,
-        null,
-        "return x + y"
-    )
-    pythonMethod.type = type
-    val fileForMypyCode = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
-    println(
-        checkSuggestedSignatureWithDMypy(
-            pythonMethod,
-            sysPath,
-            "annotation_tests",
-            fileForMypyCode,
-            "python3",
-            configFile,
-            initialErrorNumber
-        )
-    )
-
-    Cleaner.doCleaning()
 }

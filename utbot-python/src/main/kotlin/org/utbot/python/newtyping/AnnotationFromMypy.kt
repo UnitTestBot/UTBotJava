@@ -69,6 +69,7 @@ class VarDefinition(
 class ExpressionTypeFromMypy(
     val startOffset: Long,
     val endOffset: Long,
+    val line: Long,
     val type: MypyAnnotation
 )
 
@@ -99,6 +100,9 @@ class MypyAnnotationStorage(
                 initAnnotation(it.annotation)
             }
         }
+        types.values.flatten().forEach {
+            initAnnotation(it.type)
+        }
         nodeStorage.values.forEach { node ->
             node.storage = this
             node.children.forEach { initAnnotation(it) }
@@ -128,7 +132,7 @@ class MypyAnnotation(
                 )
             }
             return origin
-    }
+        }
 }
 
 sealed class PythonAnnotationNode {
@@ -247,7 +251,7 @@ class TypeVarNode(
         get() = super.children + values + (upperBound?.let { listOf(it) } ?: emptyList())
     override fun initializeType() =
         error("Initialization of TypeVar must be done in defining class or function." +
-            " TypeVar name: $varName, def_id: $def")
+                " TypeVar name: $varName, def_id: $def")
     val constraints: Set<TypeParameterConstraint> by lazy {
         val upperBoundConstraint: Set<TypeParameterConstraint> =
             upperBound?.let { setOf(TypeParameterConstraint(upperBoundRelation, it.asUtBotType)) } ?: emptySet()

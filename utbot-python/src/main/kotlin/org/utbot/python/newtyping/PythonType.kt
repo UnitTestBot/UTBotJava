@@ -280,7 +280,9 @@ object PythonUnionTypeDescription : PythonSpecialAnnotation(pythonUnionName) {
 
 object PythonOverloadTypeDescription : PythonSpecialAnnotation(overloadName) {
     override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
-    // TODO: override getMemberByName
+    override fun getNamedMembers(type: Type): List<PythonAttribute> {
+        return listOf(PythonAttribute("__call__", type))
+    }
 }
 
 object PythonTupleTypeDescription : PythonSpecialAnnotation(pythonTupleName) {

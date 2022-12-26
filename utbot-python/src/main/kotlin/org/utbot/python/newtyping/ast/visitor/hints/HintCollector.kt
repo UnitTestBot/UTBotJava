@@ -64,6 +64,7 @@ class HintCollector(
 
     override fun collectFromNodeAfterRecursion(node: Node) {
         when (node) {
+            is FunctionCall -> processFunctionCall(node)
             is Keyword -> processKeyword(node)
             is NumericalLiteral -> processNumericalLiteral(node)
             is StringLiteral -> processStringLiteral(node)
@@ -84,8 +85,50 @@ class HintCollector(
             // TODO: Set, Dict, comprehensions
             // TODO: FunctionCall, SliceExpression
             is Newline, is IndentToken, is Delimiter, is Operator, is DedentToken, is ReturnStatement,
-            is Statement, is InvocationArguments -> Unit
+            is Statement, is InvocationArguments, is Argument -> Unit
             else -> astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
+        }
+    }
+
+    private fun processFunctionCall(node: FunctionCall) {
+        val parsed = parseFunctionCall(node)
+        if (parsed == null) {
+            astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
+            return
+        }
+        val type = mypyTypes[parsed.function.beginOffset to parsed.function.endOffset]
+        val typeDescription = type?.getPythonAttributeByName(
+            storage,
+            "__call__"
+        )?.type?.pythonDescription()
+        when (typeDescription) {
+            is PythonCallableTypeDescription -> {
+                astNodeToHintCollectorNode[node] =
+                    HintCollectorNode(typeDescription.castToCompatibleTypeApi(type).returnValue)
+                if (parsed.args.size != typeDescription.numberOfArguments)
+                    return
+                (parsed.args zip typeDescription.castToCompatibleTypeApi(type).arguments).forEach { (argNode, bound) ->
+                    astNodeToHintCollectorNode[argNode]!!.upperBounds.add(bound)
+                }
+            }
+            is PythonOverloadTypeDescription -> {
+                val hintNode = HintCollectorNode(pythonAnyType)
+                astNodeToHintCollectorNode[node] = hintNode
+                typeDescription.getAnnotationParameters(type).forEach { typeCandidate ->
+                    val descr = typeCandidate.pythonDescription() as? PythonCallableTypeDescription ?: return@forEach
+                    hintNode.upperBounds.add(descr.castToCompatibleTypeApi(typeCandidate).returnValue)
+                    // TODO
+                }
+            }
+            else -> {
+                astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
+                astNodeToHintCollectorNode[node]!!.upperBounds.add(
+                    createCallableProtocol(
+                        List(parsed.args.size) { pythonAnyType },
+                        pythonAnyType
+                    )
+                )
+            }
         }
     }
 
@@ -215,14 +258,24 @@ class HintCollector(
         val curNode = HintCollectorNode(pythonAnyType)
         astNodeToHintCollectorNode[node] = curNode
         val parsed = parseAdditiveExpression(node) ?: return
-        processBinaryExpression(curNode, parsed.left, parsed.right, getOperationOfOperator(parsed.op.toString()) ?: return)
+        processBinaryExpression(
+            curNode,
+            parsed.left,
+            parsed.right,
+            getOperationOfOperator(parsed.op.toString()) ?: return
+        )
     }
 
     private fun processMultiplicativeExpression(node: MultiplicativeExpression) {
         val curNode = HintCollectorNode(pythonAnyType)
         astNodeToHintCollectorNode[node] = curNode
         val parsed = parseMultiplicativeExpression(node) ?: return
-        processBinaryExpression(curNode, parsed.left, parsed.right, getOperationOfOperator(parsed.op.toString()) ?: return)
+        processBinaryExpression(
+            curNode,
+            parsed.left,
+            parsed.right,
+            getOperationOfOperator(parsed.op.toString()) ?: return
+        )
     }
 
     private fun processList(node: org.parsers.python.ast.List) {
@@ -256,7 +309,7 @@ class HintCollector(
             is SimpleAssign -> {
                 val targetNodes = parsed.targets.map { astNodeToHintCollectorNode[it]!! }
                 val valueNode = astNodeToHintCollectorNode[parsed.value]!!
-                targetNodes.forEach {  target ->
+                targetNodes.forEach { target ->
                     val edgeFromValue = HintEdgeWithBound(
                         from = valueNode,
                         to = target,

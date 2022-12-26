@@ -31,7 +31,7 @@ private val logger = KotlinLogging.logger {}
 
 class PythonTypeInferenceCommand : CliktCommand(
     name = "infer_types",
-    help = "Infer types for a specified Python top-level function."
+    help = "Infer types for the specified Python top-level function."
 ) {
     private val sourceFile by argument(
         help = "File with Python code."
@@ -52,7 +52,7 @@ class PythonTypeInferenceCommand : CliktCommand(
     ).long().required()
 
     private val path: Path by lazy { Paths.get(File(sourceFile).canonicalPath) }
-    private val moduleName: String by lazy { path.fileName.toString().removeSuffix(".py") }
+    private lateinit var moduleName: String
 
     private val sourceFileContent by lazy { File(sourceFile).readText() }
     private val parsedFile by lazy { PythonParser(sourceFileContent).Module() }
@@ -105,8 +105,13 @@ class PythonTypeInferenceCommand : CliktCommand(
                 pythonPath,
                 path.toString(),
                 configFile,
-                moduleName
+                path.toString()  // TODO: fix this interface
             )
+            moduleName = mypyStorage.fileToModule[path.toString()]!!
+            println(moduleName)
+
+            println(mypyStorage.types.keys)
+            println(mypyStorage.definitions.keys)
 
             mypyStorage.types[moduleName]!!.forEach { expressionTypeFromMypy ->
                 println("----------")
@@ -138,7 +143,12 @@ class PythonTypeInferenceCommand : CliktCommand(
             visitor.visit(pythonMethod.newAst)
 
             collector.astNodeToHintCollectorNode.forEach { (ast, hint) ->
-                println("${ast.beginLine}, ${ast.beginColumn}, ${ast.endLine}, ${ast.endColumn}:${ast.beginOffset}:${ast.endOffset}: ${hint.partialType.pythonTypeRepresentation()}")
+                println("${ast.beginLine}:${ast.beginOffset}:${ast.endOffset}: ${hint.partialType.pythonTypeRepresentation()}")
+                hint.upperBounds.forEach {
+                    if (!typesAreEqual(it, pythonAnyType))
+                        println("    ${it.pythonTypeRepresentation()}")
+                }
+                println()
             }
 
             val algo = BaselineAlgorithm(

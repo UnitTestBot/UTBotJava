@@ -1,5 +1,6 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
+import org.utbot.python.code.arguments
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeTypeCreator
 import org.utbot.python.newtyping.general.FunctionTypeCreator
@@ -103,6 +104,29 @@ fun createUnaryProtocolWithCustomReturn(methodName: String, returnType: Type): T
                         arguments = listOf(self),
                         returnType
                     )
+                }
+            ),
+            supertypes = emptyList()
+        )
+    }
+
+fun createCallableProtocol(argBounds: List<Type>, returnBound: Type): Type =
+    createPythonProtocol(
+        Name(emptyList(), ""),  // TODO: normal names?
+        0,
+        listOf("__call__"),
+        listOf("__call__")
+    ) {
+        CompositeTypeCreator.InitializationData(
+            members = listOf(
+                createPythonCallableType(
+                    0,
+                    List(argBounds.size) { PythonCallableTypeDescription.ArgKind.Positional },
+                    List(argBounds.size) { "" },
+                    isStaticMethod = false,
+                    isClassMethod = false
+                ) {
+                    FunctionTypeCreator.InitializationData(argBounds, returnBound)
                 }
             ),
             supertypes = emptyList()

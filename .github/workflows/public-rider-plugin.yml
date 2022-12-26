@@ -31,10 +31,6 @@ on:
           - alpha
           - beta
 
-env:
-  # Environment variable setting gradle options.
-#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "greet"

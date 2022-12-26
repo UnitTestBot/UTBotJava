@@ -40,10 +40,6 @@ on:
           - alpha
           - beta
 
-env:
-  # Environment variable setting gradle options.
-#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
-
 jobs:
     publish_plugin_and_cli:
       runs-on: ubuntu-20.04

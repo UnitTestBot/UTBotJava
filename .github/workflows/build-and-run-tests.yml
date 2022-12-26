@@ -14,8 +14,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: utbot_java_cli
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
-  # Environment variable setting gradle options.
-#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
 
 jobs:
   build-and-run-tests:

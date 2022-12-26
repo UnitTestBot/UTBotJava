@@ -28,8 +28,6 @@ on:
           description: "{package-name}.{class-name-optional}.{test-name-optional}"
 
 env:
-  # Environment variable setting gradle options.
-#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
   PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
 
 jobs:

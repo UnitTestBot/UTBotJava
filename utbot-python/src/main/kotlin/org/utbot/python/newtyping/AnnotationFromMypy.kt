@@ -76,7 +76,8 @@ class ExpressionTypeFromMypy(
 class MypyAnnotationStorage(
     val nodeStorage: Map<String, PythonAnnotationNode>,
     val definitions: Map<String, Map<String, Definition>>,
-    val types: Map<String, List<ExpressionTypeFromMypy>>
+    val types: Map<String, List<ExpressionTypeFromMypy>>,
+    val fileToModule: Map<String, String>
 ) {
     private fun initAnnotation(annotation: MypyAnnotation) {
         if (annotation.initialized)

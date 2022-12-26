@@ -12,7 +12,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
     sourcePath: String,
     configFile: File,
-    moduleForTypeImport: String? = null
+    fileForTypeImport: String? = null
 ): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
     val fileForAnnotationStorage = TemporaryFileManager.assignTemporaryFile(tag = "annotations.json")
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
@@ -32,7 +32,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
             fileForMypyStdout.absolutePath,
             "--mypy_stderr",
             fileForMypyStderr.absolutePath
-        ) + if (moduleForTypeImport != null) listOf("--module_for_types", moduleForTypeImport) else emptyList()
+        ) + if (fileForTypeImport != null) listOf("--file_for_types", fileForTypeImport) else emptyList()
     )
     val stderr = fileForMypyStderr.readText()
     if (result.exitValue != 0)

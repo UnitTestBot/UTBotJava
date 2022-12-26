@@ -368,7 +368,11 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
-            if (concreteExecutionResult.result.exceptionOrNull() is UtMockAssumptionViolatedException) {
+            // We should compare messages instead of `if (... is UtMockAssumptionViolatedException)`
+            // because the exception from the `concreteExecutionResult` is loaded by user's ClassLoader,
+            // but the `UtMockAssumptionViolatedException` is loaded by the current ClassLoader,
+            // so we can't cast them to each other.
+            if (concreteExecutionResult.result.exceptionOrNull()?.message == UtMockAssumptionViolatedException.errorMessage) {
                 logger.debug { "Generated test case by fuzzer violates the UtMock assumption" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }

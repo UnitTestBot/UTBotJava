@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.utbot.python.newtyping.PythonSubtypeChecker.Companion.checkIfRightIsSubtypeOfLeft
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.TypeParameter
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -70,5 +71,13 @@ internal class PythonSubtypeCheckerTest {
         // frozenset is covariant
         assertTrue(checkIfRightIsSubtypeOfLeft(frozensetOfObj, frozensetOfInt, pythonTypeStorage))
         assertFalse(checkIfRightIsSubtypeOfLeft(frozensetOfInt, frozensetOfObj, pythonTypeStorage))
+    }
+
+    @Test
+    fun testSimpleFunctionWithVariables() {
+        val b = storage.definitions["subtypes"]!!["b"]!!.annotation.asUtBotType
+        val func = storage.definitions["subtypes"]!!["func_abs"]!!.annotation.asUtBotType as FunctionType
+
+        assertTrue(checkIfRightIsSubtypeOfLeft(func.arguments[0], b, pythonTypeStorage))
     }
 }

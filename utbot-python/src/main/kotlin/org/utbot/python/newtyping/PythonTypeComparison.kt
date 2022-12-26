@@ -129,6 +129,7 @@ class PythonSubtypeChecker(
         if (!left.isPythonType() || !right.isPythonType())
             error("Trying to create PythonSubtypeChecker for non-Python types $left, $right")
     }
+
     fun rightIsSubtypeOfLeft(): Boolean {
         val leftWrapper = PythonTypeWrapperForEqualityCheck(left)
         val rightWrapper = PythonTypeWrapperForEqualityCheck(right)
@@ -171,6 +172,7 @@ class PythonSubtypeChecker(
             is PythonTupleTypeDescription -> caseOfLeftTupleType(leftMeta)
         }
     }
+
     private fun caseOfLeftTupleType(leftMeta: PythonTupleTypeDescription): Boolean {
         return when (val rightMeta = right.pythonDescription()) {
             is PythonAnyTypeDescription -> true
@@ -195,6 +197,7 @@ class PythonSubtypeChecker(
             else -> false
         }
     }
+
     private fun caseOfLeftOverload(leftMeta: PythonOverloadTypeDescription): Boolean {
         val leftAsStatefulType = leftMeta.castToCompatibleTypeApi(left)
         return leftAsStatefulType.parameters.all {
@@ -208,6 +211,7 @@ class PythonSubtypeChecker(
             ).rightIsSubtypeOfLeft()
         }
     }
+
     private fun caseOfLeftCompositeType(leftMeta: PythonConcreteCompositeTypeDescription): Boolean {
         if (left.isPythonObjectType())
             return true
@@ -221,7 +225,8 @@ class PythonSubtypeChecker(
                         val (args, param) = it
                         val (leftArg, rightArg) = args
                         if (leftArg.pythonDescription() is PythonAnyTypeDescription ||
-                            rightArg.pythonDescription() is PythonAnyTypeDescription)
+                            rightArg.pythonDescription() is PythonAnyTypeDescription
+                        )
                             return@all true
                         val typeVarDescription = param.pythonDescription()
                         if (typeVarDescription !is PythonTypeVarDescription)  // shouldn't be possible
@@ -264,17 +269,21 @@ class PythonSubtypeChecker(
             else -> false
         }
     }
+
     private fun caseOfLeftTypeVar(leftMeta: PythonTypeVarDescription): Boolean {
         // TODO: more accurate case analysis
+        if (!typeParameterCorrespondence.any { it.first == left })
+            return true  // treat unbounded TypeVars like Any. TODO: here might occur false-positives
         return when (val rightMeta = right.pythonDescription()) {
             is PythonAnyTypeDescription -> true
             is PythonTypeVarDescription -> caseOfLeftAndRightTypeVar(leftMeta, rightMeta)
             else -> false
         }
     }
+
     private fun caseOfLeftUnion(leftMeta: PythonUnionTypeDescription): Boolean {
         val children = leftMeta.getAnnotationParameters(left)
-        return children.any {  childType ->
+        return children.any { childType ->
             PythonSubtypeChecker(
                 left = childType,
                 right = right,
@@ -285,12 +294,17 @@ class PythonSubtypeChecker(
             ).rightIsSubtypeOfLeft()
         }
     }
-    private fun caseOfLeftAndRightTypeVar(leftMeta: PythonTypeVarDescription, rightMeta: PythonTypeVarDescription): Boolean {
+
+    private fun caseOfLeftAndRightTypeVar(
+        leftMeta: PythonTypeVarDescription,
+        rightMeta: PythonTypeVarDescription
+    ): Boolean {
         val leftParam = leftMeta.castToCompatibleTypeApi(left)
         val rightParam = rightMeta.castToCompatibleTypeApi(right)
         // TODO: more accurate case analysis
         return typeParameterCorrespondence.contains(Pair(leftParam, rightParam))
     }
+
     private fun caseOfLeftProtocol(leftMeta: PythonProtocolDescription): Boolean {
         val membersNotToCheck = listOf("__new__", "__init__")
         return leftMeta.protocolMemberNames.subtract(membersNotToCheck).all { protocolMemberName ->
@@ -310,6 +324,7 @@ class PythonSubtypeChecker(
             ).rightIsSubtypeOfLeft()
         }
     }
+
     private fun caseOfLeftCallable(leftMeta: PythonCallableTypeDescription): Boolean {
         val rightCallAttribute = right.getPythonAttributeByName(pythonTypeStorage, "__call__")?.type as? FunctionType
             ?: return false
@@ -321,12 +336,21 @@ class PythonSubtypeChecker(
         val rightBounded = rightCallAttribute.getBoundedParameters()
 
         // TODO: more accurate case analysis
-        if (leftBounded.size != rightBounded.size)
+        if (rightBounded.isNotEmpty() && leftBounded.size != rightBounded.size)
             return false
 
-        val newCorrespondence = typeParameterCorrespondence + (leftBounded zip rightBounded)
+        var newLeftAsFunctionType = leftAsFunctionType
 
-        var args = leftAsFunctionType.arguments zip rightCallAttribute.arguments
+        // TODO: here might occur false-positives
+        if (rightBounded.isEmpty() && leftBounded.isNotEmpty()) {
+            val newLeft = DefaultSubstitutionProvider.substitute(left, leftBounded.associateWith { pythonAnyType })
+            newLeftAsFunctionType = leftMeta.castToCompatibleTypeApi(newLeft)
+        }
+
+        val newCorrespondence = typeParameterCorrespondence +
+                if (rightBounded.isNotEmpty()) (leftBounded zip rightBounded) else emptyList()
+
+        var args = newLeftAsFunctionType.arguments zip rightCallAttribute.arguments
         if (skipFirstArgument)
             args = args.drop(1)
 
@@ -340,7 +364,7 @@ class PythonSubtypeChecker(
                 recursionDepth + 1
             ).rightIsSubtypeOfLeft()
         } && PythonSubtypeChecker(
-            left = leftAsFunctionType.returnValue,
+            left = newLeftAsFunctionType.returnValue,
             right = rightCallAttribute.returnValue,
             pythonTypeStorage,
             newCorrespondence,
@@ -353,14 +377,20 @@ class PythonSubtypeChecker(
         correspondence.map { Pair(it.second, it.first) }
 
     private val nextAssumingSubtypePairs: List<Pair<PythonTypeWrapperForEqualityCheck, PythonTypeWrapperForEqualityCheck>>
-        by lazy {
-            if (left.pythonDescription() is PythonCompositeTypeDescription
-                && right.pythonDescription() is PythonCompositeTypeDescription)
-                assumingSubtypePairs +
-                        listOf(Pair(PythonTypeWrapperForEqualityCheck(left), PythonTypeWrapperForEqualityCheck(right)))
-            else
-                assumingSubtypePairs
-        }
+            by lazy {
+                if (left.pythonDescription() is PythonCompositeTypeDescription
+                    && right.pythonDescription() is PythonCompositeTypeDescription
+                )
+                    assumingSubtypePairs +
+                            listOf(
+                                Pair(
+                                    PythonTypeWrapperForEqualityCheck(left),
+                                    PythonTypeWrapperForEqualityCheck(right)
+                                )
+                            )
+                else
+                    assumingSubtypePairs
+            }
 
     companion object {
         fun checkIfRightIsSubtypeOfLeft(left: Type, right: Type, pythonTypeStorage: PythonTypeStorage): Boolean =

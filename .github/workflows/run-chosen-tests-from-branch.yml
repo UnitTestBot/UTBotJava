@@ -29,7 +29,7 @@ on:
 
 env:
   # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
+#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
   PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
 
 jobs:
@@ -51,7 +51,7 @@ jobs:
           
       - name: Run chosen tests
         run: |
-          gradle :${{ github.event.inputs.project-name }}:test --no-daemon --tests ${{ github.event.inputs.tests-bunch-name }}
+          gradle :${{ github.event.inputs.project-name }}:test --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g --tests ${{ github.event.inputs.tests-bunch-name }}
           
       - name: Upload ${{ github.event.inputs.project-name }} tests report if tests have failed
         if: ${{ failure() }}

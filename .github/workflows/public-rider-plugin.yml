@@ -33,7 +33,7 @@ on:
 
 env:
   # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
+#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -75,7 +75,7 @@ jobs:
       
     - name: Build UTBot Rider plugin
       run: |
-        gradle clean :utbot-rider:buildPlugin --no-daemon -PsemVer=${{ env.VERSION }} -PincludeRiderInBuild=true
+        gradle clean :utbot-rider:buildPlugin --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }} -PincludeRiderInBuild=true
         cd utbot-rider/build/distributions
         unzip utbot-rider-${{ env.VERSION }}.zip
         rm utbot-rider-${{ env.VERSION }}.zip

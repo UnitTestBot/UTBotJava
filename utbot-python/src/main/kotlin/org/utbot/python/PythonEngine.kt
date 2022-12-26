@@ -1,10 +1,8 @@
 package org.utbot.python
 
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.isActive
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.*
@@ -211,20 +209,16 @@ class PythonEngine(
         val pmd = PythonMethodDescription(
             methodUnderTest.name,
             parameters,
-            emptyList()
+            emptyList(),
+            pythonTypeStorage!!,
         )
 
         var coverageLimit = 15
         val coveredLines = initialCoveredLines.toMutableSet()
 
-        PythonFuzzing(pythonTypeStorage!!) { description, parameterValues ->
+        PythonFuzzing(pmd.pythonTypeStorage) { description, parameterValues ->
             if (coverageLimit < 0 || isCancelled())
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
-
-//            if (parameterValues.all { it.classId.name == "UNDEF_VALUE" }) {
-//                coverageLimit--
-//                return@PythonFuzzing PythonFeedback(control = Control.PASS)
-//            }
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)
@@ -256,9 +250,6 @@ class PythonEngine(
                 evaluationInput.modelList
             )
 
-//            if (!currentCoroutineContext().isActive) {
-//                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-//            }
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
                     if (evaluationResult.status != 0) {

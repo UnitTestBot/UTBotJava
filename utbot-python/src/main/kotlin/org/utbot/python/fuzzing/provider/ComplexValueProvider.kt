@@ -3,14 +3,10 @@ package org.utbot.python.fuzzing.provider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
-import org.utbot.fuzzing.seeds.BitVectorValue
-import org.utbot.fuzzing.seeds.Signed
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonComplexClassId
-import org.utbot.python.framework.api.python.util.pythonFloatClassId
-import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
@@ -28,11 +24,18 @@ object ComplexValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodD
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
         val meta = type.meta as PythonConcreteCompositeTypeDescription
         yield(Seed.Recursive(
-            construct = Routine.Create(emptyList<Type>()) { v ->
+            construct = Routine.Create(
+                listOf(
+                    description.pythonTypeStorage.pythonFloat,
+                    description.pythonTypeStorage.pythonFloat,
+                )
+            ) { v ->
+                val real = v[0].tree as PythonTree.PrimitiveNode
+                val imag = v[1].tree as PythonTree.PrimitiveNode
                 PythonTreeModel(
                     PythonTree.PrimitiveNode(
                         pythonComplexClassId,
-                        "complex('${v[0]}+${v[1]}j')"
+                        "complex(real=${real.repr}, imag=${imag.repr})"
                     ),
                     pythonComplexClassId,
                 )

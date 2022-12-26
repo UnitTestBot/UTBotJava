@@ -8,10 +8,8 @@ import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
-import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.fuzzing.provider.BoolValueProvider
 import org.utbot.python.fuzzing.provider.ComplexValueProvider
@@ -41,7 +39,8 @@ data class PythonFuzzedConcreteValue(
 class PythonMethodDescription(
     val name: String,
     parameters: List<Type>,
-    val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList()
+    val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
+    val pythonTypeStorage: PythonTypeStorage,
 ) : Description<Type>(parameters)
 
 class PythonFeedback(

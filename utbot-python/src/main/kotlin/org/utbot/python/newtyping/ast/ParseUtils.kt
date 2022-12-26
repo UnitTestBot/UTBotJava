@@ -20,6 +20,7 @@ data class SimpleAssign(val targets: List<Node>, val value: Node): ParsedAssignm
 data class OpAssign(val target: Node, val op: Delimiter, val value: Node): ParsedAssignment()
 data class ParsedBinaryOperation(val left: Node, val op: Delimiter, val right: Node)
 data class ParsedDotName(val head: Node, val tail: Node)
+data class ParsedFunctionCall(val function: Node, val args: List<Node>)
 
 fun parseFunctionDefinition(node: FunctionDefinition): ParsedFunctionDefinition? {
     val name = (node.children().first { it is Name } ?: return null) as Name
@@ -97,3 +98,13 @@ fun parseAssignment(node: Assignment): ParsedAssignment? {
 
 fun parseDotName(node: DotName): ParsedDotName =
     ParsedDotName(node.children()[0], node.children()[2])
+
+fun parseFunctionCall(node: FunctionCall): ParsedFunctionCall? {
+    val function = node.children()[0]
+    val args = (node.children()[1] as? InvocationArguments ?: return null).children().filter {
+        if (it is Argument)  // for now ignore function calls with different argument kinds
+            return null
+        it !is Delimiter
+    }
+    return ParsedFunctionCall(function, args)
+}

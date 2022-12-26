@@ -114,6 +114,10 @@ class PythonTypeWrapperForEqualityCheck(
     }
 }
 
+fun typesAreEqual(left: Type, right: Type): Boolean {
+    return PythonTypeWrapperForEqualityCheck(left) == PythonTypeWrapperForEqualityCheck(right)
+}
+
 const val MAX_RECURSION_DEPTH = 100
 
 class PythonSubtypeChecker(

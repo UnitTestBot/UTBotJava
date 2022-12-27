@@ -66,6 +66,9 @@ abstract class TestFrameworkManager(val context: CgContext)
     val assertTrue = context.testFramework.assertTrue
     val assertFalse = context.testFramework.assertFalse
 
+    val fail = context.testFramework.fail
+    val kotlinFail = context.testFramework.kotlinFail
+
     val assertArrayEquals = context.testFramework.assertArrayEquals
     val assertBooleanArrayEquals = context.testFramework.assertBooleanArrayEquals
     val assertByteArrayEquals = context.testFramework.assertByteArrayEquals
@@ -172,6 +175,15 @@ abstract class TestFrameworkManager(val context: CgContext)
     }
 
     fun assertBoolean(actual: CgExpression) = assertBoolean(expected = true, actual)
+
+    fun fail(actual: CgExpression) {
+        // failure assertion may be implemented in different packages in Java and Kotlin
+        // more details at https://stackoverflow.com/questions/52967039/junit-5-assertions-fail-can-not-infer-type-in-kotlin
+        when (codegenLanguage) {
+            CodegenLanguage.JAVA -> +assertions[fail](actual)
+            CodegenLanguage.KOTLIN -> +assertions[kotlinFail](actual)
+        }
+    }
 
     // Exception expectation differs between test frameworks
     // JUnit4 requires to add a specific argument to the test method annotation

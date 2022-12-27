@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.language
 
-import com.intellij.openapi.actionSystem.ActionPlaces
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -26,12 +25,12 @@ import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.utils.addIfNotNull
-import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.ui.InvalidClassNotifier
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.util.findSdkVersionOrNull
 
+@Suppress("Loaded with reflection")
 object JvmLanguageAssistant : LanguageAssistant() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
@@ -42,16 +41,7 @@ object JvmLanguageAssistant : LanguageAssistant() {
         UtTestsDialogProcessor.createDialogAndGenerateTests(project, validatedSrcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
-    override fun update(e: AnActionEvent) {
-        if (LockFile.isLocked()) {
-            e.presentation.isEnabled = false
-            return
-        }
-        if (e.place == ActionPlaces.POPUP) {
-            e.presentation.text = "Tests with UnitTestBot..."
-        }
-        e.presentation.isEnabled = getPsiTargets(e) != null
-    }
+    override fun applicableForTheLanguage(e: AnActionEvent): Boolean = getPsiTargets(e) != null
 
     private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
         val project = e.project ?: return null

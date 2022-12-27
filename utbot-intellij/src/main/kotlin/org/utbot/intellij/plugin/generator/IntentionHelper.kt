@@ -11,6 +11,7 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Pair
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SmartPsiElementPointer
@@ -43,7 +44,7 @@ class IntentionHelper(val project: Project, private val editor: Editor, private 
                     val quickFixActionRanges = info.quickFixActionRanges
                     if (!quickFixActionRanges.isNullOrEmpty()) {
                         val toList =
-                            quickFixActionRanges.map { pair: com.intellij.openapi.util.Pair<HighlightInfo.IntentionActionDescriptor, TextRange> -> pair.first.action }
+                            quickFixActionRanges.map { pair: Pair<HighlightInfo.IntentionActionDescriptor, TextRange> -> pair.first.action }
                                 .toList()
                         toList.forEach { intentionAction -> actions[intentionAction] = intentionAction.familyName }
                     }

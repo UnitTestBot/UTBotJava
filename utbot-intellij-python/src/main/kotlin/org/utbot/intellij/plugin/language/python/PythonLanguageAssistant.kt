@@ -27,6 +27,8 @@ object PythonLanguageAssistant : LanguageAssistant() {
         val file: PyFile
     )
 
+    override fun applicableForTheLanguage(e: AnActionEvent): Boolean = getPsiTargets(e) != null
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val (functions, containingClass, focusedFunction, file) = getPsiTargets(e) ?: return

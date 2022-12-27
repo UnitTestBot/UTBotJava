@@ -27,7 +27,7 @@ import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.util.LockFile
+import org.utbot.framework.plugin.api.util.underFileLock
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.plugin.services.WorkingDirService
@@ -135,17 +135,13 @@ object UtTestsDialogProcessor {
 
                 override fun run(indicator: ProgressIndicator) {
                     assertIsNonDispatchThread()
-                    if (!LockFile.lock()) {
-                        return
-                    }
+                    underFileLock {
+                        UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
+                        UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
+                        UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
 
-                    UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
-                    UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-                    UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+                        fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 
-                    fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-
-                    try {
                         logger.info { "Collecting information phase started at ${now()}" }
                         val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 
@@ -155,7 +151,7 @@ object UtTestsDialogProcessor {
                         val buildPaths = ReadAction
                             .nonBlocking<BuildPaths?> { findPaths(model.srcClasses) }
                             .executeSynchronously()
-                            ?: return
+                            ?: return@underFileLock
 
                         val (buildDirs, classpath, classpathList, pluginJarsPath) = buildPaths
 
@@ -306,7 +302,7 @@ object UtTestsDialogProcessor {
                                         "No methods found"
                                     )
                                 }
-                                return
+                                return@underFileLock
                             }
                             updateIndicator(indicator, ProgressRange.CODEGEN, "Generate code for tests", 0.0)
                             // Commented out to generate tests for collected executions even if action was canceled.
@@ -317,8 +313,6 @@ object UtTestsDialogProcessor {
                                 logger.info { "Generation complete" }
                             }
                         }
-                    } finally {
-                        LockFile.unlock()
                     }
                 }
             }).queue()

@@ -50,3 +50,12 @@ object LockFile {
         return false
     }
 }
+
+fun underFileLock(block: () -> Unit) {
+    try {
+        if (!LockFile.lock()) return
+        return block()
+    } finally {
+        LockFile.unlock()
+    }
+}

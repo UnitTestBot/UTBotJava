@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.language.agnostic
 
 import mu.KotlinLogging
 import com.intellij.lang.Language
+import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -13,12 +14,20 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileSystemItem
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
+import org.utbot.framework.plugin.api.util.LockFile
 
 private val logger = KotlinLogging.logger {}
 
 abstract class LanguageAssistant {
+    abstract fun applicableForTheLanguage(e: AnActionEvent) : Boolean
 
-    abstract fun update(e: AnActionEvent)
+    open fun update(e: AnActionEvent) {
+        e.presentation.isEnabled = !LockFile.isLocked() && applicableForTheLanguage(e)
+        if (e.place == ActionPlaces.POPUP && e.presentation.isEnabled) {
+            e.presentation.text = "Tests with UnitTestBot..."
+        }
+    }
+
     abstract fun actionPerformed(e: AnActionEvent)
 
     companion object {

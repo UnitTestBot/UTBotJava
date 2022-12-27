@@ -47,6 +47,8 @@ object JsLanguageAssistant : LanguageAssistant() {
         )
     }
 
+    override fun applicableForTheLanguage(e: AnActionEvent): Boolean = getPsiTargets(e) != null
+
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = getPsiTargets(e) != null
     }

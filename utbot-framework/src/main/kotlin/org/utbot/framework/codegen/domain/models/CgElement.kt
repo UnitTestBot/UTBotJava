@@ -87,6 +87,7 @@ interface CgElement {
             is CgNotNullAssertion -> visit(element)
             is CgVariable -> visit(element)
             is CgParameterDeclaration -> visit(element)
+            is CgFormattedString -> visit(element)
             is CgLiteral -> visit(element)
             is CgNonStaticRunnable -> visit(element)
             is CgStaticRunnable -> visit(element)
@@ -822,6 +823,11 @@ class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val v
 // Spread operator (for Kotlin, empty for Java)
 
 class CgSpread(override val type: ClassId, val array: CgExpression) : CgExpression
+
+// Interpolated string
+// e.g. String.format() for Java, "${}" for Kotlin
+
+class CgFormattedString(val array: List<CgExpression>) : CgElement
 
 // Enum constant
 

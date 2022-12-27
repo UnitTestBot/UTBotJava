@@ -233,7 +233,21 @@ class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : ValueProvider<F
                     summary = "%var% = ${iterable.classId.simpleName}#iterator()"
                 }
             },
-            empty = Routine.Empty { UtNullModel(type.classId).fuzzed { summary = "%var% = null" } }
+            empty = Routine.Empty {
+                val id = idGenerator.createId()
+                UtAssembleModel(
+                    id = id,
+                    classId = type.classId,
+                    modelName = "emptyIterator#${id.hex()}",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = null,
+                        executable = MethodId(java.util.Collections::class.id, "emptyIterator", type.classId, emptyList()),
+                        params = emptyList()
+                    )
+                ).fuzzed {
+                    summary = "%var% = empty iterator"
+                }
+            }
         ))
     }
 }

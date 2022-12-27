@@ -43,15 +43,13 @@ class ArrayValueProvider(
      *
      * For example, List<Number>[] returns List<Number>.
      */
-    private fun resolveArrayElementType(arrayType: FuzzedType): FuzzedType {
-        if (!arrayType.classId.isArray) error("$arrayType is not array")
-        val elementClassId = arrayType.classId.elementClassId ?: error("Element classId of $arrayType is not found")
-        return if (arrayType.generics.size == 1) {
-            arrayType.generics.first()
-        } else if (arrayType.generics.isEmpty()) {
-            FuzzedType(elementClassId)
-        } else {
-            error("Array has ${arrayType.generics.size} generic type for ($arrayType), that should not happen")
-        }
+    private fun resolveArrayElementType(arrayType: FuzzedType): FuzzedType = when {
+        !arrayType.classId.isArray -> error("$arrayType is not array")
+        arrayType.generics.size == 1 -> arrayType.generics.first()
+        arrayType.generics.isEmpty() -> FuzzedType(
+            arrayType.classId.elementClassId ?: error("Element classId of $arrayType is not found")
+        )
+
+        else -> error("Array has ${arrayType.generics.size} generic type for ($arrayType), that should not happen")
     }
 }

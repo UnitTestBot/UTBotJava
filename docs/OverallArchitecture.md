@@ -211,7 +211,7 @@ suspend fun executeAsync(
     parameters: Any?
 ): TResult
 ```
-It serializes the arguments and some parameters (e.g., static), sends it to the _instrumented process_ and retrieves the result.
+It serializes the arguments and some parameters (e.g., static fields), sends it to the _instrumented process_ and retrieves the result.
 
 Internally, `ConcreteExecutor` uses `Rd` for interprocess communication and `Kryo` for objects serialization. You don't need to provide a marshaller, as `Kryo` serializes the objects (sometimes it fails).
 

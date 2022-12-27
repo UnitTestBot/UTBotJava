@@ -60,8 +60,14 @@ class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
             val errorPsiFile = srcFileLogicalLocation?.fullyQualifiedName?.let { errorClassFqn ->
                 val psiFacade = JavaPsiFacade.getInstance(srcPsiFile.project)
                 val psiClass = psiFacade.findClass(errorClassFqn, srcPsiFile.project.allScope())
-                // We can't just return `psiClass?.containingFile` because it may be non-physical
-                psiClass?.containingFile?.virtualFile?.toPsiFile(srcPsiFile.project)
+                val psiFile = psiClass?.containingFile ?: return@let null
+
+                // We can't just return psiFile because it may be non-physical
+                if (psiFile.isPhysical) {
+                    psiFile
+                } else {
+                    psiFile.virtualFile.toPsiFile(srcPsiFile.project)
+                }
             } ?: srcPsiFile
             val errorRegion = srcFilePhysicalLocation.region
             val errorTextRange = getTextRange(problemsHolder.project, errorPsiFile, errorRegion)

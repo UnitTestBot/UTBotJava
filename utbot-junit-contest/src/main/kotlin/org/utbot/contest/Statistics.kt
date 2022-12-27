@@ -14,6 +14,9 @@ fun <T> Iterable<T>.printMultiline(printer: (T) -> Any?) = "\n" + joinToString("
 class GlobalStats {
     val projectStats = mutableListOf<StatsForProject>()
     var duration: Long? = null
+
+    override fun toString(): String = "\n<Global statistics> :" +
+            projectStats.joinToString(separator = "\n")
 }
 
 class StatsForProject(val project: String) {
@@ -72,7 +75,7 @@ class StatsForProject(val project: String) {
                 else this
             }
 
-    override fun toString(): String = "\n<Global statistics> :" +
+    override fun toString(): String = "\n<StatsForProject($project)> :" +
             "\n\t#classes for generation = $classesForGeneration" +
             "\n\t#tc generated = $testCasesGenerated" +
             "\n\t#classes without problems = $classesWithoutProblems" +
@@ -139,7 +142,7 @@ class StatsForClass(val project: String, val className: String) {
     fun getConcolicCoverageInfo(): CoverageStatistic =
         concolicCoverage.getCoverageInfo(testedClassNames)
 
-    override fun toString(): String = "\n<StatsForClass> :" +
+    override fun toString(): String = "\n<StatsForClass($className)> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
             "\n\t#methods = $methodsCount, " +
             "\n\t#methods started symbolic exploration = ${statsForMethods.size}" +

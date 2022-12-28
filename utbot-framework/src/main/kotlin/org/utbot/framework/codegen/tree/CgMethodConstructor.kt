@@ -159,7 +159,6 @@ import org.utbot.framework.plugin.api.util.longStreamToArrayMethodId
 import org.utbot.framework.plugin.api.util.streamClassId
 import org.utbot.framework.plugin.api.util.streamToArrayMethodId
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.greyboxfuzzer.util.UtGreyBoxFuzzedExecution
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 

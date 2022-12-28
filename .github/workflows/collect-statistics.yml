@@ -135,6 +135,9 @@ jobs:
             mv logs/utbot.log logs/utbot-$i.log
           done
 
+      - name: Create JaCoCo test report 
+        run: gradle test jacocoTestReport
+
       - name: Get current date
         id: date
         run: |
@@ -222,3 +225,11 @@ jobs:
           name: generated-${{ matrix.value }}-${{ matrix.project }}
           path: |
             /tmp/UTBot/generated*/*
+ 
+      - name: Upload JaCoCo test report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: jacoco-test-report
+          path: |
+            ./build/reports/jacoco/test/*

@@ -255,6 +255,11 @@ class UtBotSymbolicEngine(
                                 return@measureTime
                             }
 
+                            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                                logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                                return@bracket
+                            }
+
                             val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,

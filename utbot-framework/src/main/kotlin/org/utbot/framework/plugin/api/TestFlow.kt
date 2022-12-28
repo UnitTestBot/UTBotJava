@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
+import kotlin.io.path.Path
+import kotlin.io.path.appendText
 
 /**
  * Constructs [TestFlow] for customization and creates flow producer.

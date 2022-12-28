@@ -258,6 +258,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         isSymbolicEngineEnabled: Boolean,
         isFuzzingEnabled: Boolean,
         fuzzingValue: Double,
+        isGreyBoxFuzzingEnabled: Boolean,
         searchDirectory: String
     ): RdTestGenerationResult {
         assertReadAccessNotAllowed()
@@ -273,6 +274,7 @@ class EngineProcess private constructor(val project: Project, private val classN
             isSymbolicEngineEnabled,
             isFuzzingEnabled,
             fuzzingValue,
+            isGreyBoxFuzzingEnabled,
             searchDirectory
         )
         val result = engineModel.generate.startBlocking(params)

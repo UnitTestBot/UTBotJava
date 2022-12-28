@@ -70,6 +70,9 @@ class ConcreteExecutionFailureException(cause: Throwable, errorFile: File, val p
             appendLine("Cause:\n${cause.message}")
             appendLine("Last 1000 lines of the error log ${errorFile.absolutePath}:")
             appendLine("----------------------------------------")
+            if (!errorFile.exists()) {
+                errorFile.createNewFile()
+            }
             errorFile.useLines { lines ->
                 val lastLines = LinkedList<String>()
                 for (line in lines) {
@@ -101,11 +104,6 @@ inline fun UtExecutionResult.onSuccess(action: (model: UtModel) -> Unit): UtExec
 inline fun UtExecutionResult.onFailure(action: (exception: Throwable) -> Unit): UtExecutionResult {
     if (this is UtExecutionFailure) action(rootCauseException)
     return this
-}
-
-fun UtExecutionResult.getOrThrow(): UtModel = when (this) {
-    is UtExecutionSuccess -> model
-    is UtExecutionFailure -> throw exception
 }
 
 fun UtExecutionResult.exceptionOrNull(): Throwable? = when (this) {

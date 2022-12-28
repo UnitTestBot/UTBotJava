@@ -8,12 +8,7 @@ import java.lang.reflect.Method
  * NOTE: vararg parameters must be passed as an array of the corresponding type.
  */
 fun Method.invokeCatching(obj: Any?, args: List<Any?>) = try {
-    val invocation =
-        try {
-            invoke(obj, *args.toTypedArray())
-        } catch (e: Throwable) {
-            null
-        }
+    val invocation = invoke(obj, *args.toTypedArray())
     Result.success(invocation)
 } catch (e: InvocationTargetException) {
     Result.failure<Nothing>(e.targetException)

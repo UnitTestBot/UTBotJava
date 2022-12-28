@@ -480,7 +480,7 @@ data class UtArrayModel(
  * @param instantiationCall is an [UtExecutableCallModel] to instantiate represented object. It **must** not return `null`.
  * @param modificationsChain is a chain of [UtStatementModel] to construct object state.
  */
-data class UtAssembleModel constructor(
+data class UtAssembleModel private constructor(
     override val id: Int?,
     override val classId: ClassId,
     override val modelName: String,

@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:30]
+ * #### Generated from [EngineProcessModel.kt:31]
  */
 class EngineProcessModel private constructor(
     private val _setupUtContext: RdCall<SetupContextParams, Unit>,
@@ -71,9 +71,9 @@ class EngineProcessModel private constructor(
                 bind(lifetime, protocol, "EngineProcessModel")
             }
         }
-
-
-        const val serializationHash = -6219345436129699239L
+        
+        
+        const val serializationHash = -5710118090342998881L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -180,7 +180,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:100]
+ * #### Generated from [EngineProcessModel.kt:102]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -243,7 +243,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:104]
+ * #### Generated from [EngineProcessModel.kt:106]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -300,7 +300,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:93]
+ * #### Generated from [EngineProcessModel.kt:95]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -312,7 +312,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
         override val _type: KClass<FindMethodsInClassMatchingSelectedArguments> = FindMethodsInClassMatchingSelectedArguments::class
         
         @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodsInClassMatchingSelectedArguments {
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): FindMethodsInClassMatchingSelectedArguments  {
             val classId = buffer.readByteArray()
             val methodDescriptions = buffer.readList { MethodDescription.read(ctx, buffer) }
             return FindMethodsInClassMatchingSelectedArguments(classId, methodDescriptions)
@@ -335,7 +335,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
         if (other == null || other::class != this::class) return false
         
         other as FindMethodsInClassMatchingSelectedArguments
-
+        
         if (!(classId contentEquals other.classId)) return false
         if (methodDescriptions != other.methodDescriptions) return false
         
@@ -344,8 +344,8 @@ data class FindMethodsInClassMatchingSelectedArguments (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r * 31 + classId.contentHashCode()
-        __r = __r * 31 + methodDescriptions.hashCode()
+        __r = __r*31 + classId.contentHashCode()
+        __r = __r*31 + methodDescriptions.hashCode()
         return __r
     }
     //pretty print
@@ -363,7 +363,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:97]
+ * #### Generated from [EngineProcessModel.kt:99]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -420,7 +420,7 @@ data class FindMethodsInClassMatchingSelectedResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:42]
+ * #### Generated from [EngineProcessModel.kt:43]
  */
 data class GenerateParams (
     val mockInstalled: Boolean,
@@ -434,6 +434,7 @@ data class GenerateParams (
     val isSymbolicEngineEnabled: Boolean,
     val isFuzzingEnabled: Boolean,
     val fuzzingValue: Double,
+    val isGreyBoxFuzzingEnabled: Boolean,
     val searchDirectory: String
 ) : IPrintable {
     //companion
@@ -454,8 +455,9 @@ data class GenerateParams (
             val isSymbolicEngineEnabled = buffer.readBool()
             val isFuzzingEnabled = buffer.readBool()
             val fuzzingValue = buffer.readDouble()
+            val isGreyBoxFuzzingEnabled = buffer.readBool()
             val searchDirectory = buffer.readString()
-            return GenerateParams(mockInstalled, staticsMockingIsConfigureda, conflictTriggers, methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory)
+            return GenerateParams(mockInstalled, staticsMockingIsConfigureda, conflictTriggers, methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, isGreyBoxFuzzingEnabled, searchDirectory)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateParams)  {
@@ -470,6 +472,7 @@ data class GenerateParams (
             buffer.writeBool(value.isSymbolicEngineEnabled)
             buffer.writeBool(value.isFuzzingEnabled)
             buffer.writeDouble(value.fuzzingValue)
+            buffer.writeBool(value.isGreyBoxFuzzingEnabled)
             buffer.writeString(value.searchDirectory)
         }
         
@@ -497,6 +500,7 @@ data class GenerateParams (
         if (isSymbolicEngineEnabled != other.isSymbolicEngineEnabled) return false
         if (isFuzzingEnabled != other.isFuzzingEnabled) return false
         if (fuzzingValue != other.fuzzingValue) return false
+        if (isGreyBoxFuzzingEnabled != other.isGreyBoxFuzzingEnabled) return false
         if (searchDirectory != other.searchDirectory) return false
         
         return true
@@ -515,6 +519,7 @@ data class GenerateParams (
         __r = __r*31 + isSymbolicEngineEnabled.hashCode()
         __r = __r*31 + isFuzzingEnabled.hashCode()
         __r = __r*31 + fuzzingValue.hashCode()
+        __r = __r*31 + isGreyBoxFuzzingEnabled.hashCode()
         __r = __r*31 + searchDirectory.hashCode()
         return __r
     }
@@ -533,6 +538,7 @@ data class GenerateParams (
             print("isSymbolicEngineEnabled = "); isSymbolicEngineEnabled.print(printer); println()
             print("isFuzzingEnabled = "); isFuzzingEnabled.print(printer); println()
             print("fuzzingValue = "); fuzzingValue.print(printer); println()
+            print("isGreyBoxFuzzingEnabled = "); isGreyBoxFuzzingEnabled.print(printer); println()
             print("searchDirectory = "); searchDirectory.print(printer); println()
         }
         printer.print(")")
@@ -543,7 +549,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:60]
+ * #### Generated from [EngineProcessModel.kt:62]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -606,7 +612,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:112]
+ * #### Generated from [EngineProcessModel.kt:114]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -699,7 +705,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:121]
+ * #### Generated from [EngineProcessModel.kt:123]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -768,7 +774,7 @@ data class GenerateTestReportResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:31]
+ * #### Generated from [EngineProcessModel.kt:32]
  */
 data class JdkInfo (
     val path: String,
@@ -831,64 +837,61 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:88]
+ * #### Generated from [EngineProcessModel.kt:90]
  */
-data class MethodDescription(
+data class MethodDescription (
     val name: String,
     val containingClass: String?,
     val parametersTypes: List<String?>
 ) : IPrintable {
     //companion
-
+    
     companion object : IMarshaller<MethodDescription> {
         override val _type: KClass<MethodDescription> = MethodDescription::class
-
+        
         @Suppress("UNCHECKED_CAST")
-        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): MethodDescription {
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): MethodDescription  {
             val name = buffer.readString()
             val containingClass = buffer.readNullable { buffer.readString() }
             val parametersTypes = buffer.readList { buffer.readNullable { buffer.readString() } }
             return MethodDescription(name, containingClass, parametersTypes)
         }
-
-        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: MethodDescription) {
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: MethodDescription)  {
             buffer.writeString(value.name)
             buffer.writeNullable(value.containingClass) { buffer.writeString(it) }
             buffer.writeList(value.parametersTypes) { v -> buffer.writeNullable(v) { buffer.writeString(it) } }
         }
-
-
+        
+        
     }
-
     //fields
     //methods
     //initializer
     //secondary constructor
     //equals trait
-    override fun equals(other: Any?): Boolean {
+    override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-
+        
         other as MethodDescription
-
+        
         if (name != other.name) return false
         if (containingClass != other.containingClass) return false
         if (parametersTypes != other.parametersTypes) return false
-
+        
         return true
     }
-
     //hash code trait
-    override fun hashCode(): Int {
+    override fun hashCode(): Int  {
         var __r = 0
-        __r = __r * 31 + name.hashCode()
-        __r = __r * 31 + if (containingClass != null) containingClass.hashCode() else 0
-        __r = __r * 31 + parametersTypes.hashCode()
+        __r = __r*31 + name.hashCode()
+        __r = __r*31 + if (containingClass != null) containingClass.hashCode() else 0
+        __r = __r*31 + parametersTypes.hashCode()
         return __r
     }
-
     //pretty print
-    override fun print(printer: PrettyPrinter) {
+    override fun print(printer: PrettyPrinter)  {
         printer.println("MethodDescription (")
         printer.indent {
             print("name = "); name.print(printer); println()
@@ -903,9 +906,9 @@ data class MethodDescription(
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:64]
+ * #### Generated from [EngineProcessModel.kt:66]
  */
-data class RenderParams(
+data class RenderParams (
     val testSetsId: Long,
     val classUnderTest: ByteArray,
     val paramNames: ByteArray,
@@ -1044,7 +1047,7 @@ data class RenderParams(
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:81]
+ * #### Generated from [EngineProcessModel.kt:83]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1107,7 +1110,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:85]
+ * #### Generated from [EngineProcessModel.kt:87]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1164,7 +1167,7 @@ data class SetupContextParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:36]
+ * #### Generated from [EngineProcessModel.kt:37]
  */
 data class TestGeneratorParams (
     val buildDir: Array<String>,
@@ -1239,7 +1242,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:107]
+ * #### Generated from [EngineProcessModel.kt:109]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

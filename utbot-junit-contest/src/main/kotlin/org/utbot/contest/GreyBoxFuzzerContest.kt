@@ -2,62 +2,19 @@ package org.utbot.contest
 
 import mu.KotlinLogging
 import org.objectweb.asm.Type
-import org.utbot.common.FileUtil
 import org.utbot.common.bracket
-import org.utbot.common.filterWhen
 import org.utbot.common.info
-import org.utbot.common.isAbstract
-import org.utbot.engine.EngineController
-import org.utbot.framework.TestSelectionStrategyType
-import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.ForceStaticMocking
-import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.junitByVersion
 import org.utbot.framework.codegen.CodeGenerator
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
-import org.utbot.framework.util.isKnownImplicitlyDeclaredMethod
 import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
-import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.warmup.Warmup
-import java.io.File
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import java.net.URL
 import java.net.URLClassLoader
-import java.nio.file.Paths
-import kotlin.concurrent.thread
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.reflect.KCallable
-import kotlin.reflect.jvm.isAccessible
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
-import org.utbot.engine.Mocker
-import org.utbot.engine.greyboxfuzzer.util.CoverageCollector
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.isSynthetic
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.io.path.appendText
 
 
 class GreyBoxFuzzerContest {
@@ -70,12 +27,10 @@ class GreyBoxFuzzerContest {
         project: String,
         cut: ClassUnderTest,
         timeLimitSec: Long,
-        fuzzingRatio: Double,
         classpathString: String,
         runFromEstimator: Boolean,
-        methodNameFilter: String? = null // For debug purposes you can specify method name
+        methodNameFilter: String? = null // For debug purposes you can specify method name){}
     ): StatsForClass = runBlocking {
-        CoverageCollector.clear()
         val timeBudgetMs = timeLimitSec * 1000
         val generationTimeout: Long =
             timeBudgetMs - timeBudgetMs * 15 / 100 // 4000 ms for terminate all activities and finalize code in file

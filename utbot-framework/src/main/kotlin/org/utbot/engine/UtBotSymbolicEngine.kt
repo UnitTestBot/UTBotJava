@@ -11,7 +11,6 @@ import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.engine.MockStrategy.NO_MOCKS
-import org.utbot.engine.greyboxfuzzer.GreyBoxFuzzer
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
@@ -33,9 +32,8 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.concrete.*
+import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -44,6 +42,8 @@ import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
+import org.utbot.greyboxfuzzer.GreyBoxFuzzer
+import org.utbot.greyboxfuzzer.util.FuzzerUtModelConstructor
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -51,6 +51,7 @@ import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrument
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
+import java.util.*
 import kotlin.system.measureTimeMillis
 
 val logger = KotlinLogging.logger {}
@@ -337,7 +338,7 @@ class UtBotSymbolicEngine(
     fun fuzzing(until: Long = Long.MAX_VALUE, transform: (JavaValueProvider) -> JavaValueProvider = { it }) = flow {
         val isFuzzable = methodUnderTest.parameters.all { classId ->
             classId != Method::class.java.id && // causes the instrumented process crash at invocation
-                classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
+                    classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
         val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
         if (!isFuzzable || !hasMethodUnderTestParametersToFuzz && methodUnderTest.isStatic) {
@@ -429,13 +430,22 @@ class UtBotSymbolicEngine(
             if (!isFuzzable) {
                 return@flow
             }
+            val utModelConstructor = UtModelConstructor(IdentityHashMap())
+            val fuzzerUtModelConstructor = FuzzerUtModelConstructor(
+                utModelConstructor::construct,
+                utModelConstructor::computeUnusedIdAndUpdate
+            )
 
             try {
                 emitAll(
                     GreyBoxFuzzer(
-                        concreteExecutor.pathsToUserClasses,
-                        concreteExecutor.pathsToDependencyClasses,
                         methodUnderTest,
+                        collectConstantsForGreyBoxFuzzer(methodUnderTest.sootMethod, utModelConstructor),
+                        fuzzerUtModelConstructor,
+                        FuzzerConcreteExecutor(
+                            concreteExecutor.pathsToUserClasses,
+                            concreteExecutor.pathsToDependencyClasses
+                        )::execute,
                         timeBudget
                     ).fuzz()
                 )
@@ -587,7 +597,7 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
     return EnvironmentModels(thisInstanceBefore, paramsBefore, statics)
 }
 
-private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
+internal suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>

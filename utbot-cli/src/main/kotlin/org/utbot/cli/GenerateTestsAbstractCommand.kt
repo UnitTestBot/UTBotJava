@@ -40,7 +40,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import org.utbot.engine.greyboxfuzzer.util.CustomClassLoader
 
 private const val LONG_GENERATION_TIMEOUT = 1_200_000L
 
@@ -146,11 +145,16 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         val classRelativePath = classFqnToPath(classFqn) + ".class"
         val classAbsoluteURL = classLoader.getResource(classRelativePath) ?: return null
         val classAbsolutePath =
-            if (classAbsoluteURL.toURI().scheme == "jar") {
-                replaceSeparator(classAbsoluteURL.file.removePrefix("file:"))
-                    .removeSuffix(classRelativePath)
-                    .removeSuffix("/")
-                    .removeSuffix("!")
+            if (UtSettings.useGreyBoxFuzzing) {
+                if (classAbsoluteURL.toURI().scheme == "jar") {
+                    replaceSeparator(classAbsoluteURL.file.removePrefix("file:"))
+                        .removeSuffix(classRelativePath)
+                        .removeSuffix("/")
+                        .removeSuffix("!")
+                } else {
+                    replaceSeparator(classAbsoluteURL.toPath().toString())
+                        .removeSuffix(classRelativePath)
+                }
             } else {
                 replaceSeparator(classAbsoluteURL.toPath().toString())
                     .removeSuffix(classRelativePath)
@@ -165,7 +169,6 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
     ): List<UtMethodTestSet> {
-        CustomClassLoader.classLoader = classLoader
         return testCaseGenerator.generate(
             targetMethods,
             mockStrategy,

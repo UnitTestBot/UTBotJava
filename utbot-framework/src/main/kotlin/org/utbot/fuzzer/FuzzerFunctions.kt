@@ -1,29 +1,14 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
+import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.executableId
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.Local
-import soot.LongType
-import soot.ShortType
+import soot.*
 import soot.Unit
-import soot.Value
-import soot.ValueBox
 import soot.jimple.Constant
 import soot.jimple.IntConstant
 import soot.jimple.InvokeExpr
@@ -88,13 +73,42 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
         }.toSet()
 }
 
+fun collectConstantsForGreyBoxFuzzer(sootMethod: SootMethod, utModelConstructor: UtModelConstructor): Map<ClassId, List<UtModel>> {
+    val sootGraph = ExceptionalUnitGraph(sootMethod.activeBody)
+
+    fun generateConstantsForBothPrimitives(classId: ClassId, value: Any, utModelConstructor: UtModelConstructor) =
+        when (classId) {
+            intWrapperClassId -> listOf(intClassId to utModelConstructor.construct(value, intClassId))
+            intClassId -> listOf(intWrapperClassId to utModelConstructor.construct(value, intWrapperClassId))
+            byteWrapperClassId -> listOf(byteClassId to utModelConstructor.construct(value, byteClassId))
+            byteClassId -> listOf(byteWrapperClassId to utModelConstructor.construct(value, byteWrapperClassId))
+            charWrapperClassId -> listOf(charClassId to utModelConstructor.construct(value, charClassId))
+            charClassId -> listOf(charWrapperClassId to utModelConstructor.construct(value, charWrapperClassId))
+            doubleWrapperClassId -> listOf(doubleClassId to utModelConstructor.construct(value, doubleClassId))
+            doubleClassId -> listOf(doubleWrapperClassId to utModelConstructor.construct(value, doubleWrapperClassId))
+            longWrapperClassId -> listOf(longClassId to utModelConstructor.construct(value, longClassId))
+            longClassId -> listOf(longWrapperClassId to utModelConstructor.construct(value, longWrapperClassId))
+            floatWrapperClassId -> listOf(floatClassId to utModelConstructor.construct(value, floatClassId))
+            floatClassId -> listOf(floatWrapperClassId to utModelConstructor.construct(value, floatWrapperClassId))
+            shortWrapperClassId -> listOf(shortClassId to utModelConstructor.construct(value, shortClassId))
+            shortClassId -> listOf(shortWrapperClassId to utModelConstructor.construct(value, shortWrapperClassId))
+            stringClassId -> listOf()
+            else -> null
+        }?.let { it + listOf(classId to utModelConstructor.construct(value, classId)) } ?: listOf()
+
+    return collectConstantsForFuzzer(sootGraph)
+        .distinctBy { it.value }
+        .flatMap { generateConstantsForBothPrimitives(it.classId, it.value, utModelConstructor) }
+        .groupBy({ it.first }, { it.second })
+}
+
 private interface ConstantsFinder {
     fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue>
 }
 
 private object ConstantsFromIfStatement: ConstantsFinder {
     override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
-        if (value !is Constant || (unit !is JIfStmt && unit !is JAssignStmt)) return emptyList()
+        if (value !is Constant || value is NullConstant || (unit !is JIfStmt && unit !is JAssignStmt)) return emptyList()
 
         var useBoxes: List<Value> = emptyList()
         var ifStatement: JIfStmt? = null
@@ -270,7 +284,6 @@ private object ConstantsAsIs: ConstantsFinder {
     override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
         if (value !is Constant || value is NullConstant) return emptyList()
         return listOf(FuzzedConcreteValue(value.type.classId, value.plainValue))
-
     }
 
 }

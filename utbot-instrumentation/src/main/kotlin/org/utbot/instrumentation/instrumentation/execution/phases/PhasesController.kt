@@ -7,6 +7,7 @@ import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationC
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtSandboxFailure
+import org.utbot.greyboxfuzzer.util.UtFuzzingConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 
@@ -14,9 +15,10 @@ class PhasesController(
     instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
     delegateInstrumentation: Instrumentation<Result<*>>,
+    generateNullOnError: Boolean = false
 ) : Closeable {
 
-    val valueConstructionContext = ValueConstructionContext(instrumentationContext)
+    val valueConstructionContext = ValueConstructionContext(instrumentationContext, generateNullOnError)
 
     val preparationContext = PreparationContext(traceHandler)
 
@@ -38,6 +40,25 @@ class PhasesController(
                         MissingState,
                         UtSandboxFailure(e.cause.cause!!),
                         Coverage()
+                    )
+                }
+                // TODO: make failure results from different phase errors
+                throw e
+            }
+        }
+    }
+
+    inline fun computeFuzzingConcreteExecutionResult(block: PhasesController.() -> UtFuzzingConcreteExecutionResult): UtFuzzingConcreteExecutionResult {
+        return use {
+            try {
+                block()
+            } catch (e: PhaseError) {
+                if (e.cause.cause is AccessControlException) {
+                    return@use UtFuzzingConcreteExecutionResult(
+                        MissingState,
+                        UtSandboxFailure(e.cause.cause!!),
+                        Coverage(),
+                        null
                     )
                 }
                 // TODO: make failure results from different phase errors

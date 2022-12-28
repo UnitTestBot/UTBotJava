@@ -152,7 +152,6 @@ fun main(args: Array<String>) {
                     project = "GreyBoxFuzzingContest",
                     cut,
                     timeBudgetSec,
-                    fuzzingRatio = 0.1,
                     classpathString,
                     runFromEstimator = false,
                     methodNameFilter = null

@@ -22,13 +22,14 @@ class ValueConstructionPhaseError(cause: Throwable) : PhaseError(
  * This phase of values instantiation from given models.
  */
 class ValueConstructionContext(
-    instrumentationContext: InstrumentationContext
+    instrumentationContext: InstrumentationContext,
+    generateNullOnError: Boolean = false
 ) : PhaseContext<ValueConstructionPhaseError>, Closeable {
 
     override fun wrapError(error: Throwable): ValueConstructionPhaseError =
         ValueConstructionPhaseError(error)
 
-    private val constructor = MockValueConstructor(instrumentationContext)
+    private val constructor = MockValueConstructor(instrumentationContext, generateNullOnError)
 
     fun getCache(): IdentityHashMap<Any, UtModel> {
         return constructor.objectToModelCache

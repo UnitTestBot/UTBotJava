@@ -96,36 +96,36 @@ class MockClassVisitor(
 
             private val afterLabels: MutableList<Label> = mutableListOf()
 
-//            override fun visitTypeInsn(opcode: Int, type: String?) {
-//                if (opcode == NEW) {
-//                    val afterLabel = Label()
-//                    afterLabels.add(afterLabel)
-//                    val newLabel = Label()
-//
-//                    // if (callSiteCheck(type, class))
-//                    push(type)
-//                    push(internalClassName)
-//                    invokeStatic(callSiteCheckerOwner, callSiteCheckerMethod)
-//                    ifZCmp(IFEQ, newLabel)
-//
-//                    // if (hasMock(null, type.<init>))
-//                    visitInsn(ACONST_NULL)
-//                    push("$type.<init>")
-//                    invokeStatic(hasMockOwner, hasMockMethod)
-//                    ifZCmp(IFEQ, newLabel)
-//
-//                    // getMock(null, type.<init>)
-//                    visitInsn(ACONST_NULL)
-//                    push("$type.<init>")
-//                    invokeStatic(mockGetterOwner, mockGetterMethod)
-//                    visitTypeInsn(CHECKCAST, type)
-//                    goTo(afterLabel)
-//
-//                    // else
-//                    visitLabel(newLabel)
-//                }
-//                super.visitTypeInsn(opcode, type)
-//            }
+            override fun visitTypeInsn(opcode: Int, type: String?) {
+                if (opcode == NEW) {
+                    val afterLabel = Label()
+                    afterLabels.add(afterLabel)
+                    val newLabel = Label()
+
+                    // if (callSiteCheck(type, class))
+                    push(type)
+                    push(internalClassName)
+                    invokeStatic(callSiteCheckerOwner, callSiteCheckerMethod)
+                    ifZCmp(IFEQ, newLabel)
+
+                    // if (hasMock(null, type.<init>))
+                    visitInsn(ACONST_NULL)
+                    push("$type.<init>")
+                    invokeStatic(hasMockOwner, hasMockMethod)
+                    ifZCmp(IFEQ, newLabel)
+
+                    // getMock(null, type.<init>)
+                    visitInsn(ACONST_NULL)
+                    push("$type.<init>")
+                    invokeStatic(mockGetterOwner, mockGetterMethod)
+                    visitTypeInsn(CHECKCAST, type)
+                    goTo(afterLabel)
+
+                    // else
+                    visitLabel(newLabel)
+                }
+                super.visitTypeInsn(opcode, type)
+            }
 
             override fun visitMethodInsn(
                 opcodeAndSource: Int,

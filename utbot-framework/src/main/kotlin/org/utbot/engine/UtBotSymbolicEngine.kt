@@ -32,8 +32,11 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.concrete.*
+import org.utbot.framework.concrete.UtConcreteExecutionData
+import org.utbot.framework.concrete.UtConcreteExecutionResult
+import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.concrete.FuzzerConcreteExecutor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -423,7 +426,6 @@ class UtBotSymbolicEngine(
     //Simple fuzzing
     fun greyBoxFuzzing(timeBudget: Long = Long.MAX_VALUE) =
         flow {
-            GenericsInfoFactory.disableCache()
             val isFuzzable = methodUnderTest.parameters.all { classId ->
                 classId != Method::class.java.id // causes the child process crash at invocation
             }

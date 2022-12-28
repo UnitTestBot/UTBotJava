@@ -19,12 +19,12 @@ import kotlin.reflect.jvm.javaMethod
 
 interface UtExecutionInstrumentationWithStatsCollection : Instrumentation<UtFuzzingConcreteExecutionResult> {
 
-    val delegateInstrumentation: InvokeInstrumentation// = InvokeInstrumentation()
+    val delegateInstrumentation: InvokeInstrumentation
 
-    val instrumentationContext: InstrumentationContext// = InstrumentationContext()
+    val instrumentationContext: InstrumentationContext
 
-    val traceHandler: TraceHandler //= TraceHandler()
-    val pathsToUserClasses: MutableSet<String>// = mutableSetOf<String>()
+    val traceHandler: TraceHandler
+    val pathsToUserClasses: MutableSet<String>
     override fun init(pathsToUserClasses: Set<String>) {
         this.pathsToUserClasses.clear()
         this.pathsToUserClasses += pathsToUserClasses

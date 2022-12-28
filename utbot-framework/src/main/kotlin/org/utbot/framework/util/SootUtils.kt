@@ -16,12 +16,7 @@ import soot.jimple.JimpleBody
 import soot.options.Options
 import soot.toolkits.graph.ExceptionalUnitGraph
 import java.io.File
-import java.net.URI
-import java.nio.file.FileSystems
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.absolutePathString
-import kotlin.streams.toList
 
 object SootUtils {
     /**
@@ -135,6 +130,7 @@ val ExecutableId.sootMethod: SootMethod
 
 fun jimpleBody(method: ExecutableId): JimpleBody =
     method.sootMethod.jimpleBody()
+
 
 private fun addBasicClasses(vararg classes: Class<*>) {
     classes.forEach {

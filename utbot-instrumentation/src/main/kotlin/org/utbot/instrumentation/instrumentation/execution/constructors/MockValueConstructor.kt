@@ -213,12 +213,7 @@ class MockValueConstructor(
             check(Reflection.isModifiersAccessible())
 
             val target = mockTarget(fieldModel) {
-                FieldMockTarget(
-                    fieldModel.classId.name,
-                    model.classId.name,
-                    UtConcreteValue(classInstance),
-                    fieldId.name
-                )
+                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), fieldId.name)
             }
             val value = construct(fieldModel, target).value
             val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
@@ -367,10 +362,9 @@ class MockValueConstructor(
                         val value = construct(elementModel, null).value
                         try {
                             java.lang.reflect.Array.set(instance, i, value)
-                        } catch (iae: IllegalArgumentException) {
+                        } catch (iae:IllegalArgumentException) {
                             throw IllegalArgumentException(
-                                iae.message + " array: ${instance.javaClass.name}; value: ${value?.javaClass?.name}",
-                                iae
+                                iae.message + " array: ${instance.javaClass.name}; value: ${value?.javaClass?.name}" , iae
                             )
                         }
                     }

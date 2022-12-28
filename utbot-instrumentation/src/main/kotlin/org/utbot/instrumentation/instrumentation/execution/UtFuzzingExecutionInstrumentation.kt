@@ -2,6 +2,7 @@ package org.utbot.framework.concrete
 
 import org.utbot.framework.concrete.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
 import org.utbot.framework.concrete.mock.InstrumentationContext
+import org.utbot.framework.concrete.phases.PhaseError
 import org.utbot.framework.concrete.phases.PhasesController
 import org.utbot.framework.concrete.phases.start
 import org.utbot.framework.plugin.api.*
@@ -10,6 +11,7 @@ import org.utbot.greyboxfuzzer.util.UtFuzzingConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import java.security.AccessControlException
 
 object UtFuzzingExecutionInstrumentation : UtExecutionInstrumentationWithStatsCollection {
 
@@ -186,3 +188,21 @@ private fun Coverage.toLocalCoverage(traceHandler: TraceHandler) =
         instructionsCount,
         missedInstructions.map { traceHandler.processingStorage.convertToLocalInstruction(it) }
     )
+
+private inline fun PhasesController.computeFuzzingConcreteExecutionResult(block: PhasesController.() -> UtFuzzingConcreteExecutionResult): UtFuzzingConcreteExecutionResult {
+    return use {
+        try {
+            block()
+        } catch (e: PhaseError) {
+            if (e.cause.cause is AccessControlException) {
+                return@use UtFuzzingConcreteExecutionResult(
+                    MissingState,
+                    UtSandboxFailure(e.cause.cause!!),
+                    Coverage(),
+                    null
+                )
+            }
+            throw e
+        }
+    }
+}

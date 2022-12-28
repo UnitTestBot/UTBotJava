@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api
 
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import java.io.File
 import java.util.LinkedList

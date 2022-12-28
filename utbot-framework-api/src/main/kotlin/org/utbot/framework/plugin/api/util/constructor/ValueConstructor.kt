@@ -42,7 +42,6 @@ import org.utbot.framework.plugin.api.util.anyInstance
 import org.utbot.framework.plugin.api.util.constructLambda
 import org.utbot.framework.plugin.api.util.constructStaticLambda
 import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.jField

@@ -168,8 +168,8 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
-    ): List<UtMethodTestSet> {
-        return testCaseGenerator.generate(
+    ): List<UtMethodTestSet> =
+        testCaseGenerator.generate(
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,
@@ -177,7 +177,6 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         ).map {
             if (sourceCodeFile != null) it.summarize(searchDirectory, sourceCodeFile.toFile()) else it
         }
-    }
 
 
     protected fun withLogger(targetClassFqn: String, block: Runnable) {

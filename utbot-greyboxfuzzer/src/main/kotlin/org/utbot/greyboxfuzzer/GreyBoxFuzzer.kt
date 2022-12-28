@@ -19,10 +19,10 @@ import org.utbot.greyboxfuzzer.mutator.Seed
 import org.utbot.greyboxfuzzer.mutator.SeedCollector
 import org.utbot.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.greyboxfuzzer.util.*
+import ru.vyarus.java.generics.resolver.context.GenericsInfoFactory
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 class GreyBoxFuzzer(
     private val methodUnderTest: ExecutableId,
@@ -40,6 +40,9 @@ class GreyBoxFuzzer(
     private val percentageOfTimeBudgetToChangeMode = 25
     private val logger = KotlinLogging.logger {}
 
+    init {
+        GenericsInfoFactory.disableCache()
+    }
 
     suspend fun fuzz() = flow {
         logger.debug { "Started to fuzz ${methodUnderTest.name}" }

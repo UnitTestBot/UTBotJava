@@ -240,7 +240,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */
-    var useFuzzing: Boolean by getBooleanProperty(false)
+    var useFuzzing: Boolean by getBooleanProperty(true)
 
     /**
      * Set to true to use grey-box fuzzing
@@ -255,7 +255,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Set to true to use UtCompositeModels in grey-box fuzzing process
      */
-    var useCompositeModelsInGreyBoxFuzzing: Boolean by getBooleanProperty(true)
+    var useCompositeModelsInGreyBoxFuzzing: Boolean by getBooleanProperty(false)
 
     /**
      * Set the total attempts to improve coverage by fuzzer.

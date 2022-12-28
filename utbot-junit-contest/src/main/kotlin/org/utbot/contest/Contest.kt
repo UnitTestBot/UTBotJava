@@ -277,7 +277,7 @@ fun runGeneration(
                     val methodJob = currentCoroutineContext().job
 
                     logger.debug { " ... " }
-                    val statsForMethod = StatsForMethod("${method.classId.simpleName}#${method.name}#${method.signature}", Type.getInternalName(method.classId.jClass))
+                    val statsForMethod = StatsForMethod("${method.classId.simpleName}#${method.name}")
                     statsForClass.statsForMethods.add(statsForMethod)
 
 

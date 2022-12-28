@@ -90,10 +90,7 @@ object FileUtil {
 
         for (clazz in classes) {
             val path = clazz.toClassFilePath()
-            val resource =
-                clazz.classLoader.getResource(path)
-                    ?: ClassLoader.getSystemClassLoader().getResource(path)
-                    ?: error("No such file: $path")
+            val resource = clazz.classLoader.getResource(path) ?: error("No such file: $path")
 
             if (resource.toURI().scheme == "jar") {
                 val jarLocation = resource.toURI().extractJarName()

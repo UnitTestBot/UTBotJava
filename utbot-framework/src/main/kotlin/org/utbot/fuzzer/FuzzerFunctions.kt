@@ -5,10 +5,36 @@ import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.byteWrapperClassId
+import org.utbot.framework.plugin.api.util.charWrapperClassId
+import org.utbot.framework.plugin.api.util.doubleWrapperClassId
+import org.utbot.framework.plugin.api.util.floatWrapperClassId
+import org.utbot.framework.plugin.api.util.intWrapperClassId
+import org.utbot.framework.plugin.api.util.longWrapperClassId
+import org.utbot.framework.plugin.api.util.shortWrapperClassId
 import org.utbot.framework.util.executableId
-import soot.*
+import soot.BooleanType
+import soot.ByteType
+import soot.CharType
+import soot.DoubleType
+import soot.FloatType
+import soot.IntType
+import soot.Local
+import soot.LongType
+import soot.ShortType
+import soot.SootMethod
 import soot.Unit
+import soot.Value
+import soot.ValueBox
 import soot.jimple.Constant
 import soot.jimple.IntConstant
 import soot.jimple.InvokeExpr
@@ -284,6 +310,7 @@ private object ConstantsAsIs: ConstantsFinder {
     override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
         if (value !is Constant || value is NullConstant) return emptyList()
         return listOf(FuzzedConcreteValue(value.type.classId, value.plainValue))
+
     }
 
 }

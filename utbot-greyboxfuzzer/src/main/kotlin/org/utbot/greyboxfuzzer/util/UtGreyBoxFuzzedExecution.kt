@@ -6,7 +6,7 @@ class UtFuzzingConcreteExecutionResult(
     val stateAfter: EnvironmentModels?,
     val result: UtExecutionResult,
     val coverage: Coverage,
-    val methodInstructions: List<Instruction>?
+    val methodInstructions: List<Instruction>? = null
 )
 
 //class UtFuzzExecutionResult() : UtConcreteExecutionResult

@@ -9,6 +9,7 @@ import java.lang.reflect.Method
  */
 fun Method.invokeCatching(obj: Any?, args: List<Any?>) = try {
     val invocation = invoke(obj, *args.toTypedArray())
+
     Result.success(invocation)
 } catch (e: InvocationTargetException) {
     Result.failure<Nothing>(e.targetException)

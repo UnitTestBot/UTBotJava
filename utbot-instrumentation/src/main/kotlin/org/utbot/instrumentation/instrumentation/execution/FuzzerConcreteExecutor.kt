@@ -18,19 +18,6 @@ class FuzzerConcreteExecutor(
         stateBefore: EnvironmentModels,
         instrumentation: List<UtInstrumentation>
     ): UtFuzzingConcreteExecutionResult {
-//        val fuzzingExecutor =
-//            ConcreteExecutor(
-//                UtFuzzingExecutionInstrumentation/*(UtSettings.greyBoxFuzzingCompetitionMode)*/,
-//                pathsToUserClasses,
-//                pathsToDependencyClasses
-//            ).apply { this.classLoader = utContext.classLoader }
-//        val executionResult = fuzzingExecutor.executeConcretelyFuzz(methodUnderTest, stateBefore, instrumentation)
-//        return UtFuzzingConcreteExecutionResult(
-//            null,
-//            executionResult.result,
-//            executionResult.coverage,
-//            executionResult.methodInstructionsIds
-//        )
         return if (UtSettings.greyBoxFuzzingCompetitionMode) {
             val fuzzingExecutor =
                 ConcreteExecutor(

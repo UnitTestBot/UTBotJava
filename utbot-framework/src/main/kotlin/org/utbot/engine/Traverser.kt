@@ -1950,6 +1950,8 @@ class Traverser(
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields that cannot be set via reflection anyway
             !field.fieldId.isInaccessibleViaReflection &&
+                // we should not manually set enum constants
+            !(field.declaringClass.isEnum && field.isEnumConstant) &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
                 ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
@@ -2298,6 +2300,10 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
+        if (exception.concrete is ArtificialError) {
+            return false
+        }
+
         val classId = exception.fold(
             { it.javaClass.id },
             { (exception.symbolic as ObjectValue).type.id }
@@ -3404,7 +3410,7 @@ class Traverser(
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            implicitlyThrowException(OverflowDetectionError("${left.type} ${op.symbol} overflow"), setOf(overflow))
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
@@ -3480,13 +3486,13 @@ class Traverser(
     }
 
     private fun TraversalContext.implicitlyThrowException(
-        exception: Exception,
+        throwable: Throwable,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(throwable, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(

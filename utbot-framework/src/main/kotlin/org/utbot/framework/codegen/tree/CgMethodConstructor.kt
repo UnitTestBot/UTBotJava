@@ -4,6 +4,8 @@ import org.utbot.common.PathUtil
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
+import org.utbot.engine.ArtificialError
+import org.utbot.engine.OverflowDetectionError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -141,6 +143,7 @@ import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getS
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.util.allSuperTypes
 import org.utbot.framework.plugin.api.util.baseStreamClassId
@@ -350,11 +353,29 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 }
                 else -> error("Unexpected crash suite for failing execution with $expectedException exception")
             }
+            ARTIFICIAL -> {
+                methodInvocationBlock()
+
+                val failureMessage = prepareArtificialFailureMessage(executionResult)
+                testFrameworkManager.fail(failureMessage)
+            }
             FAILING -> {
                 writeWarningAboutFailureTest(expectedException)
                 methodInvocationBlock()
             }
             PARAMETRIZED -> error("Unexpected $PARAMETRIZED method type for failing execution with $expectedException exception")
+        }
+    }
+
+    // TODO: ISSUE-1546 introduce some kind of language-specific string interpolation in Codegen
+    // and render arguments that cause overflow (but it requires engine enhancements)
+    private fun prepareArtificialFailureMessage(executionResult: UtExecutionResult): CgLiteral {
+        when (executionResult) {
+            is UtOverflowFailure -> {
+                val failureMessage = "Overflow detected in \'${currentExecutable!!.name}\' call"
+                return CgLiteral(stringClassId, failureMessage)
+            }
+            else -> error("$executionResult is not supported in artificial errors")
         }
     }
 
@@ -405,6 +426,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
+        if (exception is ArtificialError) return false
         if (UtSettings.treatAssertAsErrorSuite && exception is AssertionError) return false
 
         val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
@@ -1796,6 +1818,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     shouldTestPassWithException(currentExecution, exception) -> PASSED_EXCEPTION
                     shouldTestPassWithTimeoutException(currentExecution, exception) -> TIMEOUT
                     else -> when (exception) {
+                        is ArtificialError -> ARTIFICIAL
                         is ConcreteExecutionFailureException -> CRASH
                         is AccessControlException -> CRASH // exception from sandbox
                         else -> FAILING

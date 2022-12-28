@@ -11,7 +11,7 @@ class Configuration(
      *
      * To stop recursion [Seed.Recursive.empty] is called to create new values.
      */
-    var recursionTreeDepth: Int = 3,
+    var recursionTreeDepth: Int = 4,
 
     /**
      * The limit of collection size to create.

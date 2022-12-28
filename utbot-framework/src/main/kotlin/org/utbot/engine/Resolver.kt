@@ -390,10 +390,9 @@ class Resolver(
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
-            when {
-                // TODO SAT-1561
-                exception is ArithmeticException && exception.message?.contains("overflow") == true -> UtOverflowFailure(exception)
-                exception is AccessControlException -> UtSandboxFailure(exception)
+            when (exception) {
+                is OverflowDetectionError -> UtOverflowFailure(exception)
+                is AccessControlException -> UtSandboxFailure(exception)
                 else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }

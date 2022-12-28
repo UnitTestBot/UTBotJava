@@ -20,7 +20,8 @@ object PythonCodeGenerator {
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         additionalModules: Set<String> = emptySet(),
-        fileForOutputName: String
+        fileForOutputName: String,
+        coverageDatabasePath: String,
     ): String {
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {
@@ -36,7 +37,8 @@ object PythonCodeGenerator {
                 directoriesForSysPath,
                 moduleToImport,
                 additionalModules,
-                fileForOutputName
+                fileForOutputName,
+                coverageDatabasePath,
             )
         }
     }

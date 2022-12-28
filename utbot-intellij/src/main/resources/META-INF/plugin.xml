@@ -48,7 +48,7 @@
         Discover UnitTestBot key features in our latest release:
         <ul>
             <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
-            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</> while keeping the number of tests minimized</li>
+            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</i> while keeping the number of tests minimized</li>
             <li>finding deeply hidden code defects and expressing them as tests</li>
             <li>fine-tuned <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation#mocking-settings">mocking</a>, including mocking static methods</li>
             <li>representing all the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results#read-test-descriptions">test descriptions</a> in a human-readable format</li>
@@ -68,21 +68,22 @@
     </description>
     <change-notes>
         <![CDATA[
-        In this version we have implemented multiple features and improvements:
+        Check out UnitTestBot new features and major improvements in the latest release:
         <ul>
-        <li>Java 11 support.</li>
-        <li>Smart Fuzzer significantly improves test generation results.</li>
-        <li>Generated tests have become even more human-readable and user-friendly.</li>
-        <li>We have enabled Mac OS X platform, give it a try.</li>
-        <li>The UnitTestBot engine generates SARIF reports.</li>
-        <li>We have polished plugin UX.</li>
-        <li>Mocking support is enhanced.</li>
-        <li>Java Streams, better Java Optional support, Java String support is improved, package-private constructors now are used for the test generation.</li>
+            <li>Generating tests for Python and JavaScript</li>
+            <li>New fuzzing platform providing support for multiple languages</li>
+            <li>Improved test generation for Kotlin code</li>
+            <li>Multiprocess architecture based on the <a href="https://github.com/JetBrains/rd">Reactive Distributed communication framework</a> with advanced logging and debugging options</li>
+            <li>Symbolic execution engine with higher priority and fewer false UNSAT verdicts</li>
+            <li>UI/UX improvements for test sources root, <code>setting.properties</code> file, cancellation, timeout settings, notifications</li>
+            <li>Summaries with fine-grained settings</li>
+            <li>SARIF reports enabled by default, displaying sandbox-related and timeout test failures, properly addressing source files</li>
+            <li>Improved monitoring visualized with Grafana</li>
+            <li>Test generation bug fixes</li>
+            <li>Detailed documentation on UnitTestBot components including UnitTestBot architecture overview</li>
         </ul>
-        Discover everything mentioned above and much more in this release.
-        ]]>
+    ]]>
     </change-notes>
-
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection language="JAVA"
                           displayName="Errors detected by UnitTestBot"

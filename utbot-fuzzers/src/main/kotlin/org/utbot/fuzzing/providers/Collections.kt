@@ -54,10 +54,25 @@ class EmptyCollectionValueProvider(
                     classId = classId,
                     modelName = "",
                     instantiationCall = UtExecutableCallModel(null, executableId, value.map { it.model })
-
-                ).fuzzed()
+                ).fuzzed {
+                    summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
+                }
             },
-            empty = Routine.Empty { UtNullModel(classId).fuzzed { summary = "%var% = null" } }
+            empty = Routine.Empty {
+                if (executableId.parameters.isEmpty())  {
+                    UtAssembleModel(
+                        id = idGenerator.createId(),
+                        classId = classId,
+                        modelName = "",
+                        instantiationCall = UtExecutableCallModel(null, executableId, emptyList())
+
+                    ).fuzzed{
+                        summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
+                    }
+                } else {
+                    UtNullModel(classId).fuzzed { summary = "%var% = null" }
+                }
+            },
         ))
     }
 }

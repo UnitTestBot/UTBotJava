@@ -163,7 +163,7 @@ private fun toFuzzerType(
     cache: MutableMap<Type, FuzzedType>
 ): FuzzedType {
     val g = mutableListOf<FuzzedType>()
-    val t = type.findRealTypeUntilTypeVariable()
+    val t = type.replaceWithUpperBoundUntilNotTypeVariable()
     var target = cache[t]
     if (target == null) {
         target = FuzzedType(classId(t), g)
@@ -175,7 +175,7 @@ private fun toFuzzerType(
     return target
 }
 
-private fun Type.findRealTypeUntilTypeVariable() : Type {
+internal fun Type.replaceWithUpperBoundUntilNotTypeVariable() : Type {
     var type: Type = this
     while (type is TypeVariable<*>) {
         type = type.bounds.firstOrNull() ?: java.lang.Object::class.java
@@ -203,6 +203,7 @@ private fun toClassId(type: Type, cache: MutableMap<Type, FuzzedType>): ClassId 
 
 private fun toGenerics(t: Type) : Array<out Type> {
     return when (t) {
+        is WildcardType -> t.upperBounds.firstOrNull()?.let { toGenerics(it) } ?: emptyArray()
         is GenericArrayType -> arrayOf(t.genericComponentType)
         is ParameterizedType -> t.actualTypeArguments
         is Class<*> -> t.typeParameters

@@ -28,4 +28,8 @@ public class Stubs {
         }
         return length;
     }
+
+    public static <A extends Iterable<B>, B extends List<A>, C extends List<? extends Iterable<A>>> A example(A c1, B c2, C c) {
+        return c2.iterator().next();
+    }
 }

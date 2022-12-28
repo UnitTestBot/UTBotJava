@@ -125,7 +125,7 @@ class JavaFuzzingTest {
     @Test
     fun `arrays with generics can be resolved`() {
         runBlockingWithContext {
-            val cache = IdentityHashMap<Type, FuzzedType>()
+            val cache = HashMap<Type, FuzzedType>()
             val methods = Stubs::class.java.methods
             val method = methods.first { it.name == "arrayLength" }
             method.genericParameterTypes.map {
@@ -149,6 +149,49 @@ class JavaFuzzingTest {
                 t is GenericArrayType
                         && t.typeName == "java.util.List<T>[][]"
             })
+        }
+    }
+
+    @Test
+    fun `run complex type dependency call`() {
+        runBlockingWithContext {
+            val cache = HashMap<Type, FuzzedType>()
+            val methods = Stubs::class.java.methods
+            val method = methods.first { it.name == "example" }
+            val types = method.genericParameterTypes
+            assertTrue(types.size == 3 && types[0].typeName == "A" && types[1].typeName == "B" && types[2].typeName == "C") { "bad input parameters" }
+            method.genericParameterTypes.map {
+                toFuzzerType(it, cache)
+            }
+            assertEquals(4, cache.size)
+            val typeIterableB = cache[types[0].replaceWithUpperBoundUntilNotTypeVariable()]!!
+            val genericOfIterableB = with(typeIterableB) {
+               assertEquals(iterableClassId, classId)
+               assertEquals(1, generics.size)
+                generics[0]
+            }
+            val typeListA = cache[types[1].replaceWithUpperBoundUntilNotTypeVariable()]!!
+            val genericOfListA = with(typeListA) {
+                assertEquals(java.util.List::class.id, classId)
+                assertEquals(1, generics.size)
+                generics[0]
+            }
+            assertEquals(1, genericOfIterableB.generics.size)
+            assertEquals(1, genericOfListA.generics.size)
+            assertTrue(genericOfIterableB.generics[0] === typeIterableB) { "Because of recursive types generic of B must depend on B itself" }
+            assertTrue(genericOfListA.generics[0] === typeListA) { "Because of recursive types generic of A must depend on A itself" }
+
+            val typeListC = cache[types[2].replaceWithUpperBoundUntilNotTypeVariable()]!!
+            val genericOfListC = with(typeListC) {
+                assertEquals(java.util.List::class.id, classId)
+                assertEquals(1, generics.size)
+                generics[0]
+            }
+
+            assertEquals(1, genericOfListC.generics.size)
+            assertEquals(iterableClassId, genericOfListC.generics[0].classId)
+            assertTrue(genericOfListC.generics[0].generics[0] === typeListA) { "Generic of C must lead to type A" }
+
         }
     }
 

@@ -197,6 +197,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.IntStream::class,
     org.utbot.engine.overrides.stream.LongStream::class,
     org.utbot.engine.overrides.stream.DoubleStream::class,
+    org.utbot.engine.OverflowDetectionError::class,
 ).map { it.java }.toTypedArray()
 
 private const val UTBOT_PACKAGE_PREFIX = "org.utbot"

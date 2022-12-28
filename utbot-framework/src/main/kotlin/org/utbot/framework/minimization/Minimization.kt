@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.UtVoidModel
  * * Regression suite
  * * Error suite (invocations in which implicitly thrown unchecked exceptions reached to the top)
  * * Crash suite (invocations in which the instrumented process crashed or unexpected exception in our code occurred)
+ * * Artificial error suite (invocations in which some custom exception like overflow detection occurred)
  * * Timeout suite
  *
  * We want to minimize tests independently in each of these suites.

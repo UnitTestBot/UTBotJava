@@ -45,45 +45,6 @@ class UtConcreteExecutionResult(
     val result: UtExecutionResult,
     val coverage: Coverage
 ) {
-    private fun collectAllModels(): List<UtModel> {
-        val allModels = listOfNotNull(stateAfter.thisInstance).toMutableList()
-        allModels += stateAfter.parameters
-        allModels += stateAfter.statics.values
-        allModels += listOfNotNull((result as? UtExecutionSuccess)?.model)
-        return allModels
-    }
-
-    private fun updateWithAssembleModels(
-        assembledUtModels: IdentityHashMap<UtModel, UtModel>
-    ): UtConcreteExecutionResult {
-        val toAssemble: (UtModel) -> UtModel = { assembledUtModels.getOrDefault(it, it) }
-
-        val resolvedStateAfter = EnvironmentModels(
-            stateAfter.thisInstance?.let { toAssemble(it) },
-            stateAfter.parameters.map { toAssemble(it) },
-            stateAfter.statics.mapValues { toAssemble(it.value) }
-        )
-        val resolvedResult =
-            (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result
-
-        return UtConcreteExecutionResult(
-            resolvedStateAfter,
-            resolvedResult,
-            coverage
-        )
-    }
-
-    /**
-     * Tries to convert all models from [UtExecutionResult] to [UtAssembleModel] if possible.
-     *
-     * @return [UtConcreteExecutionResult] with converted models.
-     */
-    fun convertToAssemble(packageName: String): UtConcreteExecutionResult {
-        val allModels = collectAllModels()
-
-        val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)
-        return updateWithAssembleModels(modelsToAssembleModels)
-    }
 
     override fun toString(): String = buildString {
         appendLine("UtConcreteExecutionResult(")
@@ -91,6 +52,46 @@ class UtConcreteExecutionResult(
         appendLine("result=$result")
         appendLine("coverage=$coverage)")
     }
+}
+
+private fun UtConcreteExecutionResult.updateWithAssembleModels(
+    assembledUtModels: IdentityHashMap<UtModel, UtModel>
+): UtConcreteExecutionResult {
+    val toAssemble: (UtModel) -> UtModel = { assembledUtModels.getOrDefault(it, it) }
+
+    val resolvedStateAfter = EnvironmentModels(
+        stateAfter.thisInstance?.let { toAssemble(it) },
+        stateAfter.parameters.map { toAssemble(it) },
+        stateAfter.statics.mapValues { toAssemble(it.value) }
+    )
+    val resolvedResult =
+        (result as? UtExecutionSuccess)?.model?.let { UtExecutionSuccess(toAssemble(it)) } ?: result
+
+    return UtConcreteExecutionResult(
+        resolvedStateAfter,
+        resolvedResult,
+        coverage
+    )
+}
+
+/**
+ * Tries to convert all models from [UtExecutionResult] to [UtAssembleModel] if possible.
+ *
+ * @return [UtConcreteExecutionResult] with converted models.
+ */
+fun UtConcreteExecutionResult.convertToAssemble(packageName: String): UtConcreteExecutionResult {
+    val allModels = collectAllModels()
+
+    val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)
+    return updateWithAssembleModels(modelsToAssembleModels)
+}
+
+private fun UtConcreteExecutionResult.collectAllModels(): List<UtModel> {
+    val allModels = listOfNotNull(stateAfter.thisInstance).toMutableList()
+    allModels += stateAfter.parameters
+    allModels += stateAfter.statics.values
+    allModels += listOfNotNull((result as? UtExecutionSuccess)?.model)
+    return allModels
 }
 
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {

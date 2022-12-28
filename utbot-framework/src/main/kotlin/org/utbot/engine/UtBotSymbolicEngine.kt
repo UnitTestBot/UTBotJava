@@ -248,6 +248,11 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
 
+                            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                                logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                                return@bracket
+                            }
+
                             val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,
@@ -368,8 +373,8 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
-            if (concreteExecutionResult.result.exceptionOrNull() is UtMockAssumptionViolatedException) {
-                logger.debug { "Generated test case by fuzzer violates the UtMock assumption" }
+            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
 
@@ -497,6 +502,11 @@ class UtBotSymbolicEngine(
                     instrumentation
                 )
 
+                if (concreteExecutionResult.violatesUtMockAssumption()) {
+                    logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                    return
+                }
+
                 val concolicUtExecution = symbolicUtExecution.copy(
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
@@ -592,4 +602,12 @@ private fun makeWrapperConsistencyCheck(
 ) {
     val visitedSelectExpression = memory.isVisited(symbolicValue.addr)
     visitedConstraints += mkEq(visitedSelectExpression, mkInt(1))
+}
+
+private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
+    // We should compare FQNs instead of `if (... is UtMockAssumptionViolatedException)`
+    // because the exception from the `concreteExecutionResult` is loaded by user's ClassLoader,
+    // but the `UtMockAssumptionViolatedException` is loaded by the current ClassLoader,
+    // so we can't cast them to each other.
+    return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
 }

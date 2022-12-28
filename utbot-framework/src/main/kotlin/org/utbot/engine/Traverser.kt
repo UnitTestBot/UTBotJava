@@ -5,6 +5,7 @@ import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
@@ -1936,7 +1937,6 @@ class Traverser(
         val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
         queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
 
-        // TODO filter enum constant static fields JIRA:1681
         if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(field)) {
             queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
         }
@@ -3579,6 +3579,7 @@ class Traverser(
         val declaringClassId = declaringClass.id
 
         val staticFieldsUpdates = updates.staticFieldsUpdates.toMutableList()
+        val fieldValuesUpdates = updates.fieldValues.toMutableMap()
         val updatedFields = staticFieldsUpdates.mapTo(mutableSetOf()) { it.fieldId }
         val objectUpdates = mutableListOf<UtNamedStore>()
 
@@ -3591,6 +3592,7 @@ class Traverser(
                 // remove updates from clinit, because we'll replace those values
                 // with new unbounded symbolic variable
                 staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
+                fieldValuesUpdates.keys.removeAll { key -> key.fieldId == it.fieldId }
 
                 val value = createConst(it.type, it.name)
                 val valueToStore = if (value is ReferenceValue) {
@@ -3610,6 +3612,7 @@ class Traverser(
         return updates.copy(
             stores = updates.stores.addAll(objectUpdates),
             staticFieldsUpdates = staticFieldsUpdates.toPersistentList(),
+            fieldValues = fieldValuesUpdates.toPersistentMap(),
             classIdToClearStatics = declaringClassId
         )
     }

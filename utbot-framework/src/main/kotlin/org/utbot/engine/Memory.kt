@@ -199,6 +199,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             .mapValues { (_, values) -> values.first().value to values.last().value }
 
         val previousMemoryStates = staticFieldsStates.toMutableMap()
+        val previousFieldValues = fieldValues.toMutableMap()
 
 
         /**
@@ -212,6 +213,11 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         update.classIdToClearStatics?.let { classId ->
             Scene.v().getSootClass(classId.name).fields.forEach { sootField ->
                 previousMemoryStates.remove(sootField.fieldId)
+
+                if (sootField.isStatic) {
+                    // Only statics should be cleared here
+                    previousFieldValues.remove(sootField)
+                }
             }
         }
 
@@ -254,7 +260,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             initializedStaticFields = initializedStaticFields.addAll(update.initializedStaticFields),
             staticFieldsStates = previousMemoryStates.toPersistentMap().putAll(updatedStaticFields),
             meaningfulStaticFields = meaningfulStaticFields.addAll(update.meaningfulStaticFields),
-            fieldValues = fieldValues.putAll(update.fieldValues),
+            fieldValues = previousFieldValues.toPersistentMap().putAll(update.fieldValues),
             addrToArrayType = addrToArrayType.putAll(update.addrToArrayType),
             addrToMockInfo = addrToMockInfo.putAll(update.addrToMockInfo),
             updates = updates + update,
@@ -278,7 +284,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      */
     fun queuedStaticMemoryUpdates(): MemoryUpdate = MemoryUpdate(
         staticInstanceStorage = updates.staticInstanceStorage,
-        staticFieldsUpdates = updates.staticFieldsUpdates
+        staticFieldsUpdates = updates.staticFieldsUpdates,
+        fieldValues = updates.fieldValues.filter { it.key.isStatic }.toPersistentMap()
     )
 
     /**

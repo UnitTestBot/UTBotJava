@@ -1,5 +1,6 @@
 package org.utbot.framework.concrete
 
+import org.objectweb.asm.Type
 import org.utbot.framework.concrete.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
 import org.utbot.framework.concrete.mock.InstrumentationContext
 import org.utbot.framework.concrete.phases.PhaseError
@@ -62,7 +63,7 @@ object UtFuzzingExecutionInstrumentation : UtExecutionInstrumentationWithStatsCo
 
                 // statistics collection
                 val coverage = statisticsCollectionContext.start { getCoverage(clazz) }.toLocalCoverage(traceHandler)
-                val classJVMName = clazz.name.replace('.', '/')
+                val classJVMName = Type.getInternalName(clazz)
                 val methodInstructions =
                     traceHandler.processingStorage.getMethodInstructions(classJVMName, methodSignature)
 
@@ -140,7 +141,7 @@ object UtFuzzingExecutionInstrumentationWithStateAfterCollection : UtExecutionIn
 
                 // statistics collection
                 val coverage = statisticsCollectionContext.start { getCoverage(clazz) }.toLocalCoverage(traceHandler)
-                val classJVMName = clazz.name.replace('.', '/')
+                val classJVMName = Type.getInternalName(clazz)
                 val methodInstructions =
                     traceHandler.processingStorage.getMethodInstructions(classJVMName, methodSignature)
 

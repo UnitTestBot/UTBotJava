@@ -3,6 +3,7 @@ package org.utbot.greyboxfuzzer
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
+import org.objectweb.asm.Type
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.isStatic
@@ -242,7 +243,7 @@ class GreyBoxFuzzer(
     ): Set<Instruction> {
         val currentMethodCoverage = coverage.coveredInstructions
             .asSequence()
-            .filter { it.className == methodUnderTest.classId.name.replace('.', '/') }
+            .filter { it.className == Type.getInternalName(methodUnderTest.classId.jClass) }
             .filter { it.methodSignature == methodUnderTest.signature }
 //            .map { it.id }
             //.filter { it in methodInstructionsIds!! }
@@ -256,7 +257,7 @@ class GreyBoxFuzzer(
         methodInstructions ?: return false
         val coveredInstructions =
             CoverageCollector.coverage
-                .filter { it.className == methodUnderTest.classId.name.replace('.', '/') }
+                .filter { it.className == Type.getInternalName(methodUnderTest.classId.jClass) }
                 .filter { it.methodSignature == methodUnderTest.signature }
                 .toSet()
         return coveredInstructions.containsAll(methodInstructions!!)

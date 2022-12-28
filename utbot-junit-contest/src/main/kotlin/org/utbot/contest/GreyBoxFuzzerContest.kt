@@ -105,10 +105,7 @@ class GreyBoxFuzzerContest {
             var testsCounter = 0
             for (test in testSet) {
                 val method = test.method
-                val statsForMethod = StatsForMethod(
-                    "${method.classId.simpleName}#${method.name}#${method.signature}",
-                    Type.getInternalName(method.classId.jClass)
-                )
+                val statsForMethod = StatsForMethod("${method.classId.simpleName}#${method.name}")
                 statsForClass.statsForMethods.add(statsForMethod)
                 for (result in test.executions) {
                     try {

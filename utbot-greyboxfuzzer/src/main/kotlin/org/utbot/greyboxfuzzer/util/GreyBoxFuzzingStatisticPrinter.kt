@@ -1,7 +1,9 @@
 package org.utbot.greyboxfuzzer.util
 
+import org.objectweb.asm.Type
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.util.jClass
 
 object GreyBoxFuzzingStatisticPrinter {
 
@@ -16,7 +18,7 @@ object GreyBoxFuzzingStatisticPrinter {
         for ((method, instructions) in methodsToInstructionsNumbers) {
             val coveredMethodInstructions = CoverageCollector.coverage
                 .asSequence()
-                .filter { it.className == method.classId.name.replace('.', '/') }
+                .filter { it.className == Type.getInternalName(method.classId.jClass) }
                 .filter { it.methodSignature == method.signature }
                 .toSet()
             val coveredMethodLines = coveredMethodInstructions.map { it.lineNumber }.toSet()

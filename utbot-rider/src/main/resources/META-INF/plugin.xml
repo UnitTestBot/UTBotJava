@@ -2,7 +2,7 @@
 <idea-plugin>
 
     <id>org.utbot.rider.plugin.id</id>
-    <name>UnitTestBot</name>
+    <name>UnitTestBot.NET</name>
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.rider</depends>
 

@@ -44,6 +44,10 @@ open class TypeParameterConstraint(
 
 class Name(val prefix: List<String>, val name: String) {
     override fun toString(): String {
-        return "${prefix.joinToString(".")}.$name"
+        return if (prefix.isEmpty()) {
+            name
+        } else {
+            "${prefix.joinToString(".")}.$name"
+        }
     }
 }

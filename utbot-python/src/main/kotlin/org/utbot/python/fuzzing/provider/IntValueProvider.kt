@@ -11,6 +11,7 @@ import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import java.math.BigInteger
 
 object IntValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
@@ -21,24 +22,17 @@ object IntValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescr
         return type.isAny()
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type) = sequence {
+    override fun generate(description: PythonMethodDescription, type: Type) = sequence<Seed<Type, PythonTreeModel>> {
+        val bits = 128
         val integerConstants = listOf(
-            BitVectorValue.fromInt(0),
-            BitVectorValue.fromInt(1),
-            BitVectorValue.fromInt(-1),
-            BitVectorValue.fromInt(101),
-            BitVectorValue.fromInt(-101),
+            BitVectorValue.fromBigInteger(BigInteger("239")),
+            BitVectorValue.fromBigInteger(BigInteger("100")),
+            BitVectorValue.fromBigInteger(BigInteger("-100")),
         ).asSequence()
-        yieldIntegers(128, integerConstants) { toBigInteger().toString(10) }
-    }
-    private suspend fun SequenceScope<Seed<Type, PythonTreeModel>>.yieldIntegers(
-        bits: Int,
-        consts: Sequence<BitVectorValue> = emptySequence(),
-        block: BitVectorValue.() -> String,
-    ) {
-        (consts.filter { it.size <= bits } + Signed.values().map { it.invoke(bits) }).forEach { vector ->
-            yield(Seed.Known(vector) { PythonTreeModel(PythonTree.PrimitiveNode(pythonIntClassId, block(it)), pythonIntClassId) })
+        (integerConstants + Signed.values().map { it.invoke(bits) }).forEach { vector ->
+            yield(Seed.Known(vector) {
+                PythonTreeModel(PythonTree.PrimitiveNode(pythonIntClassId, it.toBigInteger().toString(10)), pythonIntClassId)
+            })
         }
     }
-
 }

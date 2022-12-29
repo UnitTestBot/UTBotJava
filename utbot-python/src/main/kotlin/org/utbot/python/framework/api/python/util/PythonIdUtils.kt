@@ -22,3 +22,5 @@ val pythonListClassId = PythonListModel.classId
 val pythonTupleClassId = PythonTupleModel.classId
 val pythonDictClassId = PythonDictModel.classId
 val pythonSetClassId = PythonSetModel.classId
+val pythonBytearrayClassId = PythonClassId("builtins.bytearray")
+val pythonBytesClassId = PythonClassId("builtins.bytes")

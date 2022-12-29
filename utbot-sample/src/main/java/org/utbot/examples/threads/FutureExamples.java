@@ -14,7 +14,7 @@ public class FutureExamples {
         future.get();
     }
 
-    public int  resultFromGet() throws ExecutionException, InterruptedException {
+    public int resultFromGet() throws ExecutionException, InterruptedException {
         final CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> 42);
 
         return future.get();

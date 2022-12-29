@@ -135,7 +135,7 @@ class BitVectorValue : KnownValue {
         return result
     }
 
-    fun toBigInteger() = toBigInteger(0)
+    fun toBigInteger() = toBigInteger(128)
 
     fun toBoolean() = vector[0]
 

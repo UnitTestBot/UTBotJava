@@ -111,6 +111,7 @@ class PythonCodeGenerator(
             val imports =
                 listOf(importSys) + importSysPaths + listOf(importExecutor, importFunction) + additionalModules.map { PythonUserImport(it) }
             imports.forEach {
+                context.cgLanguageAssistant.getNameGeneratorBy(context).variableName(it.moduleName ?: it.importName)
                 renderer.renderPythonImport(it)
             }
 

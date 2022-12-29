@@ -12,6 +12,8 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.fuzzing.provider.BoolValueProvider
+import org.utbot.python.fuzzing.provider.BytearrayValueProvider
+import org.utbot.python.fuzzing.provider.BytesValueProvider
 import org.utbot.python.fuzzing.provider.ComplexValueProvider
 import org.utbot.python.fuzzing.provider.DictValueProvider
 import org.utbot.python.fuzzing.provider.FloatValueProvider
@@ -69,6 +71,8 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     TupleValueProvider,
     TupleFixSizeValueProvider,
     UnionValueProvider,
+    BytesValueProvider,
+    BytearrayValueProvider,
     ReduceValueProvider(idGenerator)
 )
 
@@ -83,7 +87,7 @@ class PythonFuzzing(
                 providers += provider.generate(description, type)
             }
         }
-        logger.info("Default ${type.meta} providers: $providers")
+//        logger.info("Default ${type.meta} providers: $providers")
         return providers
     }
 
@@ -97,7 +101,7 @@ class PythonFuzzing(
                 providers += generateDefault(description, it, idGenerator)
             }
         }
-        logger.info("Subtype ${type.meta} providers: $providers")
+//        logger.info("Subtype ${type.meta} providers: $providers")
         return providers
     }
 

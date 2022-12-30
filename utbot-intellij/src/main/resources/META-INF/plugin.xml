@@ -48,7 +48,7 @@
         Discover UnitTestBot key features in our latest release:
         <ul>
             <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
-            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</> while keeping the number of tests minimized</li>
+            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</i> while keeping the number of tests minimized</li>
             <li>finding deeply hidden code defects and expressing them as tests</li>
             <li>fine-tuned <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation#mocking-settings">mocking</a>, including mocking static methods</li>
             <li>representing all the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results#read-test-descriptions">test descriptions</a> in a human-readable format</li>

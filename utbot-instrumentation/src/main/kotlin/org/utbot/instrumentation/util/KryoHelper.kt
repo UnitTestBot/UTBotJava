@@ -12,6 +12,7 @@ import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
 import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
+import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.framework.plugin.api.TimeoutException
 import java.io.ByteArrayOutputStream
 
@@ -123,6 +124,7 @@ internal class TunedKryo : Kryo() {
 
         this.setOptimizedGenerics(false)
         register(TimeoutException::class.java, TimeoutExceptionSerializer())
+        register(UtMockAssumptionViolatedException::class.java, UtMockAssumptionViolatedExceptionSerializer())
 
         // TODO: JIRA:1492
         addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializer())
@@ -148,5 +150,20 @@ internal class TunedKryo : Kryo() {
 
         override fun read(kryo: Kryo?, input: Input, type: Class<out TimeoutException>?): TimeoutException =
             TimeoutException(input.readString())
+    }
+
+    /**
+     * Specific serializer for [UtMockAssumptionViolatedException] - [JavaSerializer] is not applicable
+     * because [UtMockAssumptionViolatedException] is not in class loader.
+     */
+    private class UtMockAssumptionViolatedExceptionSerializer : Serializer<UtMockAssumptionViolatedException>() {
+        override fun write(kryo: Kryo, output: Output, value: UtMockAssumptionViolatedException) {
+            output.writeString(value.message)
+        }
+
+        override fun read(kryo: Kryo?, input: Input, type: Class<out UtMockAssumptionViolatedException>?): UtMockAssumptionViolatedException {
+            input.readString() // shift the reading position
+            return UtMockAssumptionViolatedException()
+        }
     }
 }

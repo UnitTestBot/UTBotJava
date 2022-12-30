@@ -74,7 +74,10 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
                 try {
                     finder.find(graph, unit, value)
                 } catch (e: Exception) {
-                    logger.warn(e) { "Cannot process constant value of type '${value.type}}'" }
+                    // ignore known values that don't have a value field and can be met
+                    if (value !is NullConstant) {
+                        logger.warn(e) { "Cannot process constant value of type '${value.type}'" }
+                    }
                     emptyList()
                 }
             }.let { result ->

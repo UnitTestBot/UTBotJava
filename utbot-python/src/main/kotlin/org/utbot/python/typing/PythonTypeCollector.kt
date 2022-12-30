@@ -206,7 +206,7 @@ object PythonTypesStorage {
     }
 
 
-    private data class PreprocessedValueFromJSON(
+    data class PreprocessedValueFromJSON(
         val name: String,
         val instances: List<String>
     )
@@ -228,5 +228,9 @@ object PythonTypesStorage {
             }
             result
         }
+    }
+
+    fun getTypesFromJsonStorage(): Map<String, PreprocessedValueFromJSON> {
+        return TypesFromJSONStorage.typeNameMap
     }
 }

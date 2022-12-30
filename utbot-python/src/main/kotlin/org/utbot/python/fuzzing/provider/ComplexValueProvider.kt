@@ -3,16 +3,15 @@ package org.utbot.python.fuzzing.provider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonComplexClassId
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
 
-object ComplexValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
+object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val meta = type.meta
         if (meta is PythonConcreteCompositeTypeDescription) {
@@ -22,7 +21,6 @@ object ComplexValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodD
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        val meta = type.meta as PythonConcreteCompositeTypeDescription
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(
@@ -32,15 +30,22 @@ object ComplexValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodD
             ) { v ->
                 val real = v[0].tree as PythonTree.PrimitiveNode
                 val imag = v[1].tree as PythonTree.PrimitiveNode
-                PythonTreeModel(
+                PythonFuzzedValue(
                     PythonTree.PrimitiveNode(
                         pythonComplexClassId,
                         "complex(real=${real.repr}, imag=${imag.repr})"
                     ),
-                    pythonComplexClassId,
                 )
             },
-            empty = Routine.Empty { PythonTreeModel(PythonTree.fromObject(), PythonClassId(meta.name.toString())) }
+            empty = Routine.Empty {
+                PythonFuzzedValue(
+                    PythonTree.PrimitiveNode(
+                        pythonComplexClassId,
+                        "complex()"
+                    ),
+                    "%var% = builtins.complex"
+                )
+            }
         ))
     }
 }

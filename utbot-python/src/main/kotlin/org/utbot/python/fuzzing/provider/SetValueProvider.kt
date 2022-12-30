@@ -4,13 +4,13 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonSetClassId
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
 
-object SetValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
+object SetValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val meta = type.meta
         return (meta is PythonConcreteCompositeTypeDescription) && meta.name.toString() == "builtins.set"
@@ -20,7 +20,7 @@ object SetValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescr
         val meta = type.meta as PythonConcreteCompositeTypeDescription
         val params = meta.getAnnotationParameters(type)
 
-        val modifications = emptyList<Routine.Call<Type, PythonTreeModel>>().toMutableList()
+        val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
         modifications.add(Routine.Call(params) { instance, arguments ->
             val set = instance.tree as PythonTree.SetNode
             set.items.add(arguments.first().tree)
@@ -35,15 +35,14 @@ object SetValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescr
         yield(Seed.Recursive(
             construct = Routine.Create(emptyList()) { _ ->
                 val items = emptySet<PythonTree.PythonTreeNode>().toMutableSet()
-                PythonTreeModel(
+                PythonFuzzedValue(
                     PythonTree.SetNode(items),
-                    pythonSetClassId
                 )
             },
             modify = modifications.asSequence(),
-            empty = Routine.Empty { PythonTreeModel(
+            empty = Routine.Empty { PythonFuzzedValue(
                 PythonTree.SetNode(emptySet<PythonTree.PythonTreeNode>().toMutableSet()),
-                pythonSetClassId
+                "%var% = ${meta.name}",
             )}
         ))
     }

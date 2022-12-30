@@ -3,15 +3,14 @@ package org.utbot.python.fuzzing.provider
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonBytesClassId
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
 
-object BytesValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
+object BytesValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val meta = type.meta
         return (meta is PythonConcreteCompositeTypeDescription) && meta.name.toString() == "builtins.bytearray"
@@ -26,15 +25,22 @@ object BytesValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDes
                 )
             ) { v ->
                 val value = v.first().tree as PythonTree.PrimitiveNode
-                PythonTreeModel(
+                PythonFuzzedValue(
                     PythonTree.PrimitiveNode(
                         pythonBytesClassId,
                         "bytes(${value.repr})"
                     ),
-                    pythonBytesClassId,
                 )
             },
-            empty = Routine.Empty { PythonTreeModel(PythonTree.fromObject(), PythonClassId(meta.name.toString())) }
+            empty = Routine.Empty {
+                PythonFuzzedValue(
+                    PythonTree.PrimitiveNode(
+                        pythonBytesClassId,
+                        "bytes()"
+                    ),
+                    "%var% = ${meta.name}"
+                )
+            }
         ))
     }
 }

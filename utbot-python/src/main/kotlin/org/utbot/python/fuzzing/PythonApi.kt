@@ -9,7 +9,6 @@ import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.fuzzing.provider.BoolValueProvider
 import org.utbot.python.fuzzing.provider.BytearrayValueProvider
@@ -48,7 +47,7 @@ class PythonMethodDescription(
 
 class PythonFeedback(
     override val control: Control = Control.CONTINUE
-) : Feedback<Type, PythonTreeModel> {
+) : Feedback<Type, PythonFuzzedValue> {
     override fun equals(other: Any?): Boolean {
         val castOther = other as? PythonFeedback
         return control == castOther?.control
@@ -58,6 +57,11 @@ class PythonFeedback(
         return control.hashCode()
     }
 }
+
+class PythonFuzzedValue(
+    val tree: PythonTree.PythonTreeNode,
+    val summary: String? = null,
+)
 
 fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     NoneValueProvider,
@@ -80,10 +84,10 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
 
 class PythonFuzzing(
     private val pythonTypeStorage: PythonTypeStorage,
-    val execute: suspend (description: PythonMethodDescription, values: List<PythonTreeModel>) -> PythonFeedback,
-) : Fuzzing<Type, PythonTreeModel, PythonMethodDescription, PythonFeedback> {
-    private fun generateDefault(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonTreeModel>> {
-        var providers = emptyList<Seed<Type, PythonTreeModel>>().asSequence()
+    val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
+) : Fuzzing<Type, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
+    private fun generateDefault(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonFuzzedValue>> {
+        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
         pythonDefaultValueProviders(idGenerator).asSequence().forEach { provider ->
             if (provider.accept(type)) {
                 providers += provider.generate(description, type)
@@ -92,8 +96,8 @@ class PythonFuzzing(
         return providers
     }
 
-    private fun generateSubtype(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonTreeModel>> {
-        var providers = emptyList<Seed<Type, PythonTreeModel>>().asSequence()
+    private fun generateSubtype(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonFuzzedValue>> {
+        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
         if (type.meta is PythonProtocolDescription) {
             val subtypes = pythonTypeStorage.allTypes.filter {
                 PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it, pythonTypeStorage)
@@ -105,22 +109,22 @@ class PythonFuzzing(
         return providers
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonTreeModel>> {
+    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
         val idGenerator = PythonIdGenerator()
-        var providers = emptyList<Seed<Type, PythonTreeModel>>().asSequence()
+        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
 
         providers += generateDefault(description, type, idGenerator)
         providers += generateSubtype(description, type, idGenerator)
 
         if (providers.toList().isEmpty()) {
             logger.info("Add object provider for ${type.meta}")
-            providers += Seed.Known(ObjectValue()) {PythonTreeModel(PythonTree.fromNone(), pythonObjectClassId)}
+            providers += Seed.Known(ObjectValue()) { PythonFuzzedValue(PythonTree.fromNone(), "%var% = object") }
         }
 
         return providers
     }
 
-    override suspend fun handle(description: PythonMethodDescription, values: List<PythonTreeModel>): PythonFeedback {
+    override suspend fun handle(description: PythonMethodDescription, values: List<PythonFuzzedValue>): PythonFeedback {
         return execute(description, values)
     }
 }

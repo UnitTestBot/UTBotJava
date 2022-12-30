@@ -4,13 +4,13 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonDictClassId
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
 
-object DictValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
+object DictValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val meta = type.meta
         return (meta is PythonConcreteCompositeTypeDescription) && meta.name.toString() == "builtins.dict"
@@ -20,7 +20,7 @@ object DictValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDesc
         val meta = type.meta as PythonConcreteCompositeTypeDescription
         val params = meta.getAnnotationParameters(type)
 
-        val modifications = emptyList<Routine.Call<Type, PythonTreeModel>>().toMutableList()
+        val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
         modifications.add(Routine.Call(params) { instance, arguments ->
             val key = arguments[0].tree
             val value = arguments[1].tree
@@ -41,15 +41,14 @@ object DictValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDesc
         yield(Seed.Recursive(
             construct = Routine.Create(params) { v ->
                 val items = mapOf(v[0].tree to v[1].tree).toMutableMap()
-                PythonTreeModel(
+                PythonFuzzedValue(
                     PythonTree.DictNode(items),
-                    pythonDictClassId
                 )
             },
             modify = modifications.asSequence(),
-            empty = Routine.Empty { PythonTreeModel(
+            empty = Routine.Empty { PythonFuzzedValue(
                 PythonTree.DictNode(emptyMap<PythonTree.PythonTreeNode, PythonTree.PythonTreeNode>().toMutableMap()),
-                pythonDictClassId
+                "%var% = ${meta.name}"
             )}
         ))
     }

@@ -23,6 +23,7 @@ import org.utbot.framework.codegen.domain.TestFramework
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
+import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
 import javax.swing.*
 
 
@@ -109,18 +110,9 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     }
 
     private fun updateTestFrameworksList() {
-        testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
-            override fun customizeCellRenderer(
-                list: JList<out TestFramework>, value: TestFramework,
-                index: Int, selected: Boolean, hasFocus: Boolean
-            ) {
-                this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (!value.isInstalled) {
-                    this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
-                }
-            }
-        }
+        testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
     }
+
     private fun globalPyFunctionsToPyMemberInfo(
         project: Project,
         functions: Collection<PyFunction>

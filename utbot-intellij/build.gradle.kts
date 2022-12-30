@@ -113,6 +113,13 @@ tasks {
     downloadRobotServerPlugin {
         version.set(remoteRobotVersion)
     }
+
+    test {
+        description = "Runs UI integration tests."
+        useJUnitPlatform {
+            exclude("/org/utbot/**") //Comment this line to run the tests locally
+        }
+    }
 }
 
 repositories {

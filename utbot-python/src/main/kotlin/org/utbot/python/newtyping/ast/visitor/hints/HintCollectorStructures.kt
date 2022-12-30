@@ -46,5 +46,6 @@ enum class EdgeSource {
     CollectionElement,
     Assign,
     OpAssign,
-    Attribute
+    Attribute,
+    Comparison
 }

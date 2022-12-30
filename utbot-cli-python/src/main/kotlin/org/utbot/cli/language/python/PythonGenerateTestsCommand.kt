@@ -14,9 +14,9 @@ import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
+import org.utbot.python.utils.*
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
-import org.utbot.python.utils.getModuleName
 import java.io.File
 import java.nio.file.Paths
 

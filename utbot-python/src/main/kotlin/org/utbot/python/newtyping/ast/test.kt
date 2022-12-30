@@ -21,6 +21,8 @@ fun main() {
     def repr_test(x):
         x *= 100
         f(1, 2, 3, x=5, *a)
+        if 1 <= 10 < 5:
+            return
         return [1, x + 1, collections.UserList([1, 2, 3]), collections.Counter("flkafksdf"), collections.OrderedDict({1: 2, 4: "jflas"})]
     """.trimIndent()
 

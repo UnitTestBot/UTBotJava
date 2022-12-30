@@ -18,9 +18,12 @@ data class ParsedList(val elems: List<Node>)
 sealed class ParsedAssignment
 data class SimpleAssign(val targets: List<Node>, val value: Node): ParsedAssignment()
 data class OpAssign(val target: Node, val op: Delimiter, val value: Node): ParsedAssignment()
-data class ParsedBinaryOperation(val left: Node, val op: Delimiter, val right: Node)
+data class ParsedMultiplicativeExpression(val cases: List<ParsedBinaryOperation>)
+data class ParsedBinaryOperation(val left: Node, val op: Node, val right: Node)
 data class ParsedDotName(val head: Node, val tail: Node)
 data class ParsedFunctionCall(val function: Node, val args: List<Node>)
+data class ParsedComparison(val cases: List<PrimitiveComparison>)
+data class PrimitiveComparison(val left: Node, val op: Delimiter, val right: Node)
 
 fun parseFunctionDefinition(node: FunctionDefinition): ParsedFunctionDefinition? {
     val name = (node.children().first { it is Name } ?: return null) as Name
@@ -65,14 +68,20 @@ fun parseInversion(node: Inversion): ParsedInversion =
 fun parseGroup(node: Group): ParsedGroup =
     ParsedGroup(node.children().first { it !is Delimiter })
 
-fun parseAdditiveExpression(node: AdditiveExpression): ParsedBinaryOperation? {
-    val op = (node.children()[1] as? Delimiter) ?: return null
+fun parseAdditiveExpression(node: AdditiveExpression): ParsedBinaryOperation? {  // TODO
+    val op = (node.children()[1] as? Operator) ?: return null
     return ParsedBinaryOperation(node.children()[0], op, node.children()[2])
 }
 
-fun parseMultiplicativeExpression(node: MultiplicativeExpression): ParsedBinaryOperation? {
-    val op = (node.children()[1] as? Delimiter) ?: return null
-    return ParsedBinaryOperation(node.children()[0], op, node.children()[2])
+fun parseMultiplicativeExpression(node: MultiplicativeExpression): ParsedMultiplicativeExpression {
+    val binaries: MutableList<ParsedBinaryOperation> = mutableListOf()
+    val children = node.children()
+    for (i in 0 until children.size - 2) {
+        if (children[i + 1] !is Operator && children[i + 1] !is Delimiter)
+            continue
+        binaries.add(ParsedBinaryOperation(children[i], children[i + 1], children[i + 2]))
+    }
+    return ParsedMultiplicativeExpression(binaries)
 }
 
 fun parseList(node: org.parsers.python.ast.List): ParsedList {
@@ -107,4 +116,15 @@ fun parseFunctionCall(node: FunctionCall): ParsedFunctionCall? {
         it !is Delimiter
     }
     return ParsedFunctionCall(function, args)
+}
+
+fun parseComparison(node: Comparison): ParsedComparison {
+    val primitives: MutableList<PrimitiveComparison> = mutableListOf()
+    val children = node.children()
+    for (i in 0 until children.size - 2) {
+        if (children[i + 1] !is Delimiter)
+            continue
+        primitives.add(PrimitiveComparison(children[i], children[i + 1] as Delimiter, children[i + 2]))
+    }
+    return ParsedComparison(primitives)
 }

@@ -16,7 +16,8 @@ private val EDGES_TO_LINK = listOf(
     EdgeSource.Identification,
     EdgeSource.Assign,
     EdgeSource.OpAssign,
-    EdgeSource.Operation
+    EdgeSource.Operation,
+    EdgeSource.Comparison
 )
 
 private val logger = KotlinLogging.logger {}
@@ -27,14 +28,14 @@ class BaselineAlgorithm(
     private val pythonMethodCopy: PythonMethod,
     val directoriesForSysPath: Set<String>,
     val moduleToImport: String,
-    private val initialErrorNumber: Int
+    private val initialErrorNumber: Int,
+    private val configFile: File
 ) : TypeInferenceAlgorithm() {
     override fun run(hintCollectorResult: HintCollectorResult, isCancelled: () -> Boolean): Sequence<Type> = sequence {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
         val states: MutableSet<BaselineAlgorithmState> = mutableSetOf(initialState)
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
-        val configFile = setConfigFile(directoriesForSysPath)
 
         while (states.isNotEmpty()) {
             if (isCancelled())

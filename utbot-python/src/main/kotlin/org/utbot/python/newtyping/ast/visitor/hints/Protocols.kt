@@ -1,6 +1,5 @@
 package org.utbot.python.newtyping.ast.visitor.hints
 
-import org.utbot.python.code.arguments
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeTypeCreator
 import org.utbot.python.newtyping.general.FunctionTypeCreator
@@ -31,6 +30,36 @@ fun getOperationOfOperator(op: String): Operation? =
         "@" -> Operation.MatMul
         "&" -> Operation.And
         else -> null
+    }
+
+enum class ComparisonSign(val method: String) {
+    Lt("__lt__"),
+    Le("__le__"),
+    Eq("__eq__"),
+    Ne("__ne__"),
+    Gt("__gt__"),
+    Ge("__ge__")
+}
+
+fun getComparison(op: String): ComparisonSign? =
+    when (op) {
+        "<" -> ComparisonSign.Lt
+        "<=" -> ComparisonSign.Le
+        "==" -> ComparisonSign.Eq
+        "!=" -> ComparisonSign.Ne
+        ">" -> ComparisonSign.Gt
+        ">=" -> ComparisonSign.Ge
+        else -> null
+    }
+
+fun reverseComparison(comp: ComparisonSign): ComparisonSign =
+    when (comp) {
+        ComparisonSign.Lt -> ComparisonSign.Gt
+        ComparisonSign.Le -> ComparisonSign.Ge
+        ComparisonSign.Eq -> ComparisonSign.Eq
+        ComparisonSign.Ne -> ComparisonSign.Ne
+        ComparisonSign.Gt -> ComparisonSign.Lt
+        ComparisonSign.Ge -> ComparisonSign.Le
     }
 
 fun getOperationOfOpAssign(op: String): Operation? {

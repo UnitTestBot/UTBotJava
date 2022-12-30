@@ -857,10 +857,12 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     }
 
     private String[] splitImpl(String regex) {
+        executeConcretely();
         return toString().split(regex);
     }
 
     public String[] split(String regex) {
+        preconditionCheck();
         return splitImpl(regex);
     }
 

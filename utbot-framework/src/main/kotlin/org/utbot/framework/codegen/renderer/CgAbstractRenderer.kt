@@ -595,7 +595,11 @@ abstract class CgAbstractRenderer(
     // Primitive and String literals
 
     override fun visit(element: CgLiteral) {
-        val value = with(element.value) {
+        print(element.toStringConstant())
+    }
+
+    protected fun CgLiteral.toStringConstant(asRawString: Boolean = false) =
+        with(this.value) {
             when (this) {
                 is Byte -> toStringConstant()
                 is Char -> toStringConstant()
@@ -605,12 +609,11 @@ abstract class CgAbstractRenderer(
                 is Float -> toStringConstant()
                 is Double -> toStringConstant()
                 is Boolean -> toStringConstant()
-                is String -> toStringConstant()
+                // String is "\"" + "str" + "\"", RawString is "str"
+                is String -> if (asRawString) "$this".escapeCharacters() else toStringConstant()
                 else -> "$this"
             }
         }
-        print(value)
-    }
 
     // Non-static runnable like this::toString or (new Object())::toString etc
     override fun visit(element: CgNonStaticRunnable) {
@@ -924,7 +927,7 @@ abstract class CgAbstractRenderer(
     private fun Boolean.toStringConstant() =
         if (this) "true" else "false"
 
-    private fun String.toStringConstant(): String = "\"" + escapeCharacters() + "\""
+    protected fun String.toStringConstant(): String = "\"" + escapeCharacters() + "\""
 
     protected abstract fun String.escapeCharacters(): String
 

@@ -13,6 +13,7 @@ object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val mainPackage = ""
     override val assertionsClass = jsUndefinedClassId
     override val arraysAssertionsClass = jsUndefinedClassId
+    override val kotlinFailureAssertionsClass: ClassId = jsUndefinedClassId
     override val testAnnotation = ""
     override val testAnnotationFqn = ""
 

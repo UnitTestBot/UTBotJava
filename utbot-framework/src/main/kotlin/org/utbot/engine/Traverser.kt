@@ -2300,6 +2300,10 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
+        if (exception.concrete is ArtificialError) {
+            return false
+        }
+
         val classId = exception.fold(
             { it.javaClass.id },
             { (exception.symbolic as ObjectValue).type.id }
@@ -3406,7 +3410,7 @@ class Traverser(
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            implicitlyThrowException(OverflowDetectionError("${left.type} ${op.symbol} overflow"), setOf(overflow))
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
@@ -3482,13 +3486,13 @@ class Traverser(
     }
 
     private fun TraversalContext.implicitlyThrowException(
-        exception: Exception,
+        throwable: Throwable,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(throwable, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(

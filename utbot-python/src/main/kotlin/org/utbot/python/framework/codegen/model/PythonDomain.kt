@@ -15,6 +15,7 @@ object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     override val mainPackage: String = "pytest"
     override val assertionsClass: ClassId = pythonNoneClassId
     override val arraysAssertionsClass: ClassId = assertionsClass
+    override val kotlinFailureAssertionsClass: ClassId = assertionsClass
     override val testAnnotation: String
         get() = TODO("Not yet implemented")
     override val testAnnotationId: ClassId = BuiltinClassId(
@@ -55,6 +56,7 @@ object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
     override val mainPackage: String = "unittest"
     override val assertionsClass: ClassId = PythonClassId("self")
     override val arraysAssertionsClass: ClassId = assertionsClass
+    override val kotlinFailureAssertionsClass: ClassId = assertionsClass
     override val testAnnotation: String = ""
     override val testAnnotationId: ClassId = BuiltinClassId(
         canonicalName = "Unittest",

@@ -12,6 +12,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.util.*
 
 class ObjectValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -43,7 +44,9 @@ class ObjectValueProvider(
 
     private fun createValue(classId: ClassId, constructorId: ConstructorId, description: FuzzedDescription): Seed.Recursive<FuzzedType, FuzzedValue> {
         return Seed.Recursive(
-            construct = Routine.Create(constructorId.parameters.map { FuzzedType(it) }) { values ->
+            construct = Routine.Create(constructorId.executable.genericParameterTypes.map {
+                toFuzzerType(it, description.typeCache)
+            }) { values ->
                 val id = idGenerator.createId()
                 UtAssembleModel(
                     id = id,
@@ -59,10 +62,10 @@ class ObjectValueProvider(
                 }
             },
             modify = sequence {
-                findAccessibleModifableFields(classId, description.description.packageName).forEach { fd ->
+                findAccessibleModifiableFields(description, classId, description.description.packageName).forEach { fd ->
                     when {
                         fd.canBeSetDirectly -> {
-                            yield(Routine.Call(listOf(FuzzedType(fd.classId))) { self, values ->
+                            yield(Routine.Call(listOf(fd.type)) { self, values ->
                                 val model = self.model as UtAssembleModel
                                 model.modificationsChain as MutableList += UtDirectSetFieldModel(
                                     model,
@@ -73,7 +76,7 @@ class ObjectValueProvider(
                         }
 
                         fd.setter != null && fd.getter != null -> {
-                            yield(Routine.Call(listOf(FuzzedType(fd.classId))) { self, values ->
+                            yield(Routine.Call(listOf(fd.type)) { self, values ->
                                 val model = self.model as UtAssembleModel
                                 model.modificationsChain as MutableList += UtExecutableCallModel(
                                     model,
@@ -143,19 +146,19 @@ internal class PublicSetterGetter(
 
 internal class FieldDescription(
     val name: String,
-    val classId: ClassId,
+    val type: FuzzedType,
     val canBeSetDirectly: Boolean,
     val setter: Method?,
     val getter: Method?
 )
 
-internal fun findAccessibleModifableFields(classId: ClassId, packageName: String?): List<FieldDescription>  {
+internal fun findAccessibleModifiableFields(description: FuzzedDescription?, classId: ClassId, packageName: String?): List<FieldDescription>  {
     val jClass = classId.jClass
     return jClass.declaredFields.map { field ->
         val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, packageName)
         FieldDescription(
             name = field.name,
-            classId = field.type.id,
+            type = if (description != null) toFuzzerType(field.type, description.typeCache) else FuzzedType(field.type.id),
             canBeSetDirectly = isAccessible(
                 field,
                 packageName

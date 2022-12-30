@@ -6,7 +6,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonAttribute
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
@@ -16,7 +16,7 @@ import org.utbot.python.newtyping.getPythonAttributes
 
 class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
-) : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
+) : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val hasInit =
             type.getPythonAttributes().any { it.name == "__init__" && it.type is FunctionTypeCreator.Original }
@@ -33,7 +33,7 @@ class ReduceValueProvider(
                 val fields = type.getPythonAttributes()
                     .filter { attr -> attr.type.getPythonAttributes().all { it.name != "__call__" } }
 
-                val modifications = emptyList<Routine.Call<Type, PythonTreeModel>>().toMutableList()
+                val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
                 modifications.addAll(fields.map { field ->
                     Routine.Call(listOf(field.type)) { instance, arguments ->
                         val obj = instance.tree as PythonTree.ReduceNode
@@ -44,7 +44,7 @@ class ReduceValueProvider(
             }
     }
 
-    private fun constructObject(meta: PythonConcreteCompositeTypeDescription, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonTreeModel>>): Seed.Recursive<Type, PythonTreeModel> {
+    private fun constructObject(meta: PythonConcreteCompositeTypeDescription, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Seed.Recursive<Type, PythonFuzzedValue> {
         return when (constructor.name) {
             "__init__" -> {
                 val arguments = (constructor.type as FunctionTypeCreator.Original).arguments
@@ -52,21 +52,20 @@ class ReduceValueProvider(
 
                 Seed.Recursive(
                     construct = Routine.Create(nonSelfArgs) { v ->
-                        PythonTreeModel(
+                        PythonFuzzedValue(
                             PythonTree.ReduceNode(
                                 idGenerator.createId(),
                                 PythonClassId(meta.name.toString()),
                                 PythonClassId(meta.name.toString()),
                                 v.map { it.tree },
                             ),
-                            PythonClassId(meta.name.toString())
                         )
                     },
                     modify = modifications.asSequence(),
                     empty = Routine.Empty {
-                        PythonTreeModel(
+                        PythonFuzzedValue(
                             PythonTree.fromObject(),
-                            PythonClassId(meta.name.toString())
+                            "%var% = ${meta.name}"
                         )
                     }
                 )
@@ -78,20 +77,19 @@ class ReduceValueProvider(
 
                 Seed.Recursive(
                     construct = Routine.Create(nonClsArgs) { v ->
-                        PythonTreeModel(
+                        PythonFuzzedValue(
                             PythonTree.ReduceNode(
                                 idGenerator.createId(),
                                 PythonClassId(meta.name.toString()),
                                 PythonClassId(meta.name.toString()),
                                 v.map { it.tree },
                             ),
-                            PythonClassId(meta.name.toString())
                         )
                     },
                     empty = Routine.Empty {
-                        PythonTreeModel(
+                        PythonFuzzedValue(
                             PythonTree.fromObject(),
-                            PythonClassId(meta.name.toString())
+                            "%var% = ${meta.name}"
                         )
                     }
                 )

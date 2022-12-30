@@ -19,6 +19,7 @@ import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgCommentedAnnotation
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgDeclaration
+import org.utbot.framework.codegen.domain.models.CgDocRegularStmt
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgEqualTo
@@ -157,6 +158,12 @@ internal class CgPythonRenderer(
         println("\"\"\"")
         for (line in element.lines) line.accept(this)
         println("\"\"\"")
+    }
+
+    override fun visit(element: CgDocRegularStmt){
+        if (element.isEmpty()) return
+
+        println(element.stmt)
     }
 
     override fun visit(element: CgErrorWrapper) {

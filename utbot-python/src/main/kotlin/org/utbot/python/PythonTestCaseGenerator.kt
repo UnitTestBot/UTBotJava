@@ -30,6 +30,7 @@ object PythonTestCaseGenerator {
     private lateinit var fileOfMethod: String
     private lateinit var isCancelled: () -> Boolean
     private var timeoutForRun: Long = 0
+    private var until: Long = 0
 
     fun init(
         directoriesForSysPath: Set<String>,
@@ -39,6 +40,7 @@ object PythonTestCaseGenerator {
         timeoutForRun: Long,
         withMinimization: Boolean = true,
         pythonRunRoot: Path? = null,
+        until: Long,
         isCancelled: () -> Boolean
     ) {
         this.directoriesForSysPath = directoriesForSysPath
@@ -49,6 +51,7 @@ object PythonTestCaseGenerator {
         this.isCancelled = isCancelled
         this.timeoutForRun = timeoutForRun
         this.pythonRunRoot = pythonRunRoot
+        this.until = until
     }
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
@@ -98,7 +101,7 @@ object PythonTestCaseGenerator {
         )
 
         runBlockingWithCancellationPredicate(isCancelled) {
-            engine.newFuzzing(args, isCancelled).collect {
+            engine.newFuzzing(args, isCancelled, until).collect {
                 generated += 1
                 when (it) {
                     is UtExecution -> {

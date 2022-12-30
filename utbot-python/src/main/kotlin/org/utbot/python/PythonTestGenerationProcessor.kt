@@ -92,8 +92,9 @@ object PythonTestGenerationProcessor {
                     pythonFilePath,
                     timeoutForRun,
                     withMinimization,
-                    pythonRunRoot = pythonRunRoot
-                ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
+                    until = startTime + timeout,
+                    pythonRunRoot = pythonRunRoot,
+                ) { isCanceled() }
             }
 
             val tests = pythonMethods.map { method ->

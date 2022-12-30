@@ -4,6 +4,7 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import java.math.BigInteger
 
 object PythonTree {
     open class PythonTreeNode(
@@ -199,10 +200,10 @@ object PythonTree {
         )
     }
 
-    fun fromInt(value: Int): PrimitiveNode {
+    fun fromInt(value: BigInteger): PrimitiveNode {
         return PrimitiveNode(
             pythonIntClassId,
-            value.toString()
+            value.toString(10)
         )
     }
 

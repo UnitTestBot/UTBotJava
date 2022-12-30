@@ -2,21 +2,18 @@ package org.utbot.python.fuzzing.provider
 
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
-import org.utbot.fuzzing.seeds.BitVectorValue
-import org.utbot.fuzzing.seeds.KnownValue
-import org.utbot.fuzzing.seeds.Signed
-import org.utbot.fuzzing.seeds.StringValue
+import org.utbot.fuzzing.seeds.DefaultFloatBound
+import org.utbot.fuzzing.seeds.IEEE754Value
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
-import org.utbot.python.framework.api.python.util.pythonIntClassId
-import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
 
-object FloatValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDescription> {
+object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val meta = type.meta
         if (meta is PythonConcreteCompositeTypeDescription) {
@@ -25,12 +22,24 @@ object FloatValueProvider : ValueProvider<Type, PythonTreeModel, PythonMethodDes
         return type.isAny()
     }
 
-    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonTreeModel>> = sequence {
-        yield(Seed.Simple(PythonTreeModel(PythonTree.fromFloat(1.1), pythonFloatClassId)))
-        yield(Seed.Simple(PythonTreeModel(PythonTree.fromFloat(1.0), pythonFloatClassId)))
-        yield(Seed.Simple(PythonTreeModel(PythonTree.fromFloat(1.6), pythonFloatClassId)))
-        yield(Seed.Simple(PythonTreeModel(PythonTree.fromFloat(-1.6), pythonFloatClassId)))
-        yield(Seed.Simple(PythonTreeModel(PythonTree.fromFloat(-1.0), pythonFloatClassId)))
-        yield(Seed.Simple(PythonTreeModel(PythonTree.fromFloat(0.0), pythonFloatClassId)))
+    override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> = sequence {
+        val floatConstants = listOf(
+            IEEE754Value.fromDouble(23.9),
+            IEEE754Value.fromDouble(1.6),
+            IEEE754Value.fromDouble(-1.6),
+        )
+
+        val constants = floatConstants + DefaultFloatBound.values().map {
+            it(52, 11)
+        }
+
+        constants.asSequence().forEach {  value ->
+            yield(Seed.Known(value) {
+                PythonFuzzedValue(
+                    PythonTree.fromFloat(it.toDouble()),
+                    it.generateSummary()
+                )
+            })
+        }
     }
 }

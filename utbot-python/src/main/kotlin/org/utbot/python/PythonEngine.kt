@@ -4,8 +4,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.*
+import org.utbot.framework.plugin.api.DocRegularStmt
+import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtResult
+import org.utbot.fuzzer.FuzzedConcreteValue
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
@@ -151,7 +162,8 @@ class PythonEngine(
         types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
-        jobResult: JobResult
+        jobResult: JobResult,
+        summary: List<String>,
     ): UtResult {
         val (resultJSON, isException, coverage) = evaluationResult
 
@@ -198,10 +210,11 @@ class PythonEngine(
             coverage = coverage,
             testMethodName = testMethodName?.testName?.camelToSnakeCase(),
             displayName = testMethodName?.displayName,
+            summary = summary.map { DocRegularStmt(it) }
         )
     }
 
-    fun newFuzzing(parameters: List<Type>, isCancelled: () -> Boolean): Flow<UtResult> = flow {
+    fun newFuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<UtResult> = flow {
         val additionalModules = selectedTypeMap.values.flatMap {
             getModulesFromAnnotation(it)
         }.toSet()
@@ -216,26 +229,36 @@ class PythonEngine(
         var coverageLimit = 15
         val coveredLines = initialCoveredLines.toMutableSet()
 
-        PythonFuzzing(pmd.pythonTypeStorage) { description, parameterValues ->
-            if (coverageLimit < 0 || isCancelled())
+        PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+            if (isCancelled() || System.currentTimeMillis() >= until) {
+                logger.info { "Fuzzing time limit" }
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
+            }
+
+            val argumentValues = arguments.map {
+                PythonTreeModel(it.tree, it.tree.type)
+            }
+            val summary =
+                arguments.zip(methodUnderTest.arguments)
+                    .map { it.first.summary?.replace("%var%", it.second.name) }
+                    .filterNotNull()
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)
-                    Pair(null, parameterValues)
+                    Pair(null, argumentValues)
                 else
-                    Pair(parameterValues[0], parameterValues.drop(1))
+                    Pair(argumentValues[0], argumentValues.drop(1))
 
             val evaluationInput = EvaluationInput(
                 methodUnderTest,
-                parameterValues,
+                argumentValues,
                 directoriesForSysPath,
                 moduleToImport,
                 pythonPath,
                 timeoutForRun,
                 thisObject,
                 modelList,
-                parameterValues.map { FuzzedValue(it) },
+                argumentValues.map { FuzzedValue(it) },
                 additionalModules
             )
 
@@ -268,12 +291,14 @@ class PythonEngine(
                         )
                     }
                 }
+
                 is PythonEvaluationSuccess -> {
                     evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
                     emit(
-                        handleSuccessResultNew(parameters, evaluationResult, description, jobResult)
+                        handleSuccessResultNew(parameters, evaluationResult, description, jobResult, summary)
                     )
                 }
+
                 is PythonEvaluationTimeout -> {
                     emit(
                         UtError(evaluationResult.message, Throwable())
@@ -286,8 +311,8 @@ class PythonEngine(
             if (coveredAfter == coveredBefore)
                 coverageLimit -= 1
 
-            if (coverageLimit == 0)
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+//            if (coverageLimit == 0)
+//                return@PythonFuzzing PythonFeedback(control = Control.STOP)
 
             return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
 
@@ -326,7 +351,8 @@ class PythonEngine(
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
                     if (evaluationResult.status != 0) {
-                        val errorMessage = "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}, ${evaluationResult.stackTrace}"
+                        val errorMessage =
+                            "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}, ${evaluationResult.stackTrace}"
                         logger.info { errorMessage }
                         emit(
                             UtError(
@@ -344,12 +370,14 @@ class PythonEngine(
                         )
                     }
                 }
+
                 is PythonEvaluationSuccess -> {
                     evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
                     emit(
                         handleSuccessResult(types, evaluationResult, methodUnderTestDescription, jobResult)
                     )
                 }
+
                 is PythonEvaluationTimeout -> {
                     emit(
                         UtError(evaluationResult.message, Throwable())

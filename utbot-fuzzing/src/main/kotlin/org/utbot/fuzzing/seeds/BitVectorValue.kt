@@ -166,6 +166,7 @@ class BitVectorValue : KnownValue {
                 is Short -> fromShort(value)
                 is Int -> fromInt(value)
                 is Long -> fromLong(value)
+                is BigInteger -> fromBigInteger(value)
                 else -> error("unknown type of value $value (${value::class})")
             }
         }

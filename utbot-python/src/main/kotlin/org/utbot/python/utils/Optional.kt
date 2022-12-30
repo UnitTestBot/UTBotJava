@@ -1,4 +1,4 @@
-package org.utbot.cli.language.python
+package org.utbot.python.utils
 
 sealed class Optional<A>
 class Fail<A>(val message: String) : Optional<A>()

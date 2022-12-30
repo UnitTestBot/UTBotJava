@@ -23,7 +23,7 @@ class HintCollector(
         (signatureDescription.argumentNames zip signature.arguments).associate {
             it.first to HintCollectorNode(it.second)
         }
-    val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
+    private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
     private val identificationToNode: MutableMap<Block?, MutableMap<String, HintCollectorNode>> = mutableMapOf()
     private val blockStack = Stack<Block>()
 
@@ -78,6 +78,7 @@ class HintCollector(
             is Group -> processGroup(node)
             is AdditiveExpression -> processAdditiveExpression(node)
             is MultiplicativeExpression -> processMultiplicativeExpression(node)
+            is Comparison -> processComparison(node)
             is org.parsers.python.ast.List -> processList(node)
             is Assignment -> processAssignment(node)
             is DotName -> processDotName(node)
@@ -269,13 +270,41 @@ class HintCollector(
     private fun processMultiplicativeExpression(node: MultiplicativeExpression) {
         val curNode = HintCollectorNode(pythonAnyType)
         astNodeToHintCollectorNode[node] = curNode
-        val parsed = parseMultiplicativeExpression(node) ?: return
-        processBinaryExpression(
-            curNode,
-            parsed.left,
-            parsed.right,
-            getOperationOfOperator(parsed.op.toString()) ?: return
-        )
+        val parsed = parseMultiplicativeExpression(node)
+        parsed.cases.forEach {
+            processBinaryExpression(
+                curNode,
+                it.left,
+                it.right,
+                getOperationOfOperator(it.op.toString()) ?: return
+            )
+        }
+    }
+
+    private fun processComparison(node: Comparison) {
+        val parsed = parseComparison(node)
+        parsed.cases.forEach { (left, op, right) ->
+            val comp = getComparison(op.toString()) ?: return@forEach
+            val leftNode = astNodeToHintCollectorNode[left]!!
+            val rightNode = astNodeToHintCollectorNode[right]!!
+
+            val edgeFromLeftToRight = HintEdgeWithBound(
+                from = leftNode,
+                to = rightNode,
+                source = EdgeSource.Comparison,
+                boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+            ) { rightType -> listOf(createBinaryProtocol(comp.method, rightType, storage.pythonBool)) }
+            val edgeFromRightToLeft = HintEdgeWithBound(
+                from = rightNode,
+                to = leftNode,
+                source = EdgeSource.Comparison,
+                boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+            ) { leftType -> listOf(createBinaryProtocol(reverseComparison(comp).method, leftType, storage.pythonBool)) }
+
+            addEdge(edgeFromLeftToRight)
+            addEdge(edgeFromRightToLeft)
+        }
+        processBoolExpression(node)
     }
 
     private fun processList(node: org.parsers.python.ast.List) {
@@ -393,8 +422,8 @@ class HintCollector(
         val leftNode = astNodeToHintCollectorNode[left]!!
         val rightNode = astNodeToHintCollectorNode[right]!!
         val methodName = op.method
-        addProtocol(leftNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
-        addProtocol(rightNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
+        //addProtocol(leftNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
+        //addProtocol(rightNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
 
         val edgeFromLeftToCur = HintEdgeWithBound(
             from = leftNode,
@@ -421,6 +450,30 @@ class HintCollector(
         addEdge(edgeFromLeftToCur)
         addEdge(edgeFromRightToCur)
 
-        // TODO: other type dependencies (from cur to left and right, from right to left, from left to right)
+        val edgeFromLeftToRight = HintEdgeWithBound(
+            from = leftNode,
+            to = rightNode,
+            source = EdgeSource.Operation,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+        ) { leftType -> listOf(createBinaryProtocol(methodName, leftType, pythonAnyType)) }
+        val edgeFromRightToLeft = HintEdgeWithBound(
+            from = rightNode,
+            to = leftNode,
+            source = EdgeSource.Operation,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+        ) { rightType -> listOf(createBinaryProtocol(methodName, rightType, pythonAnyType)) }
+        addEdge(edgeFromLeftToRight)
+        addEdge(edgeFromRightToLeft)
+
+        listOf(leftNode, rightNode).forEach {
+            val edgeFromCurToUp = HintEdgeWithBound(
+                from = curNode,
+                to = it,
+                source = EdgeSource.Operation,
+                boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+            ) { curType -> listOf(createBinaryProtocol(methodName, pythonAnyType, curType)) }
+            addEdge(edgeFromCurToUp)
+        }
+
     }
 }

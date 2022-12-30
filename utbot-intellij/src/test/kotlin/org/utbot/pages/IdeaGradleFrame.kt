@@ -14,7 +14,7 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
 
     override fun waitProjectIsCreated() {
         super.waitProjectIsOpened()
-        waitFor(ofSeconds(20)) {
+        waitFor(ofSeconds(30)) {
             buildResult.retrieveData().textDataList.toString().contains("BUILD SUCCESSFUL")
         }
     }
@@ -22,7 +22,7 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
     override fun expandProjectTree(projectName: String) {
         with(projectViewTree) {
             try {
-                waitFor(ofSeconds(5)) {
+                waitFor(ofSeconds(10)) {
                     hasText("src").and(hasText(".idea"))
                 }
             } catch (ignore: Throwable) {} // if tree is collapsed - proceed to expand

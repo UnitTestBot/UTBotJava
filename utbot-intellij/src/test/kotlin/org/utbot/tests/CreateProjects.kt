@@ -37,7 +37,7 @@ class CreateProjects : UTBotTest() {
             waitProjectIsCreated()
             expandProjectTree(projectName)
             callUnitTestBotActionOn("Main")
-            waitFor (Duration.ofSeconds(10)){
+            waitFor (Duration.ofSeconds(30)){
                 inlineProgressTextPanel.isShowing
             }
             waitFor (Duration.ofSeconds(10)){

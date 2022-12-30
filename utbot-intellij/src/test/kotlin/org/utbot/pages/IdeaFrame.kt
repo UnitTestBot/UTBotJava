@@ -38,7 +38,8 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
         }
 
     val unitTestBotDialog
-        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java)
+        get() = remoteRobot.find(UnitTestBotDialogFixture::class.java,
+            ofSeconds(10))
 
     val inlineProgressTextPanel
         get() = remoteRobot.find<ComponentFixture>(byXpath("//div[@class='InlineProgressPanel']//div[@class='TextPanel']"),
@@ -114,7 +115,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
     }
 
     open fun waitProjectIsOpened() {
-        waitFor(ofSeconds(10)) {
+        waitFor(ofSeconds(30)) {
             projectViewTree.hasText(projectName)
         }
     }

@@ -18,6 +18,8 @@ import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.util.mockListeners.ForceMockListener
+import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -35,6 +37,8 @@ import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfo
+import org.utbot.framework.util.Conflict
+import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
@@ -153,6 +157,10 @@ open class TestCaseGenerator(
         val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
         val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
+        val conflictTriggers = ConflictTriggers()
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
+
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
                 for ((method, controller) in method2controller) {
@@ -172,6 +180,7 @@ open class TestCaseGenerator(
                             )
 
                             engineActions.map { engine.apply(it) }
+                            engineActions.clear()
 
                             generate(engine)
                                 .catch {
@@ -179,7 +188,15 @@ open class TestCaseGenerator(
                                 }
                                 .collect {
                                     when (it) {
-                                        is UtExecution -> method2executions.getValue(method) += it
+                                        is UtExecution -> {
+                                            if (it is UtSymbolicExecution &&
+                                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                                            ) {
+                                                it.containsMocking = true
+                                            }
+                                            method2executions.getValue(method) += it
+                                        }
                                         is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
                                     }
                                 }
@@ -189,6 +206,7 @@ open class TestCaseGenerator(
                         }
                     }
                     controller.paused = true
+                    conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                 }
 
                 // All jobs are in the method2controller now (paused). execute them with timeout
@@ -226,6 +244,8 @@ open class TestCaseGenerator(
         }
         ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
+        forceMockListener.detach(this, forceMockListener)
+        forceStaticMockListener.detach(this, forceStaticMockListener)
 
         return methods.map { method ->
             UtMethodTestSet(

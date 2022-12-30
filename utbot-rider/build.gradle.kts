@@ -4,7 +4,7 @@ val semVer: String? by rootProject
 val rdVersion: String? by rootProject
 
 plugins {
-    id("org.jetbrains.intellij") version "1.7.0"
+    id("org.jetbrains.intellij") version "1.11.0"
 }
 
 intellij {
@@ -22,7 +22,7 @@ tasks {
 
     compileKotlin {
         kotlinOptions {
-            jvmTarget = "11"
+            jvmTarget = "17"
             freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
             allWarningsAsErrors = false
         }
@@ -30,7 +30,7 @@ tasks {
 
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     runIde {
@@ -39,7 +39,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("222")
-        untilBuild.set("232.*")
+        untilBuild.set("223.*")
         version.set(semVer)
     }
 

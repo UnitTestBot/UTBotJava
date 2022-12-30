@@ -5,12 +5,12 @@
     <name>UnitTestBot</name>
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.platform</depends>
-    <depends>org.jetbrains.idea.maven</depends>
 
     <depends optional="true" config-file="withJava.xml">com.intellij.modules.java</depends>
     <depends optional="true" config-file="withKotlin.xml">org.jetbrains.kotlin</depends>
     <depends optional="true" config-file="withPython.xml">com.intellij.modules.python</depends>
     <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
+    <depends optional="true" config-file="withIdeaMaven.xml">org.jetbrains.idea.maven</depends>
 
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
@@ -43,54 +43,47 @@
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
-                Generate <b>unit tests</b> with a single action!
-                <br />
-                <br />
-                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
-                <br />
-                <br />
-                The engine finds potential problems in your code:
-                <br />
-                <br />
-                <ul>
-                    <li>exceptions</li>
-                    <li>hangs</li>
-                    <li>overflows</li>
-                    <li>and even native crashes</li>
-                </ul>
-                <br />
-                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
-                <br />
-                <br />
-                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
-                <br />
-                <br />
-                You can <a href="http://utbot.org">try the engine online</a> without installation.
-                <br />
-                <br />
-                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
-                <br />
-                <br />
-                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
+        UnitTestBot is the tool for automated unit test generation and precise code analysis.
+        <br/><br/>
+        Discover UnitTestBot key features in our latest release:
+        <ul>
+            <li>generating ready-to-use test cases — with valid inputs, method bodies, assertions, and comments</li>
+            <li>maximizing <a href="https://en.wikipedia.org/wiki/Code_coverage">branch coverage</a> in <i>regression suite</i> while keeping the number of tests minimized</li>
+            <li>finding deeply hidden code defects and expressing them as tests</li>
+            <li>fine-tuned <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Fine-tune-test-generation#mocking-settings">mocking</a>, including mocking static methods</li>
+            <li>representing all the <a href="https://github.com/UnitTestBot/UTBotJava/wiki/Get-use-of-test-results#read-test-descriptions">test descriptions</a> in a human-readable format</li>
+            <li>generating <a href="https://github.com/microsoft/sarif-tutorials/blob/main/README.md">SARIF</a> reports</li>
+            <li>innovative symbolic execution engine combined with a smart fuzzing platform</li>
+        </ul>
+        UnitTestBot supports the latest JDKs, JUnit 4, JUnit 5, TestNG, Mockito and is suitable for all popular operational systems.
+        <br/>
+        Try <a href="https://www.utbot.org/demo/?language=Java&source=public%20class%20Recursion%20%7B%0A%0A%20%20public%20int%20fib(int%20n)%20%7B%0A%20%20%20%20if%20(n%20%3C%200)%20throw%20new%20IllegalArgumentException()%3B%0A%20%20%20%20if%20(n%20%3D%3D%200)%20return%200%3B%0A%20%20%20%20if%20(n%20%3D%3D%201)%20return%201%3B%0A%20%20%20%20%0A%20%20%20%20return%20fib(n%20-%201)%20%2B%20fib(n%20-%202)%3B%0A%20%20%7D%0A%7D%0A">UnitTestBot online demo</a> to see how it generates tests for your code in real time.
+        <br/>
+        Contribute to UnitTestBot via <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub</a>.
+        <br/>
+        Found a bug? File an <a href="https://github.com/UnitTestBot/UTBotJava/issues">issue</a>.
+        <br/>
+        Have an idea? Start a <a href="https://github.com/UnitTestBot/UTBotJava/discussions">discussion</a>.
         ]]>
     </description>
     <change-notes>
         <![CDATA[
-        In this version we have implemented multiple features and improvements:
+        Check out UnitTestBot new features and major improvements in the latest release:
         <ul>
-        <li>Java 11 support.</li>
-        <li>Smart Fuzzer significantly improves test generation results.</li>
-        <li>Generated tests have become even more human-readable and user-friendly.</li>
-        <li>We have enabled Mac OS X platform, give it a try.</li>
-        <li>The UnitTestBot engine generates SARIF reports.</li>
-        <li>We have polished plugin UX.</li>
-        <li>Mocking support is enhanced.</li>
-        <li>Java Streams, better Java Optional support, Java String support is improved, package-private constructors now are used for the test generation.</li>
+            <li>Generating tests for Python and JavaScript</li>
+            <li>New fuzzing platform providing support for multiple languages</li>
+            <li>Improved test generation for Kotlin code</li>
+            <li>Multiprocess architecture based on the <a href="https://github.com/JetBrains/rd">Reactive Distributed communication framework</a> with advanced logging and debugging options</li>
+            <li>Symbolic execution engine with higher priority and fewer false UNSAT verdicts</li>
+            <li>UI/UX improvements for test sources root, <code>setting.properties</code> file, cancellation, timeout settings, notifications</li>
+            <li>Summaries with fine-grained settings</li>
+            <li>SARIF reports enabled by default, displaying sandbox-related and timeout test failures, properly addressing source files</li>
+            <li>Improved monitoring visualized with Grafana</li>
+            <li>Test generation bug fixes</li>
+            <li>Detailed documentation on UnitTestBot components including UnitTestBot architecture overview</li>
         </ul>
-        Discover everything mentioned above and much more in this release.
-        ]]>
+    ]]>
     </change-notes>
-
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection language="JAVA"
                           displayName="Errors detected by UnitTestBot"

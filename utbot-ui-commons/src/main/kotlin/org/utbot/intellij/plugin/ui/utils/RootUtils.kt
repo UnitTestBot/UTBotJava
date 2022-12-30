@@ -71,6 +71,7 @@ const val SRC_MAIN = "src/main/"
  */
 fun getSortedTestRoots(
     allTestRoots: MutableList<out ITestSourceRoot>,
+    sourceRootHistory: List<String>,
     moduleSourcePaths: List<String>,
     codegenLanguage: CodegenLanguage
 ): MutableList<ITestSourceRoot> {
@@ -88,6 +89,9 @@ fun getSortedTestRoots(
         }.thenByDescending {
             // Heuristics: dedicated test source root named 'utbot_tests' should go first
             it.dirName == dedicatedTestSourceRootName
+        }.thenByDescending {
+            // Recent used root should be handy too
+            sourceRootHistory.indexOf(it.dirPath)
         }.thenBy {
             // ABC-sorting
             it.dirPath

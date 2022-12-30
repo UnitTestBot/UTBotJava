@@ -44,6 +44,7 @@ import org.utbot.framework.plugin.api.isSummarizationCompatible
 )
 class Settings(val project: Project) : PersistentStateComponent<Settings.State> {
     data class State(
+        var sourceRootHistory: MutableList<String> = mutableListOf(),
         var codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
         @OptionTag(converter = TestFrameworkConverter::class)
         var testFramework: TestFramework = TestFramework.defaultItem,
@@ -62,9 +63,11 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
-        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration
+        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration,
+        var enableExperimentalLanguagesSupport: Boolean = false,
     ) {
         constructor(model: GenerateTestsModel) : this(
+            sourceRootHistory = model.sourceRootHistory,
             codegenLanguage = model.codegenLanguage,
             testFramework = model.testFramework,
             mockStrategy = model.mockStrategy,
@@ -88,6 +91,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
             other as State
 
+            if (sourceRootHistory != other.sourceRootHistory) return false
             if (codegenLanguage != other.codegenLanguage) return false
             if (testFramework != other.testFramework) return false
             if (mockStrategy != other.mockStrategy) return false
@@ -108,7 +112,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             return true
         }
         override fun hashCode(): Int {
-            var result = codegenLanguage.hashCode()
+            var result = sourceRootHistory.hashCode()
+            result = 31 * result + codegenLanguage.hashCode()
             result = 31 * result + testFramework.hashCode()
             result = 31 * result + mockStrategy.hashCode()
             result = 31 * result + mockFramework.hashCode()
@@ -129,6 +134,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     }
 
     private var state = State()
+    val sourceRootHistory: MutableList<String> get() = state.sourceRootHistory
 
     val codegenLanguage: CodegenLanguage get() = state.codegenLanguage
 
@@ -149,6 +155,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     val runInspectionAfterTestGeneration: Boolean get() = state.runInspectionAfterTestGeneration
 
     val forceStaticMocking: ForceStaticMocking get() = state.forceStaticMocking
+
+    val experimentalLanguagesSupport: Boolean get () = state.enableExperimentalLanguagesSupport
 
     val treatOverflowAsError: TreatOverflowAsError get() = state.treatOverflowAsError
 

@@ -18,16 +18,16 @@ import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 private val logger = KotlinLogging.logger {}
-
+// The required part of IntelliJ API was changed to com.intellij.codeInsight.daemon.impl.MainPassesRunner that is available since 2022.1 only
 class IntentionHelper(val project: Project, private val editor: Editor, private val testFile: SmartPsiElementPointer<PsiFile>) {
     fun applyIntentions() {
         val actions =
             DumbService.getInstance(project).runReadActionInSmartMode(Computable<Map<IntentionAction, String>> {
                 val daemonProgressIndicator = DaemonProgressIndicator()
-                Disposer.register(project, daemonProgressIndicator)//check it
-                val list = ProgressManager.getInstance().runProcess(Computable<List<HighlightInfo>> {
+                Disposer.register(project) { daemonProgressIndicator.cancel() }//check it
+                val list = ProgressManager.getInstance().runProcess(Computable<List<HighlightInfo>> inner@{
                     try {
-                        val containingFile = testFile.containingFile ?: return@Computable emptyList()
+                        val containingFile = testFile.containingFile ?: return@inner emptyList()
                         DaemonCodeAnalyzerEx.getInstanceEx(project).runMainPasses(
                             containingFile,
                             editor.document,

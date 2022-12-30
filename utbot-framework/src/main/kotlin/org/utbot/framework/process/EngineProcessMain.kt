@@ -21,7 +21,7 @@ import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.Signature
+import org.utbot.framework.plugin.api.MethodDescription
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -159,19 +159,21 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     }
     watchdog.wrapActiveCall(findMethodsInClassMatchingSelected) { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
-        val selectedSignatures = params.signatures.map { Signature(it.name, it.parametersTypes) }
+        val selectedMethodDescriptions =
+            params.methodDescriptions.map { MethodDescription(it.name, it.containingClass, it.parametersTypes) }
         FindMethodsInClassMatchingSelectedResult(kryoHelper.writeObject(classId.jClass.allNestedClasses.flatMap { clazz ->
-            clazz.id.allMethods.mapNotNull { it.method.kotlinFunction }.sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
-                .filter { it.signature().normalized() in selectedSignatures }
+            clazz.id.allMethods.mapNotNull { it.method.kotlinFunction }
+                .sortedWith(compareBy { selectedMethodDescriptions.indexOf(it.methodDescription()) })
+                .filter { it.methodDescription().normalized() in selectedMethodDescriptions }
                 .map { it.executableId }
         }))
     }
     watchdog.wrapActiveCall(findMethodParamNames) { params ->
         val classId = kryoHelper.readObject<ClassId>(params.classId)
-        val bySignature = kryoHelper.readObject<Map<Signature, List<String>>>(params.bySignature)
+        val byMethodDescription = kryoHelper.readObject<Map<MethodDescription, List<String>>>(params.bySignature)
         FindMethodParamNamesResult(kryoHelper.writeObject(
             classId.jClass.allNestedClasses.flatMap { clazz -> clazz.id.allMethods.mapNotNull { it.method.kotlinFunction } }
-                .mapNotNull { method -> bySignature[method.signature()]?.let { params -> method.executableId to params } }
+                .mapNotNull { method -> byMethodDescription[method.methodDescription()]?.let { params -> method.executableId to params } }
                 .toMap()
         ))
     }

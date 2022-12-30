@@ -7,6 +7,7 @@ import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationListener
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
@@ -29,8 +30,13 @@ abstract class Notifier {
     protected open fun content(project: Project?, module: Module?, info: String): String = info
 
     open fun notify(info: String, project: Project? = null, module: Module? = null) {
+        notify(info, project, module, AnAction.EMPTY_ARRAY)
+    }
+
+    open fun notify(info: String, project: Project? = null, module: Module? = null, actions: Array<AnAction>) {
         notificationGroup
-                .createNotification(content(project, module, info), notificationType)
+            .createNotification(content(project, module, info), notificationType)
+            .apply { actions.forEach { this.addAction(it) } }
                 .notify(project)
     }
 

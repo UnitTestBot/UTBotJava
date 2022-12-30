@@ -87,6 +87,7 @@ interface CgElement {
             is CgNotNullAssertion -> visit(element)
             is CgVariable -> visit(element)
             is CgParameterDeclaration -> visit(element)
+            is CgFormattedString -> visit(element)
             is CgLiteral -> visit(element)
             is CgNonStaticRunnable -> visit(element)
             is CgStaticRunnable -> visit(element)
@@ -309,6 +310,7 @@ enum class CgTestMethodType(val displayName: String, val isThrowing: Boolean) {
     PASSED_EXCEPTION(displayName = "Thrown exceptions marked as passed", isThrowing = true),
     FAILING(displayName = "Failing tests (with exceptions)", isThrowing = true),
     TIMEOUT(displayName = "Failing tests (with timeout)", isThrowing = true),
+    ARTIFICIAL(displayName = "Failing tests (with custom exception)", isThrowing = true),
     CRASH(displayName = "Possibly crashing tests", isThrowing = true),
     PARAMETRIZED(displayName = "Parametrized tests", isThrowing = false);
 
@@ -822,6 +824,11 @@ class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val v
 // Spread operator (for Kotlin, empty for Java)
 
 class CgSpread(override val type: ClassId, val array: CgExpression) : CgExpression
+
+// Interpolated string
+// e.g. String.format() for Java, "${}" for Kotlin
+
+class CgFormattedString(val array: List<CgExpression>) : CgElement
 
 // Enum constant
 

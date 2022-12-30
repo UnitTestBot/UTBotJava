@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.hex
+import org.utbot.fuzzing.utils.hex
 
 
 fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {

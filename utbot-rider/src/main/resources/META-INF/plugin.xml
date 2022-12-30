@@ -1,60 +1,25 @@
 <!--suppress HttpUrlsUsage -->
 <idea-plugin>
 
-    <id>org.utbot.intellij.plugin.id</id>
-    <name>UnitTestBot</name>
+    <id>org.utbot.rider.plugin.id</id>
+    <name>UnitTestBot.NET</name>
     <vendor>utbot.org</vendor>
     <depends>com.intellij.modules.rider</depends>
 
-    <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
-                Generate <b>unit tests</b> with a single action!
-                <br />
-                <br />
-                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
-                <br />
-                <br />
-                The engine finds potential problems in your code:
-                <br />
-                <br />
-                <ul>
-                    <li>exceptions</li>
-                    <li>hangs</li>
-                    <li>overflows</li>
-                    <li>and even native crashes</li>
-                </ul>
-                <br />
-                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
-                <br />
-                <br />
-                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
-                <br />
-                <br />
-                You can <a href="http://utbot.org">try the engine online</a> without installation.
-                <br />
-                <br />
-                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
-                <br />
-                <br />
-                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
+        Automated unit test generation tool for .NET code.
+        <ul>
+            <li>Generating ready-to-use test cases with method bodies and inputs</li>
+            <li>Maximizing branch coverage in regression suite while keeping the number of tests at minimum</li>
+            <li>Capable to find deeply hidden code defects and express them as tests</li>
+            <li>Applicable to LINQ syntax and complex generics</li>
+            <li>Supporting .NET Framework, .NET Core, .NET 5, and .NET 6</li>
+            <li>Powered by <a href="https://github.com/VSharp-team/VSharp">V#</a> &mdash; the custom symbolic execution engine</li>
+        </ul>
+        <br/>
+        Try UnitTestBot .NET <a href="https://www.utbot.org/demo">online demo</a> to see how it generates tests for your code in real time.
         ]]>
     </description>
-    <change-notes>
-        <![CDATA[
-        In this version we have implemented multiple features and improvements:
-        <ul>
-        <li>Java 11 support.</li>
-        <li>Smart Fuzzer significantly improves test generation results.</li>
-        <li>Generated tests have become even more human-readable and user-friendly.</li>
-        <li>We have enabled Mac OS X platform, give it a try.</li>
-        <li>The UnitTestBot engine generates SARIF reports.</li>
-        <li>We have polished plugin UX.</li>
-        <li>Mocking support is enhanced.</li>
-        <li>Java Streams, better Java Optional support, Java String support is improved, package-private constructors now are used for the test generation.</li>
-        </ul>
-        Discover everything mentioned above and much more in this release.
-        ]]>
-    </change-notes>
 
 </idea-plugin>

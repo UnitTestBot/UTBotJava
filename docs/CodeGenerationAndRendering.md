@@ -1,10 +1,10 @@
 # Code generation and rendering
 
-Code generation and rendering is a part of test generation process in UnitTestBot (find the overall picture in the 
+Code generation and rendering are a part of the test generation process in UnitTestBot (find the overall picture in the 
 [UnitTestBot architecture 
 overview](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/OverallArchitecture.md)). 
-UnitTestBot gets the synthetic representation of generated test cases from the fuzzer or the symbolic engine. This representation, or model, is 
-implemented in the `UtExecution` class.
+UnitTestBot gets the synthetic representation of generated test cases from the fuzzer or the symbolic engine.
+This representation (or model) is implemented in the `UtExecution` class.
 
 The `codegen` module generates the real test code based on this `UtExecution` model and renders it in a 
 human-readable form in accordance with the requested configuration (considering programming language, testing 
@@ -213,7 +213,7 @@ The further AST levels are created similarly. The AST leaves are `CgLiteral`, `C
 The below-mentioned functionality is implemented in `CgMethodConstructor`.
 
 To create a test method:
-* store the initial values of the static fields and perform the seven steps for creating test method body mentioned later,
+* store the initial values of the static fields and perform the seven steps for creating test method body mentioned later;
 * if the static field values undergo changes, perform these seven steps in the `try` block and recover these values in the `finally` block accordingly.
 
 To create test method body:
@@ -225,14 +225,14 @@ To create test method body:
 6. generate result assertions
 7. for successful tests, generate field state assertions
 
-_Note:_ generating assertions has pitfalls. In primitive cases like comparing two integers, we can use the standard 
+_Note:_ generating assertions has pitfalls. In primitive cases, like comparing two integers, we can use the standard 
 assertions of a selected test framework. To compare two objects of an arbitrary type, we need a 
 custom implementation of equality assertion, e.g. using `deepEquals()`. The `deepEquals()` method compares object 
 structures field by field. The method is recursive: if the current field is not of the primitive type, we call 
 `deepEquals()` for this field. The maximum recursion depth is limited.
 
 For the parameterized tests
-- we do not support mocking, so we do not set up the initial environment,
+- we do not support mocking, so we do not set up the initial environment;
 - we do not generate field state assertions.
 
 `UtExecution` usually represents a single test scenario, and one `UtExecution` instance is used to create a single
@@ -256,7 +256,7 @@ From the group of `UtExecution` elements, we take the first successful execution
 
 ## Renderer
 
-We have a general approach for rendering the code of  test classes. `UtUtils` class is rendered differently: we 
+We have a general approach for rendering the code of test classes. `UtUtils` class is rendered differently: we 
 hardcode the required method implementations for the specific code generation language.
 
 All the renderers implement `CgVisitor` interface. It has a separate `visit()` method for each supported 
@@ -284,7 +284,7 @@ While constructing the test class, we create test generation reports. It contain
 number of generated tests, the number of successful tests, etc. It also may contain information on potential problems 
 like trying to use mocks when mocking framework is not installed.
 
-The report is represented as an HTML-string allowing to include clickable links.
+The report is an HTML string with clickable links.
 
 _Note:_ no test generation reports are created for parameterized tests.
 

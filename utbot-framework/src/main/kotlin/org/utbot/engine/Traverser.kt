@@ -88,8 +88,11 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.CLASS_REF_SOOT_CLASS
+import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
 import org.utbot.engine.types.EQUALS_SIGNATURE
+import org.utbot.engine.types.NEW_INSTANCE_SIGNATURE
 import org.utbot.engine.types.HASHCODE_SIGNATURE
 import org.utbot.engine.types.METHOD_FILTER_MAP_FIELD_SIGNATURE
 import org.utbot.engine.types.NUMBER_OF_PREFERRED_TYPES
@@ -340,7 +343,8 @@ class Traverser(
     }
 
     /**
-     * Handles preparatory work for static initializers and multi-dimensional arrays creation.
+     * Handles preparatory work for static initializers, multi-dimensional arrays creation
+     * and `newInstance` reflection call post-processing.
      *
      * For instance, it could push handmade graph with preparation statements to the path selector.
      *
@@ -356,6 +360,7 @@ class Traverser(
         return when {
             processStaticInitializerIfRequired(current) -> true
             unfoldMultiArrayExprIfRequired(current) -> true
+            pushInitGraphAfterNewInstanceReflectionCall(current) -> true
             else -> false
         }
     }
@@ -408,6 +413,53 @@ class Traverser(
         negativeArraySizeCheck(*resolvedSizes.toTypedArray())
 
         pushToPathSelector(graph, caller = null, resolvedSizes)
+        return true
+    }
+
+    /**
+     * If the previous stms was `newInstance` method invocation,
+     * pushes a graph of the default constructor of the constructed type, if present,
+     * and pushes a state with a [InstantiationException] otherwise.
+     */
+    private fun TraversalContext.pushInitGraphAfterNewInstanceReflectionCall(stmt: JAssignStmt): Boolean {
+        // Check whether the previous stmt was a `newInstance` invocation
+        val lastStmt = environment.state.path.lastOrNull() as? JAssignStmt ?: return false
+        if (!lastStmt.containsInvokeExpr()) {
+            return false
+        }
+
+        val lastMethodInvocation = lastStmt.invokeExpr.method
+        if (lastMethodInvocation.subSignature != NEW_INSTANCE_SIGNATURE) {
+            return false
+        }
+
+        // Process the current stmt as cast expression
+        val right = stmt.rightOp as? JCastExpr ?: return false
+        val castType = right.castType as? RefType ?: return false
+        val castedJimpleVariable = right.op as? JimpleLocal ?: return false
+
+        val castedLocalVariable = (localVariableMemory.local(castedJimpleVariable.variable) as? ReferenceValue) ?: return false
+
+        val castSootClass = castType.sootClass
+
+        // We need to consider a situation when this class does not have a default constructor
+        // Since it can be a cast of a class with constructor to the interface (or ot the ancestor without default constructor),
+        // we cannot always throw a `java.lang.InstantiationException`.
+        // So, instead we will just continue the analysis without analysis of <init>.
+        val initMethod = castSootClass.getMethodUnsafe("void <init>()") ?: return false
+
+        if (!initMethod.canRetrieveBody()) {
+            return false
+        }
+
+        val initGraph = ExceptionalUnitGraph(initMethod.activeBody)
+
+        pushToPathSelector(
+            initGraph,
+            castedLocalVariable,
+            callParameters = emptyList(),
+        )
+
         return true
     }
 
@@ -1035,7 +1087,10 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.executable
+        // If we don't have access to methodUnderTest's jClass, the engine should not fail
+        // We just won't update generic information for it
+        val callable = runCatching { methodUnderTest.executable }.getOrNull() ?: return
+
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
@@ -1249,6 +1304,8 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
+        val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
+
         if (mockInfoGenerator != null) {
             val mockInfo = mockInfoGenerator.generate(addr)
 
@@ -1260,8 +1317,11 @@ class Traverser(
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-                queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+                val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+                val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+
+                queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
+                queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
                 return mockedObject
             }
@@ -1286,8 +1346,10 @@ class Traverser(
             typeStoragePossiblyWithOverriddenTypes
         }
 
+        val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+
         wrapper(type, addr)?.let {
-            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+            queuedSymbolicStateUpdates += typeHardConstraint
             return it
         }
 
@@ -1303,8 +1365,11 @@ class Traverser(
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
             // add typeConstraint for mocked object. It's a declared type of the object.
-            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
-            queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
+            val typeConstraint = typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+            val isMockConstraint = mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue)
+
+            queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
+            queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
             return mockedObject
         }
@@ -1313,9 +1378,10 @@ class Traverser(
         // We should create an object with typeStorage of all possible real types and concrete implementation
         // Otherwise we'd have either a wrong type in the resolver, or missing method like 'preconditionCheck'.
         val concreteImplementation = wrapperToClass[type]?.first()?.let { wrapper(it, addr) }?.concrete
+        val isMockConstraint = mkEq(typeRegistry.isMock(addr), UtFalse)
 
-        queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
-        queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(addr), UtFalse).asHardConstraint()
+        queuedSymbolicStateUpdates += typeHardConstraint
+        queuedSymbolicStateUpdates += mkOr(isMockConstraint, nullEqualityConstraint).asHardConstraint()
 
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
@@ -1884,6 +1950,8 @@ class Traverser(
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields that cannot be set via reflection anyway
             !field.fieldId.isInaccessibleViaReflection &&
+                // we should not manually set enum constants
+            !(field.declaringClass.isEnum && field.isEnumConstant) &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
                 ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
@@ -2232,6 +2300,10 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
+        if (exception.concrete is ArtificialError) {
+            return false
+        }
+
         val classId = exception.fold(
             { it.javaClass.id },
             { (exception.symbolic as ObjectValue).type.id }
@@ -2901,6 +2973,22 @@ class Traverser(
             }
         }
 
+        // Return an unbounded symbolic variable for any overloading of method `forName` of class `java.lang.Class`
+        // NOTE: we cannot match by a subsignature here since `forName` method has a few overloadings
+        if (instance == null && invocation.method.declaringClass == CLASS_REF_SOOT_CLASS && invocation.method.name == "forName") {
+            val forNameResult = unboundedVariable(name = "classForName", invocation.method)
+
+            return OverrideResult(success = true, forNameResult)
+        }
+
+        // Return an unbounded symbolic variable for the `newInstance` method invocation,
+        // and at the next traversing step push <init> graph of the resulted type
+        if (instance?.type == CLASS_REF_TYPE && subSignature == NEW_INSTANCE_SIGNATURE) {
+            val getInstanceResult = unboundedVariable(name = "newInstance", invocation.method)
+
+            return OverrideResult(success = true, getInstanceResult)
+        }
+
         val instanceAsWrapperOrNull = instance?.asWrapperOrNull
 
         if (instanceAsWrapperOrNull is UtMockWrapper && subSignature == HASHCODE_SIGNATURE) {
@@ -3322,7 +3410,7 @@ class Traverser(
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            implicitlyThrowException(OverflowDetectionError("${left.type} ${op.symbol} overflow"), setOf(overflow))
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
@@ -3398,13 +3486,13 @@ class Traverser(
     }
 
     private fun TraversalContext.implicitlyThrowException(
-        exception: Exception,
+        throwable: Throwable,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(throwable, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(

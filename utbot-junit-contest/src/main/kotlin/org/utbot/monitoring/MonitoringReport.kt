@@ -116,6 +116,12 @@ data class SummarisedMetricsReport(
         covered_bytecode_instructions_by_fuzzing = targets.sumOf { it.metrics.covered_bytecode_instructions_in_class_by_fuzzing },
         covered_bytecode_instructions_by_concolic = targets.sumOf { it.metrics.covered_bytecode_instructions_in_class_by_concolic },
         total_bytecode_instructions = targets.sumOf { it.metrics.total_bytecode_instructions_in_class },
-        averaged_bytecode_instruction_coverage_by_classes = targets.map { it.metrics.bytecode_instructions_coverage_in_class }.average()
+        averaged_bytecode_instruction_coverage_by_classes = targets.map { it.metrics.bytecode_instructions_coverage_in_class }.average().fixNaN()
     )
+}
+
+private fun Double.fixNaN(): Double = if (isNaN() || isInfinite()) {
+    0.0
+} else {
+    this
 }

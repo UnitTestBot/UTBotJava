@@ -1,14 +1,6 @@
 package org.utbot.fuzzer.providers
 
 import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier.isFinal
-import java.lang.reflect.Modifier.isPrivate
-import java.lang.reflect.Modifier.isProtected
-import java.lang.reflect.Modifier.isPublic
-import java.lang.reflect.Modifier.isStatic
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -31,6 +23,9 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.objects.FuzzerMockableMethodId
 import org.utbot.fuzzer.objects.assembleModel
+import org.utbot.fuzzing.providers.FieldDescription
+import org.utbot.fuzzing.providers.findAccessibleModifiableFields
+import org.utbot.fuzzing.providers.isAccessible
 
 /**
  * Creates [UtAssembleModel] for objects which have public constructors
@@ -69,10 +64,10 @@ class ObjectModelProvider(
             // and mutate some fields. Only if there's no option next block
             // with empty constructor should be used.
             if (constructorId.parameters.isEmpty()) {
-                val fields = findSuitableFields(constructorId.classId, description)
+                val fields = findAccessibleModifiableFields(null, constructorId.classId, description.packageName)
                 if (fields.isNotEmpty()) {
                     yield(
-                        ModelConstructor(fields.map { FuzzedType(it.classId) }) {
+                        ModelConstructor(fields.map { it.type }) {
                             generateModelsWithFieldsInitialization(constructorId, fields, it)
                         }
                     )
@@ -108,7 +103,7 @@ class ObjectModelProvider(
                         constructorId.classId,
                         field.setter.name,
                         field.setter.returnType.id,
-                        listOf(field.classId),
+                        listOf(field.type.classId),
                         mock = {
                             field.getter?.let { g ->
                                 val getterMethodID = MethodId(
@@ -143,54 +138,6 @@ class ObjectModelProvider(
                 }
         }
 
-        private fun isAccessible(member: Member, packageName: String?): Boolean {
-            return isPublic(member.modifiers) ||
-                    (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
-        }
-
-        private fun isPackagePrivate(modifiers: Int): Boolean {
-            val hasAnyAccessModifier = isPrivate(modifiers)
-                    || isProtected(modifiers)
-                    || isProtected(modifiers)
-            return !hasAnyAccessModifier
-        }
-
-        private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {
-            val jClass = classId.jClass
-            return jClass.declaredFields.map { field ->
-                val setterAndGetter = jClass.findPublicSetterGetterIfHasPublicGetter(field, description)
-                FieldDescription(
-                    name = field.name,
-                    classId = field.type.id,
-                    canBeSetDirectly = isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
-                    setter = setterAndGetter?.setter,
-                    getter = setterAndGetter?.getter,
-                )
-            }
-        }
-
-        private class PublicSetterGetter(
-            val setter: Method,
-            val getter: Method,
-        )
-
-        private fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): PublicSetterGetter? {
-            val postfixName = field.name.capitalize()
-            val setterName = "set$postfixName"
-            val getterName = "get$postfixName"
-            val getter = try { getDeclaredMethod(getterName) } catch (_: NoSuchMethodException) { return null }
-            return if (isAccessible(getter, description.packageName) && getter.returnType == field.type) {
-                declaredMethods.find {
-                    isAccessible(it, description.packageName) &&
-                            it.name == setterName &&
-                            it.parameterCount == 1 &&
-                            it.parameterTypes[0] == field.type
-                }?.let { PublicSetterGetter(it, getter) }
-            } else {
-                null
-            }
-        }
-
         private val primitiveParameterizedConstructorsFirstAndThenByParameterCount =
             compareByDescending<ConstructorId> { constructorId ->
                 constructorId.parameters.all { classId ->
@@ -199,13 +146,5 @@ class ObjectModelProvider(
             }.thenComparingInt { constructorId ->
                 constructorId.parameters.size
             }
-
-        private class FieldDescription(
-            val name: String,
-            val classId: ClassId,
-            val canBeSetDirectly: Boolean,
-            val setter: Method?,
-            val getter: Method?
-        )
     }
 }

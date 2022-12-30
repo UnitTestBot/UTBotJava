@@ -1,17 +1,14 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.executableId
@@ -49,11 +46,6 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
-import java.lang.reflect.GenericArrayType
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
-import java.lang.reflect.TypeVariable
-import java.lang.reflect.WildcardType
 
 private val logger = KotlinLogging.logger {}
 
@@ -82,7 +74,10 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
                 try {
                     finder.find(graph, unit, value)
                 } catch (e: Exception) {
-                    logger.warn(e) { "Cannot process constant value of type '${value.type}}'" }
+                    // ignore known values that don't have a value field and can be met
+                    if (value !is NullConstant) {
+                        logger.warn(e) { "Cannot process constant value of type '${value.type}'" }
+                    }
                     emptyList()
                 }
             }.let { result ->
@@ -300,23 +295,3 @@ private fun sootIfToFuzzedOp(unit: JIfStmt) = when (unit.condition) {
 }
 
 private fun nextDirectUnit(graph: ExceptionalUnitGraph, unit: Unit): Unit? = graph.getSuccsOf(unit).takeIf { it.size == 1 }?.first()
-
-fun toFuzzerType(type: Type): FuzzedType {
-    return when (type) {
-        is WildcardType -> type.upperBounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(objectClassId)
-        is TypeVariable<*> -> type.bounds.firstOrNull()?.let(::toFuzzerType) ?: FuzzedType(objectClassId)
-        is ParameterizedType -> FuzzedType((type.rawType as Class<*>).id, type.actualTypeArguments.map { toFuzzerType(it) })
-        is GenericArrayType -> {
-            val genericComponentType = type.genericComponentType
-            val fuzzerType = toFuzzerType(genericComponentType)
-            val classId = if (genericComponentType !is GenericArrayType) {
-                ClassId("[L${fuzzerType.classId.name};", fuzzerType.classId)
-            } else {
-                ClassId("[" + fuzzerType.classId.name, fuzzerType.classId)
-            }
-            FuzzedType(classId)
-        }
-        is Class<*> -> FuzzedType(type.id)
-        else -> error("Unknown type: $type")
-    }
-}

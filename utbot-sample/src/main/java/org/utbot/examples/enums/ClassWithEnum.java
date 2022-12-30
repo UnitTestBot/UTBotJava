@@ -228,7 +228,7 @@ public class ClassWithEnum {
     enum OuterStaticUsageEnum {
         A;
 
-        int y;
+        final int y;
 
         OuterStaticUsageEnum() {
             y = staticInt;
@@ -236,6 +236,12 @@ public class ClassWithEnum {
 
         int getOuterStatic() {
             return staticInt;
+        }
+
+
+        @Override
+        public String toString() {
+            return String.format("%s(y = %d)", name(), y);
         }
     }
 }

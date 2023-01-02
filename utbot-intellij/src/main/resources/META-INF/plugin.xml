@@ -9,6 +9,7 @@
     <depends optional="true" config-file="withJava.xml">com.intellij.modules.java</depends>
     <depends optional="true" config-file="withKotlin.xml">org.jetbrains.kotlin</depends>
     <depends optional="true" config-file="withPython.xml">com.intellij.modules.python</depends>
+    <depends optional="true" config-file="withGo.xml">org.jetbrains.plugins.go</depends>
     <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
     <depends optional="true" config-file="withIdeaMaven.xml">org.jetbrains.idea.maven</depends>
 

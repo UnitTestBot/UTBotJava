@@ -17,6 +17,7 @@ import java.util.zip.ZipFile
 import kotlin.concurrent.thread
 import kotlin.streams.asSequence
 import mu.KotlinLogging
+import java.util.zip.ZipEntry
 
 fun Class<*>.toClassFilePath(): String {
     val name = requireNotNull(name) { "Class is local or anonymous" }
@@ -30,12 +31,14 @@ object FileUtil {
     fun extractArchive(
         archiveFile: Path,
         destPath: Path,
-        vararg options: CopyOption = arrayOf(StandardCopyOption.REPLACE_EXISTING)
+        vararg options: CopyOption = arrayOf(StandardCopyOption.REPLACE_EXISTING),
+        extractOnlySuchEntriesPredicate: (ZipEntry) -> Boolean = { true }
     ) {
         Files.createDirectories(destPath)
 
         ZipFile(archiveFile.toFile()).use { archive ->
             val entries = archive.stream().asSequence()
+                .filter(extractOnlySuchEntriesPredicate)
                 .sortedBy { it.name }
                 .toList()
 
@@ -175,10 +178,24 @@ object FileUtil {
     /**
      * Extracts archive to temp directory and returns path to directory.
      */
-    fun extractArchive(archiveFile: Path): Path {
+    fun extractArchive(archiveFile: Path, extractOnlySuchEntriesPredicate: (ZipEntry) -> Boolean = { true }): Path {
         val tempDir = createTempDirectory(TEMP_DIR_NAME).toFile().apply { deleteOnExit() }
-        extractArchive(archiveFile, tempDir.toPath())
+        extractArchive(archiveFile, tempDir.toPath(), extractOnlySuchEntriesPredicate = extractOnlySuchEntriesPredicate)
         return tempDir.toPath()
+    }
+
+    /**
+     * Extracts specified directory (with all contents) from archive to temp directory and returns path to it.
+     */
+    fun extractDirectoryFromArchive(archiveFile: Path, directoryName: String): Path? {
+        val extractedJarDirectory = extractArchive(archiveFile) { entry ->
+            entry.name.normalizePath().startsWith(directoryName)
+        }
+        val extractedTargetDirectoryPath = extractedJarDirectory.resolve(directoryName)
+        if (!extractedTargetDirectoryPath.toFile().exists()) {
+            return null
+        }
+        return extractedTargetDirectoryPath
     }
 
     /**

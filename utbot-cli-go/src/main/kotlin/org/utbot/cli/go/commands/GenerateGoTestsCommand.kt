@@ -31,10 +31,9 @@ class GenerateGoTestsCommand :
         help = StringBuilder()
             .append("Specifies function name to generate tests for. ")
             .append("Can be used multiple times to select multiple functions at the same time.")
-            .append("If no functions are specified, all functions contained in the source file are selected")
             .toString()
     )
-        .multiple()
+        .multiple(required = true)
 
     private val goExecutablePath: String by option(
         "-go", "--go-path",

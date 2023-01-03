@@ -29,6 +29,10 @@ func getPackageName(path string) string {
 }
 
 func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
+	if len(target.TargetFunctionsNames) == 0 {
+		return nil, fmt.Errorf("target must contain target functions")
+	}
+
 	packageName := getPackageName(target.AbsoluteFilePath)
 
 	dir, _ := filepath.Split(target.AbsoluteFilePath)
@@ -78,6 +82,7 @@ func main() {
 	for _, target := range analysisTargets.Targets {
 		result, err := analyzeTarget(target)
 		checkError(err)
+
 		analysisResults.Results = append(analysisResults.Results, *result)
 	}
 

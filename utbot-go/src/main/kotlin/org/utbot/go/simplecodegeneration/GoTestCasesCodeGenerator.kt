@@ -1,6 +1,5 @@
 package org.utbot.go.simplecodegeneration
 
-import org.utbot.framework.plugin.api.*
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoUtModel
@@ -9,14 +8,11 @@ import org.utbot.go.util.goRequiredImports
 object GoTestCasesCodeGenerator {
 
     fun generateTestCasesFileCode(sourceFile: GoUtFile, testCases: List<GoUtFuzzedFunctionTestCase>): String {
-        if (testCases.isEmpty()) {
-            return ""
+        val imports = if (testCases.isNotEmpty()) {
+            mutableSetOf("github.com/stretchr/testify/assert", "testing")
+        } else {
+            mutableSetOf()
         }
-        val fileBuilder = GoFileCodeBuilder()
-
-        fileBuilder.setPackage(sourceFile.packageName)
-
-        val imports = mutableSetOf("github.com/stretchr/testify/assert", "testing")
         testCases.forEach { testCase ->
             testCase.fuzzedParametersValues.forEach {
                 imports += it.goRequiredImports
@@ -33,7 +29,8 @@ object GoTestCasesCodeGenerator {
                 }
             }
         }
-        fileBuilder.setImports(imports)
+
+        val fileBuilder = GoFileCodeBuilder(sourceFile.packageName, imports)
 
         fun List<GoUtFuzzedFunctionTestCase>.generateTestFunctions(
             generateTestFunctionForTestCase: (GoUtFuzzedFunctionTestCase, Int?) -> String
@@ -100,13 +97,12 @@ object GoTestCasesCodeGenerator {
         testFunctionBodySb.append("\t$actualFunctionCall\n\n")
 
         val expectedModels = (executionResult as GoUtExecutionCompleted).models
-        val (assertionName, assertionTParameter) =
-            if (expectedModels.size > 1 || expectedModels.any { it.isComplexModelAndNeedsSeparateAssertions() }) {
-                testFunctionBodySb.append("\tassertMultiple := assert.New(t)\n")
-                "assertMultiple" to ""
-            } else {
-                "assert" to "t, "
-            }
+        val (assertionName, assertionTParameter) = if (expectedModels.size > 1 || expectedModels.any { it.isComplexModelAndNeedsSeparateAssertions() }) {
+            testFunctionBodySb.append("\tassertMultiple := assert.New(t)\n")
+            "assertMultiple" to ""
+        } else {
+            "assert" to "t, "
+        }
         actualResultVariablesNames.zip(expectedModels).zip(doResultTypesImplementError)
             .forEach { (resultVariableAndModel, doesResultTypeImplementError) ->
                 val (actualResultVariableName, expectedModel) = resultVariableAndModel

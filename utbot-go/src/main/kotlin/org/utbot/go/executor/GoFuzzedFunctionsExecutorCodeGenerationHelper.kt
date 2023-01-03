@@ -19,16 +19,12 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
         executorTestFunctionName: String,
         rawExecutionResultsFileName: String,
     ): String {
-        val fileCodeBuilder = GoFileCodeBuilder()
-
-        fileCodeBuilder.setPackage(sourceFile.packageName)
-
         val additionalImports = mutableSetOf<String>()
         fuzzedFunction.fuzzedParametersValues.forEach {
             additionalImports += it.goRequiredImports
         }
 
-        fileCodeBuilder.setImports(alwaysRequiredImports + additionalImports)
+        val fileCodeBuilder = GoFileCodeBuilder(sourceFile.packageName, alwaysRequiredImports + additionalImports)
 
         val executorTestFunctionCode =
             generateExecutorTestFunctionCode(

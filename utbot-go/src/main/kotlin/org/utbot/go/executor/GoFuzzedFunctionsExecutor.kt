@@ -1,5 +1,6 @@
 package org.utbot.go.executor
 
+import mu.KotlinLogging
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoUtModel
@@ -7,6 +8,8 @@ import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import java.io.File
+
+val logger = KotlinLogging.logger {}
 
 object GoFuzzedFunctionsExecutor {
 
@@ -38,6 +41,7 @@ object GoFuzzedFunctionsExecutor {
             )
             fileToExecute.writeText(fileToExecuteGoCode)
 
+            logger.debug { "Executing function ${fuzzedFunction.function.name}" }
             executeCommandByNewProcessOrFail(
                 runGeneratedGoExecutorTestCommand,
                 sourceFileDir,
@@ -47,7 +51,11 @@ object GoFuzzedFunctionsExecutor {
                     .append("or handle corner cases in the source code. ")
                     .append("Perhaps some functions are too resource-intensive.").toString()
             )
+            logger.debug { "End executing function ${fuzzedFunction.function.name}" }
+
+            logger.debug { "Start parsing execution result for function ${fuzzedFunction.function.name}" }
             val rawExecutionResults = parseFromJsonOrFail<RawExecutionResults>(rawExecutionResultsFile)
+            logger.debug { "End parsing execution result for function ${fuzzedFunction.function.name}" }
 
             return convertRawExecutionResultToExecutionResult(
                 rawExecutionResults.results.first(),

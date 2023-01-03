@@ -77,7 +77,8 @@ class ThreadWrapper : BaseOverriddenWrapper(utThreadClass.name) {
         }
 
     companion object {
-        private val runnableType: RefType = Scene.v().getSootClass(Runnable::class.qualifiedName).type!!
+        private val runnableType: RefType
+            get() = Scene.v().getSootClass(Runnable::class.qualifiedName).type!!
         private val targetFieldId: FieldId
             get() = utThreadClass.getField("target", runnableType).fieldId
     }
@@ -114,10 +115,10 @@ class ThreadGroupWrapper : BaseOverriddenWrapper(utThreadGroupClass.name) {
     }
 }
 
-private val TO_COMPLETABLE_FUTURE_SIGNATURE: String
-    get() = utCompletableFutureClass.getMethodByName(UtCompletableFuture<*>::toCompletableFuture.name).signature
-private val UT_COMPLETABLE_FUTURE_EQ_GENERIC_TYPE_SIGNATURE: String
-    get() = utCompletableFutureClass.getMethodByName(UtCompletableFuture<*>::eqGenericType.name).signature
+private val TO_COMPLETABLE_FUTURE_SIGNATURE: String =
+    utCompletableFutureClass.getMethodByName(UtCompletableFuture<*>::toCompletableFuture.name).signature
+private val UT_COMPLETABLE_FUTURE_EQ_GENERIC_TYPE_SIGNATURE: String =
+    utCompletableFutureClass.getMethodByName(UtCompletableFuture<*>::eqGenericType.name).signature
 
 class CompletableFutureWrapper : BaseOverriddenWrapper(utCompletableFutureClass.name) {
     override fun Traverser.overrideInvoke(

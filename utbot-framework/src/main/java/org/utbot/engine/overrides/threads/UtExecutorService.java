@@ -7,35 +7,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
-import static org.utbot.engine.overrides.UtOverrideMock.visit;
-
-public class UtExecutorService implements ExecutorService, ScheduledExecutorService {
+public class UtExecutorService implements ScheduledExecutorService {
     private boolean isShutdown;
     private boolean isTerminated;
 
-    public UtExecutorService() {
-        visit(this);
-    }
-
-    private void preconditionCheck() {
-        if (alreadyVisited(this)) {
-            return;
-        }
-
-        visit(this);
-    }
-
     @Override
     public void shutdown() {
-        preconditionCheck();
-
         isShutdown = true;
         isTerminated = true;
     }
@@ -43,8 +25,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public List<Runnable> shutdownNow() {
-        preconditionCheck();
-
         shutdown();
         // Since all tasks are processed immediately, there are no waiting tasks
         return new ArrayList<>();
@@ -52,15 +32,11 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
 
     @Override
     public boolean isShutdown() {
-        preconditionCheck();
-
         return isShutdown;
     }
 
     @Override
     public boolean isTerminated() {
-        preconditionCheck();
-
         return isTerminated;
     }
 
@@ -73,8 +49,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public <T> Future<T> submit(@NotNull Callable<T> task) {
-        preconditionCheck();
-
         try {
             T result = task.call();
             return new UtCompletableFuture<>(result);
@@ -86,8 +60,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public <T> Future<T> submit(@NotNull Runnable task, T result) {
-        preconditionCheck();
-
         try {
             task.run();
             return new UtCompletableFuture<>(result);
@@ -105,8 +77,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks) {
-        preconditionCheck();
-
         List<Future<T>> results = new ArrayList<>();
         for (Callable<T> task : tasks) {
             results.add(submit(task));
@@ -124,8 +94,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks) throws ExecutionException {
-        preconditionCheck();
-
         for (Callable<T> task : tasks) {
             try {
                 return task.call();
@@ -145,16 +113,12 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
 
     @Override
     public void execute(@NotNull Runnable command) {
-        preconditionCheck();
-
         command.run();
     }
 
     @NotNull
     @Override
     public ScheduledFuture<?> schedule(@NotNull Runnable command, long delay, @NotNull TimeUnit unit) {
-        preconditionCheck();
-
         try {
             command.run();
             return new UtCompletableFuture<>();
@@ -166,8 +130,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public <V> ScheduledFuture<V> schedule(@NotNull Callable<V> callable, long delay, @NotNull TimeUnit unit) {
-        preconditionCheck();
-
         try {
             V result = callable.call();
             return new UtCompletableFuture<>(result);
@@ -179,8 +141,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(@NotNull Runnable command, long initialDelay, long period, @NotNull TimeUnit unit) {
-        preconditionCheck();
-
         if (period <= 0) {
             throw new IllegalArgumentException();
         }
@@ -191,8 +151,6 @@ public class UtExecutorService implements ExecutorService, ScheduledExecutorServ
     @NotNull
     @Override
     public ScheduledFuture<?> scheduleWithFixedDelay(@NotNull Runnable command, long initialDelay, long delay, @NotNull TimeUnit unit) {
-        preconditionCheck();
-
         if (delay <= 0) {
             throw new IllegalArgumentException();
         }

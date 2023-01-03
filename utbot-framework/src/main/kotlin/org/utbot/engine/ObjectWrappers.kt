@@ -75,6 +75,17 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(java.lang.Thread::class, utThreadClass)
         putSootClass(java.lang.ThreadGroup::class, utThreadGroupClass)
 
+        // executors, futures and latches
+        putSootClass(ExecutorService::class, utExecutorServiceClass)
+        putSootClass(ThreadPoolExecutor::class, utExecutorServiceClass)
+        putSootClass(ForkJoinPool::class, utExecutorServiceClass)
+        putSootClass(ScheduledThreadPoolExecutor::class, utExecutorServiceClass)
+        putSootClass(CountDownLatch::class, utCountDownLatchClass)
+        putSootClass(CompletableFuture::class, utCompletableFutureClass)
+        putSootClass(CompletionStage::class, utCompletableFutureClass)
+        // A hack to be able to create UtCompletableFuture in its methods as a wrapper
+        putSootClass(UtCompletableFuture::class, utCompletableFutureClass)
+
         putSootClass(RangeModifiableUnlimitedArray::class, RangeModifiableUnlimitedArrayWrapper::class)
         putSootClass(AssociativeArray::class, AssociativeArrayWrapper::class)
 
@@ -228,8 +239,12 @@ private val wrappers = mapOf(
     wrap(SecurityManager::class) { type, addr -> objectValue(type, addr, SecurityManagerWrapper()) },
 ).also {
     // check every `wrapped` class has a corresponding value in [classToWrapper]
-    it.keys.all { key ->
+    val missedWrappers = it.keys.filterNot { key ->
         Scene.v().getSootClass(key.name).type in classToWrapper.keys
+    }
+
+    require(missedWrappers.isEmpty()) {
+        "Missed wrappers for classes [${missedWrappers.joinToString(", ")}]"
     }
 }
 

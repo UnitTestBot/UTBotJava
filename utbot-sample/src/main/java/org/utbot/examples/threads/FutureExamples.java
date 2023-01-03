@@ -30,6 +30,8 @@ public class FutureExamples {
         return values.get(0);
     }
 
+    // NOTE: this tests looks similar as the test above BUT it is important to check correctness of the wrapper
+    // for CompletableFuture - an actions is executed regardless of invoking `get` method.
     @SuppressWarnings("unused")
     public int changingCollectionInFutureWithoutGet() {
         List<Integer> values = new ArrayList<>();

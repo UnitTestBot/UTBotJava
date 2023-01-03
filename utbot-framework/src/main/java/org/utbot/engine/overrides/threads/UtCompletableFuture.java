@@ -7,7 +7,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -17,31 +16,23 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
-import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
-public class UtCompletableFuture<T> implements Future<T>, ScheduledFuture<T>, CompletionStage<T> {
+public class UtCompletableFuture<T> implements ScheduledFuture<T>, CompletionStage<T> {
     T result;
 
     Throwable exception;
 
     public UtCompletableFuture(T result) {
-        visit(this);
         this.result = result;
     }
 
-    public UtCompletableFuture() {
-        visit(this);
-    }
+    public UtCompletableFuture() {}
 
     public UtCompletableFuture(Throwable exception) {
-        visit(this);
         this.exception = exception;
     }
 
     public UtCompletableFuture(UtCompletableFuture<T> future) {
-        visit(this);
-
         result = future.result;
         exception = future.exception;
     }
@@ -51,12 +42,7 @@ public class UtCompletableFuture<T> implements Future<T>, ScheduledFuture<T>, Co
     }
 
     public void preconditionCheck() {
-        if (alreadyVisited(this)) {
-            return;
-        }
         eqGenericType(result);
-
-        visit(this);
     }
 
     @Override

@@ -65,7 +65,10 @@ import soot.Type
  *
  * Note: [staticInitial] contains mapping from [FieldId] to the memory state at the moment of the field initialization.
  *
- * [fieldValues] stores symbolic values for specified fields of the specified object instances.
+ * [fieldValues] stores symbolic values for specified fields of the concrete object instances.
+ * We need to associate field of a concrete instance with the created symbolic value to not lose an information about its type.
+ * For example, if field's declared type is Runnable but at the current state it is a specific lambda,
+ * we have to save this lambda as a type of this field to be able to retrieve it in the future.
  *
  * @see memoryForNestedMethod
  * @see FieldStates

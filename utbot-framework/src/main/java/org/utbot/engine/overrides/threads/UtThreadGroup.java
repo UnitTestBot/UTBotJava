@@ -101,7 +101,7 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
             return;
         }
 
-        for (int i = 0 ; i < ngroups ; i++) {
+        for (int i = 0; i < ngroups; i++) {
             groups[i].setMaxPriority(pri);
         }
     }
@@ -199,11 +199,11 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
     public final void interrupt() {
         preconditionCheck();
 
-        for (int i = 0 ; i < nthreads ; i++) {
+        for (int i = 0; i < nthreads; i++) {
             threads[i].interrupt();
         }
 
-        for (int i = 0 ; i < ngroups ; i++) {
+        for (int i = 0; i < ngroups; i++) {
             groups[i].interrupt();
         }
     }
@@ -232,12 +232,12 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
             nthreads = 0;
             threads = null;
         }
-        for (int i = 0 ; i < ngroups ; i += 1) {
+        for (int i = 0; i < ngroups; i += 1) {
             groups[i].destroy();
         }
     }
 
-    private void add(ThreadGroup g){
+    private void add(ThreadGroup g) {
         preconditionCheck();
 
         if (destroyed) {
@@ -261,7 +261,7 @@ public class UtThreadGroup implements Thread.UncaughtExceptionHandler {
             return;
         }
 
-        for (int i = 0 ; i < ngroups ; i++) {
+        for (int i = 0; i < ngroups; i++) {
             if (groups[i] == g) {
                 ngroups -= 1;
                 System.arraycopy(groups, i + 1, groups, i, ngroups - i);

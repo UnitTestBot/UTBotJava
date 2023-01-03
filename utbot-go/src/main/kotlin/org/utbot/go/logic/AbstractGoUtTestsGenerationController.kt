@@ -13,7 +13,6 @@ abstract class AbstractGoUtTestsGenerationController {
         testsGenerationConfig: GoUtTestsGenerationConfig
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
-
         val analysisResults = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
             testsGenerationConfig.goExecutableAbsolutePath

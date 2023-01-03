@@ -8,6 +8,7 @@ import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import java.io.File
+import kotlin.system.measureTimeMillis
 
 val logger = KotlinLogging.logger {}
 
@@ -41,21 +42,26 @@ object GoFuzzedFunctionsExecutor {
             )
             fileToExecute.writeText(fileToExecuteGoCode)
 
-            logger.debug { "Executing function ${fuzzedFunction.function.name}" }
-            executeCommandByNewProcessOrFail(
-                runGeneratedGoExecutorTestCommand,
-                sourceFileDir,
-                "functions from $sourceFile",
-                StringBuilder().append("Try reducing the timeout for each function execution, ")
-                    .append("select fewer functions for test generation at the same time, ")
-                    .append("or handle corner cases in the source code. ")
-                    .append("Perhaps some functions are too resource-intensive.").toString()
-            )
-            logger.debug { "End executing function ${fuzzedFunction.function.name}" }
+            logger.debug { "Function execution [${fuzzedFunction.function.name}] - started" }
+            val totalExecutionTime = measureTimeMillis {
+                executeCommandByNewProcessOrFail(
+                    runGeneratedGoExecutorTestCommand,
+                    sourceFileDir,
+                    "functions from $sourceFile",
+                    StringBuilder().append("Try reducing the timeout for each function execution, ")
+                        .append("select fewer functions for test generation at the same time, ")
+                        .append("or handle corner cases in the source code. ")
+                        .append("Perhaps some functions are too resource-intensive.").toString()
+                )
+            }
+            logger.debug { "Function execution ${fuzzedFunction.function.name} - completed in $totalExecutionTime ms" }
 
-            logger.debug { "Start parsing execution result for function ${fuzzedFunction.function.name}" }
-            val rawExecutionResults = parseFromJsonOrFail<RawExecutionResults>(rawExecutionResultsFile)
-            logger.debug { "End parsing execution result for function ${fuzzedFunction.function.name}" }
+            logger.debug { "Parsing execution result for function ${fuzzedFunction.function.name} - started" }
+            var rawExecutionResults: RawExecutionResults
+            val totalParsingTime = measureTimeMillis {
+                rawExecutionResults = parseFromJsonOrFail(rawExecutionResultsFile)
+            }
+            logger.debug { "Parsing execution result for function ${fuzzedFunction.function.name} - completed in $totalParsingTime ms" }
 
             return convertRawExecutionResultToExecutionResult(
                 rawExecutionResults.results.first(),

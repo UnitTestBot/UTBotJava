@@ -201,9 +201,14 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
             val addr = UtAddrExpression(value)
 
             // Try to retrieve manually set type if present
-            val valueType = typeRegistry
-                .getTypeStoragesForObjectTypeParameters(wrapper.addr)
-                ?.singleOrNull()
+            val valueTypeFromGenerics = typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)
+
+            if (valueTypeFromGenerics != null && valueTypeFromGenerics.size > 1) {
+                error("Range modifiable wrapper must have only one type parameter, but it got ${valueTypeFromGenerics.size}")
+            }
+
+            val valueType = valueTypeFromGenerics
+                ?.single()
                 ?.leastCommonType
                 ?: OBJECT_TYPE
 
@@ -342,9 +347,16 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         // the constructed model to avoid infinite recursion below
         resolver.addConstructedModel(concreteAddr, resultModel)
 
+        val valueTypeStorageFromGenerics = resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)
+
+        if (valueTypeStorageFromGenerics != null && valueTypeStorageFromGenerics.size > 1) {
+            error("Range modifiable wrapper must have only one type parameter, but it got ${valueTypeStorageFromGenerics.size}")
+        }
+
         // try to retrieve type storage for the single type parameter
-        val typeStorage =
-            resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)?.singleOrNull() ?: TypeRegistry.objectTypeStorage
+        val typeStorage = valueTypeStorageFromGenerics
+            ?.single()
+            ?: TypeRegistry.objectTypeStorage
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
             val addr = UtAddrExpression(arrayExpression.select(mkInt(i + firstValue)))

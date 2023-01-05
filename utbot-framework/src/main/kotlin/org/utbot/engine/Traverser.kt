@@ -1365,7 +1365,45 @@ class Traverser(
                 possibleConcreteTypes
             )
         } else {
-            typeStoragePossiblyWithOverriddenTypes
+            if (addr.isThisAddr) {
+                val possibleTypes = typeStoragePossiblyWithOverriddenTypes.possibleConcreteTypes
+                val isTypeInappropriate = type.sootClass?.isInappropriate == true
+
+                // If we're trying to construct this instance and it has an inappropriate type,
+                // we won't be able to instantiate its instance in resulting tests.
+                // Therefore, we have to test one of its inheritors that does not override
+                // the method under test
+                if (isTypeInappropriate) {
+                    require(possibleTypes.isNotEmpty()) {
+                        "We do not support testing for abstract classes (or interfaces) without any non-abstract " +
+                                "inheritors (implementors). Probably, it'll be supported in the future."
+                    }
+
+                    val possibleTypesWithNonOverriddenMethod = possibleTypes
+                        .filterTo(mutableSetOf()) {
+                            val methods = (it as RefType).sootClass.methods
+                            methods.none { method ->
+                                val methodUnderTest = environment.method
+                                val parameterTypes = method.parameterTypes
+
+                                method.name == methodUnderTest.name && parameterTypes == methodUnderTest.parameterTypes
+                            }
+                        }
+
+                    require(possibleTypesWithNonOverriddenMethod.isNotEmpty()) {
+                        "There is no instantiatable inheritor of the class under test that does not override " +
+                                "a method given for testing"
+                    }
+
+                    TypeStorage.constructTypeStorageUnsafe(type, possibleTypesWithNonOverriddenMethod)
+                } else {
+                    // If we create a `this` instance and its type is instantiatable,
+                    // we should construct a type storage with single type
+                    TypeStorage.constructTypeStorageWithSingleType(type)
+                }
+            } else {
+                typeStoragePossiblyWithOverriddenTypes
+            }
         }
 
         val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
@@ -2238,7 +2276,7 @@ class Traverser(
                 if (type.sootClass.isEnum) {
                     createEnum(type, addr)
                 } else {
-                    createObject(addr, type, useConcreteType = addr.isThisAddr, mockInfoGenerator)
+                    createObject(addr, type, useConcreteType = false, mockInfoGenerator)
                 }
             }
             is VoidType -> voidValue

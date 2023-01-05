@@ -1,5 +1,6 @@
 package org.utbot.contest
 
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import java.io.File
 import java.io.FileInputStream
 import java.net.URLClassLoader
@@ -126,6 +127,7 @@ object Paths {
 @Suppress("unused")
 enum class Tool {
     UtBot {
+        @OptIn(ObsoleteCoroutinesApi::class)
         @Suppress("EXPERIMENTAL_API_USAGE")
         override fun run(
             project: ProjectToEstimate,
@@ -136,19 +138,17 @@ enum class Tool {
             statsForProject: StatsForProject,
             compiledTestDir: File,
             classFqn: String
-        ) {
+        ) = withUtContext(ContextManager.createNewContext(project.classloader)) {
             val classStats: StatsForClass = try {
-                withUtContext(ContextManager.createNewContext(project.classloader)) {
-                    runGeneration(
-                        project.name,
-                        cut,
-                        timeLimit,
-                        fuzzingRatio,
-                        project.sootClasspathString,
-                        runFromEstimator = true,
-                        methodNameFilter
-                    )
-                }
+                runGeneration(
+                    project.name,
+                    cut,
+                    timeLimit,
+                    fuzzingRatio,
+                    project.sootClasspathString,
+                    runFromEstimator = true,
+                    methodNameFilter
+                )
             } catch (e: CancellationException) {
                 logger.info { "[$classFqn] finished with CancellationException" }
                 return

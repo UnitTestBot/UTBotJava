@@ -865,11 +865,11 @@ open class ClassId @JvmOverloads constructor(
      * It is needed because [simpleName] for inner classes does not
      * take into account enclosing classes' names.
      */
-    open val simpleNameWithEnclosings: String
+    open val simpleNameWithEnclosingClasses: String
         get() {
             val clazz = jClass
             return if (clazz.isMemberClass) {
-                "${clazz.enclosingClass.id.simpleNameWithEnclosings}.$simpleName"
+                "${clazz.enclosingClass.id.simpleNameWithEnclosingClasses}.$simpleName"
             } else {
                 simpleName
             }
@@ -910,7 +910,7 @@ class BuiltinClassId(
     // set name manually only if it differs from canonical (e.g. for nested classes)
     name: String = canonicalName,
     // by default, we assume that the class is not a member class
-    override val simpleNameWithEnclosings: String = simpleName,
+    override val simpleNameWithEnclosingClasses: String = simpleName,
     override val isNullable: Boolean = false,
     isPublic: Boolean = true,
     isProtected: Boolean = false,

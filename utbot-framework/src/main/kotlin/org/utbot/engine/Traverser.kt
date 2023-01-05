@@ -1910,10 +1910,10 @@ class Traverser(
         with(simplificator) { simplifySymbolicValue(it) }
     }
 
-    private fun readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
+    private fun TraversalContext.readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
         val field = fieldRef.field
         val declaringClassType = field.declaringClass.type
-        val staticObject = findOrCreateStaticObject(declaringClassType)
+        val staticObject = resolveInstanceForField(fieldRef)
 
         val generator = (field.type as? RefType)?.let { refType ->
             UtMockInfoGenerator { mockAddr ->
@@ -3592,7 +3592,12 @@ class Traverser(
                 staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
                 fieldValuesUpdates.keys.removeAll { key -> key.fieldId == it.fieldId }
 
-                val value = createConst(it.type, it.name)
+                val generator = UtMockInfoGenerator { mockAddr ->
+                    val fieldId = FieldId(it.declaringClass.id, it.name)
+                    UtFieldMockInfo(it.type.classId, mockAddr, fieldId, ownerAddr = null)
+                }
+
+                val value = createConst(it.type, it.name, generator)
                 val valueToStore = if (value is ReferenceValue) {
                     value.addr
                 } else {

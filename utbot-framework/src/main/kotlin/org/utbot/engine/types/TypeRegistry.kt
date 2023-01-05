@@ -503,6 +503,11 @@ class TypeRegistry {
             val updatedTypes = typeStorage.possibleConcreteTypes.intersect(newTypeStorage.possibleConcreteTypes)
 
             // TODO should be really the least common type
+            // we have two type storages and know that one of them is subset of another one.
+            // Therefore, when we intersect them, we should chose correct least common type among them,
+            // but we don't do it here since it is not obvious, what is a correct way to do it.
+            // There is no access from here to typeResolver or Hierarchy, so it need to be
+            // reconsidered in the future, how to intersect type storages here or extract this function.
             TypeStorage.constructTypeStorageUnsafe(typeStorage.leastCommonType, updatedTypes)
         }
 
@@ -513,6 +518,19 @@ class TypeRegistry {
      * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
      */
     fun getTypeStoragesForObjectTypeParameters(addr: UtAddrExpression): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+
+    fun extractTypeStorageForObjectWithSingleTypeParameter(
+        addr: UtAddrExpression,
+        objectClassName: String
+    ): TypeStorage? {
+        val valueTypeFromGenerics = getTypeStoragesForObjectTypeParameters(addr)
+
+        if (valueTypeFromGenerics != null && valueTypeFromGenerics.size > 1) {
+            error("$objectClassName must have only one type parameter, but it got ${valueTypeFromGenerics.size}")
+        }
+
+        return valueTypeFromGenerics?.single()
+    }
 
     /**
      * Set types storages for [firstAddr]'s type parameters equal to type storages for [secondAddr]'s type parameters

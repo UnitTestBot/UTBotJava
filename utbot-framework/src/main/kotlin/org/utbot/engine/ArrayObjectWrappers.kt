@@ -201,14 +201,8 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
             val addr = UtAddrExpression(value)
 
             // Try to retrieve manually set type if present
-            val valueTypeFromGenerics = typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)
-
-            if (valueTypeFromGenerics != null && valueTypeFromGenerics.size > 1) {
-                error("Range modifiable wrapper must have only one type parameter, but it got ${valueTypeFromGenerics.size}")
-            }
-
-            val valueType = valueTypeFromGenerics
-                ?.single()
+            val valueType = typeRegistry
+                .extractSingleTypeParameterForRangeModifiableArray(wrapper.addr)
                 ?.leastCommonType
                 ?: OBJECT_TYPE
 
@@ -347,15 +341,10 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         // the constructed model to avoid infinite recursion below
         resolver.addConstructedModel(concreteAddr, resultModel)
 
-        val valueTypeStorageFromGenerics = resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)
-
-        if (valueTypeStorageFromGenerics != null && valueTypeStorageFromGenerics.size > 1) {
-            error("Range modifiable wrapper must have only one type parameter, but it got ${valueTypeStorageFromGenerics.size}")
-        }
-
         // try to retrieve type storage for the single type parameter
-        val typeStorage = valueTypeStorageFromGenerics
-            ?.single()
+        val typeStorage = resolver
+            .typeRegistry
+            .extractSingleTypeParameterForRangeModifiableArray(wrapper.addr)
             ?: TypeRegistry.objectTypeStorage
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
@@ -372,6 +361,9 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 
         return resultModel
     }
+
+    private fun TypeRegistry.extractSingleTypeParameterForRangeModifiableArray(addr: UtAddrExpression) =
+        extractTypeStorageForObjectWithSingleTypeParameter(addr, "Range modifiable array")
 
     companion object {
         internal val rangeModifiableArrayClass: SootClass

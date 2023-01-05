@@ -118,9 +118,8 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.fieldId
+import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
@@ -2119,11 +2118,8 @@ class Traverser(
 
             // We must have `runCatching` here since might be a situation when we do not have
             // such declaring class in a classpath, that might (but should not) lead to an exception
-            val jClass = field.declaringClass.id.jClass
-            val requiredField = generateSequence(jClass) { it.superclass }
-                .flatMap { it.declaredFields.asSequence() }
-                .singleOrNull { it.name == field.name && it.declaringClass.name == field.declaringClass.name }
-
+            val classId = field.declaringClass.id
+            val requiredField = classId.findFieldByIdOrNull(field.fieldId)
             val genericInfo = requiredField?.genericType as? ParameterizedType ?: return
 
             updateGenericTypeInfo(genericInfo, createdField)
@@ -2552,10 +2548,14 @@ class Traverser(
     ): List<InvocationTarget> {
         val visitor = solver.simplificator.axiomInstantiationVisitor
         val simplifiedAddr = instance.addr.accept(visitor)
+
         // UtIsExpression for object with address the same as instance.addr
-        val instanceOfConstraint = solver.assertions.singleOrNull {
-            it is UtIsExpression && it.addr == simplifiedAddr
-        } as? UtIsExpression
+        // If there are several such constraints, take the one with the least number of possible types
+        val instanceOfConstraint = solver.assertions
+            .filter { it is UtIsExpression && it.addr == simplifiedAddr }
+            .takeIf { it.isNotEmpty() }
+            ?.minBy { (it as UtIsExpression).typeStorage.possibleConcreteTypes.size } as? UtIsExpression
+
         // if we have UtIsExpression constraint for [instance], then find invocation targets
         // for possibleTypes from this constraints, instead of the type maintained by solver.
 
@@ -2565,6 +2565,9 @@ class Traverser(
         val types = instanceOfConstraint
             ?.typeStorage
             ?.possibleConcreteTypes
+            // we should take this constraint into consideration only if it has less
+            // possible types than our current object, otherwise, it doesn't add
+            // any helpful information
             ?.takeIf { it.size < instance.possibleConcreteTypes.size }
             ?: instance.possibleConcreteTypes
 
@@ -2703,21 +2706,14 @@ class Traverser(
         // If we have some method 'foo` and a method `bar(List<Integer>), and inside `foo`
         // there is an invocation `bar(object)`, this object must have information about
         // its `Integer` generic type.
-
-        // Note that we must have `runCatching` here since might be a situation when we do not have
-        // such declaring class in a classpath, that might (but should not) lead to an exception
         invocation.parameters.forEachIndexed { index, param ->
             if (param !is ReferenceValue) return@forEachIndexed
 
-            runCatching {
-                updateGenericTypeInfoFromMethod(method, param, parameterIndex = index + 1)
-            }
+            updateGenericTypeInfoFromMethod(method, param, parameterIndex = index + 1)
         }
 
         if (invocation.instance != null) {
-            runCatching {
-                updateGenericTypeInfoFromMethod(method, invocation.instance, parameterIndex = 0)
-            }
+            updateGenericTypeInfoFromMethod(method, invocation.instance, parameterIndex = 0)
         }
 
         /**

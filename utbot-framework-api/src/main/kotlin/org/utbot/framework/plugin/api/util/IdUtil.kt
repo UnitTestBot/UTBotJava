@@ -206,6 +206,12 @@ val ClassId.isKotlinFile: Boolean
         KotlinClassHeader.Kind.getById(it.kind) == KotlinClassHeader.Kind.FILE_FACADE
     } ?: false
 
+/**
+ * Returns [ClassId.simpleNameWithEnclosingClasses] with '.' replaced with '_' - to use it as a class name.
+ */
+val ClassId.nameWithEnclosingClassesAsContigousString: String
+    get() = simpleNameWithEnclosingClasses.replace('.', '_')
+
 val voidClassId = ClassId("void")
 val booleanClassId = ClassId("boolean")
 val byteClassId = ClassId("byte")

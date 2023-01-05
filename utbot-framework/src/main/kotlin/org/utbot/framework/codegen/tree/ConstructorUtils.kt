@@ -406,7 +406,7 @@ internal fun ClassId.utilMethodId(
 ): MethodId =
     BuiltinMethodId(this, name, returnType, arguments.toList(), isStatic = isStatic)
 
-fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosings)
+fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosingClasses)
 
 // Immutable collections utils
 

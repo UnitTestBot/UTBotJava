@@ -119,6 +119,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
@@ -256,8 +257,11 @@ class Traverser(
 
     /**
      * Contains information about the generic types used in the parameters of the method under test.
+     *
+     * Mutable set here is required since this object might be passed into several methods
+     * and get several piece of information about their parameterized types
      */
-    private val parameterAddrToGenericType = mutableMapOf<UtAddrExpression, ParameterizedType>()
+    private val instanceAddrToGenericType = mutableMapOf<UtAddrExpression, MutableSet<ParameterizedType>>()
 
     private val preferredCexInstanceCache = mutableMapOf<ObjectValue, MutableSet<SootField>>()
 
@@ -1036,7 +1040,8 @@ class Traverser(
 
                     if (createdValue is ReferenceValue) {
                         // Update generic type info for method under test' parameters
-                        updateGenericTypeInfo(identityRef, createdValue)
+                        val index = (identityRef as? ParameterRef)?.index?.plus(1) ?: 0
+                        updateGenericTypeInfoFromMethod(methodUnderTest, createdValue, index)
 
                         if (isNonNullable) {
                             queuedSymbolicStateUpdates += mkNot(
@@ -1087,81 +1092,94 @@ class Traverser(
         return UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(type.id, mockAddr) }
     }
 
+    private fun updateGenericTypeInfoFromMethod(method: ExecutableId, value: ReferenceValue, parameterIndex: Int) {
+        val type = extractParameterizedType(method, parameterIndex) as? ParameterizedType ?: return
+
+        updateGenericTypeInfo(type, value)
+    }
+
     /**
      * Stores information about the generic types used in the parameters of the method under test.
      */
-    private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
+    private fun updateGenericTypeInfo(type: ParameterizedType, value: ReferenceValue) {
+        val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
+            when (actualTypeArgument) {
+                is WildcardType -> {
+                    val upperBounds = actualTypeArgument.upperBounds
+                    val lowerBounds = actualTypeArgument.lowerBounds
+                    val allTypes = upperBounds + lowerBounds
+
+                    if (allTypes.any { it is GenericArrayType }) {
+                        val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
+                        TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
+                    }
+
+                    val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
+                    val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
+
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
+                }
+                is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
+                    val upperBounds = actualTypeArgument.bounds
+
+                    if (upperBounds.any { it is GenericArrayType }) {
+                        val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
+                        TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
+                    }
+
+                    val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
+
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
+                }
+                is GenericArrayType -> {
+                    // TODO bug with T[][], because there is no such time T JIRA:1446
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
+                }
+                is ParameterizedType, is Class<*> -> {
+                    val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
+
+                    typeResolver.constructTypeStorage(sootType, useConcreteType = false)
+                }
+                else -> error("Unsupported argument type ${actualTypeArgument::class}")
+            }
+        }
+
+        queuedSymbolicStateUpdates += typeRegistry
+            .genericTypeParameterConstraint(value.addr, typeStorages)
+            .asHardConstraint()
+
+        instanceAddrToGenericType.getOrPut(value.addr) { mutableSetOf() }.add(type)
+
+        typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
+    }
+
+    private fun extractParameterizedType(
+        method: ExecutableId,
+        index: Int
+    ): java.lang.reflect.Type? {
         // If we don't have access to methodUnderTest's jClass, the engine should not fail
         // We just won't update generic information for it
-        val callable = runCatching { methodUnderTest.executable }.getOrNull() ?: return
+        val callable = runCatching { method.executable }.getOrNull() ?: return null
 
-        val type = if (identityRef is ThisRef) {
+        val type = if (index == 0) {
             // TODO: for ThisRef both methods don't return parameterized type
-            if (methodUnderTest.isConstructor) {
+            if (method.isConstructor) {
                 callable.annotatedReturnType?.type
             } else {
                 callable.declaringClass // same as it was, but it isn't parametrized type
-                    ?: error("No instanceParameter for ${callable} found")
+                    ?: error("No instanceParameter for $callable found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
-                val index = (identityRef as ParameterRef).index
                 val valueParameters = callable.genericParameterTypes
 
-                if (index > valueParameters.lastIndex) return
-                valueParameters[index]
+                if (index - 1 > valueParameters.lastIndex) return null
+                valueParameters[index - 1]
             }
         }
 
-        if (type is ParameterizedType) {
-            val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
-                when (actualTypeArgument) {
-                    is WildcardType -> {
-                        val upperBounds = actualTypeArgument.upperBounds
-                        val lowerBounds = actualTypeArgument.lowerBounds
-                        val allTypes = upperBounds + lowerBounds
-
-                        if (allTypes.any { it is GenericArrayType }) {
-                            val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
-                            TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
-                        }
-
-                        val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
-                        val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
-
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
-                    }
-                    is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
-                        val upperBounds = actualTypeArgument.bounds
-
-                        if (upperBounds.any { it is GenericArrayType }) {
-                            val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
-                            TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
-                        }
-
-                        val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
-
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
-                    }
-                    is GenericArrayType -> {
-                        // TODO bug with T[][], because there is no such time T JIRA:1446
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
-                    }
-                    is ParameterizedType, is Class<*> -> {
-                        val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
-
-                        typeResolver.constructTypeStorage(sootType, useConcreteType = false)
-                    }
-                    else -> error("Unsupported argument type ${actualTypeArgument::class}")
-                }
-            }
-
-            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
-            parameterAddrToGenericType += value.addr to type
-
-            typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
-        }
+        return type
     }
 
     private fun TraversalContext.traverseIfStmt(current: JIfStmt) {
@@ -2084,7 +2102,28 @@ class Traverser(
             checkAndMarkLibraryFieldSpeculativelyNotNull(field, createdField)
         }
 
+        updateGenericInfoForField(createdField, field)
+
         return createdField
+    }
+
+    /**
+     * Updates generic info for provided [field] and [createdField] using
+     * type information. If [createdField] is not a reference value or
+     * if field's type is not a parameterized one, nothing will happen.
+     */
+    private fun updateGenericInfoForField(createdField: SymbolicValue, field: SootField) {
+        runCatching {
+            if (createdField !is ReferenceValue) return
+
+            // We must have `runCatching` here since might be a situation when we do not have
+            // such declaring class in a classpath, that might (but should not) lead to an exception
+            val classId = field.declaringClass.id
+            val requiredField = classId.findFieldByIdOrNull(field.fieldId)
+            val genericInfo = requiredField?.genericType as? ParameterizedType ?: return
+
+            updateGenericTypeInfo(genericInfo, createdField)
+        }
     }
 
     /**
@@ -2509,17 +2548,28 @@ class Traverser(
     ): List<InvocationTarget> {
         val visitor = solver.simplificator.axiomInstantiationVisitor
         val simplifiedAddr = instance.addr.accept(visitor)
+
         // UtIsExpression for object with address the same as instance.addr
-        val instanceOfConstraint = solver.assertions.singleOrNull {
-            it is UtIsExpression && it.addr == simplifiedAddr
-        } as? UtIsExpression
+        // If there are several such constraints, take the one with the least number of possible types
+        val instanceOfConstraint = solver.assertions
+            .filter { it is UtIsExpression && it.addr == simplifiedAddr }
+            .takeIf { it.isNotEmpty() }
+            ?.minBy { (it as UtIsExpression).typeStorage.possibleConcreteTypes.size } as? UtIsExpression
+
         // if we have UtIsExpression constraint for [instance], then find invocation targets
         // for possibleTypes from this constraints, instead of the type maintained by solver.
 
         // While using simplifications with RewritingVisitor, assertions can maintain types
         // for objects (especially objects with type equals to type parameter of generic)
         // better than engine.
-        val types = instanceOfConstraint?.typeStorage?.possibleConcreteTypes ?: instance.possibleConcreteTypes
+        val types = instanceOfConstraint
+            ?.typeStorage
+            ?.possibleConcreteTypes
+            // we should take this constraint into consideration only if it has less
+            // possible types than our current object, otherwise, it doesn't add
+            // any helpful information
+            ?.takeIf { it.size < instance.possibleConcreteTypes.size }
+            ?: instance.possibleConcreteTypes
 
         val allPossibleConcreteTypes = typeResolver
             .constructTypeStorage(instance.type, useConcreteType = false)
@@ -2650,6 +2700,22 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
+        val method = invocation.method.executableId
+
+        // This code is supposed to support generic information from signatures for nested methods.
+        // If we have some method 'foo` and a method `bar(List<Integer>), and inside `foo`
+        // there is an invocation `bar(object)`, this object must have information about
+        // its `Integer` generic type.
+        invocation.parameters.forEachIndexed { index, param ->
+            if (param !is ReferenceValue) return@forEachIndexed
+
+            updateGenericTypeInfoFromMethod(method, param, parameterIndex = index + 1)
+        }
+
+        if (invocation.instance != null) {
+            updateGenericTypeInfoFromMethod(method, invocation.instance, parameterIndex = 0)
+        }
+
         /**
          * First, check if there is override for the invocation itself, not for the targets.
          *
@@ -3469,16 +3535,13 @@ class Traverser(
         if (baseTypeAfterCast is RefType) {
             // Find parameterized type for the object if it is a parameter of the method under test and it has generic type
             val newAddr = addr.accept(solver.simplificator) as UtAddrExpression
-            val parameterizedType = when (newAddr.internal) {
-                is UtArraySelectExpression -> parameterAddrToGenericType[findTheMostNestedAddr(newAddr.internal)]
-                is UtBvConst -> parameterAddrToGenericType[newAddr]
+            val parameterizedTypes = when (newAddr.internal) {
+                is UtArraySelectExpression -> instanceAddrToGenericType[findTheMostNestedAddr(newAddr.internal)]
+                is UtBvConst -> instanceAddrToGenericType[newAddr]
                 else -> null
             }
 
-            if (parameterizedType != null) {
-                // Find all generics used in the type of the parameter and it's superclasses
-                // If we're trying to cast something related to the parameter and typeAfterCast is equal to one of the generic
-                // types used in it, don't throw ClassCastException
+            parameterizedTypes?.forEach { parameterizedType ->
                 val genericTypes = generateSequence(parameterizedType) { it.ownerType as? ParameterizedType }
                     .flatMapTo(mutableSetOf()) { it.actualTypeArguments.map { arg -> arg.typeName } }
 

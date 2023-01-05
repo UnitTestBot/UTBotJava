@@ -848,7 +848,7 @@ abstract class CgAbstractRenderer(
         if (!context.shouldOptimizeImports) return canonicalName
 
         // use simpleNameWithEnclosings instead of simpleName to consider nested classes case
-        return if (this.isAccessibleBySimpleName()) simpleNameWithEnclosings else canonicalName
+        return if (this.isAccessibleBySimpleName()) simpleNameWithEnclosingClasses else canonicalName
     }
 
     private fun renderClassPackage(element: CgClass) {

@@ -209,6 +209,11 @@ public class StringExamples {
         return buffer.toString();
     }
 
+    // This test checks StringBuilder can be correctly constructed
+    public void stringBuilderAsParameterExample(StringBuilder sb) {
+        UtMock.assume(sb != null);
+    }
+
     public String nullableStringBuffer(StringBuffer buffer, int i) {
         if (i >= 0) {
             buffer.append("Positive");

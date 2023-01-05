@@ -302,6 +302,15 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testStringBuilderAsParameterExample() {
+        check(
+            StringExamples::stringBuilderAsParameterExample,
+            eq(1),
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
+    }
+
+    @Test
     fun testNullableStringBuffer() {
         checkWithException(
             StringExamples::nullableStringBuffer,

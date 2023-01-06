@@ -157,7 +157,8 @@ fun setOptions() {
     Settings.defaultConcreteExecutorPoolSize = 1
     UtSettings.useFuzzing = true
     UtSettings.classfilesCanChange = false
-    UtSettings.useAssembleModelGenerator = false
+    // We need to use assemble model generator to increase readability
+    UtSettings.useAssembleModelGenerator = true
     UtSettings.enableSummariesGeneration = false
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true

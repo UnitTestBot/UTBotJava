@@ -505,6 +505,19 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * The behaviour of further analysis if tests generation cancellation is requested.
      */
     var cancellationStrategyType by getEnumProperty(CancellationStrategyType.SAVE_PROCESSED_RESULTS)
+
+    /**
+     * Depending on this option, <clinit> sections might be analyzed or not.
+     * Note that some clinit sections still will be initialized using runtime information.
+     */
+    var disableClinitSectionsAnalysis by getBooleanProperty(false)
+
+    /**
+     * Process all clinit sections concretely.
+     *
+     * If [disableClinitSectionsAnalysis] is true, it disables effect of this function as well.
+     */
+    var processAllClinitSectionsConcretely by getBooleanProperty(false)
 }
 
 /**

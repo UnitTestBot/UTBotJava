@@ -487,6 +487,14 @@ class Traverser(
             return processStaticFieldConcretely(fieldRef, stmt)
         }
 
+        if (UtSettings.disableClinitSectionsAnalysis) {
+            return false
+        }
+
+        if (UtSettings.processAllClinitSectionsConcretely) {
+            return processStaticFieldConcretely(fieldRef, stmt)
+        }
+
         val field = fieldRef.field
         val declaringClass = field.declaringClass
         val declaringClassId = declaringClass.id

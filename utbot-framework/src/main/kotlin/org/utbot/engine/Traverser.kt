@@ -3709,17 +3709,22 @@ class Traverser(
         val memory = symbolicState.memory
         val solver = symbolicState.solver
 
-        //no need to respect soft constraints in NestedMethod
-        val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
+        val inNestedMethod = environment.state.isInNestedMethod()
+        // we want to check implicit exception here since they are forks that cannot be seen on
+        // statements level and they are not covered by `isFork` method
+        if (!inNestedMethod || (symbolicResult as? SymbolicFailure)?.explicit == false) {
+            val holder = solver.check(respectSoft = !inNestedMethod)
 
-        if (holder !is UtSolverStatusSAT) {
-            logger.trace { "processResult<${environment.method.signature}> UNSAT" }
-            return
+            if (holder !is UtSolverStatusSAT) {
+                logger.trace { "processResult<${environment.method.signature}> UNSAT" }
+                return
+            }
         }
+
         val methodResult = MethodResult(symbolicResult)
 
         //execution frame from level 2 or above
-        if (environment.state.isInNestedMethod()) {
+        if (inNestedMethod) {
             // static fields substitution
             // TODO: JIRA:1610 -- better way of working with statics
             val updates = if (environment.method.name == STATIC_INITIALIZER && substituteStaticsWithSymbolicVariable) {

@@ -330,9 +330,18 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     }
 
     /**
-     * @return true if stmt has more than one outgoing edge
+     * @return true if stmt has more than one meaningful unexceptional outgoing edge (do not include
+     * edges from the stmt to body if it is an invocation expr)
      */
-    fun isFork(stmt: Stmt): Boolean = (outgoingEdgesCount[stmt] ?: 0) > 1
+    fun isFork(stmt: Stmt): Boolean {
+        val outgoingEdges = unexceptionalSuccs[stmt]?.size ?: 0
+
+        return if (stmt.containsInvokeExpr()) {
+            outgoingEdges > 2
+        } else {
+            outgoingEdges > 1
+        }
+    }
 
     private fun methodByStmt(stmt: Stmt) = stmtToGraph.getValue(stmt).body.method
 }

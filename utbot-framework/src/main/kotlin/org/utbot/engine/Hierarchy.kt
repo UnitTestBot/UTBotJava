@@ -36,7 +36,12 @@ class Hierarchy(private val typeRegistry: TypeRegistry) {
         // Since wrapper UtThread does not inherit java.lang.Thread, we cannot use this inheritance condition only.
         // The possible presence of hidden field is not important here - we just need
         // to know whether we have at least one such field.
-        val realTypeHasFieldByName = realType.sootClass.getFieldUnsafe(field.subSignature) != null
+
+        // NOTE: we cannot use `getFieldByNameUnsafe` here because of possible hidden fields presence, and we also
+        // cannot use `ClassId::hasField` here because it use classloader to check it but we cannot load our wrappers.
+        // Also, we cannot `getFieldUnsafe` by signature of field, because, for example, `threadLocals` field in `UtThread`
+        // is declared with `Object` type since its real type is package-private.
+        val realTypeHasFieldByName = realType.sootClass.fields.any { it.name == field.name }
         val realTypeIsInheritor = realFieldDeclaringType.sootClass in ancestors(realType.sootClass.id)
 
         if (!realTypeIsInheritor && !realTypeHasFieldByName) {

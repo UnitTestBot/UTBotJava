@@ -587,9 +587,9 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
             between(5..7),
             { s, _, _ -> s == null },
             { s, find, _ -> s != null && find == null },
-            { s, find, r -> r == s.lastIndexOf(find) && r == s.length - find.length },
-            { s, find, r -> r == s.lastIndexOf(find) && r < s.length - find.length },
-            { s, find, r -> r == s.lastIndexOf(find) && r == -1 },
+            { s, find, r -> r == StringExamples().lastIndexOf(s, find) && r < s.length - find.length },
+            { s, find, r -> r == StringExamples().lastIndexOf(s, find) && r >= 0 && r >= s.length - find.length },
+            { s, find, r -> r == StringExamples().lastIndexOf(s, find) && r == -1 && r >= s.length - find.length },
         )
     }
 

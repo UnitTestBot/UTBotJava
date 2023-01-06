@@ -8,7 +8,6 @@ import (
 
 type Visitor struct {
 	counter         int
-	functionName    string
 	newFunctionName string
 }
 
@@ -100,10 +99,6 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 		ast.Walk(v, n.Comm)
 		n.Body = v.addLinesWithLoggingInTraceBeforeFirstReturnStatement(n.Body)
 		return nil
-	case *ast.CallExpr:
-		if name, ok := n.Fun.(*ast.Ident); ok && name.Name == v.functionName {
-			n.Fun = ast.NewIdent(v.newFunctionName)
-		}
 	}
 	return v
 }

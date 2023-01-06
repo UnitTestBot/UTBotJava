@@ -227,7 +227,6 @@ func collectTargetAnalyzedFunctions(fset *token.FileSet, info *types.Info, targe
 
 			visitor := Visitor{
 				counter:         0,
-				functionName:    analyzedFunction.Name,
 				newFunctionName: analyzedFunction.ModifiedName,
 			}
 			ast.Walk(&visitor, funcDecl)

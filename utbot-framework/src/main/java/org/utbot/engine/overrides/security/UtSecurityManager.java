@@ -1,5 +1,7 @@
 package org.utbot.engine.overrides.security;
 
+import org.utbot.api.mock.UtMock;
+
 import java.security.Permission;
 
 /**
@@ -12,5 +14,9 @@ public class UtSecurityManager {
 
     public void checkPackageAccess(String pkg) {
         // Do nothing to allow everything
+    }
+
+    public ThreadGroup getThreadGroup() {
+        return new ThreadGroup(UtMock.makeSymbolic());
     }
 }

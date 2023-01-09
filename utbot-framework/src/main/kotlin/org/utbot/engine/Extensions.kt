@@ -178,10 +178,10 @@ val SootClass.isAppropriate
     get() = !isInappropriate
 
 /**
- * Returns true if the class is abstract, interface, local or if the class has UtClassMock annotation, false otherwise.
+ * Returns true if the class is abstract, interface, or if the class has UtClassMock annotation, false otherwise.
  */
 val SootClass.isInappropriate
-    get() = isAbstract || isInterface || isLocal || findMockAnnotationOrNull != null
+    get() = isAbstract || isInterface || findMockAnnotationOrNull != null
 
 private val isLocalRegex = ".*\\$\\d+[\\p{L}\\p{M}0-9][\\p{L}\\p{M}0-9]*".toRegex()
 

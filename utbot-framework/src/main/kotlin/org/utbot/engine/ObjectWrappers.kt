@@ -21,12 +21,12 @@ import org.utbot.engine.overrides.security.UtSecurityManager
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
+import org.utbot.engine.overrides.threads.UtCompletableFuture
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.id
@@ -40,9 +40,15 @@ import java.util.Optional
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import java.util.OptionalLong
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionStage
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.ThreadPoolExecutor
 import kotlin.reflect.KClass
-import kotlin.reflect.KFunction4
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -64,6 +70,21 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(OptionalInt::class, UT_OPTIONAL_INT.className)
         putSootClass(OptionalLong::class, UT_OPTIONAL_LONG.className)
         putSootClass(OptionalDouble::class, UT_OPTIONAL_DOUBLE.className)
+
+        // threads
+        putSootClass(java.lang.Thread::class, utThreadClass)
+        putSootClass(java.lang.ThreadGroup::class, utThreadGroupClass)
+
+        // executors, futures and latches
+        putSootClass(ExecutorService::class, utExecutorServiceClass)
+        putSootClass(ThreadPoolExecutor::class, utExecutorServiceClass)
+        putSootClass(ForkJoinPool::class, utExecutorServiceClass)
+        putSootClass(ScheduledThreadPoolExecutor::class, utExecutorServiceClass)
+        putSootClass(CountDownLatch::class, utCountDownLatchClass)
+        putSootClass(CompletableFuture::class, utCompletableFutureClass)
+        putSootClass(CompletionStage::class, utCompletableFutureClass)
+        // A hack to be able to create UtCompletableFuture in its methods as a wrapper
+        putSootClass(UtCompletableFuture::class, utCompletableFutureClass)
 
         putSootClass(RangeModifiableUnlimitedArray::class, RangeModifiableUnlimitedArrayWrapper::class)
         putSootClass(AssociativeArray::class, AssociativeArrayWrapper::class)
@@ -146,6 +167,19 @@ private val wrappers = mapOf(
     wrap(OptionalLong::class) { type, addr -> objectValue(type, addr, OptionalWrapper(UT_OPTIONAL_LONG)) },
     wrap(OptionalDouble::class) { type, addr -> objectValue(type, addr, OptionalWrapper(UT_OPTIONAL_DOUBLE)) },
 
+    // threads
+    wrap(Thread::class) { type, addr -> objectValue(type, addr, ThreadWrapper()) },
+    wrap(ThreadGroup::class) { type, addr -> objectValue(type, addr, ThreadGroupWrapper()) },
+    wrap(ExecutorService::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(ThreadPoolExecutor::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(ForkJoinPool::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(ScheduledThreadPoolExecutor::class) { type, addr -> objectValue(type, addr, ExecutorServiceWrapper()) },
+    wrap(CountDownLatch::class) { type, addr -> objectValue(type, addr, CountDownLatchWrapper()) },
+    wrap(CompletableFuture::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
+    wrap(CompletionStage::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
+    // A hack to be able to create UtCompletableFuture in its methods as a wrapper
+    wrap(UtCompletableFuture::class) { type, addr -> objectValue(type, addr, CompletableFutureWrapper()) },
+
     wrap(RangeModifiableUnlimitedArray::class) { type, addr ->
         objectValue(type, addr, RangeModifiableUnlimitedArrayWrapper())
     },
@@ -205,8 +239,12 @@ private val wrappers = mapOf(
     wrap(SecurityManager::class) { type, addr -> objectValue(type, addr, SecurityManagerWrapper()) },
 ).also {
     // check every `wrapped` class has a corresponding value in [classToWrapper]
-    it.keys.all { key ->
+    val missedWrappers = it.keys.filterNot { key ->
         Scene.v().getSootClass(key.name).type in classToWrapper.keys
+    }
+
+    require(missedWrappers.isEmpty()) {
+        "Missed wrappers for classes [${missedWrappers.joinToString(", ")}]"
     }
 }
 
@@ -250,14 +288,14 @@ interface WrapperInterface {
      * value of `select` operation. For example, for arrays and lists it's zero,
      * for associative array it's one.
      */
-    open val selectOperationTypeIndex: Int
+    val selectOperationTypeIndex: Int
         get() = 0
 
     /**
      * Similar to [selectOperationTypeIndex], it is responsible for type index
      * of the returning value from `get` operation
      */
-    open val getOperationTypeIndex: Int
+    val getOperationTypeIndex: Int
         get() = 0
 }
 

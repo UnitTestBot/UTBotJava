@@ -310,8 +310,7 @@ open class TestCaseGenerator(
         private val halfTimeUserExpectsToWaitInMillis = userTimeout / 2
 
         // If the half is too much for concrete execution, decrease the concrete timeout
-        var concreteExecutionBudgetInMillis =
-            min(halfTimeUserExpectsToWaitInMillis, 300L * methodsUnderTestNumber)
+        val concreteExecutionBudgetInMillis = min(halfTimeUserExpectsToWaitInMillis, 300L * methodsUnderTestNumber)
 
         // The symbolic execution time is the reminder but not longer than checkSolverTimeoutMillis times methods number
         val symbolicExecutionTimeout = userTimeout - concreteExecutionBudgetInMillis
@@ -326,14 +325,6 @@ open class TestCaseGenerator(
         // Now we calculate the solver timeout. Each method is supposed to get some time in worst-case scenario
         val updatedSolverCheckTimeoutMillis = if (symbolicExecutionTimePerMethod < checkSolverTimeoutMillis)
             symbolicExecutionTimePerMethod else checkSolverTimeoutMillis
-
-        init {
-            // Update the concrete execution time, if symbolic execution time is small
-            // because of UtSettings.checkSolverTimeoutMillis
-            concreteExecutionBudgetInMillis = userTimeout - symbolicExecutionTimeout
-            require(symbolicExecutionTimeout > 10)
-            require(concreteExecutionBudgetInMillis > 10)
-        }
     }
 
     private fun updateLifecycle(

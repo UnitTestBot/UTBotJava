@@ -86,7 +86,6 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
                 name.name
             else
                 name.prefix.joinToString() + "." + name.name
-
         val params = getAnnotationParameters(type)
         if (params.isEmpty())
             return root
@@ -97,7 +96,7 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
 sealed class PythonCompositeTypeDescription(
     name: Name,
     private val memberNames: List<String>
-) : PythonTypeDescription(name) {
+): PythonTypeDescription(name) {
     override fun castToCompatibleTypeApi(type: Type): CompositeType {
         return type as? CompositeType
             ?: error("Got unexpected type PythonCompositeTypeDescription: $type")
@@ -246,7 +245,7 @@ class PythonCallableTypeDescription(
         val functionType = castToCompatibleTypeApi(type)
         val root = name.prefix.joinToString(".") + "." + name.name
         return "$root[[${
-            functionType.arguments.joinToString(separator = ".") { it.pythonTypeRepresentation() }
+            functionType.arguments.joinToString(separator = ", ") { it.pythonTypeRepresentation() }
         }], ${functionType.returnValue.pythonTypeRepresentation()}]"
     }
 }
@@ -281,7 +280,9 @@ object PythonUnionTypeDescription : PythonSpecialAnnotation(pythonUnionName) {
 
 object PythonOverloadTypeDescription : PythonSpecialAnnotation(overloadName) {
     override fun getAnnotationParameters(type: Type): List<Type> = type.parameters
-    // TODO: override getMemberByName
+    override fun getNamedMembers(type: Type): List<PythonAttribute> {
+        return listOf(PythonAttribute("__call__", type))
+    }
 }
 
 object PythonTupleTypeDescription : PythonSpecialAnnotation(pythonTupleName) {

@@ -10,9 +10,7 @@ import org.utbot.python.newtyping.inference.collectBoundsFromEdges
 
 private val logger = KotlinLogging.logger {}
 
-class TypeRating(
-    scores: List<Pair<Type, Double>>
-) {
+class TypeRating(scores: List<Pair<Type, Double>>) {
     val typesInOrder: List<Pair<Double, Type>> = scores.map { Pair(it.second, it.first) }.sortedBy { -it.first }
     val types: List<Type> = typesInOrder.map { it.second }
 }
@@ -24,8 +22,7 @@ data class TypeRatingPosition(
     val hasNext: Boolean
         get() = pos < typeRating.types.size - 1
     val curPenalty: Double
-        get() =
-            if (pos == 0) 0.0 else typeRating.typesInOrder[pos - 1].first - typeRating.typesInOrder.first().first
+        get() = typeRating.typesInOrder.first().first - typeRating.typesInOrder[pos].first
     val type: Type
         get() = typeRating.types[pos]
 

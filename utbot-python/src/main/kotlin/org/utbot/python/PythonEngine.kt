@@ -31,8 +31,6 @@ import org.utbot.python.newtyping.general.Type
 import org.utbot.python.providers.PythonFuzzedMethodDescription
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
-import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
-import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.lang.Long.max
 
@@ -59,23 +57,23 @@ class PythonEngine(
     )
 
     private fun suggestExecutionName(
-        methodUnderTestDescription: FuzzedMethodDescription,
+        description: FuzzedMethodDescription,
         jobResult: JobResult,
         executionResult: UtExecutionResult
-    ): TestSuggestedInfo? {
-        val nameSuggester = sequenceOf(
-            ModelBasedNameSuggester(),
-            MethodBasedNameSuggester()
-        )
-
-        val testMethodName = try {
-            nameSuggester
-                .flatMap { it.suggest(methodUnderTestDescription, jobResult.values, executionResult) }
-                .firstOrNull()
-        } catch (t: Throwable) {
-            null
+    ): TestSuggestedInfo {
+        val testSuffix = when (executionResult) {
+            is UtExecutionSuccess -> {
+                // can be improved
+                description.name
+            }
+            is UtExplicitlyThrownException -> "${description.name}_with_exception"
+            else -> description.name
         }
-        return testMethodName
+        val testName = "test_$testSuffix"
+        return TestSuggestedInfo(
+            testName,
+            testName,
+        )
     }
 
     private fun createEvaluationInputIterator(
@@ -152,8 +150,8 @@ class PythonEngine(
             stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
             result = executionResult,
             coverage = coverage,
-            testMethodName = testMethodName?.testName?.camelToSnakeCase(),
-            displayName = testMethodName?.displayName,
+            testMethodName = testMethodName.testName?.camelToSnakeCase(),
+            displayName = testMethodName.displayName,
         )
     }
 
@@ -207,8 +205,8 @@ class PythonEngine(
             stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
             result = executionResult,
             coverage = coverage,
-            testMethodName = testMethodName?.testName?.camelToSnakeCase(),
-            displayName = testMethodName?.displayName,
+            testMethodName = testMethodName.testName?.camelToSnakeCase(),
+            displayName = testMethodName.displayName,
             summary = summary.map { DocRegularStmt(it) }
         )
     }

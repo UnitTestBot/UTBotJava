@@ -518,12 +518,15 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             // in case arg type exactly equals target type, do nothing
             if (arg.type == targetType) return@map arg
 
-            // arg type is subtype of target type
-            // check other overloads for ambiguous types
-            val typesInOverloadings = ambiguousOverloads.map { it.parameters[i] }
-            val ancestors = typesInOverloadings.filter { arg.type.isSubtypeOf(it) }
+            // if we are here, arg type is a subtype of target type
+            // we should check other overloads for ambiguous types
+            val anotherTypesInOverloadings = ambiguousOverloads
+                .map { it.parameters[i] }
+                .filter { arg.type.isSubtypeOf(it) }
+                .filterNot { it == targetType }
+                .isNotEmpty()
 
-            if (ancestors.isNotEmpty()) typeCast(targetType, arg) else arg
+            if (anotherTypesInOverloadings) typeCast(targetType, arg) else arg
         }
 
     /**

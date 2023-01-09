@@ -35,15 +35,18 @@ class CreateProjects : UTBotTest() {
         val ideaFrame = getIdeaFrameForSpecificBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
             waitProjectIsCreated()
+            waitFor(Duration.ofSeconds(200)){
+                !isDumbMode()
+            }
             expandProjectTree(projectName)
             callUnitTestBotActionOn("Main")
-            waitFor (Duration.ofSeconds(30)){
+            waitFor(Duration.ofSeconds(100)) {
                 inlineProgressTextPanel.isShowing
             }
-            waitFor (Duration.ofSeconds(10)){
+            waitFor(Duration.ofSeconds(100)) {
                 inlineProgressTextPanel.hasText("Generate tests: read classes")
             }
-            waitFor (Duration.ofSeconds(10)){
+            waitFor(Duration.ofSeconds(100)) {
                 inlineProgressTextPanel.hasText("Generate test cases for class Main")
             }
             Assertions.assertThat(infoNotification.title.hasText("UTBot: unit tests generated successfully")).isTrue

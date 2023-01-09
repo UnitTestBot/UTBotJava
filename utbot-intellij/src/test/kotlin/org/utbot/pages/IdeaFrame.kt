@@ -106,6 +106,7 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
 
     fun callUnitTestBotActionOn(classname: String) {
         step("Call UnitTestBot action") {
+            waitFor(ofSeconds(200)) { !isDumbMode() }
             with(projectViewTree) {
                 findText(classname).click(MouseButton.RIGHT_BUTTON)
             }

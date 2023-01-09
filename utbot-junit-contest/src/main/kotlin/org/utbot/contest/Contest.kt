@@ -60,6 +60,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.util.isSynthetic
 
 internal const val junitVersion = 4
@@ -223,7 +224,8 @@ fun runGeneration(
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
-            generateWarningsForStaticMocking = false
+            generateWarningsForStaticMocking = false,
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
         )
 
     logger.info().bracket("class ${cut.fqn}", { statsForClass }) {

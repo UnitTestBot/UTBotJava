@@ -43,3 +43,13 @@ func_for_R(RImpl())
 
 
 a: List[int] = []
+
+
+T = TypeVar('T')
+
+
+def func_abs(x: SupportsAbs[T]):
+    return abs(x)
+
+
+b: int = 10

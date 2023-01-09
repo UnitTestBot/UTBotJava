@@ -13,7 +13,8 @@ import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.PythonTypeDescription
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.FunctionTypeCreator
-import org.utbot.python.newtyping.runmypy.RunMypy
+import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
@@ -65,8 +66,8 @@ object PythonTestCaseGenerator {
     }
 
     private fun newGenerate(method: PythonMethod): PythonTestSet {
-        val mypyConfigFile = RunMypy.setConfigFile(directoriesForSysPath)
-        val (storage, _) = RunMypy.readMypyAnnotationStorageAndInitialErrors(
+        val mypyConfigFile = setConfigFile(directoriesForSysPath)
+        val (storage, _) = readMypyAnnotationStorageAndInitialErrors(
             pythonPath,
             method.moduleFilename,
             mypyConfigFile

@@ -1111,7 +1111,8 @@ class Traverser(
 
                     if (allTypes.any { it is GenericArrayType }) {
                         val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
-                        TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
+                        logger.warn { "we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446" }
+                        return
                     }
 
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
@@ -1124,7 +1125,8 @@ class Traverser(
 
                     if (upperBounds.any { it is GenericArrayType }) {
                         val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
-                        TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
+                        logger.warn { "we do not support GenericArrayType yet, and $errorTypes found. SAT-1446" }
+                        return
                     }
 
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)

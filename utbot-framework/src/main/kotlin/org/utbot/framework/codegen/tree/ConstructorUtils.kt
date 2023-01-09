@@ -408,6 +408,7 @@ internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequen
         is ConstructorId -> allConstructors
     }
 
+    // We should take here not only declared methods but also inherited
     return allExecutables.filter {
         it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size
     }

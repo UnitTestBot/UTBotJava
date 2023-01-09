@@ -101,6 +101,7 @@ import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
+import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
 
 // hack
 const val MAX_LIST_SIZE = 10

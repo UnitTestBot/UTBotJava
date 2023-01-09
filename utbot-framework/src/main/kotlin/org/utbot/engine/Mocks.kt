@@ -11,7 +11,6 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.util.executableId
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KFunction2
@@ -20,7 +19,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
-import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
 import soot.Scene

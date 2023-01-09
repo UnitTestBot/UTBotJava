@@ -1,9 +1,10 @@
-package org.utbot.framework.concrete
+package org.utbot.framework.util
 
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import java.util.IdentityHashMap
 
 private fun UtConcreteExecutionResult.updateWithAssembleModels(

@@ -1,6 +1,6 @@
 package org.utbot.framework.plugin.api.utils
 
-import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.MockFramework
 import java.io.File
 import java.util.jar.JarFile

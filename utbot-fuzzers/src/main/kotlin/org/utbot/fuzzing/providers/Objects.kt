@@ -104,18 +104,6 @@ class ObjectValueProvider(
                 || (type.isInner && !type.isStatic)
     }
 
-    private fun isAccessible(member: Member, packageName: String?): Boolean {
-        return Modifier.isPublic(member.modifiers) ||
-                (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
-    }
-
-    private fun isPackagePrivate(modifiers: Int): Boolean {
-        val hasAnyAccessModifier = Modifier.isPrivate(modifiers)
-                || Modifier.isProtected(modifiers)
-                || Modifier.isProtected(modifiers)
-        return !hasAnyAccessModifier
-    }
-
     private fun findTypesOfNonRecursiveConstructor(type: FuzzedType, packageName: String?): List<ConstructorId> {
         return type.classId.allConstructors
             .filter { isAccessible(it.constructor, packageName) }
@@ -186,16 +174,22 @@ internal fun Class<*>.findPublicSetterGetterIfHasPublicGetter(field: Field, pack
     }
 }
 
-
-
 internal fun isAccessible(member: Member, packageName: String?): Boolean {
+    var clazz = member.declaringClass
+    while (clazz != null) {
+        if (!isAccessible(clazz, packageName)) return false
+        clazz = clazz.enclosingClass
+    }
     return Modifier.isPublic(member.modifiers) ||
-            (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
+            (packageName != null && isNotPrivateOrProtected(member.modifiers) && member.declaringClass.`package`?.name == packageName)
 }
 
-internal fun isPackagePrivate(modifiers: Int): Boolean {
-    val hasAnyAccessModifier = Modifier.isPrivate(modifiers)
-            || Modifier.isProtected(modifiers)
-            || Modifier.isProtected(modifiers)
+internal fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
+    return Modifier.isPublic(clazz.modifiers) ||
+            (packageName != null && isNotPrivateOrProtected(clazz.modifiers) && clazz.declaringClass.`package`?.name == packageName)
+}
+
+private fun isNotPrivateOrProtected(modifiers: Int): Boolean {
+    val hasAnyAccessModifier = Modifier.isPrivate(modifiers) || Modifier.isProtected(modifiers)
     return !hasAnyAccessModifier
 }

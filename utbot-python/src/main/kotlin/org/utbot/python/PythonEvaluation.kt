@@ -99,7 +99,7 @@ fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>, input:
                 it.toLong()
             )
         },
-        instructionsCount = null,
+        instructionsCount = statements.size.toLong(),
         missedInstructions = missedStatements.map {
             Instruction(
                 input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,

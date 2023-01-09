@@ -37,7 +37,6 @@ import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
-const val CHUNK_SIZE = 15
 const val TIMEOUT: Long = 10
 
 class PythonEngine(
@@ -226,8 +225,8 @@ class PythonEngine(
             pythonTypeStorage!!,
         )
 
-        var coverageLimit = 15
         val coveredLines = initialCoveredLines.toMutableSet()
+        var sourceLinesCount = Long.MAX_VALUE
 
         PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
             if (isCancelled() || System.currentTimeMillis() >= until) {
@@ -240,8 +239,7 @@ class PythonEngine(
             }
             val summary =
                 arguments.zip(methodUnderTest.arguments)
-                    .map { it.first.summary?.replace("%var%", it.second.name) }
-                    .filterNotNull()
+                    .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)
@@ -262,7 +260,6 @@ class PythonEngine(
                 additionalModules
             )
 
-            val coveredBefore = coveredLines.size
             val process = startEvaluationProcess(evaluationInput)
             val startedTime = System.currentTimeMillis()
             val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
@@ -294,6 +291,11 @@ class PythonEngine(
 
                 is PythonEvaluationSuccess -> {
                     evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+                    val instructionsCount = evaluationResult.coverage.instructionsCount
+                    if (instructionsCount != null) {
+                        sourceLinesCount = instructionsCount
+                    }
+
                     emit(
                         handleSuccessResultNew(parameters, evaluationResult, description, jobResult, summary)
                     )
@@ -306,13 +308,9 @@ class PythonEngine(
                 }
             }
 
-            val coveredAfter = coveredLines.size
-
-            if (coveredAfter == coveredBefore)
-                coverageLimit -= 1
-
-//            if (coverageLimit == 0)
-//                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+            if (coveredLines.size.toLong() == sourceLinesCount) {
+                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+            }
 
             return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
 

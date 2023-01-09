@@ -24,22 +24,27 @@ object ConstantValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMeth
         val storage = PythonTypesStorage.getTypesFromJsonStorage()
         val meta = type.meta
 
-        val constants =
-            if (meta is PythonConcreteCompositeTypeDescription)
-                storage.getValue(meta.name.toString()).instances
-            else
-                storage.values.flatMap { it.instances }
-
-        constants.forEach {
-            yield(Seed.Simple(
-                PythonFuzzedValue(
-                    PythonTree.PrimitiveNode(
-                        PythonClassId(it),
-                        it
-                    ),
-                    "%var% = $it"
-                )
-            ))
+        storage.values.forEach { values ->
+            val constants = if (meta is PythonConcreteCompositeTypeDescription) {
+                if (values.name == meta.name.toString()) {
+                    values.instances
+                } else {
+                    emptyList()
+                }
+            } else {
+                values.instances
+            }
+            constants.forEach {
+                yield(Seed.Simple(
+                    PythonFuzzedValue(
+                        PythonTree.PrimitiveNode(
+                            PythonClassId(values.name),
+                            it
+                        ),
+                        "%var% = $it"
+                    )
+                ))
+            }
         }
     }
 }

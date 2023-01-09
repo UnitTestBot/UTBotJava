@@ -14,7 +14,7 @@ class IdeaGradleFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent
 
     override fun waitProjectIsCreated() {
         super.waitProjectIsOpened()
-        waitFor(ofSeconds(30)) {
+        waitFor(ofSeconds(20)) {
             buildResult.retrieveData().textDataList.toString().contains("BUILD SUCCESSFUL")
         }
     }

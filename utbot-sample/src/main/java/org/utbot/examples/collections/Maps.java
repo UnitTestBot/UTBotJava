@@ -301,6 +301,7 @@ public class Maps {
 
         return map;
     }
+
     public Map<WorkDays, Integer> createMapWithEnum() {
         Map<WorkDays, Integer> map = new HashMap<>();
         map.put(WorkDays.Monday, 112);

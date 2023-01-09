@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzing.samples.DeepNested
 import org.utbot.fuzzer.FuzzedType
+import org.utbot.fuzzing.samples.AccessibleObjects
 import org.utbot.fuzzing.samples.Stubs
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.GenericArrayType
@@ -22,23 +23,24 @@ class JavaFuzzingTest {
 
     @Test
     fun `fuzzing doesn't throw an exception when type is unknown`() {
-        assertDoesNotThrow {
-            runBlockingWithContext {
-                runJavaFuzzing(
-                    TestIdentityPreservingIdGenerator,
-                    methodUnderTest = MethodId(
-                        DeepNested.Nested1.Nested2::class.id,
-                        "f",
-                        intClassId,
-                        listOf(intClassId)
-                    ),
-                    constants = emptyList(),
-                    names = emptyList(),
-                ) { _, _, _ ->
-                    fail("This method is never called")
-                }
+        var count = 0
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = MethodId(
+                    DeepNested.Nested1.Nested2::class.id,
+                    "f",
+                    intClassId,
+                    listOf(intClassId)
+                ),
+                constants = emptyList(),
+                names = emptyList(),
+            ) { _, _, _ ->
+                count += 1
+                BaseFeedback(Trie.emptyNode(), Control.STOP)
             }
         }
+        assertEquals(0, count)
     }
 
     @Test
@@ -193,6 +195,23 @@ class JavaFuzzingTest {
             assertTrue(genericOfListC.generics[0].generics[0] === typeListA) { "Generic of C must lead to type A" }
 
         }
+    }
+
+    @Test
+    fun `fuzzing should not generate values of private classes`() {
+        var exec = 0
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = AccessibleObjects::class.java.declaredMethods.first { it.name == "test" }.executableId,
+                constants = emptyList(),
+                names = emptyList(),
+            ) { _, _, _ ->
+                exec += 1
+                BaseFeedback(Trie.emptyNode(), Control.STOP)
+            }
+        }
+        assertEquals(0, exec) { "Fuzzer should not create any values of private classes" }
     }
 
     private fun <T> runBlockingWithContext(block: suspend () -> T) : T {

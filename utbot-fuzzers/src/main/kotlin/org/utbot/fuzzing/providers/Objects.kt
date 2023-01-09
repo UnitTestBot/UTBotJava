@@ -105,8 +105,18 @@ class ObjectValueProvider(
     }
 
     private fun isAccessible(member: Member, packageName: String?): Boolean {
+        var clazz = member.declaringClass
+        while (clazz != null) {
+            if (!isAccessible(clazz, packageName)) return false
+            clazz = clazz.enclosingClass
+        }
         return Modifier.isPublic(member.modifiers) ||
                 (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
+    }
+
+    private fun isAccessible(clazz: Class<*>, packageName: String?): Boolean {
+        return Modifier.isPublic(clazz.modifiers) ||
+                (packageName != null && isPackagePrivate(clazz.modifiers) && clazz.declaringClass.`package`?.name == packageName)
     }
 
     private fun isPackagePrivate(modifiers: Int): Boolean {

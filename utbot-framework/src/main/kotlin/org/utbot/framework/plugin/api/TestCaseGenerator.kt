@@ -42,6 +42,7 @@ import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
@@ -94,9 +95,8 @@ open class TestCaseGenerator(
             //warmup
             if (warmupConcreteExecution) {
                 ConcreteExecutor(
-                    org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation,
+                    UtExecutionInstrumentation,
                     classpathForEngine,
-                    dependencyPaths
                 ).apply {
                     classLoader = utContext.classLoader
                     withUtContext(UtContext(Warmup::class.java.classLoader)) {

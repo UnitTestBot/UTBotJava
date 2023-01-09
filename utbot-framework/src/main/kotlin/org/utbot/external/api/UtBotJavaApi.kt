@@ -69,9 +69,8 @@ object UtBotJavaApi {
         val testSets: MutableList<UtMethodTestSet> = generatedTestCases.toMutableList()
 
         val concreteExecutor = ConcreteExecutor(
-            org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation,
+            UtExecutionInstrumentation,
             classpath,
-            dependencyClassPath
         )
 
         testSets.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))
@@ -192,7 +191,7 @@ object UtBotJavaApi {
     }
 
     private fun generateUnitTests(
-        concreteExecutor: ConcreteExecutor<org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult, org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation>,
+        concreteExecutor: ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>,
         testMethods: List<TestMethodInfo>,
         containingClass: Class<*>
     ) = testMethods.map { testInfo ->
@@ -220,7 +219,7 @@ object UtBotJavaApi {
             concreteExecutor.execute(
                 methodCallable,
                 arrayOf(),
-                parameters = org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData(
+                parameters = UtConcreteExecutionData(
                     testInfo.initialState,
                     instrumentation = emptyList()
                 )

@@ -28,13 +28,13 @@ class PhasesController(
 
     val postprocessingContext = PostprocessingContext()
 
-    inline fun computeConcreteExecutionResult(block: PhasesController.() -> org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult): org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult {
+    inline fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
         return use {
             try {
                 block()
             } catch (e: PhaseError) {
                 if (e.cause.cause is AccessControlException) {
-                    return@use org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult(
+                    return@use UtConcreteExecutionResult(
                         MissingState,
                         UtSandboxFailure(e.cause.cause!!),
                         Coverage()

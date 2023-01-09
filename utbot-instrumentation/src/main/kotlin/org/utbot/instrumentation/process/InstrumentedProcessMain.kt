@@ -152,9 +152,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
     watchdog.wrapActiveCall(addPaths) { params ->
         logger.debug { "addPaths request" }
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
-        pathsToDependencyClasses = params.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
         HandlerClassesLoader.addUrls(pathsToUserClasses)
-        HandlerClassesLoader.addUrls(pathsToDependencyClasses)
         kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
         UtContext.setUtContext(UtContext(HandlerClassesLoader))
     }

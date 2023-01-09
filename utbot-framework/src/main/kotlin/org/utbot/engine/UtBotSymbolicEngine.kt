@@ -42,7 +42,9 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -148,9 +150,8 @@ class UtBotSymbolicEngine(
 
     private val concreteExecutor =
         ConcreteExecutor(
-            org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation,
+            UtExecutionInstrumentation,
             classpath,
-            dependencyPaths
         ).apply { this.classLoader = utContext.classLoader }
 
     private val featureProcessor: FeatureProcessor? =
@@ -359,7 +360,7 @@ class UtBotSymbolicEngine(
 
             val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
-            val concreteExecutionResult: org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult? = try {
+            val concreteExecutionResult: UtConcreteExecutionResult? = try {
                 concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
@@ -546,15 +547,15 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
     return EnvironmentModels(thisInstanceBefore, paramsBefore, statics)
 }
 
-private suspend fun ConcreteExecutor<org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult, org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation>.executeConcretely(
+private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>
-): org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult = executeAsync(
+): UtConcreteExecutionResult = executeAsync(
     methodUnderTest.classId.name,
     methodUnderTest.signature,
     arrayOf(),
-    parameters = org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData(
+    parameters = UtConcreteExecutionData(
         stateBefore,
         instrumentation
     )

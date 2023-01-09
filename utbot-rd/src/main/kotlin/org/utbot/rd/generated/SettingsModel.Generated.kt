@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [SettingsModel.kt:7]
+ * #### Generated from [SettingsModel.kt:9]
  */
 class SettingsModel private constructor(
     private val _settingFor: RdCall<SettingForArgument, SettingForResult>
@@ -97,7 +97,7 @@ val IProtocol.settingsModel get() = getOrCreateExtension(SettingsModel::class) {
 
 
 /**
- * #### Generated from [SettingsModel.kt:8]
+ * #### Generated from [SettingsModel.kt:10]
  */
 data class SettingForArgument (
     val key: String,
@@ -160,7 +160,7 @@ data class SettingForArgument (
 
 
 /**
- * #### Generated from [SettingsModel.kt:12]
+ * #### Generated from [SettingsModel.kt:14]
  */
 data class SettingForResult (
     val value: String?

@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [SettingsModel.kt:5]
+ * #### Generated from [SettingsModel.kt:7]
  */
 class SettingsRoot private constructor(
 ) : RdExtBase() {

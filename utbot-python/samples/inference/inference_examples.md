@@ -5,7 +5,7 @@ Source: https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathPlanning/
 Top-level functions (with only positional arguments):
 
 - [ ] `def dwa_control(x, config, goal, ob)`
-- [ ] `def motion(x, u, dt)`
+- [x] `def motion(x, u, dt)`
 - [x] `def calc_dynamic_window(x, config)`
 - [ ] `def predict_trajectory(x_init, v, y, config)`
 - [ ] `def calc_control_and_trajectory(x, dw, config, goal, ob)`
@@ -19,35 +19,55 @@ Command:
 
     java -jar utbot-cli-python-2023.01-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py" <function>
 
+
+### <span style="color:green">OK:</span> `def motion(x, u, dt)`
+
+```
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.bytes, builtins.float], typing.Any]
+typing.Callable[[builtins.bytearray, builtins.list[typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.list[builtins.float], builtins.list[builtins.int], builtins.float], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.bytearray, builtins.float], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytes, builtins.float], typing.Any]
+typing.Callable[[builtins.list[builtins.float], builtins.bytearray, builtins.float], typing.Any]
+typing.Callable[[builtins.list[builtins.float], builtins.bytes, builtins.float], typing.Any]
+typing.Callable[[builtins.memoryview, builtins.list[typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.bytearray, builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
+```
+
+
 ### <span style="color:green">OK:</span> `def calc_dynamic_window(x, config)`
 
 ```
+typing.Callable[[builtins.list[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.dict[builtins.int, builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.bytes, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.bytearray, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[typing_extensions.NamedTuple, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[os.stat_result, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[os.statvfs_result, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[os.times_result, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[os.waitid_result, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[time.struct_time, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[urllib.parse.DefragResult, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[urllib.parse.DefragResultBytes, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[signal.struct_siginfo, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.bool], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.float], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.memoryview, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[mmap.mmap, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+...
 ```
 
 ### <span style="color:green">OK:</span> `def plot_robot(x, y, yaw, config)`
 
+`list` is strange here, but without stubs for matplotlib mypy doesn't consider this a mistake.
+
 ```
 typing.Callable[[builtins.int, builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.float, builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.int, builtins.float, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.int, builtins.int, builtins.float, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.bool, builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.float, builtins.float, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.float, builtins.int, builtins.float, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.int, builtins.bool, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[typing.Any], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.list[typing.Any]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[builtins.int], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[builtins.list[typing.Any]], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[builtins.list[builtins.int]], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.list[builtins.int]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 ...
 ```
 
@@ -67,9 +87,6 @@ typing.Callable[[builtins.object, builtins.object, builtins.object, numpy.str_],
 ...
 ```
 
-### <span style="color:yellow">FAIL (TODO):</span> `def motion(x, u, dt)`
-
-Reason: no analysis of __slices__.
 
 ### <span style="color:yellow">EXTRA:</span> `def predict_trajectory(x_init, v, y, config)`
 
@@ -88,13 +105,29 @@ typing.Callable[[builtins.object, builtins.bool, builtins.object, dynamic_window
 
 ### <span style="color:yellow">FAIL:</span> `def calc_control_and_trajectory(x, dw, config, goal, ob)`
 
-### <span style="color:yellow">FAIL (TODO):</span> `def calc_obstacle_cost(trajectory, ob, config)`
+### <span style="color:yellow">OK, but can be better (TODO):</span> `def calc_obstacle_cost(trajectory, ob, config)`
 
-Reason: no analysis of __slices__.
+```
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+```
 
-### <span style="color:yellow">FAIL (TODO):</span> `def calc_to_goal_cost(trajectory, goal)`
+Desirable type: numpy array.
 
-Reason: no analysis of __slices__.
+Reason: no analysis of tuple slices.
+
+### <span style="color:yellow">OK, but can be better (TODO):</span> `def calc_to_goal_cost(trajectory, goal)`
+
+```
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.str], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any]], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytes], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytearray], typing.Any]
+```
+
+Desirable type: numpy array.
+
+Reason: no analysis of tuple slices.
 
 ## File 2
 

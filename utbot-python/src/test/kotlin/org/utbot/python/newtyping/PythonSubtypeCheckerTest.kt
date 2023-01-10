@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.utbot.python.newtyping.PythonSubtypeChecker.Companion.checkIfRightIsSubtypeOfLeft
+import org.utbot.python.newtyping.ast.visitor.hints.createBinaryProtocol
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.TypeParameter
@@ -79,5 +80,16 @@ internal class PythonSubtypeCheckerTest {
         val func = storage.definitions["subtypes"]!!["func_abs"]!!.annotation.asUtBotType as FunctionType
 
         assertTrue(checkIfRightIsSubtypeOfLeft(func.arguments[0], b, pythonTypeStorage))
+    }
+
+    @Test
+    fun testSyntheticProtocol() {
+        val getItemProtocol = createBinaryProtocol("__getitem__", pythonAnyType, pythonAnyType)
+        val list = DefaultSubstitutionProvider.substituteAll(
+            storage.definitions["builtins"]!!["list"]!!.annotation.asUtBotType,
+            listOf(pythonAnyType)
+        )
+
+        assertTrue(checkIfRightIsSubtypeOfLeft(getItemProtocol, list, pythonTypeStorage))
     }
 }

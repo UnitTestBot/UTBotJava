@@ -7,11 +7,13 @@ import org.parsers.python.ast.*
 data class ParsedFunctionDefinition(val name: Name, val body: Block)
 data class ParsedForStatement(val forVariable: ForVariable, val iterable: Node)
 sealed class ForVariable
-data class SimpleForVariable(val variable: Name): ForVariable()
-data class TupleForVariable(val elems: List<ForVariable>): ForVariable()
+data class SimpleForVariable(val variable: Name) : ForVariable()
+data class TupleForVariable(val elems: List<ForVariable>) : ForVariable()
+data class ParsedSliceExpression(val head: Node, val slices: ParsedSlices)
 sealed class ParsedSlices
-data class SimpleSlice(val indexedValue: Node): ParsedSlices()
-data class ComplexSlice(val indexValues: List<Node>): ParsedSlices()
+data class SimpleSlice(val indexValue: Node) : ParsedSlices()
+data class SlicedSlice(val start: Node?, val end: Node?, val step: Node?) : ParsedSlices()
+data class TupleSlice(val elems: List<ParsedSlices>) : ParsedSlices()
 data class ParsedIfStatement(val condition: Node)
 data class ParsedConjunction(val left: Node, val right: Node)
 data class ParsedDisjunction(val left: Node, val right: Node)
@@ -19,8 +21,8 @@ data class ParsedInversion(val expr: Node)
 data class ParsedGroup(val expr: Node)
 data class ParsedList(val elems: List<Node>)
 sealed class ParsedAssignment
-data class SimpleAssign(val targets: List<Node>, val value: Node): ParsedAssignment()
-data class OpAssign(val target: Node, val op: Delimiter, val value: Node): ParsedAssignment()
+data class SimpleAssign(val targets: List<Node>, val value: Node) : ParsedAssignment()
+data class OpAssign(val target: Node, val op: Delimiter, val value: Node) : ParsedAssignment()
 data class ParsedMultiplicativeExpression(val cases: List<ParsedBinaryOperation>)
 data class ParsedBinaryOperation(val left: Node, val op: Node, val right: Node)
 data class ParsedDotName(val head: Node, val tail: Node)
@@ -45,7 +47,7 @@ fun parseForVariable(node: Node): ForVariable? {
         return SimpleForVariable(node)
     if (node is Tuple) {
         return TupleForVariable(
-            node.children().mapNotNull {  child ->
+            node.children().mapNotNull { child ->
                 if (child is Delimiter)
                     return@mapNotNull null
                 parseForVariable(child)
@@ -62,14 +64,47 @@ fun parseForStatement(node: ForStatement): ParsedForStatement? {
     return ParsedForStatement(forVariable, iterable)
 }
 
-fun parseSlices(node: Slices): ParsedSlices {
-    val child = node.children()[1]
-    if (child is Slice) {
-        return ComplexSlice(
-            child.children().filter { it !is Delimiter }
-        )
+fun parseSliceExpression(node: SliceExpression): ParsedSliceExpression? {
+    val children = node.children()
+    if (children.size != 2)
+        return null
+    val slicesChildren = children[1].children()
+    val slices = parseSlices(slicesChildren) ?: return null
+    return ParsedSliceExpression(children[0], slices)
+}
+
+fun parseSlices(children: List<Node>): ParsedSlices? {
+    if (children.any { it is Delimiter && it.toString() == "," }) {
+        var i = 0
+        val slices = mutableListOf<ParsedSlices>()
+        while (i < children.size) {
+            var j = children.drop(i).indexOfFirst { it is Delimiter && it.toString() == "," }
+            if (j == -1)
+                j = children.size
+            val child = parseSlices(children.subList(i, j)) ?: return null
+            slices.add(child)
+            i = j
+        }
+        return TupleSlice(slices)
     }
-    return SimpleSlice(child)
+    if (children.size != 3)
+        return null
+    if (children[1] is Delimiter && children[1].toString() == ":") {
+        return SlicedSlice(null, null, null)
+    }
+    if (children[1] is Slice) {
+        val sliceChildren = children[1].children()
+        val i = sliceChildren.indexOfFirst { it is Delimiter && it.toString() == ":" }
+        var j = sliceChildren.drop(i + 1).indexOfFirst { it is Delimiter && it.toString() == ":" }
+        if (j == -1)
+            j = sliceChildren.size
+        val start = if (i == 0) null else if (i == 1) sliceChildren[0] else return null
+        val end = if (j - i == 1) null else if (j - i == 2) sliceChildren[i + 1] else return null
+        val step =
+            if (j >= sliceChildren.size - 1) null else if (j == sliceChildren.size - 2) sliceChildren.last() else return null
+        return SlicedSlice(start, end, step)
+    }
+    return SimpleSlice(children[1])
 }
 
 fun parseIfStatement(node: IfStatement): ParsedIfStatement =

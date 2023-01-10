@@ -82,11 +82,11 @@ class HintCollector(
             is org.parsers.python.ast.List -> processList(node)
             is Assignment -> processAssignment(node)
             is DotName -> processDotName(node)
+            is SliceExpression -> processSliceExpression(node)
             // TODO: UnaryExpression, Power, ShiftExpression, BitwiseAnd, BitwiseOr, BitwiseXor
             // TODO: Set, Dict, comprehensions
-            // TODO: FunctionCall, SliceExpression
             is Newline, is IndentToken, is Delimiter, is Operator, is DedentToken, is ReturnStatement,
-            is Statement, is InvocationArguments, is Argument -> Unit
+            is Statement, is InvocationArguments, is Argument, is Slice, is Slices -> Unit
             else -> astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
         }
     }
@@ -412,6 +412,26 @@ class HintCollector(
         }
         addEdge(edgeFromHead)
         addEdge(edgeToHead)
+    }
+
+    private fun processSliceExpression(node: SliceExpression) {
+        val curNode = HintCollectorNode(pythonAnyType)
+        astNodeToHintCollectorNode[node] = curNode
+        val parsed = parseSliceExpression(node) ?: return
+        val headNode = astNodeToHintCollectorNode[parsed.head]!!
+        addProtocol(headNode, createBinaryProtocol("__getitem__", pythonAnyType, pythonAnyType))
+        when (parsed.slices) {
+            is SimpleSlice -> {
+                // val indexNode = astNodeToHintCollectorNode[parsed.slices.indexValue]!!
+                // TODO: add edges
+            }
+            is SlicedSlice -> {
+                // TODO
+            }
+            is TupleSlice -> {
+                // TODO
+            }
+        }
     }
 
     private fun processBoolExpression(node: Node) {

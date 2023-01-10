@@ -234,4 +234,4 @@ jobs:
         with:
           name: jacoco-test-report
           path: |
-            ./build/reports/jacoco/test/*
+            ./utbot-junit-contest/build/reports/tests/test/*

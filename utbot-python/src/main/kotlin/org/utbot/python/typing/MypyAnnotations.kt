@@ -35,7 +35,8 @@ object MypyAnnotations {
             method,
             emptyMap(),
             directoriesForSysPath,
-            moduleToImport
+            moduleToImport,
+            listOf("*")
         )
 
         TemporaryFileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
@@ -75,7 +76,8 @@ object MypyAnnotations {
                 method,
                 annotationMap,
                 directoriesForSysPath,
-                moduleToImport
+                moduleToImport,
+                listOf("*")
             )
             TemporaryFileManager.writeToAssignedFile(fileWithCode, codeWithAnnotations)
 

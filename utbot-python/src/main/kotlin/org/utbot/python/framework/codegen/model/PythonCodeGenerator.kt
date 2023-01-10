@@ -157,7 +157,8 @@ class PythonCodeGenerator(
         method: PythonMethod,
         methodAnnotations: Map<String, NormalizedPythonAnnotation>,
         directoriesForSysPath: Set<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        namesInModule: Collection<String>
     ): String {
         val cgRendererContext = CgRendererContext.fromCgContext(context)
         val printer = CgPrinterImpl()
@@ -166,11 +167,13 @@ class PythonCodeGenerator(
         val importSys = PythonSystemImport("sys")
         val importTyping = PythonSystemImport("typing")
         val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
-        val importFunction = PythonUserImport("*", moduleToImport)
+        val importsFromModule = namesInModule.map { name ->
+            PythonUserImport(name, moduleToImport)
+        }
         val additionalModules = methodAnnotations.values.flatMap { annotation ->
                 getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
         }
-        val imports = listOf(importSys, importTyping) + importSysPaths + (listOf(importFunction) + additionalModules).toSet().toList()
+        val imports = listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules).toSet().toList()
 
         imports.forEach { renderer.renderPythonImport(it) }
 

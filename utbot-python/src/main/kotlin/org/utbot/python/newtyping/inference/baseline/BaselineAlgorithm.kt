@@ -8,7 +8,6 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
 import org.utbot.python.newtyping.runmypy.checkSuggestedSignatureWithDMypy
-import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 
@@ -23,11 +22,12 @@ private val EDGES_TO_LINK = listOf(
 private val logger = KotlinLogging.logger {}
 
 class BaselineAlgorithm(
-    val storage: PythonTypeStorage,
-    val pythonPath: String,
+    private val storage: PythonTypeStorage,
+    private val pythonPath: String,
     private val pythonMethodCopy: PythonMethod,
-    val directoriesForSysPath: Set<String>,
-    val moduleToImport: String,
+    private val directoriesForSysPath: Set<String>,
+    private val moduleToImport: String,
+    private val namesInModule: Collection<String>,
     private val initialErrorNumber: Int,
     private val configFile: File
 ) : TypeInferenceAlgorithm() {
@@ -62,6 +62,7 @@ class BaselineAlgorithm(
             pythonMethodCopy,
             directoriesForSysPath,
             moduleToImport,
+            namesInModule,
             fileForMypyRuns,
             pythonPath,
             configFile,

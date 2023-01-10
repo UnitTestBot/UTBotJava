@@ -200,9 +200,14 @@ class HintCollector(
     }
 
     private fun processForStatement(node: ForStatement) {
-        val parsed = parseForStatement(node)
-        val variableNode = astNodeToHintCollectorNode[parsed.forVariable]!!
+        val parsed = parseForStatement(node) ?: return
+        // TODO: case of TupleForVariable
         val iterableNode = astNodeToHintCollectorNode[parsed.iterable]!!
+        if (parsed.forVariable !is SimpleForVariable) {
+            addProtocol(iterableNode, createIterableWithCustomReturn(pythonAnyType))
+            return
+        }
+        val variableNode = astNodeToHintCollectorNode[parsed.forVariable.variable]!!
         val edgeFromVariableToIterable = HintEdgeWithBound(
             from = variableNode,
             to = iterableNode,

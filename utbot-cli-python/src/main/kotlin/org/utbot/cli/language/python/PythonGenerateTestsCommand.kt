@@ -107,15 +107,6 @@ class PythonGenerateTestsCommand : CliktCommand(
                 else -> error("Not reachable")
             }
 
-    private fun findCurrentPythonModule(): Optional<String> {
-        directoriesForSysPath.forEach { path ->
-            val module = getModuleName(path.toAbsolutePath(), sourceFile.toAbsolutePath())
-            if (module != null)
-                return Success(module)
-        }
-        return Fail("Couldn't find path for $sourceFile in --sys-path option. Please, specify it.")
-    }
-
     private val forbiddenMethods = listOf("__init__", "__new__")
 
     private fun getClassMethods(pythonClassFromSources: PythonClass): List<PythonMethod> =
@@ -183,7 +174,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
     @Suppress("UNCHECKED_CAST")
     private fun calculateValues(): Optional<Unit> {
-        val currentPythonModuleOpt = findCurrentPythonModule()
+        val currentPythonModuleOpt = findCurrentPythonModule(directoriesForSysPath, sourceFile)
         sourceFileContent = File(sourceFile).readText()
         val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, it) }
 
@@ -267,7 +258,4 @@ class PythonGenerateTestsCommand : CliktCommand(
             pythonRunRoot = Paths.get("").toAbsolutePath()
         )
     }
-
-    private fun String.toAbsolutePath(): String =
-        File(this).canonicalPath
 }

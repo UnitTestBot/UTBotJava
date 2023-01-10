@@ -47,7 +47,8 @@ object PythonCodeGenerator {
         method: PythonMethod,
         methodAnnotations: Map<String, NormalizedPythonAnnotation>,
         directoriesForSysPath: Set<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        namesInModule: Collection<String>
     ): String {
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {
@@ -61,7 +62,8 @@ object PythonCodeGenerator {
                 method,
                 methodAnnotations,
                 directoriesForSysPath,
-                moduleToImport
+                moduleToImport,
+                namesInModule
             )
         }
     }

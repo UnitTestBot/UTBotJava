@@ -21,14 +21,15 @@ import java.nio.file.Paths
 
 class TypeInferenceProcessor(
     private val pythonPath: String,
+    private val directoriesForSysPath: Set<String>,
     sourceFile: String,
+    private val moduleOfSourceFile: String,
     private val functionName: String
 ) {
 
     private val path: Path = Paths.get(File(sourceFile).canonicalPath)
     private val sourceFileContent = File(sourceFile).readText()
     private val parsedFile = PythonParser(sourceFileContent).Module()
-    private lateinit var moduleName: String
 
     fun inferTypes(
         cancel: () -> Boolean,
@@ -50,7 +51,6 @@ class TypeInferenceProcessor(
                 return@sequence
             }
 
-            val directoriesForSysPath = setOf(path.parent.toString())
             val configFile = setConfigFile(directoriesForSysPath)
 
             loadingInfoAboutTypesAction()
@@ -58,10 +58,16 @@ class TypeInferenceProcessor(
             val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
                 pythonPath,
                 path.toString(),
+                moduleOfSourceFile,
                 configFile,
                 path.toString()  // TODO: fix this interface
             )
-            moduleName = mypyStorage.fileToModule[path.toString()]!!
+
+            val namesInModule = mypyStorage.names[moduleOfSourceFile]!!.filter {
+                it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
+            }
+
+            // moduleName = mypyStorage.fileToModule[path.toString()]!!
 
             analyzingCodeAction()
 
@@ -74,7 +80,7 @@ class TypeInferenceProcessor(
             val pythonMethod = (pythonMethodOpt as Success).value
 
             val typeStorage = PythonTypeStorage.get(mypyStorage)
-            val mypyExpressionTypes = mypyStorage.types[moduleName]!!.associate {
+            val mypyExpressionTypes = mypyStorage.types[moduleOfSourceFile]!!.associate {
                 Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
             }
             val collector = HintCollector(pythonMethod.type, typeStorage, mypyExpressionTypes)
@@ -86,7 +92,8 @@ class TypeInferenceProcessor(
                 pythonPath,
                 pythonMethod,
                 directoriesForSysPath,
-                moduleName,
+                moduleOfSourceFile,
+                namesInModule,
                 getErrorNumber(
                     report,
                     path.toString(),
@@ -109,8 +116,9 @@ class TypeInferenceProcessor(
             if (res?.name?.toString() == functionName) res else null
         }.firstOrNull() ?: return Fail("Couldn't find top-level function $functionName")
 
-        val type = mypyAnnotationStorage.definitions[moduleName]!![functionName]!!.annotation.asUtBotType as? FunctionType
-            ?: return Fail("$functionName is not a function")
+        val type =
+            mypyAnnotationStorage.definitions[moduleOfSourceFile]!![functionName]!!.annotation.asUtBotType as? FunctionType
+                ?: return Fail("$functionName is not a function")
         val description = type.pythonDescription() as PythonCallableTypeDescription
 
         val result = PythonMethod(

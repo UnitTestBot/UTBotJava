@@ -515,7 +515,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Process all clinit sections concretely.
      *
-     * If [enableClinitSectionsAnalysis] is true, it disables effect of this option as well.
+     * If [enableClinitSectionsAnalysis] is false, it disables effect of this option as well.
      * Note that values processed concretely won't be replaced with unbounded symbolic variables.
      */
     var processAllClinitSectionsConcretely by getBooleanProperty(false)

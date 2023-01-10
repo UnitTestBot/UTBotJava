@@ -232,6 +232,6 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
-          name: jacoco-test-report
+          name: jacoco-test-report-${{ matrix.value }}-${{ matrix.project }}
           path: |
             ./utbot-junit-contest/build/reports/tests/test/*

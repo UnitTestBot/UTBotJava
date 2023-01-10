@@ -483,14 +483,19 @@ class Traverser(
         fieldRef: StaticFieldRef,
         stmt: Stmt
     ): Boolean {
+        // This order of processing options is important.
+        // First, we should process classes that
+        // cannot be analyzed without clinit sections, e.g., enums
         if (shouldProcessStaticFieldConcretely(fieldRef)) {
             return processStaticFieldConcretely(fieldRef, stmt)
         }
 
-        if (UtSettings.disableClinitSectionsAnalysis) {
+        // Then we should check if we should analyze clinit sections at all
+        if (!UtSettings.enableClinitSectionsAnalysis) {
             return false
         }
 
+        // Finally, we decide whether we should analyze clinit sections concretely or not
         if (UtSettings.processAllClinitSectionsConcretely) {
             return processStaticFieldConcretely(fieldRef, stmt)
         }

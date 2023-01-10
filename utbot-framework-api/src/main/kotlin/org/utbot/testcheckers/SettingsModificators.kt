@@ -109,19 +109,19 @@ inline fun <reified T> withoutConcrete(block: () -> T): T {
     }
 }
 
-inline fun <reified T> withoutProcessingClinitSections(block: () -> T): T {
-    val prev = UtSettings.disableClinitSectionsAnalysis
-    UtSettings.disableClinitSectionsAnalysis = true
+inline fun <reified T> withProcessingClinitSections(value: Boolean, block: () -> T): T {
+    val prev = UtSettings.enableClinitSectionsAnalysis
+    UtSettings.enableClinitSectionsAnalysis = value
     try {
         return block()
     } finally {
-        UtSettings.disableClinitSectionsAnalysis = prev
+        UtSettings.enableClinitSectionsAnalysis = prev
     }
 }
 
-inline fun <reified T> withProcessingAllClinitSectionsConcretely(block: () -> T): T {
+inline fun <reified T> withProcessingAllClinitSectionsConcretely(value: Boolean, block: () -> T): T {
     val prev = UtSettings.processAllClinitSectionsConcretely
-    UtSettings.processAllClinitSectionsConcretely = true
+    UtSettings.processAllClinitSectionsConcretely = value
     try {
         return block()
     } finally {

@@ -510,12 +510,13 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Depending on this option, <clinit> sections might be analyzed or not.
      * Note that some clinit sections still will be initialized using runtime information.
      */
-    var disableClinitSectionsAnalysis by getBooleanProperty(false)
+    var enableClinitSectionsAnalysis by getBooleanProperty(true)
 
     /**
      * Process all clinit sections concretely.
      *
-     * If [disableClinitSectionsAnalysis] is true, it disables effect of this function as well.
+     * If [enableClinitSectionsAnalysis] is true, it disables effect of this option as well.
+     * Note that values processed concretely won't be replaced with unbounded symbolic variables.
      */
     var processAllClinitSectionsConcretely by getBooleanProperty(false)
 }

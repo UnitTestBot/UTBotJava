@@ -18,6 +18,7 @@ import com.intellij.ui.layout.withValueBinding
 import com.intellij.util.castSafelyTo
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
@@ -138,13 +139,15 @@ class SettingsWindow(val project: Project) {
             cell {
                 enableSummarizationGenerationCheckBox = checkBox("Enable Summaries Generation")
                     .onApply {
-                        settings.state.enableSummariesGeneration = enableSummarizationGenerationCheckBox.isSelected
+                        settings.state.summariesGenerationType =
+                            if (enableSummarizationGenerationCheckBox.isSelected) SummariesGenerationType.FULL else SummariesGenerationType.NONE
                     }
                     .onReset {
-                        enableSummarizationGenerationCheckBox.isSelected = settings.state.enableSummariesGeneration
+                        enableSummarizationGenerationCheckBox.isSelected =
+                            settings.state.summariesGenerationType != SummariesGenerationType.NONE
                     }
                     .onIsModified {
-                        enableSummarizationGenerationCheckBox.isSelected xor settings.state.enableSummariesGeneration
+                        enableSummarizationGenerationCheckBox.isSelected xor (settings.state.summariesGenerationType != SummariesGenerationType.NONE)
                     }
                     .enableIf(codegenLanguageCombo.selectedValueMatches(CodegenLanguage?::isSummarizationCompatible))
                     .component

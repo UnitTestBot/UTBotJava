@@ -141,7 +141,7 @@ object UtTestsDialogProcessor {
 
                     UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
                     UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
-                    UtSettings.enableSummariesGeneration = model.enableSummariesGeneration
+                    UtSettings.summaryGenerationType = model.summariesGenerationType
 
                     fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 

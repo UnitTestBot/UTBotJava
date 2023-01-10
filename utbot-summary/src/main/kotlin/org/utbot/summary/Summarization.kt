@@ -1,7 +1,6 @@
 package org.utbot.summary
 
 import com.github.javaparser.ast.body.MethodDeclaration
-import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionCluster
@@ -18,12 +17,15 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings.enableClusterCommentsGeneration
 import org.utbot.framework.UtSettings.enableJavaDocGeneration
 import org.utbot.framework.UtSettings.useDisplayNameArrowStyle
 import org.utbot.framework.UtSettings.enableDisplayNameGeneration
 import org.utbot.framework.UtSettings.enableTestNamesGeneration
+import org.utbot.framework.UtSettings.summaryGenerationType
 import org.utbot.framework.UtSettings.useCustomJavaDocTags
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -36,11 +38,18 @@ import soot.SootMethod
 private val logger = KotlinLogging.logger {}
 
 fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.get("")): UtMethodTestSet {
-    if (!UtSettings.enableSummariesGeneration) return this
+    if (summaryGenerationType == SummariesGenerationType.NONE) return this
 
     return try {
         makeDiverseExecutions(this)
-        val invokeDescriptions = invokeDescriptions(this, searchDirectory)
+
+        // HACK: we avoid calling [invokeDescriptions] method to save time, it is useless in Contest
+        val invokeDescriptions = when (summaryGenerationType) {
+            SummariesGenerationType.FULL -> invokeDescriptions(this, searchDirectory)
+            SummariesGenerationType.LIGHT,
+            SummariesGenerationType.NONE -> emptyList()
+        }
+
         // every cluster has summary and list of executions
         val executionClusters = Summarization(sourceFile, invokeDescriptions).fillSummaries(this)
         val updatedExecutions = executionClusters.flatMap { it.executions }
@@ -83,9 +92,18 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
         val executionClusters = mutableListOf<UtExecutionCluster>()
 
-        executionClusters += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
-        executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
-        executionClusters += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
+        when (summaryGenerationType) {
+            SummariesGenerationType.FULL -> {
+                executionClusters += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
+                executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
+                executionClusters += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
+            }
+            SummariesGenerationType.LIGHT -> {
+                executionClusters += generateSummariesForTestsProducedBySymbolicExecutorWithoutSources(testSet)
+                executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
+            }
+            SummariesGenerationType.NONE -> error("We must not fill summaries if SummariesGenerationType is NONE")
+        }
 
         return if (enableClusterCommentsGeneration && executionClusters.size > 0)
             executionClusters
@@ -207,6 +225,53 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 )
             }
         }
+        return clustersToReturn.toList()
+    }
+
+    private fun generateSummariesForTestsProducedBySymbolicExecutorWithoutSources(
+        testSet: UtMethodTestSet
+    ) : List<UtExecutionCluster> {
+        val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
+
+        val testSetWithFuzzedExecutions = prepareTestSetForByteCodeAnalysis(testSet)
+        val executions = testSetWithFuzzedExecutions.executions as List<UtSymbolicExecution>
+
+        if (executions.isNotEmpty()) {
+            executions.forEach { utExecution ->
+
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap {
+                        val executableId = testSet.method
+                        val description = FuzzedMethodDescription(executableId).apply {
+                            compilableName = if (!executableId.isConstructor) executableId.name else null
+                        }
+                        it.suggest(
+                            description,
+                            utExecution.stateBefore.parameters.map { value -> FuzzedValue(value) },
+                            utExecution.result
+                        )
+                    }.firstOrNull()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Cannot create suggested test name for $utExecution" }
+                    null
+                }
+                utExecution.testMethodName = testMethodName?.testName
+                utExecution.displayName = testMethodName?.displayName
+                utExecution.summary = testMethodName?.javaDoc
+            }
+
+            val clusteredExecutions = groupFuzzedExecutions(testSetWithFuzzedExecutions)
+            clusteredExecutions.forEach {
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(it.header),
+                        it.executions
+                    )
+                )
+            }
+        }
+
         return clustersToReturn.toList()
     }
 

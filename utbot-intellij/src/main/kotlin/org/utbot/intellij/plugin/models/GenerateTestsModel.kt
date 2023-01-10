@@ -16,6 +16,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.psi.KtFile
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
@@ -55,7 +56,7 @@ class GenerateTestsModel(
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
     var runGeneratedTestsWithCoverage : Boolean = false
-    var enableSummariesGeneration : Boolean = UtSettings.enableSummariesGeneration
+    var summariesGenerationType : SummariesGenerationType = UtSettings.summaryGenerationType
 }
 
 val PsiClass.packageName: String

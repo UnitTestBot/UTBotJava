@@ -1,8 +1,10 @@
 package org.utbot.examples.types;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
-public class Generics {
+public class Generics<T> {
     public boolean genericAsField(CollectionAsField<String> object) {
         if (object != null && object.field != null) {
             return object.field.equals("abc");
@@ -37,5 +39,19 @@ public class Generics {
     @SuppressWarnings("UnusedReturnValue")
     private Map<String, String> nestedMethodWithGenericInfo(Map<String, String> map) {
         return map;
+    }
+
+    public int methodWithArrayTypeBoundary() {
+        return new ArrayTypeParameters<T>().methodWithArrayTypeBoundary(null);
+    }
+}
+
+class ArrayTypeParameters<T> {
+    public int methodWithArrayTypeBoundary(List<? extends T[]> list) {
+        if (list.isEmpty()) {
+            return -1;
+        }
+
+        return 1;
     }
 }

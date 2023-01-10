@@ -11,6 +11,7 @@ import java.io.File
 fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
     sourcePath: String,
+    module: String,
     configFile: File,
     fileForTypeImport: String? = null
 ): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
@@ -27,6 +28,8 @@ fun readMypyAnnotationStorageAndInitialErrors(
             configFile.absolutePath,
             "--sources",
             sourcePath,
+            "--modules",
+            module,
             "--annotations_out",
             fileForAnnotationStorage.absolutePath,
             "--mypy_stdout",
@@ -35,6 +38,8 @@ fun readMypyAnnotationStorageAndInitialErrors(
             fileForMypyStderr.absolutePath,
             "--mypy_exit_status",
             fileForMypyExitStatus.absolutePath,
+            "--file_for_names",
+            sourcePath
         ) + if (fileForTypeImport != null) listOf("--file_for_types", fileForTypeImport) else emptyList()
     )
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
@@ -74,6 +79,7 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
             explicit_package_bases = True
             show_absolute_path = True
             cache_fine_grained = True
+            check_untyped_defs = True
             """.trimIndent()
     TemporaryFileManager.writeToAssignedFile(file, configContent)
     return file
@@ -83,6 +89,7 @@ fun checkSuggestedSignatureWithDMypy(
     method: PythonMethod,
     directoriesForSysPath: Set<String>,
     moduleToImport: String,
+    namesInModule: Collection<String>,
     fileForMypyCode: File,
     pythonPath: String,
     configFile: File,
@@ -93,7 +100,7 @@ fun checkSuggestedSignatureWithDMypy(
         (description.argumentNames zip method.type.arguments.map { it.pythonTypeRepresentation() }).associate {
             Pair(it.first, NormalizedPythonAnnotation(it.second))
         }
-    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport)
+    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)
     val report = getErrorsAndNotes(mypyOutput)

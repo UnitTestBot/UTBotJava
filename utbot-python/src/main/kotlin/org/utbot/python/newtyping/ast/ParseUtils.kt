@@ -5,7 +5,10 @@ import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
 
 data class ParsedFunctionDefinition(val name: Name, val body: Block)
-data class ParsedForStatement(val forVariable: Name, val iterable: Node)
+data class ParsedForStatement(val forVariable: ForVariable, val iterable: Node)
+sealed class ForVariable
+data class SimpleForVariable(val variable: Name): ForVariable()
+data class TupleForVariable(val elems: List<ForVariable>): ForVariable()
 sealed class ParsedSlices
 data class SimpleSlice(val indexedValue: Node): ParsedSlices()
 data class ComplexSlice(val indexValues: List<Node>): ParsedSlices()
@@ -37,10 +40,26 @@ fun isIdentification(node: Node): Boolean {
     return parent.children().first() == node
 }
 
-fun parseForStatement(node: ForStatement): ParsedForStatement {
-    val forVariableIndex = node.children().indexOfFirst { it is Name }
-    val iterable = node.children().drop(forVariableIndex + 1).first { it !is Keyword }
-    return ParsedForStatement(node.children()[forVariableIndex] as Name, iterable)
+fun parseForVariable(node: Node): ForVariable? {
+    if (node is Name)
+        return SimpleForVariable(node)
+    if (node is Tuple) {
+        return TupleForVariable(
+            node.children().mapNotNull {  child ->
+                if (child is Delimiter)
+                    return@mapNotNull null
+                parseForVariable(child)
+            }
+        )
+    }
+    return null
+}
+
+fun parseForStatement(node: ForStatement): ParsedForStatement? {
+    val children = node.children()
+    val forVariable = parseForVariable(children[1]) ?: return null
+    val iterable = children[3]
+    return ParsedForStatement(forVariable, iterable)
 }
 
 fun parseSlices(node: Slices): ParsedSlices {

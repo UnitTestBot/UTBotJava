@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
@@ -50,12 +51,26 @@ class PythonTypeInferenceCommand : CliktCommand(
         help = "(required) Timeout in milliseconds for type inference."
     ).long().required()
 
+    private val directoriesForSysPath by option(
+        "-s", "--sys-path",
+        help = "(required) Directories to add to sys.path. " +
+                "One of directories must contain the file with the methods under test."
+    ).split(",").required()
+
     private var startTime: Long = 0
 
     override fun run() {
+        val moduleOpt = findCurrentPythonModule(directoriesForSysPath, sourceFile)
+        if (moduleOpt is Fail) {
+            logger.error(moduleOpt.message)
+        }
+        val module = (moduleOpt as Success).value
+
         val types = TypeInferenceProcessor(
             pythonPath,
+            directoriesForSysPath.toSet(),
             sourceFile,
+            module,
             function
         ).inferTypes(
             startingTypeInferenceAction = {

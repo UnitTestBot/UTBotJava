@@ -6,6 +6,7 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.general.getBoundedParameters
+import org.utbot.python.newtyping.general.getOrigin
 import org.utbot.python.newtyping.inference.collectBoundsFromEdges
 
 private val logger = KotlinLogging.logger {}
@@ -148,7 +149,7 @@ fun createTypeRating(
     return result
 }
 
-fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeStorage): TypeRating {
+fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeStorage): List<Type> {
     val allLowerBounds: MutableList<Type> = mutableListOf()
     val allUpperBounds: MutableList<Type> = mutableListOf()
     hintCollectorResult.allNodes.forEach { node ->
@@ -160,17 +161,26 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
             !typesAreEqual(it, pythonAnyType)
         })
     }
-    return createTypeRating(
+    val int = storage.pythonInt
+    val listOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonList, listOf(pythonAnyType))
+    val str = storage.pythonStr
+    val bool = storage.pythonBool
+    val float = storage.pythonFloat
+    val dictOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonDict, listOf(pythonAnyType, pythonAnyType))
+    val prefix = listOf(int, listOfAny, str, bool, float, dictOfAny)
+    val rating = createTypeRating(
         storage.allTypes.filter {
             val description = it.pythonDescription()
             !description.name.name.startsWith("_")
                     && description is PythonConcreteCompositeTypeDescription
                     && !description.isAbstract
-                    && description.name.prefix != listOf("typing")
+                    && !listOf("typing").any { mod -> description.name.prefix == listOf(mod) }
+                    && !prefix.any { type -> typesAreEqual(type.getOrigin(), it) }
         },
         allLowerBounds,
         allUpperBounds,
         storage,
         1
     )
+    return prefix + rating.types
 }

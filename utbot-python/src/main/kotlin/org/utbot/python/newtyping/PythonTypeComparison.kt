@@ -123,7 +123,7 @@ const val MAX_RECURSION_DEPTH = 100
 class PythonSubtypeChecker(
     val left: Type,
     val right: Type,
-    val pythonTypeStorage: PythonTypeStorage,
+    private val pythonTypeStorage: PythonTypeStorage,
     private val typeParameterCorrespondence: List<Pair<Type, Type>>,
     private val assumingSubtypePairs: List<Pair<PythonTypeWrapperForEqualityCheck, PythonTypeWrapperForEqualityCheck>>,
     private val recursionDepth: Int,
@@ -141,10 +141,15 @@ class PythonSubtypeChecker(
             return true
 
         // this is done to avoid possible infinite recursion
-        if (assumingSubtypePairs.contains(Pair(leftWrapper, rightWrapper)))
+        // TODO: probably here more accuracy is needed
+        if (assumingSubtypePairs.contains(Pair(leftWrapper, rightWrapper)) || assumingSubtypePairs.contains(
+                Pair(
+                    rightWrapper,
+                    leftWrapper
+                )
+            )
+        )
             return true
-        if (assumingSubtypePairs.contains(Pair(rightWrapper, leftWrapper)))
-            return false
 
         val leftMeta = left.meta as PythonTypeDescription
         val rightMeta = right.meta as PythonTypeDescription
@@ -332,10 +337,28 @@ class PythonSubtypeChecker(
     }
 
     private fun caseOfLeftCallable(leftMeta: PythonCallableTypeDescription): Boolean {
-        val rightCallAttribute = right.getPythonAttributeByName(pythonTypeStorage, "__call__")?.type as? FunctionType
+        val rightCallAttributeAbstract = right.getPythonAttributeByName(pythonTypeStorage, "__call__")?.type
             ?: return false
         val leftAsFunctionType = leftMeta.castToCompatibleTypeApi(left)
+
         // TODO: more accurate work with argument binding?
+
+        if (rightCallAttributeAbstract.pythonDescription() is PythonOverloadTypeDescription) {
+            val variants = rightCallAttributeAbstract.parameters
+            return variants.all { variant ->
+                PythonSubtypeChecker(
+                    left = left,
+                    right = variant,
+                    pythonTypeStorage,
+                    typeParameterCorrespondence,
+                    nextAssumingSubtypePairs,
+                    recursionDepth + 1
+                ).rightIsSubtypeOfLeft()
+            }
+        }
+
+        val rightCallAttribute = rightCallAttributeAbstract as? FunctionType ?: return false
+
         if (rightCallAttribute.arguments.size != leftAsFunctionType.arguments.size)
             return false
         val leftBounded = leftAsFunctionType.getBoundedParameters()

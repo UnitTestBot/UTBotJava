@@ -1,44 +1,49 @@
 package org.utbot.python.newtyping.ast
 
 import org.parsers.python.PythonParser
-import org.parsers.python.ast.Block
-import org.parsers.python.ast.FunctionDefinition
-import org.utbot.python.PythonArgument
-import org.utbot.python.PythonMethod
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.ast.visitor.Visitor
-import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
-import org.utbot.python.newtyping.general.FunctionTypeCreator
-import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
-import org.utbot.python.newtyping.runmypy.getErrorNumber
-import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.runmypy.setConfigFile
-import org.utbot.python.utils.Cleaner
-import org.utbot.python.utils.TemporaryFileManager
 
 fun main() {
     val content = """
-    def _generate_local_course(lengths, modes, max_curvature, step_size):
-        p_x, p_y, p_yaw = [0.0], [0.0], [0.0]
+    def calc_obstacle_cost(trajectory, ob, config):
+        ""${'"'}
+        calc obstacle cost inf: collision
+        ""${'"'}
+        x[0]
+        x[0:1]
+        x[0:1:1]
+        x[1:2, 0]
+        x[:]
+        x[1:]
+        x[:1]
+        x[::]
+        x[::-1]
+        ox = ob[:, 0]
+        oy = ob[:, 1]
+        dx = trajectory[:, 0] - ox[:, None]
+        dy = trajectory[:, 1] - oy[:, None]
+        r = np.hypot(dx, dy)
     
-        for (mode, length) in zip(modes, lengths):
-            if length == 0.0:
-                continue
+        if config.robot_type == RobotType.rectangle:
+            yaw = trajectory[:, 2]
+            rot = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
+            rot = np.transpose(rot, [2, 0, 1])
+            local_ob = ob[:, None] - trajectory[:, 0:2]
+            local_ob = local_ob.reshape(-1, local_ob.shape[-1])
+            local_ob = np.array([local_ob @ x for x in rot])
+            local_ob = local_ob.reshape(-1, local_ob.shape[-1])
+            upper_check = local_ob[:, 0] <= config.robot_length / 2
+            right_check = local_ob[:, 1] <= config.robot_width / 2
+            bottom_check = local_ob[:, 0] >= -config.robot_length / 2
+            left_check = local_ob[:, 1] >= -config.robot_width / 2
+            if (np.logical_and(np.logical_and(upper_check, right_check),
+                               np.logical_and(bottom_check, left_check))).any():
+                return float("Inf")
+        elif config.robot_type == RobotType.circle:
+            if np.array(r <= config.robot_radius).any():
+                return float("Inf")
     
-            # set origin state
-            origin_x, origin_y, origin_yaw = p_x[-1], p_y[-1], p_yaw[-1]
-    
-            current_length = step_size
-            while abs(current_length + step_size) <= abs(length):
-                p_x, p_y, p_yaw = _interpolate(current_length, mode, max_curvature,
-                                               origin_x, origin_y, origin_yaw,
-                                               p_x, p_y, p_yaw)
-                current_length += step_size
-    
-            p_x, p_y, p_yaw = _interpolate(length, mode, max_curvature, origin_x,
-                                           origin_y, origin_yaw, p_x, p_y, p_yaw)
-    
-        return p_x, p_y, p_yaw
+        min_r = np.min(r)
+        return 1.0 / min_r  # OK
     """.trimIndent()
 
     val root = PythonParser(content).Module()

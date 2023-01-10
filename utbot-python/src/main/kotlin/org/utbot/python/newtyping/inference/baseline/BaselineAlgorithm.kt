@@ -77,7 +77,7 @@ class BaselineAlgorithm(
 
     private fun getInitialState(
         hintCollectorResult: HintCollectorResult,
-        generalRating: TypeRating
+        generalRating: List<Type>
     ): BaselineAlgorithmState {
         val signatureDescription =
             hintCollectorResult.initialSignature.pythonDescription() as PythonCallableTypeDescription

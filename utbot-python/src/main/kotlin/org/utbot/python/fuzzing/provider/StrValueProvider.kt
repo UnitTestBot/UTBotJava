@@ -5,17 +5,15 @@ import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.fuzzing.seeds.StringValue
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
 
 object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        val meta = type.meta
-        return (meta is PythonConcreteCompositeTypeDescription) && meta.name.toString() == "builtins.str"
+        return type.pythonTypeName() == "builtins.str"
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {

@@ -13,6 +13,7 @@ import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.getPythonAttributes
+import org.utbot.python.newtyping.pythonTypeName
 
 class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
@@ -26,7 +27,6 @@ class ReduceValueProvider(
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        val meta = type.meta as PythonConcreteCompositeTypeDescription
         type.getPythonAttributes()
             .filter { it.name == "__init__" || it.name == "__new__" }
             .forEach {
@@ -40,11 +40,11 @@ class ReduceValueProvider(
                         obj.state[field.name] = arguments.first().tree
                     }
                 })
-                yield(constructObject(meta, it, modifications.asSequence()))
+                yield(constructObject(type, it, modifications.asSequence()))
             }
     }
 
-    private fun constructObject(meta: PythonConcreteCompositeTypeDescription, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Seed.Recursive<Type, PythonFuzzedValue> {
+    private fun constructObject(type: Type, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Seed.Recursive<Type, PythonFuzzedValue> {
         return when (constructor.name) {
             "__init__" -> {
                 val arguments = (constructor.type as FunctionTypeCreator.Original).arguments
@@ -55,8 +55,8 @@ class ReduceValueProvider(
                         PythonFuzzedValue(
                             PythonTree.ReduceNode(
                                 idGenerator.createId(),
-                                PythonClassId(meta.name.toString()),
-                                PythonClassId(meta.name.toString()),
+                                PythonClassId(type.pythonTypeName()),
+                                PythonClassId(type.pythonTypeName()),
                                 v.map { it.tree },
                             ),
                         )
@@ -65,7 +65,7 @@ class ReduceValueProvider(
                     empty = Routine.Empty {
                         PythonFuzzedValue(
                             PythonTree.fromObject(),
-                            "%var% = ${meta.name}"
+                            "%var% = ${type.pythonTypeName()}"
                         )
                     }
                 )
@@ -80,8 +80,8 @@ class ReduceValueProvider(
                         PythonFuzzedValue(
                             PythonTree.ReduceNode(
                                 idGenerator.createId(),
-                                PythonClassId(meta.name.toString()),
-                                PythonClassId(meta.name.toString()),
+                                PythonClassId(type.pythonTypeName()),
+                                PythonClassId(type.pythonTypeName()),
                                 v.map { it.tree },
                             ),
                         )
@@ -89,7 +89,7 @@ class ReduceValueProvider(
                     empty = Routine.Empty {
                         PythonFuzzedValue(
                             PythonTree.fromObject(),
-                            "%var% = ${meta.name}"
+                            "%var% = ${type.pythonTypeName()}"
                         )
                     }
                 )

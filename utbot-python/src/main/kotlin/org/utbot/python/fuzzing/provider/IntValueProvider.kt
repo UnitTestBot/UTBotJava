@@ -12,15 +12,12 @@ import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigInteger
 
 object IntValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        val meta = type.meta
-        if (meta is PythonConcreteCompositeTypeDescription) {
-            return meta.name.toString() == "builtins.int"
-        }
-        return type.isAny()
+        return type.pythonTypeName() == "builtins.int" || type.isAny()
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence<Seed<Type, PythonFuzzedValue>> {

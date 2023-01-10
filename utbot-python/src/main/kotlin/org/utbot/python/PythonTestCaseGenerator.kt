@@ -67,14 +67,39 @@ object PythonTestCaseGenerator {
 
     private fun newGenerate(method: PythonMethod): PythonTestSet {
         val mypyConfigFile = setConfigFile(directoriesForSysPath)
-        val (storage, _) = readMypyAnnotationStorageAndInitialErrors(
+        val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
             pythonPath,
             method.moduleFilename,
             mypyConfigFile
         )
-        val functionDef = (storage.definitions[curModule]!![method.name]!!.annotation.asUtBotType as FunctionTypeCreator.Original)
+//        val typeStorage = PythonTypeStorage.get(mypyStorage)
+//        val mypyExpressionTypes = mypyStorage.types[curModule]!!.associate {
+//            Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
+//        }
+
+        val functionDef = (mypyStorage.definitions[curModule]!![method.name]!!.annotation.asUtBotType as FunctionTypeCreator.Original)
         val args = functionDef.arguments
 
+//        val collector = HintCollector(method.type, typeStorage, mypyExpressionTypes)
+//        val visitor = Visitor(listOf(collector))
+//        visitor.visit(method.newAst)
+//
+//        val sourseFileContent = method.codeAsString.split("\n")
+//
+//        val algo = BaselineAlgorithm(
+//            typeStorage,
+//            pythonPath,
+//            method,
+//            directoriesForSysPath,
+//            curModule,
+//            getErrorNumber(
+//                report,
+//                curModule,
+//                getOffsetLine(method.newAst.beginOffset),
+//                getOffsetLine(method.newAst.endOffset)
+//            ),
+//            mypyConfigFile
+//        )
         storageForMypyMessages.clear()
 
         val executions = mutableListOf<UtExecution>()
@@ -98,7 +123,7 @@ object PythonTestCaseGenerator {
             method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation((it.second.meta as PythonTypeDescription).name.toString()) },
             timeoutForRun,
             coveredLines,
-            PythonTypeStorage.get(storage)
+            PythonTypeStorage.get(mypyStorage)
         )
 
         runBlockingWithCancellationPredicate(isCancelled) {

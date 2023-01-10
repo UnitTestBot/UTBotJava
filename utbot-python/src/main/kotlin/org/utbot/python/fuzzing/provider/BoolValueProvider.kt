@@ -5,22 +5,16 @@ import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.Bool
 import org.utbot.fuzzing.seeds.KnownValue
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.fuzzing.provider.utils.valueToString
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
 
 object BoolValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription>{
     override fun accept(type: Type): Boolean {
-        val meta = type.meta
-        if (meta is PythonConcreteCompositeTypeDescription) {
-            return meta.name.toString() == "builtins.bool"
-        }
-        return type.isAny()
+        return type.pythonTypeName() == "builtins.bool" || type.isAny()
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {

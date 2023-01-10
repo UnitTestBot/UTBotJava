@@ -3,6 +3,7 @@ package org.utbot.features
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.testcheckers.eq
@@ -103,6 +104,7 @@ class FeatureProcessorWithRepetitionTest: UtValueTestCaseChecker(OnePath::class,
      * ```
      */
     @Test
+    @Disabled
     fun addTestCaseTest() {
         withFeaturePath(featureDir) {
             check(

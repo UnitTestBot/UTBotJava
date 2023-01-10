@@ -30,6 +30,8 @@ type AnalyzedField struct {
 
 type AnalyzedStructType struct {
 	Name            string          `json:"name"`
+	PackageName     string          `json:"packageName"`
+	PackagePath     string          `json:"packagePath"`
 	ImplementsError bool            `json:"implementsError"`
 	Fields          []AnalyzedField `json:"fields"`
 }

@@ -10,7 +10,6 @@ import org.utbot.go.api.GoStructTypeId
 import org.utbot.go.api.GoTypeId
 import org.utbot.go.api.GoUtStructModel
 import org.utbot.go.framework.api.go.GoUtModel
-import org.utbot.go.util.goRequiredImports
 
 object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
     override fun accept(type: GoTypeId): Boolean = type is GoStructTypeId
@@ -18,6 +17,7 @@ object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescriptio
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, FuzzedValue>> =
         sequence {
             type.let { it as GoStructTypeId }.also { structType ->
+                val packageName = description.methodUnderTest.getPackageName()
                 structType.allConstructors.forEach { constructorId ->
                     yield(Seed.Recursive(
                         construct = Routine.Create(constructorId.parameters.map { it as GoTypeId }) { values ->
@@ -26,9 +26,9 @@ object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescriptio
                                     field.name to value.model as GoUtModel
                                 },
                                 typeId = structType,
-                                requiredImports = values.goRequiredImports
+                                packageName = packageName,
                             ).fuzzed {
-                                summary = "%var% = ${this.model}"
+                                summary = "%var% = ${(model as GoUtModel)}"
                             }
                         },
                         modify = sequence {
@@ -43,9 +43,10 @@ object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescriptio
                         empty = Routine.Empty {
                             GoUtStructModel(
                                 value = emptyList(),
-                                typeId = structType
+                                typeId = structType,
+                                packageName = packageName
                             ).fuzzed {
-                                summary = "%var% = ${this.model}"
+                                summary = "%var% = $model"
                             }
                         }
                     ))

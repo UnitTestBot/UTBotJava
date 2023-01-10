@@ -17,22 +17,23 @@ object GoArrayValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, FuzzedValue>> =
         sequence {
             type.let { it as GoArrayTypeId }.also { arrayType ->
+                val packageName = description.methodUnderTest.getPackageName()
                 yield(
                     Seed.Collection(
                         construct = Routine.Collection {
                             GoUtArrayModel(
                                 value = hashMapOf(),
                                 typeId = arrayType,
-                                length = arrayType.length
+                                packageName = packageName
                             ).fuzzed {
-                                summary = "%var% = ${this.model}"
+                                summary = "%var% = $model"
                             }
                         },
                         modify = Routine.ForEach(listOf(arrayType.elementTypeId)) { self, i, values ->
-                            if (i >= arrayType.length) {
+                            val model = self.model as GoUtArrayModel
+                            if (i >= model.length) {
                                 return@ForEach
                             }
-                            val model = self.model as GoUtArrayModel
                             model.value[i] = values.first().model as GoUtModel
                         }
                     )

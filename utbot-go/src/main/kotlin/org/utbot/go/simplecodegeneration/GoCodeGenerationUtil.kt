@@ -1,13 +1,16 @@
 package org.utbot.go.simplecodegeneration
 
+import org.utbot.go.api.ExplicitCastMode
+import org.utbot.go.api.GoTypeId
+import org.utbot.go.api.GoUtFuzzedFunction
+import org.utbot.go.api.GoUtPrimitiveModel
 import org.utbot.go.framework.api.go.GoUtModel
-import org.utbot.go.api.*
 
 
 fun generateFuzzedFunctionCall(functionName: String, fuzzedFunction: GoUtFuzzedFunction): String {
     val fuzzedParameters = fuzzedFunction.fuzzedParametersValues.joinToString {
-        when (it.model) {
-            is GoUtModel -> it.model.toString()
+        when (val model = it.model) {
+            is GoUtModel -> model.toString()
             else -> throw RuntimeException("${it.model.javaClass} not supported")
         }
     }

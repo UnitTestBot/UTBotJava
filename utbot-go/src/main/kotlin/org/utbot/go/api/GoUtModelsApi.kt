@@ -23,7 +23,7 @@ open class GoUtPrimitiveModel(
             ExplicitCastMode.DEPENDS
         }
 ) : GoUtModel(typeId, requiredImports) {
-    override fun toString() = when (explicitCastMode) {
+    override fun toString(): String = when (explicitCastMode) {
         ExplicitCastMode.REQUIRED -> toCastedValueGoCode()
         ExplicitCastMode.DEPENDS, ExplicitCastMode.NEVER -> toValueGoCode()
     }
@@ -34,13 +34,36 @@ open class GoUtPrimitiveModel(
     fun toCastedValueGoCode(): String = "$typeId(${toValueGoCode()})"
 }
 
+abstract class GoUtCompositeModel(
+    typeId: GoTypeId,
+    val packageName: String,
+) : GoUtModel(typeId) {
+    abstract override val requiredImports: Set<String>
+}
+
 class GoUtStructModel(
     val value: List<Pair<String, GoUtModel>>,
-    typeId: GoTypeId,
-    requiredImports: Set<String> = emptySet()
-) : GoUtModel(typeId, requiredImports) {
-    fun toStringWithoutStructName(): String = "{${value.joinToString { "${it.first}: ${it.second}" }}}"
-    override fun toString(): String = "${classId.name}${toStringWithoutStructName()}"
+    typeId: GoStructTypeId,
+    packageName: String,
+) : GoUtCompositeModel(typeId, packageName) {
+    override val requiredImports: Set<String>
+        get() {
+            val structTypeId = classId as GoStructTypeId
+            val imports =
+                if (structTypeId.packageName != packageName) {
+                    mutableSetOf(structTypeId.packagePath)
+                } else {
+                    mutableSetOf()
+                }
+            value.map { it.second.requiredImports }.forEach { imports += it }
+            return imports
+        }
+
+    fun toStringWithoutStructName(): String =
+        value.joinToString(prefix = "{", postfix = "}") { "${it.first}: ${it.second}" }
+
+    override fun toString(): String =
+        "${(classId as GoStructTypeId).getNameRelativeToPackage(packageName)}${toStringWithoutStructName()}"
 
     override fun canNotBeEqual(): Boolean = value.any { (_, model) -> model.canNotBeEqual() }
 }
@@ -48,27 +71,34 @@ class GoUtStructModel(
 class GoUtArrayModel(
     val value: MutableMap<Int, GoUtModel>,
     typeId: GoArrayTypeId,
-    val length: Int,
-    requiredImports: Set<String> = emptySet()
-) : GoUtModel(typeId, requiredImports) {
+    packageName: String,
+) : GoUtCompositeModel(typeId, packageName) {
+    val length: Int = typeId.length
+
     override val classId: GoArrayTypeId
         get() = super.classId as GoArrayTypeId
 
-//
+    override val requiredImports: Set<String>
+        get() {
+            val structTypeId = classId.elementTypeId as? GoStructTypeId
+            val imports = if (structTypeId != null && structTypeId.packageName != packageName) {
+                mutableSetOf(structTypeId.packagePath)
+            } else {
+                mutableSetOf()
+            }
+            value.entries.map { it.value.requiredImports }.forEach { imports += it }
+            return imports
+        }
 
-    override fun toString(): String = when (classId.elementTypeId) {
+    override fun toString(): String = when (val typeId = classId.elementTypeId) {
         is GoStructTypeId -> (0 until length).map {
-            value[it] ?: this.classId.getDefaultValueModelForElement()
-        }.joinToString(prefix = "[$length]${classId.elementTypeId.simpleName}{", postfix = "}") {
+            value[it] ?: typeId.goDefaultValueModel(packageName)
+        }.joinToString(prefix = "[$length]${typeId.getNameRelativeToPackage(packageName)}{", postfix = "}") {
             (it as GoUtStructModel).toStringWithoutStructName()
         }
-//        is GoArrayTypeId -> (0 until length).map {
-//            value[it] ?: this.classId.getDefaultValueModelForElement()
-//        }.joinToString(prefix = "[$length]${classId.elementTypeId.simpleName}{", postfix = "}") {
-//            (it as GoUtArrayModel).to
-//        }
-        else -> (0 until length).map { value[it] ?: this.classId.elementTypeId.goDefaultValueModel() }
-            .joinToString(prefix = "[$length]${classId.elementClassId!!.simpleName}{", postfix = "}")
+
+        else -> (0 until length).map { value[it] ?: typeId.goDefaultValueModel(packageName) }
+            .joinToString(prefix = "[$length]${typeId.simpleName}{", postfix = "}")
     }
 
     override fun canNotBeEqual(): Boolean = value.values.any { it.canNotBeEqual() }
@@ -117,8 +147,9 @@ class GoUtComplexModel(
 }
 
 class GoUtNilModel(
-    val typeId: GoTypeId
+    typeId: GoTypeId
 ) : GoUtModel(typeId, emptySet()) {
     override fun toString() = "nil"
+
     override fun canNotBeEqual(): Boolean = false
 }

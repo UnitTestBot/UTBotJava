@@ -47,7 +47,7 @@ object GoFuzzedFunctionsExecutor {
                 executeCommandByNewProcessOrFail(
                     runGeneratedGoExecutorTestCommand,
                     sourceFileDir,
-                    "functions from $sourceFile",
+                    "function [${fuzzedFunction.function.name}] from $sourceFile",
                     StringBuilder().append("Try reducing the timeout for each function execution, ")
                         .append("select fewer functions for test generation at the same time, ")
                         .append("or handle corner cases in the source code. ")
@@ -64,6 +64,7 @@ object GoFuzzedFunctionsExecutor {
             logger.debug { "Parsing execution result for function ${fuzzedFunction.function.name} - completed in $totalParsingTime ms" }
 
             return convertRawExecutionResultToExecutionResult(
+                fuzzedFunction.function.getPackageName(),
                 rawExecutionResults.results.first(),
                 fuzzedFunction.function.resultTypes,
                 eachExecutionTimeoutsMillisConfig[fuzzedFunction.function],
@@ -94,7 +95,10 @@ object GoFuzzedFunctionsExecutor {
     }
 
     private fun convertRawExecutionResultToExecutionResult(
-        rawExecutionResult: RawExecutionResult, functionResultTypes: List<GoTypeId>, timeoutMillis: Long
+        packageName: String,
+        rawExecutionResult: RawExecutionResult,
+        functionResultTypes: List<GoTypeId>,
+        timeoutMillis: Long
     ): GoUtExecutionResult {
         if (rawExecutionResult.timeoutExceeded) {
             return GoUtTimeoutExceeded(timeoutMillis, rawExecutionResult.trace)
@@ -128,7 +132,7 @@ object GoFuzzedFunctionsExecutor {
                 if (resultType.implementsError && rawResultValue != null) {
                     executedWithNonNilErrorString = true
                 }
-                createGoUtModelFromRawValue(rawResultValue, resultType)
+                createGoUtModelFromRawValue(rawResultValue, resultType, packageName)
             }
         return if (executedWithNonNilErrorString) {
             GoUtExecutionWithNonNilError(resultValues, rawExecutionResult.trace)
@@ -137,18 +141,21 @@ object GoFuzzedFunctionsExecutor {
         }
     }
 
-    private fun createGoUtModelFromRawValue(rawResultValue: RawResultValue?, typeId: GoTypeId): GoUtModel {
-        return when (typeId) {
-            // Only for error interface
-            is GoInterfaceTypeId -> if (rawResultValue == null) GoUtNilModel(typeId)
-            else GoUtPrimitiveModel((rawResultValue as PrimitiveValue).value, goStringTypeId)
-
-            is GoStructTypeId -> createGoUtStructModelFromRawValue(rawResultValue as StructValue, typeId)
-
-            is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawResultValue as ArrayValue, typeId)
-
-            else -> createGoUtPrimitiveModelFromRawValue(rawResultValue as PrimitiveValue, typeId)
+    private fun createGoUtModelFromRawValue(
+        rawResultValue: RawResultValue?, typeId: GoTypeId, packageName: String
+    ): GoUtModel = when (typeId) {
+        // Only for error interface
+        is GoInterfaceTypeId -> if (rawResultValue == null) {
+            GoUtNilModel(typeId)
+        } else {
+            GoUtPrimitiveModel((rawResultValue as PrimitiveValue).value, goStringTypeId)
         }
+
+        is GoStructTypeId -> createGoUtStructModelFromRawValue(rawResultValue as StructValue, typeId, packageName)
+
+        is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawResultValue as ArrayValue, typeId, packageName)
+
+        else -> createGoUtPrimitiveModelFromRawValue(rawResultValue as PrimitiveValue, typeId)
     }
 
     private fun createGoUtPrimitiveModelFromRawValue(
@@ -201,20 +208,20 @@ object GoFuzzedFunctionsExecutor {
     }
 
     private fun createGoUtStructModelFromRawValue(
-        resultValue: StructValue, resultTypeId: GoStructTypeId
+        resultValue: StructValue, resultTypeId: GoStructTypeId, packageName: String
     ): GoUtStructModel {
         val value = resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
-            fieldId.name to createGoUtModelFromRawValue(value.value, fieldId.declaringClass as GoTypeId)
+            fieldId.name to createGoUtModelFromRawValue(value.value, fieldId.declaringClass as GoTypeId, packageName)
         }
-        return GoUtStructModel(value, resultTypeId)
+        return GoUtStructModel(value, resultTypeId, packageName)
     }
 
     private fun createGoUtArrayModelFromRawValue(
-        resultValue: ArrayValue, resultTypeId: GoArrayTypeId
+        resultValue: ArrayValue, resultTypeId: GoArrayTypeId, packageName: String
     ): GoUtArrayModel {
         val value = (0 until resultTypeId.length).associateWith { index ->
-            createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId)
+            createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId, packageName)
         }.toMutableMap()
-        return GoUtArrayModel(value, resultTypeId, value.size)
+        return GoUtArrayModel(value, resultTypeId, packageName)
     }
 }

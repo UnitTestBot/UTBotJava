@@ -56,6 +56,7 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	case *types.Struct:
 		namedType := typ.(*types.Named)
 		name := namedType.Obj().Name()
+		pkg := namedType.Obj().Pkg()
 		isError := implementsError(namedType)
 
 		structType := underlyingType.(*types.Struct)
@@ -71,6 +72,8 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 
 		result = AnalyzedStructType{
 			Name:            name,
+			PackageName:     pkg.Name(),
+			PackagePath:     pkg.Path(),
 			ImplementsError: isError,
 			Fields:          fields,
 		}

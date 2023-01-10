@@ -2,10 +2,8 @@ package org.utbot.go.api
 
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.framework.api.go.GoClassId
 import org.utbot.go.framework.api.go.GoStructConstructorId
-import org.utbot.go.framework.api.go.GoUtModel
 
 /**
  * Represents real Go type.
@@ -23,11 +21,19 @@ open class GoTypeId(
 
 class GoStructTypeId(
     name: String,
+    override val packageName: String,
+    val packagePath: String,
     implementsError: Boolean,
     val fields: List<FieldId>,
 ) : GoTypeId(name, implementsError) {
     override val allConstructors: Sequence<ConstructorId>
         get() = sequenceOf(GoStructConstructorId(this, fields))
+
+    fun getNameRelativeToPackage(packageName: String): String = if (this.packageName != packageName) {
+        this.packageName + "."
+    } else {
+        ""
+    } + simpleName
 }
 
 class GoArrayTypeId(
@@ -36,22 +42,9 @@ class GoArrayTypeId(
     val length: Int
 ) : GoTypeId(name, elementClassId = elementTypeId) {
     val elementTypeId: GoTypeId = elementClassId as GoTypeId
-
-    fun getDefaultValueModelForElement(): GoUtModel = elementTypeId.goDefaultValueModel()
 }
 
 class GoInterfaceTypeId(
     name: String,
     implementsError: Boolean
-): GoTypeId(name, implementsError)
-
-// Wraps tuple of several types into one GoClassId. It helps to handle multiple result types of Go functions.
-class GoSyntheticMultipleTypesId(val types: List<GoTypeId>) :
-    GoClassId("synthetic_multiple_types${types.typesToString()}") {
-    override fun toString(): String = types.typesToString()
-}
-
-private fun List<GoTypeId>.typesToString(): String = this.joinToString(separator = ", ", prefix = "(", postfix = ")")
-
-// There is no void type in Go; therefore, this class solves function returns nothing case.
-class GoSyntheticNoTypeId : GoClassId("")
+) : GoTypeId(name, implementsError)

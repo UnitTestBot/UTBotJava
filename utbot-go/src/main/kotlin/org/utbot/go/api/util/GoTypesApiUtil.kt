@@ -94,20 +94,22 @@ val GoTypeId.correspondingKClass: KClass<out Any>
         else -> String::class // default way to hold GoUtPrimitiveModel's value is to use String
     }
 
-fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
+fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
     goBoolTypeId -> GoUtPrimitiveModel(false, this)
     goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(0, this)
     goByteTypeId, goUintTypeId, goUint8TypeId, goUint16TypeId, goUint32TypeId, goUint64TypeId -> GoUtPrimitiveModel(
         0,
         this
     )
+
     goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
     goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
-        goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
-        goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
+        goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
+        goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
         this
     )
-    is GoStructTypeId -> GoUtStructModel(listOf(), this, setOf())
-    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, this.length)
+
+    is GoStructTypeId -> GoUtStructModel(listOf(), this, packageName)
+    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, packageName)
     else -> GoUtNilModel(this)
 }

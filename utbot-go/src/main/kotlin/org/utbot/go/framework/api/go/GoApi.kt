@@ -47,7 +47,7 @@ abstract class GoClassId(name: String, elementClassId: GoClassId? = null) : Clas
  */
 abstract class GoUtModel(
     override val classId: GoClassId,
-    val requiredImports: Set<String> = emptySet()
+    open val requiredImports: Set<String> = emptySet()
 ) : UtModel(classId) {
     override fun toString(): String = error("not supported")
 

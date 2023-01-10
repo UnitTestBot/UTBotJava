@@ -1,6 +1,5 @@
 package org.utbot.go
 
-import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
@@ -20,24 +19,18 @@ class GoInstruction(
 )
 
 class GoDescription(
-    description: FuzzedMethodDescription,
+    val methodUnderTest: GoUtFunction,
     val tracer: Trie<GoInstruction, *>
-) : Description<GoTypeId>(description.parameters.map { it as GoTypeId }.toList())
+) : Description<GoTypeId>(methodUnderTest.parameters.map { it.type }.toList())
 
 suspend fun runGoFuzzing(
     methodUnderTest: GoUtFunction,
     providers: List<ValueProvider<GoTypeId, FuzzedValue, GoDescription>> = goDefaultValueProviders(),
     exec: suspend (description: GoDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<GoInstruction>, GoTypeId, FuzzedValue>
 ) {
-    val fmd = FuzzedMethodDescription(
-        methodUnderTest.name,
-        methodUnderTest.resultTypesAsGoClassId,
-        methodUnderTest.parametersTypes,
-        methodUnderTest.concreteValues
-    )
     BaseFuzzing(providers, exec).fuzz(
         GoDescription(
-            fmd, Trie(GoInstruction::lineNumber)
+            methodUnderTest, Trie(GoInstruction::lineNumber)
         )
     )
 }

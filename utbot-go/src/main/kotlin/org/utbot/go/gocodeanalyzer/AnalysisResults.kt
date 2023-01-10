@@ -14,19 +14,21 @@ data class AnalyzedInterfaceType(
     override val name: String,
     val implementsError: Boolean
 ) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId = GoInterfaceTypeId(simpleName, implementsError)
+    override fun toGoTypeId(): GoTypeId = GoInterfaceTypeId(name = simpleName, implementsError = implementsError)
 
-    val simpleName: String = name.replaceFirst("interface ", "")
+    private val simpleName: String = name.replaceFirst("interface ", "")
 }
 
 data class AnalyzedPrimitiveType(
     override val name: String
 ) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId = GoTypeId(name = this.name)
+    override fun toGoTypeId(): GoTypeId = GoTypeId(name = name)
 }
 
 data class AnalyzedStructType(
     override val name: String,
+    val packageName: String,
+    val packagePath: String,
     val implementsError: Boolean,
     val fields: List<AnalyzedField>
 ) : AnalyzedType(name) {
@@ -36,9 +38,11 @@ data class AnalyzedStructType(
     )
 
     override fun toGoTypeId(): GoTypeId = GoStructTypeId(
-        this.name,
-        this.implementsError,
-        this.fields.map { FieldId(it.type.toGoTypeId(), it.name) }
+        name = name,
+        packageName = packageName,
+        packagePath = packagePath,
+        implementsError = implementsError,
+        fields = fields.map { field -> FieldId(field.type.toGoTypeId(), field.name) }
     )
 }
 
@@ -48,9 +52,9 @@ data class AnalyzedArrayType(
     val length: Int
 ) : AnalyzedType(name) {
     override fun toGoTypeId(): GoTypeId = GoArrayTypeId(
-        this.name,
-        this.elementType.toGoTypeId(),
-        this.length
+        name = name,
+        elementTypeId = elementType.toGoTypeId(),
+        length = length
     )
 }
 

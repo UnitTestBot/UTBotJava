@@ -9,6 +9,7 @@ import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
@@ -85,6 +86,7 @@ object UtBotJavaApi {
                     testFramework = testFramework,
                     mockFramework = mockFramework,
                     codegenLanguage = codegenLanguage,
+                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
                     staticsMocking = staticsMocking,
                     forceStaticMocking = forceStaticMocking,
                     generateWarningsForStaticMocking = generateWarningsForStaticMocking,

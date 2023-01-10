@@ -60,6 +60,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.util.isSynthetic
 
 internal const val junitVersion = 4
@@ -157,7 +158,8 @@ fun setOptions() {
     Settings.defaultConcreteExecutorPoolSize = 1
     UtSettings.useFuzzing = true
     UtSettings.classfilesCanChange = false
-    UtSettings.useAssembleModelGenerator = false
+    // We need to use assemble model generator to increase readability
+    UtSettings.useAssembleModelGenerator = true
     UtSettings.enableSummariesGeneration = false
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
@@ -222,7 +224,8 @@ fun runGeneration(
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
-            generateWarningsForStaticMocking = false
+            generateWarningsForStaticMocking = false,
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
         )
 
     logger.info().bracket("class ${cut.fqn}", { statsForClass }) {

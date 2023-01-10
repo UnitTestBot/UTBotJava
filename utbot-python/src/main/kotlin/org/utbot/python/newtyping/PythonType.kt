@@ -35,6 +35,10 @@ fun Type.pythonTypeRepresentation(): String {
     return pythonDescription().getTypeRepresentation(this)
 }
 
+fun Type.pythonTypeName(): String {
+    return pythonDescription().getTypeName(this)
+}
+
 class PythonTypeStorage(
     val pythonObject: Type,
     val pythonBool: Type,
@@ -92,10 +96,17 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
                 name.name
             else
                 name.prefix.joinToString(separator = ".") + "." + name.name
+        val root = getTypeName(type)
         val params = getAnnotationParameters(type)
         if (params.isEmpty())
             return root
         return "$root[${params.joinToString { it.pythonTypeRepresentation() }}]"
+    }
+    open fun getTypeName(type: Type): String {
+        return if (name.prefix.isEmpty())
+            name.name
+        else
+            name.prefix.joinToString(".") + "." + name.name
     }
 }
 

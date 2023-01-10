@@ -8,16 +8,12 @@ import org.utbot.python.framework.api.python.util.pythonComplexClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
 
 object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        val meta = type.meta
-        if (meta is PythonConcreteCompositeTypeDescription) {
-            return meta.name.toString() == "builtins.complex"
-        }
-        return type.isAny()
+        return type.pythonTypeName() == "builtins.complex" || type.isAny()
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -43,7 +39,7 @@ object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMetho
                         pythonComplexClassId,
                         "complex()"
                     ),
-                    "%var% = builtins.complex"
+                    "%var% = ${type.pythonTypeName()}"
                 )
             }
         ))

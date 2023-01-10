@@ -4,21 +4,20 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.pythonListClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonAnnotationParameters
+import org.utbot.python.newtyping.pythonTypeName
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 object ListValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        val meta = type.meta
-        return (meta is PythonConcreteCompositeTypeDescription) && meta.name.toString() == "builtins.list"
+        return type.pythonTypeName() == "builtins.list"
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        val meta = type.meta as PythonConcreteCompositeTypeDescription
-        val param = meta.getAnnotationParameters(type)
+        val param = type.pythonAnnotationParameters()
         yield(
             Seed.Collection(
                 construct = Routine.Collection {
@@ -26,7 +25,7 @@ object ListValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDe
                         PythonTree.ListNode(
                             emptyMap<Int, PythonTree.PythonTreeNode>().toMutableMap(),
                         ),
-                        "%var% = ${meta.name}"
+                        "%var% = ${type.pythonTypeRepresentation()}"
                     )
                 },
                 modify = Routine.ForEach(param) { self, i, values ->

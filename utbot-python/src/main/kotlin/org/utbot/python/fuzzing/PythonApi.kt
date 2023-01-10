@@ -9,7 +9,6 @@ import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.framework.api.python.util.pythonObjectClassId
 import org.utbot.python.fuzzing.provider.BoolValueProvider
 import org.utbot.python.fuzzing.provider.BytearrayValueProvider
 import org.utbot.python.fuzzing.provider.BytesValueProvider
@@ -26,11 +25,13 @@ import org.utbot.python.fuzzing.provider.StrValueProvider
 import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
 import org.utbot.python.fuzzing.provider.TupleValueProvider
 import org.utbot.python.fuzzing.provider.UnionValueProvider
+import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.fuzzing.value.ObjectValue
 import org.utbot.python.newtyping.PythonProtocolDescription
 import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 data class PythonFuzzedConcreteValue(
     val classId: Type,
@@ -90,6 +91,7 @@ class PythonFuzzing(
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
         pythonDefaultValueProviders(idGenerator).asSequence().forEach { provider ->
             if (provider.accept(type)) {
+                logger.info { "Provider ${provider.javaClass.name} accepts type ${type.pythonTypeRepresentation()}" }
                 providers += provider.generate(description, type)
             }
         }
@@ -113,12 +115,18 @@ class PythonFuzzing(
         val idGenerator = PythonIdGenerator()
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
 
-        providers += generateDefault(description, type, idGenerator)
-        providers += generateSubtype(description, type, idGenerator)
+        if (type.isAny()) {
+            providers += pythonTypeStorage.allTypes.flatMap {
+                generateDefault(description, it, idGenerator)
+            }.toSet().asSequence()
+        } else {
+            providers += generateDefault(description, type, idGenerator)
+            providers += generateSubtype(description, type, idGenerator)
+        }
 
         if (providers.toList().isEmpty()) {
-            logger.info("Add object provider for ${type.meta}")
-            providers += Seed.Known(ObjectValue()) { PythonFuzzedValue(PythonTree.fromNone(), "%var% = object") }
+            logger.info("Add object provider for ${type.pythonTypeRepresentation()}")
+            providers += Seed.Known(ObjectValue()) { PythonFuzzedValue(PythonTree.fromObject(), "%var% = object") }
         }
 
         return providers

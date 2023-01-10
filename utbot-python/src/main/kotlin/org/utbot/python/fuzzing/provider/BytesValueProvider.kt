@@ -7,17 +7,15 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonBytesClassId
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
 
 object BytesValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        val meta = type.meta
-        return (meta is PythonConcreteCompositeTypeDescription) && meta.name.toString() == "builtins.bytearray"
+        return type.pythonTypeName() == "builtins.bytes"
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        val meta = type.meta as PythonConcreteCompositeTypeDescription
         yield(Seed.Recursive(
             construct = Routine.Create(
                 listOf(
@@ -30,6 +28,7 @@ object BytesValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
                         pythonBytesClassId,
                         "bytes(${value.repr})"
                     ),
+                    "%var% = ${type.pythonTypeName()}",
                 )
             },
             empty = Routine.Empty {
@@ -38,7 +37,7 @@ object BytesValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
                         pythonBytesClassId,
                         "bytes()"
                     ),
-                    "%var% = ${meta.name}"
+                    "%var% = ${type.pythonTypeName()}"
                 )
             }
         ))

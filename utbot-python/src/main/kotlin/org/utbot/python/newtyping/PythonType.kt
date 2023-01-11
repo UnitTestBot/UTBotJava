@@ -1,6 +1,8 @@
 package org.utbot.python.newtyping
 
 import org.utbot.python.newtyping.general.*
+import org.utbot.python.newtyping.mypy.DefinitionType
+import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 
 fun Type.isPythonType(): Boolean {
     return meta is PythonTypeDescription

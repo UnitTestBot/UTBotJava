@@ -7,7 +7,7 @@ import org.utbot.python.newtyping.ast.visitor.hints.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
-import org.utbot.python.newtyping.runmypy.checkSuggestedSignatureWithDMypy
+import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 

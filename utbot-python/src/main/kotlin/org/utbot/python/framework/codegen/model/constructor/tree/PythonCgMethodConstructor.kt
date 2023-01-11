@@ -61,10 +61,18 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     thisInstance = execution.stateBefore.thisInstance?.let {
                         variableConstructor.getOrCreateVariable(it)
                     }
+                    if (thisInstance is CgPythonTree) {
+                        context.currentBlock.addAll((thisInstance as CgPythonTree).arguments)
+                    }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
+                    }
+                    methodArguments.forEach {
+                        if (it is CgPythonTree) {
+                            context.currentBlock.addAll(it.arguments)
+                        }
                     }
                     fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()

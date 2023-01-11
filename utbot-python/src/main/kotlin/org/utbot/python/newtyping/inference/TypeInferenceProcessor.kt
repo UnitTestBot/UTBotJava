@@ -11,9 +11,10 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
-import org.utbot.python.newtyping.runmypy.getErrorNumber
-import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.runmypy.setConfigFile
+import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.mypy.getErrorNumber
+import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.utils.*
 import java.io.File
 import java.nio.file.Path

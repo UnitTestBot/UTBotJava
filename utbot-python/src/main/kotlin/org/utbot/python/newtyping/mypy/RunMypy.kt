@@ -1,4 +1,4 @@
-package org.utbot.python.newtyping.runmypy
+package org.utbot.python.newtyping.mypy
 
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode

@@ -7,25 +7,10 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
-import org.parsers.python.PythonParser
-import org.parsers.python.ast.FunctionDefinition
-import org.utbot.python.PythonArgument
-import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.ast.parseFunctionDefinition
-import org.utbot.python.newtyping.ast.visitor.Visitor
-import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
-import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.inference.TypeInferenceProcessor
-import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
-import org.utbot.python.newtyping.runmypy.getErrorNumber
-import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.utils.*
 import org.utbot.python.utils.RequirementsUtils.requirements
-import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
 
 private val logger = KotlinLogging.logger {}
 

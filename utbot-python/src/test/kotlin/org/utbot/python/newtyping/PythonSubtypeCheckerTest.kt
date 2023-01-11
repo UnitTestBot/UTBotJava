@@ -9,6 +9,8 @@ import org.utbot.python.newtyping.ast.visitor.hints.createBinaryProtocol
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.TypeParameter
+import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.mypy.readMypyAnnotationStorage
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonSubtypeCheckerTest {

@@ -12,7 +12,8 @@ import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.PythonTypeDescription
 import org.utbot.python.newtyping.PythonTypeStorage
-import org.utbot.python.newtyping.general.FunctionTypeCreator
+import org.utbot.python.newtyping.general.FunctionType
+import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
@@ -67,39 +68,22 @@ object PythonTestCaseGenerator {
 
     private fun newGenerate(method: PythonMethod): PythonTestSet {
         val mypyConfigFile = setConfigFile(directoriesForSysPath)
-        val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
+        val (mypyStorage, _) = readMypyAnnotationStorageAndInitialErrors(
             pythonPath,
             method.moduleFilename,
             mypyConfigFile
         )
-//        val typeStorage = PythonTypeStorage.get(mypyStorage)
-//        val mypyExpressionTypes = mypyStorage.types[curModule]!!.associate {
-//            Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
-//        }
 
-        val functionDef = (mypyStorage.definitions[curModule]!![method.name]!!.annotation.asUtBotType as FunctionTypeCreator.Original)
-        val args = functionDef.arguments
+        val containingClass = method.containingPythonClassId
+        val functionDef = if (containingClass == null) {
+            mypyStorage.definitions[curModule]!![method.name]!!.annotation.asUtBotType
+        } else {
+            mypyStorage.definitions[curModule]!![containingClass.simpleName]!!.annotation.asUtBotType.getPythonAttributes().first {
+                it.name == method.name
+            }.type
+        }
+        val args = (functionDef as FunctionType).arguments
 
-//        val collector = HintCollector(method.type, typeStorage, mypyExpressionTypes)
-//        val visitor = Visitor(listOf(collector))
-//        visitor.visit(method.newAst)
-//
-//        val sourseFileContent = method.codeAsString.split("\n")
-//
-//        val algo = BaselineAlgorithm(
-//            typeStorage,
-//            pythonPath,
-//            method,
-//            directoriesForSysPath,
-//            curModule,
-//            getErrorNumber(
-//                report,
-//                curModule,
-//                getOffsetLine(method.newAst.beginOffset),
-//                getOffsetLine(method.newAst.endOffset)
-//            ),
-//            mypyConfigFile
-//        )
         storageForMypyMessages.clear()
 
         val executions = mutableListOf<UtExecution>()

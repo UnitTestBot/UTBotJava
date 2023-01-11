@@ -19,12 +19,24 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
 ) : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
+    private val unsupportedTypes = listOf<String>(
+        "builtins.list",
+        "builtins.set",
+        "builtins.tuple",
+        "builtins.dict",
+        "builtins.bytes",
+        "builtins.bytearray",
+        "builtins.complex",
+    )
+
     override fun accept(type: Type): Boolean {
         val hasInit =
             type.getPythonAttributes().any { it.name == "__init__" }
         val hasNew =
             type.getPythonAttributes().any { it.name == "__new__" }
-        return type.meta is PythonConcreteCompositeTypeDescription && (hasInit || hasNew)
+        val hasSupportedType =
+            !unsupportedTypes.contains(type.pythonTypeName())
+        return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription && (hasInit || hasNew)
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -45,7 +57,11 @@ class ReduceValueProvider(
             }
     }
 
-    private fun constructObject(type: Type, constructorFunction: FunctionType, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Seed.Recursive<Type, PythonFuzzedValue> {
+    private fun constructObject(
+        type: Type,
+        constructorFunction: FunctionType,
+        modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>
+    ): Seed.Recursive<Type, PythonFuzzedValue> {
         val arguments = constructorFunction.arguments
         val nonSelfArgs = arguments.drop(1)
 
@@ -71,7 +87,11 @@ class ReduceValueProvider(
         )
     }
 
-    private fun callConstructors(type: Type, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Sequence<Seed.Recursive<Type, PythonFuzzedValue>> = sequence {
+    private fun callConstructors(
+        type: Type,
+        constructor: PythonAttribute,
+        modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>
+    ): Sequence<Seed.Recursive<Type, PythonFuzzedValue>> = sequence {
         val constructors = emptyList<FunctionType>().toMutableList()
         if (constructor.type.pythonTypeName() == "Overload") {
             constructor.type.parameters.forEach {

@@ -1,7 +1,10 @@
 package org.utbot.python
 
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.parsers.python.PythonParser
+import org.parsers.python.ast.FunctionDefinition
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
@@ -10,15 +13,22 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.newtyping.PythonTypeDescription
 import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.ast.parseFunctionDefinition
+import org.utbot.python.newtyping.ast.visitor.Visitor
+import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.getPythonAttributes
-import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.mypy.setConfigFile
+import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.pythonTypeName
+import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.newtyping.runmypy.getErrorNumber
+import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+import java.io.File
 import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
@@ -33,6 +43,7 @@ object PythonTestCaseGenerator {
     private lateinit var isCancelled: () -> Boolean
     private var timeoutForRun: Long = 0
     private var until: Long = 0
+    private lateinit var sourceFileContent: String
 
     fun init(
         directoriesForSysPath: Set<String>,
@@ -54,25 +65,37 @@ object PythonTestCaseGenerator {
         this.timeoutForRun = timeoutForRun
         this.pythonRunRoot = pythonRunRoot
         this.until = until
+        this.sourceFileContent = File(fileOfMethod).readText()
+    }
+
+    private fun getOffsetLine(offset: Int): Int {
+        return sourceFileContent.take(offset).count { it == '\n' } + 1
     }
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
     fun generate(method: PythonMethod): PythonTestSet {
-        return if (method.arguments.any {it.annotation == null}) {
-            oldGenerate(method)
-        } else {
-            newGenerate(method)
-        }
+//        return if (method.arguments.any {it.annotation == null}) {
+//            oldGenerate(method)
+//        } else {
+//            newGenerate(method)
+//        }
+        return newGenerate(method)
     }
 
     private fun newGenerate(method: PythonMethod): PythonTestSet {
         val mypyConfigFile = setConfigFile(directoriesForSysPath)
-        val (mypyStorage, _) = readMypyAnnotationStorageAndInitialErrors(
+        val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
             pythonPath,
             method.moduleFilename,
+            curModule,
             mypyConfigFile
         )
+
+        val namesInModule = mypyStorage.names[curModule]!!.filter {
+            it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
+        }
+        val typeStorage = PythonTypeStorage.get(mypyStorage)
 
         val containingClass = method.containingPythonClassId
         val functionDef = if (containingClass == null) {
@@ -82,7 +105,25 @@ object PythonTestCaseGenerator {
                 it.name == method.name
             }.type
         }
-        val args = (functionDef as FunctionType).arguments
+
+        val parsedFile = PythonParser(sourceFileContent).Module()
+        val funcDef = parsedFile.children().asSequence().mapNotNull { node ->
+            val res = (node as? FunctionDefinition)?.let { parseFunctionDefinition(it) }
+            if (res?.name?.toString() == method.name) res else null
+        }.firstOrNull() ?: throw Exception("Couldn't find top-level function ${method.name}")
+
+        method.type = functionDef as FunctionType
+        method.newAst = funcDef.body
+//        val args = (functionDef as FunctionType).arguments
+
+        val mypyExpressionTypes = mypyStorage.types[curModule]?.let { moduleTypes ->
+            moduleTypes.associate {
+                Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
+            }
+        } ?: emptyMap()
+        val collector = HintCollector(method.type, typeStorage, mypyExpressionTypes)
+        val visitor = Visitor(listOf(collector))
+        visitor.visit(method.newAst)
 
         storageForMypyMessages.clear()
 
@@ -92,38 +133,74 @@ object PythonTestCaseGenerator {
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
 
-        logger.debug(
-            "Existing annotations: ${
-                args.joinToString(" ") { "${it.meta}" }
-            }"
-        )
+        val configFile = setConfigFile(directoriesForSysPath)
 
-        val engine = PythonEngine(
+        val algo = BaselineAlgorithm(
+            typeStorage,
+            pythonPath,
             method,
             directoriesForSysPath,
             curModule,
-            pythonPath,
-            emptyList(),
-            method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation((it.second.meta as PythonTypeDescription).name.toString()) },
-            timeoutForRun,
-            coveredLines,
-            PythonTypeStorage.get(mypyStorage)
+            namesInModule,
+            getErrorNumber(
+                report,
+                fileOfMethod,
+                getOffsetLine(method.newAst.beginOffset),
+                getOffsetLine(method.newAst.endOffset)
+            ),
+            configFile
         )
 
-        runBlockingWithCancellationPredicate(isCancelled) {
-            engine.newFuzzing(args, isCancelled, until).collect {
-                generated += 1
-                when (it) {
-                    is UtExecution -> {
-                        logger.debug("Added execution: $it")
-                        executions += it
-                        missingLines = updateCoverage(it, coveredLines, missingLines)
-                    }
+        val cancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
+        val annotations = algo.run(collector.result, cancellation)
 
-                    is UtError -> {
-                        logger.debug("Failed evaluation. Reason: ${it.description}")
-                        errors += it
+        annotations.forEach { functionType ->
+            val args = (functionType as FunctionType).arguments
+
+            logger.info {
+                "Inferred annotations: ${
+                    args.joinToString { it.pythonTypeRepresentation() }
+                }"
+            }
+
+            val engine = PythonEngine(
+                method,
+                directoriesForSysPath,
+                curModule,
+                pythonPath,
+                emptyList(),
+                method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation(it.second.pythonTypeName()) },
+                timeoutForRun,
+                coveredLines,
+                PythonTypeStorage.get(mypyStorage)
+            )
+
+            var coverageLimit = 20
+            var coveredBefore = coveredLines.size
+
+            val fuzzerCancellation = { isCancelled() || coverageLimit == 0 }
+
+//            runBlockingWithCancellationPredicate(fuzzerCancellation) {
+            runBlocking {
+                engine.newFuzzing(args, isCancelled, until).takeWhile { !fuzzerCancellation() }.collect {
+                    generated += 1
+                    when (it) {
+                        is UtExecution -> {
+                            logger.debug("Added execution: $it")
+                            executions += it
+                            missingLines = updateCoverage(it, coveredLines, missingLines)
+                        }
+
+                        is UtError -> {
+                            logger.debug("Failed evaluation. Reason: ${it.description}")
+                            errors += it
+                        }
                     }
+                    val coveredAfter = coveredLines.size
+                    if (coveredAfter == coveredBefore) {
+                        coverageLimit -= 1
+                    }
+                    coveredBefore = coveredAfter
                 }
             }
         }

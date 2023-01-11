@@ -7,7 +7,7 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.python.newtyping.general.*
 
 fun readMypyAnnotationStorage(jsonWithAnnotations: String): MypyAnnotationStorage {
-    return jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy annotations")
+    return jsonAdapter.fromJson(jsonWithAnnotations) ?: error("Couldn't parse json with mypy storage")
 }
 
 private val moshi = Moshi.Builder()
@@ -31,6 +31,7 @@ private val moshi = Moshi.Builder()
             .withSubtype(VarDefinition::class.java, DefinitionType.Var.name)
     )
     .add(PythonTypeVarDescription.Variance::class.java, EnumJsonAdapter.create(PythonTypeVarDescription.Variance::class.java))
+    .add(NameType::class.java, EnumJsonAdapter.create(NameType::class.java))
     .addLast(KotlinJsonAdapterFactory())
     .build()
 
@@ -53,6 +54,12 @@ enum class AnnotationType {
 enum class DefinitionType {
     Type,
     Var
+}
+
+enum class NameType {
+    Module,
+    Type,
+    Other
 }
 
 sealed class Definition(
@@ -78,7 +85,7 @@ class MypyAnnotationStorage(
     val definitions: Map<String, Map<String, Definition>>,
     val types: Map<String, List<ExpressionTypeFromMypy>>,
     val fileToModule: Map<String, String>,
-    val names: Map<String, List<String>>
+    val names: Map<String, Map<String, NameType>>
 ) {
     private fun initAnnotation(annotation: MypyAnnotation) {
         if (annotation.initialized)
@@ -318,12 +325,4 @@ class UnknownAnnotationNode: PythonAnnotationNode() {
     override fun initializeType(): Type {
         return pythonAnyType
     }
-}
-
-fun main() {
-    val json = MypyAnnotation::class.java.getResource("/annotation_sample.json")!!.readText()
-    val storage = readMypyAnnotationStorage(json)
-    val A = storage.definitions["annotation_tests"]!!["A"]!!.annotation.asUtBotType
-    val attrs = A.getPythonAttributes().map { it.name }
-    println(attrs)
 }

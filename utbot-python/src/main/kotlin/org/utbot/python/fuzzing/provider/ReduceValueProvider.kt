@@ -10,19 +10,20 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonAttribute
 import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
-import org.utbot.python.newtyping.general.FunctionTypeCreator
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.pythonTypeName
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
 ) : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
         val hasInit =
-            type.getPythonAttributes().any { it.name == "__init__" && it.type is FunctionTypeCreator.Original }
+            type.getPythonAttributes().any { it.name == "__init__" }
         val hasNew =
-            type.getPythonAttributes().any { it.name == "__new__" && it.type is FunctionTypeCreator.Original }
+            type.getPythonAttributes().any { it.name == "__new__" }
         return type.meta is PythonConcreteCompositeTypeDescription && (hasInit || hasNew)
     }
 
@@ -40,64 +41,49 @@ class ReduceValueProvider(
                         obj.state[field.name] = arguments.first().tree
                     }
                 })
-                yield(constructObject(type, it, modifications.asSequence()))
+                yieldAll(callConstructors(type, it, modifications.asSequence()))
             }
     }
 
-    private fun constructObject(type: Type, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Seed.Recursive<Type, PythonFuzzedValue> {
-        return when (constructor.name) {
-            "__init__" -> {
-                val arguments = (constructor.type as FunctionTypeCreator.Original).arguments
-                val nonSelfArgs = arguments.drop(1)
+    private fun constructObject(type: Type, constructorFunction: FunctionType, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Seed.Recursive<Type, PythonFuzzedValue> {
+        val arguments = constructorFunction.arguments
+        val nonSelfArgs = arguments.drop(1)
 
-                Seed.Recursive(
-                    construct = Routine.Create(nonSelfArgs) { v ->
-                        PythonFuzzedValue(
-                            PythonTree.ReduceNode(
-                                idGenerator.createId(),
-                                PythonClassId(type.pythonTypeName()),
-                                PythonClassId(type.pythonTypeName()),
-                                v.map { it.tree },
-                            ),
-                        )
-                    },
-                    modify = modifications.asSequence(),
-                    empty = Routine.Empty {
-                        PythonFuzzedValue(
-                            PythonTree.fromObject(),
-                            "%var% = ${type.pythonTypeName()}"
-                        )
-                    }
+        return Seed.Recursive(
+            construct = Routine.Create(nonSelfArgs) { v ->
+                PythonFuzzedValue(
+                    PythonTree.ReduceNode(
+                        idGenerator.createId(),
+                        PythonClassId(type.pythonTypeName()),
+                        PythonClassId(type.pythonTypeName()),
+                        v.map { it.tree },
+                    ),
+                    "%var% = ${type.pythonTypeRepresentation()}"
+                )
+            },
+            modify = modifications,
+            empty = Routine.Empty {
+                PythonFuzzedValue(
+                    PythonTree.fromObject(),
+                    "%var% = ${type.pythonTypeRepresentation()}"
                 )
             }
+        )
+    }
 
-            "__new__" -> {
-                val arguments = (constructor.type as FunctionTypeCreator.Original).arguments
-                val nonClsArgs = arguments.drop(1)
-
-                Seed.Recursive(
-                    construct = Routine.Create(nonClsArgs) { v ->
-                        PythonFuzzedValue(
-                            PythonTree.ReduceNode(
-                                idGenerator.createId(),
-                                PythonClassId(type.pythonTypeName()),
-                                PythonClassId(type.pythonTypeName()),
-                                v.map { it.tree },
-                            ),
-                        )
-                    },
-                    empty = Routine.Empty {
-                        PythonFuzzedValue(
-                            PythonTree.fromObject(),
-                            "%var% = ${type.pythonTypeName()}"
-                        )
-                    }
-                )
+    private fun callConstructors(type: Type, constructor: PythonAttribute, modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>): Sequence<Seed.Recursive<Type, PythonFuzzedValue>> = sequence {
+        val constructors = emptyList<FunctionType>().toMutableList()
+        if (constructor.type.pythonTypeName() == "Overload") {
+            constructor.type.parameters.forEach {
+                if (it is FunctionType) {
+                    constructors.add(it)
+                }
             }
-
-            else -> {
-                throw IllegalArgumentException("Invalid constructor name ${constructor.name}")
-            }
+        } else {
+            constructors.add(constructor.type as FunctionType)
+        }
+        constructors.forEach {
+            yield(constructObject(type, it, modifications))
         }
     }
 }

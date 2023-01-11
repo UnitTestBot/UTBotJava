@@ -152,7 +152,7 @@ object PythonTestCaseGenerator {
         )
 
         val cancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
-        val annotations = algo.run(collector.result, cancellation)
+        val annotations = listOf(method.type) + algo.run(collector.result, cancellation)
 
         annotations.forEach { functionType ->
             val args = (functionType as FunctionType).arguments

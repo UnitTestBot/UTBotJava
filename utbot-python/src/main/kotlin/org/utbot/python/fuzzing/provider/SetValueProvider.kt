@@ -32,10 +32,11 @@ object SetValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
             }
         })
         yield(Seed.Recursive(
-            construct = Routine.Create(emptyList()) { _ ->
+            construct = Routine.Create(emptyList()) {
                 val items = emptySet<PythonTree.PythonTreeNode>().toMutableSet()
                 PythonFuzzedValue(
                     PythonTree.SetNode(items),
+                    "%var% = ${type.pythonTypeRepresentation()}",
                 )
             },
             modify = modifications.asSequence(),

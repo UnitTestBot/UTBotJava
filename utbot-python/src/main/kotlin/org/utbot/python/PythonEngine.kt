@@ -28,6 +28,7 @@ import org.utbot.python.fuzzing.PythonFuzzing
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.providers.PythonFuzzedMethodDescription
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
@@ -171,7 +172,7 @@ class PythonEngine(
 
         if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
             val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
-                types.joinToString { it.toString() }
+                types.joinToString { it.pythonTypeRepresentation() }
             }. Exception type: ${resultJSON.type.name}"
 
             logger.info(errorMessage)
@@ -212,7 +213,7 @@ class PythonEngine(
     }
 
     fun newFuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<UtResult> = flow {
-        val additionalModules = selectedTypeMap.values.flatMap {
+        var additionalModules = selectedTypeMap.values.flatMap {
             getModulesFromAnnotation(it)
         }.toSet()
 
@@ -245,6 +246,13 @@ class PythonEngine(
                 else
                     Pair(argumentValues[0], argumentValues.drop(1))
 
+            val argumentModules = argumentValues.flatMap {
+                it.allContainingClassIds
+            }.map {
+                it.moduleName
+            }
+            additionalModules = (additionalModules + argumentModules).toSet()
+
             val evaluationInput = EvaluationInput(
                 methodUnderTest,
                 argumentValues,
@@ -267,6 +275,7 @@ class PythonEngine(
                 evaluationInput.thisObject,
                 evaluationInput.modelList
             )
+
 
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
@@ -297,9 +306,8 @@ class PythonEngine(
                     val result = handleSuccessResultNew(parameters, evaluationResult, description, jobResult, summary)
                     if (result is UtError) {
                         return@PythonFuzzing PythonFeedback(control = Control.PASS)
-                    } else {
-                        emit(result)
                     }
+                    emit(result)
                 }
 
                 is PythonEvaluationTimeout -> {

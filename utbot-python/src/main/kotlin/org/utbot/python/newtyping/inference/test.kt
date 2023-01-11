@@ -5,8 +5,10 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 fun main() {
     TypeInferenceProcessor(
         "python3",
-        "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DubinsPath/dubins_path_planner.py",
-        "_interpolate"
+        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/PythonRobotics"),
+        "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py",
+        moduleOfSourceFile = "PathPlanning.DynamicWindowApproach.dynamic_window_approach",
+        "motion"
     ).inferTypes(cancel = { false }).forEach {
         println(it.pythonTypeRepresentation())
     }

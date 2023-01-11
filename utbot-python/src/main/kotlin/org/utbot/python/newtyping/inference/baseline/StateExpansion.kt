@@ -19,7 +19,7 @@ fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): 
 private fun expandNodes(
     state: BaselineAlgorithmState,
     substitution: Map<AnyTypeNode, Type>,
-    generalRating: TypeRating,
+    generalRating: List<Type>,
     storage: PythonTypeStorage
 ): BaselineAlgorithmState {
     val (newAnyNodeMap, allNewNodes) = substitution.entries.fold(

@@ -30,11 +30,11 @@ class BaselineAlgorithmEdge(
 
 class BaselineAlgorithmState(
     val nodes: Set<BaselineAlgorithmNode>,
-    val generalRating: TypeRating,
+    val generalRating: List<Type>,
     typeStorage: PythonTypeStorage
 ) {
     val signature: Type
         get() = nodes.find { it.isRoot }!!.partialType
     val anyNodes: List<AnyTypeNode> = nodes.mapNotNull { it as? AnyTypeNode }
-    val candidateGraph = CandidateGraph(anyNodes, generalRating.types, typeStorage)
+    val candidateGraph = CandidateGraph(anyNodes, generalRating, typeStorage)
 }

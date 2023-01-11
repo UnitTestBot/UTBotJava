@@ -483,7 +483,20 @@ class Traverser(
         fieldRef: StaticFieldRef,
         stmt: Stmt
     ): Boolean {
+        // This order of processing options is important.
+        // First, we should process classes that
+        // cannot be analyzed without clinit sections, e.g., enums
         if (shouldProcessStaticFieldConcretely(fieldRef)) {
+            return processStaticFieldConcretely(fieldRef, stmt)
+        }
+
+        // Then we should check if we should analyze clinit sections at all
+        if (!UtSettings.enableClinitSectionsAnalysis) {
+            return false
+        }
+
+        // Finally, we decide whether we should analyze clinit sections concretely or not
+        if (UtSettings.processAllClinitSectionsConcretely) {
             return processStaticFieldConcretely(fieldRef, stmt)
         }
 
@@ -1111,7 +1124,8 @@ class Traverser(
 
                     if (allTypes.any { it is GenericArrayType }) {
                         val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
-                        TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
+                        logger.warn { "we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446" }
+                        return
                     }
 
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
@@ -1124,7 +1138,8 @@ class Traverser(
 
                     if (upperBounds.any { it is GenericArrayType }) {
                         val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
-                        TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
+                        logger.warn { "we do not support GenericArrayType yet, and $errorTypes found. SAT-1446" }
+                        return
                     }
 
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)

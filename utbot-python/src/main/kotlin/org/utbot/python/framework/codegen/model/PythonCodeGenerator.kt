@@ -73,6 +73,7 @@ class PythonCodeGenerator(
         testClassCustomName: String? = null,
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
+            (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
 
@@ -107,7 +108,7 @@ class PythonCodeGenerator(
             val importExecutor = PythonUserImport(executorFunctionName, executorModuleName)
             val importSys = PythonSystemImport("sys")
             val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
-            val importFunction = PythonUserImport("*", moduleToImport)
+            val importFunction = PythonUserImport(moduleToImport)
             val imports =
                 listOf(importSys) + importSysPaths + listOf(importExecutor, importFunction) + additionalModules.map { PythonUserImport(it) }
             imports.forEach {
@@ -116,11 +117,16 @@ class PythonCodeGenerator(
             }
 
             val containingClass = method.containingPythonClassId
-            val functionName =
+            var functionTextName =
                 if (containingClass == null)
-                    CgLiteral(pythonAnyClassId, method.name)
+                    method.name
                 else
-                    CgLiteral(pythonAnyClassId, "${containingClass.name}.${method.name}")
+                    "${containingClass.simpleName}.${method.name}"
+            if (moduleToImport.isNotEmpty()) {
+               functionTextName = "$moduleToImport.$functionTextName"
+            }
+
+            val functionName = CgLiteral(pythonStrClassId, functionTextName)
 
             val arguments = method.arguments.map { argument ->
                 CgVariable(argument.name, argument.annotation?.let { PythonClassId(it) } ?: pythonAnyClassId)
@@ -129,12 +135,10 @@ class PythonCodeGenerator(
             val parameters = methodArguments.zip(arguments).map { (model, argument) ->
                 if (model is PythonTreeModel) {
                     val obj = (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor).getOrCreateVariable(model)
-                    context.currentBlock.forEach {it.accept(renderer)}
-//                    (obj as CgPythonTree).children.forEach { it.accept(renderer) }
-
+                    (obj as CgPythonTree).arguments.forEach { it.accept(renderer) }
                     CgAssignment(
                         argument,
-                        (obj as CgPythonTree).value
+                        obj.value
                     )
                 } else {
                     CgAssignment(argument, CgLiteral(model.classId, model.toString()))
@@ -146,22 +150,22 @@ class PythonCodeGenerator(
                 arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
             )
 
-        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
-        val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
-        val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
+            val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
+            val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
+            val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
 
-        val executorCall = CgPythonFunctionCall(
-            pythonNoneClassId,
-            executorFunctionName,
-            listOf(
-                databasePath,
-                functionName,
-                args,
-                kwargs,
-                fullpath,
-                outputPath,
+            val executorCall = CgPythonFunctionCall(
+                pythonNoneClassId,
+                executorFunctionName,
+                listOf(
+                    databasePath,
+                    functionName,
+                    args,
+                    kwargs,
+                    fullpath,
+                    outputPath,
+                )
             )
-        )
 
             parameters.forEach { it.accept(renderer) }
             executorCall.accept(renderer)

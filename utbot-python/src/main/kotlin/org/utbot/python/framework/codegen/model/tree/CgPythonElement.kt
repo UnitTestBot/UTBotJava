@@ -39,7 +39,7 @@ class CgPythonTree(
     override val type: ClassId,
     val tree: PythonTree.PythonTreeNode,
     val value: CgValue,
-//    val children: List<CgStatement> = emptyList()
+    val arguments: List<CgStatement> = emptyList()
 ) : CgValue, CgPythonElement
 
 class CgPythonRepr(

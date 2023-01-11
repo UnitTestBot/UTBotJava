@@ -136,9 +136,7 @@ jobs:
           done
 
       - name: Create JaCoCo test report 
-        run: |
-          cd utbot-junit-contest
-          gradle test jacocoTestReport :utbot-junit-contest:monitoringJar
+        run: gradle test jacocoTestReport :utbot-junit-contest:monitoringJar
 
       - name: Get current date
         id: date

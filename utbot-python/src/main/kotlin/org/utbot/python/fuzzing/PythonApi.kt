@@ -118,9 +118,10 @@ class PythonFuzzing(
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
 
         if (type.isAny()) {
-            providers += pythonTypeStorage.allTypes.flatMap {
-                generateDefault(description, it, idGenerator)
-            }.toSet().asSequence()
+            logger.info("Any does not have provider")
+//            providers += pythonTypeStorage.allTypes.flatMap {
+//                generateDefault(description, it, idGenerator)
+//            }.toSet().asSequence()
         } else {
             providers += generateDefault(description, type, idGenerator)
             providers += generateSubtype(description, type, idGenerator)

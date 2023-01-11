@@ -1,9 +1,10 @@
-package org.utbot.python.newtyping
+package org.utbot.python.newtyping.mypy
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.EnumJsonAdapter
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.*
 
 fun readMypyAnnotationStorage(jsonWithAnnotations: String): MypyAnnotationStorage {

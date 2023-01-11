@@ -1,6 +1,6 @@
 package org.utbot.python.fuzzing
 
-import org.utbot.engine.logger
+import mu.KotlinLogging
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzing.Control
@@ -32,6 +32,8 @@ import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeRepresentation
+
+private val logger = KotlinLogging.logger {}
 
 data class PythonFuzzedConcreteValue(
     val classId: Type,
@@ -91,7 +93,7 @@ class PythonFuzzing(
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
         pythonDefaultValueProviders(idGenerator).asSequence().forEach { provider ->
             if (provider.accept(type)) {
-                logger.info { "Provider ${provider.javaClass.name} accepts type ${type.pythonTypeRepresentation()}" }
+                logger.info { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
                 providers += provider.generate(description, type)
             }
         }

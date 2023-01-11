@@ -42,6 +42,7 @@ object DictValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDe
                 val items = mapOf(v[0].tree to v[1].tree).toMutableMap()
                 PythonFuzzedValue(
                     PythonTree.DictNode(items),
+                    "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
             modify = modifications.asSequence(),

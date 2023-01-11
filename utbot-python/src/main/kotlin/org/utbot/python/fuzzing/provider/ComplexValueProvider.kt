@@ -10,6 +10,7 @@ import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
@@ -39,7 +40,7 @@ object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMetho
                         pythonComplexClassId,
                         "complex()"
                     ),
-                    "%var% = ${type.pythonTypeName()}"
+                    "%var% = ${type.pythonTypeRepresentation()}"
                 )
             }
         ))

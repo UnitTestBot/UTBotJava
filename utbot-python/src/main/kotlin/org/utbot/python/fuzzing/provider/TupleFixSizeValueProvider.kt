@@ -29,6 +29,7 @@ object TupleFixSizeValueProvider : ValueProvider<Type, PythonFuzzedValue, Python
             construct = Routine.Create(params) { v ->
                 PythonFuzzedValue(
                     PythonTree.TupleNode(v.withIndex().associate { it.index to it.value.tree }.toMutableMap()),
+                    "%var% = ${type.pythonTypeRepresentation()}"
                 )
             },
             modify = modifications.asSequence(),

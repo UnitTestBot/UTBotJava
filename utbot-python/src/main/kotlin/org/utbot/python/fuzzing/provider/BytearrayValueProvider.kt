@@ -9,6 +9,7 @@ import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 object BytearrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
@@ -28,7 +29,7 @@ object BytearrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMet
                         pythonBytearrayClassId,
                         "bytearray(${value.repr})"
                     ),
-                    "%var% = ${type.pythonTypeName()}",
+                    "%var% = ${type.pythonTypeRepresentation()}",
                 )
             },
             empty = Routine.Empty { PythonFuzzedValue(
@@ -36,7 +37,7 @@ object BytearrayValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMet
                     pythonBytearrayClassId,
                     "bytearray()"
                 ),
-                "%var% = ${type.pythonTypeName()}"
+                "%var% = ${type.pythonTypeRepresentation()}"
             ) }
         ))
     }

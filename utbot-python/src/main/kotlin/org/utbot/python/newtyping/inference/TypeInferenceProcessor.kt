@@ -14,6 +14,7 @@ import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.runmypy.getErrorNumber
 import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.runmypy.setConfigFile
+import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.utils.*
 import java.io.File
 import java.nio.file.Path
@@ -97,8 +98,8 @@ class TypeInferenceProcessor(
                 getErrorNumber(
                     report,
                     path.toString(),
-                    getOffsetLine(pythonMethod.newAst.beginOffset),
-                    getOffsetLine(pythonMethod.newAst.endOffset)
+                    getOffsetLine(sourceFileContent, pythonMethod.newAst.beginOffset),
+                    getOffsetLine(sourceFileContent, pythonMethod.newAst.endOffset)
                 ),
                 configFile
             )
@@ -134,9 +135,5 @@ class TypeInferenceProcessor(
         result.type = type
         result.newAst = funcDef.body
         return Success(result)
-    }
-
-    private fun getOffsetLine(offset: Int): Int {
-        return sourceFileContent.take(offset).count { it == '\n' } + 1
     }
 }

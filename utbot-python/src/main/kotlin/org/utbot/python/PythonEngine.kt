@@ -294,9 +294,12 @@ class PythonEngine(
                         sourceLinesCount = instructionsCount
                     }
 
-                    emit(
-                        handleSuccessResultNew(parameters, evaluationResult, description, jobResult, summary)
-                    )
+                    val result = handleSuccessResultNew(parameters, evaluationResult, description, jobResult, summary)
+                    if (result is UtError) {
+                        return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                    } else {
+                        emit(result)
+                    }
                 }
 
                 is PythonEvaluationTimeout -> {

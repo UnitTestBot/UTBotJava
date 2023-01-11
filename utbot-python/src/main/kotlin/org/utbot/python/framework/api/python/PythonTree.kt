@@ -189,7 +189,7 @@ object PythonTree {
     fun fromObject(): PrimitiveNode {
         return PrimitiveNode(
             PythonClassId("builtins.object"),
-            "object"
+            "object()"
         )
     }
 

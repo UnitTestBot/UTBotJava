@@ -97,8 +97,8 @@ class TypeInferenceProcessor(
                 getErrorNumber(
                     report,
                     path.toString(),
-                    getOffsetLine(pythonMethod.newAst.beginOffset),
-                    getOffsetLine(pythonMethod.newAst.endOffset)
+                    getOffsetLine(sourceFileContent, pythonMethod.newAst.beginOffset),
+                    getOffsetLine(sourceFileContent, pythonMethod.newAst.endOffset)
                 ),
                 configFile
             )
@@ -134,9 +134,5 @@ class TypeInferenceProcessor(
         result.type = type
         result.newAst = funcDef.body
         return Success(result)
-    }
-
-    private fun getOffsetLine(offset: Int): Int {
-        return sourceFileContent.take(offset).count { it == '\n' } + 1
     }
 }

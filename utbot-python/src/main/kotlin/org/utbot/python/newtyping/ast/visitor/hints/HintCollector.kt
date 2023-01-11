@@ -133,6 +133,17 @@ class HintCollector(
         }
     }
 
+    /*
+    private fun processIsinstanceCall(parsedFunctionCall: ParsedFunctionCall, node: FunctionCall): Boolean {
+        if (parsedFunctionCall.function !is Name || parsedFunctionCall.function.toString() != "isinstance" ||
+            parsedFunctionCall.args.size != 2)
+            return false
+
+        astNodeToHintCollectorNode[node] = HintCollectorNode(storage.pythonBool)
+        // astNodeToHintCollectorNode[parsedFunctionCall.args[0]]
+    }
+     */
+
     private fun processKeyword(node: Keyword) {
         val type = when (node.type) {
             PythonConstants.TokenType.TRUE, PythonConstants.TokenType.FALSE -> storage.pythonBool
@@ -148,14 +159,7 @@ class HintCollector(
     }
 
     private fun processNumericalLiteral(node: NumericalLiteral) {
-        val type = when (node.type) {
-            PythonConstants.TokenType.DECNUMBER,
-            PythonConstants.TokenType.HEXNUMBER,
-            PythonConstants.TokenType.OCTNUMBER -> storage.pythonInt
-            PythonConstants.TokenType.FLOAT -> storage.pythonFloat
-            PythonConstants.TokenType.COMPLEX -> storage.pythonComplex
-            else -> pythonAnyType
-        }
+        val type = typeOfNumericalLiteral(node, storage)
         astNodeToHintCollectorNode[node] = HintCollectorNode(type)
     }
 

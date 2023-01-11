@@ -174,7 +174,7 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
             !description.name.name.startsWith("_")
                     && description is PythonConcreteCompositeTypeDescription
                     && !description.isAbstract
-                    && !listOf("typing").any { mod -> description.name.prefix == listOf(mod) }
+                    && !listOf("typing", "typing_extensions").any { mod -> description.name.prefix == listOf(mod) }
                     && !prefix.any { type -> typesAreEqual(type.getOrigin(), it) }
         },
         allLowerBounds,

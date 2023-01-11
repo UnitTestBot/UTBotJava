@@ -293,7 +293,7 @@ fun runGeneration(
                     UtSettings.fuzzingTimeoutInMillis = (budgetForMethod * fuzzingRatio).toLong()
 
                     //start controller that will activate symbolic execution
-                    GlobalScope.launch(currentContext) {
+                    launch(currentContext) {
                         delay(budgetForSymbolicExecution)
 
                         if (methodJob.isActive) {
@@ -366,8 +366,7 @@ fun runGeneration(
                 controller.job = job
 
                 //don't start other methods while last method still in progress
-                while (job.isActive)
-                    yield()
+                job.join()
 
                 remainingMethodsCount--
             }

@@ -494,6 +494,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         isAccessibleFrom(testClassPackageName) && !classId.isAbstract && args canBeArgsOf this
 
     private fun List<CgExpression>.guardedForDirectCallOf(executable: ExecutableId): List<CgExpression> {
+        if (executable is BuiltinMethodId) {
+            // We assume that we do not have ambiguous overloads for builtin methods
+            return this
+        }
+
         val ambiguousOverloads = executable.classId
             .getAmbiguousOverloadsOf(executable)
             .filterNot { it == executable }

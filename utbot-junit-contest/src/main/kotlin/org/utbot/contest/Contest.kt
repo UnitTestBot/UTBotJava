@@ -61,6 +61,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.util.isSynthetic
 
 internal const val junitVersion = 4
@@ -180,10 +181,7 @@ fun runGeneration(
     runFromEstimator: Boolean,
     methodNameFilter: String? = null // For debug purposes you can specify method name
 ): StatsForClass = runBlocking {
-
-
-
-    val testSets: MutableList<UtMethodTestSet> = mutableListOf()
+    val testsByMethod: MutableMap<ExecutableId, MutableList<UtExecution>> = mutableMapOf()
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
@@ -340,8 +338,7 @@ fun runGeneration(
                                             }
                                             statsForClass.testedClassNames.add(className)
 
-                                            //TODO: it is a strange hack to create fake test case for one [UtResult]
-                                            testSets.add(UtMethodTestSet(method, listOf(result)))
+                                            testsByMethod.getOrPut(method) { mutableListOf() } += result
                                         } catch (e: Throwable) {
                                             //Here we need isolation
                                             logger.error(e) { "Code generation failed" }
@@ -392,6 +389,8 @@ fun runGeneration(
             }
         }
         cancellator.cancel()
+
+        val testSets = testsByMethod.map { (method, executions) -> UtMethodTestSet(method, minimizeExecutions(executions)) }
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
             writeTestClass(cut, codeGenerator.generateAsString(testSets))

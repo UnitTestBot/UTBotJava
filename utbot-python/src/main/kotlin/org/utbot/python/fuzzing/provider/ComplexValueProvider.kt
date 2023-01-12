@@ -27,11 +27,13 @@ object ComplexValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMetho
             ) { v ->
                 val real = v[0].tree as PythonTree.PrimitiveNode
                 val imag = v[1].tree as PythonTree.PrimitiveNode
+                val repr = "complex(real=${real.repr}, imag=${imag.repr})"
                 PythonFuzzedValue(
                     PythonTree.PrimitiveNode(
                         pythonComplexClassId,
-                        "complex(real=${real.repr}, imag=${imag.repr})"
+                        repr
                     ),
+                    "%var% = $repr"
                 )
             },
             empty = Routine.Empty {

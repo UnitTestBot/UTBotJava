@@ -11,15 +11,11 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
-import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonTreeModel
-import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzing
@@ -27,7 +23,6 @@ import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeRepresentation
-import org.utbot.python.providers.PythonFuzzedMethodDescription
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.lang.Long.max
@@ -41,7 +36,6 @@ class PythonEngine(
     private val moduleToImport: String,
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
-    private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>,
     private val timeoutForRun: Long,
     private val initialCoveredLines: Set<Int>,
     private val pythonTypeStorage: PythonTypeStorage? = null,
@@ -55,7 +49,7 @@ class PythonEngine(
     )
 
     private fun suggestExecutionName(
-        description: FuzzedMethodDescription,
+        description: PythonMethodDescription,
         jobResult: JobResult,
         executionResult: UtExecutionResult
     ): TestSuggestedInfo {
@@ -110,14 +104,7 @@ class PythonEngine(
                 UtExecutionSuccess(resultAsModel)
             }
 
-        val _methodUnderTestDescription = PythonFuzzedMethodDescription(
-            methodUnderTestDescription.name,
-            pythonAnyClassId,
-            emptyList(),
-            emptyList()
-        )
-
-        val testMethodName = suggestExecutionName(_methodUnderTestDescription, jobResult, executionResult)
+        val testMethodName = suggestExecutionName(methodUnderTestDescription, jobResult, executionResult)
 
         return UtFuzzedExecution(
             stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
@@ -131,9 +118,11 @@ class PythonEngine(
     }
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<UtResult> = flow {
-        var additionalModules = selectedTypeMap.values.flatMap {
-            getModulesFromAnnotation(it)
-        }.toSet()
+//        TODO: remove it?
+//        val additionalModules = selectedTypeMap.values.flatMap {
+//            getModulesFromAnnotation(it)
+//        }.toSet()
+        val additionalModules = emptyList<String>()
 
         val pmd = PythonMethodDescription(
             methodUnderTest.name,
@@ -169,7 +158,7 @@ class PythonEngine(
             }.map {
                 it.moduleName
             }
-            additionalModules = (additionalModules + argumentModules).toSet()
+            val localAdditionalModules = (additionalModules + argumentModules).toSet()
 
             val evaluationInput = EvaluationInput(
                 methodUnderTest,
@@ -181,7 +170,7 @@ class PythonEngine(
                 thisObject,
                 modelList,
                 argumentValues.map { FuzzedValue(it) },
-                additionalModules
+                localAdditionalModules
             )
 
             val process = startEvaluationProcess(evaluationInput)

@@ -6,14 +6,17 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
+import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
-import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.model.Pytest
 import org.utbot.python.framework.codegen.model.Unittest
+import org.utbot.python.newtyping.ast.parseClassDefinition
+import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.utils.*
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
@@ -109,25 +112,31 @@ class PythonGenerateTestsCommand : CliktCommand(
 
     private val forbiddenMethods = listOf("__init__", "__new__")
 
-    private fun getClassMethods(pythonClassFromSources: PythonClass): List<PythonMethod> =
-        pythonClassFromSources.methods.filter { method -> method.name !in forbiddenMethods }
-
     private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
-        val code = PythonCode.getFromString(
-            sourceCodeContent,
-            sourceFile.toAbsolutePath(),
-            pythonModule = currentModule
-        )
-            ?: return Fail("Couldn't parse source file. Maybe it contains syntax error?")
+        val parsedModule = PythonParser(sourceFileContent).Module()
 
-        val topLevelFunctions = code.getToplevelFunctions()
-        val topLevelClasses = code.getToplevelClasses()
+        val topLevelFunctions = PythonCode.getTopLevelFunctions(parsedModule)
+        val topLevelClasses = PythonCode.getTopLevelClasses(parsedModule)
+
         val selectedMethods = methods
         if (pythonClass == null && methods == null) {
             return if (topLevelFunctions.isNotEmpty())
-                Success(topLevelFunctions)
+                Success(
+                    topLevelFunctions
+                        .mapNotNull { parseFunctionDefinition(it) }
+                        .map { PythonMethod(it.name.toString(), null, emptyList(), currentModule, null, sourceCodeContent) }
+                )
             else {
-                val topLevelClassMethods = topLevelClasses.flatMap { getClassMethods(it) }
+                val topLevelClassMethods = topLevelClasses
+                    .mapNotNull { parseClassDefinition(it) }
+                    .flatMap { cls ->
+                        PythonCode.getClassMethods(cls.body)
+                            .mapNotNull { parseFunctionDefinition(it) }
+                            .map { function ->
+                                val parsedClassName = PythonClassId(cls.name.toString())
+                                PythonMethod(function.name.toString(), null, emptyList(), currentModule, parsedClassName, sourceCodeContent)
+                            }
+                    }
                 if (topLevelClassMethods.isNotEmpty()) {
                     Success(topLevelClassMethods)
                 } else
@@ -136,6 +145,8 @@ class PythonGenerateTestsCommand : CliktCommand(
         } else if (pythonClass == null && selectedMethods != null) {
             val pythonMethodsOpt = selectedMethods.map { functionName ->
                 topLevelFunctions
+                    .mapNotNull { parseFunctionDefinition(it) }
+                    .map { PythonMethod(it.name.toString(), null, emptyList(), currentModule, null, sourceCodeContent) }
                     .find { it.name == functionName }
                     ?.let { Success(it) }
                     ?: Fail("Couldn't find top-level function $functionName in the source file.")
@@ -143,12 +154,20 @@ class PythonGenerateTestsCommand : CliktCommand(
             return pack(*pythonMethodsOpt.toTypedArray())
         }
 
-        val pythonClassFromSources = code.getToplevelClasses().find { it.name == pythonClass }
+        val pythonClassFromSources = topLevelClasses
+            .mapNotNull { parseClassDefinition(it) }
+            .find { it.name.toString() == pythonClass }
             ?.let { Success(it) }
             ?: Fail("Couldn't find class $pythonClass in the source file.")
 
-        val methods = bind(pythonClassFromSources) {
-            val fineMethods: List<PythonMethod> = it.methods.filter { method -> method.name !in forbiddenMethods }
+        val methods = bind(pythonClassFromSources) { parsedClass ->
+            val parsedClassId = PythonClassId(parsedClass.name.toString())
+            val methods = PythonCode.getClassMethods(parsedClass.body).mapNotNull { parseFunctionDefinition(it) }
+            val fineMethods = methods
+                .filter { !forbiddenMethods.contains(it.name.toString()) }
+                .map {
+                    PythonMethod(it.name.toString(), null, emptyList(), currentModule, parsedClassId, sourceCodeContent)
+                }
             if (fineMethods.isNotEmpty())
                 Success(fineMethods)
             else
@@ -226,12 +245,12 @@ class PythonGenerateTestsCommand : CliktCommand(
             timeout = timeout,
             testFramework = testFramework,
             timeoutForRun = timeoutForRun,
-            withMinimization = !doNotMinimize,
-            doNotCheckRequirements = doNotCheckRequirements,
-            visitOnlySpecifiedSource = visitOnlySpecifiedSource,
             writeTestTextToFile = { generatedCode ->
                 writeToFileAndSave(output, generatedCode)
             },
+            pythonRunRoot = Paths.get("").toAbsolutePath(),
+            doNotCheckRequirements = doNotCheckRequirements,
+            withMinimization = !doNotMinimize,
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
             },
@@ -248,14 +267,12 @@ class PythonGenerateTestsCommand : CliktCommand(
                 )
             },
             processMypyWarnings = { messages -> messages.forEach { println(it) } },
-            finishedAction = {
-                logger.info("Finished test generation for the following functions: ${it.joinToString()}")
-            },
             processCoverageInfo = { coverageReport ->
                 val output = coverageOutput ?: return@processTestGeneration
                 writeToFileAndSave(output, coverageReport)
-            },
-            pythonRunRoot = Paths.get("").toAbsolutePath()
-        )
+            }
+        ) {
+            logger.info("Finished test generation for the following functions: ${it.joinToString()}")
+        }
     }
 }

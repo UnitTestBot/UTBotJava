@@ -9,16 +9,16 @@ import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.typing.PythonTypesStorage
+import org.utbot.python.typing.TypesFromJSONStorage
 
 object ConstantValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
-        return PythonTypesStorage.getTypesFromJsonStorage().containsKey(type.pythonTypeName()) || type.isAny()
+        return TypesFromJSONStorage.getTypesFromJsonStorage().containsKey(type.pythonTypeName()) || type.isAny()
     }
 
     override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> =
         sequence {
-            val storage = PythonTypesStorage.getTypesFromJsonStorage()
+            val storage = TypesFromJSONStorage.getTypesFromJsonStorage()
             storage.values.forEach { values ->
                 val constants = if (values.name == type.pythonTypeName()) {
                     values.instances

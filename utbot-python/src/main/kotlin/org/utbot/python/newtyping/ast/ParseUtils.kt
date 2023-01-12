@@ -5,6 +5,7 @@ import org.parsers.python.PythonConstants
 import org.parsers.python.ast.*
 
 data class ParsedFunctionDefinition(val name: Name, val body: Block)
+data class ParsedClassDefinition(val name: Name, val body: Block)
 data class ParsedForStatement(val forVariable: ForVariable, val iterable: Node)
 sealed class ForVariable
 data class SimpleForVariable(val variable: Name) : ForVariable()
@@ -34,6 +35,12 @@ fun parseFunctionDefinition(node: FunctionDefinition): ParsedFunctionDefinition?
     val name = (node.children().first { it is Name } ?: return null) as Name
     val body = (node.children().find { it is Block } ?: return null) as Block
     return ParsedFunctionDefinition(name, body)
+}
+
+fun parseClassDefinition(node: ClassDefinition): ParsedClassDefinition? {
+    val name = (node.children().first { it is Name } ?: return null) as Name
+    val body = (node.children().find { it is Block } ?: return null) as Block
+    return ParsedClassDefinition(name, body)
 }
 
 fun isIdentification(node: Node): Boolean {

@@ -30,8 +30,6 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
-import org.utbot.python.code.PythonCode
-import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
@@ -90,16 +88,14 @@ object PythonDialogProcessor {
     }
 
     private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
-        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule) ?: return null
-
         val shownFunctions: Set<PythonMethod> =
             if (model.containingClass == null) {
-                code.getToplevelFunctions().toSet()
+                model.file.topLevelFunctions.mapNotNull { it.toPythonMethod() }.toSet()
             } else {
-                val classes = code.getToplevelClasses()
+                val classes = model.file.topLevelClasses
                 val myClass = classes.find { it.name == model.containingClass.name }
                     ?: error("Didn't find containing class")
-                myClass.methods.toSet()
+                myClass.methods.mapNotNull { it.toPythonMethod() }.toSet()
             }
 
         return model.selectedFunctions.map { pyFunction ->
@@ -148,7 +144,10 @@ object PythonDialogProcessor {
                         timeout = model.timeout,
                         testFramework = model.testFramework,
                         timeoutForRun = model.timeoutForRun,
-                        visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
+                        writeTestTextToFile = { generatedCode ->
+                            writeGeneratedCodeToPsiDocument(generatedCode, model)
+                        },
+                        pythonRunRoot = Path(model.testSourceRootPath),
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
                         requirementsAreNotInstalledAction = {
@@ -164,15 +163,11 @@ object PythonDialogProcessor {
                                 title = "Python test generation error"
                             )
                         },
-                        writeTestTextToFile = { generatedCode ->
-                            writeGeneratedCodeToPsiDocument(generatedCode, model)
-                        },
                         processMypyWarnings = {
                             val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                             WarningTestsReportNotifier.notify(message.toString())
                         },
-                        startedCleaningAction = { indicator.text = "Cleaning up..." },
-                        pythonRunRoot = Path(model.testSourceRootPath)
+                        startedCleaningAction = { indicator.text = "Cleaning up..." }
                     )
                 } finally {
                     LockFile.unlock()
@@ -264,11 +259,6 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 }
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
-
-fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode? {
-    val content = getContentFromPyFile(file)
-    return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)
-}
 
 fun getDirectoriesForSysPath(
     srcModule: Module,

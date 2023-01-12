@@ -18,8 +18,6 @@ import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.clearContextRelatedStorage
 import org.utbot.python.PythonMethod
-import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
@@ -37,6 +35,7 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
 import org.utbot.python.framework.codegen.model.tree.CgPythonTree
+import org.utbot.python.newtyping.general.Type
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -176,7 +175,7 @@ class PythonCodeGenerator(
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, NormalizedPythonAnnotation>,
+        methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         namesInModule: Collection<String>
@@ -191,9 +190,11 @@ class PythonCodeGenerator(
         val importsFromModule = namesInModule.map { name ->
             PythonUserImport(name, moduleToImport)
         }
-        val additionalModules = methodAnnotations.values.flatMap { annotation ->
-            getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
-        }
+//        TODO: remove it?
+//        val additionalModules = methodAnnotations.values.flatMap { annotation ->
+//            getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
+//        }
+        val additionalModules = emptyList<PythonUserImport>()
         val imports = listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules).toSet().toList()
 
         imports.forEach { renderer.renderPythonImport(it) }

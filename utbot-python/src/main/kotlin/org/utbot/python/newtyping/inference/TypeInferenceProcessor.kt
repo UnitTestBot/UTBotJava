@@ -11,10 +11,7 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
-import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
-import org.utbot.python.newtyping.mypy.getErrorNumber
-import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.mypy.setConfigFile
+import org.utbot.python.newtyping.mypy.*
 import org.utbot.python.utils.*
 import java.io.File
 import java.nio.file.Path
@@ -84,7 +81,9 @@ class TypeInferenceProcessor(
             val mypyExpressionTypes = mypyStorage.types[moduleOfSourceFile]!!.associate {
                 Pair(it.startOffset.toInt(), it.endOffset.toInt() + 1) to it.type.asUtBotType
             }
-            val collector = HintCollector(pythonMethod.type, typeStorage, mypyExpressionTypes)
+            val namesStorage = GlobalNamesStorage(mypyStorage)
+            val collector =
+                HintCollector(pythonMethod.type, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
             val visitor = Visitor(listOf(collector))
             visitor.visit(pythonMethod.newAst)
 

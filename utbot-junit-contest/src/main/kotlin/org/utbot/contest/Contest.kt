@@ -366,7 +366,11 @@ fun runGeneration(
                 controller.job = job
 
                 //don't start other methods while last method still in progress
-                job.join()
+                try {
+                    job.join()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Internal job error" }
+                }
 
                 remainingMethodsCount--
             }

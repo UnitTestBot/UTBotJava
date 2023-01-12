@@ -1,12 +1,11 @@
-package org.utbot.python.newtyping
+package org.utbot.python.newtyping.mypy
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.*
-import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
-import org.utbot.python.newtyping.mypy.readMypyAnnotationStorage
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class AnnotationFromMypyKtTest {

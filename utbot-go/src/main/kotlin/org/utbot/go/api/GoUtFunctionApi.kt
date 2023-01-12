@@ -2,6 +2,7 @@ package org.utbot.go.api
 
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.go.framework.api.go.GoTypeId
 import java.io.File
 import java.nio.file.Paths
 

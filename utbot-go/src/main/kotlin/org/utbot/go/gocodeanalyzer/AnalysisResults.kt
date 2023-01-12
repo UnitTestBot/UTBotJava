@@ -2,12 +2,9 @@ package org.utbot.go.gocodeanalyzer
 
 import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.go.api.GoArrayTypeId
-import org.utbot.go.api.GoInterfaceTypeId
-import org.utbot.go.api.GoStructTypeId
-import org.utbot.go.api.GoTypeId
+import org.utbot.go.api.*
 import org.utbot.go.api.util.goPrimitives
+import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass
 
 data class AnalyzedInterfaceType(
@@ -22,7 +19,7 @@ data class AnalyzedInterfaceType(
 data class AnalyzedPrimitiveType(
     override val name: String
 ) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId = GoTypeId(name = name)
+    override fun toGoTypeId(): GoTypeId = GoPrimitiveTypeId(name = name)
 }
 
 data class AnalyzedStructType(
@@ -34,7 +31,8 @@ data class AnalyzedStructType(
 ) : AnalyzedType(name) {
     data class AnalyzedField(
         val name: String,
-        val type: AnalyzedType
+        val type: AnalyzedType,
+        val isExported: Boolean
     )
 
     override fun toGoTypeId(): GoTypeId = GoStructTypeId(
@@ -42,7 +40,7 @@ data class AnalyzedStructType(
         packageName = packageName,
         packagePath = packagePath,
         implementsError = implementsError,
-        fields = fields.map { field -> FieldId(field.type.toGoTypeId(), field.name) }
+        fields = fields.map { field -> GoFieldId(field.type.toGoTypeId(), field.name, field.isExported) }
     )
 }
 

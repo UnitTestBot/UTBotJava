@@ -5,6 +5,7 @@ package org.utbot.go.api
 import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.api.util.goFloat64TypeId
 import org.utbot.go.api.util.neverRequiresExplicitCast
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
 // NEVER and DEPENDS difference is useful in code generation of assert.Equals(...).
@@ -14,14 +15,14 @@ enum class ExplicitCastMode {
 
 open class GoUtPrimitiveModel(
     val value: Any,
-    val typeId: GoTypeId,
-    requiredImports: Set<String> = emptySet(),
+    val typeId: GoPrimitiveTypeId,
     val explicitCastMode: ExplicitCastMode =
         if (typeId.neverRequiresExplicitCast) {
             ExplicitCastMode.NEVER
         } else {
             ExplicitCastMode.DEPENDS
-        }
+        },
+    requiredImports: Set<String> = emptySet(),
 ) : GoUtModel(typeId, requiredImports) {
     override fun toString(): String = when (explicitCastMode) {
         ExplicitCastMode.REQUIRED -> toCastedValueGoCode()
@@ -46,9 +47,12 @@ class GoUtStructModel(
     typeId: GoStructTypeId,
     packageName: String,
 ) : GoUtCompositeModel(typeId, packageName) {
+    override val classId: GoStructTypeId
+        get() = super.classId as GoStructTypeId
+
     override val requiredImports: Set<String>
         get() {
-            val structTypeId = classId as GoStructTypeId
+            val structTypeId = classId
             val imports =
                 if (structTypeId.packageName != packageName) {
                     mutableSetOf(structTypeId.packagePath)
@@ -63,7 +67,7 @@ class GoUtStructModel(
         value.joinToString(prefix = "{", postfix = "}") { "${it.first}: ${it.second}" }
 
     override fun toString(): String =
-        "${(classId as GoStructTypeId).getNameRelativeToPackage(packageName)}${toStringWithoutStructName()}"
+        "${classId.getRelativeName(packageName)}${toStringWithoutStructName()}"
 
     override fun canNotBeEqual(): Boolean = value.any { (_, model) -> model.canNotBeEqual() }
 }
@@ -90,22 +94,42 @@ class GoUtArrayModel(
             return imports
         }
 
-    override fun toString(): String = when (val typeId = classId.elementTypeId) {
-        is GoStructTypeId -> (0 until length).map {
-            value[it] ?: typeId.goDefaultValueModel(packageName)
-        }.joinToString(prefix = "[$length]${typeId.getNameRelativeToPackage(packageName)}{", postfix = "}") {
+    private fun getElements(typeId: GoTypeId): List<GoUtModel> = (0 until length).map {
+        value[it] ?: typeId.goDefaultValueModel(packageName)
+    }
+
+    fun toStringWithoutTypeName(): String = when (val typeId = classId.elementTypeId) {
+        is GoStructTypeId -> getElements(typeId).joinToString(prefix = "{", postfix = "}") {
             (it as GoUtStructModel).toStringWithoutStructName()
         }
 
-        else -> (0 until length).map { value[it] ?: typeId.goDefaultValueModel(packageName) }
-            .joinToString(prefix = "[$length]${typeId.simpleName}{", postfix = "}")
+        is GoArrayTypeId -> getElements(typeId).joinToString(prefix = "{", postfix = "}") {
+            (it as GoUtArrayModel).toStringWithoutTypeName()
+        }
+
+        else -> getElements(typeId).joinToString(prefix = "{", postfix = "}")
+    }
+
+    override fun toString(): String = when (val typeId = classId.elementTypeId) {
+        is GoStructTypeId -> getElements(typeId)
+            .joinToString(prefix = "[$length]${typeId.getRelativeName(packageName)}{", postfix = "}") {
+                (it as GoUtStructModel).toStringWithoutStructName()
+            }
+
+        is GoArrayTypeId -> getElements(typeId)
+            .joinToString(prefix = "[$length]${typeId.getRelativeName(packageName)}{", postfix = "}") {
+                (it as GoUtArrayModel).toStringWithoutTypeName()
+            }
+
+        else -> getElements(typeId)
+            .joinToString(prefix = "[$length]${typeId.getRelativeName(packageName)}{", postfix = "}")
     }
 
     override fun canNotBeEqual(): Boolean = value.values.any { it.canNotBeEqual() }
 }
 
 class GoUtFloatNaNModel(
-    typeId: GoTypeId
+    typeId: GoPrimitiveTypeId
 ) : GoUtPrimitiveModel(
     "math.NaN()",
     typeId,
@@ -121,7 +145,7 @@ class GoUtFloatNaNModel(
 
 class GoUtFloatInfModel(
     val sign: Int,
-    typeId: GoTypeId
+    typeId: GoPrimitiveTypeId
 ) : GoUtPrimitiveModel(
     "math.Inf($sign)",
     typeId,
@@ -136,7 +160,7 @@ class GoUtFloatInfModel(
 class GoUtComplexModel(
     val realValue: GoUtPrimitiveModel,
     val imagValue: GoUtPrimitiveModel,
-    typeId: GoTypeId,
+    typeId: GoPrimitiveTypeId,
 ) : GoUtPrimitiveModel(
     "complex($realValue, $imagValue)",
     typeId,

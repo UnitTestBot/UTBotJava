@@ -7,13 +7,17 @@ import org.utbot.framework.plugin.api.*
  *
  * To see its children check GoTypesApi.kt at org.utbot.go.api.
  */
-abstract class GoClassId(name: String, elementClassId: GoClassId? = null) : ClassId(name, elementClassId) {
+abstract class GoTypeId(
+    name: String,
+    elementClassId: GoTypeId? = null,
+    val implementsError: Boolean = false
+) : ClassId(name, elementClassId) {
     override val isNullable: Boolean
         get() = error("not supported")
     override val canonicalName: String
         get() = error("not supported")
     override val simpleName: String
-        get() = error("not supported")
+        get() = name
     override val packageName: String
         get() = error("not supported")
     override val isInDefaultPackage: Boolean
@@ -38,6 +42,8 @@ abstract class GoClassId(name: String, elementClassId: GoClassId? = null) : Clas
         get() = error("not supported")
     override val simpleNameWithEnclosings: String
         get() = error("not supported")
+
+    abstract fun getRelativeName(packageName: String): String
 }
 
 /**
@@ -46,7 +52,7 @@ abstract class GoClassId(name: String, elementClassId: GoClassId? = null) : Clas
  * To see its children check GoUtModelsApi.kt at org.utbot.go.api.
  */
 abstract class GoUtModel(
-    override val classId: GoClassId,
+    override val classId: GoTypeId,
     open val requiredImports: Set<String> = emptySet()
 ) : UtModel(classId) {
     override fun toString(): String = error("not supported")
@@ -58,6 +64,6 @@ abstract class GoUtModel(
  * Class for Go struct constructors.
  */
 class GoStructConstructorId(
-    classId: GoClassId,
+    classId: GoTypeId,
     fields: List<FieldId>,
 ) : ConstructorId(classId, fields.map { it.declaringClass })

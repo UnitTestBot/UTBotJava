@@ -22,7 +22,7 @@ data class GoUtExecutionWithNonNilError(
 
 data class GoUtPanicFailure(
     val panicValue: GoUtModel,
-    val panicValueSourceGoType: GoTypeId,
+    val panicValueSourceGoType: GoPrimitiveTypeId,
     override val trace: List<Int>
 ) : GoUtExecutionResult
 

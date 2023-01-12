@@ -3,6 +3,7 @@ package org.utbot.go.executor
 import mu.KotlinLogging
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFail
@@ -54,7 +55,7 @@ object GoFuzzedFunctionsExecutor {
                         .append("Perhaps some functions are too resource-intensive.").toString()
                 )
             }
-            logger.debug { "Function execution ${fuzzedFunction.function.name} - completed in $totalExecutionTime ms" }
+            logger.debug { "Function execution [${fuzzedFunction.function.name}] - completed in $totalExecutionTime ms" }
 
             logger.debug { "Parsing execution result for function ${fuzzedFunction.function.name} - started" }
             var rawExecutionResults: RawExecutionResults
@@ -106,11 +107,14 @@ object GoFuzzedFunctionsExecutor {
         if (rawExecutionResult.panicMessage != null) {
             val (rawResultValue, _) = rawExecutionResult.panicMessage
             val panicValue = if (goPrimitives.map { it.simpleName }.contains(rawResultValue.type)) {
-                createGoUtPrimitiveModelFromRawValue(rawResultValue as PrimitiveValue, GoTypeId(rawResultValue.type))
+                createGoUtPrimitiveModelFromRawValue(
+                    rawResultValue as PrimitiveValue,
+                    GoPrimitiveTypeId(rawResultValue.type)
+                )
             } else {
                 error("Only primitive panic value is currently supported")
             }
-            return GoUtPanicFailure(panicValue, GoTypeId(rawResultValue.type), rawExecutionResult.trace)
+            return GoUtPanicFailure(panicValue, GoPrimitiveTypeId(rawResultValue.type), rawExecutionResult.trace)
         }
         if (rawExecutionResult.resultRawValues.size != functionResultTypes.size) {
             error("Function completed execution must have as many result raw values as result types.")
@@ -155,11 +159,13 @@ object GoFuzzedFunctionsExecutor {
 
         is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawResultValue as ArrayValue, typeId, packageName)
 
-        else -> createGoUtPrimitiveModelFromRawValue(rawResultValue as PrimitiveValue, typeId)
+        is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawResultValue as PrimitiveValue, typeId)
+
+        else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
     }
 
     private fun createGoUtPrimitiveModelFromRawValue(
-        resultValue: PrimitiveValue, typeId: GoTypeId
+        resultValue: PrimitiveValue, typeId: GoPrimitiveTypeId
     ): GoUtPrimitiveModel {
         val rawValue = resultValue.value
         if (typeId == goFloat64TypeId || typeId == goFloat32TypeId) {
@@ -190,7 +196,7 @@ object GoFuzzedFunctionsExecutor {
     }
 
     private fun convertRawFloatValueToGoUtPrimitiveModel(
-        rawValue: String, typeId: GoTypeId, explicitCastRequired: Boolean = false
+        rawValue: String, typeId: GoPrimitiveTypeId, explicitCastRequired: Boolean = false
     ): GoUtPrimitiveModel {
         return when (rawValue) {
             RawValuesCodes.NAN_VALUE -> GoUtFloatNaNModel(typeId)
@@ -211,7 +217,11 @@ object GoFuzzedFunctionsExecutor {
         resultValue: StructValue, resultTypeId: GoStructTypeId, packageName: String
     ): GoUtStructModel {
         val value = resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
-            fieldId.name to createGoUtModelFromRawValue(value.value, fieldId.declaringClass as GoTypeId, packageName)
+            fieldId.name to createGoUtModelFromRawValue(
+                value.value,
+                fieldId.declaringClass as GoPrimitiveTypeId,
+                packageName
+            )
         }
         return GoUtStructModel(value, resultTypeId, packageName)
     }

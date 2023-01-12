@@ -24,8 +24,9 @@ func (t AnalyzedPrimitiveType) GetName() string {
 }
 
 type AnalyzedField struct {
-	Name string       `json:"name"`
-	Type AnalyzedType `json:"type"`
+	Name       string       `json:"name"`
+	Type       AnalyzedType `json:"type"`
+	IsExported bool         `json:"isExported"`
 }
 
 type AnalyzedStructType struct {

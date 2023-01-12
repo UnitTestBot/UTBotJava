@@ -1,7 +1,7 @@
 package org.utbot.go.simplecodegeneration
 
 import org.utbot.go.api.ExplicitCastMode
-import org.utbot.go.api.GoTypeId
+import org.utbot.go.api.GoPrimitiveTypeId
 import org.utbot.go.api.GoUtFuzzedFunction
 import org.utbot.go.api.GoUtPrimitiveModel
 import org.utbot.go.framework.api.go.GoUtModel
@@ -30,7 +30,7 @@ fun generateFuzzedFunctionCallSavedToVariables(
     generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction)
 )
 
-fun generateCastIfNeed(toTypeId: GoTypeId, expressionType: GoTypeId, expression: String): String {
+fun generateCastIfNeed(toTypeId: GoPrimitiveTypeId, expressionType: GoPrimitiveTypeId, expression: String): String {
     return if (expressionType != toTypeId) {
         "${toTypeId.name}($expression)"
     } else {

@@ -7,8 +7,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.go.GoDescription
 import org.utbot.go.api.GoStructTypeId
-import org.utbot.go.api.GoTypeId
 import org.utbot.go.api.GoUtStructModel
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
 object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
@@ -28,7 +28,7 @@ object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescriptio
                                 typeId = structType,
                                 packageName = packageName,
                             ).fuzzed {
-                                summary = "%var% = ${(model as GoUtModel)}"
+                                summary = "%var% = $model"
                             }
                         },
                         modify = sequence {

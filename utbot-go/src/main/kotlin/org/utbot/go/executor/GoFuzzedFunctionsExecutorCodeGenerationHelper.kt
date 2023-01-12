@@ -10,7 +10,7 @@ import org.utbot.go.util.goRequiredImports
 internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
 
     private val alwaysRequiredImports =
-        setOf("context", "encoding/json", "errors", "fmt", "math", "os", "reflect", "strings", "testing", "time", "log")
+        setOf("context", "encoding/json", "errors", "fmt", "math", "os", "reflect", "testing", "time", "log")
 
     fun generateExecutorTestFileGoCode(
         sourceFile: GoUtFile,
@@ -104,8 +104,9 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
 
         private val fieldValueStruct = """
             type __FieldValue__ struct {
-            	Name  string      `json:"name"`
-            	Value interface{} `json:"value"`
+            	Name       string      `json:"name"`
+            	Value      interface{} `json:"value"`
+            	IsExported bool        `json:"isExported"`
             }
         """.trimIndent()
 
@@ -223,15 +224,16 @@ internal object GoFuzzedFunctionsExecutorCodeGenerationHelper {
             			resultValues[i] = __FieldValue__{
             				Name:  field.Name,
             				Value: res,
+            				IsExported: field.IsExported(),
             			}
             		}
             		return __StructValue__{
-            			Type:  strings.Replace(valueOfRes.Type().Name(), valueOfRes.Type().PkgPath()+".", "", 1),
+            			Type:  valueOfRes.Type().String(),
             			Value: resultValues,
             		}, nil
             	case reflect.Array:
             		elem := valueOfRes.Type().Elem()
-            		elementType := elem.Name()
+            		elementType := elem.String()
             		arrayElementValues := []interface{}{}
             		for i := 0; i < valueOfRes.Len(); i++ {
             			arrayElementValue, err := __convertValueToResultValue__(valueOfRes.Index(i))

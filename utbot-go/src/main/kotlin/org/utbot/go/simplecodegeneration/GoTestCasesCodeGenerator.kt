@@ -153,11 +153,12 @@ object GoTestCasesCodeGenerator {
             return "True(${assertionTParameter}math.IsInf($castedActualResultCode, ${expectedModel.sign}))"
         }
         val prefix = if (expectedModel.canNotBeEqual()) "Not" else ""
-        val castedExpectedResultCode = if (expectedModel is GoUtPrimitiveModel) {
-            generateCastedValueIfPossible(expectedModel)
-        } else {
-            expectedModel.toString()
-        }
+        val castedExpectedResultCode =
+            if (expectedModel is GoUtPrimitiveModel) {
+                generateCastedValueIfPossible(expectedModel)
+            } else {
+                expectedModel.toString()
+            }
         return "${prefix}Equal($assertionTParameter$castedExpectedResultCode, $actualResultCode)"
     }
 

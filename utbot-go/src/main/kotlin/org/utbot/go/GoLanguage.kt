@@ -3,8 +3,8 @@ package org.utbot.go
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
-import org.utbot.go.api.GoTypeId
 import org.utbot.go.api.GoUtFunction
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.fuzzer.providers.GoArrayValueProvider
 import org.utbot.go.fuzzer.providers.GoPrimitivesValueProvider
 import org.utbot.go.fuzzer.providers.GoStructValueProvider

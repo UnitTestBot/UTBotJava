@@ -7,8 +7,8 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.go.GoDescription
 import org.utbot.go.api.GoArrayTypeId
-import org.utbot.go.api.GoTypeId
 import org.utbot.go.api.GoUtArrayModel
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 
 object GoArrayValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {

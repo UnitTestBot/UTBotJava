@@ -1,36 +1,34 @@
 package org.utbot.go.api.util
 
 import org.utbot.go.api.*
-import org.utbot.go.framework.api.go.GoClassId
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import kotlin.reflect.KClass
 
-val goAnyTypeId = GoTypeId("any")
+val goByteTypeId = GoPrimitiveTypeId("byte")
+val goBoolTypeId = GoPrimitiveTypeId("bool")
 
-val goByteTypeId = GoTypeId("byte")
-val goBoolTypeId = GoTypeId("bool")
+val goComplex128TypeId = GoPrimitiveTypeId("complex128")
+val goComplex64TypeId = GoPrimitiveTypeId("complex64")
 
-val goComplex128TypeId = GoTypeId("complex128")
-val goComplex64TypeId = GoTypeId("complex64")
+val goFloat32TypeId = GoPrimitiveTypeId("float32")
+val goFloat64TypeId = GoPrimitiveTypeId("float64")
 
-val goFloat32TypeId = GoTypeId("float32")
-val goFloat64TypeId = GoTypeId("float64")
+val goIntTypeId = GoPrimitiveTypeId("int")
+val goInt16TypeId = GoPrimitiveTypeId("int16")
+val goInt32TypeId = GoPrimitiveTypeId("int32")
+val goInt64TypeId = GoPrimitiveTypeId("int64")
+val goInt8TypeId = GoPrimitiveTypeId("int8")
 
-val goIntTypeId = GoTypeId("int")
-val goInt16TypeId = GoTypeId("int16")
-val goInt32TypeId = GoTypeId("int32")
-val goInt64TypeId = GoTypeId("int64")
-val goInt8TypeId = GoTypeId("int8")
+val goRuneTypeId = GoPrimitiveTypeId("rune") // = int32
+val goStringTypeId = GoPrimitiveTypeId("string")
 
-val goRuneTypeId = GoTypeId("rune") // = int32
-val goStringTypeId = GoTypeId("string")
-
-val goUintTypeId = GoTypeId("uint")
-val goUint16TypeId = GoTypeId("uint16")
-val goUint32TypeId = GoTypeId("uint32")
-val goUint64TypeId = GoTypeId("uint64")
-val goUint8TypeId = GoTypeId("uint8")
-val goUintPtrTypeId = GoTypeId("uintptr")
+val goUintTypeId = GoPrimitiveTypeId("uint")
+val goUint16TypeId = GoPrimitiveTypeId("uint16")
+val goUint32TypeId = GoPrimitiveTypeId("uint32")
+val goUint64TypeId = GoPrimitiveTypeId("uint64")
+val goUint8TypeId = GoPrimitiveTypeId("uint8")
+val goUintPtrTypeId = GoPrimitiveTypeId("uintptr")
 
 val goPrimitives = setOf(
     goByteTypeId,
@@ -54,7 +52,7 @@ val goPrimitives = setOf(
     goUintPtrTypeId,
 )
 
-val GoClassId.isPrimitiveGoType: Boolean
+val GoTypeId.isPrimitiveGoType: Boolean
     get() = this in goPrimitives
 
 private val goTypesNeverRequireExplicitCast = setOf(
@@ -66,7 +64,7 @@ private val goTypesNeverRequireExplicitCast = setOf(
     goStringTypeId,
 )
 
-val GoTypeId.neverRequiresExplicitCast: Boolean
+val GoPrimitiveTypeId.neverRequiresExplicitCast: Boolean
     get() = this in goTypesNeverRequireExplicitCast
 
 /**
@@ -77,7 +75,7 @@ val GoTypeId.neverRequiresExplicitCast: Boolean
  * About corresponding types: int and uint / uintptr types sizes in Go are platform dependent,
  * but are supposed to fit in Long and ULong respectively.
  */
-val GoTypeId.correspondingKClass: KClass<out Any>
+val GoPrimitiveTypeId.correspondingKClass: KClass<out Any>
     get() = when (this) {
         goByteTypeId, goUint8TypeId -> UByte::class
         goBoolTypeId -> Boolean::class
@@ -95,19 +93,27 @@ val GoTypeId.correspondingKClass: KClass<out Any>
     }
 
 fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
-    goBoolTypeId -> GoUtPrimitiveModel(false, this)
-    goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(0, this)
-    goByteTypeId, goUintTypeId, goUint8TypeId, goUint16TypeId, goUint32TypeId, goUint64TypeId -> GoUtPrimitiveModel(
-        0,
-        this
-    )
+    is GoPrimitiveTypeId -> when (this) {
+        goBoolTypeId -> GoUtPrimitiveModel(false, this)
+        goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(
+            0,
+            this
+        )
 
-    goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
-    goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
-        goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
-        goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
-        this
-    )
+        goByteTypeId, goUintTypeId, goUint8TypeId, goUint16TypeId, goUint32TypeId, goUint64TypeId -> GoUtPrimitiveModel(
+            0,
+            this
+        )
+
+        goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
+        goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
+            goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
+            this
+        )
+
+        else -> GoUtNilModel(this)
+    }
 
     is GoStructTypeId -> GoUtStructModel(listOf(), this, packageName)
     is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, packageName)

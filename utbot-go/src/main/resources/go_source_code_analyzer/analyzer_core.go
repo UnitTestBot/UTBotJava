@@ -67,7 +67,7 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			fieldType, err := toAnalyzedType(field.Type())
 			checkError(err)
 
-			fields = append(fields, AnalyzedField{field.Name(), fieldType})
+			fields = append(fields, AnalyzedField{field.Name(), fieldType, field.Exported()})
 		}
 
 		result = AnalyzedStructType{

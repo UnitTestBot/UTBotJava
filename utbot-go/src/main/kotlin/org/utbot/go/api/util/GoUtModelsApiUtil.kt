@@ -4,7 +4,7 @@ import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.api.*
 
 fun getExplicitCastModeForFloatModel(
-    typeId: GoTypeId,
+    typeId: GoPrimitiveTypeId,
     explicitCastRequired: Boolean,
     defaultFloat32Mode: ExplicitCastMode
 ): ExplicitCastMode {

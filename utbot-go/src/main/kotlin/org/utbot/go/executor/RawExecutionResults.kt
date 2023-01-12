@@ -5,11 +5,12 @@ import com.beust.klaxon.TypeFor
 import org.utbot.go.api.GoArrayTypeId
 import org.utbot.go.api.GoInterfaceTypeId
 import org.utbot.go.api.GoStructTypeId
-import org.utbot.go.api.GoTypeId
+import org.utbot.go.api.GoPrimitiveTypeId
 import org.utbot.go.api.util.goByteTypeId
 import org.utbot.go.api.util.goPrimitives
 import org.utbot.go.api.util.goRuneTypeId
 import org.utbot.go.api.util.isPrimitiveGoType
+import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass
 
 data class PrimitiveValue(
@@ -36,11 +37,15 @@ data class StructValue(
 ) : RawResultValue(type, value) {
     data class FieldValue(
         val name: String,
-        val value: RawResultValue
+        val value: RawResultValue,
+        val isExported: Boolean
     )
 
     override fun checkIsEqualTypes(type: GoTypeId): Boolean {
         if (type !is GoStructTypeId) {
+            return false
+        }
+        if (this.type != type.canonicalName) {
             return false
         }
         if (value.size != type.fields.size) {
@@ -50,7 +55,10 @@ data class StructValue(
             if (fieldValue.name != fieldId.name) {
                 return false
             }
-            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringClass as GoTypeId)) {
+            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringClass as GoPrimitiveTypeId)) {
+                return false
+            }
+            if (fieldValue.isExported != fieldId.isExported) {
                 return false
             }
         }
@@ -68,7 +76,7 @@ data class ArrayValue(
         if (type !is GoArrayTypeId) {
             return false
         }
-        if (length != type.length || elementType != type.elementTypeId.simpleName) {
+        if (length != type.length || elementType != type.elementTypeId.canonicalName) {
             return false
         }
         value.forEach { arrayElementValue ->

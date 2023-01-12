@@ -5,7 +5,10 @@ import kotlinx.coroutines.flow.flow
 import org.utbot.fuzzing.BaseFeedback
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
-import org.utbot.go.api.*
+import org.utbot.go.api.GoUtExecutionResult
+import org.utbot.go.api.GoUtFile
+import org.utbot.go.api.GoUtFunction
+import org.utbot.go.api.GoUtFuzzedFunction
 import org.utbot.go.executor.GoFuzzedFunctionsExecutor
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 
@@ -18,7 +21,7 @@ class GoEngine(
     fun fuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
         var attempts = 0
         val attemptsLimit = 100
-        val linesToCover = (1 .. methodUnderTest.numberOfAllStatements).toMutableSet()
+        val linesToCover = (1..methodUnderTest.numberOfAllStatements).toMutableSet()
         runGoFuzzing(methodUnderTest) { description, values ->
             val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
             val executionResult = GoFuzzedFunctionsExecutor.executeGoSourceFileFuzzedFunctions(

@@ -17,7 +17,7 @@ import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
-    val maxDepth: Int = 5
+    private val maxDepth: Int = 5
 
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         pythonDeepEquals(expected, actual)
@@ -29,7 +29,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                 (execution.result as UtExplicitlyThrownException).exception.message?.let {
                     emptyLineIfNeeded()
                     comment("raises $it")
-                    println("pass")
                 }
 
             else -> {
@@ -46,7 +45,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
-//                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
 
                 val modificationInfo = StateModificationInfo()
                 val fieldStateManager = context.cgLanguageAssistant.getCgFieldStateManager(context)

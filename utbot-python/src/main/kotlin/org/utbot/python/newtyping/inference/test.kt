@@ -5,10 +5,10 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 fun main() {
     TypeInferenceProcessor(
         "python3",
-        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples"),
-        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/general.py",
-        moduleOfSourceFile = "general",
-        "fact"
+        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/django-cms"),
+        "/home/tochilinak/Documents/projects/utbot/django-cms/cms/api.py",
+        moduleOfSourceFile = "cms.api",
+        "_verify_apphook"
     ).inferTypes(cancel = { false }).forEach {
         println(it.pythonTypeRepresentation())
     }

@@ -11,12 +11,15 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
+import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import java.util.*
 
 class HintCollector(
     private val signature: FunctionType,
     private val storage: PythonTypeStorage,
-    private val mypyTypes: Map<Pair<Int, Int>, Type>
+    private val mypyTypes: Map<Pair<Int, Int>, Type>,
+    private val globalNamesStorage: GlobalNamesStorage,
+    private val moduleOfSources: String
 ) : Collector() {
     private val signatureDescription = signature.pythonDescription() as PythonCallableTypeDescription
     private val parameterToNode: Map<String, HintCollectorNode> =
@@ -97,6 +100,8 @@ class HintCollector(
             astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
             return
         }
+        if (processIsinstanceCall(parsed, node))
+            return
         val type = mypyTypes[parsed.function.beginOffset to parsed.function.endOffset]
         val typeDescription = type?.getPythonAttributeByName(
             storage,
@@ -133,16 +138,19 @@ class HintCollector(
         }
     }
 
-    /*
     private fun processIsinstanceCall(parsedFunctionCall: ParsedFunctionCall, node: FunctionCall): Boolean {
         if (parsedFunctionCall.function !is Name || parsedFunctionCall.function.toString() != "isinstance" ||
             parsedFunctionCall.args.size != 2)
             return false
 
+        val typeAsString = parsedFunctionCall.args[1].toString()
+        val type = globalNamesStorage.resolveTypeName(moduleOfSources, typeAsString) ?: return false
+
         astNodeToHintCollectorNode[node] = HintCollectorNode(storage.pythonBool)
-        // astNodeToHintCollectorNode[parsedFunctionCall.args[0]]
+        val objNode = astNodeToHintCollectorNode[parsedFunctionCall.args[0]]!!
+        objNode.lowerBounds.add(type)
+        return true
     }
-     */
 
     private fun processKeyword(node: Keyword) {
         val type = when (node.type) {

@@ -103,6 +103,35 @@ data class CandidateGraphVertex(val positions: List<TypeRatingPosition>) {
 
 private const val MAX_NESTING = 3
 
+private fun changeScores(
+    initialRating: List<Type>,
+    storage: PythonTypeStorage,
+    bounds: List<Type>,
+    hintScores: MutableMap<PythonTypeWrapperForEqualityCheck, Double>,
+    isUpper: Boolean
+) {
+    bounds.forEach { constraint ->
+        val (fitting, notFitting) = initialRating.partition { typeFromList ->
+            val type = DefaultSubstitutionProvider.substitute(
+                typeFromList,
+                typeFromList.getBoundedParameters().associateWith { pythonAnyType }
+            )
+            if (isUpper)
+                PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(constraint, type, storage)
+            else
+                PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)
+        }
+        notFitting.forEach {
+            val wrapper = PythonTypeWrapperForEqualityCheck(it)
+            hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) - 1
+        }
+        fitting.forEach {
+            val wrapper = PythonTypeWrapperForEqualityCheck(it)
+            hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
+        }
+    }
+}
+
 fun createTypeRating(
     initialRating: List<Type>,
     lowerBounds: List<Type>,
@@ -111,33 +140,8 @@ fun createTypeRating(
     level: Int
 ): TypeRating {
     val hintScores = mutableMapOf<PythonTypeWrapperForEqualityCheck, Double>()
-    lowerBounds.forEach { constraint ->
-        val fitting = initialRating.filter { typeFromList ->
-            val type = DefaultSubstitutionProvider.substitute(
-                typeFromList,
-                typeFromList.getBoundedParameters().associateWith { pythonAnyType }
-            )
-            PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)
-        }
-        fitting.forEach {
-            val wrapper = PythonTypeWrapperForEqualityCheck(it)
-            hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
-        }
-    }
-    upperBounds.forEach { constraint ->
-        val fitting = initialRating.filter { typeFromList ->
-            val type = DefaultSubstitutionProvider.substitute(
-                typeFromList,
-                typeFromList.getBoundedParameters().associateWith { pythonAnyType }
-            )
-            PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(constraint, type, storage)
-        }
-        if (fitting.isNotEmpty())
-            fitting.forEach {
-                val wrapper = PythonTypeWrapperForEqualityCheck(it)
-                hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
-            }
-    }
+    changeScores(initialRating, storage, lowerBounds, hintScores, isUpper = false)
+    changeScores(initialRating, storage, upperBounds, hintScores, isUpper = true)
     val scores: List<Pair<Type, Double>> = initialRating.mapNotNull { typeFromList ->
         if (level == MAX_NESTING && typeFromList.getBoundedParameters().isNotEmpty())
             return@mapNotNull null

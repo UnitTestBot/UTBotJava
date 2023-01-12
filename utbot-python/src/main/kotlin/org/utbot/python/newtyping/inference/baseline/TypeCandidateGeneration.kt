@@ -83,10 +83,15 @@ data class CandidateGraphVertex(val positions: List<TypeRatingPosition>) {
     }
 
     fun generateSuccessors(): List<CandidateGraphVertex> =
-        positions.map { pos ->
+        positions.mapNotNull { pos ->
             CandidateGraphVertex(
                 positions.map {
-                    if (it == pos) pos.makeMove() else it
+                    if (it == pos) {
+                        if (!pos.hasNext)
+                            return@mapNotNull null
+                        pos.makeMove()
+                    } else
+                        it
                 }
             )
         }
@@ -143,10 +148,7 @@ fun createTypeRating(
         val wrapper = PythonTypeWrapperForEqualityCheck(type)
         Pair(type, hintScores[wrapper] ?: 0.0)
     }
-    val result = TypeRating(scores)
-    //logger.debug("Generated type rating: " +
-    //        "${result.typesInOrder.take(15).map { Pair(it.second.pythonTypeRepresentation(), it.first) }}")
-    return result
+    return TypeRating(scores)
 }
 
 fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeStorage): List<Type> {

@@ -27,6 +27,10 @@ class ReduceValueProvider(
         "builtins.bytes",
         "builtins.bytearray",
         "builtins.complex",
+        "builtins.int",
+        "builtins.float",
+        "builtins.str",
+        "builtins.bool",
     )
 
     override fun accept(type: Type): Boolean {

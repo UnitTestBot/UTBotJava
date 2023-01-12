@@ -11,6 +11,7 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
+import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithmEdge
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import java.util.*
 
@@ -431,17 +432,47 @@ class HintCollector(
         astNodeToHintCollectorNode[node] = curNode
         val parsed = parseSliceExpression(node) ?: return
         val headNode = astNodeToHintCollectorNode[parsed.head]!!
-        addProtocol(headNode, createBinaryProtocol("__getitem__", pythonAnyType, pythonAnyType))
         when (parsed.slices) {
             is SimpleSlice -> {
-                // val indexNode = astNodeToHintCollectorNode[parsed.slices.indexValue]!!
-                // TODO: add edges
+                val indexNode = astNodeToHintCollectorNode[parsed.slices.indexValue]!!
+                val edgeFromIndex = HintEdgeWithBound(
+                    from = indexNode,
+                    to = curNode,
+                    source = EdgeSource.Slice,
+                    boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+                ) { indexType ->
+                    listOf(createBinaryProtocol("__getitem__", indexType, pythonAnyType))
+                }
+                val edgeFromHead = HintEdgeWithBound(
+                    from = curNode,
+                    to = indexNode,
+                    source = EdgeSource.Slice,
+                    boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+                ) { headType ->
+                    val attr = headType.getPythonAttributeByName(storage, "__getitem__")
+                        ?: return@HintEdgeWithBound emptyList()
+                    // TODO: case of Overload
+                    val descr = attr.type.pythonDescription() as? PythonCallableTypeDescription
+                        ?: return@HintEdgeWithBound emptyList()
+                    if (descr.numberOfArguments != 2)
+                        return@HintEdgeWithBound emptyList()
+                    listOf(attr.type.parameters[1])
+                }
+                addEdge(edgeFromIndex)
+                addEdge(edgeFromHead)
             }
             is SlicedSlice -> {
-                // TODO
+                addProtocol(headNode, createBinaryProtocol("__getitem__", storage.pythonSlice, pythonAnyType))
+                // not necessary, but usually. TODO: remove if it spoils anything
+                for (slicePart in listOf(parsed.slices.start, parsed.slices.end, parsed.slices.step)) {
+                    if (slicePart == null)
+                        continue
+                    val sliceNode = astNodeToHintCollectorNode[slicePart]!!
+                    sliceNode.lowerBounds.add(storage.pythonInt)
+                }
             }
             is TupleSlice -> {
-                // TODO
+                addProtocol(headNode, createBinaryProtocol("__getitem__", storage.pythonTuple, pythonAnyType))
             }
         }
     }
@@ -459,8 +490,6 @@ class HintCollector(
         val leftNode = astNodeToHintCollectorNode[left]!!
         val rightNode = astNodeToHintCollectorNode[right]!!
         val methodName = op.method
-        //addProtocol(leftNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
-        //addProtocol(rightNode, createBinaryProtocol(methodName, pythonAnyType, pythonAnyType))
 
         val edgeFromLeftToCur = HintEdgeWithBound(
             from = leftNode,

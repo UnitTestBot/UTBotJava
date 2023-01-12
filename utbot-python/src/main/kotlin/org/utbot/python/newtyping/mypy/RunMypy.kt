@@ -78,6 +78,9 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
             show_absolute_path = True
             cache_fine_grained = True
             check_untyped_defs = True
+            implicit_optional = True
+            strict_optional = False
+            disable_error_code = assignment,union-attr
             """.trimIndent()
     TemporaryFileManager.writeToAssignedFile(file, configContent)
     return file

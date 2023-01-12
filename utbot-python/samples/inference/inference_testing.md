@@ -7,7 +7,7 @@ Top-level functions (with only positional arguments):
 - [ ] `def dwa_control(x, config, goal, ob)`
 - [x] `def motion(x, u, dt)`
 - [x] `def calc_dynamic_window(x, config)`
-- [ ] `def predict_trajectory(x_init, v, y, config)`
+- [x] `def predict_trajectory(x_init, v, y, config)`
 - [ ] `def calc_control_and_trajectory(x, dw, config, goal, ob)`
 - [ ] `def calc_obstacle_cost(trajectory, ob, config)`
 - [ ] `def calc_to_goal_cost(trajectory, goal)`
@@ -26,16 +26,13 @@ Command:
 typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], builtins.float], typing.Any]
 typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any], builtins.float], typing.Any]
 typing.Callable[[builtins.list[typing.Any], builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
-typing.Callable[[builtins.list[typing.Any], builtins.bytes, builtins.float], typing.Any]
-typing.Callable[[builtins.bytearray, builtins.list[typing.Any], builtins.float], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
 typing.Callable[[builtins.list[builtins.float], builtins.list[builtins.int], builtins.float], typing.Any]
-typing.Callable[[builtins.list[typing.Any], builtins.bytearray, builtins.float], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytes, builtins.float], typing.Any]
-typing.Callable[[builtins.list[builtins.float], builtins.bytearray, builtins.float], typing.Any]
-typing.Callable[[builtins.list[builtins.float], builtins.bytes, builtins.float], typing.Any]
-typing.Callable[[builtins.memoryview, builtins.list[typing.Any], builtins.float], typing.Any]
-typing.Callable[[builtins.bytearray, builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], builtins.float], typing.Any]
+typing.Callable[[ctypes.pointer[typing.Any], builtins.list[typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.list[typing.Any], ctypes.pointer[typing.Any], builtins.float], typing.Any]
+typing.Callable[[array.array[typing.Any], builtins.list[typing.Any], builtins.float], typing.Any]
+typing.Callable[[builtins.list[builtins.float], builtins.dict[builtins.int, builtins.int], builtins.float], typing.Any]
+typing.Callable[[builtins.dict[builtins.int, builtins.float], builtins.list[builtins.int], builtins.float], typing.Any]
 ```
 
 
@@ -45,12 +42,32 @@ typing.Callable[[builtins.bytearray, builtins.dict[typing.Any, typing.Any], buil
 typing.Callable[[builtins.list[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.list[builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.dict[builtins.int, builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.bytes, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.bytearray, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.list[builtins.bool], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.list[builtins.float], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.memoryview, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.dict[builtins.int, builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[ctypes.pointer[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[array.array[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[types.MappingProxyType[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+...
+```
+
+
+### <span style="color:green">OK:</span> `def predict_trajectory(x_init, v, y, config)`
+
+```
+typing.Callable[[builtins.int, builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.list[typing.Any]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.str], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[typing.Any], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[builtins.int], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.list[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.list[builtins.int]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.list[builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.list[builtins.list[typing.Any]], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.list[builtins.list[typing.Any]]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.list[builtins.list[typing.Any]], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 ...
 ```
 
@@ -61,13 +78,12 @@ typing.Callable[[builtins.memoryview, PathPlanning.DynamicWindowApproach.dynamic
 ```
 typing.Callable[[builtins.int, builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.list[typing.Any], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.list[builtins.int], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.int, builtins.list[typing.Any], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.list[builtins.list[typing.Any]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 typing.Callable[[builtins.int, builtins.list[builtins.int], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.int, builtins.list[builtins.list[typing.Any]], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.int, builtins.list[builtins.list[builtins.int]], builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.list[builtins.list[builtins.int]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.list[builtins.list[typing.Any]], builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.bool, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.str, builtins.int, builtins.int, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
 ...
 ```
 
@@ -84,22 +100,6 @@ typing.Callable[[numpy.str_, builtins.object, builtins.object, builtins.object],
 typing.Callable[[builtins.object, numpy.str_, builtins.object, builtins.object], typing.Any]
 typing.Callable[[builtins.object, builtins.object, numpy.str_, builtins.object], typing.Any]
 typing.Callable[[builtins.object, builtins.object, builtins.object, numpy.str_], typing.Any]
-...
-```
-
-
-### <span style="color:yellow">EXTRA:</span> `def predict_trajectory(x_init, v, y, config)`
-
-Found annotations (why?):
-```
-typing.Callable[[builtins.object, builtins.object, builtins.object, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[dynamic_window_approach.Config, builtins.object, builtins.object, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.object, dynamic_window_approach.Config, builtins.object, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.object, builtins.object, dynamic_window_approach.Config, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.bool, builtins.object, builtins.object, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[dynamic_window_approach.Config, dynamic_window_approach.Config, builtins.object, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[dynamic_window_approach.Config, builtins.object, dynamic_window_approach.Config, dynamic_window_approach.Config], typing.Any]
-typing.Callable[[builtins.object, builtins.bool, builtins.object, dynamic_window_approach.Config], typing.Any]
 ...
 ```
 
@@ -142,8 +142,8 @@ Top-level functions (with only positional arguments):
 - [x] `def _RSL(alpha, beta, d)`
 - [x] `def _RLR(alpha, beta, d)`
 - [ ] `def _LRL(alpha, beta, d)`
-- [ ] `def _dubins_path_planning_from_origin(end_x, end_y, end_yaw, curvature, step_size, planning_funcs)`
-- [ ] `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
+- [x] `def _dubins_path_planning_from_origin(end_x, end_y, end_yaw, curvature, step_size, planning_funcs)`
+- [x] `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
 - [ ] `def _generate_local_course(lengths, modes, max_curvature, step_size)`
 
 Used time limit: 25 seconds.
@@ -237,6 +237,45 @@ typing.Callable[[builtins.float, enum.IntFlag, builtins.float], typing.Any]
 ...
 ```
 
+### <span style="color:green">OK:</span> `def _dubins_path_planning_from_origin(end_x, end_y, end_yaw, curvature, step_size, planning_funcs)`
+
+```
+typing.Callable[[builtins.int, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.bool, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.int, builtins.bool, builtins.int, builtins.float, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.bool, builtins.float, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.int, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[builtins.staticmethod[typing.Any]]], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[builtins.staticmethod[builtins.list[typing.Any]]]], typing.Any]
+typing.Callable[[builtins.int, builtins.bool, builtins.int, builtins.float, builtins.int, builtins.list[builtins.staticmethod[typing.Any]]], typing.Any]
+typing.Callable[[builtins.float, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.bool, builtins.bool, builtins.int, builtins.float, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.int, builtins.bool, builtins.int, builtins.float, builtins.int, builtins.list[builtins.staticmethod[builtins.list[typing.Any]]]], typing.Any]
+typing.Callable[[builtins.bool, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[builtins.staticmethod[typing.Any]]], typing.Any]
+typing.Callable[[builtins.int, builtins.int, builtins.int, builtins.float, builtins.int, builtins.list[builtins.staticmethod[builtins.list[builtins.float]]]], typing.Any]
+...
+```
+
+
+### <span style="color:green">OK (but can be improved):</span> `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
+
+```
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], array.array[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any], array.array[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.UserList[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[typing.Any], array.array[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[typing.Any], builtins.list[typing.Any], array.array[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], collections.UserList[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], array.array[typing.Any], array.array[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any], collections.UserList[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.deque[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.UserList[typing.Any], array.array[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.UserList[typing.Any], builtins.list[typing.Any], array.array[typing.Any]], typing.Any]
+```
+
+
 ### <span style="color:yellow">EXTRA:</span> `def _LSR(alpha, beta, d)`
 
 ```
@@ -273,6 +312,7 @@ typing.Callable[[enum.IntEnum, builtins.float, builtins.float], typing.Any]
 ...
 ```
 
+
 ### <span style="color:yellow">OK or ERROR? :</span> `def _mod2pi(theta)`
 
 ```
@@ -290,15 +330,6 @@ typing.Callable[[builtins.function], typing.Any]
 typing.Callable[[builtins.staticmethod[typing.Any]], typing.Any]
 ...
 ```
-
-### <span style="color:yellow">FAIL:</span> `def _dubins_path_planning_from_origin(end_x, end_y, end_yaw, curvature, step_size, planning_funcs)`
-
-Reason: signature includes list of Callable. For now it is too complicated.
-
-
-### <span style="color:yellow">FAIL (TODO?):</span> `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
-
-Reason: last 3 arguments are complicated.
 
 ### <span style="color:yellow">FAIL (TODO):</span> `def _generate_local_course(lengths, modes, max_curvature, step_size)`
 

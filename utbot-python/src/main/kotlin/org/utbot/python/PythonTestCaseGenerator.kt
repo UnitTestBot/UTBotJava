@@ -1,6 +1,5 @@
 package org.utbot.python
 
-import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
@@ -8,26 +7,24 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
-import org.utbot.python.fuzzing.PythonFuzzedValue
-import org.utbot.python.newtyping.MypyAnnotationStorage
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionType
+import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.mypy.MypyReportLine
+import org.utbot.python.newtyping.mypy.getErrorNumber
+import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
-import org.utbot.python.newtyping.runmypy.getErrorNumber
-import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.runmypy.setConfigFile
 import org.utbot.python.newtyping.utils.getOffsetLine
-import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AstUtils
 import java.io.File
@@ -119,30 +116,10 @@ object PythonTestCaseGenerator {
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
 
-        val namesInModule = mypyStorage.names[curModule]!!.filter {
-            it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
-        }
-
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->
             PythonFuzzedConcreteValue(type, value)
         }
-
-        val algo = BaselineAlgorithm(
-            typeStorage,
-            pythonPath,
-            method,
-            directoriesForSysPath,
-            curModule,
-            namesInModule,
-            getErrorNumber(
-                report,
-                fileOfMethod,
-                getOffsetLine(sourceFileContent, method.newAst.beginOffset),
-                getOffsetLine(sourceFileContent, method.newAst.endOffset)
-            ),
-            mypyConfigFile
-        )
 
         val executions = mutableListOf<UtExecution>()
         val errors = mutableListOf<UtError>()
@@ -151,7 +128,15 @@ object PythonTestCaseGenerator {
         var generated = 0
         val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
-        val annotations = listOf(method.type).asSequence() + algo.run(hintCollector.result, typeInferenceCancellation)
+        val annotations = getAnnotations(
+            method,
+            mypyStorage,
+            typeStorage,
+            hintCollector,
+            report,
+            mypyConfigFile,
+            isCancelled
+        )
 
         annotations.forEach { functionType ->
             val args = (functionType as FunctionType).arguments
@@ -180,7 +165,7 @@ object PythonTestCaseGenerator {
             val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 }
 
             runBlocking {
-                engine.newFuzzing(args, fuzzerCancellation, until).collect {
+                engine.fuzzing(args, fuzzerCancellation, until).collect {
                     generated += 1
                     when (it) {
                         is UtExecution -> {
@@ -233,26 +218,40 @@ object PythonTestCaseGenerator {
 
     private fun getAnnotations(
         method: PythonMethod,
-        initialArgumentTypes: List<NormalizedPythonAnnotation>,
-        argInfoCollector: ArgInfoCollector,
+        mypyStorage: MypyAnnotationStorage,
+        typeStorage: PythonTypeStorage,
+        hintCollector: HintCollector,
+        report: List<MypyReportLine>,
+        mypyConfigFile: File,
         isCancelled: () -> Boolean
-    ): Sequence<Map<String, NormalizedPythonAnnotation>> {
-
-        val existingAnnotations = mutableMapOf<String, NormalizedPythonAnnotation>()
-        initialArgumentTypes.forEachIndexed { index, classId ->
-            if (classId != pythonAnyClassId)
-                existingAnnotations[method.arguments[index].name] = classId
+    ): Sequence<Type> {
+        val namesInModule = mypyStorage.names[curModule]!!.keys.filter {
+            it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
         }
 
-        return findAnnotations(
-            argInfoCollector,
-            method,
-            existingAnnotations,
-            curModule,
-            directoriesForSysPath,
+        val algo = BaselineAlgorithm(
+            typeStorage,
             pythonPath,
-            isCancelled,
-            storageForMypyMessages
+            method,
+            directoriesForSysPath,
+            curModule,
+            namesInModule,
+            getErrorNumber(
+                report,
+                fileOfMethod,
+                getOffsetLine(sourceFileContent, method.newAst.beginOffset),
+                getOffsetLine(sourceFileContent, method.newAst.endOffset)
+            ),
+            mypyConfigFile
         )
+
+        var annotations = emptyList<Type>().asSequence()
+        val existsAnnotation = method.type
+        if (existsAnnotation.arguments.all {it.pythonTypeName() != "typing.Any"}) {
+            annotations += listOf(method.type).asSequence()
+        }
+        annotations += algo.run(hintCollector.result, isCancelled)
+
+        return annotations
     }
 }

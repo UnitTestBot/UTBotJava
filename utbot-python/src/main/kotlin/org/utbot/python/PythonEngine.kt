@@ -130,7 +130,7 @@ class PythonEngine(
         )
     }
 
-    fun newFuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<UtResult> = flow {
+    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<UtResult> = flow {
         var additionalModules = selectedTypeMap.values.flatMap {
             getModulesFromAnnotation(it)
         }.toSet()

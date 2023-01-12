@@ -13,6 +13,7 @@ import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
+import java.math.BigInteger
 
 object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     override fun accept(type: Type): Boolean {
@@ -29,9 +30,20 @@ object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
             }
     }
 
+    private fun getIntConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<IEEE754Value> {
+        return concreteValues
+            .filter { it.classId.pythonTypeName() == "builtins.int" }
+            .map { fuzzedValue ->
+                (fuzzedValue.value as BigInteger).let {
+                    IEEE754Value.fromValue(it.toDouble())
+                }
+            }
+    }
+
     override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> = sequence {
         val floatConstants = getFloatConstants(description.concreteValues)
-        val constants = floatConstants + DefaultFloatBound.values().map {
+        val intConstants = getIntConstants(description.concreteValues)
+        val constants = floatConstants + intConstants + DefaultFloatBound.values().map {
             it(52, 11)
         }
 

@@ -45,6 +45,8 @@ class PythonTypeStorage(
     val pythonFloat: Type,
     val pythonComplex: Type,
     val pythonStr: Type,
+    val pythonTuple: Type,
+    val pythonSlice: Type,
     val allTypes: Set<Type>
 ) {
     companion object {
@@ -67,6 +69,8 @@ class PythonTypeStorage(
                 pythonFloat = module["float"]!!.annotation.asUtBotType,
                 pythonComplex = module["complex"]!!.annotation.asUtBotType,
                 pythonStr = module["str"]!!.annotation.asUtBotType,
+                pythonTuple = module["tuple"]!!.annotation.asUtBotType,
+                pythonSlice = module["slice"]!!.annotation.asUtBotType,
                 allTypes = allTypes
             )
         }

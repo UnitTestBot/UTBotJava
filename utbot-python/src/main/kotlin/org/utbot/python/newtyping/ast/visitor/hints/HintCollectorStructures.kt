@@ -47,5 +47,6 @@ enum class EdgeSource {
     Assign,
     OpAssign,
     Attribute,
-    Comparison
+    Comparison,
+    Slice
 }

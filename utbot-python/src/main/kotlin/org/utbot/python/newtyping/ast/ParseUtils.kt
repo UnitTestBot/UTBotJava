@@ -75,25 +75,26 @@ fun parseSliceExpression(node: SliceExpression): ParsedSliceExpression? {
 
 fun parseSlices(children: List<Node>): ParsedSlices? {
     if (children.any { it is Delimiter && it.toString() == "," }) {
-        var i = 0
+        var i = 1
         val slices = mutableListOf<ParsedSlices>()
         while (i < children.size) {
             var j = children.drop(i).indexOfFirst { it is Delimiter && it.toString() == "," }
             if (j == -1)
-                j = children.size
+                j = children.size - 1
+            else
+                j += i
             val child = parseSlices(children.subList(i, j)) ?: return null
             slices.add(child)
-            i = j
+            i = j + 1
         }
         return TupleSlice(slices)
     }
-    if (children.size != 3)
-        return null
-    if (children[1] is Delimiter && children[1].toString() == ":") {
+    val index = if (children.size == 3) 1 else if (children.size == 1) 0 else return null
+    if (children[index] is Delimiter && children[index].toString() == ":") {
         return SlicedSlice(null, null, null)
     }
-    if (children[1] is Slice) {
-        val sliceChildren = children[1].children()
+    if (children[index] is Slice) {
+        val sliceChildren = children[index].children()
         val i = sliceChildren.indexOfFirst { it is Delimiter && it.toString() == ":" }
         var j = sliceChildren.drop(i + 1).indexOfFirst { it is Delimiter && it.toString() == ":" }
         if (j == -1)
@@ -104,7 +105,7 @@ fun parseSlices(children: List<Node>): ParsedSlices? {
             if (j >= sliceChildren.size - 1) null else if (j == sliceChildren.size - 2) sliceChildren.last() else return null
         return SlicedSlice(start, end, step)
     }
-    return SimpleSlice(children[1])
+    return SimpleSlice(children[index])
 }
 
 fun parseIfStatement(node: IfStatement): ParsedIfStatement =

@@ -26,6 +26,14 @@ class GlobalNamesStorage(private val mypyStorage: MypyAnnotationStorage) {
                 return attempt
             next
         }
+        withoutLast.foldRight(Pair(withoutLast.joinToString("."), splitName.last())) { nextPart, (left, right) ->
+            val next = Pair(left.dropLast(nextPart.length).removeSuffix("."), "$nextPart.$right")
+            mypyStorage.names["$module.$left"] ?: return@foldRight next
+            val attempt = resolveTypeName("$module.$left", right)
+            if (attempt != null)
+                return attempt
+            next
+        }
         return null
     }
 }

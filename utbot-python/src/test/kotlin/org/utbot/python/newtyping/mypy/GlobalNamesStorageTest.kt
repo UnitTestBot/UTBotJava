@@ -18,8 +18,14 @@ internal class GlobalNamesStorageTest {
     }
 
     @Test
-    fun testImportlib() {
+    fun testImportlib1() {
         val pathFinderClass = namesStorage.resolveTypeName("import_test", "im.PathFinder")
+        assertTrue(pathFinderClass is Type && (pathFinderClass.meta as TypeMetaDataWithName).name.name == "PathFinder")
+    }
+
+    @Test
+    fun testImportlib2() {
+        val pathFinderClass = namesStorage.resolveTypeName("import_test", "importlib.machinery.PathFinder")
         assertTrue(pathFinderClass is Type && (pathFinderClass.meta as TypeMetaDataWithName).name.name == "PathFinder")
     }
 
@@ -33,5 +39,11 @@ internal class GlobalNamesStorageTest {
     fun testImportFrom() {
         val deque = namesStorage.resolveTypeName("import_test", "deque")
         assertTrue(deque is Type && deque.pythonTypeRepresentation().startsWith("collections.deque"))
+    }
+
+    @Test
+    fun testLocal() {
+        val classA = namesStorage.resolveTypeName("import_test", "A")
+        assertTrue(classA is Type && classA.pythonTypeRepresentation() == "import_test.A")
     }
 }

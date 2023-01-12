@@ -64,7 +64,7 @@ class TypeInferenceProcessor(
                 path.toString()  // TODO: fix this interface
             )
 
-            val namesInModule = mypyStorage.names[moduleOfSourceFile]!!.keys.filter {
+            val namesInModule = mypyStorage.names[moduleOfSourceFile]!!.map { it.name }.filter {
                 it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
             }
 

@@ -37,9 +37,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--mypy_stderr",
             fileForMypyStderr.absolutePath,
             "--mypy_exit_status",
-            fileForMypyExitStatus.absolutePath,
-            "--file_for_names",
-            sourcePath
+            fileForMypyExitStatus.absolutePath
         ) + if (fileForTypeImport != null) listOf("--file_for_types", fileForTypeImport) else emptyList()
     )
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null

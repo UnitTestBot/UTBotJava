@@ -33,6 +33,13 @@ private val moshi = Moshi.Builder()
     )
     .add(PythonTypeVarDescription.Variance::class.java, EnumJsonAdapter.create(PythonTypeVarDescription.Variance::class.java))
     .add(NameType::class.java, EnumJsonAdapter.create(NameType::class.java))
+    .add(
+        PolymorphicJsonAdapterFactory.of(Name::class.java, "kind")
+            .withSubtype(ModuleName::class.java, NameType.Module.name)
+            .withSubtype(LocalTypeName::class.java, NameType.LocalType.name)
+            .withSubtype(ImportedTypeName::class.java, NameType.ImportedType.name)
+            .withSubtype(OtherName::class.java, NameType.Other.name)
+    )
     .addLast(KotlinJsonAdapterFactory())
     .build()
 
@@ -59,7 +66,8 @@ enum class DefinitionType {
 
 enum class NameType {
     Module,
-    Type,
+    LocalType,
+    ImportedType,
     Other
 }
 
@@ -86,7 +94,7 @@ class MypyAnnotationStorage(
     val definitions: Map<String, Map<String, Definition>>,
     val types: Map<String, List<ExpressionTypeFromMypy>>,
     val fileToModule: Map<String, String>,
-    val names: Map<String, Map<String, NameType>>
+    val names: Map<String, List<Name>>
 ) {
     private fun initAnnotation(annotation: MypyAnnotation) {
         if (annotation.initialized)

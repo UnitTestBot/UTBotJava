@@ -31,7 +31,6 @@ private val moshi = Moshi.Builder()
             .withSubtype(TypeDefinition::class.java, DefinitionType.Type.name)
             .withSubtype(VarDefinition::class.java, DefinitionType.Var.name)
     )
-    .add(PythonTypeVarDescription.Variance::class.java, EnumJsonAdapter.create(PythonTypeVarDescription.Variance::class.java))
     .add(NameType::class.java, EnumJsonAdapter.create(NameType::class.java))
     .add(
         PolymorphicJsonAdapterFactory.of(Name::class.java, "kind")

@@ -34,7 +34,7 @@ object IntValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
 
     private fun getIntConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<BitVectorValue> {
         return concreteValues
-            .filter { accept(it.classId) }
+            .filter { accept(it.type) }
             .map { fuzzedValue ->
                 (fuzzedValue.value as BigInteger).let {
                     BitVectorValue.fromBigInteger(it)

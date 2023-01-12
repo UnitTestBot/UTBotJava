@@ -36,7 +36,7 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 private val logger = KotlinLogging.logger {}
 
 data class PythonFuzzedConcreteValue(
-    val classId: Type,
+    val type: Type,
     val value: Any,
     val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
 )

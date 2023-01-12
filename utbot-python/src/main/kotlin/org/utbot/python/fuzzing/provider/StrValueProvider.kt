@@ -19,7 +19,7 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
 
     private fun getStrConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<StringValue> {
         return concreteValues
-            .filter { accept(it.classId) }
+            .filter { accept(it.type) }
             .map { StringValue(it.value as String) }
     }
 

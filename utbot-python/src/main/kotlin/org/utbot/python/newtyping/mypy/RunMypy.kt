@@ -2,7 +2,6 @@ package org.utbot.python.newtyping.mypy
 
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.newtyping.*
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
@@ -98,8 +97,8 @@ fun checkSuggestedSignatureWithDMypy(
 ): Boolean {
     val description = method.type.pythonDescription() as PythonCallableTypeDescription
     val annotationMap =
-        (description.argumentNames zip method.type.arguments.map { it.pythonTypeRepresentation() }).associate {
-            Pair(it.first, NormalizedPythonAnnotation(it.second))
+        (description.argumentNames zip method.type.arguments).associate {
+            Pair(it.first, it.second)
         }
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)

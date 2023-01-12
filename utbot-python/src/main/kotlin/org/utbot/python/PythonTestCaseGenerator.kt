@@ -7,7 +7,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.python.code.PythonCode
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -26,7 +26,6 @@ import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.typing.MypyAnnotations
-import org.utbot.python.utils.AstUtils
 import java.io.File
 import java.nio.file.Path
 
@@ -82,10 +81,13 @@ object PythonTestCaseGenerator {
         } as FunctionType
 
         val parsedFile = PythonParser(sourceFileContent).Module()
-        val funcDef = AstUtils.findFunctionDefinition(parsedFile, method)
+        val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
 
+        method.returnAnnotation = functionDef.returnValue.pythonTypeRepresentation()
+        method.arguments = (method.arguments zip functionDef.arguments).map { PythonArgument(it.first.name, it.second.pythonTypeRepresentation()) }
         method.type = functionDef
         method.newAst = funcDef.body
+        method.codeAsString = funcDef.body.source
     }
 
     private fun constructCollectors(mypyStorage: MypyAnnotationStorage, typeStorage: PythonTypeStorage, method: PythonMethod): Pair<HintCollector, ConstantCollector> {
@@ -135,7 +137,7 @@ object PythonTestCaseGenerator {
             hintCollector,
             report,
             mypyConfigFile,
-            isCancelled
+            typeInferenceCancellation
         )
 
         annotations.forEach { functionType ->
@@ -153,7 +155,6 @@ object PythonTestCaseGenerator {
                 curModule,
                 pythonPath,
                 constants,
-                method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation(it.second.pythonTypeName()) },
                 timeoutForRun,
                 coveredLines,
                 PythonTypeStorage.get(mypyStorage)
@@ -225,7 +226,7 @@ object PythonTestCaseGenerator {
         mypyConfigFile: File,
         isCancelled: () -> Boolean
     ): Sequence<Type> {
-        val namesInModule = mypyStorage.names[curModule]!!.keys.filter {
+        val namesInModule = mypyStorage.names.getOrDefault(curModule, emptyMap()).keys.filter {
             it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
         }
 

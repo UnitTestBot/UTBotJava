@@ -22,7 +22,7 @@ object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
 
     private fun getFloatConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<IEEE754Value> {
         return concreteValues
-            .filter { accept(it.classId) }
+            .filter { accept(it.type) }
             .map { fuzzedValue ->
                 (fuzzedValue.value as BigDecimal).let {
                     IEEE754Value.fromValue(it.toDouble())
@@ -32,7 +32,7 @@ object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
 
     private fun getIntConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<IEEE754Value> {
         return concreteValues
-            .filter { it.classId.pythonTypeName() == "builtins.int" }
+            .filter { it.type.pythonTypeName() == "builtins.int" }
             .map { fuzzedValue ->
                 (fuzzedValue.value as BigInteger).let {
                     IEEE754Value.fromValue(it.toDouble())

@@ -1,8 +1,8 @@
 package org.utbot.python
 
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
-import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
@@ -230,7 +230,11 @@ class PythonTestCaseGenerator(
             mypyConfigFile
         )
 
-        runBlockingWithCancellationPredicate(isCancelled) {
+        runBlocking breaking@ {
+            if (isCancelled()) {
+                return@breaking
+            }
+
             val existsAnnotation = method.type
             if (existsAnnotation.arguments.all {it.pythonTypeName() != "typing.Any"}) {
                 annotationHandler(existsAnnotation)

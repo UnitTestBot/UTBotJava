@@ -16,6 +16,7 @@ import org.utbot.language.ts.utils.TsPathResolver
 import kotlin.io.path.pathString
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
+// TODO: @ts-ignore may be general
 class TsCoverageServiceProvider(
     private val context: TsServiceContext,
 ) {

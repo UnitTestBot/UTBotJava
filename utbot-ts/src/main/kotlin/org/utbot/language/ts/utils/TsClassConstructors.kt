@@ -85,7 +85,6 @@ fun TypeNode.makeTsClassIdFromType(serviceContext: TsServiceContext): TsClassId 
                     serviceContext = serviceContext
                 )
             } ?: run {
-                val kek = 1
                 throw IllegalStateException("Could not build instance of $stringTypeName")
             }
         }

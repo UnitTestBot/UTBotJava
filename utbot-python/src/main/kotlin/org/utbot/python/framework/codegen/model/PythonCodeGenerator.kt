@@ -36,6 +36,9 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
 import org.utbot.python.framework.codegen.model.tree.CgPythonTree
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonAnyType
+import org.utbot.python.newtyping.pythonModules
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -190,17 +193,16 @@ class PythonCodeGenerator(
         val importsFromModule = namesInModule.map { name ->
             PythonUserImport(name, moduleToImport)
         }
-//        TODO: remove it?
-//        val additionalModules = methodAnnotations.values.flatMap { annotation ->
-//            getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
-//        }
-        val additionalModules = emptyList<PythonUserImport>()
+
+        val additionalModules = methodAnnotations.values.fold(emptySet<String>()) { acc, type ->
+            acc + type.pythonModules()
+        }.map { PythonUserImport(it) }
         val imports = listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules).toSet().toList()
 
         imports.forEach { renderer.renderPythonImport(it) }
 
         val parameters = method.arguments.map { argument ->
-            "${argument.name}: ${methodAnnotations[argument.name] ?: pythonAnyClassId.name}"
+            "${argument.name}: ${methodAnnotations[argument.name]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
 
         val functionPrefix = "__mypy_check"

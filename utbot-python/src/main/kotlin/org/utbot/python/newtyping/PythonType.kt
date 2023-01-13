@@ -24,6 +24,10 @@ fun Type.pythonAnnotationParameters(): List<Type> {
     return pythonDescription().getAnnotationParameters(this)
 }
 
+fun Type.pythonModules(): Set<String> {
+    return pythonDescription().getModules(this)
+}
+
 fun Type.isPythonObjectType(): Boolean {
     if (!isPythonType())
         return false
@@ -102,6 +106,15 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
             name.name
         else
             name.prefix.joinToString(".") + "." + name.name
+    }
+    fun getModules(type: Type): Set<String> {
+        val cur = if (name.prefix.isNotEmpty())
+            setOf(name.prefix.joinToString(separator = "."))
+        else
+            emptySet()
+        return getAnnotationParameters(type).fold(cur) { acc, childType ->
+            acc + getModules(childType)
+        }
     }
 }
 

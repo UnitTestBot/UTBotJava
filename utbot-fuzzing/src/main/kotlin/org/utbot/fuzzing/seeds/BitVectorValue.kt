@@ -130,7 +130,7 @@ class BitVectorValue : KnownValue {
         assert(bits <= 128) { "Cannot convert to long vector with more than 128 bits, but $bits is requested" }
         var result = BigInteger("0")
         for (i in shift until minOf(bits + shift, size)) {
-            result = result or ((if (vector[i]) BigInteger("1") else BigInteger("0") shl (i - shift)))
+            result += (if (vector[i]) BigInteger("1") else BigInteger("0")) * BigInteger("2").pow(i - shift)
         }
         return result
     }

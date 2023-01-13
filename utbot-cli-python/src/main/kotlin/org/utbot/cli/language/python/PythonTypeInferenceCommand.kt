@@ -62,6 +62,7 @@ class PythonTypeInferenceCommand : CliktCommand(
                 startTime = System.currentTimeMillis()
                 logger.info("Starting type inference...")
             },
+            processSignature = { println(it.pythonTypeRepresentation()) },
             cancel = { System.currentTimeMillis() - startTime > timeout },
             checkRequirementsAction = { logger.info("Checking Python requirements...") },
             missingRequirementsAction = {
@@ -72,9 +73,5 @@ class PythonTypeInferenceCommand : CliktCommand(
             analyzingCodeAction = { logger.info("Analyzing code...") },
             pythonMethodExtractionFailAction = { logger.error(it) }
         )
-
-        types.forEach {
-            println(it.pythonTypeRepresentation())
-        }
     }
 }

@@ -1,5 +1,7 @@
 package org.utbot.python.newtyping.inference
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.FunctionDefinition
 import org.utbot.common.runBlockingWithCancellationPredicate
@@ -32,13 +34,14 @@ class TypeInferenceProcessor(
 
     fun inferTypes(
         cancel: () -> Boolean,
+        processSignature: (Type) -> Unit = {},
         checkRequirementsAction: () -> Unit = {},
         missingRequirementsAction: () -> Unit = {},
         loadingInfoAboutTypesAction: () -> Unit = {},
         analyzingCodeAction: () -> Unit = {},
         pythonMethodExtractionFailAction: (String) -> Unit = {},
         startingTypeInferenceAction: () -> Unit = {}
-    ): Sequence<Type> = sequence {
+    ): List<Type> {
         Cleaner.restart()
         try {
             TemporaryFileManager.setup()
@@ -47,7 +50,7 @@ class TypeInferenceProcessor(
 
             if (!RequirementsUtils.requirementsAreInstalled(pythonPath)) {
                 missingRequirementsAction()
-                return@sequence
+                return emptyList()
             }
 
             val configFile = setConfigFile(directoriesForSysPath)
@@ -73,7 +76,7 @@ class TypeInferenceProcessor(
             val pythonMethodOpt = getPythonMethod(mypyStorage)
             if (pythonMethodOpt is Fail) {
                 pythonMethodExtractionFailAction(pythonMethodOpt.message)
-                return@sequence
+                return emptyList()
             }
 
             val pythonMethod = (pythonMethodOpt as Success).value
@@ -106,13 +109,14 @@ class TypeInferenceProcessor(
 
             startingTypeInferenceAction()
             val annotations = emptyList<Type>().toMutableList()
-            runBlockingWithCancellationPredicate(isCanceled = cancel) {
-               algo.run(collector.result, cancel) {
+            runBlocking {
+                algo.run(collector.result, cancel) {
                     annotations.add(it)
+                    processSignature(it)
                     SuccessFeedback
-               }
+                }
             }
-            yieldAll(annotations)
+            return annotations
         } finally {
             Cleaner.doCleaning()
         }

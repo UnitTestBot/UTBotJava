@@ -9,8 +9,8 @@ Top-level functions (with only positional arguments):
 - [x] `def calc_dynamic_window(x, config)`
 - [x] `def predict_trajectory(x_init, v, y, config)`
 - [ ] `def calc_control_and_trajectory(x, dw, config, goal, ob)`
-- [ ] `def calc_obstacle_cost(trajectory, ob, config)`
-- [ ] `def calc_to_goal_cost(trajectory, goal)`
+- [x] `def calc_obstacle_cost(trajectory, ob, config)`
+- [x] `def calc_to_goal_cost(trajectory, goal)`
 - [x] `def plot_robot(x, y, yaw, config)`
 
 Used time limit: 25 seconds.
@@ -71,6 +71,34 @@ typing.Callable[[builtins.int, builtins.int, builtins.list[builtins.list[typing.
 ...
 ```
 
+### <span style="color:green">OK:</span> `def calc_obstacle_cost(trajectory, ob, config)`
+
+```
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[numpy.ndarray[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+```
+
+### <span style="color:green">OK:</span> `def calc_to_goal_cost(trajectory, goal)`
+
+```
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.str], typing.Any]
+typing.Callable[[numpy.flatiter[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], builtins.str], typing.Any]
+typing.Callable[[numpy.ndarray[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[numpy.flatiter[typing.Any], builtins.str], typing.Any]
+typing.Callable[[numpy.recarray[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[numpy.ndarray[typing.Any, typing.Any], builtins.str], typing.Any]
+typing.Callable[[numpy.flatiter[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any]], builtins.str], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any]], typing.Any]
+typing.Callable[[numpy.flatiter[numpy.ndarray[typing.Any, typing.Any]], builtins.str], typing.Any]
+typing.Callable[[numpy.matrix[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
+```
+
 ### <span style="color:green">OK:</span> `def plot_robot(x, y, yaw, config)`
 
 `list` is strange here, but without stubs for matplotlib mypy doesn't consider this a mistake.
@@ -104,30 +132,6 @@ typing.Callable[[builtins.object, builtins.object, builtins.object, numpy.str_],
 ```
 
 ### <span style="color:yellow">FAIL:</span> `def calc_control_and_trajectory(x, dw, config, goal, ob)`
-
-### <span style="color:yellow">OK, but can be better (TODO):</span> `def calc_obstacle_cost(trajectory, ob, config)`
-
-```
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-```
-
-Desirable type: numpy array.
-
-Reason: no analysis of tuple slices.
-
-### <span style="color:yellow">OK, but can be better (TODO):</span> `def calc_to_goal_cost(trajectory, goal)`
-
-```
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.str], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any]], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytes], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytearray], typing.Any]
-```
-
-Desirable type: numpy array.
-
-Reason: no analysis of tuple slices.
 
 ## File 2
 

@@ -54,6 +54,7 @@ class PythonTypeStorage(
     val pythonComplex: Type,
     val pythonStr: Type,
     val pythonTuple: Type,
+    val tupleOfAny: Type,
     val pythonSlice: Type,
     val allTypes: Set<Type>
 ) {
@@ -67,6 +68,8 @@ class PythonTypeStorage(
                         allTypes.add(it.annotation.asUtBotType)
                 }
             }
+            val tuple = module["tuple"]!!.annotation.asUtBotType
+            val tupleOfAny = DefaultSubstitutionProvider.substituteAll(tuple, listOf(pythonAnyType))
             return PythonTypeStorage(
                 pythonObject = module["object"]!!.annotation.asUtBotType,
                 pythonBool = module["bool"]!!.annotation.asUtBotType,
@@ -77,7 +80,8 @@ class PythonTypeStorage(
                 pythonFloat = module["float"]!!.annotation.asUtBotType,
                 pythonComplex = module["complex"]!!.annotation.asUtBotType,
                 pythonStr = module["str"]!!.annotation.asUtBotType,
-                pythonTuple = module["tuple"]!!.annotation.asUtBotType,
+                pythonTuple = tuple,
+                tupleOfAny = tupleOfAny,
                 pythonSlice = module["slice"]!!.annotation.asUtBotType,
                 allTypes = allTypes
             )

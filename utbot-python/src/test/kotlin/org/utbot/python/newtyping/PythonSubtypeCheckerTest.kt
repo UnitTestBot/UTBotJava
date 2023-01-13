@@ -94,4 +94,13 @@ internal class PythonSubtypeCheckerTest {
 
         assertTrue(checkIfRightIsSubtypeOfLeft(getItemProtocol, list, pythonTypeStorage))
     }
+
+    @Test
+    fun testNumpyArray() {
+        val numpyArray = storage.definitions["numpy"]!!["ndarray"]!!.annotation.asUtBotType
+        val numpyArrayOfAny = DefaultSubstitutionProvider.substituteAll(numpyArray, listOf(pythonAnyType, pythonAnyType))
+        val getItemProtocol = createBinaryProtocol("__getitem__", pythonTypeStorage.tupleOfAny, pythonAnyType)
+
+        assertTrue(checkIfRightIsSubtypeOfLeft(getItemProtocol, numpyArrayOfAny, pythonTypeStorage))
+    }
 }

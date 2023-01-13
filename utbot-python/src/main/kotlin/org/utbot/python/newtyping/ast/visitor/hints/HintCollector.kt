@@ -11,7 +11,6 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
-import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithmEdge
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import java.util.*
 
@@ -472,7 +471,7 @@ class HintCollector(
                 }
             }
             is TupleSlice -> {
-                addProtocol(headNode, createBinaryProtocol("__getitem__", storage.pythonTuple, pythonAnyType))
+                addProtocol(headNode, createBinaryProtocol("__getitem__", storage.tupleOfAny, pythonAnyType))
             }
         }
     }

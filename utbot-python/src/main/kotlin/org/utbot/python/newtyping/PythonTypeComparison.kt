@@ -345,7 +345,7 @@ class PythonSubtypeChecker(
 
         if (rightCallAttributeAbstract.pythonDescription() is PythonOverloadTypeDescription) {
             val variants = rightCallAttributeAbstract.parameters
-            return variants.all { variant ->
+            return variants.any { variant ->
                 PythonSubtypeChecker(
                     left = left,
                     right = variant,

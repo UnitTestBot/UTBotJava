@@ -4,8 +4,6 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
-import java.io.File
-import java.util.Locale
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
@@ -16,6 +14,8 @@ import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
 import utils.MethodTypes
 import utils.constructClass
+import java.io.File
+import java.util.Locale
 
 /*
     NOTE: this approach is quite bad, but we failed to implement alternatives.
@@ -80,6 +80,7 @@ test("${context.filePathToInference}")
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
+            shouldWait = true,
             cmd = arrayOf(context.settings.pathToNPM, "i", "tern", "-l")
         )
     }
@@ -92,15 +93,14 @@ test("${context.filePathToInference}")
 
     private fun runTypeInferencer() {
         with(context) {
-            val (reader, _) = JsCmdExec.runCommand(
+            val (inputText, _) = JsCmdExec.runCommand(
                 dir = "$projectPath/$utbotDir/",
                 shouldWait = true,
                 timeout = 20,
                 cmd = arrayOf(settings.pathToNode, "${projectPath}/$utbotDir/ternScript.js"),
             )
-            val text = reader.readText().replaceAfterLast("}", "")
             json = try {
-                JSONObject(text)
+                JSONObject(inputText.replaceAfterLast("}", ""))
             } catch (_: Throwable) {
                 JSONObject()
             }

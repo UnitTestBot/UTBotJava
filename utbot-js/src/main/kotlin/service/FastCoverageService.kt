@@ -1,12 +1,12 @@
 package service
 
-import java.io.File
-import java.util.Collections
 import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
+import java.io.File
+import java.util.Collections
 
 class FastCoverageService(
     private val context: ServiceContext,
@@ -125,7 +125,7 @@ class FastCoverageService(
     private fun generateCoverageReport() {
         scriptTexts.indices.toList().parallelStream().forEach { parallelIndex ->
             with(context) {
-                val (_, error) = JsCmdExec.runCommand(
+                val (_, errorText) = JsCmdExec.runCommand(
                     cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName$parallelIndex.js"),
                     dir = context.projectPath,
                     shouldWait = true,
@@ -141,9 +141,8 @@ class FastCoverageService(
                     coverageList.add(index to json.getJSONObject("s"))
                     _resultList.add(index to json.get("result").toString())
                 }
-                val errText = error.readText()
-                if (errText.isNotEmpty()) {
-                    println(errText)
+                if (errorText.isNotEmpty()) {
+                    println(errorText)
                 }
             }
         }

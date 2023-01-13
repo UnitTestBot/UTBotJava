@@ -2,7 +2,7 @@
 name: Manual testing checklist
 about: Checklist of testing process
 title: 'Manual testing of build#'
-labels: 'qa'
+labels: 'ctg-qa'
 assignees: ''
 
 ---

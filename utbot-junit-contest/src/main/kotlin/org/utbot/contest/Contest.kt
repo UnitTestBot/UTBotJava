@@ -34,7 +34,6 @@ import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
-import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -59,10 +58,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.util.isSynthetic
+import org.utbot.instrumentation.warmup.Warmup
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -119,11 +118,6 @@ fun main(args: Array<String>) {
 
 
     withUtContext(context) {
-        logger.info().bracket("warmup: kotlin reflection :: init") {
-            prepareClass(ConcreteExecutorPool::class.java, "")
-            prepareClass(Warmup::class.java, "")
-        }
-
         println("${ContestMessage.INIT}")
 
         while (true) {
@@ -185,25 +179,23 @@ fun runGeneration(
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
-    val generationTimeout: Long = timeBudgetMs - timeBudgetMs * 15 / 100 // 4000 ms for terminate all activities and finalize code in file
+    val generationTimeout: Long = timeBudgetMs - min(4000, timeBudgetMs * 10 / 100) // 4000 ms for terminate all activities and finalize code in file
 
     logger.debug { "-----------------------------------------------------------------------------" }
     logger.info(
         "Contest.runGeneration: Time budget: $timeBudgetMs ms, Generation timeout=$generationTimeout ms, " +
                 "classpath=$classpathString, methodNameFilter=$methodNameFilter"
     )
-
     if (runFromEstimator) {
         setOptions()
         //will not be executed in real contest
-        logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
+    }
+
+    val testCaseGenerator =
+        logger.info().bracket("Initializing testCaseGenerator") {
             TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
         }
-        logger.info().bracket("warmup (first): kotlin reflection :: init") {
-            prepareClass(ConcreteExecutorPool::class.java, "")
-            prepareClass(Warmup::class.java, "")
-        }
-    }
+
 
     //remaining budget
     val startTime = System.currentTimeMillis()
@@ -237,10 +229,6 @@ fun runGeneration(
         // nothing to process further
         if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
-        val testCaseGenerator =
-            logger.info().bracket("2nd optional soot initialization") {
-                TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
-            }
 
 
         val engineJob = CoroutineScope(SupervisorJob() + newSingleThreadContext("SymbolicExecution") + currentContext ).launch {
@@ -277,12 +265,12 @@ fun runGeneration(
 
                     val budgetForMethod = remainingBudget / remainingMethodsCount
 
-                    val solverTimeout = min(1000L, max(minSolverTimeout /* 0 means solver have no timeout*/, budgetForMethod / 2)).toInt()
+                    val solverTimeout = min(100L, budgetForMethod / 10).toInt()
 
                     // @todo change to the constructor parameter
                     UtSettings.checkSolverTimeoutMillis = solverTimeout
 
-                    val budgetForLastSolverRequestAndConcreteExecutionRemainingStates = min(solverTimeout + 200L, budgetForMethod / 2)
+                    val budgetForLastSolverRequestAndConcreteExecutionRemainingStates = min(solverTimeout + 100L, budgetForMethod / 5)
 
 
                     val budgetForSymbolicExecution = max(0, budgetForMethod - budgetForLastSolverRequestAndConcreteExecutionRemainingStates)

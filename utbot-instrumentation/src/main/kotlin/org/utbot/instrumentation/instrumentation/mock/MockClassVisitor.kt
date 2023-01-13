@@ -94,36 +94,7 @@ class MockClassVisitor(
         val mv = cv.visitMethod(access, name, descriptor, signature, exceptions)
         return object : AdviceAdapter(Settings.ASM_API, mv, access, name, descriptor) {
 
-            private val afterLabels: MutableList<Label> = mutableListOf()
-
             override fun visitTypeInsn(opcode: Int, type: String?) {
-                if (opcode == NEW) {
-                    val afterLabel = Label()
-                    afterLabels.add(afterLabel)
-                    val newLabel = Label()
-
-                    // if (callSiteCheck(type, class))
-                    push(type)
-                    push(internalClassName)
-                    invokeStatic(callSiteCheckerOwner, callSiteCheckerMethod)
-                    ifZCmp(IFEQ, newLabel)
-
-                    // if (hasMock(null, type.<init>))
-                    visitInsn(ACONST_NULL)
-                    push("$type.<init>")
-                    invokeStatic(hasMockOwner, hasMockMethod)
-                    ifZCmp(IFEQ, newLabel)
-
-                    // getMock(null, type.<init>)
-                    visitInsn(ACONST_NULL)
-                    push("$type.<init>")
-                    invokeStatic(mockGetterOwner, mockGetterMethod)
-                    visitTypeInsn(CHECKCAST, type)
-                    goTo(afterLabel)
-
-                    // else
-                    visitLabel(newLabel)
-                }
                 super.visitTypeInsn(opcode, type)
             }
 
@@ -134,10 +105,50 @@ class MockClassVisitor(
                 descriptor: String?,
                 isInterface: Boolean
             ) {
-                super.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
+                val afterLabel = Label()
                 if (name == "<init>") {
-                    afterLabels.removeLastOrNull()?.let { visitLabel(it) }
+
+                    val newLabel = Label()
+
+
+                    // if (callSiteCheck(type, class))
+                    push(owner)
+                    push(internalClassName)
+                    invokeStatic(callSiteCheckerOwner, callSiteCheckerMethod)
+                    ifZCmp(EQ, newLabel)
+
+                    visitLabel(Label())
+
+                    // if (hasMock(null, type.<init>))
+                    visitInsn(ACONST_NULL)
+                    push("$owner.<init>")
+                    invokeStatic(hasMockOwner, hasMockMethod)
+                    ifZCmp(IFEQ, newLabel)
+
+                    val types = Type.getArgumentTypes(descriptor).reversed()
+                    for (type in types) {
+                        if (type.size == 1) {
+                            pop()
+                        }
+                        if (type.size == 2) {
+                            pop2()
+                        }
+                    }
+                    pop()
+                    pop()
+
+                    // getMock(null, type.<init>)
+                    visitInsn(ACONST_NULL)
+                    push("$owner.<init>")
+                    invokeStatic(mockGetterOwner, mockGetterMethod)
+                    visitTypeInsn(CHECKCAST, owner)
+                    goTo(afterLabel)
+
+                    // else
+                    visitLabel(newLabel)
                 }
+                super.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
+                visitLabel(afterLabel)
             }
 
             override fun onMethodEnter() {

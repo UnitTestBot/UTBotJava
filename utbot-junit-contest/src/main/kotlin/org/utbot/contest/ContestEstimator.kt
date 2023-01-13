@@ -42,7 +42,7 @@ private val logger = KotlinLogging.logger {}
 private val classPathSeparator = System.getProperty("path.separator")
 //To hack it to debug something be like Duke
 // if (System.getProperty("user.name") == "duke") my_path else "JAVA_HOME"
-private val javaHome = System.getenv("JAVA_HOME")
+private val javaHome = System.getenv("JAVA8_HOME")
 
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
@@ -293,7 +293,7 @@ fun main(args: Array<String>) {
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
     if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
         processedClassesThreshold = 9999 //change to change number of classes to run
-        val timeLimit = 20 // increase if you want to debug something
+        val timeLimit = 60 // increase if you want to debug something
         val fuzzingRatio = 0.1 // sets fuzzing ratio to total test generation
 
         // Uncomment it for debug purposes:
@@ -314,7 +314,7 @@ fun main(args: Array<String>) {
 
         // config for SBST 2022
         methodFilter = null
-        projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
+        projectFilter = listOf("spoon-core-7.0.0")
         tools = listOf(Tool.UtBot)
 
         estimatorArgs = arrayOf(

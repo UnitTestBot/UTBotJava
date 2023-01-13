@@ -212,7 +212,7 @@ private class TunedClassWriter(
 
 fun interface ClassVisitorBuilder<T : ClassVisitor> {
     val writerFlags: Int
-        get() = ClassWriter.COMPUTE_MAXS or ClassWriter.COMPUTE_FRAMES
+        get() = ClassWriter.COMPUTE_FRAMES
 
     val readerParsingOptions: Int
         get() = ClassReader.SKIP_FRAMES

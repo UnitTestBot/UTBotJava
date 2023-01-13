@@ -44,7 +44,7 @@ class DynamicClassTransformer : ClassFileTransformer {
                 null
             }
         } catch (e: Throwable) {
-            logger.error { "Error while transforming: ${e.stackTraceToString()}" }
+            logger.error("Error while transforming", e)
             throw e
         } finally {
             UtContext.currentContext()?.stopWatch?.start()

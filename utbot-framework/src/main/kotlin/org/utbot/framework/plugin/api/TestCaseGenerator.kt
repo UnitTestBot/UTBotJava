@@ -27,6 +27,7 @@ import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
 import org.utbot.framework.minimization.minimizeTestCase
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.services.JdkInfo
@@ -38,6 +39,7 @@ import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
+import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
@@ -92,6 +94,7 @@ open class TestCaseGenerator(
                 ).apply {
                     warmup()
                 }
+                generate(listOf(Warmup::doWarmup1.executableId), MockStrategyApi.NO_MOCKS)
             }
         }
     }

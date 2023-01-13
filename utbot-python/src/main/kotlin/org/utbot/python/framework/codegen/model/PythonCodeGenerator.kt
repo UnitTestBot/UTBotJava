@@ -194,10 +194,8 @@ class PythonCodeGenerator(
             PythonUserImport(name, moduleToImport)
         }
 
-        val additionalModules = methodAnnotations.values.fold(emptySet<String>()) { acc, type ->
-            acc + type.pythonModules()
-        }.map { PythonUserImport(it) }
-        val imports = listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules).toSet().toList()
+        val additionalModules = methodAnnotations.values.flatMap { it.pythonModules() }.map { PythonUserImport(it) }
+        val imports = (listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules)).toSet().toList()
 
         imports.forEach { renderer.renderPythonImport(it) }
 

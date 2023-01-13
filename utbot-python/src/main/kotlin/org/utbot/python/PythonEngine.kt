@@ -21,6 +21,7 @@ import org.utbot.python.fuzzing.PythonFuzzing
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
@@ -124,11 +125,7 @@ class PythonEngine(
     }
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
-//        TODO: remove it?
-//        val additionalModules = selectedTypeMap.values.flatMap {
-//            getModulesFromAnnotation(it)
-//        }.toSet()
-        val additionalModules = emptyList<String>()
+        val additionalModules = parameters.flatMap { it.pythonModules() }
 
         val pmd = PythonMethodDescription(
             methodUnderTest.name,

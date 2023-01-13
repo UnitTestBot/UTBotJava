@@ -17,6 +17,7 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
@@ -99,7 +100,8 @@ object PythonTestCaseGenerator {
             }
         } ?: emptyMap()
 
-        val hintCollector = HintCollector(method.type, typeStorage, mypyExpressionTypes)
+        val namesStorage = GlobalNamesStorage(mypyStorage)
+        val hintCollector = HintCollector(method.type, typeStorage, mypyExpressionTypes , namesStorage, curModule)
         val constantCollector = ConstantCollector(typeStorage)
         val visitor = Visitor(listOf(hintCollector, constantCollector))
         visitor.visit(method.newAst)
@@ -226,9 +228,12 @@ object PythonTestCaseGenerator {
         mypyConfigFile: File,
         isCancelled: () -> Boolean
     ): Sequence<Type> {
-        val namesInModule = mypyStorage.names.getOrDefault(curModule, emptyMap()).keys.filter {
-            it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
-        }
+        val namesInModule = mypyStorage.names
+            .getOrDefault(curModule, emptyList())
+            .map { it.name }
+            .filter {
+                it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
+            }
 
         val algo = BaselineAlgorithm(
             typeStorage,

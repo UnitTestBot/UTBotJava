@@ -1,4 +1,0 @@
-package api
-
-class DynamicSettings {
-}

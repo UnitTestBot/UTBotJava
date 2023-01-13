@@ -1,11 +1,12 @@
 package settings
 
-import service.CoverageMode
+import api.NodeCoverageMode
+import api.NodeDynamicSettings
 
-data class JsDynamicSettings(
+class JsDynamicSettings(
     val pathToNode: String = "node",
-    val pathToNYC: String = "nyc",
+    override val pathToNYC: String = "nyc",
     val pathToNPM: String = "npm",
-    val timeout: Long = 15L,
-    val coverageMode: CoverageMode = CoverageMode.FAST
-)
+    override val timeout: Long = 15L,
+    override val coverageMode: NodeCoverageMode = NodeCoverageMode.FAST
+): NodeDynamicSettings(pathToNYC, timeout, coverageMode)

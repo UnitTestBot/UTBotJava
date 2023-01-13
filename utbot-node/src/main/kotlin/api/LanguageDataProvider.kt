@@ -5,13 +5,15 @@ interface LanguageDataOwner {
     val projectPath: String
     val selectedMethods: List<String>?
     val parentClassName: String?
-    val settings: DynamicSettings
+    val settings: NodeDynamicSettings
+    val fileEntity: AbstractFileEntity
 }
 
-data class LanguageDataProvider(
+open class LanguageDataProvider(
     override val sourceFilePath: String,
     override val projectPath: String,
     override val selectedMethods: List<String>? = null,
     override val parentClassName: String? = null,
-    override val settings: DynamicSettings
+    override val settings: NodeDynamicSettings,
+    override val fileEntity: AbstractFileEntity
 ): LanguageDataOwner

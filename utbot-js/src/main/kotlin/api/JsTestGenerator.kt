@@ -12,6 +12,7 @@ import framework.api.js.util.jsErrorClassId
 import fuzzer.JsFuzzer
 import fuzzer.providers.JsObjectModelProvider
 import java.io.File
+import new.JsDataProvider
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -74,6 +75,17 @@ class JsTestGenerator(
         outputFilePath = outputFilePath?.replace("\\", "/")
         sourceFilePath = sourceFilePath.replace("\\", "/")
     }
+
+//    fun newRun(): String {
+//        val dataProvider = JsDataProvider(
+//            sourceFilePath,
+//            projectPath,
+//            selectedMethods,
+//            parentClassName,
+//            settings,
+//
+//        )
+//    }
 
     /**
      * Returns String representation of generated tests.

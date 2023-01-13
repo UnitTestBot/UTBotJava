@@ -4,8 +4,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 
 abstract class AbstractFunctionEntity(
-    val name: String,
-    val parametersMap: Map<String, ClassId>,
-    val concreteValues: Set<FuzzedConcreteValue>,
+    open val name: String,
+    open val parametersMap: Map<String, ClassId>,
+    open val concreteValues: Set<FuzzedConcreteValue>,
 ) {
 }

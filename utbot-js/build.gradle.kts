@@ -29,6 +29,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     api(project(":utbot-framework"))
+    implementation(project(":utbot-node"))
     implementation(project(":utbot-fuzzers"))
     // https://mvnrepository.com/artifact/com.google.javascript/closure-compiler
     implementation("com.google.javascript:closure-compiler:v20221102")

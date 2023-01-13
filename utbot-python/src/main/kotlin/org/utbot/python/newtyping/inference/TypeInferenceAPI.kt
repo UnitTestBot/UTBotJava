@@ -4,8 +4,17 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollectorResult
 import org.utbot.python.newtyping.general.Type
 
 abstract class TypeInferenceAlgorithm {
-    abstract fun run(hintCollectorResult: HintCollectorResult, isCancelled: () -> Boolean): Sequence<Type>
+    abstract suspend fun run(
+        hintCollectorResult: HintCollectorResult,
+        isCancelled: () -> Boolean,
+        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+    )
 }
+
+sealed interface InferredTypeFeedback
+
+object SuccessFeedback : InferredTypeFeedback
+object InvalidTypeFeedback : InferredTypeFeedback
 
 interface TypeInferenceNode {
     val partialType: Type

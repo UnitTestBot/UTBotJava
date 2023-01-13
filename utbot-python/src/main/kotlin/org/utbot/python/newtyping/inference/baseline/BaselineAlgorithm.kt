@@ -31,27 +31,37 @@ class BaselineAlgorithm(
     private val initialErrorNumber: Int,
     private val configFile: File
 ) : TypeInferenceAlgorithm() {
-    override fun run(hintCollectorResult: HintCollectorResult, isCancelled: () -> Boolean): Sequence<Type> = sequence {
+    override suspend fun run(
+        hintCollectorResult: HintCollectorResult,
+        isCancelled: () -> Boolean,
+        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+    ) {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
         val states: MutableSet<BaselineAlgorithmState> = mutableSetOf(initialState)
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
 
-        while (states.isNotEmpty()) {
-            if (isCancelled())
-                break
-            logger.debug("State number: ${states.size}")
-            val state = chooseState(states)
-            val newState = expandState(state, storage)
-            if (newState != null) {
-                logger.debug("Checking ${newState.signature.pythonTypeRepresentation()}")
-                if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
-                    logger.debug("Found new state!")
-                    yield(newState.signature)
-                    states.add(newState)
+        run breaking@ {
+            while (states.isNotEmpty()) {
+                if (isCancelled())
+                    return@breaking
+                logger.debug("State number: ${states.size}")
+                val state = chooseState(states)
+                val newState = expandState(state, storage)
+                if (newState != null) {
+                    logger.debug("Checking ${newState.signature.pythonTypeRepresentation()}")
+                    if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
+                        logger.debug("Found new state!")
+                        when (annotationHandler(newState.signature)) {
+                            SuccessFeedback -> {
+                                states.add(newState)
+                            }
+                            InvalidTypeFeedback -> {}
+                        }
+                    }
+                } else {
+                    states.remove(state)
                 }
-            } else {
-                states.remove(state)
             }
         }
     }

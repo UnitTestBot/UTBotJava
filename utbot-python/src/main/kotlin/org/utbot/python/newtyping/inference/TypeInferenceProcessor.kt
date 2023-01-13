@@ -2,6 +2,7 @@ package org.utbot.python.newtyping.inference
 
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.FunctionDefinition
+import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.python.PythonArgument
 import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
@@ -104,7 +105,14 @@ class TypeInferenceProcessor(
             )
 
             startingTypeInferenceAction()
-            yieldAll(algo.run(collector.result, cancel))
+            val annotations = emptyList<Type>().toMutableList()
+            runBlockingWithCancellationPredicate(isCanceled = cancel) {
+               algo.run(collector.result, cancel) {
+                    annotations.add(it)
+                    SuccessFeedback
+               }
+            }
+            yieldAll(annotations)
         } finally {
             Cleaner.doCleaning()
         }

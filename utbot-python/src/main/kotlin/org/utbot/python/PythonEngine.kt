@@ -10,7 +10,6 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtResult
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
@@ -29,6 +28,12 @@ import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
 const val TIMEOUT: Long = 10
+
+sealed interface FuzzingExecutionFeedback
+class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecutionFeedback
+class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
+class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -68,13 +73,13 @@ class PythonEngine(
         )
     }
 
-    private fun handleSuccessResultNew(
+    private fun handleSuccessResult(
         types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
         jobResult: JobResult,
         summary: List<String>,
-    ): UtResult {
+    ): FuzzingExecutionFeedback {
         val (resultJSON, isException, coverage) = evaluationResult
 
         val prohibitedExceptions = listOf(
@@ -88,13 +93,13 @@ class PythonEngine(
             }. Exception type: ${resultJSON.type.name}"
 
             logger.info(errorMessage)
-
-            return UtError(errorMessage, Throwable())
+            return TypeErrorFeedback(errorMessage)
         }
 
         val executionResult =
-            if (isException)
+            if (isException) {
                 UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false)
+            }
             else {
                 val outputType = resultJSON.type
                 val resultAsModel = PythonTreeModel(
@@ -106,7 +111,7 @@ class PythonEngine(
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, jobResult, executionResult)
 
-        return UtFuzzedExecution(
+        val utFuzzedExecution = UtFuzzedExecution(
             stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
             stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
             result = executionResult,
@@ -115,9 +120,10 @@ class PythonEngine(
             displayName = testMethodName.displayName,
             summary = summary.map { DocRegularStmt(it) }
         )
+        return ValidExecution(utFuzzedExecution)
     }
 
-    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<UtResult> = flow {
+    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
 //        TODO: remove it?
 //        val additionalModules = selectedTypeMap.values.flatMap {
 //            getModulesFromAnnotation(it)
@@ -183,24 +189,20 @@ class PythonEngine(
                 evaluationInput.modelList
             )
 
-
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
-                    if (evaluationResult.status != 0) {
-                        emit(
-                            UtError(
-                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
-                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                            )
-                        )
-                    } else {
-                        emit(
-                            UtError(
-                                evaluationResult.message,
-                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                            )
-                        )
-                    }
+                    val utError = UtError(
+                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                        Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                    )
+                    emit(InvalidExecution(utError))
+                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                }
+
+                is PythonEvaluationTimeout -> {
+                    val utError = UtError(evaluationResult.message, Throwable())
+                    emit(InvalidExecution(utError))
+                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
                 }
 
                 is PythonEvaluationSuccess -> {
@@ -210,26 +212,28 @@ class PythonEngine(
                         sourceLinesCount = instructionsCount
                     }
 
-                    val result = handleSuccessResultNew(parameters, evaluationResult, description, jobResult, summary)
+                    val result = handleSuccessResult(parameters, evaluationResult, description, jobResult, summary)
                     emit(result)
-                    if (result is UtError) {
-                        return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                    if (coveredLines.size.toLong() == sourceLinesCount) {
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                    }
+
+                    when (result) {
+                        is ValidExecution -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                        }
+                        is ArgumentsTypeErrorFeedback -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                        }
+                        is TypeErrorFeedback -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        }
+                        is InvalidExecution -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                        }
                     }
                 }
-
-                is PythonEvaluationTimeout -> {
-                    emit(
-                        UtError(evaluationResult.message, Throwable())
-                    )
-                }
             }
-
-            if (coveredLines.size.toLong() == sourceLinesCount) {
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-            }
-
-            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
-
         }.fuzz(pmd)
     }
 }

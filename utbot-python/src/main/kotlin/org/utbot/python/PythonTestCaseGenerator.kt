@@ -1,8 +1,8 @@
 package org.utbot.python
 
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
+import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
@@ -16,57 +16,38 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.getPythonAttributes
+import org.utbot.python.newtyping.inference.InferredTypeFeedback
+import org.utbot.python.newtyping.inference.InvalidTypeFeedback
+import org.utbot.python.newtyping.inference.SuccessFeedback
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
+import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
-import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.typing.MypyAnnotations
 import java.io.File
-import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
-object PythonTestCaseGenerator {
-    private var withMinimization: Boolean = true
-    private var pythonRunRoot: Path? = null
-    private lateinit var directoriesForSysPath: Set<String>
-    private lateinit var curModule: String
-    private lateinit var pythonPath: String
-    private lateinit var fileOfMethod: String
-    private lateinit var isCancelled: () -> Boolean
-    private var timeoutForRun: Long = 0
-    private var until: Long = 0
-    private lateinit var sourceFileContent: String
+private const val COVERAGE_LIMIT = 20
 
-    private const val COVERAGE_LIMIT = 20
-
-    fun init(
-        directoriesForSysPath: Set<String>,
-        moduleToImport: String,
-        pythonPath: String,
-        fileOfMethod: String,
-        timeoutForRun: Long,
-        withMinimization: Boolean = true,
-        pythonRunRoot: Path? = null,
-        until: Long,
-        isCancelled: () -> Boolean
-    ) {
-        this.directoriesForSysPath = directoriesForSysPath
-        this.curModule = moduleToImport
-        this.pythonPath = pythonPath
-        this.fileOfMethod = fileOfMethod
-        this.withMinimization = withMinimization
-        this.isCancelled = isCancelled
-        this.timeoutForRun = timeoutForRun
-        this.pythonRunRoot = pythonRunRoot
-        this.until = until
-        this.sourceFileContent = File(fileOfMethod).readText()
-    }
+class PythonTestCaseGenerator(
+    private val withMinimization: Boolean = true,
+    private val directoriesForSysPath: Set<String>,
+    private val curModule: String,
+    private val pythonPath: String,
+    private val fileOfMethod: String,
+    private val isCancelled: () -> Boolean,
+    private val timeoutForRun: Long = 0,
+    private val until: Long = 0,
+    private val sourceFileContent: String,
+    private val mypyStorage: MypyAnnotationStorage,
+    private val mypyReportLine: List<MypyReportLine>,
+    private val mypyConfigFile: File,
+){
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
@@ -99,7 +80,8 @@ object PythonTestCaseGenerator {
             }
         } ?: emptyMap()
 
-        val hintCollector = HintCollector(method.type, typeStorage, mypyExpressionTypes)
+        val namesStorage = GlobalNamesStorage(mypyStorage)
+        val hintCollector = HintCollector(method.type, typeStorage, mypyExpressionTypes , namesStorage, curModule)
         val constantCollector = ConstantCollector(typeStorage)
         val visitor = Visitor(listOf(hintCollector, constantCollector))
         visitor.visit(method.newAst)
@@ -107,13 +89,6 @@ object PythonTestCaseGenerator {
     }
 
     fun generate(method: PythonMethod): PythonTestSet {
-        val mypyConfigFile = setConfigFile(directoriesForSysPath)
-        val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
-            pythonPath,
-            method.moduleFilename,
-            curModule,
-            mypyConfigFile
-        )
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
@@ -130,17 +105,15 @@ object PythonTestCaseGenerator {
         var generated = 0
         val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
-        val annotations = getAnnotations(
+        getAnnotations(
             method,
             mypyStorage,
             typeStorage,
             hintCollector,
-            report,
+            mypyReportLine,
             mypyConfigFile,
             typeInferenceCancellation
-        )
-
-        annotations.forEach { functionType ->
+        ) { functionType ->
             val args = (functionType as FunctionType).arguments
 
             logger.info {
@@ -163,31 +136,38 @@ object PythonTestCaseGenerator {
             var coverageLimit = COVERAGE_LIMIT
             var coveredBefore = coveredLines.size
 
-            val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 }
+            var feedback: InferredTypeFeedback = SuccessFeedback
 
-            runBlocking {
-                engine.fuzzing(args, fuzzerCancellation, until).collect {
-                    generated += 1
-                    when (it) {
-                        is UtExecution -> {
-                            logger.debug("Added execution: $it")
-                            executions += it
-                            missingLines = updateCoverage(it, coveredLines, missingLines)
-                        }
+            val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 || feedback is InvalidTypeFeedback }
 
-                        is UtError -> {
-                            logger.debug("Failed evaluation. Reason: ${it.description}")
-                            errors += it
-                        }
+            engine.fuzzing(args, fuzzerCancellation, until).collect {
+                generated += 1
+                when (it) {
+                    is ValidExecution -> {
+                        executions += it.utFuzzedExecution
+                        missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
+                        feedback = SuccessFeedback
                     }
-                    val coveredAfter = coveredLines.size
-                    if (coveredAfter == coveredBefore) {
-                        coverageLimit -= 1
+                    is InvalidExecution -> {
+                        errors += it.utError
+                        feedback = SuccessFeedback
                     }
-                    coveredBefore = coveredAfter
+                    is ArgumentsTypeErrorFeedback -> {
+                        feedback = InvalidTypeFeedback
+                    }
+                    is TypeErrorFeedback -> {
+                        feedback = InvalidTypeFeedback
+                    }
                 }
+                val coveredAfter = coveredLines.size
+                if (coveredAfter == coveredBefore) {
+                    coverageLimit -= 1
+                }
+                coveredBefore = coveredAfter
             }
+            feedback
         }
+
 
         val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
 
@@ -224,11 +204,15 @@ object PythonTestCaseGenerator {
         hintCollector: HintCollector,
         report: List<MypyReportLine>,
         mypyConfigFile: File,
-        isCancelled: () -> Boolean
-    ): Sequence<Type> {
-        val namesInModule = mypyStorage.names.getOrDefault(curModule, emptyMap()).keys.filter {
-            it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
-        }
+        isCancelled: () -> Boolean,
+        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+    ) {
+        val namesInModule = mypyStorage.names
+            .getOrDefault(curModule, emptyList())
+            .map { it.name }
+            .filter {
+                it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
+            }
 
         val algo = BaselineAlgorithm(
             typeStorage,
@@ -246,13 +230,13 @@ object PythonTestCaseGenerator {
             mypyConfigFile
         )
 
-        var annotations = emptyList<Type>().asSequence()
-        val existsAnnotation = method.type
-        if (existsAnnotation.arguments.all {it.pythonTypeName() != "typing.Any"}) {
-            annotations += listOf(method.type).asSequence()
-        }
-        annotations += algo.run(hintCollector.result, isCancelled)
+        runBlockingWithCancellationPredicate(isCancelled) {
+            val existsAnnotation = method.type
+            if (existsAnnotation.arguments.all {it.pythonTypeName() != "typing.Any"}) {
+                annotationHandler(existsAnnotation)
+            }
 
-        return annotations
+            algo.run(hintCollector.result, isCancelled, annotationHandler)
+        }
     }
 }

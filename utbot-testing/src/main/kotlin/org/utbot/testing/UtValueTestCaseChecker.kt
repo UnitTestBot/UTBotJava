@@ -8,6 +8,7 @@ import org.utbot.common.FileUtil.clearTempDirectory
 import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
 import org.utbot.engine.prettify
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.daysLimitForTempFiles
 import org.utbot.framework.UtSettings.testDisplayName
@@ -87,7 +88,7 @@ abstract class UtValueTestCaseChecker(
         UtSettings.saveRemainingStatesForConcreteExecution = false
         UtSettings.useFuzzing = false
         UtSettings.useCustomJavaDocTags = false
-        UtSettings.enableSummariesGeneration = true
+        UtSettings.summaryGenerationType = SummariesGenerationType.FULL
     }
 
     // checks paramsBefore and result

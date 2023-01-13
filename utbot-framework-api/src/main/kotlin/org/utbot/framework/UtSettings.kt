@@ -134,9 +134,10 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Enable the Summarization module to generate summaries for methods under test.
      *
-     * Note: if it is false, all the execution for a particular method will be stored at the same nameless region.
+     * Note: if it is [SummariesGenerationType.NONE],
+     * all the execution for a particular method will be stored at the same nameless region.
      */
-    var enableSummariesGeneration by getBooleanProperty(true)
+    var summaryGenerationType by getEnumProperty(SummariesGenerationType.FULL)
 
     /**
      * If True test comments will be generated.
@@ -631,4 +632,24 @@ enum class MLPredictorType {
      * [LinearRegressionPredictor]
      */
     LINREG
+}
+
+/**
+ * Enum to describe how we analyze code to obtain summaries.
+ */
+enum class SummariesGenerationType {
+    /**
+     * All possible analysis actions are taken
+     */
+    FULL,
+
+    /**
+     * Analysis actions based on sources are NOT taken
+     */
+    LIGHT,
+
+    /**
+     * No summaries are generated
+     */
+    NONE,
 }

@@ -116,7 +116,6 @@ import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
 import org.utbot.framework.util.Conflict
-import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.id
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
@@ -530,7 +529,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
             model.fuzzingValue = fuzzingValue
             model.commentStyle = javaDocCommentStyle
-            model.enableSummariesGeneration = state.enableSummariesGeneration
+            model.summariesGenerationType = state.summariesGenerationType
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
         }
 

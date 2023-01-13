@@ -197,7 +197,7 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
+            TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
@@ -239,7 +239,7 @@ fun runGeneration(
 
         val testCaseGenerator =
             logger.info().bracket("2nd optional soot initialization") {
-                TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
+                TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
             }
 
 
@@ -363,8 +363,11 @@ fun runGeneration(
                 controller.job = job
 
                 //don't start other methods while last method still in progress
-                while (job.isActive)
-                    yield()
+                try {
+                    job.join()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Internal job error" }
+                }
 
                 remainingMethodsCount--
             }

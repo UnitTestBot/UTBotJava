@@ -18,14 +18,13 @@ import org.utbot.python.framework.api.python.RawPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
+import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.typing.MypyAnnotations
-import org.utbot.python.typing.PythonTypesStorage
-import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getLineOfFunction
-import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
@@ -45,7 +44,6 @@ object PythonTestGenerationProcessor {
         writeTestTextToFile: (String) -> Unit,
         pythonRunRoot: Path,
         doNotCheckRequirements: Boolean = false,
-        visitOnlySpecifiedSource: Boolean = false,
         withMinimization: Boolean = true,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
@@ -75,26 +73,33 @@ object PythonTestGenerationProcessor {
             }
 
             startedLoadingPythonTypesAction()
-            PythonTypesStorage.pythonPath = pythonPath
 
-            val onlySpecifiedFile = if (!visitOnlySpecifiedSource) null else File(pythonFilePath)
-            PythonTypesStorage.refreshProjectClassesAndModulesLists(directoriesForSysPath, onlySpecifiedFile)
-            StubFileFinder
+            val mypyConfigFile = setConfigFile(directoriesForSysPath)
+            val (mypyStorage, report) = readMypyAnnotationStorageAndInitialErrors(
+                pythonPath,
+                pythonFilePath,
+                currentPythonModule,
+                mypyConfigFile
+            )
 
             startedTestGenerationAction()
+
             val startTime = System.currentTimeMillis()
 
-            val testCaseGenerator = PythonTestCaseGenerator.apply {
-                init(
-                    directoriesForSysPath,
-                    currentPythonModule,
-                    pythonPath,
-                    pythonFilePath,
-                    timeoutForRun,
-                    withMinimization,
-                    pythonRunRoot = pythonRunRoot
-                ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
-            }
+            val testCaseGenerator = PythonTestCaseGenerator(
+                withMinimization = withMinimization,
+                directoriesForSysPath = directoriesForSysPath,
+                curModule = currentPythonModule,
+                pythonPath = pythonPath,
+                fileOfMethod = pythonFilePath,
+                isCancelled = isCanceled,
+                timeoutForRun = timeoutForRun,
+                until = startTime + timeout,
+                sourceFileContent = pythonFileContent,
+                mypyStorage = mypyStorage,
+                mypyReportLine = report,
+                mypyConfigFile = mypyConfigFile,
+            )
 
             val tests = pythonMethods.map { method ->
                 testCaseGenerator.generate(method)

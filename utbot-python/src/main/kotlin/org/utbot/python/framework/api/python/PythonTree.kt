@@ -1,5 +1,11 @@
 package org.utbot.python.framework.api.python
 
+import org.utbot.python.framework.api.python.util.pythonBoolClassId
+import org.utbot.python.framework.api.python.util.pythonFloatClassId
+import org.utbot.python.framework.api.python.util.pythonIntClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import java.math.BigInteger
+
 object PythonTree {
     open class PythonTreeNode(
         val type: PythonClassId,
@@ -13,30 +19,51 @@ object PythonTree {
             else
                 false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is PythonTreeNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class PrimitiveNode(
         type: PythonClassId,
         val repr: String,
-    ) : PythonTreeNode(type)
+    ) : PythonTreeNode(type) {
+        override fun equals(other: Any?): Boolean {
+            if (other !is PrimitiveNode) {
+                return false
+            }
+            return repr == other.repr && type == other.type
+        }
+    }
 
     class ListNode(
-        val items: List<PythonTreeNode>
+        val items: MutableMap<Int, PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.list")) {
         override val children: List<PythonTreeNode>
-            get() = items
+            get() = items.values.toList()
 
         override fun typeEquals(other: Any?): Boolean {
             return if (other is ListNode)
-                items.zip(other.items).all {
+                children.zip(other.children).all {
                     it.first.typeEquals(it.second)
                 }
             else false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is ListNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class DictNode(
-        val items: Map<PythonTreeNode, PythonTreeNode>
+        val items: MutableMap<PythonTreeNode, PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.dict")) {
         override val children: List<PythonTreeNode>
             get() = items.values + items.keys
@@ -49,10 +76,17 @@ object PythonTree {
 
             } else false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is DictNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class SetNode(
-        val items: Set<PythonTreeNode>
+        val items: MutableSet<PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.set")) {
         override val children: List<PythonTreeNode>
             get() = items.toList()
@@ -69,22 +103,36 @@ object PythonTree {
                 false
             }
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is SetNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     class TupleNode(
-        val items: List<PythonTreeNode>
+        val items: MutableMap<Int, PythonTreeNode>
     ) : PythonTreeNode(PythonClassId("builtins.tuple")) {
         override val children: List<PythonTreeNode>
-            get() = items
+            get() = items.values.toList()
 
         override fun typeEquals(other: Any?): Boolean {
             return if (other is TupleNode) {
-                items.size == other.items.size && items.zip(other.items).all {
+                items.size == other.items.size && children.zip(other.children).all {
                     it.first.typeEquals(it.second)
                 }
             } else {
                 false
             }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is TupleNode) {
+                return false
+            }
+            return type == other.type && children == other.children
         }
     }
 
@@ -93,7 +141,7 @@ object PythonTree {
         type: PythonClassId,
         val constructor: PythonClassId,
         val args: List<PythonTreeNode>,
-        var state: Map<String, PythonTreeNode>,
+        var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
     ) : PythonTreeNode(type) {
@@ -102,7 +150,7 @@ object PythonTree {
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ) : this(id, type, constructor, args, emptyMap(), emptyList(), emptyMap())
+        ) : this(id, type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)
@@ -118,6 +166,13 @@ object PythonTree {
                 }
             } else false
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is ReduceNode) {
+                return false
+            }
+            return type == other.type && children == other.children
+        }
     }
 
     fun allElementsHaveSameStructure(elements: Collection<PythonTreeNode>): Boolean {
@@ -129,5 +184,47 @@ object PythonTree {
                 it.typeEquals(firstElement)
             }
         }
+    }
+
+    fun fromObject(): PrimitiveNode {
+        return PrimitiveNode(
+            PythonClassId("builtins.object"),
+            "object()"
+        )
+    }
+
+    fun fromNone(): PrimitiveNode {
+        return PrimitiveNode(
+            pythonNoneClassId,
+            "None"
+        )
+    }
+
+    fun fromInt(value: BigInteger): PrimitiveNode {
+        return PrimitiveNode(
+            pythonIntClassId,
+            value.toString(10)
+        )
+    }
+
+    fun fromString(value: String): PrimitiveNode {
+        return PrimitiveNode(
+            pythonIntClassId,
+            "\"$value\""
+        )
+    }
+
+    fun fromBool(value: Boolean): PrimitiveNode {
+        return PrimitiveNode(
+            pythonBoolClassId,
+            if (value) "True" else "False"
+        )
+    }
+
+    fun fromFloat(value: Double): PrimitiveNode {
+        return PrimitiveNode(
+            pythonFloatClassId,
+            value.toString()
+        )
     }
 }

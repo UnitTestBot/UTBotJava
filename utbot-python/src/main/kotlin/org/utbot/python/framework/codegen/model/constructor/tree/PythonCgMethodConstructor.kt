@@ -1,11 +1,9 @@
 package org.utbot.python.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.domain.context.CgContext
-import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgGetLength
 import org.utbot.framework.codegen.domain.models.CgLiteral
-import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgReferenceExpression
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgValue
@@ -16,10 +14,11 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
-import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
+    private val maxDepth: Int = 5
+
     override fun assertEquality(expected: CgValue, actual: CgVariable) {
         pythonDeepEquals(expected, actual)
     }
@@ -46,7 +45,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
-                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
 
                 val modificationInfo = StateModificationInfo()
                 val fieldStateManager = context.cgLanguageAssistant.getCgFieldStateManager(context)
@@ -58,10 +56,18 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     thisInstance = execution.stateBefore.thisInstance?.let {
                         variableConstructor.getOrCreateVariable(it)
                     }
+                    if (thisInstance is CgPythonTree) {
+                        context.currentBlock.addAll((thisInstance as CgPythonTree).arguments)
+                    }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
+                    }
+                    methodArguments.forEach {
+                        if (it is CgPythonTree) {
+                            context.currentBlock.addAll(it.arguments)
+                        }
                     }
                     fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()
@@ -84,110 +90,12 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
 
-    fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
-        return when (objectNode) {
-            is PythonTree.PrimitiveNode -> {
-                CgLiteral(objectNode.type, objectNode.repr)
-            }
-
-            is PythonTree.ListNode -> {
-                CgPythonList(
-                    objectNode.items.map { pythonBuildObject(it) }
-                )
-            }
-
-            is PythonTree.TupleNode -> {
-                CgPythonTuple(
-                    objectNode.items.map { pythonBuildObject(it) }
-                )
-            }
-
-            is PythonTree.SetNode -> {
-                CgPythonSet(
-                    objectNode.items.map { pythonBuildObject(it) }.toSet()
-                )
-            }
-
-            is PythonTree.DictNode -> {
-                CgPythonDict(
-                    objectNode.items.map { (key, value) ->
-                        pythonBuildObject(key) to pythonBuildObject(value)
-                    }.toMap()
-                )
-            }
-
-            is PythonTree.ReduceNode -> {
-                val id = objectNode.id
-                if ((context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.containsKey(id)) {
-                    return (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id]!!
-                }
-
-                val initArgs = objectNode.args.map {
-                    pythonBuildObject(it)
-                }
-                val constructor = ConstructorId(
-                    objectNode.constructor,
-                    initArgs.map { it.type }
-                )
-
-                val obj = newVar(objectNode.type) {
-                    CgConstructorCall(
-                        constructor,
-                        initArgs
-                    )
-                }
-                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
-
-                val state = objectNode.state.map { (key, value) ->
-                    key to pythonBuildObject(value)
-                }.toMap()
-                val listitems = objectNode.listitems.map {
-                    pythonBuildObject(it)
-                }
-                val dictitems = objectNode.dictitems.map { (key, value) ->
-                    pythonBuildObject(key) to pythonBuildObject(value)
-                }
-
-                state.forEach { (key, value) ->
-                    val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
-                    fieldAccess `=` value
-                }
-                listitems.forEach {
-                    +CgMethodCall(
-                        obj,
-                        PythonMethodId(
-                            obj.type as PythonClassId,
-                            "append",
-                            NormalizedPythonAnnotation(pythonNoneClassId.name),
-                            listOf(RawPythonAnnotation(it.type.name))
-                        ),
-                        listOf(it)
-                    )
-                }
-                dictitems.forEach { (key, value) ->
-                    val index = CgPythonIndex(
-                        value.type as PythonClassId,
-                        obj,
-                        key
-                    )
-                    index `=` value
-                }
-
-                return obj
-            }
-
-            else -> {
-                throw UnsupportedOperationException()
-            }
-        }
-    }
-
     private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {
         require(expected is CgPythonTree) {
             "Expected value have to be CgPythonTree but `${expected::class}` found"
         }
-        val expectedValue = pythonBuildObject(expected.tree)
-        pythonDeepTreeEquals(expected.tree, expectedValue, actual)
+//        (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
+        pythonDeepTreeEquals(expected.tree, expected, actual)
     }
 
     private fun pythonLenAssertConstructor(expected: CgVariable, actual: CgVariable): CgVariable {
@@ -220,8 +128,8 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         keyName: String = "index",
     ) {
         val elements = when (expectedNode) {
-            is PythonTree.ListNode -> expectedNode.items
-            is PythonTree.TupleNode -> expectedNode.items
+            is PythonTree.ListNode -> expectedNode.items.values
+            is PythonTree.TupleNode -> expectedNode.items.values
             is PythonTree.DictNode -> expectedNode.items.values
             else -> throw UnsupportedOperationException()
         }
@@ -282,9 +190,10 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
     private fun pythonDeepTreeEquals(
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
-        actual: CgVariable
+        actual: CgVariable,
+        depth: Int = maxDepth
     ) {
-        if (expectedNode.comparable) {
+        if (expectedNode.comparable || depth == 0) {
             emptyLineIfNeeded()
             testFrameworkManager.assertEquals(
                 expected,
@@ -352,7 +261,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                                 )
                             )
                         }
-                        pythonDeepTreeEquals(value, fieldExpected, fieldActual)
+                        pythonDeepTreeEquals(value, fieldExpected, fieldActual, depth - 1)
                     }
                 } else {
                     emptyLineIfNeeded()

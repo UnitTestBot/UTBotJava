@@ -1,32 +1,49 @@
 package org.utbot.python
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.*
-import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
+import org.utbot.framework.plugin.api.DocRegularStmt
+import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.fuzz
 import org.utbot.python.framework.api.python.PythonTreeModel
-import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.providers.defaultPythonModelProvider
+import org.utbot.python.fuzzing.PythonFeedback
+import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
+import org.utbot.python.fuzzing.PythonFuzzing
+import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
-import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
-import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
-const val CHUNK_SIZE = 15
 const val TIMEOUT: Long = 10
+
+sealed interface FuzzingExecutionFeedback
+class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecutionFeedback
+class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
+class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
     private val directoriesForSysPath: Set<String>,
     private val moduleToImport: String,
     private val pythonPath: String,
-    private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
-    private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>,
+    private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
-    private val initialCoveredLines: Set<Int>
+    private val initialCoveredLines: Set<Int>,
+    private val pythonTypeStorage: PythonTypeStorage? = null,
 ) {
 
     private data class JobResult(
@@ -37,63 +54,32 @@ class PythonEngine(
     )
 
     private fun suggestExecutionName(
-        methodUnderTestDescription: FuzzedMethodDescription,
+        description: PythonMethodDescription,
         jobResult: JobResult,
         executionResult: UtExecutionResult
-    ): TestSuggestedInfo? {
-        val nameSuggester = sequenceOf(
-            ModelBasedNameSuggester(),
-            MethodBasedNameSuggester()
+    ): TestSuggestedInfo {
+        val testSuffix = when (executionResult) {
+            is UtExecutionSuccess -> {
+                // can be improved
+                description.name
+            }
+            is UtExplicitlyThrownException -> "${description.name}_with_exception"
+            else -> description.name
+        }
+        val testName = "test_$testSuffix"
+        return TestSuggestedInfo(
+            testName,
+            testName,
         )
-
-        val testMethodName = try {
-            nameSuggester
-                .flatMap { it.suggest(methodUnderTestDescription, jobResult.values, executionResult) }
-                .firstOrNull()
-        } catch (t: Throwable) {
-            null
-        }
-        return testMethodName
-    }
-
-    private fun createEvaluationInputIterator(
-        methodUnderTestDescription: FuzzedMethodDescription
-    ): Sequence<EvaluationInput> {
-        val additionalModules = selectedTypeMap.values.flatMap {
-            getModulesFromAnnotation(it)
-        }.toSet()
-
-        val evaluationInputIterator = fuzz(methodUnderTestDescription, defaultPythonModelProvider).map { values ->
-            val parameterValues = values.map { it.model }
-            val (thisObject, modelList) =
-                if (methodUnderTest.containingPythonClassId == null)
-                    Pair(null, parameterValues)
-                else
-                    Pair(parameterValues[0], parameterValues.drop(1))
-
-            EvaluationInput(
-                methodUnderTest,
-                parameterValues,
-                directoriesForSysPath,
-                moduleToImport,
-                pythonPath,
-                timeoutForRun,
-                thisObject,
-                modelList,
-                values,
-                additionalModules
-            )
-        }
-
-        return evaluationInputIterator
     }
 
     private fun handleSuccessResult(
-        types: List<NormalizedPythonAnnotation>,
+        types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
-        methodUnderTestDescription: FuzzedMethodDescription,
-        jobResult: JobResult
-    ): UtResult {
+        methodUnderTestDescription: PythonMethodDescription,
+        jobResult: JobResult,
+        summary: List<String>,
+    ): FuzzingExecutionFeedback {
         val (resultJSON, isException, coverage) = evaluationResult
 
         val prohibitedExceptions = listOf(
@@ -103,17 +89,17 @@ class PythonEngine(
 
         if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
             val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
-                types.joinToString { it.name }
+                types.joinToString { it.pythonTypeRepresentation() }
             }. Exception type: ${resultJSON.type.name}"
 
             logger.info(errorMessage)
-
-            return UtError(errorMessage, Throwable())
+            return TypeErrorFeedback(errorMessage)
         }
 
         val executionResult =
-            if (isException)
+            if (isException) {
                 UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false)
+            }
             else {
                 val outputType = resultJSON.type
                 val resultAsModel = PythonTreeModel(
@@ -125,90 +111,129 @@ class PythonEngine(
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, jobResult, executionResult)
 
-        return UtFuzzedExecution(
+        val utFuzzedExecution = UtFuzzedExecution(
             stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
             stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
             result = executionResult,
             coverage = coverage,
-            testMethodName = testMethodName?.testName?.camelToSnakeCase(),
-            displayName = testMethodName?.displayName,
+            testMethodName = testMethodName.testName?.camelToSnakeCase(),
+            displayName = testMethodName.displayName,
+            summary = summary.map { DocRegularStmt(it) }
         )
+        return ValidExecution(utFuzzedExecution)
     }
 
-    fun fuzzing(): Sequence<UtResult> = sequence {
-        val types = methodUnderTest.arguments.map {
-            selectedTypeMap[it.name] ?: pythonAnyClassId
-        }
+    fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
+//        TODO: remove it?
+//        val additionalModules = selectedTypeMap.values.flatMap {
+//            getModulesFromAnnotation(it)
+//        }.toSet()
+        val additionalModules = emptyList<String>()
 
-        val methodUnderTestDescription = FuzzedMethodDescription(
+        val pmd = PythonMethodDescription(
             methodUnderTest.name,
-            pythonAnyClassId,
-            types,
-            fuzzedConcreteValues
-        ).apply {
-            compilableName = methodUnderTest.name // what's the difference with ordinary name?
-            parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
-        }
-
-        val evaluationInputIterator = createEvaluationInputIterator(methodUnderTestDescription)
+            parameters,
+            fuzzedConcreteValues,
+            pythonTypeStorage!!,
+        )
 
         val coveredLines = initialCoveredLines.toMutableSet()
-        evaluationInputIterator.chunked(CHUNK_SIZE).forEach { chunk ->
-            val coveredBefore = coveredLines.size
+        var sourceLinesCount = Long.MAX_VALUE
 
-            // TODO: maybe reuse processes for next chunk?
-            val processes = chunk.map { evaluationInput ->
-                startEvaluationProcess(evaluationInput)
+        PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+            if (isCancelled() || System.currentTimeMillis() >= until) {
+                logger.info { "Fuzzing process was interrupted" }
+                return@PythonFuzzing PythonFeedback(control = Control.STOP)
             }
+
+            val argumentValues = arguments.map {
+                PythonTreeModel(it.tree, it.tree.type)
+            }
+            val summary =
+                arguments.zip(methodUnderTest.arguments)
+                    .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+
+            val (thisObject, modelList) =
+                if (methodUnderTest.containingPythonClassId == null)
+                    Pair(null, argumentValues)
+                else
+                    Pair(argumentValues[0], argumentValues.drop(1))
+
+            val argumentModules = argumentValues.flatMap {
+                it.allContainingClassIds
+            }.map {
+                it.moduleName
+            }
+            val localAdditionalModules = (additionalModules + argumentModules).toSet()
+
+            val evaluationInput = EvaluationInput(
+                methodUnderTest,
+                argumentValues,
+                directoriesForSysPath,
+                moduleToImport,
+                pythonPath,
+                timeoutForRun,
+                thisObject,
+                modelList,
+                argumentValues.map { FuzzedValue(it) },
+                localAdditionalModules
+            )
+
+            val process = startEvaluationProcess(evaluationInput)
             val startedTime = System.currentTimeMillis()
+            val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
+            val jobResult = JobResult(
+                getEvaluationResult(evaluationInput, process, wait),
+                evaluationInput.values,
+                evaluationInput.thisObject,
+                evaluationInput.modelList
+            )
 
-            val results = (processes zip chunk).map { (process, evaluationInput) ->
-                val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
-                val evalResult = getEvaluationResult(evaluationInput, process, wait)
-                JobResult(
-                    evalResult,
-                    evaluationInput.values,
-                    evaluationInput.thisObject,
-                    evaluationInput.modelList
-                )
-            }
+            when (val evaluationResult = jobResult.evalResult) {
+                is PythonEvaluationError -> {
+                    val utError = UtError(
+                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                        Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                    )
+                    emit(InvalidExecution(utError))
+                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                }
 
-            results.forEach { jobResult ->
-                when(val evaluationResult = jobResult.evalResult) {
-                    is PythonEvaluationError -> {
-                        if (evaluationResult.status != 0) {
-                            val errorMessage = "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}, ${evaluationResult.stackTrace}"
-                            logger.info { errorMessage }
-                            yield(UtError(
-                                errorMessage,
-                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                            ))
-                        } else {
-                            logger.info { "Python evaluation error: ${evaluationResult.message}" }
-                            yield(
-                                UtError(
-                                    evaluationResult.message,
-                                    Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                                )
-                            )
+                is PythonEvaluationTimeout -> {
+                    val utError = UtError(evaluationResult.message, Throwable())
+                    emit(InvalidExecution(utError))
+                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                }
+
+                is PythonEvaluationSuccess -> {
+                    evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+                    val instructionsCount = evaluationResult.coverage.instructionsCount
+                    if (instructionsCount != null) {
+                        sourceLinesCount = instructionsCount
+                    }
+
+                    val result = handleSuccessResult(parameters, evaluationResult, description, jobResult, summary)
+                    emit(result)
+                    if (coveredLines.size.toLong() == sourceLinesCount) {
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                    }
+
+                    when (result) {
+                        is ValidExecution -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                         }
-                    }
-                    is PythonEvaluationSuccess -> {
-                        evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
-                        yield(
-                            handleSuccessResult(types, evaluationResult, methodUnderTestDescription, jobResult)
-                        )
-                    }
-                    is PythonEvaluationTimeout -> {
-                        yield(UtError(evaluationResult.message, Throwable()))
+                        is ArgumentsTypeErrorFeedback -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                        }
+                        is TypeErrorFeedback -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        }
+                        is InvalidExecution -> {
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                        }
                     }
                 }
             }
-
-            val coveredAfter = coveredLines.size
-
-            if (coveredAfter == coveredBefore)
-                return@sequence
-        }
+        }.fuzz(pmd)
     }
 }

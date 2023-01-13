@@ -19,6 +19,7 @@ import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgCommentedAnnotation
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgDeclaration
+import org.utbot.framework.codegen.domain.models.CgDocRegularStmt
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgEqualTo
@@ -157,6 +158,12 @@ internal class CgPythonRenderer(
         println("\"\"\"")
         for (line in element.lines) line.accept(this)
         println("\"\"\"")
+    }
+
+    override fun visit(element: CgDocRegularStmt){
+        if (element.isEmpty()) return
+
+        println(element.stmt)
     }
 
     override fun visit(element: CgErrorWrapper) {
@@ -323,7 +330,9 @@ internal class CgPythonRenderer(
         renderMethodDocumentation(element)
         renderMethodSignature(element)
         visit(element as CgMethod)
-        println("pass")
+        withIndent {
+            println("pass")
+        }
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
@@ -506,6 +515,47 @@ internal class CgPythonRenderer(
             print("}")
         }
     }
+
+    override fun visit(element: CgPythonTree) {
+//        element.children.forEach { it.accept(this) }
+        element.value.accept(this)
+    }
+
+//    override fun visit(element: CgPythonTree) {
+//        when(val tree = element.tree) {
+//            is PythonTree.PrimitiveNode -> {
+//                print(tree.repr)
+//            }
+//            is PythonTree.ListNode -> {
+//                print("[")
+//                element.getChildren().renderSeparated()
+//                print("]")
+//            }
+//            is PythonTree.TupleNode -> {
+//                print("tuple([")
+//                element.getChildren().renderSeparated()
+//                print("])")
+//            }
+//            is PythonTree.SetNode -> {
+//                print("{")
+//                element.getChildren().renderSeparated()
+//                print("}")
+//            }
+//            is PythonTree.DictNode -> {
+//                print("{")
+//                element.getDictChildren().map {
+//                    it.key.accept(this)
+//                    print(": ")
+//                    it.value.accept(this)
+//                    print(", ")
+//                }
+//                print("}")
+//            }
+//            is PythonTree.ReduceNode -> {
+//                TODO()
+//            }
+//        }
+//    }
 
     override fun visit(element: CgPythonDict) {
         print("{")

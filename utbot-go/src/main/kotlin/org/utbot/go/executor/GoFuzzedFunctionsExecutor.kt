@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
+import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFail
@@ -217,10 +218,12 @@ object GoFuzzedFunctionsExecutor {
         resultValue: StructValue, resultTypeId: GoStructTypeId, packageName: String
     ): GoUtStructModel {
         val value = resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
-            fieldId.name to createGoUtModelFromRawValue(
-                value.value,
-                fieldId.declaringClass as GoPrimitiveTypeId,
-                packageName
+            GoUtFieldModel(
+                createGoUtModelFromRawValue(
+                    value.value,
+                    fieldId.declaringClass as GoPrimitiveTypeId,
+                    packageName
+                ), fieldId
             )
         }
         return GoUtStructModel(value, resultTypeId, packageName)

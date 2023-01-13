@@ -2,8 +2,12 @@ package org.utbot.go.gocodeanalyzer
 
 import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
-import org.utbot.go.api.*
+import org.utbot.go.api.GoArrayTypeId
+import org.utbot.go.api.GoInterfaceTypeId
+import org.utbot.go.api.GoPrimitiveTypeId
+import org.utbot.go.api.GoStructTypeId
 import org.utbot.go.api.util.goPrimitives
+import org.utbot.go.framework.api.go.GoFieldId
 import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass
 

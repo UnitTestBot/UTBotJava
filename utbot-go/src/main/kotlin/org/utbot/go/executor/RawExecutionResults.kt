@@ -55,7 +55,7 @@ data class StructValue(
             if (fieldValue.name != fieldId.name) {
                 return false
             }
-            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringClass as GoPrimitiveTypeId)) {
+            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringClass as GoTypeId)) {
                 return false
             }
             if (fieldValue.isExported != fieldId.isExported) {

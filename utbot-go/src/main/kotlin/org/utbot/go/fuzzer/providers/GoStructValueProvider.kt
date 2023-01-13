@@ -9,6 +9,7 @@ import org.utbot.go.GoDescription
 import org.utbot.go.api.GoStructTypeId
 import org.utbot.go.api.GoUtStructModel
 import org.utbot.go.framework.api.go.GoTypeId
+import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 
 object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
@@ -18,39 +19,39 @@ object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescriptio
         sequence {
             type.let { it as GoStructTypeId }.also { structType ->
                 val packageName = description.methodUnderTest.getPackageName()
-                structType.allConstructors.forEach { constructorId ->
-                    yield(Seed.Recursive(
-                        construct = Routine.Create(constructorId.parameters.map { it as GoTypeId }) { values ->
-                            GoUtStructModel(
-                                value = structType.fields.zip(values).map { (field, value) ->
-                                    field.name to value.model as GoUtModel
-                                },
-                                typeId = structType,
-                                packageName = packageName,
-                            ).fuzzed {
-                                summary = "%var% = $model"
-                            }
-                        },
-                        modify = sequence {
-                            structType.fields.forEachIndexed { index, field ->
-                                yield(Routine.Call(listOf(field.declaringClass as GoTypeId)) { self, values ->
-                                    val model = self.model as GoUtStructModel
-                                    val value = values.first().model as GoUtModel
-                                    (model.value as MutableList)[index] = field.name to value
-                                })
-                            }
-                        },
-                        empty = Routine.Empty {
-                            GoUtStructModel(
-                                value = emptyList(),
-                                typeId = structType,
-                                packageName = packageName
-                            ).fuzzed {
-                                summary = "%var% = $model"
-                            }
+                val fields = structType.fields
+                    .filter { structType.packageName == packageName || it.isExported }
+                yield(Seed.Recursive(
+                    construct = Routine.Create(fields.map { it.declaringClass as GoTypeId }) { values ->
+                        GoUtStructModel(
+                            value = fields.zip(values).map { (field, value) ->
+                                GoUtFieldModel(value.model as GoUtModel, field)
+                            },
+                            typeId = structType,
+                            packageName = packageName,
+                        ).fuzzed {
+                            summary = "%var% = $model"
                         }
-                    ))
-                }
+                    },
+                    modify = sequence {
+                        fields.forEachIndexed { index, field ->
+                            yield(Routine.Call(listOf(field.declaringClass as GoTypeId)) { self, values ->
+                                val model = self.model as GoUtStructModel
+                                val value = values.first().model as GoUtModel
+                                (model.value as MutableList)[index] = GoUtFieldModel(value, field)
+                            })
+                        }
+                    },
+                    empty = Routine.Empty {
+                        GoUtStructModel(
+                            value = emptyList(),
+                            typeId = structType,
+                            packageName = packageName
+                        ).fuzzed {
+                            summary = "%var% = $model"
+                        }
+                    }
+                ))
             }
         }
 }

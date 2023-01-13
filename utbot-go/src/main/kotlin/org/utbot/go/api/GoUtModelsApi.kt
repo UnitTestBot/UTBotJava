@@ -6,6 +6,7 @@ import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.api.util.goFloat64TypeId
 import org.utbot.go.api.util.neverRequiresExplicitCast
 import org.utbot.go.framework.api.go.GoTypeId
+import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 
 // NEVER and DEPENDS difference is useful in code generation of assert.Equals(...).
@@ -43,7 +44,7 @@ abstract class GoUtCompositeModel(
 }
 
 class GoUtStructModel(
-    val value: List<Pair<String, GoUtModel>>,
+    val value: List<GoUtFieldModel>,
     typeId: GoStructTypeId,
     packageName: String,
 ) : GoUtCompositeModel(typeId, packageName) {
@@ -59,17 +60,17 @@ class GoUtStructModel(
                 } else {
                     mutableSetOf()
                 }
-            value.map { it.second.requiredImports }.forEach { imports += it }
+            value.map { it.model.requiredImports }.forEach { imports += it }
             return imports
         }
 
-    fun toStringWithoutStructName(): String =
-        value.joinToString(prefix = "{", postfix = "}") { "${it.first}: ${it.second}" }
+    fun toStringWithoutStructName(): String = value.filter { it.fieldId.isExported }
+        .joinToString(prefix = "{", postfix = "}") { "${it.fieldId.name}: ${it.model}" }
 
     override fun toString(): String =
         "${classId.getRelativeName(packageName)}${toStringWithoutStructName()}"
 
-    override fun canNotBeEqual(): Boolean = value.any { (_, model) -> model.canNotBeEqual() }
+    override fun canNotBeEqual(): Boolean = value.any { it.model.canNotBeEqual() }
 }
 
 class GoUtArrayModel(

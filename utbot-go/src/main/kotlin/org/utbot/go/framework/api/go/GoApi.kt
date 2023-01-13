@@ -61,9 +61,28 @@ abstract class GoUtModel(
 }
 
 /**
+ * Class for Go struct field model.
+ */
+class GoUtFieldModel(
+    val model: GoUtModel,
+    val fieldId: GoFieldId,
+) : UtModel(fieldId.declaringClass)
+
+/**
+ * Class for Go struct field.
+ */
+class GoFieldId(
+    declaringClass: GoTypeId,
+    name: String,
+    val isExported: Boolean
+) : FieldId(declaringClass, name) {
+    override fun toString(): String = "$name: $declaringClass"
+}
+
+/**
  * Class for Go struct constructors.
  */
 class GoStructConstructorId(
     classId: GoTypeId,
-    fields: List<FieldId>,
+    fields: List<GoFieldId>,
 ) : ConstructorId(classId, fields.map { it.declaringClass })

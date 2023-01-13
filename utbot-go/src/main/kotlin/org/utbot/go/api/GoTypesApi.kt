@@ -1,7 +1,7 @@
 package org.utbot.go.api
 
 import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.FieldId
+import org.utbot.go.framework.api.go.GoFieldId
 import org.utbot.go.framework.api.go.GoStructConstructorId
 import org.utbot.go.framework.api.go.GoTypeId
 
@@ -13,12 +13,6 @@ class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
 
     override fun getRelativeName(packageName: String): String = simpleName
 }
-
-class GoFieldId(
-    declaringClass: GoTypeId,
-    name: String,
-    val isExported: Boolean
-) : FieldId(declaringClass, name)
 
 class GoStructTypeId(
     name: String,

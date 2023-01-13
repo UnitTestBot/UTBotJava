@@ -131,7 +131,8 @@ class Resolver(
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
     methodUnderTest: ExecutableId,
-    private val softMaxArraySize: Int
+    private val softMaxArraySize: Int,
+    private val objectCounter: ObjectCounter
 ) {
 
     private val classLoader: ClassLoader
@@ -544,7 +545,8 @@ class Resolver(
                         val thisInstanceClassId = sootClass.name.substringBeforeLast("\$lambda").let {
                             Scene.v().getSootClass(it)
                         }.id
-                        val thisInstanceModel = UtCompositeModel(id = null, thisInstanceClassId, isMock = false)
+                        val thisInstanceModel =
+                            UtCompositeModel(objectCounter.createNewAddr(), thisInstanceClassId, isMock = false)
 
                         collectedFieldModels[thisInstanceField] = thisInstanceModel
                     }

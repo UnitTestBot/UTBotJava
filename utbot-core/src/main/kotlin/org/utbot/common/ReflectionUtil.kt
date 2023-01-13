@@ -22,11 +22,6 @@ object Reflection {
             isAccessible = true
         }
 
-    private val setAccessible0Method: Method =
-        AccessibleObject::class.java.getDeclaredMethod("setAccessible0", Boolean::class.java).apply {
-            isAccessible = true
-        }
-
 
     @Suppress("UNCHECKED_CAST")
     private val fields: Array<Field> =
@@ -44,10 +39,6 @@ object Reflection {
         modifiersField.set(field, modifiers)
     }
 
-    fun setAccessible(ao: AccessibleObject, flag: Boolean) {
-        setAccessible0Method.invoke(ao, flag)
-    }
-
     fun isModifiersAccessible(): Boolean {
         return modifiersField.isAccessible
     }
@@ -55,12 +46,12 @@ object Reflection {
 
 inline fun <T : AccessibleObject, R> T.withAccessibility(block: T.() -> R): R {
     val prevAccessibility = isAccessible
-    Reflection.setAccessible(this, true)
+    isAccessible = true
 
     try {
         return block()
     } finally {
-        Reflection.setAccessible(this, prevAccessibility)
+        isAccessible = prevAccessibility
     }
 }
 
@@ -78,13 +69,13 @@ inline fun <reified R> Field.withAccessibility(block: Field.() -> R): R {
     val prevModifiers = modifiers
     val prevAccessibility = isAccessible
 
-    Reflection.setAccessible(this, true)
+    isAccessible = true
     setModifiers(this, modifiers and Modifier.FINAL.inv())
 
     try {
         return block()
     } finally {
-        Reflection.setAccessible(this, prevAccessibility)
+        isAccessible = prevAccessibility
         setModifiers(this, prevModifiers)
     }
 }

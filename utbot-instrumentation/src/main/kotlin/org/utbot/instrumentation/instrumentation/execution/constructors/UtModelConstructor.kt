@@ -255,7 +255,6 @@ class UtModelConstructor(
     private fun constructFromClass(clazz: Class<*>): UtModel =
         constructedObjects.getOrElse(clazz) {
             val utModel = UtClassRefModel(handleId(clazz), clazz::class.java.id, clazz)
-            System.err.println("ClassRef: $clazz \t\tClassloader: ${clazz.classLoader}")
             constructedObjects[clazz] = utModel
             utModel
         }

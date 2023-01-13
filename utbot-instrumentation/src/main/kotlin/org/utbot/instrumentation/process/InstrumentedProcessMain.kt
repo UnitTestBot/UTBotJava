@@ -110,16 +110,22 @@ fun main(args: Array<String>) = runBlocking {
 }
 
 private lateinit var pathsToUserClasses: Set<String>
-private lateinit var pathsToDependencyClasses: Set<String>
 private lateinit var instrumentation: Instrumentation<*>
+
+private var warmupDone = false
 
 private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
     watchdog.wrapActiveCall(warmup) {
-        logger.debug { "received warmup request" }
-        val time = measureTimeMillis {
-            HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
+        logger.info { "received warmup request" }
+        if (!warmupDone) {
+            val time = measureTimeMillis {
+                HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
+            }
+            logger.info { "warmup finished in $time ms" }
+            warmupDone = true
+        } else {
+            logger.info { "warmup already happened" }
         }
-        logger.debug { "warmup finished in $time ms" }
     }
     watchdog.wrapActiveCall(invokeMethodCommand) { params ->
         logger.debug { "received invokeMethod request: ${params.classname}, ${params.signature}" }

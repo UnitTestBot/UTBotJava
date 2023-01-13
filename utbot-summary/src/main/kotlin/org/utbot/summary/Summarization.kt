@@ -95,12 +95,12 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         when (summaryGenerationType) {
             SummariesGenerationType.FULL -> {
                 executionClusters += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
-                executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
+                executionClusters += generateFuzzerBasedSummariesForTests(testSet)
                 executionClusters += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
             }
             SummariesGenerationType.LIGHT -> {
-                executionClusters += generateSummariesForTestsProducedBySymbolicExecutorWithoutSources(testSet)
-                executionClusters += generateSummariesForTestsProducedByFuzzer(testSet)
+                executionClusters += generateFuzzerBasedSummariesForTests(testSet, MethodDescriptionSource.SYMBOLIC)
+                executionClusters += generateFuzzerBasedSummariesForTests(testSet)
             }
             SummariesGenerationType.NONE -> error("We must not fill summaries if SummariesGenerationType is NONE")
         }
@@ -228,83 +228,56 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         return clustersToReturn.toList()
     }
 
-    private fun generateSummariesForTestsProducedBySymbolicExecutorWithoutSources(
-        testSet: UtMethodTestSet
-    ) : List<UtExecutionCluster> {
-        val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
-
-        val testSetWithFuzzedExecutions = prepareTestSetForByteCodeAnalysis(testSet)
-        val executions = testSetWithFuzzedExecutions.executions as List<UtSymbolicExecution>
-
-        if (executions.isNotEmpty()) {
-            executions.forEach { utExecution ->
-
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                val testMethodName = try {
-                    nameSuggester.flatMap {
-                        val executableId = testSet.method
-                        val description = FuzzedMethodDescription(executableId).apply {
-                            compilableName = if (!executableId.isConstructor) executableId.name else null
-                        }
-                        it.suggest(
-                            description,
-                            utExecution.stateBefore.parameters.map { value -> FuzzedValue(value) },
-                            utExecution.result
-                        )
-                    }.firstOrNull()
-                } catch (t: Throwable) {
-                    logger.error(t) { "Cannot create suggested test name for $utExecution" }
-                    null
-                }
-                utExecution.testMethodName = testMethodName?.testName
-                utExecution.displayName = testMethodName?.displayName
-                utExecution.summary = testMethodName?.javaDoc
-            }
-
-            val clusteredExecutions = groupFuzzedExecutions(testSetWithFuzzedExecutions)
-            clusteredExecutions.forEach {
-                clustersToReturn.add(
-                    UtExecutionCluster(
-                        UtClusterInfo(it.header),
-                        it.executions
-                    )
-                )
-            }
-        }
-
-        return clustersToReturn.toList()
-    }
-
-    private fun generateSummariesForTestsProducedByFuzzer(
-        testSet: UtMethodTestSet
+    private fun generateFuzzerBasedSummariesForTests(
+        testSet: UtMethodTestSet,
+        descriptionSource: MethodDescriptionSource = MethodDescriptionSource.FUZZER
     ): List<UtExecutionCluster> {
         val clustersToReturn: MutableList<UtExecutionCluster> = mutableListOf()
-        val testSetWithFuzzedExecutions = prepareTestSetWithFuzzedExecutions(testSet)
-        val executionsProducedByFuzzer = testSetWithFuzzedExecutions.executions as List<UtFuzzedExecution>
+        val methodTestSet = when (descriptionSource) {
+                MethodDescriptionSource.FUZZER -> prepareTestSetWithFuzzedExecutions(testSet)
+                MethodDescriptionSource.SYMBOLIC -> prepareTestSetForByteCodeAnalysis(testSet)
+        }
 
-        if (executionsProducedByFuzzer.isNotEmpty()) {
-            executionsProducedByFuzzer.forEach { utExecution ->
-
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+        if (methodTestSet.executions.isNotEmpty()) {
+            methodTestSet.executions.forEach { utExecution ->
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester(descriptionSource))
                 val testMethodName = try {
                     nameSuggester.flatMap {
-                        it.suggest(
-                            utExecution.fuzzedMethodDescription as FuzzedMethodDescription,
-                            utExecution.fuzzingValues as List<FuzzedValue>,
-                            utExecution.result
-                        )
+                        when (descriptionSource) {
+                            MethodDescriptionSource.FUZZER -> {
+                                with(utExecution as UtFuzzedExecution) {
+                                    it.suggest(
+                                        utExecution.fuzzedMethodDescription as FuzzedMethodDescription,
+                                        utExecution.fuzzingValues as List<FuzzedValue>,
+                                        utExecution.result
+                                    )
+                                }
+                            }
+
+                            MethodDescriptionSource.SYMBOLIC -> {
+                                val executableId = testSet.method
+                                val description = FuzzedMethodDescription(executableId).apply {
+                                    compilableName = if (!executableId.isConstructor) executableId.name else null
+                                }
+                                it.suggest(
+                                    description,
+                                    utExecution.stateBefore.parameters.map { value -> FuzzedValue(value) },
+                                    utExecution.result
+                                )
+                            }
+                        }
                     }.firstOrNull()
                 } catch (t: Throwable) {
                     logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behaviour
                     null
                 }
+
                 utExecution.testMethodName = testMethodName?.testName
                 utExecution.displayName = testMethodName?.displayName
                 utExecution.summary = testMethodName?.javaDoc
             }
 
-            val clusteredExecutions = groupFuzzedExecutions(testSetWithFuzzedExecutions)
-
+            val clusteredExecutions = groupFuzzedExecutions(methodTestSet)
             clusteredExecutions.forEach {
                 clustersToReturn.add(
                     UtExecutionCluster(
@@ -446,3 +419,12 @@ private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path):
 }
 
 data class InvokeDescription(val sootMethod: SootMethod, val ast: MethodDeclaration)
+
+/**
+ * Sometimes, we need to use fuzzer for preparing summaries even for [UtSymbolicExecution]s.
+ * See [Summarization.generateFuzzerBasedSummariesForTests].
+ */
+enum class MethodDescriptionSource {
+    FUZZER,
+    SYMBOLIC,
+}

@@ -27,7 +27,7 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.python.PythonMethod
+import org.utbot.python.PythonMethodDescription
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
@@ -87,15 +87,15 @@ object PythonDialogProcessor {
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
-        val shownFunctions: Set<PythonMethod> =
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodDescription>? {
+        val shownFunctions: Set<PythonMethodDescription> =
             if (model.containingClass == null) {
-                model.file.topLevelFunctions.mapNotNull { it.toPythonMethod() }.toSet()
+                model.file.topLevelFunctions.mapNotNull { it.toPythonMethodDescription() }.toSet()
             } else {
                 val classes = model.file.topLevelClasses
                 val myClass = classes.find { it.name == model.containingClass.name }
                     ?: error("Didn't find containing class")
-                myClass.methods.mapNotNull { it.toPythonMethod() }.toSet()
+                myClass.methods.mapNotNull { it.toPythonMethodDescription() }.toSet()
             }
 
         return model.selectedFunctions.map { pyFunction ->

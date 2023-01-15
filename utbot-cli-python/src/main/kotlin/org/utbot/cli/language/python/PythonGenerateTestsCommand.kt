@@ -8,7 +8,7 @@ import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.python.PythonMethod
+import org.utbot.python.PythonMethodDescription
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.code.PythonCode
@@ -112,7 +112,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
     private val forbiddenMethods = listOf("__init__", "__new__")
 
-    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
+    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethodDescription>> {
         val parsedModule = PythonParser(sourceFileContent).Module()
 
         val topLevelFunctions = PythonCode.getTopLevelFunctions(parsedModule)
@@ -124,7 +124,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                 Success(
                     topLevelFunctions
                         .mapNotNull { parseFunctionDefinition(it) }
-                        .map { PythonMethod(it.name.toString(), null, emptyList(), currentModule, null, sourceCodeContent) }
+                        .map { PythonMethodDescription(it.name.toString(), sourceFile, null) }
                 )
             else {
                 val topLevelClassMethods = topLevelClasses
@@ -134,7 +134,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                             .mapNotNull { parseFunctionDefinition(it) }
                             .map { function ->
                                 val parsedClassName = PythonClassId(cls.name.toString())
-                                PythonMethod(function.name.toString(), null, emptyList(), currentModule, parsedClassName, sourceCodeContent)
+                                PythonMethodDescription(function.name.toString(), sourceFile, parsedClassName)
                             }
                     }
                 if (topLevelClassMethods.isNotEmpty()) {
@@ -146,7 +146,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val pythonMethodsOpt = selectedMethods.map { functionName ->
                 topLevelFunctions
                     .mapNotNull { parseFunctionDefinition(it) }
-                    .map { PythonMethod(it.name.toString(), null, emptyList(), currentModule, null, sourceCodeContent) }
+                    .map { PythonMethodDescription(it.name.toString(), sourceFile, null) }
                     .find { it.name == functionName }
                     ?.let { Success(it) }
                     ?: Fail("Couldn't find top-level function $functionName in the source file.")
@@ -166,7 +166,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val fineMethods = methods
                 .filter { !forbiddenMethods.contains(it.name.toString()) }
                 .map {
-                    PythonMethod(it.name.toString(), null, emptyList(), currentModule, parsedClassId, sourceCodeContent)
+                    PythonMethodDescription(it.name.toString(), sourceFile, parsedClassId)
                 }
             if (fineMethods.isNotEmpty())
                 Success(fineMethods)
@@ -188,7 +188,7 @@ class PythonGenerateTestsCommand : CliktCommand(
     }
 
     private lateinit var currentPythonModule: String
-    private lateinit var pythonMethods: List<PythonMethod>
+    private lateinit var pythonMethods: List<PythonMethodDescription>
     private lateinit var sourceFileContent: String
 
     @Suppress("UNCHECKED_CAST")
@@ -199,7 +199,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
         return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
             currentPythonModule = it[0] as String
-            pythonMethods = it[1] as List<PythonMethod>
+            pythonMethods = it[1] as List<PythonMethodDescription>
             Success(Unit)
         }
     }

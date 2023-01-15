@@ -5,6 +5,7 @@ import org.parsers.python.ast.ClassDefinition
 import org.parsers.python.ast.Module
 import org.parsers.python.ast.FunctionDefinition
 import org.utbot.python.PythonMethod
+import org.utbot.python.PythonMethodDescription
 import org.utbot.python.newtyping.ast.ParsedFunctionDefinition
 import org.utbot.python.newtyping.ast.parseClassDefinition
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
@@ -23,7 +24,7 @@ object PythonCode {
         return class_.children().filterIsInstance<FunctionDefinition>()
     }
 
-    fun findFunctionDefinition(parsedFile: Module, method: PythonMethod): ParsedFunctionDefinition {
+    fun findFunctionDefinition(parsedFile: Module, method: PythonMethodDescription): ParsedFunctionDefinition {
         return if (method.containingPythonClassId == null) {
             getTopLevelFunctions(parsedFile).mapNotNull {
                 parseFunctionDefinition(it)

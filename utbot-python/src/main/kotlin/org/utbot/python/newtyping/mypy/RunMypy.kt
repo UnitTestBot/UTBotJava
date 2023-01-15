@@ -1,11 +1,14 @@
 package org.utbot.python.newtyping.mypy
 
+import mu.KotlinLogging
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 import org.utbot.python.newtyping.*
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
 import java.io.File
+
+private val logger = KotlinLogging.logger {}
 
 fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
@@ -101,6 +104,7 @@ fun checkSuggestedSignatureWithDMypy(
             Pair(it.first, it.second)
         }
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
+    // logger.debug(mypyCode)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)
     val report = getErrorsAndNotes(mypyOutput)
@@ -121,6 +125,7 @@ fun getErrorNumber(mypyReport: List<MypyReportLine>, filename: String, startLine
     mypyReport.count { it.type == "error" && it.file == filename && it.line >= startLine && it.line <= endLine }
 
 private fun getErrorsAndNotes(mypyOutput: String): List<MypyReportLine> {
+    // logger.debug(mypyOutput)
     val regex = Regex("(?m)^([^\n]*):([0-9]*): (error|note): ([^\n]*)\n")
     return regex.findAll(mypyOutput).toList().map { match ->
         val file = match.groupValues[1]

@@ -1,11 +1,8 @@
 package org.utbot.python.newtyping.inference
 
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.parsers.python.PythonParser
 import org.parsers.python.ast.FunctionDefinition
-import org.utbot.common.runBlockingWithCancellationPredicate
-import org.utbot.python.PythonArgument
 import org.utbot.python.PythonMethod
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.parseFunctionDefinition
@@ -89,7 +86,7 @@ class TypeInferenceProcessor(
             val collector =
                 HintCollector(pythonMethod.type, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
             val visitor = Visitor(listOf(collector))
-            visitor.visit(pythonMethod.newAst)
+            visitor.visit(pythonMethod.ast)
 
             val algo = BaselineAlgorithm(
                 typeStorage,
@@ -101,8 +98,8 @@ class TypeInferenceProcessor(
                 getErrorNumber(
                     report,
                     path.toString(),
-                    getOffsetLine(sourceFileContent, pythonMethod.newAst.beginOffset),
-                    getOffsetLine(sourceFileContent, pythonMethod.newAst.endOffset)
+                    getOffsetLine(sourceFileContent, pythonMethod.ast.beginOffset),
+                    getOffsetLine(sourceFileContent, pythonMethod.ast.endOffset)
                 ),
                 configFile
             )
@@ -131,20 +128,16 @@ class TypeInferenceProcessor(
         val type =
             mypyAnnotationStorage.definitions[moduleOfSourceFile]!![functionName]!!.annotation.asUtBotType as? FunctionType
                 ?: return Fail("$functionName is not a function")
-        val description = type.pythonDescription() as PythonCallableTypeDescription
+        //val description = type.pythonDescription() as PythonCallableTypeDescription
 
         val result = PythonMethod(
             functionName,
-            type.returnValue.pythonTypeRepresentation(),
-            (type.arguments zip description.argumentNames).map {
-                PythonArgument(it.second, it.first.pythonTypeRepresentation())
-            },
             path.toString(),
             null,
-            sourceFileContent.substring(funcDef.body.beginOffset, funcDef.body.endOffset).trimIndent()
+            sourceFileContent.substring(funcDef.body.beginOffset, funcDef.body.endOffset).trimIndent(),
+            type,
+            funcDef.body
         )
-        result.type = type
-        result.newAst = funcDef.body
         return Success(result)
     }
 }

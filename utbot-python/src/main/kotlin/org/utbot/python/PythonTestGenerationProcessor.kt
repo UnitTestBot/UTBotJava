@@ -16,7 +16,6 @@ import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
 import org.utbot.python.framework.api.python.RawPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.mypy.setConfigFile
@@ -36,7 +35,7 @@ object PythonTestGenerationProcessor {
         pythonFileContent: String,
         directoriesForSysPath: Set<String>,
         currentPythonModule: String,
-        pythonMethods: List<PythonMethod>,
+        pythonMethods: List<PythonMethodDescription>,
         containingClassName: String?,
         timeout: Long,
         testFramework: TestFramework,
@@ -127,7 +126,8 @@ object PythonTestGenerationProcessor {
                 it.method to PythonMethodId(
                     classId,
                     it.method.name,
-                    RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
+                    //RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
+                    RawPythonAnnotation(pythonAnyClassId.name),
                     it.method.arguments.map { argument ->
                         argument.annotation?.let { annotation ->
                             RawPythonAnnotation(annotation)

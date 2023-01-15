@@ -35,10 +35,8 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
 import org.utbot.python.framework.codegen.model.tree.CgPythonTree
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonModules
-import org.utbot.python.newtyping.pythonTypeRepresentation
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -199,8 +197,9 @@ class PythonCodeGenerator(
 
         imports.forEach { renderer.renderPythonImport(it) }
 
-        val parameters = method.arguments.map { argument ->
-            "${argument.name}: ${methodAnnotations[argument.name]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
+        val paramNames = (method.type.pythonDescription() as PythonCallableTypeDescription).argumentNames
+        val parameters = paramNames.map { argument ->
+            "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
 
         val functionPrefix = "__mypy_check"

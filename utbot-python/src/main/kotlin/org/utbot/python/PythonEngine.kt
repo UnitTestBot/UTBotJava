@@ -192,6 +192,7 @@ class PythonEngine(
                         "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
                         Throwable(evaluationResult.stackTrace.joinToString("\n"))
                     )
+                    logger.debug(evaluationResult.stackTrace.joinToString("\n"))
                     emit(InvalidExecution(utError))
                     return@PythonFuzzing PythonFeedback(control = Control.PASS)
                 }

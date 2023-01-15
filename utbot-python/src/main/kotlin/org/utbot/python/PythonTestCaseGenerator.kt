@@ -51,9 +51,9 @@ class PythonTestCaseGenerator(
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
-    private fun findFunctionDefinition(mypyStorage: MypyAnnotationStorage, method: PythonMethod) {
+    private fun findMethodByDescription(mypyStorage: MypyAnnotationStorage, method: PythonMethodDescription): PythonMethod {
         val containingClass = method.containingPythonClassId
-        val functionDef = if (containingClass == null) {
+        val functionDefType = if (containingClass == null) {
             mypyStorage.definitions[curModule]!![method.name]!!.annotation.asUtBotType
         } else {
             mypyStorage.definitions[curModule]!![containingClass.simpleName]!!.annotation.asUtBotType.getPythonAttributes().first {
@@ -64,15 +64,23 @@ class PythonTestCaseGenerator(
         val parsedFile = PythonParser(sourceFileContent).Module()
         val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
 
-        method.returnAnnotation = functionDef.returnValue.pythonTypeRepresentation()
-        method.arguments = (method.arguments zip functionDef.arguments).map { PythonArgument(it.first.name, it.second.pythonTypeRepresentation()) }
-        method.type = functionDef
-        method.newAst = funcDef.body
-        method.codeAsString = funcDef.body.source
+        // method.returnAnnotation = functionDef.returnValue.pythonTypeRepresentation()
+        //method.arguments = (method.arguments zip functionDef.arguments).map { PythonArgument(it.first.name, it.second.pythonTypeRepresentation()) }
+        return PythonMethod(
+            name = method.name,
+            moduleFilename = method.moduleFilename,
+            containingPythonClassId = method.containingPythonClassId,
+            codeAsString = funcDef.body.source,
+            type = functionDefType,
+            ast = funcDef.body
+        )
     }
 
-    private fun constructCollectors(mypyStorage: MypyAnnotationStorage, typeStorage: PythonTypeStorage, method: PythonMethod): Pair<HintCollector, ConstantCollector> {
-        findFunctionDefinition(mypyStorage, method)
+    private fun constructCollectors(
+        mypyStorage: MypyAnnotationStorage,
+        typeStorage: PythonTypeStorage,
+        method: PythonMethod
+    ): Pair<HintCollector, ConstantCollector> {
 
         val mypyExpressionTypes = mypyStorage.types[curModule]?.let { moduleTypes ->
             moduleTypes.associate {
@@ -84,14 +92,15 @@ class PythonTestCaseGenerator(
         val hintCollector = HintCollector(method.type, typeStorage, mypyExpressionTypes , namesStorage, curModule)
         val constantCollector = ConstantCollector(typeStorage)
         val visitor = Visitor(listOf(hintCollector, constantCollector))
-        visitor.visit(method.newAst)
+        visitor.visit(method.ast)
         return Pair(hintCollector, constantCollector)
     }
 
-    fun generate(method: PythonMethod): PythonTestSet {
+    fun generate(methodDescription: PythonMethodDescription): PythonTestSet {
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
+        val method = findMethodByDescription(mypyStorage, methodDescription)
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->
@@ -224,8 +233,8 @@ class PythonTestCaseGenerator(
             getErrorNumber(
                 report,
                 fileOfMethod,
-                getOffsetLine(sourceFileContent, method.newAst.beginOffset),
-                getOffsetLine(sourceFileContent, method.newAst.endOffset)
+                getOffsetLine(sourceFileContent, method.ast.beginOffset),
+                getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
             mypyConfigFile
         )

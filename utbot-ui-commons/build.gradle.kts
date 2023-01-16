@@ -1,9 +1,13 @@
 val kotlinLoggingVersion: String by rootProject
 val ideType: String by rootProject
 val ideVersion: String by rootProject
+
 val kotlinPluginVersion: String by rootProject
 val semVer: String? by rootProject
 val androidStudioPath: String? by rootProject
+
+val slf4jVersion: String by rootProject
+val jetbrainsAnnotationsVersion: String by rootProject
 
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
@@ -49,9 +53,10 @@ tasks {
 }
 
 dependencies {
-    implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
-    implementation(group = "org.jetbrains", name = "annotations", version = "16.0.2")
     implementation(project(":utbot-api"))
     implementation(project(":utbot-framework"))
-    implementation(group = "org.slf4j", name = "slf4j-api", version = "1.7.25")
+
+    implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
+    implementation(group = "org.jetbrains", name = "annotations", version = jetbrainsAnnotationsVersion)
+    implementation(group = "org.slf4j", name = "slf4j-api", version = slf4jVersion)
 }

@@ -29,12 +29,12 @@ dependencies {
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
     implementation group: 'org.apache.commons', name: 'commons-text', version: apacheCommonsTextVersion
     // we need this for construction mocks from composite models
-    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
+    implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
 
     // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
     // testImplementation group: 'junit', name: 'junit', version: '4.13.1'
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
-    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junitJupiterJava8Version
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junitJupiterJava8Version
 
     // used for testing code generation
     testImplementation group: 'commons-io', name: 'commons-io', version: commonsIoVersion

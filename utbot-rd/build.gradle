@@ -55,6 +55,7 @@ dependencies {
 
     processWithRdServerMockImplementation project(':utbot-rd')
 
+
     rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: rdVersion
 }
 

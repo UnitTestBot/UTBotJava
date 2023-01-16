@@ -1,7 +1,12 @@
 val intellijPluginVersion: String? by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
+val commonsIoVersion: String? by rootProject
 val jacksonVersion: String? by rootProject
+val functionaljavaVersion: String? by rootProject
+val junitJupiterVersion: String? by rootProject
+val jsonVersion: String? by rootProject
+
 val ideType: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
@@ -26,21 +31,16 @@ tasks {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     api(project(":utbot-framework"))
     implementation(project(":utbot-fuzzers"))
+
     // https://mvnrepository.com/artifact/com.google.javascript/closure-compiler
     implementation("com.google.javascript:closure-compiler:v20221102")
 
     // https://mvnrepository.com/artifact/org.json/json
-    implementation(group = "org.json", name = "json", version = "20220320")
+    implementation(group = "org.json", name = "json", version = jsonVersion)
 
     // https://mvnrepository.com/artifact/commons-io/commons-io
-    implementation(group = "commons-io", name = "commons-io", version = "2.11.0")
-
-    implementation("org.functionaljava:functionaljava:5.0")
-    implementation("org.functionaljava:functionaljava-quickcheck:5.0")
-    implementation("org.functionaljava:functionaljava-java-core:5.0")
+    implementation(group = "commons-io", name = "commons-io", version = commonsIoVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
 }

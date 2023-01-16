@@ -1,3 +1,6 @@
+val androidIdeVersion: String by rootProject
+val androidKotlinPluginVersion: String by rootProject
+
 plugins {
     id("org.jetbrains.intellij") version "1.7.0"
 }
@@ -19,12 +22,12 @@ intellij {
 
     val jvmPlugins = listOf(
         "java",
-        "org.jetbrains.kotlin:212-1.7.10-release-333-AS5457.46"
+        "org.jetbrains.kotlin:$androidKotlinPluginVersion"
     )
 
     plugins.set(jvmPlugins + androidPlugins)
 
-    version.set("212.5712.43")
+    version.set(androidIdeVersion)
     type.set("IC")
 }
 

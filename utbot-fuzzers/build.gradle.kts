@@ -19,7 +19,7 @@ dependencies {
     implementation(project(":utbot-framework-api"))
     api(project(":utbot-fuzzing"))
 
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+    implementation(group = "org.unittestbot.soot", name = "soot-utbot-fork", version = sootVersion) {
         exclude(group="com.google.guava", module="guava")
     }
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)

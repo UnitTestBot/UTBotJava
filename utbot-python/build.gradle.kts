@@ -1,7 +1,13 @@
 val intellijPluginVersion: String? by rootProject
+
 val kotlinLoggingVersion: String? by rootProject
 val apacheCommonsTextVersion: String? by rootProject
-val jacksonVersion: String? by rootProject
+val apacheCommonsLangVersion: String? by rootProject
+val commonsIoVersion: String? by rootProject
+val moshiVersion: String? by rootProject
+val gsonVersion: String? by rootProject
+val functionaljavaVersion: String? by rootProject
+
 val ideType: String? by rootProject
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
@@ -23,18 +29,22 @@ tasks {
 dependencies {
     api(project(":utbot-fuzzers"))
     api(project(":utbot-framework"))
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation(group = "org.apache.commons", name = "commons-lang3", version = "3.12.0")
-    implementation(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4")
-    implementation(group = "commons-io", name = "commons-io", version = "2.11.0")
-    implementation("com.beust:klaxon:5.5")
-    implementation("com.squareup.moshi:moshi:1.11.0")
-    implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
-    implementation("com.squareup.moshi:moshi-adapters:1.11.0")
-    implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
-    implementation("org.functionaljava:functionaljava:5.0")
-    implementation("org.functionaljava:functionaljava-quickcheck:5.0")
-    implementation("org.functionaljava:functionaljava-java-core:5.0")
+
+    implementation(group = "commons-io", name = "commons-io", version = commonsIoVersion)
+    implementation(group = "org.apache.commons", name = "commons-lang3", version = apacheCommonsLangVersion)
     implementation(group = "org.apache.commons", name = "commons-text", version = apacheCommonsTextVersion)
+    implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
+
+    api(group = "org.functionaljava", name = "functionaljava", version = functionaljavaVersion)
+
+    api(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4") // TODO: will be changed to javacc21
+    api(group = "com.beust", name = "klaxon", version = "5.5") // TODO: will be removed and replaced by moshi
+
+    api(group = "com.squareup.moshi", name = "moshi", version = moshiVersion)
+    api(group = "com.squareup.moshi", name = "moshi-kotlin", version = moshiVersion)
+    api(group = "com.squareup.moshi", name = "moshi-adapters", version = moshiVersion)
+}
+
+repositories {
+    mavenCentral()
 }

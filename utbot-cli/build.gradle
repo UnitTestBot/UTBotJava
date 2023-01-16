@@ -19,7 +19,7 @@ dependencies {
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
     // Without this dependency testng tests do not run.
-    implementation group: 'com.beust', name: 'jcommander', version: '1.48'
+    implementation group: 'com.beust', name: 'jcommander', version: jcommanderVersion
     implementation group: 'org.testng', name: 'testng', version: testNgVersion
     implementation group: 'junit', name: 'junit', version: junit4Version
     implementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4PlatformVersion

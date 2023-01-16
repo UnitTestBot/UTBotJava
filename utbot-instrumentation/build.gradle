@@ -11,12 +11,11 @@ dependencies {
 
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
-    implementation group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
-
+    implementation group: 'net.java.dev.jna', name: 'jna-platform', version: jnaPlatformVersion
 
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
-    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
-    implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
+    implementation group: 'org.mockito', name: 'mockito-core', version: mockitoVersion
+    implementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
 }
 
 jar {

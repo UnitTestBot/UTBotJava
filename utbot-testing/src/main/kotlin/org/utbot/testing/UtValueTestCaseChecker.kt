@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocMethodLinkStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
+import org.utbot.framework.plugin.api.DocRegularLineStmt
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.ExecutableId
@@ -2827,6 +2828,7 @@ private fun flattenDocStatements(summary: List<DocStatement>): List<DocStatement
             is DocMethodLinkStmt -> flatten.add(s)
             is DocCodeStmt -> flatten.add(s)
             is DocRegularStmt -> flatten.add(s)
+            is DocRegularLineStmt -> flatten.add(s)
             is DocCustomTagStatement -> flatten.add(s)
         }
     }

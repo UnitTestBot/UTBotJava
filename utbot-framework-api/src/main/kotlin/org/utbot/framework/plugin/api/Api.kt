@@ -1428,3 +1428,12 @@ class DocRegularStmt(val stmt: String) : DocStatement() {
 
     override fun hashCode(): Int = stmt.hashCode()
 }
+
+class DocRegularLineStmt(val stmt: String) : DocStatement() {
+    override fun toString(): String = stmt
+
+    override fun equals(other: Any?): Boolean =
+        if (other is DocRegularLineStmt) this.hashCode() == other.hashCode() else false
+
+    override fun hashCode(): Int = stmt.hashCode()
+}

@@ -44,6 +44,7 @@ import soot.Type
 import soot.VoidType
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy: Hierarchy) {
@@ -349,11 +350,25 @@ internal val CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR: MemoryChunkDescriptor
 
 internal val CLASS_REF_SOOT_CLASS: SootClass
     get() = Scene.v().getSootClass(CLASS_REF_CLASSNAME)
+internal val ARRAYS_SOOT_CLASS: SootClass
+    get() = Scene.v().getSootClass("java.util.Arrays")
 
 internal val OBJECT_TYPE: RefType
     get() = Scene.v().getSootClass(Object::class.java.canonicalName).type
 internal val STRING_TYPE: RefType
     get() = Scene.v().getSootClass(String::class.java.canonicalName).type
+internal val STRING_BUILDER_TYPE: RefType
+    get() = Scene.v().getSootClass(java.lang.StringBuilder::class.java.canonicalName).type
+internal val STRING_BUFFER_TYPE: RefType
+    get() = Scene.v().getSootClass(java.lang.StringBuffer::class.java.canonicalName).type
+internal val OPTIONAL_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.Optional::class.java.canonicalName).type
+internal val OPTIONAL_INT_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.OptionalInt::class.java.canonicalName).type
+internal val OPTIONAL_LONG_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.OptionalLong::class.java.canonicalName).type
+internal val OPTIONAL_DOUBLE_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.OptionalDouble::class.java.canonicalName).type
 internal val CLASS_REF_TYPE: RefType
     get() = CLASS_REF_SOOT_CLASS.type
 internal val THREAD_TYPE: RefType
@@ -364,8 +379,12 @@ internal val COMPLETABLE_FUTURE_TYPE: RefType
     get() = Scene.v().getSootClass(CompletableFuture::class.java.canonicalName).type
 internal val EXECUTORS_TYPE: RefType
     get() = Scene.v().getSootClass(Executors::class.java.canonicalName).type
+internal val EXECUTOR_SERVICE_TYPE: RefType
+    get() = Scene.v().getSootClass(ExecutorService::class.java.canonicalName).type
 internal val COUNT_DOWN_LATCH_TYPE: RefType
     get() = Scene.v().getSootClass(CountDownLatch::class.java.canonicalName).type
+internal val SECURITY_MANAGER_TYPE: RefType
+    get() = Scene.v().getSootClass(SecurityManager::class.java.canonicalName).type
 
 internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 

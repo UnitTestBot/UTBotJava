@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
+import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.between
 import org.utbot.testing.isException
@@ -215,6 +217,19 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
             },
             coverage = DoNotCalculate
         )
+    }
+
+    @Test
+    fun testAsListExample() {
+        withoutConcrete { // TODO Concrete fail matchers with "Cannot show class" error
+            check(
+                Lists::asListExample,
+                eq(2),
+                { arr, r -> arr.isEmpty() && r!!.isEmpty() },
+                { arr, r -> arr.isNotEmpty() && arr.contentEquals(r!!.toTypedArray()) },
+                coverage = FullWithAssumptions(assumeCallsNumber = 1)
+            )
+        }
     }
 
     @Test

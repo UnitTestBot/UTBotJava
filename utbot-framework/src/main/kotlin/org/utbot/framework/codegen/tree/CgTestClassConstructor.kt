@@ -91,7 +91,7 @@ open class CgTestClassConstructor(val context: CgContext) :
                     // or https://stackoverflow.com/questions/28230277/test-cases-in-inner-class-and-outer-class-with-junit4
                     when (testFramework) {
                         Junit4 -> {
-                            notYetConstructedTestSets += nestedClass.methodTestSets
+                            notYetConstructedTestSets += collectTestSetsFromInnerClasses(nestedClass)
                         }
                         Junit5,
                         TestNg -> {
@@ -169,6 +169,15 @@ open class CgTestClassConstructor(val context: CgContext) :
         }
 
         return if (regions.any()) regions else null
+    }
+
+    private fun collectTestSetsFromInnerClasses(model: TestClassModel): List<CgMethodTestSet> {
+        val testSets = model.methodTestSets.toMutableList()
+        for (nestedClass in model.nestedClasses) {
+            testSets += collectTestSetsFromInnerClasses(nestedClass)
+        }
+
+        return testSets
     }
 
     private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {

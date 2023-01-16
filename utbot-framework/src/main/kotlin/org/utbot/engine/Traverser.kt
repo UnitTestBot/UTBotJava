@@ -267,9 +267,10 @@ class Traverser(
 
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
-    private val objectCounter = AtomicInteger(TypeRegistry.objectCounterInitialValue)
+    internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
+
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
-        val newAddr = objectCounter.getAndIncrement()
+        val newAddr = objectCounter.createNewAddr()
         // return negative address for objects created inside static initializer
         // to make their address space be intersected with address space of
         // parameters of method under symbolic execution

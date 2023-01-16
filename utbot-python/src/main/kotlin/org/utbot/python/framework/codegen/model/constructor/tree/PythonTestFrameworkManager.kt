@@ -53,8 +53,6 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override val dataProviderMethodsHolder: TestClassContext get() = TODO()
     override val annotationForNestedClasses: CgAnnotation
         get() = TODO("Not yet implemented")
-    override val annotationForOuterClasses: CgAnnotation
-        get() = TODO("Not yet implemented")
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +CgPythonAssertEquals(
@@ -85,8 +83,6 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
     override val dataProviderMethodsHolder: TestClassContext
         get() = TODO()
     override val annotationForNestedClasses: CgAnnotation
-        get() = TODO("Not yet implemented")
-    override val annotationForOuterClasses: CgAnnotation
         get() = TODO("Not yet implemented")
 
     override fun expectException(exception: ClassId, block: () -> Unit) {

@@ -9,9 +9,15 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
+import framework.api.js.util.toJsClassId
 import fuzzer.JsFuzzer
+import fuzzer.new.JsFuzzedConcreteValue
+import fuzzer.new.JsMethodDescription
+import fuzzer.new.runFuzzing
 import fuzzer.providers.JsObjectModelProvider
 import java.io.File
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -241,6 +247,23 @@ class JsTestGenerator(
                 val names = funcNode.getAbstractFunctionParams().map { it.getParamName() }
                 parameterNameMap = { index -> names.getOrNull(index) }
             }
+        val jsDescription = JsMethodDescription(
+            name = funcNode.getAbstractFunctionName(),
+            parameters = execId.parameters,
+            concreteValues = fuzzerVisitor.fuzzedConcreteValues.map {
+                JsFuzzedConcreteValue(
+                    it.classId.toJsClassId(),
+                    it.value,
+                    it.fuzzedContext
+                )
+            }
+        )
+        val kek = mutableListOf<List<FuzzedValue>>()
+        runBlocking {
+            runFuzzing(jsDescription).collect {
+                kek += it
+            }
+        }
         val fuzzedValues =
             JsFuzzer.jsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
         return fuzzerVisitor.fuzzedConcreteValues.toSet() to fuzzedValues

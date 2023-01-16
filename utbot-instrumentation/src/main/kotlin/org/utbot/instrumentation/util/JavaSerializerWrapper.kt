@@ -35,7 +35,11 @@ class WrappingObjectInputStream(iss : InputStream?, private val kryo: Kryo) : Ob
             try {
                 return Kryo::class.java.classLoader.loadClass(type.name)
             } catch (e: ClassNotFoundException) {
-                throw KryoException("Class not found: " + type.name, ex)
+                try {
+                    return super.resolveClass(type);
+                } catch (e: ClassNotFoundException) {
+                    throw KryoException("Class not found: " + type.name, e)
+                }
             }
         }
     }

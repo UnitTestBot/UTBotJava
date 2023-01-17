@@ -237,7 +237,8 @@ class UtBotSymbolicEngine(
                             typeResolver,
                             state.solver.lastStatus as UtSolverStatusSAT,
                             methodUnderTest,
-                            softMaxArraySize
+                            softMaxArraySize,
+                            traverser.objectCounter
                         )
 
                         val resolvedParameters = state.methodUnderTestParameters
@@ -444,8 +445,16 @@ class UtBotSymbolicEngine(
         Predictors.testName.provide(state.path, predictedTestName, "")
 
         // resolving
-        val resolver =
-            Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
+        val resolver = Resolver(
+            hierarchy,
+            memory,
+            typeRegistry,
+            typeResolver,
+            holder,
+            methodUnderTest,
+            softMaxArraySize,
+            traverser.objectCounter
+        )
 
         val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(parameters)
 

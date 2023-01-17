@@ -60,9 +60,12 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.util.isSynthetic
+import org.utbot.framework.util.jimpleBody
+import org.utbot.summary.summarize
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -119,6 +122,10 @@ fun main(args: Array<String>) {
 
 
     withUtContext(context) {
+        // Initialize the soot before a contest is started.
+        // This saves the time budget for real work instead of soot initialization.
+        TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+
         logger.info().bracket("warmup: kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
@@ -161,12 +168,13 @@ fun setOptions() {
     UtSettings.classfilesCanChange = false
     // We need to use assemble model generator to increase readability
     UtSettings.useAssembleModelGenerator = true
-    UtSettings.enableSummariesGeneration = false
+    UtSettings.summaryGenerationType = SummariesGenerationType.LIGHT
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
     UtSettings.ignoreStringLiterals = true
     UtSettings.maximizeCoverageUsingReflection = true
+    UtSettings.useSandbox = false
 }
 
 
@@ -393,7 +401,10 @@ fun runGeneration(
         }
         cancellator.cancel()
 
-        val testSets = testsByMethod.map { (method, executions) -> UtMethodTestSet(method, minimizeExecutions(executions)) }
+        val testSets = testsByMethod.map { (method, executions) ->
+            UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody(method))
+                .summarize(cut.classfileDir.toPath())
+        }
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
             writeTestClass(cut, codeGenerator.generateAsString(testSets))

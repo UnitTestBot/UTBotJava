@@ -122,6 +122,10 @@ fun main(args: Array<String>) {
 
 
     withUtContext(context) {
+        // Initialize the soot before a contest is started.
+        // This saves the time budget for real work instead of soot initialization.
+        TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+
         logger.info().bracket("warmup: kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")

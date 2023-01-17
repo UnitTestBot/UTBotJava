@@ -116,8 +116,8 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
             setOf(name.prefix.joinToString(separator = "."))
         else
             emptySet()
-        return getAnnotationParameters(type).fold(cur) { acc, childType ->
-            acc + getModules(childType)
+        return type.pythonAnnotationParameters().fold(cur) { acc, childType ->
+            acc + childType.pythonModules()
         }
     }
 }

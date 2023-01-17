@@ -108,6 +108,7 @@ private fun changeScores(
     storage: PythonTypeStorage,
     bounds: List<Type>,
     hintScores: MutableMap<PythonTypeWrapperForEqualityCheck, Double>,
+    withPenalty: Boolean,
     isUpper: Boolean
 ) {
     bounds.forEach { constraint ->
@@ -121,10 +122,11 @@ private fun changeScores(
             else
                 PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)
         }
-        notFitting.forEach {
-            val wrapper = PythonTypeWrapperForEqualityCheck(it)
-            hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) - 1
-        }
+        if (withPenalty)
+            notFitting.forEach {
+                val wrapper = PythonTypeWrapperForEqualityCheck(it)
+                hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) - 1
+            }
         fitting.forEach {
             val wrapper = PythonTypeWrapperForEqualityCheck(it)
             hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
@@ -137,11 +139,12 @@ fun createTypeRating(
     lowerBounds: List<Type>,
     upperBounds: List<Type>,
     storage: PythonTypeStorage,
-    level: Int
+    level: Int,
+    withPenalty: Boolean = true
 ): TypeRating {
     val hintScores = mutableMapOf<PythonTypeWrapperForEqualityCheck, Double>()
-    changeScores(initialRating, storage, lowerBounds, hintScores, isUpper = false)
-    changeScores(initialRating, storage, upperBounds, hintScores, isUpper = true)
+    changeScores(initialRating, storage, lowerBounds, hintScores, withPenalty, isUpper = false)
+    changeScores(initialRating, storage, upperBounds, hintScores, withPenalty, isUpper = true)
     val scores: List<Pair<Type, Double>> = initialRating.mapNotNull { typeFromList ->
         if (level == MAX_NESTING && typeFromList.getBoundedParameters().isNotEmpty())
             return@mapNotNull null
@@ -186,7 +189,8 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
         allLowerBounds,
         allUpperBounds,
         storage,
-        1
+        1,
+        withPenalty = false
     )
     return prefix + rating.types
 }

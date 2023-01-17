@@ -5,7 +5,6 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
 import org.utbot.engine.ArtificialError
-import org.utbot.engine.OverflowDetectionError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -126,7 +125,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
-import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException

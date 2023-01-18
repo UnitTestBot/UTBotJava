@@ -182,6 +182,8 @@ abstract class CollectionValueProvider(
 
     abstract fun findMethod(resolvedType: FuzzedType, values: List<FuzzedValue>) : MethodId
 
+    private val FuzzedType.isCollection get() = this.classId.isSubtypeOf(java.util.Collection::class)
+
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         resolveType(description, type).forEach { resolvedType ->
             val typeParameter = resolvedType.generics
@@ -198,17 +200,19 @@ abstract class CollectionValueProvider(
                         ),
                         modificationsChainProvider = { mutableListOf() }
                     ).fuzzed {
-                        summary = "%var% = collection"
+                        summary = if (resolvedType.isCollection) "%var% = collection" else "%var% = iterable"
                     }
                 },
-                modify = Routine.ForEach(typeParameter) { self, _, values ->
-                    val model = self.model as UtAssembleModel
-                    (model.modificationsChain as MutableList) += UtExecutableCallModel(
-                        model,
-                        findMethod(resolvedType, values),
-                        values.map { it.model }
-                    )
-                }
+                modify = if (resolvedType.isCollection) {
+                    Routine.ForEach(typeParameter) { self, _, values ->
+                        val model = self.model as UtAssembleModel
+                        (model.modificationsChain as MutableList) += UtExecutableCallModel(
+                            model,
+                            findMethod(resolvedType, values),
+                            values.map { it.model }
+                        )
+                    }
+                } else Routine.ForEach(typeParameter) { _, _, _ -> run {} } //No mutations for java.lang.Iterable
             ))
         }
     }

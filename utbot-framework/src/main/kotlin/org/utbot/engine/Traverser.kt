@@ -127,7 +127,7 @@ import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
-import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign

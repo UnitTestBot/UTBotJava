@@ -58,10 +58,17 @@ class PythonTreeModel(
     classId: PythonClassId,
 ): PythonModel(classId) {
     override val allContainingClassIds: Set<PythonClassId>
-        get() {
-            val children = tree.children.map { PythonTreeModel(it, it.type) }
-            return setOf(classId as PythonClassId) + super.allContainingClassIds + children.filter {it.tree != tree}.flatMap { it.allContainingClassIds }
+        get() { return findAllContainingClassIds(setOf(this.tree)) }
+
+    private fun findAllContainingClassIds(visited: Set<PythonTree.PythonTreeNode>): Set<PythonClassId> {
+        val children = tree.children.map { PythonTreeModel(it, it.type) }
+        val newVisited = (visited + setOf(this.tree)).toMutableSet()
+        val childrenClassIds = children.filterNot { newVisited.contains(it.tree) }.flatMap {
+            newVisited.add(it.tree)
+            it.findAllContainingClassIds(newVisited)
         }
+        return super.allContainingClassIds + childrenClassIds
+    }
 }
 
 class PythonDefaultModel(

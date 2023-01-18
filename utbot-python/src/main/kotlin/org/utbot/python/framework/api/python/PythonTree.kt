@@ -83,6 +83,7 @@ object PythonTree {
             }
             return type == other.type && children == other.children
         }
+
     }
 
     class SetNode(
@@ -110,6 +111,7 @@ object PythonTree {
             }
             return type == other.type && children == other.children
         }
+
     }
 
     class TupleNode(
@@ -171,7 +173,7 @@ object PythonTree {
             if (other !is ReduceNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return type == other.type && id == other.id //children == other.children
         }
     }
 

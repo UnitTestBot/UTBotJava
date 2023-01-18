@@ -552,6 +552,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val beforeVariable = cache.before[path]?.variable
         val (afterVariable, afterModel) = cache.after[path]!!
 
+        // TODO: remove the following after the issue fix
+        // We do not generate some assertions for Enums due to [https://github.com/UnitTestBot/UTBotJava/issues/1704].
+        val beforeModel = cache.before[path]?.model
+        if (beforeModel !is UtEnumConstantModel && afterModel is UtEnumConstantModel) {
+            return
+        }
+
         if (afterModel !is UtReferenceModel) {
             val expectedAfter =
                 variableConstructor.getOrCreateVariable(afterModel, "expected" + afterVariable.name.capitalize())

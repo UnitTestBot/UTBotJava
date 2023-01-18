@@ -4,7 +4,7 @@ plugins {
 apply plugin: 'jacoco'
 
 configurations {
-    fetchInstrumentationJar
+    fetchInstrumentationJar.extendsFrom testImplementation
 }
 
 compileJava {
@@ -12,6 +12,10 @@ compileJava {
 }
 
 compileTestJava {
+    // Specify path to rt.jar of jdk8 in gradle.properties
+    options.bootstrapClasspath = files("${jdk8Jar}")
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
     options.fork = true
     options.forkOptions.executable = 'javac'
     options.compilerArgs << "-XDignore.symbol.file"
@@ -74,6 +78,7 @@ dependencies {
 }
 
 processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.fetchInstrumentationJar) {
         into "lib"
     }

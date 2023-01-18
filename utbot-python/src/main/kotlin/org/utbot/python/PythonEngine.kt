@@ -44,7 +44,7 @@ class PythonEngine(
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
     private val initialCoveredLines: Set<Int>,
-    private val pythonTypeStorage: PythonTypeStorage? = null,
+    private val pythonTypeStorage: PythonTypeStorage,
 ) {
 
     private data class JobResult(
@@ -131,15 +131,19 @@ class PythonEngine(
             methodUnderTest.name,
             parameters,
             fuzzedConcreteValues,
-            pythonTypeStorage!!,
+            pythonTypeStorage,
         )
 
         val coveredLines = initialCoveredLines.toMutableSet()
         var sourceLinesCount = Long.MAX_VALUE
 
         PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
-            if (isCancelled() || System.currentTimeMillis() >= until) {
+            if (isCancelled()) {
                 logger.info { "Fuzzing process was interrupted" }
+                return@PythonFuzzing PythonFeedback(control = Control.STOP)
+            }
+            if (System.currentTimeMillis() >= until) {
+                logger.info { "Fuzzing process was interrupted by timeout" }
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
             }
 

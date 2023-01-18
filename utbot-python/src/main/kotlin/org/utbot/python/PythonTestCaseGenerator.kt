@@ -147,7 +147,7 @@ class PythonTestCaseGenerator(
 
             var feedback: InferredTypeFeedback = SuccessFeedback
 
-            val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 || feedback is InvalidTypeFeedback }
+            val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 } // || feedback is InvalidTypeFeedback }
 
             engine.fuzzing(args, fuzzerCancellation, until).collect {
                 generated += 1

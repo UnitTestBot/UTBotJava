@@ -2,7 +2,6 @@ package org.utbot.python.fuzzing.provider
 
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
-import org.utbot.fuzzing.seeds.DefaultFloatBound
 import org.utbot.fuzzing.seeds.IEEE754Value
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
@@ -43,9 +42,7 @@ object FloatValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
     override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> = sequence {
         val floatConstants = getFloatConstants(description.concreteValues)
         val intConstants = getIntConstants(description.concreteValues)
-        val constants = floatConstants + intConstants + DefaultFloatBound.values().map {
-            it(52, 11)
-        }
+        val constants = floatConstants + intConstants
 
         constants.asSequence().forEach {  value ->
             yield(Seed.Known(value) {

@@ -128,7 +128,8 @@ class HintCollector(
             }
             else -> {
                 astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
-                astNodeToHintCollectorNode[node]!!.upperBounds.add(
+                val funcNode = parsed.function
+                astNodeToHintCollectorNode[funcNode]!!.upperBounds.add(
                     createCallableProtocol(
                         List(parsed.args.size) { pythonAnyType },
                         pythonAnyType

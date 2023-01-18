@@ -4,6 +4,7 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import java.math.BigInteger
 
 object PythonTree {
@@ -210,9 +211,12 @@ object PythonTree {
     }
 
     fun fromString(value: String): PrimitiveNode {
+        val repr = value
+            .replace("\"", "\\\"")
+            .replace("\\\\\"", "\\\"")
         return PrimitiveNode(
-            pythonIntClassId,
-            "\"$value\""
+            pythonStrClassId,
+            "\"$repr\""
         )
     }
 

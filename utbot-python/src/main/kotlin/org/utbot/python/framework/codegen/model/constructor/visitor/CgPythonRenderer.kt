@@ -517,45 +517,8 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonTree) {
-//        element.children.forEach { it.accept(this) }
         element.value.accept(this)
     }
-
-//    override fun visit(element: CgPythonTree) {
-//        when(val tree = element.tree) {
-//            is PythonTree.PrimitiveNode -> {
-//                print(tree.repr)
-//            }
-//            is PythonTree.ListNode -> {
-//                print("[")
-//                element.getChildren().renderSeparated()
-//                print("]")
-//            }
-//            is PythonTree.TupleNode -> {
-//                print("tuple([")
-//                element.getChildren().renderSeparated()
-//                print("])")
-//            }
-//            is PythonTree.SetNode -> {
-//                print("{")
-//                element.getChildren().renderSeparated()
-//                print("}")
-//            }
-//            is PythonTree.DictNode -> {
-//                print("{")
-//                element.getDictChildren().map {
-//                    it.key.accept(this)
-//                    print(": ")
-//                    it.value.accept(this)
-//                    print(", ")
-//                }
-//                print("}")
-//            }
-//            is PythonTree.ReduceNode -> {
-//                TODO()
-//            }
-//        }
-//    }
 
     override fun visit(element: CgPythonDict) {
         print("{")
@@ -582,13 +545,27 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgFormattedString) {
-        throw NotImplementedError("String interpolation is not supported in Python renderer")
+        print("f\"")
+        element.array.forEachIndexed { index, cgElement ->
+            if (cgElement is CgLiteral) {
+                print("{")
+                print(cgElement.toStringConstant(asRawString = true))
+                print("}")
+            } else {
+                print("{")
+                cgElement.accept(this)
+                print("}")
+            }
+
+            if (index < element.array.lastIndex) print(" ")
+        }
+        print("\"")
     }
 
     override fun String.escapeCharacters(): String =
         StringEscapeUtils
             .escapeJava(this)
-            .replace("'", "\\'")
+            .replace("\"", "\\\"")
             .replace("\\f", "\\u000C")
             .replace("\\xxx", "\\\u0058\u0058\u0058")
 }

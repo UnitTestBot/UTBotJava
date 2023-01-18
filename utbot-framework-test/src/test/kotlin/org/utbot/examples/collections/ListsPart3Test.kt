@@ -221,14 +221,16 @@ internal class ListsPart3Test : UtValueTestCaseChecker(
 
     @Test
     fun testAsListExample() {
-        withoutConcrete { // TODO Concrete fail matchers with "Cannot show class" error
-            check(
-                Lists::asListExample,
-                eq(2),
-                { arr, r -> arr.isEmpty() && r!!.isEmpty() },
-                { arr, r -> arr.isNotEmpty() && arr.contentEquals(r!!.toTypedArray()) },
-                coverage = FullWithAssumptions(assumeCallsNumber = 1)
-            )
+        withEnabledTestingCodeGeneration(testCodeGeneration = false) { // TODO Assemble model for java.util.ArrayList is returned, but actual type is java.util.Arrays.ArrayList https://github.com/UnitTestBot/UTBotJava/issues/398
+            withoutConcrete { // TODO Concrete fail matchers with "Cannot show class" error
+                check(
+                    Lists::asListExample,
+                    eq(2),
+                    { arr, r -> arr.isEmpty() && r!!.isEmpty() },
+                    { arr, r -> arr.isNotEmpty() && arr.contentEquals(r!!.toTypedArray()) },
+                    coverage = FullWithAssumptions(assumeCallsNumber = 1)
+                )
+            }
         }
     }
 

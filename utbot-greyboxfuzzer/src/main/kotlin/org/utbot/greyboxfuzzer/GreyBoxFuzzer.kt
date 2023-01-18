@@ -30,6 +30,7 @@ class GreyBoxFuzzer(
     private val constants: Map<ClassId, List<UtModel>>,
     private val fuzzerUtModelConstructor: FuzzerUtModelConstructor,
     private val executor: suspend (ExecutableId, EnvironmentModels, List<UtInstrumentation>) -> UtFuzzingConcreteExecutionResult,
+    private val valueConstructor: (EnvironmentModels) -> List<UtConcreteValue<*>>,
     private val timeBudgetInMillis: Long
 ) {
 
@@ -130,12 +131,12 @@ class GreyBoxFuzzer(
                 val stateBefore =
                     EnvironmentModels(thisInstance.utModelForExecution, generatedParameters.map { it.utModel }, mapOf())
                 try {
-                    logger.debug { "Execution started" }
+                    logger.debug { "Execution of ${methodUnderTest.name} started" }
                     val executionResult = (executor::invoke)(methodUnderTest, stateBefore, listOf())
                     if (methodInstructions == null && executionResult.methodInstructions != null) {
                         methodInstructions = executionResult.methodInstructions.toSet()
                     }
-                    logger.debug { "Execution result: $executionResult" }
+                    logger.debug { "Execution of ${methodUnderTest.name} result: $executionResult" }
                     val seedCoverage = getCoverage(executionResult.coverage)
                     logger.debug { "Calculating seed score" }
                     val seedScore = seeds.calcSeedScore(seedCoverage)
@@ -143,26 +144,40 @@ class GreyBoxFuzzer(
                     val seed = Seed(thisInstance, generatedParameters, seedCoverage, seedScore)
                     if (seeds.isSeedOpensNewCoverage(seed)) {
                         emit(
-                            if (executionResult.stateAfter != null) {
-                                UtFuzzedExecution(
-                                    stateBefore = stateBefore,
-                                    stateAfter = executionResult.stateAfter,
-                                    result = executionResult.result,
-                                    coverage = executionResult.coverage,
-                                    fuzzingValues = generatedParameters.map { FuzzedValue(it.utModel) },
-                                    fuzzedMethodDescription = FuzzedMethodDescription(methodUnderTest)
-                                )
-                            } else {
-                                UtGreyBoxFuzzedExecution(
-                                    stateBefore,
-                                    executionResult,
-                                    coverage = executionResult.coverage
-                                )
+                            run {
+                                val parametersModels =
+                                    if (stateBefore.thisInstance == null) {
+                                        stateBefore.parameters
+                                    } else {
+                                        listOfNotNull(stateBefore.thisInstance) + stateBefore.parameters
+                                    }
+                                val stateBeforeWithNullsAsUtModels =
+                                    valueConstructor.invoke(stateBefore).zip(parametersModels)
+                                        .map { (concreteValue, model) -> concreteValue.value?.let { model } ?: UtNullModel(model.classId) }
+                                        .let { if (stateBefore.thisInstance != null) it.drop(1) else it }
+                                val newStateBefore = EnvironmentModels(thisInstance.utModelForExecution, stateBeforeWithNullsAsUtModels, mapOf())
+                                if (executionResult.stateAfter != null) {
+                                    UtFuzzedExecution(
+                                        stateBefore = newStateBefore,
+                                        stateAfter = executionResult.stateAfter,
+                                        result = executionResult.result,
+                                        coverage = executionResult.coverage,
+                                        fuzzingValues = generatedParameters.map { FuzzedValue(it.utModel) },
+                                        fuzzedMethodDescription = FuzzedMethodDescription(methodUnderTest)
+                                    )
+                                } else {
+                                    UtGreyBoxFuzzedExecution(
+                                        newStateBefore,
+                                        executionResult,
+                                        coverage = executionResult.coverage
+                                    )
+                                }
                             }
+
                         )
                     }
                     seeds.addSeed(seed)
-                    logger.debug { "Execution result: ${executionResult.result}" }
+                    logger.debug { "Execution of ${methodUnderTest.name} concrete result: ${executionResult.result}" }
                     logger.debug { "Seed score = $seedScore" }
                 } catch (e: Throwable) {
                     logger.debug(e) { "Exception while execution in method ${methodUnderTest.name} of class ${methodUnderTest.classId.name}" }
@@ -210,21 +225,34 @@ class GreyBoxFuzzer(
                 mutatedSeed.score = 0.0
                 if (seeds.isSeedOpensNewCoverage(mutatedSeed)) {
                     emit(
-                        if (executionResult.stateAfter != null) {
-                            UtFuzzedExecution(
-                                stateBefore = stateBefore,
-                                stateAfter = executionResult.stateAfter,
-                                result = executionResult.result,
-                                coverage = executionResult.coverage,
-                                fuzzingValues = mutatedSeed.parameters.map { FuzzedValue(it.utModel) },
-                                fuzzedMethodDescription = FuzzedMethodDescription(methodUnderTest)
-                            )
-                        } else {
-                            UtGreyBoxFuzzedExecution(
-                                stateBefore,
-                                executionResult,
-                                coverage = executionResult.coverage
-                            )
+                        run {
+                            val parametersModels =
+                                if (stateBefore.thisInstance == null) {
+                                    stateBefore.parameters
+                                } else {
+                                    listOfNotNull(stateBefore.thisInstance) + stateBefore.parameters
+                                }
+                            val stateBeforeWithNullsAsUtModels =
+                                valueConstructor.invoke(stateBefore).zip(parametersModels)
+                                    .map { (concreteValue, model) -> concreteValue.value?.let { model } ?: UtNullModel(model.classId) }
+                                    .let { if (stateBefore.thisInstance != null) it.drop(1) else it }
+                            val newStateBefore = EnvironmentModels(stateBefore.thisInstance, stateBeforeWithNullsAsUtModels, mapOf())
+                            if (executionResult.stateAfter != null) {
+                                UtFuzzedExecution(
+                                    stateBefore = newStateBefore,
+                                    stateAfter = executionResult.stateAfter,
+                                    result = executionResult.result,
+                                    coverage = executionResult.coverage,
+                                    fuzzingValues = mutatedSeed.parameters.map { FuzzedValue(it.utModel) },
+                                    fuzzedMethodDescription = FuzzedMethodDescription(methodUnderTest)
+                                )
+                            } else {
+                                UtGreyBoxFuzzedExecution(
+                                    newStateBefore,
+                                    executionResult,
+                                    coverage = executionResult.coverage
+                                )
+                            }
                         }
                     )
                 }

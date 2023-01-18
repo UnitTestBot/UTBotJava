@@ -35,8 +35,10 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.concrete.UtFuzzingExecutionInstrumentation
 import org.utbot.framework.concrete.FuzzerConcreteExecutor
+import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.framework.concrete.phases.ValueConstructionContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -448,13 +450,14 @@ class UtBotSymbolicEngine(
                             concreteExecutor.pathsToUserClasses,
                             concreteExecutor.pathsToDependencyClasses
                         )::execute,
+                        ValueConstructionContext(UtFuzzingExecutionInstrumentation.instrumentationContext, true)::constructParameters,
                         timeBudget
                     ).fuzz()
                 )
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }
             } catch (e: Throwable) {
-                emit(UtError("Unexpected fuzzing crash", e))
+                emit(UtError("Unexpected fuzzing crash\n${e.stackTraceToString()}", e))
             }
             return@flow
         }

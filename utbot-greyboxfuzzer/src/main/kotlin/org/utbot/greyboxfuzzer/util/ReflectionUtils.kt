@@ -351,8 +351,10 @@ class GenericsReplacer {
         for ((type, upperBound, annotatedType, _) in allUnresolvedTypes) {
             val upperBoundAsSootClass = upperBound?.toClass()?.toSootClass() ?: continue
             val newRandomBound =
-                upperBoundAsSootClass.children.filterNot { it.name.contains("$") }.randomOrNull()?.toJavaClass()
-                    ?: continue
+                upperBoundAsSootClass.children
+                    .filterNot { it.name.contains("$") }
+                    .filterNot { it.javaPackageName.startsWith("sun") }
+                    .randomOrNull()?.toJavaClass() ?: continue
             setUpperBoundTo(type, annotatedType, newRandomBound)
         }
     }

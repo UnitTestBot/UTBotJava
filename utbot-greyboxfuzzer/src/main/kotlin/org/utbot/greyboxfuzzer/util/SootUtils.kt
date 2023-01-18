@@ -1,5 +1,6 @@
 package org.utbot.greyboxfuzzer.util
 
+import org.utbot.common.nameOfPackage
 import org.utbot.greyboxfuzzer.quickcheck.generator.java.lang.*
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -49,7 +50,13 @@ fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
             oldLists.forEach { res.add((it + listOf(implementer)).toMutableList()) }
         }
     }
-    return res
+    return res.filter {
+        it.all {
+            it.javaPackageName.startsWith("java") ||
+            it.javaPackageName.contains(this.javaPackageName) ||
+            this.javaPackageName.contains(it.javaPackageName)
+        }
+    }
 }
 
 fun SootMethod.getAllTypesFromCastAndInstanceOfInstructions(): Set<Class<*>> =
@@ -194,7 +201,12 @@ object SootStaticsCollector {
         val sootMethodsToProvideInstance = classes.flatMap {
             it.methods
                 .asSequence()
-                .filter { it.isStatic && it.returnType.toString() == clazz.name }
+                .filter { it.isPublic && it.isStatic && it.returnType.toString() == clazz.name }
+                .filter {
+                    it.declaringClass.javaPackageName.startsWith("java") ||
+                    it.declaringClass.javaPackageName.contains(clazz.nameOfPackage) ||
+                    clazz.nameOfPackage.contains(it.declaringClass.javaPackageName)
+                }
                 .filter { it.parameterTypes.all { !it.toString().contains(clazz.name) } }
                 .filter { !it.toString().contains('$') }
                 .toList()

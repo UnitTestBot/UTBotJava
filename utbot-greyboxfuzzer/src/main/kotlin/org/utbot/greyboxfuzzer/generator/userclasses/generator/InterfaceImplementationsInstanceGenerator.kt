@@ -47,27 +47,46 @@ class InterfaceImplementationsInstanceGenerator(
             }
         }
         val genericsContext =
-            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType)
-        if (genericsContext == null || Random.getTrue(30)) {
-            return generateMock(clazz, resolvedType, typeContext, generatorContext)
+            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType) ?: return UtNullModel(clazz.id)
+//        if (genericsContext == null || Random.getTrue(30)) {
+//            return generateMock(clazz, resolvedType, typeContext, generatorContext)
+//        }
+        val resUtModel =
+            ClassesInstanceGenerator(
+                genericsContext.currentClass(),
+                genericsContext,
+                null,
+                GenerationMethod.ANY,
+                sourceOfRandomness,
+                generationStatus,
+                generatorContext,
+                depth
+            ).generate()
+        return when (resUtModel) {
+            is UtAssembleModel -> UtAssembleModel(
+                resUtModel.id,
+                clazz.id,
+                resUtModel.modelName,
+                resUtModel.instantiationCall,
+                resUtModel.origin
+            ) { resUtModel.modificationsChain }
+            is UtCompositeModel -> UtCompositeModel(
+                resUtModel.id,
+                clazz.id,
+                resUtModel.isMock,
+                resUtModel.fields,
+                resUtModel.mocks
+            )
+            else -> resUtModel
         }
-        return ClassesInstanceGenerator(
-            genericsContext.currentClass(),
-            genericsContext,
-            null,
-            GenerationMethod.ANY,
-            sourceOfRandomness,
-            generationStatus,
-            generatorContext,
-            depth
-        ).generate().let {
-            if (it is UtNullModel && Random.getTrue(50)) generateMock(
-                clazz,
-                resolvedType,
-                typeContext,
-                generatorContext
-            ) else it
-        }
+        /*.let {
+                if (it is UtNullModel && Random.getTrue(50)) generateMock(
+                    clazz,
+                    resolvedType,
+                    typeContext,
+                    generatorContext
+                ) else it
+            }*/
     }
 
     private fun generateMock(

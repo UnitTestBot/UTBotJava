@@ -97,6 +97,7 @@ import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.isPublic
 
 abstract class CgAbstractRenderer(
     val context: CgRendererContext,
@@ -612,7 +613,15 @@ abstract class CgAbstractRenderer(
                 is Boolean -> toStringConstant()
                 // String is "\"" + "str" + "\"", RawString is "str"
                 is String -> if (asRawString) "$this".escapeCharacters() else toStringConstant()
-                else -> "$this"
+                else -> {
+                    val t = this@toStringConstant.type
+                    val illegalType = t.toString().contains("$") || !t.isPublic
+                    if (this == null && UtSettings.greyBoxFuzzingCompetitionMode && !illegalType) {
+                        "(${this@toStringConstant.type}) null"
+                    } else {
+                        "$this"
+                    }
+                }
             }
         }
 

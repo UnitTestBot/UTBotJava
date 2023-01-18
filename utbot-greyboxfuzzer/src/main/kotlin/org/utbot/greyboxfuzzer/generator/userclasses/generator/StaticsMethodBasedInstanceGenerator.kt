@@ -55,5 +55,7 @@ internal class StaticsMethodBasedInstanceGenerator(
         }
 
     private fun getRandomStaticToProduceInstanceUsingSoot(): Method? =
-        SootStaticsCollector.getStaticMethodsInitializersOf(clazz).randomOrNull()
+        SootStaticsCollector
+            .getStaticMethodsInitializersOf(clazz)
+            .randomOrNull()
 }

@@ -136,7 +136,7 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
         Float::class.javaPrimitiveType -> floatArrayClassId
         Long::class.javaPrimitiveType -> longArrayClassId
         Short::class.javaPrimitiveType -> shortArrayClassId
-        else -> ClassId("[L", classIdForType(componentType))
+        else -> ClassId("[L${classIdForType(componentType)};", classIdForType(componentType))//ClassId("[L", classIdForType(componentType))
     }
 
     override fun provide(provided: Generators) {

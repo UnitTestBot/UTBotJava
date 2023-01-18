@@ -5,10 +5,7 @@ import org.utbot.greyboxfuzzer.generator.*
 import org.utbot.greyboxfuzzer.util.*
 import org.utbot.greyboxfuzzer.util.logger
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.fieldId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.greyboxfuzzer.quickcheck.generator.GenerationState
 import org.utbot.greyboxfuzzer.quickcheck.generator.GenerationStatus
 import org.utbot.greyboxfuzzer.quickcheck.generator.Generator
@@ -97,6 +94,13 @@ object Mutator {
                 Modifier.FINAL
             )
         ) return null
+//        val setterForField =
+//            if (field.hasAtLeastOneOfModifiers(Modifier.PRIVATE, Modifier.PROTECTED)) {
+//                field.declaringClass.declaredMethods
+//                    .filter { it.parameterTypes.size == 1 && it.parameterTypes[0] == field.type }
+//                    .filter { it.name.startsWith("set") }
+//                    .randomOrNull() ?: return null
+//            } else null
         val fieldType = genericsContext.resolveFieldType(field)
         logger.debug { "F = $field TYPE = $fieldType" }
         val parameterTypeContextForResolvedType = ParameterTypeContext(
@@ -128,6 +132,11 @@ object Mutator {
             }
         }
         logger.debug { "NEW FIELD VALUE = $newFieldValue" }
+//        return if (setterForField == null) {
+//            generatorForField to UtDirectSetFieldModel(clazzInstance, field.fieldId, newFieldValue)
+//        } else {
+//            generatorForField to UtExecutableCallModel(clazzInstance, setterForField.executableId, listOf(newFieldValue))
+//        }
         return generatorForField to UtDirectSetFieldModel(clazzInstance, field.fieldId, newFieldValue)
     }
 
@@ -146,11 +155,22 @@ object Mutator {
     ): ThisInstance {
         if (thisInstance !is NormalMethodThisInstance) return thisInstance
         val thisInstanceAsUtModel = thisInstance.utModel as? UtAssembleModel ?: return thisInstance
+        val allClassFieldsFiltered = thisInstance.classId.allDeclaredFieldIds.toList()
+            .mapNotNull {
+                try {
+                    it.jField
+                } catch (e: Throwable) {
+                    null
+                }
+            }
+            .shuffled()
+            .take(Random.nextInt(0, 4))
+        val finalFieldsToRegenerate = (fieldsToRegenerate.filter { Random.getTrue(50) } + allClassFieldsFiltered).toSet()
         val mutationResult =
             regenerateFields(
                 thisInstance.classId.jClass,
                 thisInstanceAsUtModel,
-                fieldsToRegenerate,
+                finalFieldsToRegenerate.toList(),
                 generatorContext
             )
         return NormalMethodThisInstance(mutationResult, thisInstance.generator, thisInstance.classId)

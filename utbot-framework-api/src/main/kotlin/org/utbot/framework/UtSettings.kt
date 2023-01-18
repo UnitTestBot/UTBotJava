@@ -245,12 +245,12 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Set to true to use grey-box fuzzing
      */
-    var useGreyBoxFuzzing: Boolean by getBooleanProperty(false)
+    var useGreyBoxFuzzing: Boolean by getBooleanProperty(true)
 
     /**
      * Set to true to use grey-box fuzzing in competition mode (without asserts generation)
      */
-    var greyBoxFuzzingCompetitionMode: Boolean by getBooleanProperty(false)
+    var greyBoxFuzzingCompetitionMode: Boolean by getBooleanProperty(true)
 
     /**
      * Set to true to use UtCompositeModels in grey-box fuzzing process

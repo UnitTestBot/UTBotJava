@@ -46,6 +46,8 @@ infix fun CgExpression.greaterThan(other: Any?): CgGreaterThan =
 // TODO: is it OK to use Object as a type of null literal?
 fun nullLiteral() = CgLiteral(objectClassId, null)
 
+fun nullLiteralWithCast(classId: ClassId) = CgLiteral(classId, null)
+
 fun intLiteral(num: Int) = CgLiteral(intClassId, num)
 
 fun longLiteral(num: Long) = CgLiteral(longClassId, num)

@@ -8,6 +8,8 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.greyboxfuzzer.generator.GreyBoxFuzzerGeneratorsAndSettings
+import org.utbot.greyboxfuzzer.generator.getOrProduceGenerator
 import org.utbot.greyboxfuzzer.quickcheck.generator.GenerationStatus
 import org.utbot.greyboxfuzzer.quickcheck.generator.Generator
 import org.utbot.greyboxfuzzer.quickcheck.generator.java.lang.AbstractStringGenerator
@@ -21,7 +23,6 @@ import java.util.Properties
  * Produces values of type [Properties].
  */
 class PropertiesGenerator : Generator(Properties::class.java) {
-    private var stringGenerator: StringGenerator = StringGenerator()
 //    fun configure(charset: InCharset?) {
 //        val encoded = Encoded()
 //        encoded.configure(charset!!)
@@ -34,7 +35,10 @@ class PropertiesGenerator : Generator(Properties::class.java) {
     ): UtModel {
         val size = status.size()
         val classId = Properties::class.id
-
+        val stringGenerator = GreyBoxFuzzerGeneratorsAndSettings.generatorRepository.getOrProduceGenerator(
+            String::class.java,
+            generatorContext
+        )!!
         val generatedModelId =  generatorContext.utModelConstructor.computeUnusedIdAndUpdate()
         val constructorId = ConstructorId(classId, emptyList())
         return UtAssembleModel(

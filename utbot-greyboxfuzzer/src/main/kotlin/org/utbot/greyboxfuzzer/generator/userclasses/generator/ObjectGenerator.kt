@@ -14,6 +14,7 @@ import org.utbot.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
 import org.utbot.greyboxfuzzer.quickcheck.random.SourceOfRandomness
 import ru.vyarus.java.generics.resolver.context.MethodGenericsContext
 import kotlin.random.Random
+import kotlin.system.exitProcess
 
 class ObjectGenerator(
     private val parameterTypeContext: ParameterTypeContext,
@@ -42,6 +43,7 @@ class ObjectGenerator(
             .filter { !it.hasComponents() }
             .randomOrNull()
             ?.also { it.generatorContext = generatorContext }
-        return generator?.generateImpl(sourceOfRandomness, generationStatus) ?: UtNullModel(parameterTypeContext.rawClass.id)
+        return generator?.generateImpl(sourceOfRandomness, generationStatus)
+            ?: UtNullModel(parameterTypeContext.rawClass.id)
     }
 }

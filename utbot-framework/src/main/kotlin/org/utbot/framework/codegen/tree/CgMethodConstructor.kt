@@ -1453,14 +1453,28 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     }
                 }
 
-                if (statics.isNotEmpty()) {
+                if (UtSettings.greyBoxFuzzingCompetitionMode) {
                     +tryBlock {
-                        mainBody()
-                    }.finally {
-                        recoverStaticFields()
-                    }
+                        if (statics.isNotEmpty()) {
+                            +tryBlock {
+                                mainBody()
+                            }.finally {
+                                recoverStaticFields()
+                            }
+                        } else {
+                            mainBody()
+                        }
+                    }.catch(Throwable::class.id) {}
                 } else {
-                    mainBody()
+                    if (statics.isNotEmpty()) {
+                        +tryBlock {
+                            mainBody()
+                        }.finally {
+                            recoverStaticFields()
+                        }
+                    } else {
+                        mainBody()
+                    }
                 }
 
                 mockFrameworkManager.getAndClearMethodResources()?.let { resources ->

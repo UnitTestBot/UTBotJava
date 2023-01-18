@@ -15,6 +15,7 @@ import java.net.URLClassLoader
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.utbot.framework.plugin.api.*
+import java.io.File
 
 
 class GreyBoxFuzzerContest {
@@ -128,9 +129,25 @@ class GreyBoxFuzzerContest {
                 }
             }
 
-            logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
-                writeTestClass(cut, codeGenerator.generateAsString(testSet))
+            cut.generatedTestFile.parentFile.mkdirs()
+            for ((i, test) in testSet.withIndex()) {
+                val newClassName = "${cut.generatedTestFile.nameWithoutExtension}$i"
+                val newClassnamePath = cut.generatedTestFile.absolutePath.let {
+                    val pathWithoutExtension = it.substringBeforeLast(".")
+                    val extension = cut.generatedTestFile.extension
+                    "$pathWithoutExtension$i.$extension"
+                }
+                val testAsString = codeGenerator.generateAsString(listOf(test), newClassName)
+                File(newClassnamePath).writeText(testAsString)
+                cut.generatedTestFile.writeText(testAsString, charset)
             }
+            if (cut.generatedTestFile.exists()) {
+                cut.generatedTestFile.delete()
+            }
+
+//            logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
+//                writeTestClass(cut, codeGenerator.generateAsString(testSet))
+//            }
         }
         statsForClass
     }

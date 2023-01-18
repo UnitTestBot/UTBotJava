@@ -568,9 +568,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable?,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>,
+        visitedModels: MutableSet<ModelWithField>,
+        expectedModelField: FieldId? = null,
     ) {
-        if (expectedModel in visitedModels) return
+        val modelWithField = ModelWithField(expectedModel, expectedModelField)
+        if (modelWithField in visitedModels) return
 
         var expected = expected
         if (expected == null) {
@@ -578,7 +580,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             expected = actual
         }
 
-        visitedModels += expectedModel
+        visitedModels += modelWithField
 
         with(testFrameworkManager) {
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
@@ -897,7 +899,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         // if field is static, it is represents itself in "before" and
         // "after" state: no need to assert its equality to itself.
@@ -906,7 +908,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         // if model is already processed, so we don't want to add new statements
-        if (fieldModel in visitedModels) {
+        val modelWithField = ModelWithField(fieldModel, fieldId)
+        if (modelWithField in visitedModels) {
             currentBlock += testFrameworkManager.getDeepEqualsAssertion(expected, actual).toStatement()
             return
         }
@@ -928,7 +931,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         // fieldModel is not visited and will be marked in assertDeepEquals call
         val fieldName = fieldId.name
@@ -950,6 +953,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             actualFieldDeclaration.variable,
             depth + 1,
             visitedModels,
+            fieldId,
         )
         emptyLineIfNeeded()
     }
@@ -960,7 +964,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         val fieldResultModels = fieldsOfExecutionResults[fieldId to depth]
         val nullResultModelInExecutions = fieldResultModels?.find { it.isNull() }
@@ -999,6 +1003,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         actualFieldDeclaration.variable,
                         depth + 1,
                         visitedModels,
+                        fieldId,
                     )
                 }
             )
@@ -1009,6 +1014,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 actualFieldDeclaration.variable,
                 depth + 1,
                 visitedModels,
+                fieldId,
             )
         }
         emptyLineIfNeeded()
@@ -1265,6 +1271,14 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             }
             .onFailure { exception -> processExecutionFailure(exception, executionResult) }
     }
+
+    // Class is required to verify, if current model has already been analyzed in deepEquals.
+    // Using model without related field (if it is present) in comparison is incorrect,
+    // for example, for [UtNullModel] as they are equal to each other..
+    private data class ModelWithField(
+        val fieldModel: UtModel,
+        val relatedField: FieldId?,
+    )
 
     /**
      * We can't use standard deepEquals method in parametrized tests

@@ -102,7 +102,7 @@ class BaselineAlgorithm(
             val visited: MutableSet<HintCollectorNode> = mutableSetOf()
             visitNodesByReverseEdges(node, visited) { it is HintEdgeWithBound && EDGES_TO_LINK.contains(it.source) }
             val (lowerBounds, upperBounds) = collectBoundsFromComponent(visited)
-            val decomposed = decompose(node.partialType, lowerBounds, upperBounds, 1)
+            val decomposed = decompose(node.partialType, lowerBounds, upperBounds, 1, storage)
             allNodes.addAll(decomposed.nodes)
             val edge = BaselineAlgorithmEdge(
                 from = decomposed.root,

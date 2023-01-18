@@ -14,6 +14,15 @@ class Dummy:
         return [self, self]
 
 
+def dict_f(x, a, b, c):
+    y = {1: 2}
+    if x == y:
+        return 1
+    x = a
+    x = b
+    x = c
+    return 2
+
 
 class A:
     x = 4

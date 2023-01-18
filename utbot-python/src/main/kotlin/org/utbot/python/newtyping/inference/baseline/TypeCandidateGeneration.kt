@@ -192,5 +192,6 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
         1,
         withPenalty = false
     )
-    return prefix + rating.types
+    val prefixRating = createTypeRating(prefix, allLowerBounds, allUpperBounds, storage, 1, withPenalty = false)
+    return prefixRating.types + rating.types
 }

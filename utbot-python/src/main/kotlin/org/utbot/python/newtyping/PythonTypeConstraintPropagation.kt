@@ -1,6 +1,8 @@
 package org.utbot.python.newtyping
 
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.TypeParameter
 import org.utbot.python.newtyping.general.getOrigin
 
 enum class ConstraintKind {
@@ -22,16 +24,17 @@ data class TypeConstraint(
     val kind: ConstraintKind
 )
 
-// key: index of annotationParameter
-fun propagateConstraint(type: Type, constraint: TypeConstraint, strict: Boolean = false): Map<Int, TypeConstraint> {
+// key of returned Map: index of annotationParameter
+fun propagateConstraint(type: Type, constraint: TypeConstraint, storage: PythonTypeStorage): Map<Int, TypeConstraint> {
     return when (val description = type.pythonDescription()) {
         is PythonAnyTypeDescription, is PythonNoneTypeDescription, is PythonTypeVarDescription -> emptyMap()
         is PythonOverloadTypeDescription -> emptyMap() // TODO
         is PythonCallableTypeDescription -> emptyMap() // TODO
         is PythonUnionTypeDescription -> emptyMap() // TODO
         is PythonTupleTypeDescription -> emptyMap() // TODO
-        is PythonCompositeTypeDescription -> {
-            propagateConstraintForCompositeType(type, description, constraint)
+        is PythonProtocolDescription -> emptyMap() // TODO
+        is PythonConcreteCompositeTypeDescription -> {
+            propagateConstraintForCompositeType(type, description, constraint, storage)
         }
     }
 }
@@ -39,10 +42,11 @@ fun propagateConstraint(type: Type, constraint: TypeConstraint, strict: Boolean 
 private fun propagateConstraintForCompositeType(
     type: Type,
     description: PythonCompositeTypeDescription,
-    constraint: TypeConstraint
+    constraint: TypeConstraint,
+    storage: PythonTypeStorage
 ): Map<Int, TypeConstraint> {
     return when (val constraintDescription = constraint.type.pythonDescription()) {
-        is PythonCompositeTypeDescription -> {
+        is PythonConcreteCompositeTypeDescription -> {
             if (constraintDescription.name != description.name)
                 return emptyMap()  // TODO: consider some cases here
             val origin = type.getOrigin()
@@ -54,6 +58,37 @@ private fun propagateConstraintForCompositeType(
                     return@mapIndexed Pair(index, TypeConstraint(constraintValue, reverseConstraintKind(constraint.kind)))
                 }
                 return@mapIndexed Pair(index, TypeConstraint(constraintValue, ConstraintKind.BothSided))
+            }.associate { it }
+        }
+        is PythonProtocolDescription -> {
+            val collectedConstraints = mutableMapOf<Type, TypeConstraint>()
+            val origin = type.getOrigin()
+            constraintDescription.protocolMemberNames.forEach {
+                val abstractAttr = constraint.type.getPythonAttributeByName(storage, it) ?: return@forEach
+                val concreteAttr = origin.getPythonAttributeByName(storage, it) ?: return@forEach
+                // TODO: consider more cases
+                when (val desc = concreteAttr.type.pythonDescription()) {
+                    is PythonTypeVarDescription -> {
+                        collectedConstraints[concreteAttr.type] =
+                            TypeConstraint(abstractAttr.type, ConstraintKind.UpperBound)
+                    }
+                    is PythonCallableTypeDescription -> {
+                        if (abstractAttr.type !is FunctionType)
+                            return@forEach
+                        val callable = desc.castToCompatibleTypeApi(concreteAttr.type)
+                        (callable.arguments zip abstractAttr.type.arguments).forEach { (arg, abs) ->
+                            if (arg is TypeParameter)
+                                collectedConstraints[arg] = TypeConstraint(abs, ConstraintKind.UpperBound)
+                        }
+                        if (callable.returnValue is TypeParameter)
+                            collectedConstraints[callable.returnValue] =
+                                TypeConstraint(abstractAttr.type.returnValue, ConstraintKind.LowerBound)
+                    }
+                    else -> {}
+                }
+            }
+            origin.parameters.mapIndexedNotNull { ind, param ->
+                collectedConstraints[param]?.let { Pair(ind, it) }
             }.associate { it }
         }
         else -> emptyMap() // TODO: consider some other cases here

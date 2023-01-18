@@ -12,10 +12,12 @@ import org.utbot.python.newtyping.mypy.readMypyAnnotationStorage
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PythonTypeConstraintPropagationKtTest {
     lateinit var storage: MypyAnnotationStorage
+    lateinit var pythonTypeStorage: PythonTypeStorage
     @BeforeAll
     fun setup() {
         val sample = AnnotationFromMypyKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
+        pythonTypeStorage = PythonTypeStorage.get(storage)
     }
 
     @Test
@@ -26,7 +28,7 @@ internal class PythonTypeConstraintPropagationKtTest {
         val dictOfAny = DefaultSubstitutionProvider.substituteAll(dict, listOf(pythonAnyType, pythonAnyType))
         val dictOfStrToInt = DefaultSubstitutionProvider.substituteAll(dict, listOf(str, int))
         val constraint = TypeConstraint(dictOfStrToInt, ConstraintKind.LowerBound)
-        val propagated = propagateConstraint(dictOfAny, constraint)
+        val propagated = propagateConstraint(dictOfAny, constraint, pythonTypeStorage)
         assertTrue(propagated.size == 2)
         assertTrue(PythonTypeWrapperForEqualityCheck(propagated[0]!!.type) == PythonTypeWrapperForEqualityCheck(str))
         assertTrue(propagated[0]!!.kind == ConstraintKind.BothSided)

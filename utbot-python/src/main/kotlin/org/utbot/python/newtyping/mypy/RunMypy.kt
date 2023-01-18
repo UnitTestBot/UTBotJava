@@ -109,6 +109,8 @@ fun checkSuggestedSignatureWithDMypy(
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)
     val report = getErrorsAndNotes(mypyOutput)
     val errorNumber = getErrorNumber(report, fileForMypyCode.canonicalPath, 0, mypyCode.length)
+    if (errorNumber > initialErrorNumber)
+        logger.debug(mypyOutput)
     return errorNumber <= initialErrorNumber
 }
 

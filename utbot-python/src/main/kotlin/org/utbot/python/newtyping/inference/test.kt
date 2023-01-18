@@ -8,7 +8,7 @@ fun main() {
         directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/PythonRobotics"),
         "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py",
         moduleOfSourceFile = "PathPlanning.DynamicWindowApproach.dynamic_window_approach",
-        "calc_obstacle_cost"
+        "calc_to_goal_cost"
     ).inferTypes(cancel = { false }).forEach {
         println(it.pythonTypeRepresentation())
     }

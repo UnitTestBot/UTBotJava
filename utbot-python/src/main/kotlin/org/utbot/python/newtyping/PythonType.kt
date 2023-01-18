@@ -40,7 +40,7 @@ fun Type.pythonTypeRepresentation(): String {
 }
 
 fun Type.pythonTypeName(): String {
-    return pythonDescription().getTypeName(this)
+    return pythonDescription().getTypeName()
 }
 
 class PythonTypeStorage(
@@ -99,13 +99,16 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
     open fun createTypeWithNewAnnotationParameters(like: Type, newParams: List<Type>): Type =  // overriden for Callable
         DefaultSubstitutionProvider.substituteAll(like.getOrigin(), newParams)
     open fun getTypeRepresentation(type: Type): String {  // overriden for Callable
-        val root = getTypeName(type)
+        if (name.prefix == listOf("builtins") && name.name == "tuple") {
+            return "${getTypeName()}[${type.parameters.first().pythonTypeRepresentation()}, ...]"
+        }
+        val root = getTypeName()
         val params = getAnnotationParameters(type)
         if (params.isEmpty())
             return root
         return "$root[${params.joinToString { it.pythonTypeRepresentation() }}]"
     }
-    open fun getTypeName(type: Type): String {
+    fun getTypeName(): String {
         return if (name.prefix.isEmpty())
             name.name
         else

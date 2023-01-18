@@ -78,7 +78,8 @@ object PythonTestGenerationProcessor {
                 pythonPath,
                 pythonFilePath,
                 currentPythonModule,
-                mypyConfigFile
+                mypyConfigFile,
+                pythonFilePath
             )
 
             startedTestGenerationAction()

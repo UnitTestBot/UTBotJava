@@ -14,6 +14,18 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionSpecification
 
+internal class UtConcreteExecutionForceException(override val cause: Throwable) : Exception()
+
+internal inline fun <reified T> withForceException(block: () -> T): T {
+    try {
+        return block()
+    } catch (e: UtConcreteExecutionForceException) {
+        throw e
+    } catch (e: Throwable) {
+        throw UtConcreteExecutionForceException(e)
+    }
+}
+
 class PhasesController(
     instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
@@ -39,6 +51,8 @@ class PhasesController(
         return use {
             try {
                 block()
+            } catch (e: UtConcreteExecutionForceException) {
+                throw e.cause
             } catch (e: PhaseError) {
                 if (e.cause.cause is AccessControlException) {
                     return@use UtConcreteExecutionResult(

@@ -2,8 +2,6 @@ package org.utbot.framework.codegen.tree
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
-import org.reflections.Reflections
-import org.reflections.scanners.Scanners
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
@@ -57,6 +55,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.underlyingType
+import soot.Scene
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -212,22 +211,16 @@ internal fun infiniteInts(): Sequence<Int> =
 
 internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
 
-private var simpleNamesNotRequiringImports = emptySet<String>()
+private val simpleNamesNotRequiringImports by lazy { findSimpleNamesNotRequiringImports() }
 
 /**
  * Some class names do not require imports, but may lead to simple names clash.
- * For example, custom class Compiler may clash with java.lang.Compiler.
+ * For example, custom class [Compiler] may clash with [java.lang.Compiler].
  */
-private fun findSimpleNamesNotRequiringImports(): Set<String> {
-    if (simpleNamesNotRequiringImports.isEmpty()) {
-        val reflectionsStore = Reflections("java.lang", Scanners.SubTypes).store.values
-        val fullNamesNotRequiringImports = reflectionsStore.flatMap { it.entries }.flatMap { it.value }
-
-        simpleNamesNotRequiringImports = fullNamesNotRequiringImports.map { it.substringAfterLast('.') }.toSet()
-    }
-
-    return simpleNamesNotRequiringImports
-}
+private fun findSimpleNamesNotRequiringImports(): Set<String> =
+    Scene.v().classes
+        .filter { it.packageName == "java.lang" }
+        .mapNotNullTo(mutableSetOf()) { it.shortName }
 
 /**
  * Checks if we have already imported a class with such simple name.
@@ -235,7 +228,7 @@ private fun findSimpleNamesNotRequiringImports(): Set<String> {
  * and should use its fully qualified name instead.
  */
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
-    importedClasses.none { it.simpleName == type.simpleName } && type.simpleName !in findSimpleNamesNotRequiringImports()
+    importedClasses.none { it.simpleName == type.simpleName } && type.simpleName !in simpleNamesNotRequiringImports
 
 fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change

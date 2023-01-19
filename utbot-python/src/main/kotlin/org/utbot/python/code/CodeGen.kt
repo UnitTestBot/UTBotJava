@@ -11,9 +11,6 @@ import org.utbot.python.newtyping.general.Type
 
 
 object PythonCodeGenerator {
-    const val successStatus = "success"
-    const val failStatus = "fail"
-
     fun generateRunFunctionCode(
         method: PythonMethod,
         methodArguments: List<UtModel>,

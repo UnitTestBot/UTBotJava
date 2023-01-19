@@ -37,6 +37,12 @@ class PythonEvaluationSuccess(
     operator fun component3() = coverage
 }
 
+enum class PythonEvaluationStatus(val value: String) {
+    SUCCESS("success"),
+    FAIL("fail"),
+    ARGUMENTS_FAIL("arguments_fail"),
+}
+
 data class OutputData(val output: PythonTree.PythonTreeNode, val type: PythonClassId)
 
 data class EvaluationInput(
@@ -135,26 +141,35 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
             emptyList()
         )
 
-    val status = output[0]
+    return when (val status = output[0]) {
+        PythonEvaluationStatus.ARGUMENTS_FAIL.value -> {
+            PythonEvaluationError(
+                0,
+                output[1],
+                emptyList(),
+            )
+        }
+        PythonEvaluationStatus.FAIL.value, PythonEvaluationStatus.SUCCESS.value -> {
+            val isSuccess = status == PythonEvaluationStatus.SUCCESS.value
 
-    if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
-        return PythonEvaluationError(
-            0,
-            "Incorrect format of output",
-            emptyList()
-        )
+            val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
+            val stmts = Klaxon().parseArray<Int>(output[2])!!
+            val missed = Klaxon().parseArray<Int>(output[3])!!
 
-    val isSuccess = status == PythonCodeGenerator.successStatus
+            val coverage = calculateCoverage(stmts, missed, input)
 
-    val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
-    val stmts = Klaxon().parseArray<Int>(output[2])!!
-    val missed = Klaxon().parseArray<Int>(output[3])!!
-
-    val coverage = calculateCoverage(stmts, missed, input)
-
-    return PythonEvaluationSuccess(
-        OutputData(pythonTree, pythonTree.type),
-        !isSuccess,
-        coverage
-    )
+            PythonEvaluationSuccess(
+                OutputData(pythonTree, pythonTree.type),
+                !isSuccess,
+                coverage
+            )
+        }
+        else -> {
+            PythonEvaluationError(
+                0,
+                "Incorrect format of output",
+                emptyList()
+            )
+        }
+    }
 }

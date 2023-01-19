@@ -1,8 +1,8 @@
 package org.utbot.python.newtyping
 
 import org.utbot.python.newtyping.general.*
-import org.utbot.python.newtyping.mypy.DefinitionType
-import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
+import org.utbot.python.newtyping.general.Name
+import org.utbot.python.newtyping.mypy.*
 
 fun Type.isPythonType(): Boolean {
     return meta is PythonTypeDescription
@@ -59,13 +59,23 @@ class PythonTypeStorage(
     val allTypes: Set<Type>
 ) {
     companion object {
+        private fun getNestedClasses(cur: MypyAnnotation, result: MutableSet<Type>) {
+            val type = cur.asUtBotType
+            if (type is CompositeType && cur.node is CompositeAnnotationNode) {
+                result.add(type)
+                (cur.node as CompositeAnnotationNode).names.values.forEach {
+                    if (it.kind == DefinitionType.Type)
+                        getNestedClasses(it.annotation, result)
+                }
+            }
+        }
         fun get(mypyStorage: MypyAnnotationStorage): PythonTypeStorage {
             val module = mypyStorage.definitions["builtins"]!!
             val allTypes: MutableSet<Type> = mutableSetOf()
             mypyStorage.definitions.forEach { (_, curModule) ->
                 curModule.values.forEach {
                     if (it.kind == DefinitionType.Type)
-                        allTypes.add(it.annotation.asUtBotType)
+                        getNestedClasses(it.annotation, allTypes)
                 }
             }
             val tuple = module["tuple"]!!.annotation.asUtBotType

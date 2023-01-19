@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.engine.Concrete
@@ -14,6 +15,7 @@ import org.utbot.engine.MockInfoEnriched
 import org.utbot.engine.ObjectValue
 import org.utbot.engine.StaticFieldMemoryUpdateInfo
 import org.utbot.engine.SymbolicValue
+import org.utbot.engine.TypeStorage
 import org.utbot.engine.UtMockInfo
 import org.utbot.engine.UtNamedStore
 import org.utbot.engine.pc.Simplificator
@@ -33,6 +35,7 @@ typealias StaticFieldsUpdatesType = PersistentList<StaticFieldMemoryUpdateInfo>
 typealias MeaningfulStaticFieldsType = PersistentSet<FieldId>
 typealias FieldValuesType = PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>>
 typealias AddrToArrayTypeType = PersistentMap<UtAddrExpression, ArrayType>
+typealias AddrToGenericTypeInfo = PersistentList<Pair<UtAddrExpression, List<TypeStorage>>>
 typealias AddrToMockInfoType = PersistentMap<UtAddrExpression, UtMockInfo>
 typealias VisitedValuesType = PersistentList<UtAddrExpression>
 typealias TouchedAddressesType = PersistentList<UtAddrExpression>
@@ -55,6 +58,7 @@ class MemoryUpdateSimplificator(
         val meaningfulStaticFields = simplifyMeaningfulStaticFields(meaningfulStaticFields)
         val fieldValues = simplifyFieldValues(fieldValues)
         val addrToArrayType = simplifyAddrToArrayType(addrToArrayType)
+        val genericTypeStorageByAddr = simplifyGenericTypeStorageByAddr(genericTypeStorageByAddr)
         val addrToMockInfo = simplifyAddrToMockInfo(addrToMockInfo)
         val visitedValues = simplifyVisitedValues(visitedValues)
         val touchedAddresses = simplifyTouchedAddresses(touchedAddresses)
@@ -74,6 +78,7 @@ class MemoryUpdateSimplificator(
             meaningfulStaticFields,
             fieldValues,
             addrToArrayType,
+            genericTypeStorageByAddr,
             addrToMockInfo,
             visitedValues,
             touchedAddresses,
@@ -136,6 +141,10 @@ class MemoryUpdateSimplificator(
             .mapKeys { (k, _) -> k.accept(simplificator) as UtAddrExpression }
             .toPersistentMap()
 
+    private fun simplifyGenericTypeStorageByAddr(genericTypeStorageByAddr: AddrToGenericTypeInfo): AddrToGenericTypeInfo =
+        genericTypeStorageByAddr
+            .map { (k, v) -> k.accept(simplificator) as UtAddrExpression to v }
+            .toPersistentList()
 
     private fun simplifyAddrToMockInfo(addrToMockInfo: AddrToMockInfoType): AddrToMockInfoType =
         addrToMockInfo

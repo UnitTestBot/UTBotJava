@@ -1,11 +1,14 @@
 package org.utbot.engine.types
 
+import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.engine.ArrayValue
 import org.utbot.engine.ChunkId
 import org.utbot.engine.Hierarchy
+import org.utbot.engine.Memory
 import org.utbot.engine.MemoryChunkDescriptor
+import org.utbot.engine.MemoryUpdate
 import org.utbot.engine.ObjectValue
 import org.utbot.engine.ReferenceValue
 import org.utbot.engine.TypeStorage
@@ -24,6 +27,7 @@ import org.utbot.engine.nullObjectAddr
 import org.utbot.engine.numDimensions
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
+import org.utbot.engine.pc.UtEqGenericTypeParametersExpression
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkEq
 import org.utbot.engine.rawType
@@ -321,6 +325,183 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 .sortedByDescending { typeRegistry.findRating(it) }
                 .firstOrNull { it.sootClass.isAppropriate }
         }
+
+    companion object {
+        private fun createUpdateForGenericTypeInfo(
+            addr: UtAddrExpression,
+            typeStorages: List<TypeStorage>
+        ) = MemoryUpdate(genericTypeStorageByAddr = persistentListOf(addr to typeStorages))
+
+        /**
+         * Extracts type information for an object with specified [addr] from the [memory].
+         * If it contains more type storages than one, or it contains an empty list of storages,
+         * an error will be thrown.
+         *
+         * [objectClassName] is used for an error message.
+         */
+        fun extractTypeStorageForObjectWithSingleTypeParameter(
+            addr: UtAddrExpression,
+            objectClassName: String,
+            memory: Memory
+        ): TypeStorage? {
+            val valueTypeFromGenerics = memory.getTypeStoragesForObjectTypeParameters(addr)
+
+            if (valueTypeFromGenerics != null && valueTypeFromGenerics.size != 1) {
+                error("$objectClassName must have only one type parameter, but it got ${valueTypeFromGenerics.size}")
+            }
+
+            return valueTypeFromGenerics?.single()
+        }
+
+        /**
+         * Creates a memory update for setting types storages for [firstAddr]'s
+         * type parameters equal to type storages for [secondAddr]'s type parameters
+         * according to provided types injection represented by [indexInjection].
+         *
+         * [genericTypeStorageByAddr] is a storage from which this type information is extracted.
+         */
+        private fun setParameterTypeStoragesEquality(
+            firstAddr: UtAddrExpression,
+            secondAddr: UtAddrExpression,
+            indexInjection: Array<out Pair<Int, Int>>,
+            genericTypeStorageByAddr: Map<UtAddrExpression, List<TypeStorage>>
+        ): MemoryUpdate {
+            val existingGenericTypes = genericTypeStorageByAddr[secondAddr] ?: return MemoryUpdate()
+
+            val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
+
+            indexInjection.forEach { (from, to) ->
+                require(from >= 0 && from < existingGenericTypes.size) {
+                    "Type injection is out of bounds: should be in [0; ${existingGenericTypes.size}) but is $from"
+                }
+
+                currentGenericTypes[to] = existingGenericTypes[from]
+            }
+
+            return createUpdateForGenericTypeInfo(
+                firstAddr,
+                currentGenericTypes
+                    .entries
+                    .sortedBy { it.key }
+                    .mapTo(mutableListOf()) { it.value }
+            )
+        }
+
+        /**
+         * Returns a constraint representing that type parameters of an object
+         * with address [firstAddr] are equal to type parameters of an object
+         * with address [secondAddr], corresponding to [indexInjection],
+         * and a memory update for it.
+         *
+         * [genericTypeStorageByAddr] is a storage from which this type information is extracted.
+         *
+         * @see UtEqGenericTypeParametersExpression
+         */
+        @Suppress("unused")
+        fun eqGenericTypeParametersConstraint(
+            firstAddr: UtAddrExpression,
+            secondAddr: UtAddrExpression,
+            genericTypeStorageByAddr: Map<UtAddrExpression, List<TypeStorage>>,
+            vararg indexInjection: Pair<Int, Int>
+        ): Pair<UtEqGenericTypeParametersExpression, MemoryUpdate> {
+            val memoryUpdate = setParameterTypeStoragesEquality(
+                firstAddr,
+                secondAddr,
+                indexInjection,
+                genericTypeStorageByAddr
+            )
+
+            return UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(*indexInjection)) to memoryUpdate
+        }
+
+        /**
+         * Returns a constraint representing that type parameters of an object with address [firstAddr]
+         * are equal to the corresponding type parameters of an object with address [secondAddr]
+         * and a corresponding memory update.
+         *
+         * [genericTypeStorageByAddr] is a storage from which this type information is extracted.
+         *
+         * @see UtEqGenericTypeParametersExpression
+         */
+        fun eqGenericTypeParametersConstraint(
+            firstAddr: UtAddrExpression,
+            secondAddr: UtAddrExpression,
+            parameterSize: Int,
+            genericTypeStorageByAddr: Map<UtAddrExpression, List<TypeStorage>>
+        ) : Pair<UtEqGenericTypeParametersExpression, MemoryUpdate> {
+            val injections = Array(parameterSize) { it to it }
+
+            return eqGenericTypeParametersConstraint(firstAddr, secondAddr, genericTypeStorageByAddr, *injections)
+        }
+
+        /**
+         * Returns a constraint representing that the first type parameter
+         * of an object with address [firstAddr] is equal to the first
+         * type parameter of an object with address [secondAddr].
+         *
+         * [genericTypeStorageByAddr] is a storage from which this type information is extracted.
+         *
+         * @see UtEqGenericTypeParametersExpression
+         */
+        fun eqGenericSingleTypeParameterConstraint(
+            firstAddr: UtAddrExpression,
+            secondAddr: UtAddrExpression,
+            genericTypeStorageByAddr: Map<UtAddrExpression, List<TypeStorage>>
+        ): Pair<UtEqGenericTypeParametersExpression, MemoryUpdate> =
+            eqGenericTypeParametersConstraint(firstAddr, secondAddr, genericTypeStorageByAddr, 0 to 0)
+
+        /**
+         * Creates a memory update for associating provided [typeStorages] with an object with the provided [addr].
+         */
+        fun createGenericTypeInfoUpdate(
+            addr: UtAddrExpression,
+            typeStorages: List<TypeStorage>,
+            genericTypeStorageByAddr: Map<UtAddrExpression, List<TypeStorage>>
+        ): MemoryUpdate {
+            if (addr !in genericTypeStorageByAddr.keys) {
+                return createUpdateForGenericTypeInfo(addr, typeStorages)
+            }
+
+            val alreadyAddedTypeStorages = genericTypeStorageByAddr.getValue(addr)
+
+            // Because of the design decision for genericTypeStorage map, it contains a
+            // mapping from addresses to associated with them type arguments.
+            // Therefore, first element of the list is a first type argument for the instance, and so on.
+            // To update type information, we have to update a corresponding type storage.
+            // Because of that, update is only possible when we have information about all type arguments.
+            require(typeStorages.size == alreadyAddedTypeStorages.size) {
+                "Wrong number of type storages is provided," +
+                        " expected ${alreadyAddedTypeStorages.size} arguments," +
+                        " but only ${typeStorages.size} found"
+            }
+
+            val modifiedTypeStorages = alreadyAddedTypeStorages.mapIndexed { index, typeStorage ->
+                val newTypeStorage = typeStorages[index]
+
+                val updatedTypes = typeStorage.possibleConcreteTypes.intersect(newTypeStorage.possibleConcreteTypes)
+
+                // TODO should be really the least common type
+                // we have two type storages and know that one of them is subset of another one.
+                // Therefore, when we intersect them, we should chose correct least common type among them,
+                // but we don't do it here since it is not obvious, what is a correct way to do it.
+                // There is no access from here to typeResolver or Hierarchy, so it need to be
+                // reconsidered in the future, how to intersect type storages here or extract this function.
+                // For now we just take a leastCommonType from a type storage that contains less
+                // possible concrete types.
+                val alreadyAddedSize = typeStorage.possibleConcreteTypes.size
+                val newTypesSize = newTypeStorage.possibleConcreteTypes.size
+                val leastCommonType = if (alreadyAddedSize < newTypesSize) {
+                    typeStorage.leastCommonType
+                } else {
+                    newTypeStorage.leastCommonType
+                }
+
+                TypeStorage.constructTypeStorageUnsafe(leastCommonType, updatedTypes)
+            }
+
+            return createUpdateForGenericTypeInfo(addr, modifiedTypeStorages)
+        }
+    }
 }
 
 internal const val NUMBER_OF_PREFERRED_TYPES = 3

@@ -127,7 +127,7 @@ typealias Address = Int
  */
 class Resolver(
     val hierarchy: Hierarchy,
-    private val memory: Memory,
+    val memory: Memory,
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,

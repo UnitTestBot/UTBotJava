@@ -1,21 +1,23 @@
 package service
 
-import com.google.javascript.rhino.Node
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtModel
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
-import parser.JsParserUtils.getClassName
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.PathResolver
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
-class CoverageServiceProvider(private val context: ServiceContext) {
+// TODO: remove classNode field.
+class CoverageServiceProvider(
+    private val context: ServiceContext,
+    private val instrumentationService: InstrumentationService,
+): ContextOwner by context {
 
-    private val importFileUnderTest = "instr/${context.filePathToInference.substringAfterLast("/")}"
+    private val importFileUnderTest = "instr/${filePathToInference.substringAfterLast("/")}"
 
     private val imports = "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
             "const fs = require(\"fs\")\n\n"
@@ -24,38 +26,31 @@ class CoverageServiceProvider(private val context: ServiceContext) {
         mode: CoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: Node?
     ): Pair<List<Set<Int>>, List<String>> {
         return when (mode) {
             CoverageMode.FAST -> runFastCoverageAnalysis(
-                context,
                 fuzzedValues,
-                execId,
-                classNode
+                execId
             )
 
             CoverageMode.BASIC -> runBasicCoverageAnalysis(
-                context,
                 fuzzedValues,
-                execId,
-                classNode
+                execId
             )
         }
     }
 
     private fun runBasicCoverageAnalysis(
-        context: ServiceContext,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: Node?,
     ): Pair<List<Set<Int>>, List<String>> {
         val tempScriptTexts = fuzzedValues.indices.map {
             "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = classNode?.getClassName(),
+                containingClass = execId.classId.name,
                 index = it,
-                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
+                resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
                 mode = CoverageMode.BASIC
             )
         }
@@ -68,24 +63,22 @@ class CoverageServiceProvider(private val context: ServiceContext) {
     }
 
     private fun runFastCoverageAnalysis(
-        context: ServiceContext,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: Node?,
     ): Pair<List<Set<Int>>, List<String>> {
-        val covFunName = FastCoverageService.instrument(context)
+        val covFunName = instrumentationService.covFunName
         val tempScriptTexts = fuzzedValues.indices.map {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = classNode?.getClassName(),
+                containingClass = execId.classId.name,
                 covFunName = covFunName,
                 index = it,
-                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
+                resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
                 mode = CoverageMode.FAST
             )
         }
-        val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${context.projectPath}/${context.utbotDir}/${tempFileName}Base.json")
+        val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${projectPath}/${utbotDir}/${tempFileName}Base.json")
         val coverageService = FastCoverageService(
             context = context,
             scriptTexts = splitTempScriptsIfNeeded(tempScriptTexts),

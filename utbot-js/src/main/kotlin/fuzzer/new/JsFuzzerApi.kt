@@ -21,7 +21,6 @@ class JsMethodDescription(
 
 class JsFeedback(
     override val control: Control = Control.CONTINUE,
-    val values: List<FuzzedValue>
 ) : Feedback<JsClassId, FuzzedValue> {
 
     override fun equals(other: Any?): Boolean {

@@ -1,5 +1,6 @@
 package fuzzer.new
 
+import api.JsExecutionFeedback
 import framework.api.js.JsClassId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -13,12 +14,17 @@ import kotlin.random.Random
 
 fun defaultValueProviders() = listOf(
     BoolValueProvider,
-    NumberValueProvider
+    FloatValueProvider
 )
 
 class JsFuzzing(
-    val exec: suspend (JsMethodDescription, List<FuzzedValue>) -> Unit
+    val exec: suspend (JsMethodDescription, List<FuzzedValue>) -> JsFeedback
 ) : Fuzzing<JsClassId, FuzzedValue, JsMethodDescription, JsFeedback> {
+
+    val collectedValues = mutableListOf<List<FuzzedValue>>()
+
+    private val chunkThreshold = 3
+
     override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, FuzzedValue>> {
         return defaultValueProviders().asSequence().flatMap { provider ->
             if (provider.accept(type)) {
@@ -30,13 +36,11 @@ class JsFuzzing(
     }
 
     override suspend fun handle(description: JsMethodDescription, values: List<FuzzedValue>): JsFeedback {
-        exec(description, values)
-        return JsFeedback(values = emptyList())
+        return exec(description, values)
     }
 }
 
-fun runFuzzing(description: JsMethodDescription): Flow<List<FuzzedValue>> = flow {
-    JsFuzzing { _, values ->
-        emit(values)
-    }.fuzz(description, Random(0), Configuration())
-}
+suspend fun runFuzzing(
+    description: JsMethodDescription,
+    exec: suspend (JsMethodDescription, List<FuzzedValue>) -> JsFeedback
+) = JsFuzzing(exec).fuzz(description, Random(0), Configuration())

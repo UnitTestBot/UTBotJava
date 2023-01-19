@@ -24,30 +24,6 @@ class FastCoverageService(
             .map { (_, obj) -> obj }
     private var baseCoverage: List<Int>
 
-    companion object {
-        fun instrument(context: ServiceContext): String {
-            val destination = "${context.projectPath}/${context.utbotDir}/instr"
-            val fileName = context.filePathToInference.substringAfterLast("/")
-            with(context) {
-                JsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destination),
-                    dir = context.filePathToInference.substringBeforeLast("/"),
-                    shouldWait = true,
-                    timeout = settings.timeout,
-                )
-            }
-
-            val instrumentedFilePath = "$destination/${context.filePathToInference.substringAfterLast("/")}"
-            val instrumentedFileText = File(instrumentedFilePath).readText()
-            val covFunRegex = Regex("function (cov_.*)\\(\\).*")
-            val covFunName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value ?: throw IllegalStateException("")
-            val fixedFileText = "$instrumentedFileText\nexports.$covFunName = $covFunName"
-            File(instrumentedFilePath).writeText(fixedFileText)
-
-            return covFunName
-        }
-    }
-
     init {
         generateTempFiles()
         baseCoverage = getBaseCoverage()

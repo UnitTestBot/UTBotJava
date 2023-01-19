@@ -3,52 +3,23 @@ package org.utbot.instrumentation.instrumentation.execution
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
-import org.utbot.framework.UtSettings
-import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
-import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
-import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
-import org.utbot.instrumentation.instrumentation.execution.phases.start
-import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
-
-/**
- * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
- *
- * @property [stateBefore] is necessary for construction of parameters of a concrete call.
- * @property [instrumentation] is necessary for mocking static methods and new instances.
- * @property [timeout] is timeout for specific concrete execution (in milliseconds).
- * By default is initialized from [UtSettings.concreteExecutionTimeoutInInstrumentedProcess]
- */
-data class UtConcreteExecutionData(
-    val stateBefore: EnvironmentModels,
-    val instrumentation: List<UtInstrumentation>,
-    val timeout: Long = UtSettings.concreteExecutionTimeoutInInstrumentedProcess
-)
-
-class UtConcreteExecutionResult(
-    val stateAfter: EnvironmentModels,
-    val result: UtExecutionResult,
-    val coverage: Coverage
-) {
-    override fun toString(): String = buildString {
-        appendLine("UtConcreteExecutionResult(")
-        appendLine("stateAfter=$stateAfter")
-        appendLine("result=$result")
-        appendLine("coverage=$coverage)")
-    }
-}
 
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
@@ -78,7 +49,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         if (parameters !is UtConcreteExecutionData) {
             throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
         }
-        val (stateBefore, instrumentations, timeout) = parameters // smart cast to UtConcreteExecutionData
+        val (stateBefore, instrumentations, timeout, specification) = parameters // smart cast to UtConcreteExecutionData
 
         val methodId = clazz.singleExecutableId(methodSignature)
         val returnClassId = methodId.returnType
@@ -86,7 +57,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         return PhasesController(
             instrumentationContext,
             traceHandler,
-            delegateInstrumentation
+            delegateInstrumentation,
+            specification,
         ).computeConcreteExecutionResult {
             // construction
             val (params, statics, cache) = valueConstructionContext.start {

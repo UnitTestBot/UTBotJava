@@ -42,13 +42,15 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
 import kotlin.system.measureTimeMillis
+import org.utbot.instrumentation.instrumentation.execution.data.FuzzingSpecification
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionSpecification
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -341,6 +343,7 @@ class UtBotSymbolicEngine(
             // Currently, fuzzer doesn't work with static methods with empty parameters
             return@flow
         }
+        val concreteExecutorSpecification = FuzzingSpecification()
         val errorStackTraceTracker = Trie(StackTraceElement::toString)
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
@@ -362,7 +365,12 @@ class UtBotSymbolicEngine(
             val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
-                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+                concreteExecutor.executeConcretely(
+                    methodUnderTest,
+                    initialEnvironmentModels,
+                    listOf(),
+                    concreteExecutorSpecification,
+                )
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
             } catch (e: ConcreteExecutionFailureException) {
@@ -373,6 +381,11 @@ class UtBotSymbolicEngine(
 
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+
+            if (concreteExecutionResult.isExpectedFailure()) {
+                logger.debug { "Expected failure in concrete executor: ${concreteExecutionResult.result.exceptionOrNull()}" }
+                return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+            }
 
             if (concreteExecutionResult.violatesUtMockAssumption()) {
                 logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
@@ -559,14 +572,16 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
 private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
-    instrumentation: List<UtInstrumentation>
+    instrumentation: List<UtInstrumentation>,
+    specification: UtConcreteExecutionSpecification? = null,
 ): UtConcreteExecutionResult = executeAsync(
     methodUnderTest.classId.name,
     methodUnderTest.signature,
     arrayOf(),
     parameters = UtConcreteExecutionData(
         stateBefore,
-        instrumentation
+        instrumentation,
+        specification = specification
     )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 
@@ -622,4 +637,8 @@ private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
     // but the `UtMockAssumptionViolatedException` is loaded by the current ClassLoader,
     // so we can't cast them to each other.
     return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
+}
+
+private fun UtConcreteExecutionResult.isExpectedFailure(): Boolean {
+    return result is UtIgnoreFailure
 }

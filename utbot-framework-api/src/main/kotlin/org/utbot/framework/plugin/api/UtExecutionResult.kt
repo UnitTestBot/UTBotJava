@@ -21,6 +21,10 @@ sealed class UtExecutionFailure : UtExecutionResult() {
         get() = exception
 }
 
+data class UtIgnoreFailure(
+    override val exception: Throwable,
+) : UtExecutionFailure()
+
 data class UtOverflowFailure(
     override val exception: Throwable,
 ) : UtExecutionFailure()

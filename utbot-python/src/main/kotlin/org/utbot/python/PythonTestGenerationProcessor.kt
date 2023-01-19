@@ -147,7 +147,7 @@ object PythonTestGenerationProcessor {
                     execution.stateBefore.parameters.flatMap { utModel ->
                         (utModel as PythonModel).let {
                             it.allContainingClassIds.map { classId ->
-                                PythonUserImport(classId.moduleName)
+                                PythonUserImport(importName_ = classId.moduleName)
                             }
                         }
                     }
@@ -159,7 +159,7 @@ object PythonTestGenerationProcessor {
                         (execution.result as UtExecutionSuccess).let { result ->
                             (result.model as PythonModel).let {
                                 it.allContainingClassIds.map { classId ->
-                                    PythonUserImport(classId.moduleName)
+                                    PythonUserImport(importName_ = classId.moduleName)
                                 }
                             }
                         }
@@ -167,13 +167,13 @@ object PythonTestGenerationProcessor {
                 }.flatten()
             }
             val testRootModules = notEmptyTests.mapNotNull { testSet ->
-                methodIds[testSet.method]?.rootModuleName?.let { PythonUserImport(it) }
+                methodIds[testSet.method]?.rootModuleName?.let { PythonUserImport(importName_ = it) }
             }
             val sysImport = PythonSystemImport("sys")
             val sysPathImports = relativizePaths(pythonRunRoot, directoriesForSysPath).map { PythonSysPathImport(it) }
 
             val testFrameworkModule =
-                testFramework.testSuperClass?.let { PythonUserImport((it as PythonClassId).rootModuleName) }
+                testFramework.testSuperClass?.let { PythonUserImport(importName_ = (it as PythonClassId).rootModuleName) }
 
             val allImports = (
                     importParamModules + importResultModules + testRootModules + sysPathImports + listOf(

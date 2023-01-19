@@ -47,7 +47,7 @@ class FastCoverageService(
     private fun getBaseCoverage(): List<Int> {
         with(context) {
             JsCmdExec.runCommand(
-                cmd = arrayOf(settings.pathToNode, "$utbotDirPath/${tempFileName}Base.js"),
+                cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/${tempFileName}Base.js\""),
                 dir = context.projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
@@ -102,7 +102,7 @@ class FastCoverageService(
         scriptTexts.indices.toList().parallelStream().forEach { parallelIndex ->
             with(context) {
                 val (_, error) = JsCmdExec.runCommand(
-                    cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName$parallelIndex.js"),
+                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$parallelIndex.js\""),
                     dir = context.projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,

@@ -41,7 +41,7 @@ class JsRunTestsCommand : CliktCommand(name = "run_js", help = "Runs tests for t
             "mocha" -> {
                 val (textReader, error) = JsCmdExec.runCommand(
                     dir = dir,
-                    cmd = arrayOf("mocha", fileWithTestsAbsolutePath)
+                    cmd = arrayOf("mocha", "\"$fileWithTestsAbsolutePath\"")
                 )
                 val errorText = error.readText()
                 if (errorText.isNotEmpty()) {

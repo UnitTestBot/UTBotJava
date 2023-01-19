@@ -27,7 +27,7 @@ class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton(
     }
 
     fun validateNyc(): ValidationInfo? {
-        return if (replaceSeparator(text).endsWith("nyc"))
+        return if (replaceSeparator(text).endsWith("nyc.cmd"))
             null
         else
             ValidationInfo("Nyc executable file was not found in the specified directory", this)

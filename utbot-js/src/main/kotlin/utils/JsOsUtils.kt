@@ -20,7 +20,7 @@ abstract class OsProvider {
 }
 
 class WindowsProvider : OsProvider() {
-    override fun getCmdPrefix() = arrayOf("cmd.exe", "/c")
+    override fun getCmdPrefix() = emptyArray<String>()
     override fun getAbstractivePathTool() = "where"
 }
 

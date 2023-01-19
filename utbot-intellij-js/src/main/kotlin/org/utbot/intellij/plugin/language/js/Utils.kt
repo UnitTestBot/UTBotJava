@@ -27,7 +27,7 @@ private fun npmListByFlag(model: JsTestsModel, flag: String): String {
         dir = model.project.basePath!!,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(model.pathToNPM, "list", flag)
+        cmd = arrayOf("\"${model.pathToNPM}\"", "list", flag)
     )
     val packages = bufferReader.readText()
     bufferReader.close()
@@ -55,7 +55,7 @@ fun installRequirement(pathToNPM: String, requirement: String, installingDir: St
         dir = installingDir,
         shouldWait = true,
         timeout = 10,
-        cmd = arrayOf(pathToNPM, "install", installationType) + requirement
+        cmd = arrayOf("\"$pathToNPM\"", "install", installationType) + requirement
     )
     return buf1 to buf2
 }

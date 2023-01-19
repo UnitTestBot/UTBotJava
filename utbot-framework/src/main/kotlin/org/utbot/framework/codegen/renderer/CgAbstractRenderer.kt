@@ -74,6 +74,7 @@ import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
 import org.utbot.framework.codegen.domain.models.CgStaticRunnable
 import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgMockMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodCluster
 import org.utbot.framework.codegen.domain.models.CgThisInstance
 import org.utbot.framework.codegen.domain.models.CgThrowStatement
@@ -238,6 +239,15 @@ abstract class CgAbstractRenderer(
     }
 
     override fun visit(element: CgTestMethod) {
+        renderMethodDocumentation(element)
+        for (annotation in element.annotations) {
+            annotation.accept(this)
+        }
+        renderMethodSignature(element)
+        visit(element as CgMethod)
+    }
+
+    override fun visit(element: CgMockMethod) {
         renderMethodDocumentation(element)
         for (annotation in element.annotations) {
             annotation.accept(this)
@@ -758,6 +768,7 @@ abstract class CgAbstractRenderer(
     protected val maxParametersAmountInOneLine = 3
 
     protected abstract fun renderMethodSignature(element: CgTestMethod)
+    protected abstract fun renderMethodSignature(element: CgMockMethod)
     protected abstract fun renderMethodSignature(element: CgErrorTestMethod)
     protected abstract fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod)
 

@@ -61,7 +61,7 @@ open class GeneratorRepository private constructor(
     }
 
     private fun maybeRegisterGeneratorForType(type: Class<*>, generator: Generator) {
-        if (generator.canRegisterAsType(type)) {
+        if (generator.canRegisterAsType(type) && type != Zilch::class.java) {
             registerGeneratorForType(type, generator)
         }
     }

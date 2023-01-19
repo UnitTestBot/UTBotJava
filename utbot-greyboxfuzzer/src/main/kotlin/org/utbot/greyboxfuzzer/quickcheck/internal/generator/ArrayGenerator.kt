@@ -8,15 +8,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.getIdOrThrow
-import org.utbot.framework.plugin.api.util.booleanArrayClassId
-import org.utbot.framework.plugin.api.util.byteArrayClassId
-import org.utbot.framework.plugin.api.util.charArrayClassId
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.doubleArrayClassId
-import org.utbot.framework.plugin.api.util.floatArrayClassId
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.longArrayClassId
-import org.utbot.framework.plugin.api.util.shortArrayClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.greyboxfuzzer.quickcheck.generator.*
 import org.utbot.greyboxfuzzer.quickcheck.internal.Ranges
 import org.utbot.greyboxfuzzer.quickcheck.internal.Reflection
@@ -136,7 +128,13 @@ class ArrayGenerator(private val componentType: Class<*>, val component: Generat
         Float::class.javaPrimitiveType -> floatArrayClassId
         Long::class.javaPrimitiveType -> longArrayClassId
         Short::class.javaPrimitiveType -> shortArrayClassId
-        else -> ClassId("[L${classIdForType(componentType)};", classIdForType(componentType))//ClassId("[L", classIdForType(componentType))
+        else ->
+            if (componentType.isArray) {
+                val arrayComponentType = getClassIdForArrayType(componentType.componentType)
+                ClassId("[${arrayComponentType.name}", arrayComponentType)
+            } else {
+                ClassId("[L${classIdForType(componentType)};", classIdForType(componentType))
+            }
     }
 
     override fun provide(provided: Generators) {

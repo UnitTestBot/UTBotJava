@@ -45,6 +45,7 @@ interface CgElement {
             is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
+            is CgMockMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
             is CgParameterizedTestDataProviderMethod -> visit(element)
             is CgCommentedAnnotation -> visit(element)
@@ -133,7 +134,7 @@ class CgClass(
     val body: CgClassBody,
     val isStatic: Boolean,
     val isNested: Boolean,
-): CgElement {
+): CgStatement {
     val packageName
         get() = id.packageName
 
@@ -278,6 +279,17 @@ class CgTestMethod(
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
     val type: CgTestMethodType,
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
+    override val requiredFields: List<CgParameterDeclaration> = emptyList(),
+) : CgMethod(false)
+
+class CgMockMethod(
+    override val name: String,
+    override val returnType: ClassId,
+    override val parameters: List<CgParameterDeclaration>,
+    override val statements: List<CgStatement>,
+    override val exceptions: Set<ClassId>,
+    override val annotations: List<CgAnnotation>,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
     override val requiredFields: List<CgParameterDeclaration> = emptyList(),
 ) : CgMethod(false)

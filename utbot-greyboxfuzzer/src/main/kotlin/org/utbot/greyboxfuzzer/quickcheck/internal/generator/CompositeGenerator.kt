@@ -126,7 +126,9 @@ class CompositeGenerator(composed: List<Weighted<Generator>>) : Generator(Any::c
         return gen.also {
             it.generatedUtModel = generatedUtModel
             it.generationState = generationState
-            it.generatorContext = generatorContext
+            if (isGeneratorContextInitialized()) {
+                it.generatorContext = generatorContext
+            }
             it.nestedGenerators = nestedGenerators.map { it.copy() }.toMutableList()
             GeneratorConfigurator.configureGenerator(it, 100)
         }

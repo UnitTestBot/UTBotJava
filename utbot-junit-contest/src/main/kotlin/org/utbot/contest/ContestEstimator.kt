@@ -373,7 +373,7 @@ fun runEstimator(
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
     }
-    
+
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         logger.info { "RewardModelPath: ${UtSettings.modelPath}" }

@@ -51,11 +51,12 @@ fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
         }
     }
     return res.filter {
-        it.all {
-            it.javaPackageName.startsWith("java") ||
-            it.javaPackageName.contains(this.javaPackageName) ||
-            this.javaPackageName.contains(it.javaPackageName)
-        }
+        val isJavaStdLibClass = it.last().javaPackageName.startsWith("java")
+        val isFromSameProject = it.last().javaPackageName.contains(this.javaPackageName) || this.javaPackageName.contains(it.last().javaPackageName)
+        val isFromSamePackage = it.last().javaPackageName == this.javaPackageName
+        val isSupportedPackage = isJavaStdLibClass || isFromSameProject
+        val isAccessible = it.last().isPublic || (!it.last().isPublic && isFromSamePackage)
+        it.all { !it.toString().contains("$") } && isAccessible && it.last().isConcrete && isSupportedPackage
     }
 }
 

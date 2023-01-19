@@ -47,10 +47,10 @@ class InterfaceImplementationsInstanceGenerator(
             }
         }
         val genericsContext =
-            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType) ?: return UtNullModel(clazz.id)
-//        if (genericsContext == null || Random.getTrue(30)) {
-//            return generateMock(clazz, resolvedType, typeContext, generatorContext)
-//        }
+            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType)// ?: return UtNullModel(clazz.id)
+        if (genericsContext == null || Random.getTrue(30)) {
+            return generateMock(clazz, resolvedType, typeContext, generatorContext)
+        }
         val resUtModel =
             ClassesInstanceGenerator(
                 genericsContext.currentClass(),
@@ -79,14 +79,14 @@ class InterfaceImplementationsInstanceGenerator(
             )
             else -> resUtModel
         }
-        /*.let {
+        .let {
                 if (it is UtNullModel && Random.getTrue(50)) generateMock(
                     clazz,
                     resolvedType,
                     typeContext,
                     generatorContext
                 ) else it
-            }*/
+            }
     }
 
     private fun generateMock(

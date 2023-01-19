@@ -242,13 +242,16 @@ object QuickCheckExtensions {
 
     fun getRandomImplementerGenericContext(clazz: Class<*>, resolvedType: Type): GenericsContext? {
         val sootClass = clazz.toSootClass() ?: return null
-        val implementers =
-            sootClass.getImplementersOfWithChain()
-                .filter { it.all { !it.toString().contains("$") } }
-                .filter { it.last().isConcrete }
+        val implementers = sootClass.getImplementersOfWithChain()
         val randomImplementersChain =
             if (Random.getTrue(75)) {
-                implementers.shuffled().minByOrNull { it.size }?.drop(1)
+                if (Random.getTrue(50)) {
+                    implementers
+                        .minByOrNull { it.last().toJavaClass()?.constructors?.minByOrNull { it.parameterCount }?.parameterCount ?: Int.MAX_VALUE }
+                        ?.drop(1)
+                } else {
+                    implementers.shuffled().minByOrNull { it.size }?.drop(1)
+                }
             } else {
                 implementers.randomOrNull()?.drop(1)
             } ?: return null

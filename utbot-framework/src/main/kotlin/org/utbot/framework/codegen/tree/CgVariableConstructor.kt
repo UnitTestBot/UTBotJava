@@ -99,7 +99,7 @@ open class CgVariableConstructor(val context: CgContext) :
         } else valueByModel.getOrPut(model) {
             when (model) {
                 is UtNullModel ->
-                    if (UtSettings.greyBoxFuzzingCompetitionMode) {
+                    if (UtSettings.greyBoxFuzzingCompetitionMode && !model.classId.name.contains("Zilch")) {
                         nullLiteralWithCast(model.classId)
                     } else {
                         nullLiteral()

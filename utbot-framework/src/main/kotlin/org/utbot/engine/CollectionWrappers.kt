@@ -12,7 +12,9 @@ import org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.select
+import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.types.TypeResolver
 import org.utbot.engine.z3.intValue
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
@@ -166,13 +168,17 @@ abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: Strin
     ): List<InvokeResult>? =
         when (method.signature) {
             UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> {
-                val equalGenericTypeConstraint = typeRegistry
-                    .eqGenericSingleTypeParameterConstraint(parameters[0].addr, wrapper.addr)
-                    .asHardConstraint()
+                val (equalGenericTypeConstraint, memoryUpdate) = TypeResolver
+                    .eqGenericSingleTypeParameterConstraint(
+                        parameters[0].addr,
+                        wrapper.addr,
+                        memory.getAllGenericTypeInfo()
+                    )
 
                 val methodResult = MethodResult(
                     SymbolicSuccess(voidValue),
-                    equalGenericTypeConstraint
+                    equalGenericTypeConstraint.asHardConstraint(),
+                    memoryUpdates = memoryUpdate
                 )
 
                 listOf(methodResult)
@@ -180,9 +186,16 @@ abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: Strin
             UT_GENERIC_STORAGE_SET_GENERIC_TYPE_TO_TYPE_OF_VALUE_SIGNATURE -> {
                 val valueTypeStorage = parameters[1].typeStorage
 
-                typeRegistry.saveObjectParameterTypeStorages(parameters[0].addr, listOf(valueTypeStorage))
+                val memoryUpdate = TypeResolver.createGenericTypeInfoUpdate(
+                    parameters[0].addr,
+                    listOf(valueTypeStorage),
+                    memory.getAllGenericTypeInfo()
+                )
 
-                val methodResult = MethodResult(SymbolicSuccess(voidValue))
+                val methodResult = MethodResult(
+                    SymbolicSuccess(voidValue),
+                    SymbolicStateUpdate(memoryUpdates = memoryUpdate)
+                )
 
                 listOf(methodResult)
             }
@@ -300,23 +313,39 @@ class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? =
         when (method.signature) {
-            UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> listOf(
-                MethodResult(
-                    SymbolicSuccess(voidValue),
-                    typeRegistry.eqGenericSingleTypeParameterConstraint(parameters[0].addr, wrapper.addr)
-                        .asHardConstraint()
-                )
-            )
-            UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> listOf(
-                MethodResult(
-                    SymbolicSuccess(voidValue),
-                    typeRegistry.eqGenericTypeParametersConstraint(
+            UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> {
+                val (eqGenericSingleTypeParameterConstraint, memoryUpdate) =
+                    TypeResolver.eqGenericSingleTypeParameterConstraint(
                         parameters[0].addr,
                         wrapper.addr,
-                        parameterSize = 2
-                    ).asHardConstraint()
+                        memory.getAllGenericTypeInfo()
+                    )
+
+                listOf(
+                    MethodResult(
+                        SymbolicSuccess(voidValue),
+                        eqGenericSingleTypeParameterConstraint.asHardConstraint(),
+                        memoryUpdates = memoryUpdate
+                    )
                 )
-            )
+            }
+            UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> {
+                val (eqGenericTypeParametersConstraint, memoryUpdate) =
+                    TypeResolver.eqGenericTypeParametersConstraint(
+                        parameters[0].addr,
+                        wrapper.addr,
+                        parameterSize = 2,
+                        memory.getAllGenericTypeInfo()
+                    )
+
+                listOf(
+                    MethodResult(
+                        SymbolicSuccess(voidValue),
+                        eqGenericTypeParametersConstraint.asHardConstraint(),
+                        memoryUpdates = memoryUpdate
+                    )
+                )
+            }
             else -> null
         }
 
@@ -418,6 +447,8 @@ val ARRAY_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.ArrayList::class.java.canonicalName).type
 val LINKED_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedList::class.java.canonicalName).type
+val ARRAY_DEQUE_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.ArrayDeque::class.java.canonicalName).type
 
 val LINKED_HASH_SET_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedHashSet::class.java.canonicalName).type

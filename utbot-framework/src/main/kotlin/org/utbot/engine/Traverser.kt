@@ -89,6 +89,7 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.ARRAYS_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
@@ -221,7 +222,6 @@ import soot.toolkits.graph.ExceptionalUnitGraph
 import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
-import java.util.concurrent.atomic.AtomicInteger
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -1132,7 +1132,16 @@ class Traverser(
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
                     val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
 
-                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
+                    // For now, we take into account only one type bound.
+                    // If we have the only upper bound, we should create a type storage
+                    // with a corresponding type if it exists or with
+                    // OBJECT_TYPE if there is no such type (e.g., E or T)
+                    val leastCommonType = upperBounds
+                        .singleOrNull()
+                        ?.let { Scene.v().getRefTypeUnsafe(it.typeName) }
+                        ?: OBJECT_TYPE
+
+                    typeResolver.constructTypeStorage(leastCommonType, upperBoundsTypes.intersect(lowerBoundsTypes))
                 }
                 is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
                     val upperBounds = actualTypeArgument.bounds
@@ -1145,7 +1154,16 @@ class Traverser(
 
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
 
-                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
+                    // For now, we take into account only one type bound.
+                    // If we have the only upper bound, we should create a type storage
+                    // with a corresponding type if it exists or with
+                    // OBJECT_TYPE if there is no such type (e.g., E or T)
+                    val leastCommonType = upperBounds
+                        .singleOrNull()
+                        ?.let { Scene.v().getRefTypeUnsafe(it.typeName) }
+                        ?: OBJECT_TYPE
+
+                    typeResolver.constructTypeStorage(leastCommonType, upperBoundsTypes)
                 }
                 is GenericArrayType -> {
                     // TODO bug with T[][], because there is no such time T JIRA:1446
@@ -1166,7 +1184,13 @@ class Traverser(
 
         instanceAddrToGenericType.getOrPut(value.addr) { mutableSetOf() }.add(type)
 
-        typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
+        val memoryUpdate = TypeResolver.createGenericTypeInfoUpdate(
+            value.addr,
+            typeStorages,
+            memory.getAllGenericTypeInfo()
+        )
+
+        queuedSymbolicStateUpdates += memoryUpdate
     }
 
     private fun extractParameterizedType(
@@ -3033,20 +3057,26 @@ class Traverser(
                     )
                 )
             }
-            utArrayMockCopyOfMethodName -> {
-                val src = parameters[0] as ArrayValue
-                val length = parameters[1] as PrimitiveValue
-                val arrayType = target.method.returnType as ArrayType
-                val newArray = createNewArray(length, arrayType, arrayType.elementType)
-                return listOf(
-                    MethodResult(
-                        newArray,
-                        memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
-                    )
-                )
-            }
+            utArrayMockCopyOfMethodName -> return listOf(createArrayCopyWithSpecifiedLength(parameters))
             else -> unreachableBranch("unknown method ${target.method.signature} for ${UtArrayMock::class.qualifiedName}")
         }
+    }
+
+    private fun createArrayCopyWithSpecifiedLength(parameters: List<SymbolicValue>): MethodResult {
+        val src = parameters[0] as ArrayValue
+        val length = parameters[1] as PrimitiveValue
+        val arrayType = src.type
+
+        // Even if the new length differs from the original one, it does not affect elements - we will retrieve
+        // correct elements in the new array anyway
+        val newArray = createNewArray(length, arrayType, arrayType.elementType)
+
+        // Since z3 arrays are persistent, we can just copy the whole original array value instead of manual
+        // setting elements equality by indices
+        return MethodResult(
+            newArray,
+            memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
+        )
     }
 
     private fun utLogicMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
@@ -3163,6 +3193,14 @@ class Traverser(
             return OverrideResult(success = true, cloneArray(instance))
         }
 
+        if (instance == null && invocation.method.declaringClass == ARRAYS_SOOT_CLASS && invocation.method.name == "copyOf") {
+            return OverrideResult(success = true, copyOf(invocation.parameters))
+        }
+
+        if (instance == null && invocation.method.declaringClass == ARRAYS_SOOT_CLASS && invocation.method.name == "copyOfRange") {
+            return OverrideResult(success = true, copyOfRange(invocation.parameters))
+        }
+
         instanceAsWrapperOrNull?.run {
             // For methods with concrete implementation (for example, RangeModifiableUnlimitedArray.toCastedArray)
             // we should not return successful override result.
@@ -3214,6 +3252,66 @@ class Traverser(
         val clone = ArrayValue(typeStorage, addr)
 
         return MethodResult(clone, constraints.asHardConstraint(), memoryUpdates = memoryUpdate)
+    }
+
+    private fun TraversalContext.copyOf(parameters: List<SymbolicValue>): MethodResult {
+        val src = parameters[0] as ArrayValue
+        nullPointerExceptionCheck(src.addr)
+
+        val length = parameters[1] as PrimitiveValue
+        val isNegativeLength = Lt(length, 0)
+        implicitlyThrowException(NegativeArraySizeException("Length is less than zero"), setOf(isNegativeLength))
+        queuedSymbolicStateUpdates += mkNot(isNegativeLength).asHardConstraint()
+
+        return createArrayCopyWithSpecifiedLength(parameters)
+    }
+
+    private fun TraversalContext.copyOfRange(parameters: List<SymbolicValue>): MethodResult {
+        val original = parameters[0] as ArrayValue
+        nullPointerExceptionCheck(original.addr)
+
+        val from = parameters[1] as PrimitiveValue
+        val to = parameters[2] as PrimitiveValue
+
+        val originalLength = memory.findArrayLength(original.addr)
+
+        val isNegativeFrom = Lt(from, 0)
+        implicitlyThrowException(ArrayIndexOutOfBoundsException("From is less than zero"), setOf(isNegativeFrom))
+        queuedSymbolicStateUpdates += mkNot(isNegativeFrom).asHardConstraint()
+
+        val isFromBiggerThanLength = Gt(from, originalLength)
+        implicitlyThrowException(ArrayIndexOutOfBoundsException("From is bigger than original length"), setOf(isFromBiggerThanLength))
+        queuedSymbolicStateUpdates += mkNot(isFromBiggerThanLength).asHardConstraint()
+
+        val isFromBiggerThanTo = Gt(from, to)
+        implicitlyThrowException(IllegalArgumentException("From is bigger than to"), setOf(isFromBiggerThanTo))
+        queuedSymbolicStateUpdates += mkNot(isFromBiggerThanTo).asHardConstraint()
+
+        val newLength = Sub(to, from)
+        val newLengthValue = newLength.toIntValue()
+
+        val originalLengthDifference = Sub(originalLength, from)
+        val originalLengthDifferenceValue = originalLengthDifference.toIntValue()
+
+        val resultedLength =
+            UtIteExpression(Lt(originalLengthDifferenceValue, newLengthValue), originalLengthDifference, newLength)
+        val resultedLengthValue = resultedLength.toIntValue()
+
+        val arrayType = original.type
+        val newArray = createNewArray(newLengthValue, arrayType, arrayType.elementType)
+        val destPos = 0.toPrimitiveValue()
+        val copyValue = UtArraySetRange(
+            selectArrayExpressionFromMemory(newArray),
+            destPos,
+            selectArrayExpressionFromMemory(original),
+            from,
+            resultedLengthValue
+        )
+
+        return MethodResult(
+            newArray,
+            memoryUpdates = arrayUpdateWithValue(newArray.addr, newArray.type, copyValue)
+        )
     }
 
     // For now, we just create unbounded symbolic variable as a result.

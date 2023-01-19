@@ -222,7 +222,6 @@ import soot.toolkits.graph.ExceptionalUnitGraph
 import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
-import java.util.concurrent.atomic.AtomicInteger
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -1133,7 +1132,16 @@ class Traverser(
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
                     val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
 
-                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
+                    // For now, we take into account only one type bound.
+                    // If we have the only upper bound, we should create a type storage
+                    // with a corresponding type if it exists or with
+                    // OBJECT_TYPE if there is no such type (e.g., E or T)
+                    val leastCommonType = upperBounds
+                        .singleOrNull()
+                        ?.let { Scene.v().getRefTypeUnsafe(it.typeName) }
+                        ?: OBJECT_TYPE
+
+                    typeResolver.constructTypeStorage(leastCommonType, upperBoundsTypes.intersect(lowerBoundsTypes))
                 }
                 is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
                     val upperBounds = actualTypeArgument.bounds
@@ -1146,7 +1154,16 @@ class Traverser(
 
                     val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
 
-                    typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
+                    // For now, we take into account only one type bound.
+                    // If we have the only upper bound, we should create a type storage
+                    // with a corresponding type if it exists or with
+                    // OBJECT_TYPE if there is no such type (e.g., E or T)
+                    val leastCommonType = upperBounds
+                        .singleOrNull()
+                        ?.let { Scene.v().getRefTypeUnsafe(it.typeName) }
+                        ?: OBJECT_TYPE
+
+                    typeResolver.constructTypeStorage(leastCommonType, upperBoundsTypes)
                 }
                 is GenericArrayType -> {
                     // TODO bug with T[][], because there is no such time T JIRA:1446
@@ -1167,7 +1184,13 @@ class Traverser(
 
         instanceAddrToGenericType.getOrPut(value.addr) { mutableSetOf() }.add(type)
 
-        typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
+        val memoryUpdate = TypeResolver.createGenericTypeInfoUpdate(
+            value.addr,
+            typeStorages,
+            memory.getAllGenericTypeInfo()
+        )
+
+        queuedSymbolicStateUpdates += memoryUpdate
     }
 
     private fun extractParameterizedType(

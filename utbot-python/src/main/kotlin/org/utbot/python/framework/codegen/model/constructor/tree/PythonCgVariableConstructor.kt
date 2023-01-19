@@ -47,6 +47,8 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
         }
     }
 
+    private fun declareOrGet(model: UtModel): CgValue = valueByModel[model] ?: getOrCreateVariable(model)
+
     private fun constructInitObjectModel(model: PythonInitObjectModel, baseName: String): CgVariable {
         return newVar(model.classId, baseName) {
             CgConstructorCall(

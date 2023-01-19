@@ -8,13 +8,9 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
-import org.utbot.python.newtyping.PythonAttribute
-import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.getPythonAttributes
-import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.newtyping.pythonTypeRepresentation
 
 class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
@@ -48,7 +44,10 @@ class ReduceValueProvider(
             .filter { it.name == "__init__" || it.name == "__new__" }
             .forEach {
                 val fields = type.getPythonAttributes()
-                    .filter { attr -> attr.type.getPythonAttributes().all { it.name != "__call__" } }
+                    .filter { attr ->
+                        !(attr.name.startsWith("__") && attr.name.endsWith("__") && attr.name.length >= 4)
+                        attr.type.getPythonAttributeByName(description.pythonTypeStorage, "__call__") == null
+                    }
 
                 val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
                 modifications.addAll(fields.map { field ->

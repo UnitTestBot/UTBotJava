@@ -140,8 +140,11 @@ class PythonSubtypeChecker(
         if (leftWrapper == rightWrapper)
             return true
 
+        if (typesAreEqual(left, pythonTypeStorage.pythonFloat) && typesAreEqual(right, pythonTypeStorage.pythonInt))
+            return true
+
         // this is done to avoid possible infinite recursion
-        // TODO: probably here more accuracy is needed
+        // TODO: probably more accuracy is needed here
         if (assumingSubtypePairs.contains(Pair(leftWrapper, rightWrapper)) || assumingSubtypePairs.contains(
                 Pair(
                     rightWrapper,
@@ -266,6 +269,22 @@ class PythonSubtypeChecker(
                     rightAsCompositeType.supertypes.any {
                         PythonSubtypeChecker(
                             left = left,
+                            right = it,
+                            pythonTypeStorage,
+                            typeParameterCorrespondence,
+                            nextAssumingSubtypePairs,
+                            recursionDepth + 1
+                        ).rightIsSubtypeOfLeft()
+                    }
+                }
+            }
+            PythonTupleTypeDescription -> {
+                if (!typesAreEqual(left.getOrigin(), pythonTypeStorage.pythonTuple) || left.hasBoundedParameters())
+                    false
+                else {
+                    right.pythonAnnotationParameters().all {
+                        PythonSubtypeChecker(
+                            left = left.parameters.first(),
                             right = it,
                             pythonTypeStorage,
                             typeParameterCorrespondence,

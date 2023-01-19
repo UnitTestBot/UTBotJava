@@ -104,6 +104,7 @@ class PythonTestCaseGenerator(
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->
+            logger.debug("Collected constant:${type.pythonTypeRepresentation()}: $value")
             PythonFuzzedConcreteValue(type, value)
         }
 

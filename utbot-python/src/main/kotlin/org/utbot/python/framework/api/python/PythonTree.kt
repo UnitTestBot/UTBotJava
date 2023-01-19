@@ -5,6 +5,9 @@ import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigInteger
 
 object PythonTree {
@@ -232,5 +235,25 @@ object PythonTree {
             pythonFloatClassId,
             value.toString()
         )
+    }
+
+    fun fromParsedConstant(value: Pair<Type, Any>): PythonTreeNode? {
+        return when (value.first.pythonTypeName()) {
+            "builtins.int" -> fromInt(value.second as? BigInteger ?: return null)
+            "builtins.float" -> fromFloat(value.second as? Double ?: return null)
+            "typing.Tuple", "builtins.tuple" -> {
+                val elemsUntyped = (value.second as? List<*>) ?: return null
+                val elems = elemsUntyped.map {
+                    val pair = it as? Pair<*,*> ?: return null
+                    Pair(pair.first as? Type ?: return null, pair.second ?: return null)
+                }
+                TupleNode(
+                    elems.mapIndexed { index, pair ->
+                        Pair(index, fromParsedConstant(pair) ?: return null)
+                    }.associate { it }.toMutableMap()
+                )
+            }
+            else -> null
+        }
     }
 }

@@ -103,4 +103,17 @@ internal class PythonSubtypeCheckerTest {
 
         assertTrue(checkIfRightIsSubtypeOfLeft(getItemProtocol, numpyArrayOfAny, pythonTypeStorage))
     }
+
+    @Test
+    fun testTuple() {
+        val tuple = storage.definitions["builtins"]!!["tuple"]!!.annotation.asUtBotType
+        val tupleOfAny = DefaultSubstitutionProvider.substituteAll(tuple, listOf(pythonAnyType))
+        val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
+        val float = storage.definitions["builtins"]!!["float"]!!.annotation.asUtBotType
+        val tupleOfInt = DefaultSubstitutionProvider.substituteAll(tuple, listOf(int))
+        val tupleOfIntAndFloat = createPythonTupleType(listOf(int, float))
+
+        assertTrue(checkIfRightIsSubtypeOfLeft(tupleOfAny, tupleOfIntAndFloat, pythonTypeStorage))
+        assertFalse(checkIfRightIsSubtypeOfLeft(tupleOfInt, tupleOfIntAndFloat, pythonTypeStorage))
+    }
 }

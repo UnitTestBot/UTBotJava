@@ -14,6 +14,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
@@ -39,6 +40,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
+            (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }

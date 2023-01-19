@@ -48,9 +48,9 @@ If this is your case, share the detailed _manual scenarios_ that help to verify 
 
 Check off the item if the statement is true:
 
-- [ ] I've set the proper **labels** for my PR.
+- [ ] I've set the proper **labels** for my PR (at least, for category and component).
 - [ ] PR **title** and **description** are clear and intelligible.
-- [ ] I've added enough **comments** to help people understand my code.
+- [ ] I've added enough **comments**, particularly in hard-to-understand areas.
 - [ ] The functionality I've repaired, changed or added is covered with **automated tests**.
 - [ ] **Manual tests** have been provided optionally.
 - [ ] The **documentation** for the functionality I've been working on is up-to-date.

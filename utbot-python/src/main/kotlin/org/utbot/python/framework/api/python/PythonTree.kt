@@ -8,6 +8,7 @@ import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
+import java.math.BigDecimal
 import java.math.BigInteger
 
 object PythonTree {
@@ -240,7 +241,7 @@ object PythonTree {
     fun fromParsedConstant(value: Pair<Type, Any>): PythonTreeNode? {
         return when (value.first.pythonTypeName()) {
             "builtins.int" -> fromInt(value.second as? BigInteger ?: return null)
-            "builtins.float" -> fromFloat(value.second as? Double ?: return null)
+            "builtins.float" -> fromFloat((value.second as? BigDecimal)?.toDouble() ?: return null)
             "typing.Tuple", "builtins.tuple" -> {
                 val elemsUntyped = (value.second as? List<*>) ?: return null
                 val elems = elemsUntyped.map {

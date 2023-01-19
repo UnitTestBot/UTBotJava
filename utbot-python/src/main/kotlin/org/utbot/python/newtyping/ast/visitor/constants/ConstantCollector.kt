@@ -15,6 +15,7 @@ import org.utbot.python.newtyping.ast.visitor.Collector
 import org.utbot.python.newtyping.createPythonTupleType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.typesAreEqual
+import java.math.BigDecimal
 import java.math.BigInteger
 
 class ConstantCollector(private val storage: PythonTypeStorage) : Collector() {
@@ -48,7 +49,7 @@ class ConstantCollector(private val storage: PythonTypeStorage) : Collector() {
                     node.toString().toBigInteger()
                 else return
             }
-            storage.pythonFloat -> node.toString().toDouble()
+            storage.pythonFloat -> node.toString().toBigDecimal()
             else -> return
         }
         add(node, type, value)
@@ -78,7 +79,7 @@ class ConstantCollector(private val storage: PythonTypeStorage) : Collector() {
         if (value is BigInteger) {
             add(node, storage.pythonInt, -value)
         }
-        if (value is Double) {
+        if (value is BigDecimal) {
             add(node, storage.pythonFloat, -value)
         }
     }

@@ -2,6 +2,8 @@ package org.utbot.framework.codegen.tree
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import org.reflections.Reflections
+import org.reflections.scanners.Scanners
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
@@ -210,13 +212,30 @@ internal fun infiniteInts(): Sequence<Int> =
 
 internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
 
+private var simpleNamesNotRequiringImports = emptySet<String>()
+
+/**
+ * Some class names do not require imports, but may lead to simple names clash.
+ * For example, custom class Compiler may clash with java.lang.Compiler.
+ */
+private fun findSimpleNamesNotRequiringImports(): Set<String> {
+    if (simpleNamesNotRequiringImports.isEmpty()) {
+        val reflectionsStore = Reflections("java.lang", Scanners.SubTypes).store.values
+        val fullNamesNotRequiringImports = reflectionsStore.flatMap { it.entries }.flatMap { it.value }
+
+        simpleNamesNotRequiringImports = fullNamesNotRequiringImports.map { it.substringAfterLast('.') }.toSet()
+    }
+
+    return simpleNamesNotRequiringImports
+}
+
 /**
  * Checks if we have already imported a class with such simple name.
  * If so, we cannot import [type] (because it will be used with simple name and will be clashed with already imported)
  * and should use its fully qualified name instead.
  */
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
-    importedClasses.none { it.simpleName == type.simpleName }
+    importedClasses.none { it.simpleName == type.simpleName } && type.simpleName !in findSimpleNamesNotRequiringImports()
 
 fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change

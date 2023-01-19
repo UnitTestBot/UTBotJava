@@ -1,7 +1,6 @@
 package org.utbot.engine.overrides.stream;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.collections.UtArrayList;
 
 import java.util.List;

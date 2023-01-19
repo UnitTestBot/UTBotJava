@@ -3034,20 +3034,26 @@ class Traverser(
                     )
                 )
             }
-            utArrayMockCopyOfMethodName -> {
-                val src = parameters[0] as ArrayValue
-                val length = parameters[1] as PrimitiveValue
-                val arrayType = target.method.returnType as ArrayType
-                val newArray = createNewArray(length, arrayType, arrayType.elementType)
-                return listOf(
-                    MethodResult(
-                        newArray,
-                        memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
-                    )
-                )
-            }
+            utArrayMockCopyOfMethodName -> return listOf(createArrayCopyWithSpecifiedLength(parameters))
             else -> unreachableBranch("unknown method ${target.method.signature} for ${UtArrayMock::class.qualifiedName}")
         }
+    }
+
+    private fun createArrayCopyWithSpecifiedLength(parameters: List<SymbolicValue>): MethodResult {
+        val src = parameters[0] as ArrayValue
+        val length = parameters[1] as PrimitiveValue
+        val arrayType = src.type
+
+        // Even if the new length differs from the original one, it does not affect elements - we will retrieve
+        // correct elements in the new array anyway
+        val newArray = createNewArray(length, arrayType, arrayType.elementType)
+
+        // Since z3 arrays are persistent, we can just copy the whole original array value instead of manual
+        // setting elements equality by indices
+        return MethodResult(
+            newArray,
+            memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
+        )
     }
 
     private fun utLogicMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
@@ -3227,23 +3233,20 @@ class Traverser(
 
     private fun TraversalContext.copyOf(parameters: List<SymbolicValue>): MethodResult {
         val src = parameters[0] as ArrayValue
-        val length = parameters[1] as PrimitiveValue
+        nullPointerExceptionCheck(src.addr)
 
+        val length = parameters[1] as PrimitiveValue
         val isNegativeLength = Lt(length, 0)
         implicitlyThrowException(NegativeArraySizeException("Length is less than zero"), setOf(isNegativeLength))
         queuedSymbolicStateUpdates += mkNot(isNegativeLength).asHardConstraint()
 
-        val arrayType = src.type
-        val newArray = createNewArray(length, arrayType, arrayType.elementType)
-
-        return MethodResult(
-            newArray,
-            memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
-        )
+        return createArrayCopyWithSpecifiedLength(parameters)
     }
 
     private fun TraversalContext.copyOfRange(parameters: List<SymbolicValue>): MethodResult {
         val original = parameters[0] as ArrayValue
+        nullPointerExceptionCheck(original.addr)
+
         val from = parameters[1] as PrimitiveValue
         val to = parameters[2] as PrimitiveValue
 
@@ -3262,14 +3265,14 @@ class Traverser(
         queuedSymbolicStateUpdates += mkNot(isFromBiggerThanTo).asHardConstraint()
 
         val newLength = Sub(to, from)
-        val newLengthValue = PrimitiveValue(IntType.v(), newLength)
+        val newLengthValue = newLength.toIntValue()
 
         val originalLengthDifference = Sub(originalLength, from)
-        val originalLengthDifferenceValue = PrimitiveValue(IntType.v(), originalLengthDifference)
+        val originalLengthDifferenceValue = originalLengthDifference.toIntValue()
 
         val resultedLength =
             UtIteExpression(Lt(originalLengthDifferenceValue, newLengthValue), originalLengthDifference, newLength)
-        val resultedLengthValue = PrimitiveValue(IntType.v(), resultedLength)
+        val resultedLengthValue = resultedLength.toIntValue()
 
         val arrayType = original.type
         val newArray = createNewArray(newLengthValue, arrayType, arrayType.elementType)

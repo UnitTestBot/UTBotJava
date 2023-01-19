@@ -414,24 +414,18 @@ private val UT_GENERIC_ASSOCIATIVE_CLASS
 private val UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE =
     UT_GENERIC_ASSOCIATIVE_CLASS.getMethodByName(UtGenericAssociative<*, *>::setEqualGenericType.name).signature
 
-val LIST_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.List::class.java.canonicalName).type
 val ARRAY_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.ArrayList::class.java.canonicalName).type
 val LINKED_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedList::class.java.canonicalName).type
-val DEQUE_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.Deque::class.java.canonicalName).type
+val ARRAY_DEQUE_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.ArrayDeque::class.java.canonicalName).type
 
-val SET_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.Set::class.java.canonicalName).type
 val LINKED_HASH_SET_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedHashSet::class.java.canonicalName).type
 val HASH_SET_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.HashSet::class.java.canonicalName).type
 
-val MAP_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.Map::class.java.canonicalName).type
 val LINKED_HASH_MAP_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedHashMap::class.java.canonicalName).type
 val HASH_MAP_TYPE: RefType

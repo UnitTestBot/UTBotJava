@@ -262,15 +262,15 @@ private val wrappers: Map<ClassId, (RefType, UtAddrExpression) -> ObjectValue> =
         wrap(UtCountDownLatch::class) { _, addr -> objectValue(COUNT_DOWN_LATCH_TYPE, addr, CountDownLatchWrapper()) },
         wrap(UtCompletableFuture::class) { _, addr -> objectValue(COMPLETABLE_FUTURE_TYPE, addr, CompletableFutureWrapper()) },
 
-        wrap(UtArrayList::class) { _, addr -> objectValue(LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
-        wrap(UtLinkedList::class) { _, addr -> objectValue(LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST)) },
+        wrap(UtArrayList::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
+        wrap(UtLinkedList::class) { _, addr -> objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST)) },
         wrap(UtLinkedListWithNullableCheck::class) { _, addr ->
-            objectValue(DEQUE_TYPE, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
+            objectValue(ARRAY_DEQUE_TYPE, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
         },
 
-        wrap(UtHashSet::class) { _, addr -> objectValue(SET_TYPE, addr, SetWrapper()) },
+        wrap(UtHashSet::class) { _, addr -> objectValue(HASH_SET_TYPE, addr, SetWrapper()) },
 
-        wrap(UtHashMap::class) { _, addr -> objectValue(MAP_TYPE, addr, MapWrapper()) },
+        wrap(UtHashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
 
         wrap(UtStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
         wrap(UtIntStream::class) { _, addr -> objectValue(INT_STREAM_TYPE, addr, IntStreamWrapper()) },

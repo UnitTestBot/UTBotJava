@@ -351,7 +351,7 @@ internal val CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR: MemoryChunkDescriptor
 internal val CLASS_REF_SOOT_CLASS: SootClass
     get() = Scene.v().getSootClass(CLASS_REF_CLASSNAME)
 internal val ARRAYS_SOOT_CLASS: SootClass
-    get() = Scene.v().getSootClass("java.util.Arrays")
+    get() = Scene.v().getSootClass(java.util.Arrays::class.java.canonicalName)
 
 internal val OBJECT_TYPE: RefType
     get() = Scene.v().getSootClass(Object::class.java.canonicalName).type

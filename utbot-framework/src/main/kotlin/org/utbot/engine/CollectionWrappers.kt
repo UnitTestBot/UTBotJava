@@ -418,6 +418,8 @@ val ARRAY_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.ArrayList::class.java.canonicalName).type
 val LINKED_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedList::class.java.canonicalName).type
+val ARRAY_DEQUE_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.ArrayDeque::class.java.canonicalName).type
 
 val LINKED_HASH_SET_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.LinkedHashSet::class.java.canonicalName).type

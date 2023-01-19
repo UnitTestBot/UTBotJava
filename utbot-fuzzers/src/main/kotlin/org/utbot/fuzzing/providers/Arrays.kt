@@ -7,10 +7,7 @@ import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
-import org.utbot.fuzzing.FuzzedDescription
-import org.utbot.fuzzing.Routine
-import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
+import org.utbot.fuzzing.*
 
 class ArrayValueProvider(
     val idGenerator: IdGenerator<Int>,
@@ -35,9 +32,24 @@ class ArrayValueProvider(
                         summary = "%var% = ${type.classId.elementClassId!!.simpleName}[$it]"
                     }
                 },
-                modify = Routine.ForEach(listOf(FuzzedType(type.classId.elementClassId!!))) { self, i, values ->
+                modify = Routine.ForEach(listOf(resolveArrayElementType(type))) { self, i, values ->
                     (self.model as UtArrayModel).stores[i] = values.first().model
                 }
             ))
+    }
+
+    /**
+     * Resolves array's element type. In case a generic type is used, like `T[]` the type should pass generics.
+     *
+     * For example, List<Number>[] returns List<Number>.
+     */
+    private fun resolveArrayElementType(arrayType: FuzzedType): FuzzedType = when {
+        !arrayType.classId.isArray -> error("$arrayType is not array")
+        arrayType.generics.size == 1 -> arrayType.generics.first()
+        arrayType.generics.isEmpty() -> FuzzedType(
+            arrayType.classId.elementClassId ?: error("Element classId of $arrayType is not found")
+        )
+
+        else -> error("Array has ${arrayType.generics.size} generic type for ($arrayType), that should not happen")
     }
 }

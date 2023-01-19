@@ -112,7 +112,7 @@ sealed class Routine<T, R>(val types: List<T>) : Iterable<T> by types {
     class Create<T, R>(
         types: List<T>,
         val builder: (arguments: List<R>) -> R,
-    ) : Routine<T, R>(types), Map<String, Any?> by hashMapOf() {
+    ) : Routine<T, R>(types) {
         operator fun invoke(arguments: List<R>): R = builder(arguments)
     }
 
@@ -347,7 +347,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         }
     }
     if (candidates.isEmpty()) {
-        error("Unknown type: $type")
+        error("No seed candidates generated for type: $type")
     }
     return candidates.random(random)
 }

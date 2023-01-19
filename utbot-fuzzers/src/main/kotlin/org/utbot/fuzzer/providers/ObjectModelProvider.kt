@@ -24,7 +24,7 @@ import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.objects.FuzzerMockableMethodId
 import org.utbot.fuzzer.objects.assembleModel
 import org.utbot.fuzzing.providers.FieldDescription
-import org.utbot.fuzzing.providers.findAccessibleModifableFields
+import org.utbot.fuzzing.providers.findAccessibleModifiableFields
 import org.utbot.fuzzing.providers.isAccessible
 
 /**
@@ -64,10 +64,10 @@ class ObjectModelProvider(
             // and mutate some fields. Only if there's no option next block
             // with empty constructor should be used.
             if (constructorId.parameters.isEmpty()) {
-                val fields = findAccessibleModifableFields(constructorId.classId, description.packageName)
+                val fields = findAccessibleModifiableFields(null, constructorId.classId, description.packageName)
                 if (fields.isNotEmpty()) {
                     yield(
-                        ModelConstructor(fields.map { FuzzedType(it.classId) }) {
+                        ModelConstructor(fields.map { it.type }) {
                             generateModelsWithFieldsInitialization(constructorId, fields, it)
                         }
                     )
@@ -103,7 +103,7 @@ class ObjectModelProvider(
                         constructorId.classId,
                         field.setter.name,
                         field.setter.returnType.id,
-                        listOf(field.classId),
+                        listOf(field.type.classId),
                         mock = {
                             field.getter?.let { g ->
                                 val getterMethodID = MethodId(

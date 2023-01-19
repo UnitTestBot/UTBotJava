@@ -67,3 +67,35 @@ class CartesianProduct<T>(
         }
     }
 }
+
+inline fun <T> List<List<T>>.cartesian(block: (List<T>) -> Unit) {
+    cartesian().forEach(block)
+}
+
+fun <T> List<List<T>>.cartesian(): Sequence<List<T>> = sequence {
+    cartesian(this@cartesian, 0, IntArray(size))
+}
+
+private suspend fun <T> SequenceScope<List<T>>.cartesian(lists: List<List<T>>, iteration: Int, array: IntArray) {
+    if (iteration == lists.size) {
+        yield(array.mapIndexed { l, v -> lists[l][v] })
+    } else {
+        check(iteration < lists.size)
+        for (j in lists[iteration].indices) {
+            array[iteration] = j
+            cartesian(lists, iteration + 1, array)
+        }
+    }
+}
+
+//private suspend fun <T> SequenceScope<List<T>>.cartesian(lists: List<List<T>>, head: List<T>) {
+//    if (head.size == lists.size) {
+//        yield(head)
+//    } else {
+//        check(head.size < lists.size)
+//        lists[head.size].forEach {
+//            val copy = head + it
+//            cartesian(lists, copy)
+//        }
+//    }
+//}

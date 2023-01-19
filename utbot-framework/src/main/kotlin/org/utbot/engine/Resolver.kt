@@ -101,6 +101,8 @@ import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
+import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
+import org.utbot.framework.plugin.api.util.isStatic
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -130,7 +132,8 @@ class Resolver(
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
     methodUnderTest: ExecutableId,
-    private val softMaxArraySize: Int
+    private val softMaxArraySize: Int,
+    private val objectCounter: ObjectCounter
 ) {
 
     private val classLoader: ClassLoader
@@ -529,7 +532,28 @@ class Resolver(
 
         if (sootClass.isLambda) {
             return constructLambda(concreteAddr, sootClass).also { lambda ->
-                lambda.capturedValues += collectFieldModels(addr, actualType).values
+                val collectedFieldModels = collectFieldModels(addr, actualType).toMutableMap()
+
+                if (!lambda.lambdaMethodId.isStatic) {
+                    val thisInstanceField = FieldId(declaringClass = sootClass.id, name = "cap0")
+
+                    if (thisInstanceField !in collectedFieldModels || collectedFieldModels[thisInstanceField] is UtNullModel) {
+                        // Non-static lambda has to have `this` instance captured as `cap0` field that cannot be null,
+                        // so if we do not have it as field or it is null (for example, an exception was thrown before initializing lambda),
+                        // we need to construct `this` instance by ourselves.
+                        // Since we do not know its fields, we create an empty object of the corresponding type that will be
+                        // constructed in codegen using reflection.
+                        val thisInstanceClassId = sootClass.name.substringBeforeLast("\$lambda").let {
+                            Scene.v().getSootClass(it)
+                        }.id
+                        val thisInstanceModel =
+                            UtCompositeModel(objectCounter.createNewAddr(), thisInstanceClassId, isMock = false)
+
+                        collectedFieldModels[thisInstanceField] = thisInstanceModel
+                    }
+                }
+
+                lambda.capturedValues += collectedFieldModels.values
             }
         }
 

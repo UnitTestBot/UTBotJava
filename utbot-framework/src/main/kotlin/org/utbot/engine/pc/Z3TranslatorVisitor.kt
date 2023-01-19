@@ -203,9 +203,20 @@ open class Z3TranslatorVisitor(
         val constraints = mutableListOf<BoolExpr>()
         for (i in types.indices) {
             val symType = translate(typeRegistry.genericTypeId(addr, i))
+            val genericNumDimensions = translate(typeRegistry.genericNumDimensions(addr, i)) as BitVecExpr
+
             val possibleConcreteTypes = types[i].possibleConcreteTypes
+            val leastCommonType = types[i].leastCommonType
+
+            val numDimensions = z3Context.mkBV(leastCommonType.numDimensions, Int.SIZE_BITS)
 
             if (possibleConcreteTypes.size > UtSettings.maxNumberOfTypesToEncode) continue
+
+            constraints += if (leastCommonType.isJavaLangObject()) {
+                z3Context.mkBVSGE(genericNumDimensions, numDimensions)
+            } else {
+                z3Context.mkEq(genericNumDimensions, numDimensions)
+            }
 
             constraints += encodePossibleTypes(symType, possibleConcreteTypes)
         }

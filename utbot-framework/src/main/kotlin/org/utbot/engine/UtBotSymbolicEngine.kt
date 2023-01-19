@@ -32,9 +32,7 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -44,6 +42,9 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -151,7 +152,6 @@ class UtBotSymbolicEngine(
         ConcreteExecutor(
             UtExecutionInstrumentation,
             classpath,
-            dependencyPaths
         ).apply { this.classLoader = utContext.classLoader }
 
     private val featureProcessor: FeatureProcessor? =
@@ -237,7 +237,8 @@ class UtBotSymbolicEngine(
                             typeResolver,
                             state.solver.lastStatus as UtSolverStatusSAT,
                             methodUnderTest,
-                            softMaxArraySize
+                            softMaxArraySize,
+                            traverser.objectCounter
                         )
 
                         val resolvedParameters = state.methodUnderTestParameters
@@ -247,6 +248,11 @@ class UtBotSymbolicEngine(
                         try {
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
+
+                            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                                logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                                return@bracket
+                            }
 
                             val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
@@ -368,8 +374,8 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
-            if (concreteExecutionResult.result.exceptionOrNull() is UtMockAssumptionViolatedException) {
-                logger.debug { "Generated test case by fuzzer violates the UtMock assumption" }
+            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
 
@@ -439,8 +445,16 @@ class UtBotSymbolicEngine(
         Predictors.testName.provide(state.path, predictedTestName, "")
 
         // resolving
-        val resolver =
-            Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
+        val resolver = Resolver(
+            hierarchy,
+            memory,
+            typeRegistry,
+            typeResolver,
+            holder,
+            methodUnderTest,
+            softMaxArraySize,
+            traverser.objectCounter
+        )
 
         val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(parameters)
 
@@ -497,6 +511,11 @@ class UtBotSymbolicEngine(
                     instrumentation
                 )
 
+                if (concreteExecutionResult.violatesUtMockAssumption()) {
+                    logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                    return
+                }
+
                 val concolicUtExecution = symbolicUtExecution.copy(
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
@@ -545,7 +564,10 @@ private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstr
     methodUnderTest.classId.name,
     methodUnderTest.signature,
     arrayOf(),
-    parameters = UtConcreteExecutionData(stateBefore, instrumentation)
+    parameters = UtConcreteExecutionData(
+        stateBefore,
+        instrumentation
+    )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 
 /**
@@ -592,4 +614,12 @@ private fun makeWrapperConsistencyCheck(
 ) {
     val visitedSelectExpression = memory.isVisited(symbolicValue.addr)
     visitedConstraints += mkEq(visitedSelectExpression, mkInt(1))
+}
+
+private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
+    // We should compare FQNs instead of `if (... is UtMockAssumptionViolatedException)`
+    // because the exception from the `concreteExecutionResult` is loaded by user's ClassLoader,
+    // but the `UtMockAssumptionViolatedException` is loaded by the current ClassLoader,
+    // so we can't cast them to each other.
+    return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
 }

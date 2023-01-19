@@ -6,10 +6,8 @@ import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
-import org.utbot.fuzzing.FuzzedDescription
-import org.utbot.fuzzing.Routine
-import org.utbot.fuzzing.Seed
-import org.utbot.fuzzing.ValueProvider
+import org.utbot.fuzzing.*
+import org.utbot.fuzzing.utils.hex
 import kotlin.reflect.KClass
 
 class EmptyCollectionValueProvider(
@@ -56,10 +54,25 @@ class EmptyCollectionValueProvider(
                     classId = classId,
                     modelName = "",
                     instantiationCall = UtExecutableCallModel(null, executableId, value.map { it.model })
-
-                ).fuzzed()
+                ).fuzzed {
+                    summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
+                }
             },
-            empty = Routine.Empty { UtNullModel(classId).fuzzed { summary = "%var% = null" } }
+            empty = Routine.Empty {
+                if (executableId.parameters.isEmpty())  {
+                    UtAssembleModel(
+                        id = idGenerator.createId(),
+                        classId = classId,
+                        modelName = "",
+                        instantiationCall = UtExecutableCallModel(null, executableId, emptyList())
+
+                    ).fuzzed{
+                        summary = "%var% = ${executableId.classId.simpleName}#${executableId.name}"
+                    }
+                } else {
+                    UtNullModel(classId).fuzzed { summary = "%var% = null" }
+                }
+            },
         ))
     }
 }
@@ -204,5 +217,52 @@ abstract class CollectionValueProvider(
         // commented code above doesn't work this case: SomeList<T> extends LinkedList<T> {} and Collection
 //        return isSubtypeOf(another)
         return klass.java.isAssignableFrom(this.jClass)
+    }
+}
+
+class IteratorValueProvider(val idGenerator: IdGenerator<Int>) : ValueProvider<FuzzedType, FuzzedValue, FuzzedDescription> {
+    override fun accept(type: FuzzedType): Boolean {
+        return type.classId == Iterator::class.id
+    }
+
+    override fun generate(description: FuzzedDescription, type: FuzzedType): Sequence<Seed<FuzzedType, FuzzedValue>> {
+        val generic = type.generics.firstOrNull() ?: FuzzedType(objectClassId)
+        return sequenceOf(Seed.Recursive(
+            construct = Routine.Create(listOf(FuzzedType(iterableClassId, listOf(generic)))) { v ->
+                val id = idGenerator.createId()
+                val iterable = when (val model = v.first().model) {
+                    is UtAssembleModel -> model
+                    is UtNullModel -> return@Create v.first()
+                    else -> error("Model can be only UtNullModel or UtAssembleModel, but $model is met")
+                }
+                UtAssembleModel(
+                    id = id,
+                    classId = type.classId,
+                    modelName = "iterator#${id.hex()}",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = iterable,
+                        executable = MethodId(iterableClassId, "iterator", type.classId, emptyList()),
+                        params = emptyList()
+                    )
+                ).fuzzed {
+                    summary = "%var% = ${iterable.classId.simpleName}#iterator()"
+                }
+            },
+            empty = Routine.Empty {
+                val id = idGenerator.createId()
+                UtAssembleModel(
+                    id = id,
+                    classId = type.classId,
+                    modelName = "emptyIterator#${id.hex()}",
+                    instantiationCall = UtExecutableCallModel(
+                        instance = null,
+                        executable = MethodId(java.util.Collections::class.id, "emptyIterator", type.classId, emptyList()),
+                        params = emptyList()
+                    )
+                ).fuzzed {
+                    summary = "%var% = empty iterator"
+                }
+            }
+        ))
     }
 }

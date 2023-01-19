@@ -479,13 +479,58 @@ class TypeRegistry {
      * Associates provided [typeStorages] with an object with the provided [addr].
      */
     fun saveObjectParameterTypeStorages(addr: UtAddrExpression, typeStorages: List<TypeStorage>) {
-        genericTypeStorageByAddr += addr to typeStorages
+        if (addr !in genericTypeStorageByAddr.keys) {
+            genericTypeStorageByAddr += addr to typeStorages
+            return
+        }
+
+        val alreadyAddedTypeStorages = genericTypeStorageByAddr.getValue(addr)
+
+        // Because of the design decision for genericTypeStorage map, it contains a
+        // mapping from addresses to associated with them type arguments.
+        // Therefore, first element of the list is a first type argument for the instance, and so on.
+        // To update type information, we have to update a corresponding type storage.
+        // Because of that, update is only possible when we have information about all type arguments.
+        require(typeStorages.size == alreadyAddedTypeStorages.size) {
+            "Wrong number of type storages is provided," +
+                    " expected ${alreadyAddedTypeStorages.size} arguments," +
+                    " but only ${typeStorages.size} found"
+        }
+
+        val modifiedTypeStorages = alreadyAddedTypeStorages.mapIndexed { index, typeStorage ->
+            val newTypeStorage = typeStorages[index]
+
+            val updatedTypes = typeStorage.possibleConcreteTypes.intersect(newTypeStorage.possibleConcreteTypes)
+
+            // TODO should be really the least common type
+            // we have two type storages and know that one of them is subset of another one.
+            // Therefore, when we intersect them, we should chose correct least common type among them,
+            // but we don't do it here since it is not obvious, what is a correct way to do it.
+            // There is no access from here to typeResolver or Hierarchy, so it need to be
+            // reconsidered in the future, how to intersect type storages here or extract this function.
+            TypeStorage.constructTypeStorageUnsafe(typeStorage.leastCommonType, updatedTypes)
+        }
+
+        genericTypeStorageByAddr[addr] = modifiedTypeStorages
     }
 
     /**
      * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
      */
     fun getTypeStoragesForObjectTypeParameters(addr: UtAddrExpression): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+
+    fun extractTypeStorageForObjectWithSingleTypeParameter(
+        addr: UtAddrExpression,
+        objectClassName: String
+    ): TypeStorage? {
+        val valueTypeFromGenerics = getTypeStoragesForObjectTypeParameters(addr)
+
+        if (valueTypeFromGenerics != null && valueTypeFromGenerics.size > 1) {
+            error("$objectClassName must have only one type parameter, but it got ${valueTypeFromGenerics.size}")
+        }
+
+        return valueTypeFromGenerics?.single()
+    }
 
     /**
      * Set types storages for [firstAddr]'s type parameters equal to type storages for [secondAddr]'s type parameters

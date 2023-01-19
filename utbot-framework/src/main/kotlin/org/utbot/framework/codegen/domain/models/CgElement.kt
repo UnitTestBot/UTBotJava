@@ -15,6 +15,7 @@ import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocMethodLinkStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
+import org.utbot.framework.plugin.api.DocRegularLineStmt
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.ExecutableId
@@ -473,6 +474,7 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
             CgCustomTagStatement(statements = stmts)
         }
         is DocRegularStmt -> CgDocRegularStmt(stmt = stmt.stmt)
+        is DocRegularLineStmt -> CgDocRegularLineStmt(stmt = stmt.stmt)
         is DocClassLinkStmt -> CgDocClassLinkStmt(className = stmt.className)
         is DocMethodLinkStmt -> CgDocMethodLinkStmt(methodName = stmt.methodName, stmt = stmt.className)
         is DocCodeStmt -> CgDocCodeStmt(stmt = stmt.stmt)

@@ -110,16 +110,22 @@ fun main(args: Array<String>) = runBlocking {
 }
 
 private lateinit var pathsToUserClasses: Set<String>
-private lateinit var pathsToDependencyClasses: Set<String>
 private lateinit var instrumentation: Instrumentation<*>
+
+private var warmupDone = false
 
 private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatchdog) {
     watchdog.wrapActiveCall(warmup) {
-        logger.debug { "received warmup request" }
-        val time = measureTimeMillis {
-            HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
+        logger.info { "received warmup request" }
+        if (!warmupDone) {
+            val time = measureTimeMillis {
+                HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
+            }
+            logger.info { "warmup finished in $time ms" }
+            warmupDone = true
+        } else {
+            logger.info { "warmup already happened" }
         }
-        logger.debug { "warmup finished in $time ms" }
     }
     watchdog.wrapActiveCall(invokeMethodCommand) { params ->
         logger.debug { "received invokeMethod request: ${params.classname}, ${params.signature}" }
@@ -152,9 +158,7 @@ private fun InstrumentedProcessModel.setup(kryoHelper: KryoHelper, watchdog: Idl
     watchdog.wrapActiveCall(addPaths) { params ->
         logger.debug { "addPaths request" }
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
-        pathsToDependencyClasses = params.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
         HandlerClassesLoader.addUrls(pathsToUserClasses)
-        HandlerClassesLoader.addUrls(pathsToDependencyClasses)
         kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
         UtContext.setUtContext(UtContext(HandlerClassesLoader))
     }

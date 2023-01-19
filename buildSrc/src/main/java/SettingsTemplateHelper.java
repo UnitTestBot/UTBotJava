@@ -47,7 +47,7 @@ public class SettingsTemplateHelper {
                 if (s.startsWith("enum class ")) {//Enum class declaration
                     enums.add(new EnumInfo(s.substring(11, s.length() - 2)));
                 } else if (s.matches("[A-Z_]+,?") && !enums.isEmpty()) {//Enum value
-                    var enumValue = s.substring(0, s.length());
+                    String enumValue = s.substring(0, s.length());
                     if (enumValue.endsWith(",")) enumValue = enumValue.substring(0, enumValue.length() - 1);
                     enums.get(enums.size() - 1).docMap.put(enumValue, new ArrayList<>(docAcc));
                 } else if (s.startsWith("const val ")) {//Constand value to be substitute later if need
@@ -66,9 +66,9 @@ public class SettingsTemplateHelper {
                     s = acc.toString();
                     acc.delete(0, acc.length());
                     if (s.startsWith("var") || s.startsWith("val")) {
-                        var i = s.indexOf(" by ", 3);
+                        int i = s.indexOf(" by ", 3);
                         if (i > 0) {
-                            var key = s.substring(3, i).trim();
+                            String key = s.substring(3, i).trim();
                             if (key.contains(":")) {
                                 key = key.substring(0, key.lastIndexOf(':'));
                             }
@@ -91,7 +91,7 @@ public class SettingsTemplateHelper {
                             i = s.indexOf('(', i);
                             if (i > 0) {
                                 s = s.substring(i + 1);
-                                var defaultValue = s.substring(0, s.indexOf(')')).trim();
+                                String defaultValue = s.substring(0, s.indexOf(')')).trim();
                                 if (defaultValue.contains(",")) defaultValue = defaultValue.substring(0, defaultValue.indexOf(','));
                                 defaultValue = dictionary.getOrDefault(defaultValue, defaultValue);
                                 if (defaultValue.matches("[\\d_]+L")) {

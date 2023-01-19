@@ -174,4 +174,16 @@ public class Collections {
         }
         return false;
     }
+
+    /**
+     * Should generate iterators with recursions
+     */
+    public static  <T extends Iterator<T>> int size(Iterator<T> some) {
+        int r = 0;
+        while (some.hasNext()) {
+            some.next();
+            r++;
+        }
+        return r;
+    }
 }

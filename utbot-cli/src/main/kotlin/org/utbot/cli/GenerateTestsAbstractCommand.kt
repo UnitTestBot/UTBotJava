@@ -22,6 +22,7 @@ import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.testFrameworkByName
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
@@ -211,6 +212,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
             testFramework = testFrameworkByName(testFramework),
             classUnderTest = classUnderTest,
             codegenLanguage = codegenLanguage,
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
             generateWarningsForStaticMocking = generateWarningsForStaticMocking,

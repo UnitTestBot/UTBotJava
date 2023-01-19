@@ -17,7 +17,6 @@ import org.utbot.engine.isArtificialEntity
 import org.utbot.engine.isInappropriate
 import org.utbot.engine.isJavaLangObject
 import org.utbot.engine.isLambda
-import org.utbot.engine.isLocal
 import org.utbot.engine.isOverridden
 import org.utbot.engine.isUtMock
 import org.utbot.engine.makeArrayType
@@ -43,6 +42,9 @@ import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
 class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy: Hierarchy) {
 
@@ -133,7 +135,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
     fun constructTypeStorage(type: Type, possibleTypes: Collection<Type>): TypeStorage {
         val concretePossibleTypes = possibleTypes
             .map { (if (it is ArrayType) it.baseType else it) to it.numDimensions }
-            .filterNot { (baseType, numDimensions) -> isInappropriateOrArrayOfMocksOrLocals(numDimensions, baseType) }
+            .filterNot { (baseType, numDimensions) -> isInappropriateOrArrayOfMocks(numDimensions, baseType) }
             .mapTo(mutableSetOf()) { (baseType, numDimensions) ->
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }
@@ -141,7 +143,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         return TypeStorage.constructTypeStorageUnsafe(type, concretePossibleTypes).removeInappropriateTypes()
     }
 
-    private fun isInappropriateOrArrayOfMocksOrLocals(numDimensions: Int, baseType: Type?): Boolean {
+    private fun isInappropriateOrArrayOfMocks(numDimensions: Int, baseType: Type?): Boolean {
         if (baseType !is RefType) {
             return false
         }
@@ -155,12 +157,12 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         }
 
         if (numDimensions == 0 && baseSootClass.isInappropriate) {
-            // interface, abstract class, or local, or mock could not be constructed
+            // interface, abstract class, or mock could not be constructed
             return true
         }
 
-        if (numDimensions > 0 && (baseSootClass.isLocal || baseSootClass.findMockAnnotationOrNull != null)) {
-            // array of mocks or locals could not be constructed, but array of interfaces or abstract classes could be
+        if (numDimensions > 0 && baseSootClass.findMockAnnotationOrNull != null) {
+            // array of mocks could not be constructed, but array of interfaces or abstract classes could be
             return true
         }
 
@@ -354,6 +356,16 @@ internal val STRING_TYPE: RefType
     get() = Scene.v().getSootClass(String::class.java.canonicalName).type
 internal val CLASS_REF_TYPE: RefType
     get() = CLASS_REF_SOOT_CLASS.type
+internal val THREAD_TYPE: RefType
+    get() = Scene.v().getSootClass(Thread::class.java.canonicalName).type
+internal val THREAD_GROUP_TYPE: RefType
+    get() = Scene.v().getSootClass(ThreadGroup::class.java.canonicalName).type
+internal val COMPLETABLE_FUTURE_TYPE: RefType
+    get() = Scene.v().getSootClass(CompletableFuture::class.java.canonicalName).type
+internal val EXECUTORS_TYPE: RefType
+    get() = Scene.v().getSootClass(Executors::class.java.canonicalName).type
+internal val COUNT_DOWN_LATCH_TYPE: RefType
+    get() = Scene.v().getSootClass(CountDownLatch::class.java.canonicalName).type
 
 internal val NEW_INSTANCE_SIGNATURE: String = CLASS_REF_SOOT_CLASS.getMethodByName("newInstance").subSignature
 

@@ -202,8 +202,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 
             // Try to retrieve manually set type if present
             val valueType = typeRegistry
-                .getTypeStoragesForObjectTypeParameters(wrapper.addr)
-                ?.singleOrNull()
+                .extractSingleTypeParameterForRangeModifiableArray(wrapper.addr)
                 ?.leastCommonType
                 ?: OBJECT_TYPE
 
@@ -343,8 +342,10 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         resolver.addConstructedModel(concreteAddr, resultModel)
 
         // try to retrieve type storage for the single type parameter
-        val typeStorage =
-            resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)?.singleOrNull() ?: TypeRegistry.objectTypeStorage
+        val typeStorage = resolver
+            .typeRegistry
+            .extractSingleTypeParameterForRangeModifiableArray(wrapper.addr)
+            ?: TypeRegistry.objectTypeStorage
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
             val addr = UtAddrExpression(arrayExpression.select(mkInt(i + firstValue)))
@@ -360,6 +361,9 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 
         return resultModel
     }
+
+    private fun TypeRegistry.extractSingleTypeParameterForRangeModifiableArray(addr: UtAddrExpression) =
+        extractTypeStorageForObjectWithSingleTypeParameter(addr, "Range modifiable array")
 
     companion object {
         internal val rangeModifiableArrayClass: SootClass

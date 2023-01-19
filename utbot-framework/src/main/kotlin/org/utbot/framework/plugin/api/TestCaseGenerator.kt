@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
@@ -18,6 +17,8 @@ import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.util.mockListeners.ForceMockListener
+import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -25,28 +26,22 @@ import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.minimization.minimizeTestCase
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfo
+import org.utbot.framework.util.Conflict
+import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
-import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.nio.file.Path
-import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
-import kotlin.reflect.KCallable
 
 /**
  * Generates test cases: one by one or a whole set for the method under test.
@@ -90,19 +85,11 @@ open class TestCaseGenerator(
 
             //warmup
             if (warmupConcreteExecution) {
+                // force pool to create an appropriate executor
                 ConcreteExecutor(
                     UtExecutionInstrumentation,
                     classpathForEngine,
-                    dependencyPaths
                 ).apply {
-                    classLoader = utContext.classLoader
-                    withUtContext(UtContext(Warmup::class.java.classLoader)) {
-                        runBlocking {
-                            constructExecutionsForWarmup().forEach { (method, data) ->
-                                executeAsync(method, emptyArray(), data)
-                            }
-                        }
-                    }
                     warmup()
                 }
             }
@@ -153,6 +140,10 @@ open class TestCaseGenerator(
         val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
         val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
+        val conflictTriggers = ConflictTriggers()
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
+
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
                 for ((method, controller) in method2controller) {
@@ -172,6 +163,7 @@ open class TestCaseGenerator(
                             )
 
                             engineActions.map { engine.apply(it) }
+                            engineActions.clear()
 
                             generate(engine)
                                 .catch {
@@ -179,7 +171,15 @@ open class TestCaseGenerator(
                                 }
                                 .collect {
                                     when (it) {
-                                        is UtExecution -> method2executions.getValue(method) += it
+                                        is UtExecution -> {
+                                            if (it is UtSymbolicExecution &&
+                                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+                                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+                                            ) {
+                                                it.containsMocking = true
+                                            }
+                                            method2executions.getValue(method) += it
+                                        }
                                         is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
                                     }
                                 }
@@ -189,6 +189,7 @@ open class TestCaseGenerator(
                         }
                     }
                     controller.paused = true
+                    conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
                 }
 
                 // All jobs are in the method2controller now (paused). execute them with timeout
@@ -226,6 +227,8 @@ open class TestCaseGenerator(
         }
         ConcreteExecutor.defaultPool.close() // TODO: think on appropriate way to close instrumented processes
 
+        forceMockListener.detach(this, forceMockListener)
+        forceStaticMockListener.detach(this, forceStaticMockListener)
 
         return methods.map { method ->
             UtMethodTestSet(
@@ -236,33 +239,6 @@ open class TestCaseGenerator(
             )
         }
     }
-
-    private fun constructExecutionsForWarmup(): Sequence<Pair<KCallable<*>, UtConcreteExecutionData>> =
-        UtModelConstructor(IdentityHashMap()).run {
-            sequenceOf(
-                Warmup::doWarmup1 to UtConcreteExecutionData(
-                    EnvironmentModels(
-                        construct(Warmup(5), Warmup::class.java.id),
-                        listOf(construct(Warmup(1), Warmup::class.java.id)),
-                        emptyMap()
-                    ), emptyList()
-                ),
-                Warmup::doWarmup2 to UtConcreteExecutionData(
-                    EnvironmentModels(
-                        construct(Warmup(1), Warmup::class.java.id),
-                        listOf(construct(intArrayOf(1, 2, 3), intArrayClassId)),
-                        emptyMap()
-                    ), emptyList()
-                ),
-                Warmup::doWarmup2 to UtConcreteExecutionData(
-                    EnvironmentModels(
-                        construct(Warmup(1), Warmup::class.java.id),
-                        listOf(construct(intArrayOf(1, 2, 3, 4, 5, 6), intArrayClassId)),
-                        emptyMap()
-                    ), emptyList()
-                ),
-            )
-        }
 
     private fun createSymbolicEngine(
         controller: EngineController,
@@ -290,8 +266,7 @@ open class TestCaseGenerator(
         private val halfTimeUserExpectsToWaitInMillis = userTimeout / 2
 
         // If the half is too much for concrete execution, decrease the concrete timeout
-        var concreteExecutionBudgetInMillis =
-            min(halfTimeUserExpectsToWaitInMillis, 300L * methodsUnderTestNumber)
+        val concreteExecutionBudgetInMillis = min(halfTimeUserExpectsToWaitInMillis, 300L * methodsUnderTestNumber)
 
         // The symbolic execution time is the reminder but not longer than checkSolverTimeoutMillis times methods number
         val symbolicExecutionTimeout = userTimeout - concreteExecutionBudgetInMillis
@@ -306,14 +281,6 @@ open class TestCaseGenerator(
         // Now we calculate the solver timeout. Each method is supposed to get some time in worst-case scenario
         val updatedSolverCheckTimeoutMillis = if (symbolicExecutionTimePerMethod < checkSolverTimeoutMillis)
             symbolicExecutionTimePerMethod else checkSolverTimeoutMillis
-
-        init {
-            // Update the concrete execution time, if symbolic execution time is small
-            // because of UtSettings.checkSolverTimeoutMillis
-            concreteExecutionBudgetInMillis = userTimeout - symbolicExecutionTimeout
-            require(symbolicExecutionTimeout > 10)
-            require(concreteExecutionBudgetInMillis > 10)
-        }
     }
 
     private fun updateLifecycle(

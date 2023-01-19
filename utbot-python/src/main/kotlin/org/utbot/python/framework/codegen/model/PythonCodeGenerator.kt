@@ -176,7 +176,7 @@ class PythonCodeGenerator(
                         )
                     )
                     emptyLine()
-                    CgPythonRepr(pythonAnyClassId, "exit()")
+                    +CgPythonRepr(pythonAnyClassId, "exit()")
                 }
 
                 val args = CgPythonList(emptyList())

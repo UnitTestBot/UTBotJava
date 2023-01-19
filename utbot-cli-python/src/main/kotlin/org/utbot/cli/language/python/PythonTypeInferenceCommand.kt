@@ -26,6 +26,11 @@ class PythonTypeInferenceCommand : CliktCommand(
         help = "Function to infer types for."
     )
 
+    private val className by option(
+        "-c", "--class",
+        help = "Class of the function"
+    )
+
     private val pythonPath by option(
         "-p", "--python-path",
         help = "(required) Path to Python interpreter."
@@ -51,12 +56,13 @@ class PythonTypeInferenceCommand : CliktCommand(
         }
         val module = (moduleOpt as Success).value
 
-        val types = TypeInferenceProcessor(
+        TypeInferenceProcessor(
             pythonPath,
             directoriesForSysPath.toSet(),
             sourceFile,
             module,
-            function
+            function,
+            className
         ).inferTypes(
             startingTypeInferenceAction = {
                 startTime = System.currentTimeMillis()

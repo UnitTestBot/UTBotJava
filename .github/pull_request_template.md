@@ -48,9 +48,9 @@ If this is your case, share the detailed _manual scenarios_ that help to verify 
 
 Check off the item if the statement is true:
 
-1. [ ] I've set the proper **labels** for my PR.
-2. [ ] PR **title** and **description** are clear and intelligible.
-3. [ ] I've added enough **comments** to help people understand my code.
-4. [ ] The functionality I've repaired, changed or added is covered with **automated tests**.
-5. [ ] **Manual tests** have been provided optionally.
-6. [ ] The **documentation** for the functionality I've been working on is up-to-date.
+- [ ] I've set the proper **labels** for my PR.
+- [ ] PR **title** and **description** are clear and intelligible.
+- [ ] I've added enough **comments** to help people understand my code.
+- [ ] The functionality I've repaired, changed or added is covered with **automated tests**.
+- [ ] **Manual tests** have been provided optionally.
+- [ ] The **documentation** for the functionality I've been working on is up-to-date.

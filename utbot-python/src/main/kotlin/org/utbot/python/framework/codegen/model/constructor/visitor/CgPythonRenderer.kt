@@ -64,6 +64,7 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
+import java.lang.StringBuilder
 
 internal class CgPythonRenderer(
     context: CgRendererContext,
@@ -184,13 +185,12 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgTryCatch) {
-        println("try")
+        print("try")
         // TODO introduce CgBlock
         visit(element.statements)
         for ((exception, statements) in element.handlers) {
-            print("except")
+            print("except ")
             renderExceptionCatchVariable(exception)
-            println("")
             // TODO introduce CgBlock
             visit(statements, printNextLine = element.finally == null)
         }
@@ -297,13 +297,18 @@ internal class CgPythonRenderer(
     }
 
     fun renderPythonImport(pythonImport: PythonImport) {
+        val importBuilder = StringBuilder()
         if (pythonImport is PythonSysPathImport) {
-            println("sys.path.append('${pythonImport.sysPath}')")
+            importBuilder.append("sys.path.append('${pythonImport.sysPath}')")
         } else if (pythonImport.moduleName == null) {
-            println("import ${pythonImport.importName}")
+            importBuilder.append("import ${pythonImport.importName}")
         } else {
-            println("from ${pythonImport.moduleName} import ${pythonImport.importName}")
+            importBuilder.append("from ${pythonImport.moduleName} import ${pythonImport.importName}")
         }
+        if (pythonImport.alias != null) {
+            importBuilder.append(" as ${pythonImport.alias}")
+        }
+        println(importBuilder.toString())
     }
 
     override fun renderMethodSignature(element: CgTestMethod) {
@@ -403,6 +408,8 @@ internal class CgPythonRenderer(
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
+        print(exception.type.canonicalName)
+        print(" as ")
         print(exception.name.escapeNamePossibleKeyword())
     }
 

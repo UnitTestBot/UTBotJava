@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import org.utbot.common.PathUtil.replaceSeparator
 import settings.JsDynamicSettings
+import utils.OsProvider
 
 
 class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton() {
@@ -23,11 +24,12 @@ class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton(
         addBrowseFolderListener(
             TextBrowseFolderListener(descriptor, model.project)
         )
-        text = replaceSeparator(getFrameworkLibraryPath(JsDynamicSettings().pathToNYC, model) ?: "Nyc was not found")
+        text = (replaceSeparator(getFrameworkLibraryPath(JsDynamicSettings().pathToNYC, model) ?: "Nyc was not found")
+            + OsProvider.getProviderByOs().npmPackagePostfix)
     }
 
     fun validateNyc(): ValidationInfo? {
-        return if (replaceSeparator(text).endsWith("nyc.cmd"))
+        return if (replaceSeparator(text).endsWith("nyc" + OsProvider.getProviderByOs().npmPackagePostfix))
             null
         else
             ValidationInfo("Nyc executable file was not found in the specified directory", this)

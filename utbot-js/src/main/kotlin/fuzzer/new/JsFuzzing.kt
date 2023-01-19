@@ -1,9 +1,5 @@
 package fuzzer.new
-
-import api.JsExecutionFeedback
 import framework.api.js.JsClassId
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.Configuration
 import org.utbot.fuzzing.Fuzzing
@@ -20,10 +16,6 @@ fun defaultValueProviders() = listOf(
 class JsFuzzing(
     val exec: suspend (JsMethodDescription, List<FuzzedValue>) -> JsFeedback
 ) : Fuzzing<JsClassId, FuzzedValue, JsMethodDescription, JsFeedback> {
-
-    val collectedValues = mutableListOf<List<FuzzedValue>>()
-
-    private val chunkThreshold = 3
 
     override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, FuzzedValue>> {
         return defaultValueProviders().asSequence().flatMap { provider ->

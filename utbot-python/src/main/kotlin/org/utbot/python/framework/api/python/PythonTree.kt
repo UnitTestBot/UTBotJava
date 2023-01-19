@@ -5,7 +5,6 @@ import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
-import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal

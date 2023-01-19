@@ -7,6 +7,8 @@ abstract class OsProvider {
     abstract fun getCmdPrefix(): Array<String>
     abstract fun getAbstractivePathTool(): String
 
+    abstract val npmPackagePostfix: String
+
     companion object {
 
         fun getProviderByOs(): OsProvider {
@@ -22,9 +24,13 @@ abstract class OsProvider {
 class WindowsProvider : OsProvider() {
     override fun getCmdPrefix() = emptyArray<String>()
     override fun getAbstractivePathTool() = "where"
+
+    override val npmPackagePostfix = ".cmd"
 }
 
 class LinuxProvider : OsProvider() {
     override fun getCmdPrefix() = emptyArray<String>()
     override fun getAbstractivePathTool() = "which"
+
+    override val npmPackagePostfix = ""
 }

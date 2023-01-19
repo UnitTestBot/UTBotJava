@@ -20,6 +20,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.fuzzer.UtFuzzedExecution
 
 
 /**
@@ -280,6 +281,6 @@ private fun Throwable.exceptionToInfo(): String =
  * See [https://github.com/UnitTestBot/UTBotJava/issues/1504] for more details.
  */
 private fun UtExecution.getExecutionPriority(): Int = when (this) {
-    is UtSymbolicExecution -> 0
+    is UtFuzzedExecution -> 0
     else -> 1
 }

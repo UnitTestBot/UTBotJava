@@ -16,9 +16,14 @@ import org.utbot.engine.UtStreamClass.UT_STREAM
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtArrayList
+import org.utbot.engine.overrides.collections.UtArrayList.UtArrayListIterator
+import org.utbot.engine.overrides.collections.UtArrayList.UtArrayListSimpleIterator
 import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
+import org.utbot.engine.overrides.collections.UtHashSet.UtHashSetIterator
 import org.utbot.engine.overrides.collections.UtLinkedList
+import org.utbot.engine.overrides.collections.UtLinkedList.UtLinkedListIterator
+import org.utbot.engine.overrides.collections.UtLinkedList.UtReverseIterator
 import org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck
 import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
@@ -67,6 +72,7 @@ import soot.Scene
 import soot.SootClass
 import soot.SootMethod
 import kotlin.reflect.KClass
+import kotlin.reflect.jvm.jvmName
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -123,6 +129,13 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(java.util.HashMap::class, UtHashMap::class)
         putSootClass(java.util.concurrent.ConcurrentHashMap::class, UtHashMap::class)
 
+        // Iterators
+        putSootClass(java.util.Iterator::class, UtArrayListSimpleIterator::class)
+        putSootClass(java.util.ListIterator::class, UtArrayListIterator::class)
+        putSootClass(UtLinkedListIterator::class, UtLinkedListIterator::class)
+        putSootClass(UtReverseIterator::class, UtReverseIterator::class)
+        putSootClass(UtHashSetIterator::class, UtHashSetIterator::class)
+
         putSootClass(java.util.stream.BaseStream::class, UT_STREAM.className)
         putSootClass(java.util.stream.Stream::class, UT_STREAM.className)
         putSootClass(java.util.stream.IntStream::class, UT_INT_STREAM.className)
@@ -158,7 +171,7 @@ val wrapperToClass: Map<WrapperType, Set<TypeToBeWrapped>> =
 private fun MutableMap<TypeToBeWrapped, WrapperType>.putSootClass(
     key: KClass<*>,
     value: KClass<*>
-) = putSootClass(key, Scene.v().getSootClass(value.java.canonicalName).type)
+) = putSootClass(key, Scene.v().getSootClass(value.jvmName).type) // It is important to use `jvmName` because `canonicalName` replaces `$` for nested classes to `.`
 
 private fun MutableMap<TypeToBeWrapped, WrapperType>.putSootClass(
     key: KClass<*>,
@@ -173,7 +186,7 @@ private fun MutableMap<TypeToBeWrapped, WrapperType>.putSootClass(
 private fun MutableMap<TypeToBeWrapped, WrapperType>.putSootClass(
     key: KClass<*>,
     value: RefType
-) = put(Scene.v().getSootClass(key.java.canonicalName).type, value)
+) = put(Scene.v().getSootClass(key.jvmName).type, value) // It is important to use `jvmName` because `canonicalName` replaces `$` for nested classes to `.`
 
 private val wrappers: Map<ClassId, (RefType, UtAddrExpression) -> ObjectValue> = mutableMapOf(
     wrap(java.lang.StringBuilder::class) { type, addr -> objectValue(type, addr, UtStringBuilderWrapper()) },
@@ -235,6 +248,10 @@ private val wrappers: Map<ClassId, (RefType, UtAddrExpression) -> ObjectValue> =
     wrap(java.util.HashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
     wrap(java.util.concurrent.ConcurrentHashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
 
+    // iterator wrappers
+    wrap(java.util.Iterator::class) { _, addr -> objectValue(ITERATOR_TYPE, addr, IteratorOfListWrapper()) },
+    wrap(java.util.ListIterator::class) { _, addr -> objectValue(LIST_ITERATOR_TYPE, addr, ListIteratorOfListWrapper()) },
+
     // stream wrappers
     wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
     wrap(java.util.stream.Stream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
@@ -271,6 +288,12 @@ private val wrappers: Map<ClassId, (RefType, UtAddrExpression) -> ObjectValue> =
         wrap(UtHashSet::class) { _, addr -> objectValue(HASH_SET_TYPE, addr, SetWrapper()) },
 
         wrap(UtHashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
+
+        wrap(UtArrayListSimpleIterator::class) { _, addr -> objectValue(ITERATOR_TYPE, addr, IteratorOfListWrapper()) },
+        wrap(UtArrayListIterator::class) { _, addr -> objectValue(LIST_ITERATOR_TYPE, addr, ListIteratorOfListWrapper()) },
+        wrap(UtLinkedListIterator::class) { _, addr -> objectValue(LIST_ITERATOR_TYPE, addr, ListIteratorOfListWrapper()) }, // use ListIterator instead of simple Iterator because java.util.LinkedList may return ListIterator for `iterator`
+        wrap(UtReverseIterator::class) { _, addr -> objectValue(ITERATOR_TYPE, addr, ReverseIteratorWrapper()) },
+        wrap(UtHashSetIterator::class) { _, addr -> objectValue(ITERATOR_TYPE, addr, IteratorOfSetWrapper()) },
 
         wrap(UtStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
         wrap(UtIntStream::class) { _, addr -> objectValue(INT_STREAM_TYPE, addr, IntStreamWrapper()) },

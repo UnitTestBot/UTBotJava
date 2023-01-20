@@ -322,7 +322,7 @@ public class UtArrayList<E> extends AbstractList<E>
     @Override
     public Iterator<E> iterator() {
         preconditionCheck();
-        return new UtArrayListIterator(0);
+        return new UtArrayListSimpleIterator(0);
     }
 
     @NotNull
@@ -403,6 +403,43 @@ public class UtArrayList<E> extends AbstractList<E>
 
         executeConcretely();
         return this.toList().subList(fromIndex, toIndex);
+    }
+
+    public class UtArrayListSimpleIterator implements Iterator<E> {
+        int index;
+        int prevIndex = -1;
+
+        UtArrayListSimpleIterator(int index) {
+            rangeCheckForAdd(index);
+            this.index = index;
+        }
+
+        @Override
+        public boolean hasNext() {
+            preconditionCheck();
+            return index != elementData.end;
+        }
+
+        @Override
+        public E next() {
+            preconditionCheck();
+            if (index == elementData.end) {
+                throw new NoSuchElementException();
+            }
+            prevIndex = index;
+            return elementData.get(index++);
+        }
+
+        @Override
+        public void remove() {
+            preconditionCheck();
+            if (prevIndex == -1) {
+                throw new IllegalStateException();
+            }
+            elementData.end--;
+            elementData.remove(prevIndex);
+            prevIndex = -1;
+        }
     }
 
     public class UtArrayListIterator implements ListIterator<E> {

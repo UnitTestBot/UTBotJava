@@ -522,7 +522,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var processAllClinitSectionsConcretely by getBooleanProperty(false)
 
     /**
-     * Emit symbolic execution in case concrete failure (by timeout some internal errors), except death of child process.
+     * Emit a symbolic execution's in case of a concrete executor's failure (by a timeout or some internal errors), except death of a child process.
      *
      * Note: this option could be useful for competition, but in other cases should be changed very carefully.
      */

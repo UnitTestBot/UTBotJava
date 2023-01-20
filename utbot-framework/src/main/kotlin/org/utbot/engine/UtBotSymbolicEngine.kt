@@ -528,29 +528,23 @@ class UtBotSymbolicEngine(
                 logger.debug { "processResult<${methodUnderTest}>: returned $concolicUtExecution" }
             }
         } catch (e: CancellationException) {
-            if (!UtSettings.emitSymbolicExecutionAfterConcreteFailure) {
-                logger.debug(e) { "Cancellation happened" }
-            } else {
-                workaround(WorkaroundReason.RETURN_SYMBOLIC_AFTER_CONCRETE_ERROR) {
-                    // Emit symbolic execution in case concrete run out of time
-                    emit(symbolicUtExecution)
-                    logger.debug(e) { "Cancellation happened, returned symbolic execution $symbolicUtExecution" }
-                }
-            }
+            // Emit symbolic execution in case concrete was cancelled
+            emit(symbolicUtExecution)
+            logger.debug(e) { "Cancellation happened, returned symbolic execution $symbolicUtExecution" }
         } catch (e: ConcreteExecutionFailureException) {
             // Death of child process possibly means JVM crash or some another danger
             // so it is better to drop even symbolic execution.
             emitFailedConcreteExecutionResult(stateBefore, e)
         } catch (e: Throwable) {
-            if (!UtSettings.emitSymbolicExecutionAfterConcreteFailure) {
-                emit(UtError("Concrete execution failed", e))
-            } else {
+            if (UtSettings.emitSymbolicExecutionAfterConcreteFailure) {
                 workaround(WorkaroundReason.RETURN_SYMBOLIC_AFTER_CONCRETE_ERROR) {
                     // Any another error in concrete mostly means a developer's error
                     // so we may try to return the symbolic execution
                     emit(symbolicUtExecution)
                     logger.debug(e) { "Unexpected error in concrete execution, returned symbolic execution $symbolicUtExecution" }
                 }
+            } else {
+                emit(UtError("Concrete execution failed", e))
             }
         }
     }

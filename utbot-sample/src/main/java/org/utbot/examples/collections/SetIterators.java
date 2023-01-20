@@ -1,9 +1,22 @@
 package org.utbot.examples.collections;
 
+import org.utbot.api.mock.UtMock;
+
 import java.util.Iterator;
 import java.util.Set;
 
 public class SetIterators {
+    @SuppressWarnings({"IfStatementWithIdenticalBranches", "RedundantOperationOnEmptyContainer"})
+    Iterator<Integer> returnIterator(Set<Integer> set) {
+        UtMock.assume(set != null);
+
+        if (set.isEmpty()) {
+            return set.iterator();
+        } else {
+            return set.iterator();
+        }
+    }
+
     int iteratorHasNext(Set<Integer> s) {
         Iterator<Integer> iterator = s.iterator();
         if (!iterator.hasNext()) {

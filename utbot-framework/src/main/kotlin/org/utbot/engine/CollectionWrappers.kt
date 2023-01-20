@@ -460,6 +460,11 @@ val LINKED_HASH_MAP_TYPE: RefType
 val HASH_MAP_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.HashMap::class.java.canonicalName).type
 
+val ITERATOR_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.Iterator::class.java.canonicalName).type
+val LIST_ITERATOR_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.ListIterator::class.java.canonicalName).type
+
 val STREAM_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.stream.Stream::class.java.canonicalName).type
 

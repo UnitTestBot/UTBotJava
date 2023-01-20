@@ -1,14 +1,14 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
-import java.io.Closeable
-import java.security.AccessControlException
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import java.io.Closeable
+import java.security.AccessControlException
 
 class PhasesController(
     instrumentationContext: InstrumentationContext,
@@ -16,7 +16,7 @@ class PhasesController(
     delegateInstrumentation: Instrumentation<Result<*>>,
 ) : Closeable {
 
-    val valueConstructionContext = ValueConstructionContext(instrumentationContext)
+    val valueConstructionPhase = ValueConstructionPhase(instrumentationContext)
 
     val preparationContext = PreparationContext(traceHandler)
 
@@ -31,8 +31,12 @@ class PhasesController(
     inline fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
         return use {
             try {
-                block()
-            } catch (e: PhaseError) {
+                this.block()
+            }
+            catch (e: ExecutionPhaseStop) {
+                return e.result
+            }
+            catch (e: ExecutionPhaseError) {
                 if (e.cause.cause is AccessControlException) {
                     return@use UtConcreteExecutionResult(
                         MissingState,
@@ -47,7 +51,7 @@ class PhasesController(
     }
 
     override fun close() {
-        valueConstructionContext.close()
+        valueConstructionPhase.close()
     }
 
 }

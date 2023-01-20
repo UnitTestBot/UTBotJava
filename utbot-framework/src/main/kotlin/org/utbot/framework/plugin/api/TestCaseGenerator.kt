@@ -180,7 +180,10 @@ open class TestCaseGenerator(
                                             }
                                             method2executions.getValue(method) += it
                                         }
-                                        is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                        is UtError -> {
+                                            method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                            logger.error(it.error) { "UtError occurred" }
+                                        }
                                     }
                                 }
                         } catch (e: Exception) {

@@ -1,13 +1,33 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
-abstract class PhaseError(message: String, override val cause: Throwable) : Exception(message)
-interface PhaseContext<E: PhaseError> {
-    fun wrapError(error: Throwable): E
+import com.jetbrains.rd.util.debug
+import com.jetbrains.rd.util.getLogger
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.rd.logMeasure
+
+val logger = getLogger("Executionphase")
+
+abstract class ExecutionPhaseException(override val message: String): Exception()
+
+// InstrumentationProcessError
+class ExecutionPhaseError(phase: String, override val cause: Throwable) : ExecutionPhaseException(phase)
+
+// Ok
+class ExecutionPhaseStop(phase: String, val result: UtConcreteExecutionResult): ExecutionPhaseException(phase   )
+
+interface ExecutionPhase {
+    fun wrapError(e: Throwable): ExecutionPhaseException
 }
 
-inline fun <reified R, T: PhaseContext<*>> T.start(block: T.() -> R): R =
+fun <T: ExecutionPhase, R> T.start(block: T.() -> R): R =
     try {
-        block()
-    } catch (e: Throwable) {
-        throw wrapError(e)
+        logger.logMeasure(this.javaClass.simpleName) {
+            this.block()
+        }
+    }
+    catch (e: ExecutionPhaseStop) {
+        throw e
+    }
+    catch (e: Throwable) {
+        throw this.wrapError(e)
     }

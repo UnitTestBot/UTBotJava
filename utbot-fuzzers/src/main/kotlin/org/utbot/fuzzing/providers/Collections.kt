@@ -107,14 +107,10 @@ class MapValueProvider(
 
 class ListSetValueProvider(
     idGenerator: IdGenerator<Int>
-) : CollectionValueProvider(idGenerator, java.lang.Iterable::class.id) {
+) : CollectionValueProvider(idGenerator, java.util.Collection::class.id) {
     override fun resolveType(description: FuzzedDescription, type: FuzzedType) = sequence {
         val generic = type.generics.firstOrNull() ?: FuzzedType(objectClassId)
         when (type.classId) {
-            java.lang.Iterable::class.id -> {
-                yield(FuzzedType(java.util.ArrayList::class.id, listOf(generic)))
-                yield(FuzzedType(java.util.HashSet::class.id, listOf(generic)))
-            }
             java.util.Queue::class.id,
             java.util.Deque::class.id-> {
                 yield(FuzzedType(java.util.ArrayDeque::class.id, listOf(generic)))
@@ -182,8 +178,6 @@ abstract class CollectionValueProvider(
 
     abstract fun findMethod(resolvedType: FuzzedType, values: List<FuzzedValue>) : MethodId
 
-    private val FuzzedType.isCollection get() = this.classId.isSubtypeOf(java.util.Collection::class)
-
     override fun generate(description: FuzzedDescription, type: FuzzedType) = sequence<Seed<FuzzedType, FuzzedValue>> {
         resolveType(description, type).forEach { resolvedType ->
             val typeParameter = resolvedType.generics
@@ -200,19 +194,17 @@ abstract class CollectionValueProvider(
                         ),
                         modificationsChainProvider = { mutableListOf() }
                     ).fuzzed {
-                        summary = if (resolvedType.isCollection) "%var% = collection" else "%var% = iterable"
+                        summary = "%var% = collection"
                     }
                 },
-                modify = if (resolvedType.isCollection) {
-                    Routine.ForEach(typeParameter) { self, _, values ->
-                        val model = self.model as UtAssembleModel
-                        (model.modificationsChain as MutableList) += UtExecutableCallModel(
-                            model,
-                            findMethod(resolvedType, values),
-                            values.map { it.model }
-                        )
-                    }
-                } else Routine.ForEach(typeParameter) { _, _, _ -> run {} } //No mutations for java.lang.Iterable
+                modify = Routine.ForEach(typeParameter) { self, _, values ->
+                    val model = self.model as UtAssembleModel
+                    (model.modificationsChain as MutableList) += UtExecutableCallModel(
+                        model,
+                        findMethod(resolvedType, values),
+                        values.map { it.model }
+                    )
+                }
             ))
         }
     }

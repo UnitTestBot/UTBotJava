@@ -311,36 +311,75 @@ class MockValueConstructor(
             val elementClassId = classId.elementClassId ?: error(
                 "Provided incorrect UtArrayModel without elementClassId. ClassId: ${model.classId}, model: $model"
             )
+            var iterationCount = 0
+            val maxIterationCount = 200
+
             return when (elementClassId.jvmName) {
                 "B" -> ByteArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "S" -> ShortArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "C" -> CharArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "I" -> IntArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "J" -> LongArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "F" -> FloatArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "D" -> DoubleArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 "Z" -> BooleanArray(length) { primitive(constModel) }.apply {
-                    stores.forEach { (index, model) -> this[index] = primitive(model) }
+                    stores.forEach { (index, model) ->
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) return@forEach
+                        this[index] = primitive(model)
+                    }
                 }.also { constructedObjects[model] = it }
                 else -> {
                     val javaClass = javaClass(elementClassId)
                     val instance = java.lang.reflect.Array.newInstance(javaClass, length) as Array<*>
                     constructedObjects[model] = instance
                     for (i in instance.indices) {
+                        iterationCount++
+                        if (iterationCount == maxIterationCount) break
+
                         val elementModel = stores[i] ?: constModel
                         val value = construct(elementModel, null).value
                         try {

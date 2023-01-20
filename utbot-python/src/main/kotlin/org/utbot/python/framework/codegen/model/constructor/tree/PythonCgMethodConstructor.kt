@@ -9,13 +9,13 @@ import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.tree.CgMethodConstructor
-import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
+import org.utbot.python.framework.fields.PythonExecutionStateAnalyzer
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
     private val maxDepth: Int = 5
@@ -42,13 +42,17 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         withTestMethodScope(execution) {
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
+            if (execution.testMethodName == null) {
+                execution.testMethodName = testMethodName
+            }
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
 
-                val modificationInfo = StateModificationInfo()
+                val stateAnalyzer = PythonExecutionStateAnalyzer(execution)
+                val modificationInfo = stateAnalyzer.findModifiedFields()
                 val fieldStateManager = context.cgLanguageAssistant.getCgFieldStateManager(context)
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
@@ -71,11 +75,14 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                             context.currentBlock.addAll(it.arguments)
                         }
                     }
-                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
+//                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
+
                     recordActualResult()
                     generateResultAssertions()
-                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
+
+//                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
                     generateFieldStateAssertions()
+
                     if (executableId is PythonMethodId)
                         generatePythonTestComments(execution)
                 }

@@ -14,6 +14,8 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
+import org.utbot.python.code.MemoryDump
+import org.utbot.python.code.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
@@ -74,6 +76,30 @@ class PythonEngine(
         )
     }
 
+    private fun transformModelList(
+        thisObject: UtModel?,
+        state: MemoryDump,
+        modelListIds: List<String>
+    ): Pair<UtModel?, List<UtModel>> {
+        val (stateThisId, afterModelListIds) =
+            if (thisObject == null) {
+                Pair(null, modelListIds)
+            } else {
+                Pair(modelListIds.first(), modelListIds.drop(1))
+            }
+        val stateThisObject = stateThisId?.let {
+            PythonTreeModel(
+                state.getById(it).toPythonTree(state)
+            )
+        }
+        val modelList = afterModelListIds.map {
+            PythonTreeModel(
+                state.getById(it).toPythonTree(state)
+            )
+        }
+        return Pair(stateThisObject, modelList)
+    }
+
     private fun handleSuccessResult(
         types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
@@ -81,30 +107,28 @@ class PythonEngine(
         jobResult: JobResult,
         summary: List<String>,
     ): FuzzingExecutionFeedback {
-        val (resultJSON, isException, coverage) = evaluationResult
-
         val prohibitedExceptions = listOf(
             "builtins.AttributeError",
             "builtins.TypeError"
         )
 
-        if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+        if (evaluationResult.isException && (evaluationResult.result.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
             val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
                 types.joinToString { it.pythonTypeRepresentation() }
-            }. Exception type: ${resultJSON.type.name}"
+            }. Exception type: ${evaluationResult.result.type.name}"
 
             logger.info(errorMessage)
             return TypeErrorFeedback(errorMessage)
         }
 
         val executionResult =
-            if (isException) {
-                UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false)
+            if (evaluationResult.isException) {
+                UtExplicitlyThrownException(Throwable(evaluationResult.result.output.type.toString()), false)
             }
             else {
-                val outputType = resultJSON.type
+                val outputType = evaluationResult.result.type
                 val resultAsModel = PythonTreeModel(
-                    resultJSON.output,
+                    evaluationResult.result.output,
                     outputType
                 )
                 UtExecutionSuccess(resultAsModel)
@@ -112,11 +136,14 @@ class PythonEngine(
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, jobResult, executionResult)
 
+        val (beforeThisObject, beforeModelList) = transformModelList(jobResult.thisObject, evaluationResult.stateBefore, evaluationResult.modelListIds)
+        val (afterThisObject, afterModelList) = transformModelList(jobResult.thisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
+
         val utFuzzedExecution = UtFuzzedExecution(
-            stateBefore = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
-            stateAfter = EnvironmentModels(jobResult.thisObject, jobResult.modelList, emptyMap()),
+            stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
+            stateAfter = EnvironmentModels(afterThisObject, afterModelList, emptyMap()),
             result = executionResult,
-            coverage = coverage,
+            coverage = evaluationResult.coverage,
             testMethodName = testMethodName.testName?.camelToSnakeCase(),
             displayName = testMethodName.displayName,
             summary = summary.map { DocRegularStmt(it) }
@@ -150,9 +177,9 @@ class PythonEngine(
             val argumentValues = arguments.map {
                 PythonTreeModel(it.tree, it.tree.type)
             }
-            val summary =
-                arguments.zip(methodUnderTest.arguments)
-                    .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+            val summary = arguments
+                .zip(methodUnderTest.arguments)
+                .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)

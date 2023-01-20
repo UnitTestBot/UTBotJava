@@ -57,6 +57,8 @@ class PythonTreeModel(
     val tree: PythonTree.PythonTreeNode,
     classId: PythonClassId,
 ): PythonModel(classId) {
+    constructor(tree: PythonTree.PythonTreeNode) : this(tree, tree.type)
+
     override val allContainingClassIds: Set<PythonClassId>
         get() { return findAllContainingClassIds(setOf(this.tree)) }
 

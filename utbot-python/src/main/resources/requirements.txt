@@ -2,5 +2,5 @@ mypy==0.971
 astor
 typeshed-client
 coverage
-utbot-executor==0.1.8
+utbot-executor==0.1.14
 utbot-mypy-runner==0.1.20

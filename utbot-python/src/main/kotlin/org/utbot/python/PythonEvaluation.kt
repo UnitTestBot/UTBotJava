@@ -1,12 +1,17 @@
 package org.utbot.python
 
-import com.beust.klaxon.Klaxon
+import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.python.code.KlaxonPythonTreeParser
+import org.utbot.python.code.MemoryDump
 import org.utbot.python.code.PythonCodeGenerator
+import org.utbot.python.code.PythonObjectDeserializer
+import org.utbot.python.code.toPythonTree
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
@@ -28,14 +33,13 @@ class PythonEvaluationTimeout(
 ) : PythonEvaluationResult()
 
 class PythonEvaluationSuccess(
-    private val output: OutputData,
-    private val isException: Boolean,
-    val coverage: Coverage
-) : PythonEvaluationResult() {
-    operator fun component1() = output
-    operator fun component2() = isException
-    operator fun component3() = coverage
-}
+    val coverage: Coverage,
+    val isException: Boolean,
+    val stateBefore: MemoryDump,
+    val stateAfter: MemoryDump,
+    val modelListIds: List<String>,
+    val result: OutputData,
+) : PythonEvaluationResult()
 
 enum class PythonEvaluationStatus(val value: String) {
     SUCCESS("success"),
@@ -43,7 +47,10 @@ enum class PythonEvaluationStatus(val value: String) {
     ARGUMENTS_FAIL("arguments_fail"),
 }
 
-data class OutputData(val output: PythonTree.PythonTreeNode, val type: PythonClassId)
+data class OutputData(
+    val output: PythonTree.PythonTreeNode,
+    val type: PythonClassId,
+)
 
 data class EvaluationInput(
     val method: PythonMethod,
@@ -119,7 +126,7 @@ fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>, input:
 
 fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): PythonEvaluationResult {
     val result = getResult(process.process, timeout = timeout)
-    process.fileWithCode.delete()
+//    process.fileWithCode.delete()
 
     if (result.terminatedByTimeout)
         return PythonEvaluationTimeout()
@@ -128,18 +135,23 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
         return PythonEvaluationError(
             result.exitValue,
             result.stdout,
-            result.stderr.split("\n")
+            result.stderr.split(System.lineSeparator())
         )
 
     val output = process.fileForOutput.readText().split(System.lineSeparator())
     process.fileForOutput.delete()
 
-    if (output.size != 4)
+    if (output.size != 8)
         return PythonEvaluationError(
             0,
             "Incorrect format of output",
             emptyList()
         )
+
+    val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+    val stmtsAdapter: JsonAdapter<List<Int>> = moshi.adapter(Types.newParameterizedType(List::class.java, Int::class.javaObjectType))
+    val argsIdsAdapter: JsonAdapter<List<String>> = moshi.adapter(Types.newParameterizedType(List::class.java, String::class.java))
+    val kwargsIdsAdapter: JsonAdapter<List<String>> = moshi.adapter(Types.newParameterizedType(List::class.java, String::class.java))
 
     return when (val status = output[0]) {
         PythonEvaluationStatus.ARGUMENTS_FAIL.value -> {
@@ -152,16 +164,28 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
         PythonEvaluationStatus.FAIL.value, PythonEvaluationStatus.SUCCESS.value -> {
             val isSuccess = status == PythonEvaluationStatus.SUCCESS.value
 
-            val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
-            val stmts = Klaxon().parseArray<Int>(output[2])!!
-            val missed = Klaxon().parseArray<Int>(output[3])!!
-
+            val stmts = stmtsAdapter.fromJson(output[1])!!
+            val missed = stmtsAdapter.fromJson(output[2])!!
             val coverage = calculateCoverage(stmts, missed, input)
 
+            val stateBeforeMemory = PythonObjectDeserializer.parseDumpedObjects(output[3])
+            val stateAfterMemory = PythonObjectDeserializer.parseDumpedObjects(output[4])
+
+            val argsIds = argsIdsAdapter.fromJson(output[5])!!
+            val kwargsIds = kwargsIdsAdapter.fromJson(output[6])!!
+            val resultId = output[7]
+
+            val modelListIds = argsIds + kwargsIds
+
+            val resultValue = stateAfterMemory.getById(resultId).toPythonTree(stateAfterMemory)
+
             PythonEvaluationSuccess(
-                OutputData(pythonTree, pythonTree.type),
+                coverage,
                 !isSuccess,
-                coverage
+                stateBeforeMemory,
+                stateAfterMemory,
+                modelListIds,
+                OutputData(resultValue, resultValue.type),
             )
         }
         else -> {

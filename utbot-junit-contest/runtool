@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # switch to environment JVM as needed
-JAVA_HOME=/usr
+JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 
-APACHE_EXECS_LIB=lib/org/apache/commons/commons-exec/1.2/commons-exec-1.2.jar
-TOOL=lib/runtool-1.0.0.jar
+TOOL=lib/utbot-junit-contest-1.0.jar
 
+export UTBOT_EXTRA_PARAMS=-Xmx4g
 export JAVA_HOME=$JAVA_HOME
-$JAVA_HOME/bin/java -cp $TOOL:$APACHE_EXECS_LIB  sbst.runtool.Main
+$JAVA_HOME/bin/java -cp $TOOL sbst.runtool.Main

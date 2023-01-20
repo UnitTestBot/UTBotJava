@@ -8,8 +8,10 @@ import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
 import org.utbot.api.exception.UtMockAssumptionViolatedException
+import org.utbot.common.WorkaroundReason
 import org.utbot.common.bracket
 import org.utbot.common.debug
+import org.utbot.common.workaround
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
@@ -525,8 +527,23 @@ class UtBotSymbolicEngine(
                 emit(concolicUtExecution)
                 logger.debug { "processResult<${methodUnderTest}>: returned $concolicUtExecution" }
             }
+        } catch (e: CancellationException) {
+            // Emit symbolic execution in case concrete run out of time
+            emit(symbolicUtExecution)
+            logger.debug(e) { "Cancellation happened, returned symbolic execution $symbolicUtExecution" }
         } catch (e: ConcreteExecutionFailureException) {
+            // Death of child process possibly means JVM crash or some another danger
+            // so it is better to drop even symbolic execution.
             emitFailedConcreteExecutionResult(stateBefore, e)
+        } catch (e: Throwable) {
+            // TODO uncomment after competition
+//            emit(UtError("Concrete execution failed", e))
+            workaround(WorkaroundReason.RETURN_SYMBOLIC_AFTER_CONCRETE_ERROR) {
+                // Any another error in concrete mostly means a developer's error
+                // so we may try to return the symbolic execution
+                emit(symbolicUtExecution)
+                logger.debug(e) { "Unexpected error in concrete execution, returned symbolic execution $symbolicUtExecution" }
+            }
         }
     }
 

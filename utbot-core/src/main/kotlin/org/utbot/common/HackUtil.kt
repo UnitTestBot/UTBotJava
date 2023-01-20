@@ -76,4 +76,8 @@ enum class WorkaroundReason {
      * construct `toArray` invocation (because streams cannot be consumed twice).
      */
     CONSUME_DIRTY_STREAMS,
+    /**
+     * Return symbolic execution in case any unknown error in concrete execution appears (for competition purposes only!).
+     */
+    RETURN_SYMBOLIC_AFTER_CONCRETE_ERROR
 }

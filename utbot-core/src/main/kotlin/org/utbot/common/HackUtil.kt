@@ -78,6 +78,7 @@ enum class WorkaroundReason {
     CONSUME_DIRTY_STREAMS,
     /**
      * Return symbolic execution in case any unknown error in concrete execution appears (for competition purposes only!).
+     * This strategy should be investigated deeper in the future.
      */
     RETURN_SYMBOLIC_AFTER_CONCRETE_ERROR
 }

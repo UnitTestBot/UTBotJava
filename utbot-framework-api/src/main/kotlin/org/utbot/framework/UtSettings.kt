@@ -520,6 +520,13 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Note that values processed concretely won't be replaced with unbounded symbolic variables.
      */
     var processAllClinitSectionsConcretely by getBooleanProperty(false)
+
+    /**
+     * Emit symbolic execution in case concrete failure (by timeout some internal errors), except death of child process.
+     *
+     * Note: this option could be useful for competition, but in other cases should be changed very carefully.
+     */
+    var emitSymbolicExecutionAfterConcreteFailure by getBooleanProperty(false)
 }
 
 /**

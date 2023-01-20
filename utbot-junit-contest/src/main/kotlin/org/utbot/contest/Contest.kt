@@ -175,6 +175,8 @@ fun setOptions() {
     UtSettings.ignoreStringLiterals = true
     UtSettings.maximizeCoverageUsingReflection = true
     UtSettings.useSandbox = false
+    // Errors in child process lead to dropping symbolic executions also by default - we should avoid it during competition.
+    UtSettings.emitSymbolicExecutionAfterConcreteFailure = true
 }
 
 

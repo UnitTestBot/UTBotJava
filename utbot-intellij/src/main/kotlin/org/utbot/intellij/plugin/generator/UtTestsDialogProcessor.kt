@@ -139,7 +139,7 @@ object UtTestsDialogProcessor {
                         return
                     }
 
-                    UtSettings.concreteExecutionTimeoutInInstrumentedProcess = model.hangingTestsTimeout.timeoutMs
+                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis = model.hangingTestsTimeout.timeoutMs
                     UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
                     UtSettings.summaryGenerationType = model.summariesGenerationType
 

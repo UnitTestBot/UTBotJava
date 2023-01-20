@@ -4,17 +4,12 @@ import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.*
 import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
 import org.utbot.instrumentation.instrumentation.execution.phases.start
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -29,12 +24,12 @@ import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
  * @property [stateBefore] is necessary for construction of parameters of a concrete call.
  * @property [instrumentation] is necessary for mocking static methods and new instances.
  * @property [timeout] is timeout for specific concrete execution (in milliseconds).
- * By default is initialized from [UtSettings.concreteExecutionTimeoutInInstrumentedProcess]
+ * By default is initialized from [UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis]
  */
 data class UtConcreteExecutionData(
     val stateBefore: EnvironmentModels,
     val instrumentation: List<UtInstrumentation>,
-    val timeout: Long = UtSettings.concreteExecutionTimeoutInInstrumentedProcess
+    val timeout: Long
 )
 
 class UtConcreteExecutionResult(
@@ -88,14 +83,18 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             traceHandler,
             delegateInstrumentation
         ).computeConcreteExecutionResult {
-            // construction
-            val (params, statics, cache) = valueConstructionContext.start {
-                val params = constructParameters(stateBefore)
-                val statics = constructStatics(stateBefore)
+            var currentlyElapsed = 0L
+            val (params, statics, cache) = valueConstructionPhase.start {
+                val (result, elapsed) = invokeWithTimeoutWithUtContext(timeout) {
+                    val params = constructParameters(stateBefore)
+                    val statics = constructStatics(stateBefore)
 
-                mock(instrumentations)
+                    mock(instrumentations)
 
-                Triple(params, statics, getCache())
+                    Triple(params, statics, getCache())
+                }
+                currentlyElapsed += elapsed
+                result
             }
 
             // preparation
@@ -108,33 +107,48 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             try {
                 // invocation
                 val concreteResult = invocationContext.start {
-                    invoke(clazz, methodSignature, params.map { it.value }, timeout)
+                    val (result, elapsed) = invokeWithTimeoutWithUtContext(timeout - currentlyElapsed) {
+                        invoke(clazz, methodSignature, params.map { it.value })
+                    }
+                    currentlyElapsed += elapsed
+                    result
                 }
 
                 // statistics collection
                 val coverage = statisticsCollectionContext.start {
-                    getCoverage(clazz)
+                    val (result, elapsed) = invokeWithTimeoutWithUtContext(timeout - currentlyElapsed) {
+                        getCoverage(clazz)
+                    }
+                    currentlyElapsed += elapsed
+                    result
                 }
 
                 // model construction
                 val (executionResult, stateAfter) = modelConstructionContext.start {
-                    configureConstructor {
-                        this.cache = cache
-                        strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(pathsToUserClasses, cache)
+                    val (result, elapsed) = invokeWithTimeoutWithUtContext(timeout - currentlyElapsed) {
+                        configureConstructor {
+                            this.cache = cache
+                            strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
+                                UtExecutionInstrumentation.pathsToUserClasses,
+                                cache
+                            )
+                        }
+
+                        val executionResult = convertToExecutionResult(concreteResult, returnClassId)
+
+                        val stateAfterParametersWithThis = constructParameters(params)
+                        val stateAfterStatics = constructStatics(stateBefore, statics)
+                        val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
+                            null to stateAfterParametersWithThis
+                        } else {
+                            stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
+                        }
+                        val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
+
+                        executionResult to stateAfter
                     }
-
-                    val executionResult = convertToExecutionResult(concreteResult, returnClassId)
-
-                    val stateAfterParametersWithThis = constructParameters(params)
-                    val stateAfterStatics = constructStatics(stateBefore, statics)
-                    val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
-                        null to stateAfterParametersWithThis
-                    } else {
-                        stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
-                    }
-                    val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
-
-                    executionResult to stateAfter
+                    currentlyElapsed += elapsed
+                    result
                 }
 
                 UtConcreteExecutionResult(

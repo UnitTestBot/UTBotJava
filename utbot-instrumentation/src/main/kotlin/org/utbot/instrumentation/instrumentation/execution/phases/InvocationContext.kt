@@ -1,42 +1,32 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
-import org.utbot.common.StopWatch
-import org.utbot.common.ThreadBasedExecutor
+import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 
-class InvocationPhaseError(cause: Throwable) : PhaseError(
-    message = "Error during user's code invocation phase",
-    cause
-)
 
 /**
  * This phase is about invoking user's code using [delegateInstrumentation].
  */
 class InvocationContext(
     private val delegateInstrumentation: Instrumentation<Result<*>>
-) : PhaseContext<InvocationPhaseError> {
+) : ExecutionPhase {
 
-    override fun wrapError(error: Throwable): InvocationPhaseError =
-        InvocationPhaseError(error)
+    override fun wrapError(e: Throwable): ExecutionPhaseException {
+        val message = this.javaClass.simpleName
+        return when(e) {
+            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
+            else -> ExecutionPhaseError(message, e)
+        }
+    }
+
 
     fun invoke(
         clazz: Class<*>,
         methodSignature: String,
         params: List<Any?>,
-        timeout: Long,
-    ): Result<*> {
-        val stopWatch = StopWatch()
-        val context = UtContext(utContext.classLoader, stopWatch)
-        val concreteResult = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout, stopWatch) {
-            withUtContext(context) {
-                delegateInstrumentation.invoke(clazz, methodSignature, params)
-            }
-        }?.getOrThrow() as? Result<*> ?: Result.failure<Any?>(TimeoutException("Timeout $timeout elapsed"))
-        return concreteResult
-    }
-
+    ): Result<*> = delegateInstrumentation.invoke(clazz, methodSignature, params)
 }

@@ -3,42 +3,30 @@ package org.utbot.instrumentation.instrumentation.execution.phases
 import java.security.AccessControlException
 import java.util.IdentityHashMap
 import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.*
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtCompositeModelStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtSandboxFailure
-import org.utbot.framework.plugin.api.UtStreamConsumingFailure
-import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
-
-class ModelConstructionPhaseError(cause: Throwable) : PhaseError(
-    message = "Error during model construction phase",
-    cause
-)
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 
 /**
  * This phase of model construction from concrete values.
  */
 class ModelConstructionContext(
     private val traceHandler: TraceHandler
-) : PhaseContext<ModelConstructionPhaseError> {
+) : ExecutionPhase {
 
-    override fun wrapError(error: Throwable): ModelConstructionPhaseError =
-        ModelConstructionPhaseError(error)
+    override fun wrapError(e: Throwable): ExecutionPhaseException {
+        val message = this.javaClass.simpleName
+        return when(e) {
+            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
+            else -> ExecutionPhaseError(message, e)
+        }
+    }
 
     private lateinit var constructor: UtModelConstructor
 

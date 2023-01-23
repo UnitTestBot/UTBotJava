@@ -97,7 +97,7 @@ class ObjectValueProvider(
 
     private fun isIgnored(type: ClassId): Boolean {
         return unwantedConstructorsClasses.contains(type)
-                || type.isIterableOrMap
+                || type.isCollectionOrMap
                 || type.isPrimitiveWrapper
                 || type.isEnum
                 || type.isAbstract

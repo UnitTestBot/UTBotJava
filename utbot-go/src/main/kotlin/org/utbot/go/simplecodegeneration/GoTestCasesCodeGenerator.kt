@@ -70,7 +70,8 @@ object GoTestCasesCodeGenerator {
             "func Test${function.name.replaceFirstChar(Char::titlecaseChar)}${testFunctionNamePostfix}ByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
         if (function.resultTypes.isEmpty()) {
-            val actualFunctionCall = generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction)
+            val actualFunctionCall =
+                generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
             val testFunctionBody = "\tassert.NotPanics(t, func() { $actualFunctionCall })\n"
             return "$testFunctionSignatureDeclaration {\n$testFunctionBody}"
         }
@@ -145,11 +146,11 @@ object GoTestCasesCodeGenerator {
             return "ErrorContains($assertionTParameter$actualResultCode, $expectedModel)"
         }
         if (expectedModel is GoUtFloatNaNModel) {
-            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.typeId, actualResultCode)
+            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.classId, actualResultCode)
             return "True(${assertionTParameter}math.IsNaN($castedActualResultCode))"
         }
         if (expectedModel is GoUtFloatInfModel) {
-            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.typeId, actualResultCode)
+            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.classId, actualResultCode)
             return "True(${assertionTParameter}math.IsInf($castedActualResultCode, ${expectedModel.sign}))"
         }
         val prefix = if (expectedModel.canNotBeEqual()) "Not" else ""
@@ -172,7 +173,8 @@ object GoTestCasesCodeGenerator {
         val testFunctionSignatureDeclaration =
             "func Test${function.name.capitalize()}PanicsByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
-        val actualFunctionCall = generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction)
+        val actualFunctionCall =
+            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
         val actualFunctionCallLambda = "func() { $actualFunctionCall }"
         val (expectedPanicValue, expectedPanicValueSourceGoType) = (executionResult as GoUtPanicFailure)
 
@@ -198,7 +200,8 @@ object GoTestCasesCodeGenerator {
         testCase: GoUtFuzzedFunctionTestCase, @Suppress("UNUSED_PARAMETER") testIndexToShow: Int?
     ): String {
         val (fuzzedFunction, executionResult) = testCase
-        val actualFunctionCall = generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction)
+        val actualFunctionCall =
+            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
         val exceededTimeoutMillis = (executionResult as GoUtTimeoutExceeded).timeoutMillis
         return "// $actualFunctionCall exceeded $exceededTimeoutMillis ms timeout"
     }

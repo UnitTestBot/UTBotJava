@@ -37,3 +37,12 @@ fun executeCommandByNewProcessOrFail(
         )
     }
 }
+
+fun executeCommandByNewProcessOrFailWithoutWaiting(
+    command: List<String>,
+    workingDirectory: File
+): Process = ProcessBuilder(command)
+    .redirectOutput(ProcessBuilder.Redirect.PIPE)
+    .redirectErrorStream(true)
+    .directory(workingDirectory)
+    .start()

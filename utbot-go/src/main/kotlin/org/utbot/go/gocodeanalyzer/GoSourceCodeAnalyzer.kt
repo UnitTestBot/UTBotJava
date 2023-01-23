@@ -20,7 +20,6 @@ object GoSourceCodeAnalyzer {
 
     /**
      * Takes map from absolute paths of Go source files to names of their selected functions.
-     * If list is empty, all containing functions are selected.
      *
      * Returns GoSourceFileAnalysisResult-s grouped by their source files.
      */

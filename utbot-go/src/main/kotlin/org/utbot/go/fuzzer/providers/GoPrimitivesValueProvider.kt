@@ -2,15 +2,22 @@ package org.utbot.go.fuzzer.providers
 
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.RegexModelProvider.fuzzed
+import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.*
 import org.utbot.go.GoDescription
-import org.utbot.go.api.*
+import org.utbot.go.api.GoPrimitiveTypeId
+import org.utbot.go.api.GoUtComplexModel
+import org.utbot.go.api.GoUtPrimitiveModel
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
+import java.util.*
 
 object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
+
+    private val random = Random(0)
+
     override fun accept(type: GoTypeId): Boolean = type in goPrimitives
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, FuzzedValue>> =
@@ -31,7 +38,6 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                             ).fuzzed { "%var% = ${obj.toBoolean()}" }
                         }
                     )
-
 
                     goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> Signed.values()
                         .map {
@@ -57,7 +63,7 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                                     ).fuzzed { "%var% = ${obj.toShort()}" }
                                 }
 
-                                goInt64TypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
+                                goInt64TypeId -> Seed.Known(it.invoke(64)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toLong(),
                                         primitiveType
@@ -103,18 +109,16 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                             }
                         }
 
-                    goFloat32TypeId, goFloat64TypeId -> generateFloatModels(primitiveType).map { Seed.Simple(it) }
+                    goFloat32TypeId -> generateFloat32Seeds(primitiveType)
 
-                    goComplex64TypeId, goComplex128TypeId -> generateComplexModels(primitiveType).map { Seed.Simple(it) }
+                    goFloat64TypeId -> generateFloat64Seeds(primitiveType)
+
+                    goComplex64TypeId -> generateComplexSeeds(primitiveType, goFloat32TypeId)
+
+                    goComplex128TypeId -> generateComplexSeeds(primitiveType, goFloat64TypeId)
 
                     goStringTypeId -> listOf(
                         Seed.Known(StringValue("")) { obj: StringValue ->
-                            GoUtPrimitiveModel(
-                                "\"${obj.value}\"",
-                                primitiveType
-                            ).fuzzed { summary = "%var% = ${obj.value}" }
-                        },
-                        Seed.Known(StringValue("   ")) { obj: StringValue ->
                             GoUtPrimitiveModel(
                                 "\"${obj.value}\"",
                                 primitiveType
@@ -141,64 +145,58 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
             }
         }
 
-    private fun generateFloatModels(
-        typeId: GoPrimitiveTypeId,
-        explicitCastRequired: Boolean = false
-    ): List<FuzzedValue> {
-        val maxValue = "math.Max${typeId.name.capitalize()}"
-        val smallestNonZeroValue = "math.SmallestNonzero${typeId.name.capitalize()}"
-
-        val explicitCastRequiredModeIfFloat32 =
-            getExplicitCastModeForFloatModel(typeId, explicitCastRequired, ExplicitCastMode.REQUIRED)
-        val explicitCastMode = getExplicitCastModeForFloatModel(typeId, explicitCastRequired, ExplicitCastMode.DEPENDS)
-
+    private fun generateFloat32Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, FuzzedValue>> {
         return listOf(
-            GoUtPrimitiveModel(0.0, typeId, explicitCastMode = explicitCastMode).fuzzed {
-                summary = "%var% = 0.0"
-            },
-            GoUtPrimitiveModel(1.1, typeId, explicitCastMode = explicitCastMode).fuzzed {
-                summary = "%var% > 0.0"
-            },
-            GoUtPrimitiveModel(-1.1, typeId, explicitCastMode = explicitCastMode).fuzzed {
-                summary = "%var% < 0.0"
-            },
-            GoUtPrimitiveModel(
-                smallestNonZeroValue,
-                typeId,
-                requiredImports = setOf("math"),
-                explicitCastMode = explicitCastRequiredModeIfFloat32
-            ).fuzzed {
-                summary = "%var% = $smallestNonZeroValue"
-            },
-            GoUtPrimitiveModel(
-                maxValue,
-                typeId,
-                requiredImports = setOf("math"),
-                explicitCastMode = explicitCastRequiredModeIfFloat32
-            ).fuzzed {
-                summary = "%var% = $maxValue"
-            },
-            GoUtFloatInfModel(-1, typeId).fuzzed { summary = "%var% = math.Inf(-1)" },
-            GoUtFloatInfModel(1, typeId).fuzzed { summary = "%var% = math.Inf(1)" },
-            GoUtFloatNaNModel(typeId).fuzzed { summary = "%var% = math.NaN()" },
+            Seed.Known(IEEE754Value.fromFloat(random.nextFloat())) { obj: IEEE754Value ->
+                GoUtPrimitiveModel(obj.toFloat(), typeId).fuzzed {
+                    summary = "%var% = ${obj.toFloat()}"
+                }
+            }
         )
     }
 
-    private fun <T> cartesianProduct(listA: List<T>, listB: List<T>): List<List<T>> {
-        val result = mutableListOf<List<T>>()
-        listA.forEach { a -> listB.forEach { b -> result.add(listOf(a, b)) } }
-        return result
+    private fun generateFloat64Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, FuzzedValue>> {
+        return listOf(
+            Seed.Known(IEEE754Value.fromDouble(random.nextDouble())) { obj: IEEE754Value ->
+                GoUtPrimitiveModel(obj.toDouble(), typeId).fuzzed {
+                    summary = "%var% = ${obj.toDouble()}"
+                }
+            }
+        )
     }
 
-    private fun generateComplexModels(typeId: GoPrimitiveTypeId): List<FuzzedValue> {
-        val correspondingFloatType = if (typeId == goComplex128TypeId) goFloat64TypeId else goFloat32TypeId
-        val componentModels = generateFloatModels(correspondingFloatType, typeId == goComplex64TypeId)
-        return cartesianProduct(componentModels, componentModels).map { (realFuzzedValue, imagFuzzedValue) ->
-            GoUtComplexModel(
-                realFuzzedValue.model as GoUtPrimitiveModel,
-                imagFuzzedValue.model as GoUtPrimitiveModel,
-                typeId
-            ).fuzzed { summary = "%var% = complex(${realFuzzedValue.summary}, ${imagFuzzedValue.summary})" }
-        }
+    private fun generateComplexSeeds(
+        typeId: GoPrimitiveTypeId,
+        floatTypeId: GoPrimitiveTypeId
+    ): List<Seed<GoTypeId, FuzzedValue>> {
+        return listOf(
+            Seed.Recursive(
+                construct = Routine.Create(listOf(floatTypeId, floatTypeId)) { values ->
+                    GoUtComplexModel(
+                        realValue = values[0].model as GoUtPrimitiveModel,
+                        imagValue = values[1].model as GoUtPrimitiveModel,
+                        typeId = typeId
+                    ).fuzzed {
+                        summary = "%var% = $model"
+                    }
+                },
+                modify = sequence {
+                    yield(Routine.Call(listOf(floatTypeId)) { self, values ->
+                        val model = self.model as GoUtComplexModel
+                        val value = values.first().model as GoUtPrimitiveModel
+                        model.realValue = value
+                    })
+                },
+                empty = Routine.Empty {
+                    GoUtComplexModel(
+                        realValue = GoUtPrimitiveModel(0.0, floatTypeId),
+                        imagValue = GoUtPrimitiveModel(0.0, floatTypeId),
+                        typeId = typeId
+                    ).fuzzed {
+                        summary = "%var% = $model"
+                    }
+                }
+            )
+        )
     }
 }

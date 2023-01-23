@@ -55,7 +55,6 @@ open class SummaryTestCaseGeneratorTest(
     ) {
         workaround(WorkaroundReason.HACK) {
             // @todo change to the constructor parameter
-            summaryGenerationType = SummariesGenerationType.LIGHT
             checkSolverTimeoutMillis = 0
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true

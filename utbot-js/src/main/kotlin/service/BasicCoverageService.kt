@@ -7,6 +7,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
 import settings.JsTestGenerationSettings.tempFileName
+import utils.CoverageData
 import utils.JsCmdExec
 
 // TODO: 1. Make searching for file coverage in coverage report more specific, not just by file name.
@@ -31,10 +32,10 @@ class BasicCoverageService(
         generateCoverageReportForAllFiles()
     }
 
-    override fun getCoveredLines(): List<Set<Int>> {
+    override fun getCoveredLines(): List<CoverageData> {
         try {
             val res = testCaseIndices.map { index ->
-                if (index in errors) emptySet() else {
+                if (index in errors) CoverageData(emptySet(), baseCoverage.toSet()) else {
                     val fileCoverage =
                         getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), index).toSet()
                     val resFile = File("$utbotDirPath/$tempFileName$index.json")
@@ -42,7 +43,7 @@ class BasicCoverageService(
                     resFile.delete()
                     val json = JSONObject(rawResult)
                     _resultList.add(index to json.get("result").toString())
-                    fileCoverage
+                    CoverageData(baseCoverage.toSet(), fileCoverage)
                 }
             }
             return res

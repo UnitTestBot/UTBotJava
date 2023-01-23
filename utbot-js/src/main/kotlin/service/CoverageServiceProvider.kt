@@ -2,12 +2,14 @@ package service
 
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
+import framework.api.js.util.jsUndefinedClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
+import utils.CoverageData
 import utils.PathResolver
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
@@ -26,7 +28,7 @@ class CoverageServiceProvider(
         mode: CoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-    ): Pair<List<Set<Int>>, List<String>> {
+    ): Pair<List<CoverageData>, List<String>> {
         return when (mode) {
             CoverageMode.FAST -> runFastCoverageAnalysis(
                 fuzzedValues,
@@ -40,15 +42,16 @@ class CoverageServiceProvider(
         }
     }
 
+
     private fun runBasicCoverageAnalysis(
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-    ): Pair<List<Set<Int>>, List<String>> {
+    ): Pair<List<CoverageData>, List<String>> {
         val tempScriptTexts = fuzzedValues.indices.map {
             "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = execId.classId.name,
+                containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
                 index = it,
                 resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
                 mode = CoverageMode.BASIC
@@ -65,13 +68,13 @@ class CoverageServiceProvider(
     private fun runFastCoverageAnalysis(
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-    ): Pair<List<Set<Int>>, List<String>> {
+    ): Pair<List<CoverageData>, List<String>> {
         val covFunName = instrumentationService.covFunName
         val tempScriptTexts = fuzzedValues.indices.map {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = execId.classId.name,
+                containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
                 resFilePath = "${projectPath}/${utbotDir}/$tempFileName",

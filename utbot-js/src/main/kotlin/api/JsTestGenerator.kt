@@ -159,7 +159,7 @@ class JsTestGenerator(
             }
         }
 
-        analyzeCoverage(allCoveredStatements).forEach { paramIndex ->
+        analyzeCoverage(allCoveredStatements.map { it.additionalCoverage }).forEach { paramIndex ->
             val param = fuzzedValues[paramIndex]
             val result =
                 getUtModelResult(
@@ -279,22 +279,24 @@ class JsTestGenerator(
                         execId
                     )
                     collectedValues.clear()
-                    coveredStmts.forEachIndexed { paramIndex, covSet ->
-                        if (!currentlyCoveredStmts.containsAll(covSet)) {
+                    coveredStmts.forEachIndexed { paramIndex, covData ->
+                        currentlyCoveredStmts += covData.baseCoverage
+                        if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val result =
                                 getUtModelResult(
                                     execId = execId,
                                     returnText = executionResults[paramIndex]
                                 )
                             emit(result)
-                            currentlyCoveredStmts += covSet
+                            currentlyCoveredStmts += covData.additionalCoverage
                             return@runFuzzing when (result) {
                                 is UtExecutionSuccess -> JsFeedback(Control.CONTINUE)
+                                // TODO: Maybe continue?
                                 else -> JsFeedback(Control.PASS)
                             }
                         }
                     }
-                    if (allStmts == coveredStmts) return@runFuzzing JsFeedback(Control.STOP)
+                    if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                 } catch (e: TimeoutException) {
                     emit(
                         UtTimeoutException(
@@ -306,6 +308,7 @@ class JsTestGenerator(
             }
             return@runFuzzing JsFeedback(Control.PASS)
         }
+        instrService.removeTempFiles()
     }
 
     private fun runFuzzer(

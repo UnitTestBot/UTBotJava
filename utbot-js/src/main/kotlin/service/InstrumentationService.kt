@@ -4,6 +4,7 @@ import com.google.javascript.jscomp.Compiler
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import java.io.File
+import org.apache.commons.io.FileUtils
 import utils.JsCmdExec
 
 class InstrumentationService(context: ServiceContext): ContextOwner by context {
@@ -33,13 +34,14 @@ class InstrumentationService(context: ServiceContext): ContextOwner by context {
     fun instrument() {
         val fileName = filePathToInference.substringAfterLast("/")
 
-        JsCmdExec.runCommand(
+        val (def, error) = JsCmdExec.runCommand(
             cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destinationFolderPath),
             dir = filePathToInference.substringBeforeLast("/"),
             shouldWait = true,
             timeout = settings.timeout,
         )
-
+        val a = def.readText()
+        val b = error.readText()
         val instrumentedFileText = File(instrumentedFilePath).readText()
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
         val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value ?: throw IllegalStateException("")
@@ -48,4 +50,7 @@ class InstrumentationService(context: ServiceContext): ContextOwner by context {
 
         covFunName = funName
     }
+
+    fun removeTempFiles() = FileUtils.deleteDirectory(File("$projectPath/$utbotDir/instr"))
+
 }

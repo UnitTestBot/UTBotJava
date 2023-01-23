@@ -2,10 +2,10 @@ package service
 
 import java.io.File
 import java.util.Collections
-import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
 import settings.JsTestGenerationSettings.tempFileName
+import utils.CoverageData
 import utils.JsCmdExec
 
 class FastCoverageService(
@@ -62,7 +62,7 @@ class FastCoverageService(
             }
     }
 
-    override fun getCoveredLines(): List<Set<Int>> {
+    override fun getCoveredLines(): List<CoverageData> {
         try {
             return coverageList.sortedBy { (index, _) -> index }
                 .map { (_, obj) ->
@@ -76,7 +76,7 @@ class FastCoverageService(
                     baseCoverage.forEach {
                         dirtyCoverage.remove(it)
                     }
-                    dirtyCoverage.toSet()
+                    CoverageData(baseCoverage.toSet(), dirtyCoverage.toSet())
                 }
         } catch (e: JSONException) {
             throw Exception("Could not get coverage of test cases!")
@@ -86,7 +86,6 @@ class FastCoverageService(
     }
 
     private fun removeTempFiles() {
-        FileUtils.deleteDirectory(File("$utbotDirPath/instr"))
         File("$utbotDirPath/${tempFileName}Base.js").delete()
         File("$utbotDirPath/${tempFileName}Base.json").delete()
         for (index in testCaseIndices) {

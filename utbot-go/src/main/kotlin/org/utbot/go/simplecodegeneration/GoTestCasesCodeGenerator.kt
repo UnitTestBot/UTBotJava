@@ -20,12 +20,12 @@ object GoTestCasesCodeGenerator {
             when (val executionResult = testCase.executionResult) {
                 is GoUtExecutionCompleted -> {
                     executionResult.models.forEach {
-                        imports += it.requiredImports
+                        imports += it.getRequiredImports()
                     }
                 }
 
                 is GoUtPanicFailure -> {
-                    imports += executionResult.panicValue.requiredImports
+                    imports += executionResult.panicValue.getRequiredImports()
                 }
             }
         }

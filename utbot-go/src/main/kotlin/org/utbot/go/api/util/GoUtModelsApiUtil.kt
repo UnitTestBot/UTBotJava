@@ -1,22 +1,9 @@
 package org.utbot.go.api.util
 
+import org.utbot.go.api.GoUtComplexModel
+import org.utbot.go.api.GoUtFloatInfModel
+import org.utbot.go.api.GoUtFloatNaNModel
 import org.utbot.go.framework.api.go.GoUtModel
-import org.utbot.go.api.*
-
-fun getExplicitCastModeForFloatModel(
-    typeId: GoPrimitiveTypeId,
-    explicitCastRequired: Boolean,
-    defaultFloat32Mode: ExplicitCastMode
-): ExplicitCastMode {
-    if (explicitCastRequired) {
-        return ExplicitCastMode.REQUIRED
-    }
-    return when (typeId) {
-        goFloat32TypeId -> defaultFloat32Mode
-        goFloat64TypeId -> ExplicitCastMode.NEVER
-        else -> error("illegal type")
-    }
-}
 
 fun GoUtModel.isNaNOrInf(): Boolean = this is GoUtFloatNaNModel || this is GoUtFloatInfModel
 

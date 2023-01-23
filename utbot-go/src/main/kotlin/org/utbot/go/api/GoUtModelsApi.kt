@@ -23,17 +23,19 @@ open class GoUtPrimitiveModel(
         } else {
             ExplicitCastMode.DEPENDS
         },
-    requiredImports: Set<String> = emptySet(),
-) : GoUtModel(typeId, requiredImports) {
+    private val requiredImports: Set<String> = emptySet(),
+) : GoUtModel(typeId) {
     override val classId: GoPrimitiveTypeId
         get() = super.classId as GoPrimitiveTypeId
+
+    override fun getRequiredImports(): Set<String> = requiredImports
+
+    override fun canNotBeEqual(): Boolean = false
 
     override fun toString(): String = when (explicitCastMode) {
         ExplicitCastMode.REQUIRED -> toCastedValueGoCode()
         ExplicitCastMode.DEPENDS, ExplicitCastMode.NEVER -> toValueGoCode()
     }
-
-    override fun canNotBeEqual(): Boolean = false
 
     open fun toValueGoCode(): String = "$value"
     fun toCastedValueGoCode(): String = "$classId(${toValueGoCode()})"
@@ -42,9 +44,7 @@ open class GoUtPrimitiveModel(
 abstract class GoUtCompositeModel(
     typeId: GoTypeId,
     val packageName: String,
-) : GoUtModel(typeId) {
-    abstract override val requiredImports: Set<String>
-}
+) : GoUtModel(typeId)
 
 class GoUtStructModel(
     val value: List<GoUtFieldModel>,
@@ -54,18 +54,19 @@ class GoUtStructModel(
     override val classId: GoStructTypeId
         get() = super.classId as GoStructTypeId
 
-    override val requiredImports: Set<String>
-        get() {
-            val imports = if (classId.packageName != packageName) {
-                mutableSetOf(classId.packagePath)
-            } else {
-                mutableSetOf()
-            }
-            value.filter { packageName == classId.packageName || it.fieldId.isExported }
-                .map { it.model.requiredImports }
-                .forEach { imports += it }
-            return imports
+    override fun getRequiredImports(): Set<String> {
+        val imports = if (classId.packageName != packageName) {
+            mutableSetOf(classId.packagePath)
+        } else {
+            mutableSetOf()
         }
+        value.filter { packageName == classId.packageName || it.fieldId.isExported }
+            .map { it.model.getRequiredImports() }
+            .forEach { imports += it }
+        return imports
+    }
+
+    override fun canNotBeEqual(): Boolean = value.any { it.model.canNotBeEqual() }
 
     fun toStringWithoutStructName(): String =
         value.filter { packageName == classId.packageName || it.fieldId.isExported }
@@ -73,8 +74,6 @@ class GoUtStructModel(
 
     override fun toString(): String =
         "${classId.getRelativeName(packageName)}${toStringWithoutStructName()}"
-
-    override fun canNotBeEqual(): Boolean = value.any { it.model.canNotBeEqual() }
 }
 
 class GoUtArrayModel(
@@ -87,17 +86,18 @@ class GoUtArrayModel(
     override val classId: GoArrayTypeId
         get() = super.classId as GoArrayTypeId
 
-    override val requiredImports: Set<String>
-        get() {
-            val structTypeId = classId.elementTypeId as? GoStructTypeId
-            val imports = if (structTypeId != null && structTypeId.packageName != packageName) {
-                mutableSetOf(structTypeId.packagePath)
-            } else {
-                mutableSetOf()
-            }
-            value.entries.map { it.value.requiredImports }.forEach { imports += it }
-            return imports
+    override fun getRequiredImports(): Set<String> {
+        val elementStructTypeId = classId.elementTypeId as? GoStructTypeId
+        val imports = if (elementStructTypeId != null && elementStructTypeId.packageName != packageName) {
+            mutableSetOf(elementStructTypeId.packagePath)
+        } else {
+            mutableSetOf()
         }
+        value.entries.map { it.value.getRequiredImports() }.forEach { imports += it }
+        return imports
+    }
+
+    override fun canNotBeEqual(): Boolean = value.values.any { it.canNotBeEqual() }
 
     fun getElements(typeId: GoTypeId): List<GoUtModel> = (0 until length).map {
         value[it] ?: typeId.goDefaultValueModel(packageName)
@@ -129,8 +129,6 @@ class GoUtArrayModel(
         else -> getElements(typeId)
             .joinToString(prefix = "[$length]${typeId.getRelativeName(packageName)}{", postfix = "}")
     }
-
-    override fun canNotBeEqual(): Boolean = value.values.any { it.canNotBeEqual() }
 }
 
 class GoUtFloatNaNModel(
@@ -138,12 +136,12 @@ class GoUtFloatNaNModel(
 ) : GoUtPrimitiveModel(
     "math.NaN()",
     typeId,
-    requiredImports = setOf("math"),
     explicitCastMode = if (typeId != goFloat64TypeId) {
         ExplicitCastMode.REQUIRED
     } else {
         ExplicitCastMode.NEVER
-    }
+    },
+    requiredImports = setOf("math"),
 ) {
     override fun canNotBeEqual(): Boolean = true
 }
@@ -154,12 +152,12 @@ class GoUtFloatInfModel(
 ) : GoUtPrimitiveModel(
     "math.Inf($sign)",
     typeId,
-    requiredImports = setOf("math"),
     explicitCastMode = if (typeId != goFloat64TypeId) {
         ExplicitCastMode.REQUIRED
     } else {
         ExplicitCastMode.NEVER
-    }
+    },
+    requiredImports = setOf("math"),
 )
 
 class GoUtComplexModel(
@@ -169,18 +167,16 @@ class GoUtComplexModel(
 ) : GoUtPrimitiveModel(
     "complex($realValue, $imagValue)",
     typeId,
-    requiredImports = realValue.requiredImports + imagValue.requiredImports,
+    requiredImports = realValue.getRequiredImports() + imagValue.getRequiredImports(),
     explicitCastMode = ExplicitCastMode.NEVER
 ) {
-    override fun toValueGoCode(): String = "complex($realValue, $imagValue)"
-
     override fun canNotBeEqual(): Boolean = realValue.canNotBeEqual() || imagValue.canNotBeEqual()
+    override fun toValueGoCode(): String = "complex($realValue, $imagValue)"
 }
 
 class GoUtNilModel(
     typeId: GoTypeId
-) : GoUtModel(typeId, emptySet()) {
-    override fun toString() = "nil"
-
+) : GoUtModel(typeId) {
     override fun canNotBeEqual(): Boolean = false
+    override fun toString() = "nil"
 }

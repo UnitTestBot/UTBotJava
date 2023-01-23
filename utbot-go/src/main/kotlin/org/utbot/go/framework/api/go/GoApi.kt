@@ -8,9 +8,7 @@ import org.utbot.framework.plugin.api.*
  * To see its children check GoTypesApi.kt at org.utbot.go.api.
  */
 abstract class GoTypeId(
-    name: String,
-    elementClassId: GoTypeId? = null,
-    val implementsError: Boolean = false
+    name: String, elementClassId: GoTypeId? = null, val implementsError: Boolean = false
 ) : ClassId(name, elementClassId) {
     override val isNullable: Boolean
         get() = error("not supported")
@@ -53,11 +51,10 @@ abstract class GoTypeId(
  */
 abstract class GoUtModel(
     override val classId: GoTypeId,
-    open val requiredImports: Set<String> = emptySet()
 ) : UtModel(classId) {
-    override fun toString(): String = error("not supported")
-
+    open fun getRequiredImports(): Set<String> = emptySet()
     abstract fun canNotBeEqual(): Boolean
+    override fun toString(): String = error("not supported")
 }
 
 /**
@@ -72,9 +69,7 @@ class GoUtFieldModel(
  * Class for Go struct field.
  */
 class GoFieldId(
-    declaringClass: GoTypeId,
-    name: String,
-    val isExported: Boolean
+    declaringClass: GoTypeId, name: String, val isExported: Boolean
 ) : FieldId(declaringClass, name) {
     override fun toString(): String = "$name: $declaringClass"
 }

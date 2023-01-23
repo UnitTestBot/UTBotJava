@@ -2452,7 +2452,7 @@ abstract class UtValueTestCaseChecker(
             } else {
                 walk(executableId, mockStrategy, additionalDependenciesClassPath)
             }
-            testSet.summarize(searchDirectory)
+            testSet.summarize(searchDirectory, sourceFile = null)
             val valueTestCase = testSet.toValueTestCase()
 
             assertTrue(testSet.errors.isEmpty()) {

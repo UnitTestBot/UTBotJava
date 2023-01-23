@@ -102,9 +102,8 @@ class GoEngine(
                 }
                 val worker = GoWorker(workerSocket)
                 workerSocket.soTimeout = timeout
-                runGoFuzzing(methodUnderTest) { description, values ->
-                    val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
-                    worker.sendFuzzedParametersValues(values)
+                if (methodUnderTest.parameters.isEmpty()) {
+                    worker.sendFuzzedParametersValues(listOf())
                     val rawExecutionResult = worker.receiveRawExecutionResult()
                     val executionResult = convertRawExecutionResultToExecutionResult(
                         methodUnderTest.getPackageName(),
@@ -112,38 +111,52 @@ class GoEngine(
                         methodUnderTest.resultTypes,
                         eachExecutionTimeoutsMillisConfig[methodUnderTest],
                     )
-                    if (executionResult.trace.isEmpty()) {
-                        logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
-                        if (executionResult is GoUtPanicFailure) {
-                            logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
+                    val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, listOf())
+                    emit(fuzzedFunction to executionResult)
+                } else {
+                    runGoFuzzing(methodUnderTest) { description, values ->
+                        val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
+                        worker.sendFuzzedParametersValues(values)
+                        val rawExecutionResult = worker.receiveRawExecutionResult()
+                        val executionResult = convertRawExecutionResultToExecutionResult(
+                            methodUnderTest.getPackageName(),
+                            rawExecutionResult,
+                            methodUnderTest.resultTypes,
+                            eachExecutionTimeoutsMillisConfig[methodUnderTest],
+                        )
+                        if (executionResult.trace.isEmpty()) {
+                            logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
+                            if (executionResult is GoUtPanicFailure) {
+                                logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
+                            }
+                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                         }
-                        return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                    }
-                    linesToCover.removeAll(executionResult.trace.toSet())
-                    val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
-                    if (trieNode.count > 1) {
-                        if (++attempts >= attemptsLimit) {
+                        linesToCover.removeAll(executionResult.trace.toSet())
+                        val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
+                        if (trieNode.count > 1) {
+                            if (++attempts >= attemptsLimit) {
+                                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                            }
+                            return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                        }
+                        emit(fuzzedFunction to executionResult)
+                        if (linesToCover.isEmpty()) {
                             return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                         }
-                        return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                        BaseFeedback(result = trieNode, control = Control.CONTINUE)
                     }
-                    emit(fuzzedFunction to executionResult)
-                    if (linesToCover.isEmpty()) {
-                        return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                    workerSocket.close()
+                    process.waitFor()
+                    val exitCode = process.exitValue()
+                    if (exitCode != 0) {
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        throw RuntimeException(
+                            StringBuilder()
+                                .append("Execution of ${"function [${methodUnderTest.name}] from $sourceFile"} in child process failed with non-zero exit code = $exitCode: ")
+                                .append("\n$processOutput")
+                                .toString()
+                        )
                     }
-                    BaseFeedback(result = trieNode, control = Control.CONTINUE)
-                }
-                workerSocket.close()
-                process.waitFor()
-                val exitCode = process.exitValue()
-                if (exitCode != 0) {
-                    val processOutput = InputStreamReader(process.inputStream).readText()
-                    throw RuntimeException(
-                        StringBuilder()
-                            .append("Execution of ${"function [${methodUnderTest.name}] from $sourceFile"} in child process failed with non-zero exit code = $exitCode: ")
-                            .append("\n$processOutput")
-                            .toString()
-                    )
                 }
             } finally {
                 fileToExecute?.delete()

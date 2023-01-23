@@ -301,6 +301,7 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
+val collectionClassId = java.util.Collection::class.id
 
 val baseStreamClassId = java.util.stream.BaseStream::class.id
 val streamClassId = java.util.stream.Stream::class.id
@@ -404,6 +405,12 @@ val ClassId.isMap: Boolean
 
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
+
+val ClassId.isCollection: Boolean
+    get() = isSubtypeOf(collectionClassId)
+
+val ClassId.isCollectionOrMap: Boolean
+    get() = isCollection || isMap
 
 val ClassId.isEnum: Boolean
     get() = jClass.isEnum

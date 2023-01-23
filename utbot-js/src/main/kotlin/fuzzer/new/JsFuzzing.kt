@@ -10,7 +10,8 @@ import kotlin.random.Random
 
 fun defaultValueProviders() = listOf(
     BoolValueProvider,
-    FloatValueProvider
+    FloatValueProvider,
+    StringValueProvider
 )
 
 class JsFuzzing(

@@ -22,7 +22,7 @@ object BoolValueProvider: ValueProvider<JsClassId, FuzzedValue, JsMethodDescript
                 summary = "%var% = true"
             }
         })
-        yield(Seed.Known(Bool.TRUE()) {
+        yield(Seed.Known(Bool.FALSE()) {
             JsPrimitiveModel(false).fuzzed {
                 summary = "%var% = false"
             }

@@ -9,13 +9,12 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.python.code.PythonCode
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.getPythonAttributes
 import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
@@ -24,8 +23,6 @@ import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
-import org.utbot.python.newtyping.pythonTypeName
-import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.typing.MypyAnnotations
 import java.io.File
@@ -51,27 +48,25 @@ class PythonTestCaseGenerator(
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
-    private fun findMethodByDescription(mypyStorage: MypyAnnotationStorage, method: PythonMethodDescription): PythonMethod {
+    private fun findMethodByDescription(mypyStorage: MypyAnnotationStorage, method: PythonMethodHeader): PythonMethod {
         val containingClass = method.containingPythonClassId
-        val functionDefType = if (containingClass == null) {
-            mypyStorage.definitions[curModule]!![method.name]!!.annotation.asUtBotType
+        val functionDef = if (containingClass == null) {
+            mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
         } else {
-            mypyStorage.definitions[curModule]!![containingClass.simpleName]!!.annotation.asUtBotType.getPythonAttributes().first {
-                it.name == method.name
-            }.type
-        } as FunctionType
+            mypyStorage.definitions[curModule]!![containingClass.simpleName]!!.type.asUtBotType.getPythonAttributes().first {
+                it.meta.name == method.name
+            }
+        } as? PythonFunctionDefinition ?: error("Selected method is not a function definition")
 
         val parsedFile = PythonParser(sourceFileContent).Module()
         val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
 
-        // method.returnAnnotation = functionDef.returnValue.pythonTypeRepresentation()
-        //method.arguments = (method.arguments zip functionDef.arguments).map { PythonArgument(it.first.name, it.second.pythonTypeRepresentation()) }
         return PythonMethod(
             name = method.name,
             moduleFilename = method.moduleFilename,
             containingPythonClassId = method.containingPythonClassId,
             codeAsString = funcDef.body.source,
-            type = functionDefType,
+            definition = functionDef,
             ast = funcDef.body
         )
     }
@@ -89,14 +84,14 @@ class PythonTestCaseGenerator(
         } ?: emptyMap()
 
         val namesStorage = GlobalNamesStorage(mypyStorage)
-        val hintCollector = HintCollector(method.type, typeStorage, mypyExpressionTypes , namesStorage, curModule)
+        val hintCollector = HintCollector(method.definition, typeStorage, mypyExpressionTypes , namesStorage, curModule)
         val constantCollector = ConstantCollector(typeStorage)
         val visitor = Visitor(listOf(hintCollector, constantCollector))
         visitor.visit(method.ast)
         return Pair(hintCollector, constantCollector)
     }
 
-    fun generate(methodDescription: PythonMethodDescription): PythonTestSet {
+    fun generate(methodDescription: PythonMethodHeader): PythonTestSet {
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
@@ -245,7 +240,7 @@ class PythonTestCaseGenerator(
                 return@breaking
             }
 
-            val existsAnnotation = method.type
+            val existsAnnotation = method.definition.type
             if (existsAnnotation.arguments.all {it.pythonTypeName() != "typing.Any"}) {
                 annotationHandler(existsAnnotation)
             }

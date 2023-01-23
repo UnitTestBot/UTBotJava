@@ -27,7 +27,7 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.python.PythonMethodDescription
+import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
@@ -87,8 +87,8 @@ object PythonDialogProcessor {
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodDescription>? {
-        val shownFunctions: Set<PythonMethodDescription> =
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader>? {
+        val shownFunctions: Set<PythonMethodHeader> =
             if (model.containingClass == null) {
                 model.file.topLevelFunctions.mapNotNull { it.toPythonMethodDescription() }.toSet()
             } else {

@@ -71,7 +71,10 @@ class BaselineAlgorithm(
     }
 
     private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
-        pythonMethodCopy.type = signature
+        pythonMethodCopy.definition = PythonFunctionDefinition(
+            pythonMethodCopy.definition.meta,
+            signature
+        )
         return checkSuggestedSignatureWithDMypy(
             pythonMethodCopy,
             directoriesForSysPath,
@@ -93,11 +96,10 @@ class BaselineAlgorithm(
         hintCollectorResult: HintCollectorResult,
         generalRating: List<Type>
     ): BaselineAlgorithmState {
-        val signatureDescription =
-            hintCollectorResult.initialSignature.pythonDescription() as PythonCallableTypeDescription
+        val paramNames = pythonMethodCopy.arguments.map { it.name }
         val root = PartialTypeNode(hintCollectorResult.initialSignature, true)
         val allNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf(root)
-        val argumentRootNodes = signatureDescription.argumentNames.map { hintCollectorResult.parameterToNode[it]!! }
+        val argumentRootNodes = paramNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->
             val visited: MutableSet<HintCollectorNode> = mutableSetOf()
             visitNodesByReverseEdges(node, visited) { it is HintEdgeWithBound && EDGES_TO_LINK.contains(it.source) }

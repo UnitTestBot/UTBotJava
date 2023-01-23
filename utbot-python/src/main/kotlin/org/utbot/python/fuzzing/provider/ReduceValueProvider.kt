@@ -31,9 +31,9 @@ class ReduceValueProvider(
 
     override fun accept(type: Type): Boolean {
         val hasInit =
-            type.getPythonAttributes().any { it.name == "__init__" }
+            type.getPythonAttributes().any { it.meta.name == "__init__" }
         val hasNew =
-            type.getPythonAttributes().any { it.name == "__new__" }
+            type.getPythonAttributes().any { it.meta.name == "__new__" }
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
         return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription && (hasInit || hasNew)
@@ -41,11 +41,11 @@ class ReduceValueProvider(
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
         type.getPythonAttributes()
-            .filter { it.name == "__init__" || it.name == "__new__" }
+            .filter { it.meta.name == "__init__" || it.meta.name == "__new__" }
             .forEach {
                 val fields = type.getPythonAttributes()
                     .filter { attr ->
-                        !(attr.name.startsWith("__") && attr.name.endsWith("__") && attr.name.length >= 4)
+                        !(attr.meta.name.startsWith("__") && attr.meta.name.endsWith("__") && attr.meta.name.length >= 4)
                         attr.type.getPythonAttributeByName(description.pythonTypeStorage, "__call__") == null
                     }
 
@@ -53,7 +53,7 @@ class ReduceValueProvider(
                 modifications.addAll(fields.map { field ->
                     Routine.Call(listOf(field.type)) { instance, arguments ->
                         val obj = instance.tree as PythonTree.ReduceNode
-                        obj.state[field.name] = arguments.first().tree
+                        obj.state[field.meta.name] = arguments.first().tree
                     }
                 })
                 yieldAll(callConstructors(type, it, modifications.asSequence()))
@@ -92,7 +92,7 @@ class ReduceValueProvider(
 
     private fun callConstructors(
         type: Type,
-        constructor: PythonAttribute,
+        constructor: PythonDefinition,
         modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>
     ): Sequence<Seed.Recursive<Type, PythonFuzzedValue>> = sequence {
         val constructors = emptyList<FunctionType>().toMutableList()

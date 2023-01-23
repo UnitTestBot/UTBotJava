@@ -5,15 +5,12 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.newtyping.PythonCallableTypeDescription
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.newtyping.*
 import org.utbot.python.typing.MypyAnnotations
 
 data class PythonArgument(val name: String, val annotation: String?)
 
-class PythonMethodDescription(
+class PythonMethodHeader(
     val name: String,
     val moduleFilename: String,
     val containingPythonClassId: PythonClassId?
@@ -24,7 +21,7 @@ class PythonMethod(
     val moduleFilename: String,
     val containingPythonClassId: PythonClassId?,
     val codeAsString: String,
-    var type: FunctionType,
+    var definition: PythonFunctionDefinition,
     val ast: Block
 ) {
     fun methodSignature(): String = "$name(" + arguments.joinToString(", ") {
@@ -32,8 +29,10 @@ class PythonMethod(
     } + ")"
     val arguments: List<PythonArgument>
         get() {
-            val paramNames = (type.pythonDescription() as PythonCallableTypeDescription).argumentNames
-            return (type.arguments zip paramNames).map { PythonArgument(it.second, it.first.pythonTypeRepresentation()) }
+            val paramNames = definition.meta.args.map { it.name }
+            return (definition.type.arguments zip paramNames).map {
+                PythonArgument(it.second, it.first.pythonTypeRepresentation())
+            }
         }
 }
 

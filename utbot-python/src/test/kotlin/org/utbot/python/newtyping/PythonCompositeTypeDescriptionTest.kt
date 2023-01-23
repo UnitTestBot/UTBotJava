@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.utbot.python.newtyping.mypy.AnnotationFromMypyKtTest
+import org.utbot.python.newtyping.mypy.MypyStorageKtTest
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorage
 
@@ -14,14 +14,14 @@ internal class PythonCompositeTypeDescriptionTest {
     lateinit var pythonTypeStorage: PythonTypeStorage
     @BeforeAll
     fun setup() {
-        val sample = AnnotationFromMypyKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
         pythonTypeStorage = PythonTypeStorage.get(storage)
     }
 
     @Test
     fun testMroForCounter() {
-        val counter = storage.definitions["collections"]!!["Counter"]!!.annotation.asUtBotType
+        val counter = storage.definitions["collections"]!!["Counter"]!!.getUtBotType()
         val counterDescription = counter.pythonDescription() as PythonCompositeTypeDescription
         assertTrue(
             counterDescription.mro(pythonTypeStorage, counter).map { it.pythonDescription().name.name } == listOf(
@@ -41,7 +41,7 @@ internal class PythonCompositeTypeDescriptionTest {
 
     @Test
     fun testMroForObject() {
-        val obj = storage.definitions["builtins"]!!["object"]!!.annotation.asUtBotType
+        val obj = storage.definitions["builtins"]!!["object"]!!.getUtBotType()
         val description = obj.pythonDescription() as PythonCompositeTypeDescription
         assertTrue(
             description.mro(pythonTypeStorage, obj).map { it.pythonDescription().name.name } == listOf("object")
@@ -50,7 +50,7 @@ internal class PythonCompositeTypeDescriptionTest {
 
     @Test
     fun testMroForDeque() {
-        val deque = storage.definitions["collections"]!!["deque"]!!.annotation.asUtBotType
+        val deque = storage.definitions["collections"]!!["deque"]!!.getUtBotType()
         val description = deque.pythonDescription() as PythonCompositeTypeDescription
         assertTrue(
             description.mro(pythonTypeStorage, deque).map { it.pythonDescription().name.name } == listOf(

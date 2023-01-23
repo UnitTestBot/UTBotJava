@@ -73,16 +73,17 @@ private fun propagateConstraintForCompositeType(
                             TypeConstraint(abstractAttr.type, ConstraintKind.UpperBound)
                     }
                     is PythonCallableTypeDescription -> {
-                        if (abstractAttr.type !is FunctionType)
+                        val typeOfAbstract = abstractAttr.type
+                        if (typeOfAbstract !is FunctionType)
                             return@forEach
                         val callable = desc.castToCompatibleTypeApi(concreteAttr.type)
-                        (callable.arguments zip abstractAttr.type.arguments).forEach { (arg, abs) ->
+                        (callable.arguments zip typeOfAbstract.arguments).forEach { (arg, abs) ->
                             if (arg is TypeParameter)
                                 collectedConstraints[arg] = TypeConstraint(abs, ConstraintKind.UpperBound)
                         }
                         if (callable.returnValue is TypeParameter)
                             collectedConstraints[callable.returnValue] =
-                                TypeConstraint(abstractAttr.type.returnValue, ConstraintKind.LowerBound)
+                                TypeConstraint(typeOfAbstract.returnValue, ConstraintKind.LowerBound)
                     }
                     else -> {}
                 }

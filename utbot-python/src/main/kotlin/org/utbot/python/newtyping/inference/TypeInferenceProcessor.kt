@@ -63,15 +63,12 @@ class TypeInferenceProcessor(
                 pythonPath,
                 path.toString(),
                 moduleOfSourceFile,
-                configFile,
-                path.toString()  // TODO: fix this interface
+                configFile
             )
 
             val namesInModule = mypyStorage.names[moduleOfSourceFile]!!.map { it.name }.filter {
                 it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
             }
-
-            // moduleName = mypyStorage.fileToModule[path.toString()]!!
 
             analyzingCodeAction()
 
@@ -89,7 +86,7 @@ class TypeInferenceProcessor(
             }
             val namesStorage = GlobalNamesStorage(mypyStorage)
             val collector =
-                HintCollector(pythonMethod.type, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
+                HintCollector(pythonMethod.definition, typeStorage, mypyExpressionTypes, namesStorage, moduleOfSourceFile)
             val visitor = Visitor(listOf(collector))
             visitor.visit(pythonMethod.ast)
 
@@ -131,17 +128,16 @@ class TypeInferenceProcessor(
                 if (res?.name?.toString() == functionName) res else null
             } ?: return Fail("Couldn't find top-level function $functionName")
 
-            val type =
-                mypyAnnotationStorage.definitions[moduleOfSourceFile]!![functionName]!!.annotation.asUtBotType as? FunctionType
+            val def =
+                mypyAnnotationStorage.definitions[moduleOfSourceFile]!![functionName]!!.getUtBotDefinition() as? PythonFunctionDefinition
                     ?: return Fail("$functionName is not a function")
-            //val description = type.pythonDescription() as PythonCallableTypeDescription
 
             val result = PythonMethod(
                 functionName,
                 path.toString(),
                 null,
                 sourceFileContent.substring(funcDef.body.beginOffset, funcDef.body.endOffset).trimIndent(),
-                type,
+                def,
                 funcDef.body
             )
             return Success(result)
@@ -155,20 +151,20 @@ class TypeInferenceProcessor(
             if (res?.name?.toString() == functionName) res else null
         } ?: return Fail("Couldn't find method $functionName in class $className")
 
-        val typeOfClass = mypyAnnotationStorage.definitions[moduleOfSourceFile]!![className]!!.annotation.asUtBotType as? CompositeType
-            ?: return Fail("$className is not a class")
+        val typeOfClass = mypyAnnotationStorage.definitions[moduleOfSourceFile]!![className]!!.getUtBotType()
+            as? CompositeType ?: return Fail("$className is not a class")
 
-        val typeOfFunc = typeOfClass.getPythonAttributeByName(typeStorage, functionName)?.type as? FunctionType
+        val defOfFunc = typeOfClass.getPythonAttributeByName(typeStorage, functionName) as? PythonFunctionDefinition
             ?: return Fail("$functionName is not a function")
 
-        println(typeOfFunc.pythonTypeRepresentation())
+        println(defOfFunc.type.pythonTypeRepresentation())
 
         val result = PythonMethod(
             functionName,
             path.toString(),
             PythonClassId("$moduleOfSourceFile.$className"),
             sourceFileContent.substring(funcDef.body.beginOffset, funcDef.body.endOffset).trimIndent(),
-            typeOfFunc,
+            defOfFunc,
             funcDef.body
         )
         return Success(result)

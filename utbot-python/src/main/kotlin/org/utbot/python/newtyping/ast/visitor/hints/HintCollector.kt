@@ -16,15 +16,14 @@ import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import java.util.*
 
 class HintCollector(
-    private val signature: FunctionType,
+    private val function: PythonFunctionDefinition,
     private val storage: PythonTypeStorage,
     private val mypyTypes: Map<Pair<Int, Int>, Type>,
     private val globalNamesStorage: GlobalNamesStorage,
     private val moduleOfSources: String
 ) : Collector() {
-    private val signatureDescription = signature.pythonDescription() as PythonCallableTypeDescription
     private val parameterToNode: Map<String, HintCollectorNode> =
-        (signatureDescription.argumentNames zip signature.arguments).associate {
+        (function.meta.args.map { it.name } zip function.type.arguments).associate {
             it.first to HintCollectorNode(it.second)
         }
     private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
@@ -32,7 +31,7 @@ class HintCollector(
     private val blockStack = Stack<Block>()
 
     init {
-        val argNames = signatureDescription.argumentNames
+        val argNames = function.meta.args.map { it.name }
         assert(argNames.all { it != "" })
         identificationToNode[null] = mutableMapOf()
         argNames.forEach {
@@ -47,7 +46,7 @@ class HintCollector(
             if (!allNodes.contains(it.value))
                 collectAllNodes(it.value, allNodes)
         }
-        result = HintCollectorResult(parameterToNode, signature, allNodes)
+        result = HintCollectorResult(parameterToNode, function.type, allNodes)
     }
 
     private fun collectAllNodes(cur: HintCollectorNode, visited: MutableSet<HintCollectorNode>) {
@@ -110,10 +109,8 @@ class HintCollector(
         )?.type?.pythonDescription()
         val callType = createPythonCallableType(
             parsed.args.size,
-            List(parsed.args.size) { PythonCallableTypeDescription.ArgKind.Positional },
-            List(parsed.args.size) { "" },
-            isClassMethod = false,
-            isStaticMethod = false
+            List(parsed.args.size) { PythonCallableTypeDescription.ArgKind.ARG_POS },
+            List(parsed.args.size) { "" }
         ) {
             FunctionTypeCreator.InitializationData(List(parsed.args.size) { pythonAnyType }, pythonAnyType)
         }
@@ -133,7 +130,7 @@ class HintCollector(
                 typeDescription.getAnnotationParameters(type).forEach { typeCandidate ->
                     val descr = typeCandidate.pythonDescription() as? PythonCallableTypeDescription ?: return@forEach
                     val typeCandidateFunctionType = descr.castToCompatibleTypeApi(typeCandidate)
-                    if (!signaturesAreCompatible(typeCandidateFunctionType, callType as FunctionType, storage))
+                    if (!signaturesAreCompatible(typeCandidateFunctionType, callType, storage))
                         return@forEach
                     (parsed.args zip typeCandidateFunctionType.arguments).forEach { (argNode, argType) ->
                         astNodeToHintCollectorNode[argNode]!!.upperBounds.add(argType)

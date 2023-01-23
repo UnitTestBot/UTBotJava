@@ -14,8 +14,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
     sourcePath: String,
     module: String,
-    configFile: File,
-    fileForTypeImport: String? = null
+    configFile: File
 ): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
     val fileForAnnotationStorage = TemporaryFileManager.assignTemporaryFile(tag = "annotations.json")
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
@@ -39,8 +38,10 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--mypy_stderr",
             fileForMypyStderr.absolutePath,
             "--mypy_exit_status",
-            fileForMypyExitStatus.absolutePath
-        ) + if (fileForTypeImport != null) listOf("--file_for_types", fileForTypeImport) else emptyList()
+            fileForMypyExitStatus.absolutePath,
+            "--module_for_types",
+            module
+        )
     )
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
     val mypyExitStatus = if (fileForMypyExitStatus.exists()) fileForMypyExitStatus.readText() else null
@@ -98,9 +99,8 @@ fun checkSuggestedSignatureWithDMypy(
     configFile: File,
     initialErrorNumber: Int
 ): Boolean {
-    val description = method.type.pythonDescription() as PythonCallableTypeDescription
     val annotationMap =
-        (description.argumentNames zip method.type.arguments).associate {
+        (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
             Pair(it.first, it.second)
         }
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)

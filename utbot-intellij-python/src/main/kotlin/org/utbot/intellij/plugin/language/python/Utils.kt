@@ -5,7 +5,7 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.jetbrains.python.psi.PyFunction
-import org.utbot.python.PythonMethodDescription
+import org.utbot.python.PythonMethodHeader
 import org.utbot.python.framework.api.python.PythonClassId
 import kotlin.random.Random
 
@@ -32,8 +32,8 @@ fun generateRandomString(length: Int): String {
         .joinToString("")
 }
 
-fun PyFunction.toPythonMethodDescription(): PythonMethodDescription? {
-    return PythonMethodDescription(
+fun PyFunction.toPythonMethodDescription(): PythonMethodHeader? {
+    return PythonMethodHeader(
         this.name ?: return null,
         // this.parameterList.parameters.mapNotNull { it.name?.let { arg -> PythonArgument(arg, "") } },
         this.containingFile.virtualFile?.canonicalPath ?: "",

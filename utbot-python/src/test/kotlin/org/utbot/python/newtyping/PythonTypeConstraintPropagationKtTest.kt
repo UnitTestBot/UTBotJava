@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.mypy.AnnotationFromMypyKtTest
+import org.utbot.python.newtyping.mypy.MypyStorageKtTest
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorage
 
@@ -15,16 +15,16 @@ internal class PythonTypeConstraintPropagationKtTest {
     lateinit var pythonTypeStorage: PythonTypeStorage
     @BeforeAll
     fun setup() {
-        val sample = AnnotationFromMypyKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
+        val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
         pythonTypeStorage = PythonTypeStorage.get(storage)
     }
 
     @Test
     fun testSimpleCompositeTypePropagation() {
-        val dict = storage.definitions["builtins"]!!["dict"]!!.annotation.asUtBotType
-        val str = storage.definitions["builtins"]!!["str"]!!.annotation.asUtBotType
-        val int = storage.definitions["builtins"]!!["int"]!!.annotation.asUtBotType
+        val dict = storage.definitions["builtins"]!!["dict"]!!.getUtBotType()
+        val str = storage.definitions["builtins"]!!["str"]!!.getUtBotType()
+        val int = storage.definitions["builtins"]!!["int"]!!.getUtBotType()
         val dictOfAny = DefaultSubstitutionProvider.substituteAll(dict, listOf(pythonAnyType, pythonAnyType))
         val dictOfStrToInt = DefaultSubstitutionProvider.substituteAll(dict, listOf(str, int))
         val constraint = TypeConstraint(dictOfStrToInt, ConstraintKind.LowerBound)

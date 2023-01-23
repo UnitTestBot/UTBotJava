@@ -50,7 +50,10 @@ class PythonTypeInferenceCommand : CliktCommand(
     private var startTime: Long = 0
 
     override fun run() {
-        val moduleOpt = findCurrentPythonModule(directoriesForSysPath, sourceFile)
+        val moduleOpt = findCurrentPythonModule(
+            directoriesForSysPath.map { it.toAbsolutePath() },
+            sourceFile.toAbsolutePath()
+        )
         if (moduleOpt is Fail) {
             logger.error(moduleOpt.message)
         }

@@ -340,9 +340,14 @@ class PythonSubtypeChecker(
             val neededAttribute =
                 left.getPythonAttributeByName(pythonTypeStorage, protocolMemberName) ?: return@all true
             val rightAttribute = right.getPythonAttributeByName(pythonTypeStorage, protocolMemberName) ?: return false
-            val description = neededAttribute.type.pythonDescription()
+            val firstArgIsSelf = { description: PythonDefinitionDescription ->
+                (description is PythonFuncItemDescription) && description.args.isNotEmpty() &&
+                        description.args.first().isSelf
+            }
+            val description = neededAttribute.meta
             val skipFirstArgument =
-                (description is PythonCallableTypeDescription) && !description.isStaticMethod
+                firstArgIsSelf(description) ||
+                        ((description is PythonOverloadedFuncDefDescription) && description.items.any(firstArgIsSelf))
             PythonSubtypeChecker(
                 left = neededAttribute.type,
                 right = rightAttribute.type,
@@ -371,7 +376,8 @@ class PythonSubtypeChecker(
                     pythonTypeStorage,
                     typeParameterCorrespondence,
                     nextAssumingSubtypePairs,
-                    recursionDepth + 1
+                    recursionDepth + 1,
+                    skipFirstArgument
                 ).rightIsSubtypeOfLeft()
             }
         }

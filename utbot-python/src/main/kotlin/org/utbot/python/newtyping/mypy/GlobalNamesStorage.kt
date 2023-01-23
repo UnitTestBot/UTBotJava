@@ -1,5 +1,6 @@
 package org.utbot.python.newtyping.mypy
 
+import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import org.utbot.python.newtyping.general.Type
 
 class GlobalNamesStorage(private val mypyStorage: MypyAnnotationStorage) {
@@ -8,7 +9,7 @@ class GlobalNamesStorage(private val mypyStorage: MypyAnnotationStorage) {
         if (splitName.size == 1) {
             val nameFromStorage = mypyStorage.names[module]?.find { it.name == name } ?: return null
             return when (nameFromStorage) {
-                is LocalTypeName -> mypyStorage.definitions[module]!![name]!!.annotation.asUtBotType
+                is LocalTypeName -> mypyStorage.definitions[module]!![name]!!.getUtBotType()
                 is ImportedTypeName -> {
                     val split = nameFromStorage.fullname.split(".")
                     resolveTypeName(split.dropLast(1).joinToString("."), split.last())
@@ -43,3 +44,17 @@ class ModuleName(name: String, val fullname: String): Name(name)
 class LocalTypeName(name: String): Name(name)
 class ImportedTypeName(name: String, val fullname: String): Name(name)
 class OtherName(name: String): Name(name)
+
+enum class NameType {
+    Module,
+    LocalType,
+    ImportedType,
+    Other
+}
+
+val namesAdapter: PolymorphicJsonAdapterFactory<Name> =
+    PolymorphicJsonAdapterFactory.of(Name::class.java, "kind")
+        .withSubtype(ModuleName::class.java, NameType.Module.name)
+        .withSubtype(LocalTypeName::class.java, NameType.LocalType.name)
+        .withSubtype(ImportedTypeName::class.java, NameType.ImportedType.name)
+        .withSubtype(OtherName::class.java, NameType.Other.name)

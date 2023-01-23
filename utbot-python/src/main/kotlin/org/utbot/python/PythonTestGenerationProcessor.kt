@@ -35,7 +35,7 @@ object PythonTestGenerationProcessor {
         pythonFileContent: String,
         directoriesForSysPath: Set<String>,
         currentPythonModule: String,
-        pythonMethods: List<PythonMethodDescription>,
+        pythonMethods: List<PythonMethodHeader>,
         containingClassName: String?,
         timeout: Long,
         testFramework: TestFramework,
@@ -78,8 +78,7 @@ object PythonTestGenerationProcessor {
                 pythonPath,
                 pythonFilePath,
                 currentPythonModule,
-                mypyConfigFile,
-                pythonFilePath
+                mypyConfigFile
             )
 
             startedTestGenerationAction()

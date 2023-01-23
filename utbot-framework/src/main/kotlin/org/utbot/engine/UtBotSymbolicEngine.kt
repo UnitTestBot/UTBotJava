@@ -32,9 +32,7 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -44,6 +42,9 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -151,7 +152,6 @@ class UtBotSymbolicEngine(
         ConcreteExecutor(
             UtExecutionInstrumentation,
             classpath,
-            dependencyPaths
         ).apply { this.classLoader = utContext.classLoader }
 
     private val featureProcessor: FeatureProcessor? =
@@ -564,7 +564,10 @@ private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstr
     methodUnderTest.classId.name,
     methodUnderTest.signature,
     arrayOf(),
-    parameters = UtConcreteExecutionData(stateBefore, instrumentation)
+    parameters = UtConcreteExecutionData(
+        stateBefore,
+        instrumentation
+    )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 
 /**

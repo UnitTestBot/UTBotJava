@@ -101,6 +101,7 @@ import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
+import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
 import org.utbot.framework.plugin.api.util.isStatic
 
 // hack
@@ -126,7 +127,7 @@ typealias Address = Int
  */
 class Resolver(
     val hierarchy: Hierarchy,
-    private val memory: Memory,
+    val memory: Memory,
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
@@ -1234,7 +1235,14 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
 
                 val createdElement = if (elementType is RefType) {
                     val className = value[it]!!.javaClass.id.name
-                    createObject(addr, Scene.v().getRefType(className), useConcreteType = true)
+                    // Try to take an instance of class we find in Runtime
+                    // If it is impossible, take the default `elementType` without a concrete type instead.
+                    val (type, useConcreteType) =
+                        Scene.v().getRefTypeUnsafe(className)
+                            ?.let { type -> type to true }
+                            ?: (elementType to false)
+
+                    createObject(addr, type, useConcreteType)
                 } else {
                     require(elementType is ArrayType)
                     // We cannot use concrete types since we do not receive
@@ -1261,7 +1269,14 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
 
                 return asMethodResult {
                     val addr = UtAddrExpression(mkBVConst("staticVariable${value.hashCode()}", UtInt32Sort))
-                    createObject(addr, Scene.v().getRefType(refTypeName), useConcreteType = true)
+                    // Try to take a type from an object from the Runtime.
+                    // If it is impossible, create an instance of a default `sootType` without a concrete type.
+                    val (type, useConcreteType) = Scene.v()
+                        .getRefTypeUnsafe(refTypeName)
+                        ?.let { type -> type to true }
+                        ?: (sootType as RefType to false)
+
+                    createObject(addr, type, useConcreteType)
                 }
             }
         }

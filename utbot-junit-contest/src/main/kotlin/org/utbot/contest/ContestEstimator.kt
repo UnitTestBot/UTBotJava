@@ -414,7 +414,7 @@ fun runEstimator(
             try {
                 project.classloader.loadClass(fqn).kotlin
             } catch (e: Throwable) {
-                logger.info { "Smoke test failed for class: $fqn" }
+                logger.warn(e) { "Smoke test failed for class: $fqn" }
             }
         }
 
@@ -445,16 +445,30 @@ fun runEstimator(
                         break@outer
                     }
 
-                    val cut =
-                        ClassUnderTest(
-                            project.classloader.loadClass(classFqn).id,
-                            project.outputTestSrcFolder,
-                            project.unzippedDir
+                    try {
+                        val cut =
+                            ClassUnderTest(
+                                project.classloader.loadClass(classFqn).id,
+                                project.outputTestSrcFolder,
+                                project.unzippedDir
+                            )
+
+                        logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
+
+                        tool.run(
+                            project,
+                            cut,
+                            timeLimit,
+                            fuzzingRatio,
+                            methodNameFilter,
+                            statsForProject,
+                            compiledTestDir,
+                            classFqn
                         )
-
-                    logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
-
-                    tool.run(project, cut, timeLimit, fuzzingRatio, methodNameFilter, statsForProject, compiledTestDir, classFqn)
+                    }
+                    catch (e: Throwable) {
+                        logger.warn(e) { "===================== ERROR IN [${project.name}] FOR [$classIndex:$classFqn] ============" }
+                    }
                 }
             }
         }

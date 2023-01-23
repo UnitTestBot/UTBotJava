@@ -5,7 +5,6 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
 import org.utbot.engine.ArtificialError
-import org.utbot.engine.OverflowDetectionError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -126,7 +125,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
-import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
@@ -151,6 +150,7 @@ import org.utbot.framework.plugin.api.util.doubleStreamClassId
 import org.utbot.framework.plugin.api.util.doubleStreamToArrayMethodId
 import org.utbot.framework.plugin.api.util.intStreamClassId
 import org.utbot.framework.plugin.api.util.intStreamToArrayMethodId
+import org.utbot.framework.plugin.api.util.isPackagePrivate
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.longStreamClassId
 import org.utbot.framework.plugin.api.util.longStreamToArrayMethodId
@@ -552,6 +552,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val beforeVariable = cache.before[path]?.variable
         val (afterVariable, afterModel) = cache.after[path]!!
 
+        // TODO: remove the following after the issue fix
+        // We do not generate some assertions for Enums due to [https://github.com/UnitTestBot/UTBotJava/issues/1704].
+        val beforeModel = cache.before[path]?.model
+        if (beforeModel !is UtEnumConstantModel && afterModel is UtEnumConstantModel) {
+            return
+        }
+
         if (afterModel !is UtReferenceModel) {
             val expectedAfter =
                 variableConstructor.getOrCreateVariable(afterModel, "expected" + afterVariable.name.capitalize())
@@ -568,9 +575,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable?,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>,
+        visitedModels: MutableSet<ModelWithField>,
+        expectedModelField: FieldId? = null,
     ) {
-        if (expectedModel in visitedModels) return
+        val modelWithField = ModelWithField(expectedModel, expectedModelField)
+        if (modelWithField in visitedModels) return
 
         var expected = expected
         if (expected == null) {
@@ -578,7 +587,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             expected = actual
         }
 
-        visitedModels += expectedModel
+        visitedModels += modelWithField
 
         with(testFrameworkManager) {
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
@@ -897,7 +906,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         // if field is static, it is represents itself in "before" and
         // "after" state: no need to assert its equality to itself.
@@ -906,7 +915,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         // if model is already processed, so we don't want to add new statements
-        if (fieldModel in visitedModels) {
+        val modelWithField = ModelWithField(fieldModel, fieldId)
+        if (modelWithField in visitedModels) {
             currentBlock += testFrameworkManager.getDeepEqualsAssertion(expected, actual).toStatement()
             return
         }
@@ -928,7 +938,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         // fieldModel is not visited and will be marked in assertDeepEquals call
         val fieldName = fieldId.name
@@ -950,6 +960,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             actualFieldDeclaration.variable,
             depth + 1,
             visitedModels,
+            fieldId,
         )
         emptyLineIfNeeded()
     }
@@ -960,7 +971,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         val fieldResultModels = fieldsOfExecutionResults[fieldId to depth]
         val nullResultModelInExecutions = fieldResultModels?.find { it.isNull() }
@@ -999,6 +1010,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         actualFieldDeclaration.variable,
                         depth + 1,
                         visitedModels,
+                        fieldId,
                     )
                 }
             )
@@ -1009,6 +1021,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 actualFieldDeclaration.variable,
                 depth + 1,
                 visitedModels,
+                fieldId,
             )
         }
         emptyLineIfNeeded()
@@ -1112,7 +1125,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(this) && canBeReadFrom(context)) {
+        if (variable.type.hasField(this)
+            //TODO: think about moving variable type checks into [isAccessibleFrom] after contest
+            && (!isPackagePrivate || variable.type.packageName == context.testClassPackageName)
+            && canBeReadFrom(context)
+        ) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
@@ -1265,6 +1282,14 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             }
             .onFailure { exception -> processExecutionFailure(exception, executionResult) }
     }
+
+    // Class is required to verify, if current model has already been analyzed in deepEquals.
+    // Using model without related field (if it is present) in comparison is incorrect,
+    // for example, for [UtNullModel] as they are equal to each other..
+    private data class ModelWithField(
+        val fieldModel: UtModel,
+        val relatedField: FieldId?,
+    )
 
     /**
      * We can't use standard deepEquals method in parametrized tests

@@ -5,8 +5,10 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import kotlin.math.min
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.ignoreExecutionsNumber
 
@@ -19,6 +21,31 @@ internal class ListIteratorsTest : UtValueTestCaseChecker(
         TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Test
+    fun testReturnIterator() {
+        withoutConcrete { // We need to check that a real class is returned but not `Ut` one
+            check(
+                ListIterators::returnIterator,
+                ignoreExecutionsNumber,
+                { l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
+                { l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
+                coverage = FullWithAssumptions(assumeCallsNumber = 1)
+            )
+        }
+    }
+
+    @Test
+    fun testReturnListIterator() {
+        withoutConcrete { // We need to check that a real class is returned but not `Ut` one
+            check(
+                ListIterators::returnListIterator,
+                ignoreExecutionsNumber,
+                { l, r -> l.isEmpty() && r!!.asSequence().toList().isEmpty() },
+                { l, r -> l.isNotEmpty() && r!!.asSequence().toList() == l },
+                coverage = FullWithAssumptions(assumeCallsNumber = 1)
+            )
+        }
+    }
 
     @Test
     fun testIterate() {

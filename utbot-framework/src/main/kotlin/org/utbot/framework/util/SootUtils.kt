@@ -2,6 +2,7 @@ package org.utbot.framework.util
 
 import org.utbot.common.FileUtil
 import org.utbot.engine.jimpleBody
+import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
@@ -159,11 +160,12 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.collections.UtOptionalLong::class,
     org.utbot.engine.overrides.collections.UtOptionalDouble::class,
     org.utbot.engine.overrides.collections.UtArrayList::class,
+    org.utbot.engine.overrides.collections.UtArrayList.UtArrayListSimpleIterator::class,
     org.utbot.engine.overrides.collections.UtArrayList.UtArrayListIterator::class,
     org.utbot.engine.overrides.collections.UtLinkedList::class,
     org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck::class,
     org.utbot.engine.overrides.collections.UtLinkedList.UtLinkedListIterator::class,
-    org.utbot.engine.overrides.collections.UtLinkedList.ReverseIteratorWrapper::class,
+    org.utbot.engine.overrides.collections.UtLinkedList.UtReverseIterator::class,
     org.utbot.engine.overrides.collections.UtHashSet::class,
     org.utbot.engine.overrides.collections.UtHashSet.UtHashSetIterator::class,
     org.utbot.engine.overrides.collections.UtHashMap::class,

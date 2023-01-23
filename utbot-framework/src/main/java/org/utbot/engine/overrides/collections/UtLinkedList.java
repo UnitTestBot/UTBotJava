@@ -435,6 +435,8 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
     @Override
     public Iterator<E> iterator() {
         preconditionCheck();
+
+        // Some implementations of `iterator` return an instance of ListIterator
         return new UtLinkedListIterator(elementData.begin);
     }
 
@@ -449,7 +451,7 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
     @Override
     public Iterator<E> descendingIterator() {
         preconditionCheck();
-        return new ReverseIteratorWrapper(elementData.end);
+        return new UtReverseIterator(elementData.end);
     }
 
     @Override
@@ -467,12 +469,12 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         return stream();
     }
 
-    public class ReverseIteratorWrapper implements ListIterator<E> {
+    public class UtReverseIterator implements ListIterator<E> {
 
         int index;
         int prevIndex = -1;
 
-        ReverseIteratorWrapper(int index) {
+        UtReverseIterator(int index) {
             this.index = index;
         }
 

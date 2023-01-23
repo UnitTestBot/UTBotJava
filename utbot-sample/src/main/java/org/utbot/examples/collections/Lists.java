@@ -3,6 +3,7 @@ package org.utbot.examples.collections;
 import org.utbot.api.mock.UtMock;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -158,5 +159,16 @@ public class Lists {
             list.addAll(i, newList);
         }
         return list;
+    }
+
+    @SuppressWarnings("IfStatementWithIdenticalBranches")
+    List<String> asListExample(String[] values) {
+        UtMock.assume(values != null);
+
+        if (values.length == 0) {
+            return Arrays.asList(values);
+        } else {
+            return Arrays.asList(values);
+        }
     }
 }

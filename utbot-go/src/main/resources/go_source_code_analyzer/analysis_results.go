@@ -75,5 +75,6 @@ type AnalysisResult struct {
 }
 
 type AnalysisResults struct {
+	IntSize int              `json:"intSize"`
 	Results []AnalysisResult `json:"results"`
 }

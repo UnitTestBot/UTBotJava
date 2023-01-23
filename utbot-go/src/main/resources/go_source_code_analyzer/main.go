@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -78,7 +79,10 @@ func main() {
 	checkError(fromJsonErr)
 
 	// parse each requested Go source file
-	analysisResults := AnalysisResults{Results: []AnalysisResult{}}
+	analysisResults := AnalysisResults{
+		IntSize: strconv.IntSize,
+		Results: []AnalysisResult{},
+	}
 	for _, target := range analysisTargets.Targets {
 		result, err := analyzeTarget(target)
 		checkError(err)

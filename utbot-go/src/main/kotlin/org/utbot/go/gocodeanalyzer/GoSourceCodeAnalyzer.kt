@@ -5,6 +5,7 @@ import org.utbot.common.scanForResourcesContaining
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFunctionParameter
+import org.utbot.go.fuzzer.providers.GoPrimitivesValueProvider
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import org.utbot.go.util.writeJsonToFileOrFail
@@ -57,7 +58,7 @@ object GoSourceCodeAnalyzer {
                 "GoSourceCodeAnalyzer for $analysisTargets"
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
-
+            GoPrimitivesValueProvider.intSize = analysisResults.intSize
             return analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.packageName) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->

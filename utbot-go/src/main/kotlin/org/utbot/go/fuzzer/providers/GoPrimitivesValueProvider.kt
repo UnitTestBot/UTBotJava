@@ -13,9 +13,10 @@ import org.utbot.go.api.GoUtPrimitiveModel
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
 import java.util.*
+import kotlin.properties.Delegates
 
 object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
-
+    var intSize by Delegates.notNull<Int>()
     private val random = Random(0)
 
     override fun accept(type: GoTypeId): Boolean = type in goPrimitives
@@ -42,13 +43,6 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                     goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> Signed.values()
                         .map {
                             when (type) {
-                                goRuneTypeId, goIntTypeId, goInt32TypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
-                                    GoUtPrimitiveModel(
-                                        obj.toInt(),
-                                        primitiveType
-                                    ).fuzzed { "%var% = ${obj.toInt()}" }
-                                }
-
                                 goInt8TypeId -> Seed.Known(it.invoke(8)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toByte(),
@@ -63,6 +57,20 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                                     ).fuzzed { "%var% = ${obj.toShort()}" }
                                 }
 
+                                goInt32TypeId, goRuneTypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
+                                    GoUtPrimitiveModel(
+                                        obj.toInt(),
+                                        primitiveType
+                                    ).fuzzed { "%var% = ${obj.toInt()}" }
+                                }
+
+                                goIntTypeId -> Seed.Known(it.invoke(intSize)) { obj: BitVectorValue ->
+                                    GoUtPrimitiveModel(
+                                        if (intSize == 32) obj.toInt() else obj.toLong(),
+                                        primitiveType
+                                    ).fuzzed { "%var% = ${if (intSize == 32) obj.toInt() else obj.toLong()}" }
+                                }
+
                                 goInt64TypeId -> Seed.Known(it.invoke(64)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toLong(),
@@ -74,7 +82,7 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                             }
                         }
 
-                    goByteTypeId, goUintTypeId, goUint8TypeId, goUint16TypeId, goUint32TypeId, goUint64TypeId -> Unsigned.values()
+                    goByteTypeId, goUintTypeId, goUintPtrTypeId, goUint8TypeId, goUint16TypeId, goUint32TypeId, goUint64TypeId -> Unsigned.values()
                         .map {
                             when (type) {
                                 goByteTypeId, goUint8TypeId -> Seed.Known(it.invoke(8)) { obj: BitVectorValue ->
@@ -91,11 +99,18 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                                     ).fuzzed { "%var% = ${obj.toUShort()}" }
                                 }
 
-                                goUintTypeId, goUint32TypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
+                                goUint32TypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toUInt(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toUShort()}" }
+                                    ).fuzzed { "%var% = ${obj.toUInt()}" }
+                                }
+
+                                goUintTypeId, goUintPtrTypeId -> Seed.Known(it.invoke(intSize)) { obj: BitVectorValue ->
+                                    GoUtPrimitiveModel(
+                                        if (intSize == 32) obj.toUInt() else obj.toULong(),
+                                        primitiveType
+                                    ).fuzzed { "%var% = ${if (intSize == 32) obj.toUInt() else obj.toULong()}" }
                                 }
 
                                 goUint64TypeId -> Seed.Known(it.invoke(64)) { obj: BitVectorValue ->
@@ -130,11 +145,6 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                                 primitiveType
                             ).fuzzed { summary = "%var% = ${obj.value}" }
                         })
-
-                    goUintPtrTypeId -> listOf(
-                        GoUtPrimitiveModel(0, primitiveType).fuzzed { summary = "%var% = 0" },
-                        GoUtPrimitiveModel(1, primitiveType).fuzzed { summary = "%var% > 0" },
-                    ).map { Seed.Simple(it) }
 
                     else -> emptyList()
                 }

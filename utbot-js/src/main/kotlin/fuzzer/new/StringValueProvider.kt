@@ -28,16 +28,9 @@ object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
         values.forEach { value ->
             yield(Seed.Known(StringValue(value)) { known ->
                 JsPrimitiveModel(known.toString()).fuzzed {
-                    summary = "%var% = '${known.toString().substringToLength(10, "...")}'"
+                    summary = "%var% = '${known}'"
                 }
             })
-        }
-    }
-
-    private fun String.substringToLength(size: Int, postfix: String): String {
-        return when {
-            length <= size -> this
-            else -> substring(0, size) + postfix
         }
     }
 }

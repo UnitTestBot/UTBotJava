@@ -10,9 +10,9 @@ import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
@@ -71,7 +71,6 @@ object UtBotJavaApi {
         val concreteExecutor = ConcreteExecutor(
             UtExecutionInstrumentation,
             classpath,
-            dependencyClassPath
         )
 
         testSets.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))

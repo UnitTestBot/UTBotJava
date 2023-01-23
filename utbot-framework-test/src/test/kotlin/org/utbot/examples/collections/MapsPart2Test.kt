@@ -1,5 +1,6 @@
 package org.utbot.examples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
@@ -68,7 +69,7 @@ internal class MapsPart2Test : UtValueTestCaseChecker(
         }
     }
 
-    @Test
+    @Disabled("Flaky https://github.com/UnitTestBot/UTBotJava/issues/1695")
     fun testPutAllEntries() {
         withPushingStateFromPathSelectorForConcrete {
             check(

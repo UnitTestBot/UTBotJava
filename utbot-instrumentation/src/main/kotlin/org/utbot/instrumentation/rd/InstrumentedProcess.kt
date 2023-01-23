@@ -40,7 +40,6 @@ class InstrumentedProcess private constructor(
             instrumentedProcessRunner: InstrumentedProcessRunner,
             instrumentation: TInstrumentation,
             pathsToUserClasses: String,
-            pathsToDependencyClasses: String,
             classLoader: ClassLoader?
         ): InstrumentedProcess = parent.createNested().terminateOnException { lifetime ->
             val rdProcess: ProcessWithRdServer = startUtProcessWithRdServer(
@@ -68,7 +67,6 @@ class InstrumentedProcess private constructor(
             proc.instrumentedProcessModel.addPaths.startSuspending(
                 proc.lifetime, AddPathsParams(
                     pathsToUserClasses,
-                    pathsToDependencyClasses
                 )
             )
 

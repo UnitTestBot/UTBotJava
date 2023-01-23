@@ -1,7 +1,7 @@
 package org.utbot.fuzzer
 
 import org.utbot.common.isPublic
-import org.utbot.framework.concrete.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel

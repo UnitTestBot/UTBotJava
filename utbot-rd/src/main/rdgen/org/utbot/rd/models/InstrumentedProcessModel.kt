@@ -8,7 +8,6 @@ object InstrumentedProcessRoot : Root()
 object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
     val AddPathsParams = structdef {
         field("pathsToUserClasses", PredefinedType.string)
-        field("pathsToDependencyClasses", PredefinedType.string)
     }
 
     val SetInstrumentationParams = structdef {

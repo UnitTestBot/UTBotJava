@@ -1,6 +1,8 @@
 package org.utbot.summary.comment.customtags.symbolic
 
+import org.utbot.framework.plugin.api.DocRegularLineStmt
 import org.utbot.framework.plugin.api.DocRegularStmt
+import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.summary.comment.customtags.fuzzer.CommentWithCustomTagForTestProducedByFuzzer
 
 /**
@@ -85,11 +87,11 @@ sealed class CustomJavaDocTag(
         }
 
     // TODO: could be universal with the function above after creation of hierarchy data classes related to the comments
-    fun generateDocStatementForTestProducedByFuzzer(comment: CommentWithCustomTagForTestProducedByFuzzer): DocRegularStmt? {
+    fun generateDocStatementForTestProducedByFuzzer(comment: CommentWithCustomTagForTestProducedByFuzzer): DocStatement? {
         if (valueRetrieverFuzzer != null) { //TODO: it required only when we have two different retrievers
             return when (val value = valueRetrieverFuzzer!!.invoke(comment)) { // TODO: unsafe !! - resolve
                 is String -> value.takeIf { it.isNotEmpty() }?.let {
-                    DocRegularStmt("@$name $value\n")
+                    DocRegularLineStmt("@$name $value")
                 }
 
                 is List<*> -> value.takeIf { it.isNotEmpty() }?.let {

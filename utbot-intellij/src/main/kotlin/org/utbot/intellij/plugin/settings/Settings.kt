@@ -36,6 +36,7 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 import org.utbot.common.isWindows
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.plugin.api.isSummarizationCompatible
 
 @State(
@@ -63,7 +64,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var fuzzingValue: Double = 0.05,
         var runGeneratedTestsWithCoverage: Boolean = false,
         var commentStyle: JavaDocCommentStyle = JavaDocCommentStyle.defaultItem,
-        var enableSummariesGeneration: Boolean = UtSettings.enableSummariesGeneration,
+        var summariesGenerationType: SummariesGenerationType = UtSettings.summaryGenerationType,
         var enableExperimentalLanguagesSupport: Boolean = false,
     ) {
         constructor(model: GenerateTestsModel) : this(
@@ -82,7 +83,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             fuzzingValue = model.fuzzingValue,
             runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage,
             commentStyle = model.commentStyle,
-            enableSummariesGeneration = model.enableSummariesGeneration
+            summariesGenerationType = model.summariesGenerationType
         )
 
         override fun equals(other: Any?): Boolean {
@@ -107,7 +108,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (fuzzingValue != other.fuzzingValue) return false
             if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
             if (commentStyle != other.commentStyle) return false
-            if (enableSummariesGeneration != other.enableSummariesGeneration) return false
+            if (summariesGenerationType != other.summariesGenerationType) return false
 
             return true
         }
@@ -127,7 +128,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + classesToMockAlways.contentHashCode()
             result = 31 * result + fuzzingValue.hashCode()
             result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
-            result = 31 * result + if (enableSummariesGeneration) 1 else 0
+            result = 31 * result + summariesGenerationType.hashCode()
 
             return result
         }
@@ -173,7 +174,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         }
     var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
 
-    var enableSummariesGeneration = state.enableSummariesGeneration
+    var enableSummariesGeneration = state.summariesGenerationType
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()
@@ -209,7 +210,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     override fun loadState(state: State) {
         this.state = state
         if (!state.codegenLanguage.isSummarizationCompatible()) {
-            this.state.enableSummariesGeneration = false
+            this.state.summariesGenerationType = SummariesGenerationType.NONE
         }
     }
 

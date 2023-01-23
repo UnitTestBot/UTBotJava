@@ -89,7 +89,7 @@ object UnsupportedJdkNotifier : ErrorNotifier() {
 object InvalidClassNotifier : WarningNotifier() {
     override val displayId: String = "Invalid class"
     override fun content(project: Project?, module: Module?, info: String): String =
-        "Generate tests with UtBot for the $info is not supported."
+        "Generate tests with UnitTestBot for the $info is not supported."
 }
 
 object MissingLibrariesNotifier : WarningNotifier() {
@@ -140,7 +140,7 @@ object SarifReportNotifier : EventLogNotifier() {
 object TestsReportNotifier : InformationUrlNotifier() {
     override val displayId: String = "Generated unit tests report"
 
-    override val titleText: String = "UTBot: unit tests generated successfully"
+    override val titleText: String = "UnitTestBot: unit tests generated successfully"
 
     public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
 }
@@ -149,7 +149,7 @@ object TestsReportNotifier : InformationUrlNotifier() {
 object WarningTestsReportNotifier : WarningUrlNotifier() {
     override val displayId: String = "Generated unit tests report"
 
-    override val titleText: String = "UTBot: unit tests generated with warnings"
+    override val titleText: String = "UnitTestBot: unit tests generated with warnings"
 
     public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
 }
@@ -157,7 +157,7 @@ object WarningTestsReportNotifier : WarningUrlNotifier() {
 object DetailsTestsReportNotifier : EventLogNotifier() {
     override val displayId: String = "Test report details"
 
-    override val titleText: String = "Test report details of the unit tests generation via UtBot"
+    override val titleText: String = "Test report details of the unit tests generation via UnitTestBot"
 
     public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
 }
@@ -200,7 +200,7 @@ object GotItTooltipActivity : StartupActivity {
             val shortcut = ActionManager.getInstance()
                 .getKeyboardShortcut("org.utbot.intellij.plugin.ui.actions.GenerateTestsAction")?:return@invokeLater
             val shortcutText = KeymapUtil.getShortcutText(shortcut)
-            val message = GotItMessage.createMessage("UTBot is ready!",
+            val message = GotItMessage.createMessage("UnitTestBot is ready!",
                 "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;\">" +
                         "You can get test coverage for methods, Java classes,<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
             message.setCallback { PropertiesComponent.getInstance().setValue(KEY, true) }

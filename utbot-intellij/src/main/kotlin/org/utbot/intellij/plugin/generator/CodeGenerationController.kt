@@ -151,7 +151,7 @@ object CodeGenerationController {
                 val testFilePointer = SmartPointerManager.getInstance(model.project)
                     .createSmartPsiElementPointer(testClass.containingFile)
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
-                runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
+                runWriteCommandAction(model.project, "Generate tests with UnitTestBot", null, {
                     generateCodeAndReport(
                         process,
                         testSetsId,
@@ -349,7 +349,7 @@ object CodeGenerationController {
             (utUtilsFile as PsiClassOwner).classes.first()
         }
 
-        runWriteCommandAction(model.project, "UtBot util class reformatting", null, {
+        runWriteCommandAction(model.project, "UnitTestBot util class reformatting", null, {
             reformat(model, SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(utUtilsFile), utUtilsClass)
         })
 
@@ -730,7 +730,7 @@ object CodeGenerationController {
 //                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
                         run(EDT_LATER, indicator, "Tests reformatting") {
                             try {
-                                runWriteCommandAction(filePointer.project, "UtBot tests reformatting", null, {
+                                runWriteCommandAction(filePointer.project, "UnitTestBot tests reformatting", null, {
                                     reformat(model, filePointer, testClassUpdated)
                                 })
                                 unblockDocument(testClassUpdated.project, editor.document)

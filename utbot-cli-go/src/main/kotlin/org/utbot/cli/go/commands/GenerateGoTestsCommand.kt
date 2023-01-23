@@ -71,10 +71,9 @@ class GenerateGoTestsCommand :
         val goExecutableAbsolutePath = goExecutablePath.toAbsolutePath()
 
         val testsGenerationStarted = now()
-        logger.debug { "Generating test for [$sourceFile] - started" }
+        logger.info { "Test file generation for [$sourceFile] - started" }
         try {
             CliGoUtTestsGenerationController(
-                cliLogger = logger,
                 printToStdOut = printToStdOut,
                 overwriteTestFiles = overwriteTestFiles
             ).generateTests(
@@ -86,7 +85,7 @@ class GenerateGoTestsCommand :
             throw t
         } finally {
             val duration = durationInMillis(testsGenerationStarted)
-            logger.debug { "Generating test for [$sourceFile] - completed in [$duration] (ms)" }
+            logger.info { "Test file generation for [$sourceFile] - completed in [$duration] (ms)" }
         }
     }
 }

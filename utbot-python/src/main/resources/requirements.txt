@@ -3,4 +3,4 @@ astor
 typeshed-client
 coverage
 utbot-executor==0.1.14
-utbot-mypy-runner==0.2.1
+utbot-mypy-runner==0.2.2

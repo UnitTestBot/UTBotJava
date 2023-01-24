@@ -37,7 +37,7 @@ abstract class LanguageAssistant {
                 // The action is being called from 'Project' tool window
                 val language = when (val element = e.getData(CommonDataKeys.PSI_ELEMENT)) {
                     is PsiFileSystemItem -> {
-                         e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
+                        e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
                             findLanguageRecursively(project, it)
                         }
                     }

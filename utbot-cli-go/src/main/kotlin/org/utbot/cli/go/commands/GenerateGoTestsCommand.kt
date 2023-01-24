@@ -42,7 +42,7 @@ class GenerateGoTestsCommand :
         .required() // TODO: attempt to find it if not specified
 
     private val eachFunctionExecutionTimeoutMillis: Long by option(
-        "-t", "--each-execution-timeout",
+        "-et", "--each-execution-timeout",
         help = StringBuilder()
             .append("Specifies a timeout in milliseconds for each fuzzed function execution.")
             .append("Default is ${GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS} ms")
@@ -50,6 +50,17 @@ class GenerateGoTestsCommand :
     )
         .long()
         .default(GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS)
+        .check("Must be positive") { it > 0 }
+
+    private val allFunctionExecutionTimeoutMillis: Long by option(
+        "-at", "--all-execution-timeout",
+        help = StringBuilder()
+            .append("Specifies a timeout in milliseconds for all fuzzed function execution.")
+            .append("Default is ${GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS} ms")
+            .toString()
+    )
+        .long()
+        .default(GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS)
         .check("Must be positive") { it > 0 }
 
     private val printToStdOut: Boolean by option(
@@ -78,7 +89,11 @@ class GenerateGoTestsCommand :
                 overwriteTestFiles = overwriteTestFiles
             ).generateTests(
                 mapOf(sourceFileAbsolutePath to selectedFunctionsNames),
-                GoUtTestsGenerationConfig(goExecutableAbsolutePath, eachFunctionExecutionTimeoutMillis)
+                GoUtTestsGenerationConfig(
+                    goExecutableAbsolutePath,
+                    eachFunctionExecutionTimeoutMillis,
+                    allFunctionExecutionTimeoutMillis
+                )
             )
         } catch (t: Throwable) {
             logger.error { "An error has occurred while generating test for snippet $sourceFile: $t" }

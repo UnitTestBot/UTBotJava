@@ -80,7 +80,7 @@ object FileUtil {
         return createTempDirectory(utBotTempDirectory, prefix)
     }
 
-    fun createTempFile(prefix: String, suffix: String) : Path {
+    fun createTempFile(prefix: String, suffix: String): Path {
         return Files.createTempFile(utBotTempDirectory, prefix, suffix)
     }
 

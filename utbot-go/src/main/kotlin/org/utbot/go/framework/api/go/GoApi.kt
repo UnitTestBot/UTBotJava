@@ -38,8 +38,6 @@ abstract class GoTypeId(
         get() = error("not supported")
     override val outerClass: Class<*>?
         get() = error("not supported")
-    override val simpleNameWithEnclosings: String
-        get() = error("not supported")
 
     abstract fun getRelativeName(packageName: String): String
 }

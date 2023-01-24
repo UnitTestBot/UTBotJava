@@ -16,7 +16,7 @@ enum class ExplicitCastMode {
 
 open class GoUtPrimitiveModel(
     val value: Any,
-    val typeId: GoPrimitiveTypeId,
+    typeId: GoPrimitiveTypeId,
     val explicitCastMode: ExplicitCastMode =
         if (typeId.neverRequiresExplicitCast) {
             ExplicitCastMode.NEVER

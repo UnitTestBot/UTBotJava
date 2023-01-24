@@ -73,11 +73,3 @@ class GoFieldId(
 ) : FieldId(declaringClass, name) {
     override fun toString(): String = "$name: $declaringClass"
 }
-
-/**
- * Class for Go struct constructors.
- */
-class GoStructConstructorId(
-    classId: GoTypeId,
-    fields: List<GoFieldId>,
-) : ConstructorId(classId, fields.map { it.declaringClass })

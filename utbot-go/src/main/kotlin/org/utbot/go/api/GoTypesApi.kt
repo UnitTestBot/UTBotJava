@@ -1,8 +1,6 @@
 package org.utbot.go.api
 
-import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.go.framework.api.go.GoFieldId
-import org.utbot.go.framework.api.go.GoStructConstructorId
 import org.utbot.go.framework.api.go.GoTypeId
 
 /**
@@ -23,9 +21,6 @@ class GoStructTypeId(
 ) : GoTypeId(name, implementsError = implementsError) {
     override val canonicalName: String = "$packageName.$name"
 
-    override val allConstructors: Sequence<ConstructorId>
-        get() = sequenceOf(GoStructConstructorId(this, fields))
-
     override fun getRelativeName(packageName: String): String =
         if (this.packageName != packageName) {
             canonicalName
@@ -40,10 +35,9 @@ class GoArrayTypeId(
     val length: Int
 ) : GoTypeId(name, elementClassId = elementTypeId) {
     override val canonicalName: String = "[$length]${elementTypeId.canonicalName}"
+    val elementTypeId: GoTypeId = elementClassId as GoTypeId
 
     override fun getRelativeName(packageName: String): String = "[$length]${elementTypeId.getRelativeName(packageName)}"
-
-    val elementTypeId: GoTypeId = elementClassId as GoTypeId
 }
 
 class GoInterfaceTypeId(

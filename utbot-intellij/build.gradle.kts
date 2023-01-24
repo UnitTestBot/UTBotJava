@@ -123,7 +123,6 @@ tasks {
 }
 
 repositories {
-    mavenLocal()
     maven("https://jitpack.io")
     maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
 }

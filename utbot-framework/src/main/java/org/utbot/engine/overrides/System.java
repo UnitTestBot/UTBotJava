@@ -210,7 +210,7 @@ public class System {
             }
 
             UtArrayMock.arraycopy(srcArray, srcPos, destArray, destPos, length);
-        } else {
+        } else if (src instanceof Object[]) {
             if (!(dest instanceof Object[])) {
                 throw new ArrayStoreException();
             }
@@ -223,6 +223,9 @@ public class System {
             }
 
             UtArrayMock.arraycopy(srcArray, srcPos, destArray, destPos, length);
+        } else {
+            // From docs: if the src argument refers to an object that is not an array, an ArrayStoreException will be thrown
+            throw new ArrayStoreException();
         }
     }
 }

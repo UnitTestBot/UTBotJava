@@ -21,7 +21,7 @@ public class Arrays {
         return new UtStream<>(array, startInclusive, endExclusive);
     }
 
-    // from docs - array is assumed to be umnodified during use
+    // from docs - array is assumed to be unmodified during use
     public static IntStream stream(int[] array, int startInclusive, int endExclusive) {
         int size = array.length;
 
@@ -37,7 +37,7 @@ public class Arrays {
         return new UtIntStream(data, startInclusive, endExclusive);
     }
 
-    // from docs - array is assumed to be umnodified during use
+    // from docs - array is assumed to be unmodified during use
     public static LongStream stream(long[] array, int startInclusive, int endExclusive) {
         int size = array.length;
 
@@ -53,7 +53,7 @@ public class Arrays {
         return new UtLongStream(data, startInclusive, endExclusive);
     }
 
-    // from docs - array is assumed to be umnodified during use
+    // from docs - array is assumed to be unmodified during use
     public static DoubleStream stream(double[] array, int startInclusive, int endExclusive) {
         int size = array.length;
 
@@ -75,6 +75,4 @@ public class Arrays {
         // TODO immutable collection https://github.com/UnitTestBot/UTBotJava/issues/398
         return new UtArrayList<>(a);
     }
-
-    // TODO primitive arrays https://github.com/UnitTestBot/UTBotJava/issues/146
 }

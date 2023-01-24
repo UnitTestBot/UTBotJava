@@ -3,7 +3,9 @@ package org.utbot.examples.collections
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.ge
+import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testing.CodeGeneration
+import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.between
 import org.utbot.testing.ignoreExecutionsNumber
@@ -18,6 +20,19 @@ class SetIteratorsTest : UtValueTestCaseChecker(
         TestLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Test
+    fun testReturnIterator() {
+        withoutConcrete { // We need to check that a real class is returned but not `Ut` one
+            check(
+                SetIterators::returnIterator,
+                ignoreExecutionsNumber,
+                { s, r -> s.isEmpty() && r!!.asSequence().toSet().isEmpty() },
+                { s, r -> s.isNotEmpty() && r!!.asSequence().toSet() == s },
+                coverage = FullWithAssumptions(assumeCallsNumber = 1)
+            )
+        }
+    }
+
     @Test
     fun testIteratorHasNext() {
         check(

@@ -330,7 +330,7 @@ abstract class CgAbstractRenderer(
         if (element.lines.all { it.isEmpty() }) return
 
         println("/**")
-        for (line in element.lines) line.accept(this)
+        element.lines.forEach { it.accept(this) }
         println(" */")
     }
     override fun visit(element: CgDocPreTagStatement) {
@@ -343,9 +343,7 @@ abstract class CgAbstractRenderer(
     override fun visit(element: CgCustomTagStatement) {
         if (element.statements.all { it.isEmpty() }) return
 
-        for (stmt in element.statements) {
-            stmt.accept(this)
-        }
+        element.statements.forEach { it.accept(this) }
     }
 
     override fun visit(element: CgDocCodeStmt) {
@@ -366,7 +364,10 @@ abstract class CgAbstractRenderer(
     override fun visit(element: CgDocRegularLineStmt){
         if (element.isEmpty()) return
 
-        print(" * " + element.stmt + "\n")
+        // It is better to avoid using \n in print, using println is preferred.
+        // Mixing println's and print's with '\n' BREAKS indention.
+        // See [https://stackoverflow.com/questions/6685665/system-out-println-vs-n-in-java].
+        println(" * " + element.stmt)
     }
     override fun visit(element: CgDocClassLinkStmt) {
         if (element.isEmpty()) return

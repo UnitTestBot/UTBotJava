@@ -39,6 +39,7 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.classId
 import soot.ArrayType
 import soot.CharType
@@ -85,6 +86,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     private val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val fieldValues: PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>> = persistentHashMapOf(),
     private val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
+    private val genericTypeStorageByAddr: PersistentMap<UtAddrExpression, List<TypeStorage>> = persistentHashMapOf(),
     private val addrToMockInfo: PersistentMap<UtAddrExpression, UtMockInfo> = persistentHashMapOf(),
     private val updates: MemoryUpdate = MemoryUpdate(), // TODO: refactor this later. Now we use it only for statics substitution
     private val visitedValues: UtArrayExpressionBase = UtConstArrayExpression(
@@ -116,6 +118,18 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun mocks(): List<MockInfoEnriched> = mockInfos
 
     fun staticFields(): Map<FieldId, FieldStates> = staticFieldsStates.filterKeys { it in meaningfulStaticFields }
+
+    /**
+     * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
+     */
+    fun getTypeStoragesForObjectTypeParameters(
+        addr: UtAddrExpression
+    ): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+
+    /**
+     * Returns all collected information about addresses and corresponding generic types.
+     */
+    fun getAllGenericTypeInfo(): Map<UtAddrExpression, List<TypeStorage>> = genericTypeStorageByAddr
 
     /**
      * Returns a symbolic value, associated with the specified [field] of the object with the specified [instanceAddr],
@@ -253,6 +267,23 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
+        // We have a list with updates for generic type info, and we want to apply
+        // them in such way that only updates with more precise type information
+        // should be applied.
+        val currentGenericsMap = update
+            .genericTypeStorageByAddr
+            // go over type generic updates and apply them to already existed info
+            .fold(genericTypeStorageByAddr.toMutableMap()) { acc, value ->
+                // If we have more type information, a new type storage will be returned.
+                // Otherwise, we will have the same info taken from the memory.
+                val (addr, typeStorages) =
+                    TypeResolver.createGenericTypeInfoUpdate(value.first, value.second, acc)
+                        .genericTypeStorageByAddr
+                        .single()
+                acc[addr] = typeStorages
+                acc
+            }
+
         return this.copy(
             initial = updInitial,
             current = updCurrent,
@@ -265,6 +296,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             meaningfulStaticFields = meaningfulStaticFields.addAll(update.meaningfulStaticFields),
             fieldValues = previousFieldValues.toPersistentMap().putAll(update.fieldValues),
             addrToArrayType = addrToArrayType.putAll(update.addrToArrayType),
+            genericTypeStorageByAddr = currentGenericsMap.toPersistentMap(),
             addrToMockInfo = addrToMockInfo.putAll(update.addrToMockInfo),
             updates = updates + update,
             visitedValues = updVisitedValues,
@@ -366,6 +398,7 @@ data class MemoryUpdate(
     val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val fieldValues: PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>> = persistentHashMapOf(),
     val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
+    val genericTypeStorageByAddr: PersistentList<Pair<UtAddrExpression, List<TypeStorage>>> = persistentListOf(),
     val addrToMockInfo: PersistentMap<UtAddrExpression, UtMockInfo> = persistentHashMapOf(),
     val visitedValues: PersistentList<UtAddrExpression> = persistentListOf(),
     val touchedAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
@@ -386,6 +419,7 @@ data class MemoryUpdate(
             meaningfulStaticFields = meaningfulStaticFields.addAll(other.meaningfulStaticFields),
             fieldValues = fieldValues.putAll(other.fieldValues),
             addrToArrayType = addrToArrayType.putAll(other.addrToArrayType),
+            genericTypeStorageByAddr = genericTypeStorageByAddr.addAll(other.genericTypeStorageByAddr),
             addrToMockInfo = addrToMockInfo.putAll(other.addrToMockInfo),
             visitedValues = visitedValues.addAll(other.visitedValues),
             touchedAddresses = touchedAddresses.addAll(other.touchedAddresses),

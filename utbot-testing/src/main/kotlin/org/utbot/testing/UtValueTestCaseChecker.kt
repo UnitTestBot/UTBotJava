@@ -8,6 +8,7 @@ import org.utbot.common.FileUtil.clearTempDirectory
 import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
 import org.utbot.engine.prettify
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.daysLimitForTempFiles
 import org.utbot.framework.UtSettings.testDisplayName
@@ -23,6 +24,7 @@ import org.utbot.framework.plugin.api.DocCodeStmt
 import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocMethodLinkStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
+import org.utbot.framework.plugin.api.DocRegularLineStmt
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.ExecutableId
@@ -87,7 +89,7 @@ abstract class UtValueTestCaseChecker(
         UtSettings.saveRemainingStatesForConcreteExecution = false
         UtSettings.useFuzzing = false
         UtSettings.useCustomJavaDocTags = false
-        UtSettings.enableSummariesGeneration = true
+        UtSettings.summaryGenerationType = SummariesGenerationType.FULL
     }
 
     // checks paramsBefore and result
@@ -2450,7 +2452,7 @@ abstract class UtValueTestCaseChecker(
             } else {
                 walk(executableId, mockStrategy, additionalDependenciesClassPath)
             }
-            testSet.summarize(searchDirectory)
+            testSet.summarize(searchDirectory, sourceFile = null)
             val valueTestCase = testSet.toValueTestCase()
 
             assertTrue(testSet.errors.isEmpty()) {
@@ -2826,6 +2828,7 @@ private fun flattenDocStatements(summary: List<DocStatement>): List<DocStatement
             is DocMethodLinkStmt -> flatten.add(s)
             is DocCodeStmt -> flatten.add(s)
             is DocRegularStmt -> flatten.add(s)
+            is DocRegularLineStmt -> flatten.add(s)
             is DocCustomTagStatement -> flatten.add(s)
         }
     }

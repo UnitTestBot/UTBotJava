@@ -12,7 +12,6 @@ import org.utbot.data.JDKVersion
 import org.utbot.data.NEW_PROJECT_NAME_START
 import org.utbot.data.TEST_RUN_NUMBER
 import org.utbot.pages.*
-import org.utbot.steps.autocomplete
 import java.time.Duration
 
 @Order(2)
@@ -43,24 +42,31 @@ class UnitTestBotActionTest : UTBotTest() {
                     key(java.awt.event.KeyEvent.VK_END)
                     enter()
                 }
-                autocomplete("main")
-                autocomplete("sout")
                 keyboard {
-                    enterText("\"")
-                    enterText("Hello from UTBot UI ${TEST_RUN_NUMBER} test in ${ideaBuildSystem.system} project with ${jdkVersion.number} JDK")
+                    enterText("public int function(")
+                    enterText("int a, int b")
+                    key(java.awt.event.KeyEvent.VK_END)
+                    enterText("{")
+                    enter()
+                    enterText("// UTBot UI ${TEST_RUN_NUMBER} test. ${ideaBuildSystem.system} project. ${jdkVersion.number} JDK")
+                    enter()
+                    enterText("return a + b;")
                 }
             }
             callUnitTestBotActionOn(newClassName)
             waitFor (Duration.ofSeconds(10)){
                 inlineProgressTextPanel.isShowing
             }
-            waitFor (Duration.ofSeconds(10)){
+            waitFor(Duration.ofSeconds(30)) {
                 inlineProgressTextPanel.hasText("Generate tests: read classes")
             }
             waitFor (Duration.ofSeconds(10)){
                 inlineProgressTextPanel.hasText("Generate test cases for class $newClassName")
             }
-            assertThat(infoNotification.title.hasText("UTBot: unit tests generated successfully")).isTrue
+            waitFor(Duration.ofSeconds(20)) { //Can be changed to 60 for a complex class
+                infoNotification.isShowing
+            }
+            assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully")).isTrue
             assertThat(textEditor().editor.text).contains("class ${newClassName}Test")
             assertThat(textEditor().editor.text).contains("@Test\n")
         }

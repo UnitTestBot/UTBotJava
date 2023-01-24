@@ -58,12 +58,12 @@ open class IdeaFrame(remoteRobot: RemoteRobot, remoteComponent: RemoteComponent)
             ofSeconds(20))
 
     val ideError
-        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@val_icon='fatalError.svg']/../div[@class='NotificationCenterPanel']"),
-            ofSeconds(20))
+        get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@class='NotificationCenterPanel'][.//div[@accessiblename.key='error.new.notification.title']]"),
+            ofSeconds(10))
 
     val infoNotification
         get() = remoteRobot.find<NotificationFixture>(byXpath( "//div[@val_icon='balloonInformation.svg']/../div[@class='NotificationCenterPanel']"),
-            ofSeconds(30))
+            ofSeconds(10))
 
     @JvmOverloads
     fun dumbAware(timeout: Duration = Duration.ofMinutes(5), function: () -> Unit) {

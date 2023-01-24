@@ -2,10 +2,10 @@ package org.utbot.tests
 
 import com.intellij.remoterobot.RemoteRobot
 import com.intellij.remoterobot.utils.waitFor
-import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.utbot.data.IdeaBuildSystem
@@ -35,23 +35,26 @@ class CreateProjects : UTBotTest() {
         val ideaFrame = getIdeaFrameForSpecificBuildSystem(remoteRobot, ideaBuildSystem)
         with (ideaFrame) {
             waitProjectIsCreated()
-            waitFor(Duration.ofSeconds(200)){
+            waitFor(Duration.ofSeconds(30)){
                 !isDumbMode()
             }
             expandProjectTree(projectName)
             callUnitTestBotActionOn("Main")
-            waitFor(Duration.ofSeconds(100)) {
+            waitFor(Duration.ofSeconds(30)) {
                 inlineProgressTextPanel.isShowing
             }
-            waitFor(Duration.ofSeconds(100)) {
+            waitFor(Duration.ofSeconds(30)) {
                 inlineProgressTextPanel.hasText("Generate tests: read classes")
             }
-            waitFor(Duration.ofSeconds(100)) {
+            waitFor(Duration.ofSeconds(10)) {
                 inlineProgressTextPanel.hasText("Generate test cases for class Main")
             }
-            Assertions.assertThat(infoNotification.title.hasText("UTBot: unit tests generated successfully")).isTrue
-            Assertions.assertThat(textEditor().editor.text).contains("class MainTest")
-            Assertions.assertThat(textEditor().editor.text).contains("@Test\n")
+            waitFor(Duration.ofSeconds(20)) { //Can be changed to 60 for a complex class
+                infoNotification.isShowing
+            }
+            assertThat(infoNotification.title.hasText("UnitTestBot: unit tests generated successfully")).isTrue
+            assertThat(textEditor().editor.text).contains("class MainTest")
+            assertThat(textEditor().editor.text).contains("@Test\n")
         }
     }
 }

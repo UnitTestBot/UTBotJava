@@ -20,16 +20,23 @@ import org.utbot.framework.codegen.domain.builtin.thenReturnMethodId
 import org.utbot.framework.codegen.domain.builtin.whenMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.CgAnnotation
 import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
 import org.utbot.framework.codegen.domain.models.CgAssignment
+import org.utbot.framework.codegen.domain.models.CgClass
+import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgDeclaration
+import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgMethodsCluster
+import org.utbot.framework.codegen.domain.models.CgMockMethod
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
 import org.utbot.framework.codegen.domain.models.CgRunnable
+import org.utbot.framework.codegen.domain.models.CgSimpleRegion
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
 import org.utbot.framework.codegen.domain.models.CgStaticRunnable
@@ -39,12 +46,15 @@ import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl
+import org.utbot.framework.codegen.tree.*
+import org.utbot.framework.codegen.tree.buildClassBody
 import org.utbot.framework.codegen.tree.CgStatementConstructor
+import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
-import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.hasAmbiguousOverloadsOf
 import org.utbot.framework.codegen.util.isAccessibleFrom
+import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -62,10 +72,13 @@ import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.exceptions
 
 abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
@@ -114,6 +127,118 @@ abstract class CgVariableConstructorComponent(val context: CgContext) :
 
     private fun matchByClass(id: ClassId): CgMethodCall =
             argumentMatchersClassId[anyOfClass](getClassOf(id))
+}
+
+/**
+ * Experimental in-place mocker
+ */
+private class InPlaceMocker(context: CgContext) : ObjectMocker(context) {
+
+    private var mockID = 0
+    override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
+        val className = "${model.classId.simpleName}Mock$mockID"
+        val mockClassId =
+            BuiltinClassId(
+                canonicalName = className,
+                simpleName = className,
+                isPublic = false
+            )
+        val methods =
+            model.mocks.entries.mapIndexed { modelIndex, (methodId, models) ->
+                CgMockMethod(
+                    name = methodId.name,
+                    returnType = methodId.returnType,
+                    parameters = methodId.parameters.mapIndexed { i, param ->
+                        CgParameterDeclaration(
+                            parameter = declareParameter(
+                                type = param,
+                                name = "x$i",
+                            ),
+                            isReferenceType = param.isRefType
+                        )
+                    },
+                    statements = block {
+                        withNameScope {
+                            if (methodId.returnType != voidClassId) {
+                                +tryBlock {
+                                    val cachedModels = variableConstructor.valueByModelId.toMutableMap()
+                                    try {
+                                        variableConstructor.valueByModelId = mutableMapOf()
+                                        val returnStatements =
+                                            variableConstructor.getOrCreateVariable(
+                                                models.first(),
+                                                "mock${mockID}var$modelIndex"
+                                            )
+                                        returnStatement { returnStatements }
+                                    } finally {
+                                        variableConstructor.valueByModelId = cachedModels
+                                    }
+                                }.catch(Throwable::class.id) {
+                                    throwStatement {
+                                        val constructor =
+                                            IllegalStateException::class.java.id.allConstructors.first { it.parameters.isEmpty() }
+                                        constructor()
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    exceptions = methodId.exceptions.toSet(),
+                    annotations = emptyList()
+                )
+            }
+        val methodsCluster = CgSimpleRegion(null, methods)
+        val classDeclaration = buildClass {
+            id = mockClassId
+            interfaces.add(model.classId)
+            body = buildClassBody(mockClassId) {
+                methodRegions += CgMethodsCluster(header = null, content = listOf(methodsCluster))
+            }
+        }
+        currentBlock += CgClassAsStatement(classDeclaration)
+        ++mockID
+        val constructorId = ConstructorId(mockClassId, emptyList())
+        return newVar(model.classId, baseName) {
+            CgConstructorCall(constructorId, emptyList())
+        }
+    }
+
+    override fun mock(clazz: CgExpression): CgMethodCall {
+        TODO("Not yet implemented")
+    }
+
+    override fun `when`(call: CgExecutableCall): CgMethodCall {
+        TODO("Not yet implemented")
+    }
+
+    private class CgClassAsStatement(
+        val id: ClassId,
+        val documentation: CgDocumentationComment?,
+        val annotations: List<CgAnnotation>,
+        val superclass: ClassId?,
+        val interfaces: List<ClassId>,
+        val body: CgClassBody,
+        val isStatic: Boolean,
+        val isNested: Boolean
+    ) : CgStatement {
+        constructor(cgClass: CgClass) : this(
+            cgClass.id,
+            cgClass.documentation,
+            cgClass.annotations,
+            cgClass.superclass,
+            cgClass.interfaces,
+            cgClass.body,
+            cgClass.isStatic,
+            cgClass.isNested
+        )
+
+        val packageName
+            get() = id.packageName
+
+        val simpleName
+            get() = id.simpleName
+    }
+
 }
 
 class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(context) {

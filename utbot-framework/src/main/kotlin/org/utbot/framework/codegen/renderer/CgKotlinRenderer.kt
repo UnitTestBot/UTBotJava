@@ -41,6 +41,7 @@ import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgMockMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
@@ -395,6 +396,16 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     override fun renderMethodSignature(element: CgTestMethod) {
         print("fun ")
         // TODO resolve $ in name
+        print(element.name)
+        print("(")
+        val newLines = element.parameters.size > maxParametersAmountInOneLine
+        element.parameters.renderSeparated(newLines)
+        print(")")
+        renderMethodReturnType(element)
+    }
+
+    override fun renderMethodSignature(element: CgMockMethod) {
+        print("fun ")
         print(element.name)
         print("(")
         val newLines = element.parameters.size > maxParametersAmountInOneLine

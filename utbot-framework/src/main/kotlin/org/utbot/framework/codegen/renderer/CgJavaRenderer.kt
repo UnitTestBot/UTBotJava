@@ -35,16 +35,13 @@ import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgMockMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.util.isFinal
-import org.utbot.framework.plugin.api.util.isPrivate
-import org.utbot.framework.plugin.api.util.isProtected
-import org.utbot.framework.plugin.api.util.isPublic
-import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.framework.plugin.api.util.*
 
 internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -231,6 +228,20 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     override fun renderMethodSignature(element: CgTestMethod) {
         // test methods always have void return type
         print("public void ")
+        print(element.name)
+
+        print("(")
+        val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
+        element.parameters.renderSeparated(newLinesNeeded)
+        print(")")
+
+        renderExceptions(element)
+    }
+
+
+    override fun renderMethodSignature(element: CgMockMethod) {
+        val returnType = element.returnType.asString()
+        print("public $returnType ")
         print(element.name)
 
         print("(")

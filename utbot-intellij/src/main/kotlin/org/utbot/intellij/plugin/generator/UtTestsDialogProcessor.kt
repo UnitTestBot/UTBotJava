@@ -271,6 +271,7 @@ object UtTestsDialogProcessor {
                                             true,
                                             UtSettings.useFuzzing,
                                             project.service<Settings>().fuzzingValue,
+                                            UtSettings.useGreyBoxFuzzing,
                                             searchDirectory.pathString
                                         )
 

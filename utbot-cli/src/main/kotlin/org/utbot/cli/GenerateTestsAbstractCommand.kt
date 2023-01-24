@@ -144,8 +144,21 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun getWorkingDirectory(classFqn: String): Path? {
         val classRelativePath = classFqnToPath(classFqn) + ".class"
         val classAbsoluteURL = classLoader.getResource(classRelativePath) ?: return null
-        val classAbsolutePath = replaceSeparator(classAbsoluteURL.toPath().toString())
-            .removeSuffix(classRelativePath)
+        val classAbsolutePath =
+            if (UtSettings.useGreyBoxFuzzing) {
+                if (classAbsoluteURL.toURI().scheme == "jar") {
+                    replaceSeparator(classAbsoluteURL.file.removePrefix("file:"))
+                        .removeSuffix(classRelativePath)
+                        .removeSuffix("/")
+                        .removeSuffix("!")
+                } else {
+                    replaceSeparator(classAbsoluteURL.toPath().toString())
+                        .removeSuffix(classRelativePath)
+                }
+            } else {
+                replaceSeparator(classAbsoluteURL.toPath().toString())
+                    .removeSuffix(classRelativePath)
+            }
         return Paths.get(classAbsolutePath)
     }
 

@@ -5,6 +5,7 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
 import org.utbot.engine.ArtificialError
+import org.utbot.greyboxfuzzer.util.UtGreyBoxFuzzedExecution
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -317,7 +318,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         } else {
                             this.resultModel = resultModel
                             val expected = variableConstructor.getOrCreateVariable(resultModel, "expected")
-                            assertEquality(expected, actual)
+                            if (currentExecution !is UtGreyBoxFuzzedExecution) {
+                                assertEquality(expected, actual)
+                            }
                         }
                     }
                     .onFailure { exception -> processExecutionFailure(exception, executionResult) }

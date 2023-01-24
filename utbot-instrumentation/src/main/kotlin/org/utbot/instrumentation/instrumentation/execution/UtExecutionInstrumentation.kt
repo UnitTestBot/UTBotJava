@@ -12,6 +12,7 @@ import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
@@ -50,6 +51,12 @@ class UtConcreteExecutionResult(
     }
 }
 
+class UtFuzzingConcreteExecutionResult(
+    val stateAfter: EnvironmentModels?,
+    val result: UtExecutionResult,
+    val coverage: Coverage,
+    val methodInstructions: List<Instruction>? = null
+)
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 

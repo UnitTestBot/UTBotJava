@@ -35,6 +35,8 @@ import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
+import org.utbot.greyboxfuzzer.util.CoverageCollector
+import org.utbot.greyboxfuzzer.util.GreyBoxFuzzingStatisticPrinter
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
@@ -130,6 +132,7 @@ open class TestCaseGenerator(
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
     ): List<UtMethodTestSet> {
         if (isCanceled()) return methods.map { UtMethodTestSet(it) }
+        if (UtSettings.useGreyBoxFuzzing) CoverageCollector.clear()
 
         val executionStartInMillis = System.currentTimeMillis()
         val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
@@ -230,6 +233,9 @@ open class TestCaseGenerator(
         forceMockListener.detach(this, forceMockListener)
         forceStaticMockListener.detach(this, forceStaticMockListener)
 
+        if (UtSettings.useGreyBoxFuzzing) {
+            GreyBoxFuzzingStatisticPrinter.printFuzzingStats(method2executions)
+        }
         return methods.map { method ->
             UtMethodTestSet(
                 method,

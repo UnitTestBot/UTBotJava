@@ -111,6 +111,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                 isFuzzingEnabled = params.isFuzzingEnabled
                 fuzzingValue = params.fuzzingValue
+                isGreyBoxFuzzingEnabled = params.isGreyBoxFuzzingEnabled
             })
             .apply { logger.info("generation ended, starting summarization, result size: ${this.size}") }
             .map { it.summarize(Paths.get(params.searchDirectory), sourceFile = null) }

@@ -47,6 +47,7 @@ import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgMockMethod
 import org.utbot.framework.codegen.domain.models.CgThisInstance
 import org.utbot.framework.codegen.domain.models.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.domain.models.CgTryCatch
@@ -309,6 +310,8 @@ internal class CgPythonRenderer(
         (listOf(selfParameter) + element.parameters).renderSeparated(newLinesNeeded)
         print(")")
     }
+
+    override fun renderMethodSignature(element: CgMockMethod): Unit = renderMethodSignature(element)
 
     override fun renderMethodSignature(element: CgErrorTestMethod) {
         print("def ")

@@ -103,8 +103,8 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
  * @param TIResult the return type of [Instrumentation.invoke] function for the given [instrumentation].
  */
 class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> private constructor(
-    internal val instrumentation: TInstrumentation,
-    internal val pathsToUserClasses: String
+    val instrumentation: TInstrumentation,
+    val pathsToUserClasses: String
 ) : Closeable, Executor<TIResult> {
     private val ldef: LifetimeDefinition = LifetimeDefinition()
     private val instrumentedProcessRunner: InstrumentedProcessRunner = InstrumentedProcessRunner()

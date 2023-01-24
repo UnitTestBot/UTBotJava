@@ -68,7 +68,7 @@ class UtModelConstructor(
         .mapNotNull { it.id }
         .toMutableSet()
 
-    private fun computeUnusedIdAndUpdate(): Int {
+    fun computeUnusedIdAndUpdate(): Int {
         while (unusedId in usedIds) {
             unusedId++
         }

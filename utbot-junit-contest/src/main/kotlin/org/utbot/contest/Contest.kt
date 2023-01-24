@@ -147,15 +147,26 @@ fun main(args: Array<String>) {
             val timeBudgetSec = cmd[2].toLong()
             val cut = ClassUnderTest(classLoader.loadClass(classUnderTestName).id, outputDir, classfileDir.toFile())
 
-            runGeneration(
-                project = "Contest",
-                cut,
-                timeBudgetSec,
-                fuzzingRatio = 0.1,
-                classpathString,
-                runFromEstimator = false,
-                methodNameFilter = null
-            )
+            if (UtSettings.useGreyBoxFuzzing) {
+                GreyBoxFuzzerContest().runGeneration(
+                    project = "GreyBoxFuzzingContest",
+                    cut,
+                    timeBudgetSec,
+                    classpathString,
+                    runFromEstimator = false,
+                    methodNameFilter = null
+                )
+            } else {
+                runGeneration(
+                    project = "Contest",
+                    cut,
+                    timeBudgetSec,
+                    fuzzingRatio = 0.1,
+                    classpathString,
+                    runFromEstimator = false,
+                    methodNameFilter = null
+                )
+            }
             println("${ContestMessage.READY}")
         }
     }
@@ -415,7 +426,7 @@ fun runGeneration(
     statsForClass
 }
 
-private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
+internal fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
     //1. all methods from cut
     val methods = javaClazz.declaredMethods
         .filterNot { it.isAbstract }
@@ -493,7 +504,7 @@ internal val Method.isVisibleFromGeneratedTest: Boolean
     get() = (this.modifiers and Modifier.ABSTRACT) == 0
             && (this.modifiers and Modifier.NATIVE) == 0
 
-private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
+internal fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
     coverage.update(newCoverage, isNewClass)
     // other coverage type updates by empty coverage to respect new class
     val emptyCoverage = newCoverage.copy(

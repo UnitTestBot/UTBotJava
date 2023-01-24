@@ -19,6 +19,7 @@ fun defaultTestFlow(timeout: Long) = testFlow {
     isSymbolicEngineEnabled = true
     generationTimeout = timeout
     isFuzzingEnabled = UtSettings.useFuzzing
+    isGreyBoxFuzzingEnabled = UtSettings.useGreyBoxFuzzing
     if (generationTimeout > 0) {
         fuzzingValue = UtSettings.fuzzingTimeoutInMillis.coerceIn(0, generationTimeout) / generationTimeout.toDouble()
     }
@@ -41,6 +42,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
         }
     var isSymbolicEngineEnabled = true
     var isFuzzingEnabled = false
+    var isGreyBoxFuzzingEnabled = false
     var fuzzingValue: Double = 0.1
         set(value) {
             field = value.coerceIn(0.0, 1.0)
@@ -59,6 +61,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
     fun build(engine: UtBotSymbolicEngine): Flow<UtResult>  {
         return when {
             generationTimeout == 0L -> emptyFlow()
+            isGreyBoxFuzzingEnabled -> engine.greyBoxFuzzing(generationTimeout)
             isFuzzingEnabled -> {
                 when (val value = if (isSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
                     0L -> engine.traverse()

@@ -67,7 +67,8 @@ import org.utbot.instrumentation.process.runSandbox
  */
 // TODO: JIRA:1379 -- Refactor ValueConstructor and MockValueConstructor
 class MockValueConstructor(
-    private val instrumentationContext: InstrumentationContext
+    private val instrumentationContext: InstrumentationContext,
+    private val generateNullOnError: Boolean = false
 ) : Closeable {
     private val classLoader: ClassLoader
         get() = utContext.classLoader
@@ -133,13 +134,29 @@ class MockValueConstructor(
             is UtClassRefModel -> UtConcreteValue(model.value)
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
-            is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
+            is UtAssembleModel -> constructConcreteValueFromAssembleModel(model)
             is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
             // PythonModel, JsUtModel may be here
             else -> throw UnsupportedOperationException()
         }
     }
+
+    /**
+     * Constructs Concrete value from Assemble model.
+     *
+     * In fuzzing mode we are ignoring exceptions because concrete values as nulls are possible.
+     */
+    private fun constructConcreteValueFromAssembleModel(model: UtAssembleModel): UtConcreteValue<*> =
+        try {
+            UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
+        } catch (e: Throwable) {
+            if (generateNullOnError) {
+                UtConcreteValue(null, model.classId.jClass)
+            } else {
+                throw e
+            }
+        }
 
     /**
      * Constructs an Enum<*> instance by model, uses reference-equality cache.

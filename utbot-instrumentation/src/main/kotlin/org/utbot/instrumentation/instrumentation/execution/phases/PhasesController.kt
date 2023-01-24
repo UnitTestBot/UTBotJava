@@ -14,9 +14,10 @@ class PhasesController(
     instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
     delegateInstrumentation: Instrumentation<Result<*>>,
+    generateNullOnError: Boolean = false
 ) : Closeable {
 
-    val valueConstructionContext = ValueConstructionContext(instrumentationContext)
+    val valueConstructionContext = ValueConstructionContext(instrumentationContext, generateNullOnError)
 
     val preparationContext = PreparationContext(traceHandler)
 

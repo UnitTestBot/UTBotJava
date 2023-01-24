@@ -79,6 +79,7 @@ import org.utbot.framework.codegen.domain.models.CgDocRegularLineStmt
 import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgNestedClassesRegion
 import org.utbot.framework.codegen.domain.models.CgTestMethod
+import org.utbot.framework.codegen.domain.models.CgMockMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodCluster
 import org.utbot.framework.codegen.domain.models.CgThisInstance
 import org.utbot.framework.codegen.domain.models.CgThrowStatement
@@ -111,6 +112,7 @@ interface CgVisitor<R> {
     // Methods
     fun visit(element: CgMethod): R
     fun visit(element: CgTestMethod): R
+    fun visit(element: CgMockMethod): R
     fun visit(element: CgErrorTestMethod): R
     fun visit(element: CgParameterizedTestDataProviderMethod): R
 

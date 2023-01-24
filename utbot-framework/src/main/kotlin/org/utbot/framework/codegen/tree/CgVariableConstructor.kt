@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.common.isStatic
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -24,15 +25,10 @@ import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getC
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getMockFrameworkManagerBy
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
-import org.utbot.framework.codegen.util.at
+import org.utbot.framework.codegen.util.*
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.fieldThatIsGotWith
 import org.utbot.framework.codegen.util.fieldThatIsSetWith
-import org.utbot.framework.codegen.util.inc
-import org.utbot.framework.codegen.util.isAccessibleFrom
-import org.utbot.framework.codegen.util.lessThan
-import org.utbot.framework.codegen.util.nullLiteral
-import org.utbot.framework.codegen.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -51,19 +47,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.util.classClassId
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.jField
-import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isEnum
-import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
-import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
-import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.framework.plugin.api.util.*
 
 /**
  * Constructs CgValue or CgVariable given a UtModel
@@ -213,7 +197,23 @@ open class CgVariableConstructor(val context: CgContext) :
                 is UtDirectSetFieldModel -> {
                     val instance = declareOrGet(statementModel.instance)
                     // fields here are supposed to be accessible, so we assign them directly without any checks
-                    instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
+                    if (UtSettings.useGreyBoxFuzzing) {
+                        val fieldValue = declareOrGet(statementModel.fieldModel)
+                        if (statementModel.fieldId.canBeSetFrom(context) && fieldValue.type isSubtypeOf statementModel.fieldId.type) {
+                            instance[statementModel.fieldId] `=` fieldValue
+                        } else {
+                            with(statementModel) {
+                                +utilsClassId[setField](
+                                    instance,
+                                    fieldId.declaringClass.name,
+                                    fieldId.name,
+                                    fieldValue
+                                )
+                            }
+                        }
+                    } else {
+                        instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
+                    }
                 }
                 is UtExecutableCallModel -> {
                     val call = createCgExecutableCallFromUtExecutableCall(statementModel)
@@ -332,7 +332,7 @@ open class CgVariableConstructor(val context: CgContext) :
         // and the size of an array is not greater than the fixed maximum size
         val canInitWithValues = (allPrimitives || allNulls) && elementModels.size <= MAX_ARRAY_INITIALIZER_SIZE
 
-        val initializer = if (canInitWithValues) {
+        val initializer = if (canInitWithValues && !UtSettings.greyBoxFuzzingCompetitionMode) {
             val elements = elementModels.map { model ->
                 when (model) {
                     is UtPrimitiveModel -> model.value.resolve()

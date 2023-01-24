@@ -1,0 +1,37 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+dependencies {
+
+    api project(':utbot-instrumentation')
+    api project(':utbot-framework-api')
+    api project(':utbot-fuzzers')
+
+
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+        exclude group:'com.google.guava', module:'guava'
+    }
+
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation "org.javaruntype:javaruntype:1.3"
+    implementation "ru.vyarus:generics-resolver:3.0.3"
+    implementation "ognl:ognl:3.3.2"
+
+    // we need this for construction mocks from composite models
+    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
+
+    // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
+    //implementation group: 'junit', name: 'junit', version: '4.13.1'
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.8.1'
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
+}
+
+
+shadowJar {
+    archiveClassifier.set('')
+    minimize{
+        exclude(dependency('org.scala-lang:.*:.*'))
+    }
+}

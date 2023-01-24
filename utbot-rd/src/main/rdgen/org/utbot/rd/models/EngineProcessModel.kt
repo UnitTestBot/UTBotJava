@@ -55,6 +55,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("isSymbolicEngineEnabled", PredefinedType.bool)
         field("isFuzzingEnabled", PredefinedType.bool)
         field("fuzzingValue", PredefinedType.double)
+        field("isGreyBoxFuzzingEnabled", PredefinedType.bool)
         // method filters
         field("searchDirectory", PredefinedType.string)
     }

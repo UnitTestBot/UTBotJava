@@ -15,7 +15,7 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:7]
+ * #### Generated from [EngineProcessModel.kt:8]
  */
 class RdInstrumenterAdapter private constructor(
     private val _computeSourceFileByClass: RdCall<ComputeSourceFileByClassArguments, String?>
@@ -97,7 +97,7 @@ val IProtocol.rdInstrumenterAdapter get() = getOrCreateExtension(RdInstrumenterA
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:8]
+ * #### Generated from [EngineProcessModel.kt:9]
  */
 data class ComputeSourceFileByClassArguments (
     val canonicalClassName: String

@@ -71,7 +71,7 @@ internal object GoWorkerCodeGenerationHelper {
     ): String {
         val timeoutMillis = eachExecutionTimeoutsMillisConfig[function]
         return """
-            func $workerTestFunctionName(t *testing.T) {            
+            func $workerTestFunctionName(t *testing.T) {
             	con, err := net.Dial("tcp", ":$port")
             	__checkErrorAndExit__(err)
 
@@ -81,17 +81,17 @@ internal object GoWorkerCodeGenerationHelper {
             			__checkErrorAndExit__(err)
             		}
             	}(con)
-            
-                jsonDecoder := json.NewDecoder(con)
-            	for {
-                    rawValues, err := __parseJsonToRawValues__(jsonDecoder)
-                    if err == io.EOF {
-		            	break
-		            }
-                 	__checkErrorAndExit__(err)
 
-                 	parameters := __convertRawValuesToReflectValues__(rawValues)
-                 	function := reflect.ValueOf(${function.modifiedName})
+            	jsonDecoder := json.NewDecoder(con)
+            	for {
+            		rawValues, err := __parseJsonToRawValues__(jsonDecoder)
+            		if err == io.EOF {
+            			break
+            		}
+            		__checkErrorAndExit__(err)
+
+            		parameters := __convertRawValuesToReflectValues__(rawValues)
+            		function := reflect.ValueOf(${function.modifiedName})
 
             		executionResult := __executeFunction__($timeoutMillis*time.Millisecond, func() []__RawValue__ {
             			__traces__ = []int{}
@@ -100,8 +100,9 @@ internal object GoWorkerCodeGenerationHelper {
 
             		jsonBytes, toJsonErr := json.MarshalIndent(executionResult, "", "  ")
             		__checkErrorAndExit__(toJsonErr)
-            
-                    _, err = con.Write([]byte(strconv.Itoa(len(jsonBytes)) + "\n"))
+
+            		_, err = con.Write([]byte(strconv.Itoa(len(jsonBytes)) + "\n"))
+            		__checkErrorAndExit__(err)
 
             		_, err = con.Write(jsonBytes)
             		__checkErrorAndExit__(err)

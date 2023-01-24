@@ -264,8 +264,8 @@ object GoCodeTemplates {
 
     private val panicMessageStruct = """
         type __RawPanicMessage__ struct {
-        	RawResultValue  interface{} `json:"rawResultValue"`
-        	ImplementsError bool        `json:"implementsError"`
+        	RawResultValue  __RawValue__ `json:"rawResultValue"`
+        	ImplementsError bool         `json:"implementsError"`
         }
     """.trimIndent()
 
@@ -377,6 +377,14 @@ object GoCodeTemplates {
         			Length:      length,
         			Value:       arrayElementValues,
         		}, nil
+        	case reflect.Interface:
+        		if valueOfRes.Interface() == nil {
+        			return nil, nil
+        		}
+        		if e, ok := valueOfRes.Interface().(error); ok {
+        			return __convertReflectValueToRawValue__(reflect.ValueOf(e.Error()))
+        		}
+        		return nil, errors.New("unsupported result type: " + valueOfRes.Type().String())
         	default:
         		return nil, errors.New("unsupported result type: " + valueOfRes.Type().String())
         	}

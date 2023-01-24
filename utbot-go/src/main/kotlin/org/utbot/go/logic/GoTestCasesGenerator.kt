@@ -28,7 +28,7 @@ object GoTestCasesGenerator {
             }
 
             val flow =
-                if (function.parameters.all { !it.type.containsGoStructTypeId() } && !function.resultTypes.any { it is GoInterfaceTypeId }) {
+                if (function.parameters.all { !it.type.containsGoStructTypeId() }) {
                     engine.fastFuzzing()
                 } else {
                     engine.fuzzing()

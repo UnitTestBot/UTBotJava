@@ -15,9 +15,8 @@ import org.utbot.summary.comment.classic.symbolic.SimpleCommentBuilder
 import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.Paths
 import mu.KotlinLogging
-import org.utbot.framework.SummariesGenerationType
+import org.utbot.framework.SummariesGenerationType.*
 import org.utbot.framework.UtSettings.enableClusterCommentsGeneration
 import org.utbot.framework.UtSettings.enableJavaDocGeneration
 import org.utbot.framework.UtSettings.useDisplayNameArrowStyle
@@ -37,21 +36,28 @@ import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
 
-fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.get("")): UtMethodTestSet {
-    if (summaryGenerationType == SummariesGenerationType.NONE) return this
+fun UtMethodTestSet.summarize(searchDirectory: Path, sourceFile: File?): UtMethodTestSet {
+    if (summaryGenerationType == NONE) return this
+
+    val sourceFileToAnalyze = sourceFile
+        ?: when (summaryGenerationType) {
+            FULL -> Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory)
+            LIGHT,
+            NONE -> null
+        }
 
     return try {
         makeDiverseExecutions(this)
 
         // HACK: we avoid calling [invokeDescriptions] method to save time, it is useless in Contest
         val invokeDescriptions = when (summaryGenerationType) {
-            SummariesGenerationType.FULL -> invokeDescriptions(this, searchDirectory)
-            SummariesGenerationType.LIGHT,
-            SummariesGenerationType.NONE -> emptyList()
+            FULL -> invokeDescriptions(this, searchDirectory)
+            LIGHT,
+            NONE -> emptyList()
         }
 
         // every cluster has summary and list of executions
-        val executionClusters = Summarization(sourceFile, invokeDescriptions).fillSummaries(this)
+        val executionClusters = Summarization(sourceFileToAnalyze, invokeDescriptions).fillSummaries(this)
         val updatedExecutions = executionClusters.flatMap { it.executions }
         var pos = 0
         val clustersInfo = executionClusters.map {
@@ -70,13 +76,6 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
     }
 }
 
-fun UtMethodTestSet.summarize(searchDirectory: Path): UtMethodTestSet =
-    this.summarize(
-        Instrumenter.adapter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory),
-        searchDirectory
-    )
-
-
 class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
     private val tagGenerator = TagGenerator()
     private val jimpleBodyAnalysis = ExecutionStructureAnalysis()
@@ -93,16 +92,16 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         val executionClusters = mutableListOf<UtExecutionCluster>()
 
         when (summaryGenerationType) {
-            SummariesGenerationType.FULL -> {
+            FULL -> {
                 executionClusters += generateSummariesForTestsWithNonEmptyPathsProducedBySymbolicExecutor(testSet)
                 executionClusters += generateFuzzerBasedSummariesForTests(testSet)
                 executionClusters += generateSummariesForTestsWithEmptyPathsProducedBySymbolicExecutor(testSet)
             }
-            SummariesGenerationType.LIGHT -> {
+            LIGHT -> {
                 executionClusters += generateFuzzerBasedSummariesForTests(testSet, MethodDescriptionSource.SYMBOLIC)
                 executionClusters += generateFuzzerBasedSummariesForTests(testSet)
             }
-            SummariesGenerationType.NONE -> error("We must not fill summaries if SummariesGenerationType is NONE")
+            NONE -> error("We must not fill summaries if SummariesGenerationType is NONE")
         }
 
         return if (enableClusterCommentsGeneration && executionClusters.size > 0)

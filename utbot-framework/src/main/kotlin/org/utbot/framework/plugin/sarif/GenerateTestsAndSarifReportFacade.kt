@@ -60,7 +60,7 @@ class GenerateTestsAndSarifReportFacade(
                 sarifProperties.classesToMockAlways,
                 sarifProperties.generationTimeout
             ).map {
-                it.summarize(targetClass.sourceCodeFile, workingDirectory)
+                it.summarize(workingDirectory, targetClass.sourceCodeFile)
             }
 
     private fun generateTestCode(targetClass: TargetClassWrapper, testSets: List<UtMethodTestSet>): String =

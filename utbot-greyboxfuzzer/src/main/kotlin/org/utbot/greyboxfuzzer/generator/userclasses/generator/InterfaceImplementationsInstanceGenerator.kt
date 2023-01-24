@@ -3,7 +3,6 @@
 package org.utbot.greyboxfuzzer.generator.userclasses.generator
 
 import org.utbot.common.isAbstract
-import org.utbot.greyboxfuzzer.generator.DataGenerator
 import org.utbot.greyboxfuzzer.generator.QuickCheckExtensions
 import org.utbot.greyboxfuzzer.util.*
 import org.utbot.greyboxfuzzer.util.logger
@@ -11,6 +10,9 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.greyboxfuzzer.generator.GreyBoxFuzzerGeneratorsAndSettings.generatorRepository
+import org.utbot.greyboxfuzzer.generator.getOrProduceGenerator
+import org.utbot.greyboxfuzzer.generator.userclasses.UserClassGenerator
 import org.utbot.greyboxfuzzer.quickcheck.generator.GenerationStatus
 import org.utbot.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.greyboxfuzzer.quickcheck.internal.ParameterTypeContext
@@ -30,6 +32,9 @@ class InterfaceImplementationsInstanceGenerator(
     override fun generate(): UtModel {
         //Try to generate with statics with some probability
         val clazz = resolvedType.toClass() ?: return UtNullModel(objectClassId)
+        if (clazz.name.contains("HttpOutputMessage")) {
+            println()
+        }
         if (Random.getTrue(50)) {
             try {
                 StaticsBasedInstanceGenerator(
@@ -47,10 +52,20 @@ class InterfaceImplementationsInstanceGenerator(
             }
         }
         val genericsContext =
-            QuickCheckExtensions.getRandomImplementerGenericContext(clazz, resolvedType)// ?: return UtNullModel(clazz.id)
-        if (genericsContext == null || Random.getTrue(30)) {
-            return generateMock(clazz, resolvedType, typeContext, generatorContext)
+            QuickCheckExtensions.getRandomImplementerGenericContext(
+                clazz,
+                resolvedType
+            )// ?: return UtNullModel(clazz.id)
+        logger.debug { "Implementer of ${clazz.name}! It is a ${genericsContext?.currentClass()?.name}" }
+        if (genericsContext == null || Random.getTrue(5)) {
+            logger.debug { "Generate mock anyway" }
+            return try {
+                generateMock(clazz, resolvedType, typeContext, generatorContext)
+            } catch (e: Throwable) {
+                UtNullModel(clazz.id)
+            }
         }
+        logger.debug { "Trying to generate implementer ${genericsContext.currentClass().name}" }
         val resUtModel =
             ClassesInstanceGenerator(
                 genericsContext.currentClass(),
@@ -79,13 +94,22 @@ class InterfaceImplementationsInstanceGenerator(
             )
             else -> resUtModel
         }
-        .let {
-                if (it is UtNullModel && Random.getTrue(50)) generateMock(
-                    clazz,
-                    resolvedType,
-                    typeContext,
-                    generatorContext
-                ) else it
+            .let {
+                if (it is UtNullModel && Random.getTrue(50)) {
+                    try {
+                        generateMock(
+                            clazz,
+                            resolvedType,
+                            typeContext,
+                            generatorContext
+                        )
+                    }catch (e: Throwable) {
+                        it
+                    }
+                }
+                else {
+                    it
+                }
             }
     }
 
@@ -95,33 +119,45 @@ class InterfaceImplementationsInstanceGenerator(
         typeContext: GenericsContext,
         generatorContext: GeneratorContext
     ): UtModel {
+        logger.debug { "Mock generation" }
         if (!clazz.isInterface) return UtNullModel(clazz.id)
         val sootClazz = clazz.toSootClass() ?: return UtNullModel(clazz.id)
         val constructor = generatorContext.utModelConstructor
         val allNeededInterfaces = clazz.methods.map { it.declaringClass }.filter { it != clazz }.toSet()
-        val chainToGenericsContext = allNeededInterfaces.map { cl ->
-            val chain = cl.toSootClass()
-                ?.getImplementersOfWithChain()
-                ?.filter { it.contains(sootClazz) }
-                ?.map { it.dropLastWhile { it != sootClazz } }
-                ?.minByOrNull { it.size }
-                ?.map { it.toJavaClass() }
-            if (chain == null || chain.any { it == null }) {
-                null
-            } else {
-                cl to QuickCheckExtensions.buildGenericsContextForInterfaceParent(
-                    resolvedType,
-                    clazz,
-                    chain.map { it!! }.reversed().drop(1)
-                )
-            }
-        }
-        val allChainToGenericsContext = chainToGenericsContext + (clazz to typeContext)
+        val allChainToGenericsContext = allNeededInterfaces.map { it to ParameterTypeContext.forClass(it).generics } + (clazz to typeContext)
+//            if (allNeededInterfaces.all { it.typeParameters.isEmpty() }) {
+//                allNeededInterfaces.map { it to ParameterTypeContext.forType(it).generics }
+//            } else {
+//                //TODO debug this
+//                val chainToGenericsContext = allNeededInterfaces.map { cl ->
+//                    val chain = cl.toSootClass()
+//                        ?.getImplementersOfWithChain(onlyConcreteClasses = false, allowNotOnlyStdLib = true)
+//                        ?.filter { it.contains(sootClazz) }
+//                        ?.map { it.dropLastWhile { it != sootClazz } }
+//                        ?.minByOrNull { it.size }
+//                        ?.map { it.toJavaClass() }
+//                    if (chain == null || chain.any { it == null }) {
+//                        null
+//                    } else {
+//                        cl to QuickCheckExtensions.buildGenericsContextForInterfaceParent(
+//                            resolvedType,
+//                            clazz,
+//                            chain.map { it!! }.reversed().drop(1)
+//                        )
+//                    }
+//                }
+//                chainToGenericsContext + (clazz to typeContext)
+//            }
+        //val allChainToGenericsContext = chainToGenericsContext + (clazz to typeContext)
         val mocks = clazz.methods
             .filter { it.isAbstract }
             .associateTo(mutableMapOf()) { method ->
                 val genericsContextForMethod =
-                    allChainToGenericsContext.find { it!!.first == method.declaringClass }?.second
+                    try {
+                        allChainToGenericsContext.find { it!!.first == method.declaringClass }?.second
+                    } catch (e: Throwable) {
+                        null
+                    }
                 val methodReturnType =
                     if (genericsContextForMethod != null) {
                         genericsContextForMethod.method(method).resolveReturnType().let {
@@ -133,19 +169,41 @@ class InterfaceImplementationsInstanceGenerator(
                 val parameterTypeContext = ParameterTypeContext.forType(methodReturnType, genericsContextForMethod)
                 val generatedUtModelWithReturnType =
                     try {
-                        DataGenerator.generateUtModel(
-                            parameterTypeContext,
-                            depth,
-                            generatorContext,
-                            sourceOfRandomness,
-                            generationStatus
-                        )
+                        generateUtModelForMock(parameterTypeContext, depth, generatorContext, sourceOfRandomness, generationStatus)
                     } catch (_: Throwable) {
                         UtNullModel(methodReturnType.toClass()!!.id)
                     }
                 method.executableId as ExecutableId to listOf(generatedUtModelWithReturnType)
             }
         return UtCompositeModel(constructor.computeUnusedIdAndUpdate(), clazz.id, isMock = true, mocks = mocks)
+    }
+
+    private fun generateUtModelForMock(
+        parameterTypeContext: ParameterTypeContext,
+        depth: Int = 0,
+        generatorContext: GeneratorContext,
+        random: SourceOfRandomness,
+        status: GenerationStatus
+    ): UtModel {
+        val classId = parameterTypeContext.rawClass.id
+        logger.debug { "Trying to generate UtModel of type ${classId.name} 3 times" }
+        if (parameterTypeContext.getAllSubParameterTypeContexts(sourceOfRandomness).any { it.rawClass.isInterface }) {
+            return UtNullModel(classId)
+        }
+        var generatedInstance: UtModel?
+        repeat(3) {
+            generatedInstance =
+                try {
+                    val generator =
+                        generatorRepository.getOrProduceGenerator(parameterTypeContext, generatorContext, depth)
+                            ?: return@repeat
+                    generator.generateImpl(random, status)
+                } catch (_: Throwable) {
+                    null
+                }
+            generatedInstance?.let { if (it !is UtNullModel) return it }
+        }
+        return UtNullModel(classId)
     }
 
 //    private fun buildGenericsContextForInterfaceParent(resolvedType: Type, clazz: Class<*>, parentChain: List<Class<*>>): GenericsContext? {

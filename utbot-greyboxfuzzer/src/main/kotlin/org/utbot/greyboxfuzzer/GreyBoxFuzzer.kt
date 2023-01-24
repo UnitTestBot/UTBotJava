@@ -41,6 +41,7 @@ class GreyBoxFuzzer(
     private val timeOfStart = System.currentTimeMillis()
     private val percentageOfTimeBudgetToChangeMode = 25
     private val logger = KotlinLogging.logger {}
+    private val classMutator = Mutator()
 
     init {
         GenericsInfoFactory.disableCache()
@@ -97,7 +98,7 @@ class GreyBoxFuzzer(
                         regenerateThis = false
                     } else if (Random.getTrue(60)) {
                         logger.debug { "Trying to mutate this instance" }
-                        thisInstancesHistory += Mutator.mutateThisInstance(
+                        thisInstancesHistory += classMutator.mutateThisInstance(
                             thisInstancesHistory.last(),
                             classFieldsUsedByFunc.toList(),
                             generatorContext
@@ -207,7 +208,7 @@ class GreyBoxFuzzer(
             val randomSeed = seeds.getRandomWeightedSeed()
             logger.debug { "Random seed params = ${randomSeed.parameters}" }
             val mutatedSeed =
-                Mutator.mutateSeed(
+                classMutator.mutateSeed(
                     randomSeed,
                     GreyBoxFuzzerGeneratorsAndSettings.sourceOfRandomness,
                     GreyBoxFuzzerGeneratorsAndSettings.genStatus

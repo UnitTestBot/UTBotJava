@@ -17,7 +17,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import kotlin.random.Random
 
-object Mutator {
+class Mutator {
 
     fun mutateSeed(seed: Seed, sourceOfRandomness: SourceOfRandomness, genStatus: GenerationStatus): Seed {
         val seedCopy = seed.copy()

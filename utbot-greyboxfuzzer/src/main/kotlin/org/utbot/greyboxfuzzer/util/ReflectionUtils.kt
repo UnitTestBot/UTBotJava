@@ -228,6 +228,17 @@ val ParameterizedTypeImpl.actualTypeArgumentsRecursive: List<Type>
         return res
     }
 
+fun Class<*>.isFromSameJar(other: Class<*>) =
+    try {
+        val thisJar =
+            this.getResource('/' + this.name.replace('.', '/') + ".class")?.path?.substringBefore(".jar!") ?: "1"
+        val otherJar =
+            other.getResource('/' + other.name.replace('.', '/') + ".class")?.path?.substringBefore(".jar!") ?: "2"
+        thisJar == otherJar
+    } catch (e: Throwable) {
+        false
+    }
+
 
 //fun Parameter.replaceUnresolvedGenericsToRandomTypes() {
 //    val allUnresolvedTypesInType = (this.parameterizedType as? ParameterizedTypeImpl)

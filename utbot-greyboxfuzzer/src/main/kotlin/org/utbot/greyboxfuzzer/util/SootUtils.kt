@@ -22,12 +22,12 @@ import java.lang.reflect.Method
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 
-fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
+fun SootClass.getImplementersOfWithChain(onlyConcreteClasses: Boolean = true, allowNotOnlyStdLib: Boolean = false): List<List<SootClass>> {
     this.checkLevel(SootClass.HIERARCHY)
 //    if (!this.isInterface && !this.isAbstract) {
 //        throw RuntimeException("interfaced needed; got $this")
 //    }
-    val hierarchy = Hierarchy()
+    val thisAsJavaClass = this.toJavaClass() ?: return emptyList()
     val res = mutableListOf(mutableListOf(this))
     val queue = ArrayDeque<SootClass>()
     queue.add(this)
@@ -35,14 +35,15 @@ fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
         val curSootClass = queue.removeFirst()
         val implementers =
             if (curSootClass.isInterface) {
-                hierarchy.getDirectImplementersOf(curSootClass)
-                    .filter { it.interfaces.contains(curSootClass) } + hierarchy.getDirectSubinterfacesOf(curSootClass)
+                Scene.v().classes.filter { it.interfaces.contains(curSootClass) }
+                    .filter { it.interfaces.contains(curSootClass) } //+ hierarchy.getDirectSubinterfacesOf(curSootClass)
             } else {
-                hierarchy.getDirectSubclassesOf(curSootClass)
+                Scene.v().classes.filter { it.superclassOrNull == curSootClass }
+                //hierarchy.getDirectSubclassesOf(curSootClass)
             }
         if (implementers.isEmpty()) continue
         val oldLists = res.removeIfAndReturnRemovedElements { it.last() == curSootClass }
-        if (curSootClass.isConcrete) {
+        if (curSootClass.isConcrete || !onlyConcreteClasses) {
             oldLists.forEach { res.add(it.toMutableList()) }
         }
         for (implementer in implementers) {
@@ -51,12 +52,14 @@ fun SootClass.getImplementersOfWithChain(): List<List<SootClass>> {
         }
     }
     return res.filter {
-        val isJavaStdLibClass = it.last().javaPackageName.startsWith("java")
-        val isFromSameProject = it.last().javaPackageName.contains(this.javaPackageName) || this.javaPackageName.contains(it.last().javaPackageName)
+        val isJavaStdLibClass = it.last().javaPackageName.startsWith("java") || allowNotOnlyStdLib
+        val isFromSameProject = it.last().toJavaClass()?.isFromSameJar(thisAsJavaClass) ?: false
+            //it.last().javaPackageName.contains(this.javaPackageName) || this.javaPackageName.contains(it.last().javaPackageName)
         val isFromSamePackage = it.last().javaPackageName == this.javaPackageName
         val isSupportedPackage = isJavaStdLibClass || isFromSameProject
         val isAccessible = it.last().isPublic || (!it.last().isPublic && isFromSamePackage)
-        it.all { !it.toString().contains("$") } && isAccessible && it.last().isConcrete && isSupportedPackage
+        val isConcrete = !onlyConcreteClasses || it.last().isConcrete
+        it.all { !it.toString().contains("$") } && isAccessible && isConcrete && isSupportedPackage
     }
 }
 

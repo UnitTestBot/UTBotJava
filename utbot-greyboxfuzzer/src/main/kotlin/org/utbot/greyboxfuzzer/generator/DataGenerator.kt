@@ -29,7 +29,7 @@ object DataGenerator {
     ): UtModel {
         val classId = parameterTypeContext.rawClass.id
         logger.debug { "Trying to generate UtModel of type ${classId.name} 3 times" }
-        var generatedInstance: UtModel? = null
+        var generatedInstance: UtModel?
         repeat(3) {
             generatedInstance =
                 try {

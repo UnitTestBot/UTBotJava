@@ -164,7 +164,7 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
         val resolvedJavaType = parameterTypeContext!!.generics.resolveType(parameterTypeContext!!.type())
         val gctx = resolvedJavaType.createGenericsContext(clazz!!)
         if (clazz == randomFieldDeclaringClass) {
-            return Mutator.regenerateFieldWithContext(gctx, cachedUtModel, randomField, generatorContext)?.let {
+            return Mutator().regenerateFieldWithContext(gctx, cachedUtModel, randomField, generatorContext)?.let {
                 mutatedFields[randomField] = it.second
                 it.first
             } ?: cachedUtModel
@@ -184,7 +184,7 @@ class UserClassGenerator : ComponentizedGenerator(Any::class.java) {
                     clazz!!,
                     chain.map { it!! }.reversed().drop(1)
                 ) ?: return cachedUtModel
-            return Mutator.regenerateFieldWithContext(genericsContext, cachedUtModel, randomField, generatorContext)
+            return Mutator().regenerateFieldWithContext(genericsContext, cachedUtModel, randomField, generatorContext)
                 ?.let {
                     mutatedFields[randomField] = it.second
                     it.first

@@ -93,9 +93,7 @@ class NewProjectDialogFixture(remoteRobot: RemoteRobot, remoteComponent: RemoteC
             this.findText(language).click()
             this.findText(buildSystem.system).click()
             addSampleCodeCheckbox.setValue(addSampleCode)
-            if (jdkComboBox.selectedText().contains(jdkVersion.namePart)) {
-                println("JDK is already chosen: " + jdkComboBox.selectedText())
-            } else {
+            if (!jdkComboBox.selectedText().contains(jdkVersion.namePart)) {
                 selectJDK(jdkVersion.namePart)
             }
         }

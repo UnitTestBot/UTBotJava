@@ -26,6 +26,7 @@ class GoEngine(
     private val sourceFile: GoUtFile,
     private val goExecutableAbsolutePath: String,
     private val eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
+    private val timeoutExceeded: () -> Boolean,
     private val timeout: Int = 5000
 ) {
 
@@ -34,6 +35,9 @@ class GoEngine(
         val attemptsLimit = 100
         val linesToCover = (1..methodUnderTest.numberOfAllStatements).toMutableSet()
         runGoFuzzing(methodUnderTest) { description, values ->
+            if (timeoutExceeded()) {
+                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+            }
             val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
             val executionResult = GoFuzzedFunctionsExecutor.executeGoSourceFileFuzzedFunction(
                 sourceFile,
@@ -66,7 +70,7 @@ class GoEngine(
 
     fun fastFuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
         var attempts = 0
-        val attemptsLimit = 100_000
+        val attemptsLimit = 1_000_000
         val linesToCover = (1..methodUnderTest.numberOfAllStatements).toMutableSet()
         ServerSocket(0).use { serverSocket ->
             var fileToExecute: File? = null
@@ -115,6 +119,9 @@ class GoEngine(
                     emit(fuzzedFunction to executionResult)
                 } else {
                     runGoFuzzing(methodUnderTest) { description, values ->
+                        if (timeoutExceeded()) {
+                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
+                        }
                         val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
                         worker.sendFuzzedParametersValues(values)
                         val rawExecutionResult = worker.receiveRawExecutionResult()

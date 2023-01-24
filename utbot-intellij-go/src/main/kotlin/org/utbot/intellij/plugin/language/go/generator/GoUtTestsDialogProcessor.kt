@@ -46,7 +46,8 @@ object GoUtTestsDialogProcessor {
                 }
                 val testsGenerationConfig = GoUtTestsGenerationConfig(
                     model.goExecutableAbsolutePath,
-                    model.eachFunctionExecutionTimeoutMillis
+                    model.eachFunctionExecutionTimeoutMillis,
+                    model.allFunctionExecutionTimeoutMillis
                 )
 
                 IntellijGoUtTestsGenerationController(model, indicator).generateTests(

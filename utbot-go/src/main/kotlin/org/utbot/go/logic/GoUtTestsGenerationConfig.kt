@@ -7,12 +7,19 @@ data class EachExecutionTimeoutsMillisConfig(private val eachFunctionExecutionTi
     operator fun get(function: GoUtFunction): Long = eachFunctionExecutionTimeoutMillis
 }
 
-class GoUtTestsGenerationConfig(val goExecutableAbsolutePath: String, eachFunctionExecutionTimeoutMillis: Long) {
+class GoUtTestsGenerationConfig(
+    val goExecutableAbsolutePath: String,
+    eachFunctionExecutionTimeoutMillis: Long,
+    allFunctionExecutionTimeoutMillis: Long
+) {
 
     companion object Constants {
+        const val DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS: Long = 60000
         const val DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS: Long = 1000
     }
 
     val eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig =
         EachExecutionTimeoutsMillisConfig(eachFunctionExecutionTimeoutMillis)
+
+    val allExecutionTimeoutsMillisConfig: Long = allFunctionExecutionTimeoutMillis
 }

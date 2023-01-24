@@ -21,4 +21,5 @@ data class GenerateGoTestsModel(
     lateinit var selectedFunctions: Set<GoFunctionOrMethodDeclaration>
     lateinit var goExecutableAbsolutePath: String
     var eachFunctionExecutionTimeoutMillis: Long = GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS
+    var allFunctionExecutionTimeoutMillis: Long = GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS
 }

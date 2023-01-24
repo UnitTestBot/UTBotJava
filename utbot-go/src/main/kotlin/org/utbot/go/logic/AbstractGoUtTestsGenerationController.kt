@@ -12,6 +12,10 @@ abstract class AbstractGoUtTestsGenerationController {
         selectedFunctionsNamesBySourceFiles: Map<String, List<String>>,
         testsGenerationConfig: GoUtTestsGenerationConfig
     ) {
+        val startTime = System.currentTimeMillis()
+        val timeoutExceeded: () -> Boolean = {
+            System.currentTimeMillis() - startTime > testsGenerationConfig.allExecutionTimeoutsMillisConfig
+        }
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
         val analysisResults = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
@@ -21,12 +25,13 @@ abstract class AbstractGoUtTestsGenerationController {
 
         val testCasesBySourceFiles = analysisResults.mapValues { (sourceFile, analysisResult) ->
             val functions = analysisResult.functions
-            if (!onTestCasesGenerationForGoSourceFileFunctionsStart(sourceFile, functions)) return
+            if (!onTestCasesGenerationForGoSourceFileFunctionsStart(sourceFile, functions) || timeoutExceeded()) return
             GoTestCasesGenerator.generateTestCasesForGoSourceFileFunctions(
                 sourceFile,
                 functions,
                 testsGenerationConfig.goExecutableAbsolutePath,
-                testsGenerationConfig.eachExecutionTimeoutsMillisConfig
+                testsGenerationConfig.eachExecutionTimeoutsMillisConfig,
+                timeoutExceeded
             ).also { if (!onTestCasesGenerationForGoSourceFileFunctionsFinished(sourceFile, it)) return }
         }
 

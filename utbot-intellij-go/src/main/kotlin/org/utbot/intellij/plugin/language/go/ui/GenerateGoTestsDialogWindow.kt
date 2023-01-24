@@ -6,8 +6,8 @@ import com.goide.sdk.combobox.GoSdkChooserCombo
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.JBIntSpinner
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -15,10 +15,14 @@ import org.utbot.go.logic.GoUtTestsGenerationConfig
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
 import org.utbot.intellij.plugin.language.go.ui.utils.resolveGoExecutablePath
 import java.text.ParseException
+import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
 
 private const val MINIMUM_EACH_EXECUTION_TIMEOUT_MILLIS = 1
 private const val EACH_EXECUTION_TIMEOUT_MILLIS_SPINNER_STEP = 10
+
+private const val MINIMUM_ALL_EXECUTION_TIMEOUT_SECONDS = 1
+private const val ALL_EXECUTION_TIMEOUT_SECONDS_SPINNER_STEP = 10
 
 // This class is highly inspired by GenerateTestsDialogWindow.
 class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapper(model.project) {
@@ -30,6 +34,13 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     }
 
     private val projectGoSdkField = GoSdkChooserCombo()
+    private val allFunctionExecutionTimeoutSecondsSpinner =
+        JBIntSpinner(
+            TimeUnit.MILLISECONDS.toSeconds(GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS).toInt(),
+            MINIMUM_ALL_EXECUTION_TIMEOUT_SECONDS,
+            Int.MAX_VALUE,
+            ALL_EXECUTION_TIMEOUT_SECONDS_SPINNER_STEP
+        )
     private val eachFunctionExecutionTimeoutMillisSpinner =
         JBIntSpinner(
             GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS.toInt(),
@@ -56,6 +67,10 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
             row {
                 scrollPane(targetFunctionsTable)
             }
+            row("Timeout for all functions:") {
+                component(allFunctionExecutionTimeoutSecondsSpinner)
+                component(JBLabel("seconds"))
+            }
             row("Timeout for each function execution:") {
                 component(eachFunctionExecutionTimeoutMillisSpinner)
                 component(JBLabel("ms"))
@@ -70,10 +85,12 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         model.goExecutableAbsolutePath = projectGoSdkField.sdk.resolveGoExecutablePath()!!
         try {
             eachFunctionExecutionTimeoutMillisSpinner.commitEdit()
+            allFunctionExecutionTimeoutSecondsSpinner.commitEdit()
         } catch (_: ParseException) {
         }
         model.eachFunctionExecutionTimeoutMillis = eachFunctionExecutionTimeoutMillisSpinner.number.toLong()
-
+        model.allFunctionExecutionTimeoutMillis =
+            TimeUnit.SECONDS.toMillis(allFunctionExecutionTimeoutSecondsSpinner.number.toLong())
         super.doOKAction()
     }
 

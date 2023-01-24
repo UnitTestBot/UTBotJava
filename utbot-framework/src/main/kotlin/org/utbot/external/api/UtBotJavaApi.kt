@@ -70,7 +70,7 @@ object UtBotJavaApi {
 
         val concreteExecutor = ConcreteExecutor(
             UtExecutionInstrumentation,
-            classpath,
+            classpath
         )
 
         testSets.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))

@@ -1,17 +1,16 @@
 package org.utbot.framework.concrete
 
-import org.utbot.framework.concrete.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
-import org.utbot.framework.concrete.constructors.UtModelConstructor
-import org.utbot.framework.concrete.mock.InstrumentationContext
 import org.utbot.framework.plugin.api.*
-import org.utbot.greyboxfuzzer.util.UtFuzzingConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.UtFuzzingConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
-import org.utbot.framework.concrete.mock.InstrumentationContext.MockGetter
 import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.*
@@ -78,9 +77,9 @@ interface UtExecutionInstrumentationWithStatsCollection : Instrumentation<UtFuzz
         val mockClassVisitor = instrumenter.visitClass { writer ->
             MockClassVisitor(
                 writer,
-                MockGetter::getMock.javaMethod!!,
-                MockGetter::checkCallSite.javaMethod!!,
-                MockGetter::hasMock.javaMethod!!
+                InstrumentationContext.MockGetter::getMock.javaMethod!!,
+                InstrumentationContext.MockGetter::checkCallSite.javaMethod!!,
+                InstrumentationContext.MockGetter::hasMock.javaMethod!!
             )
         }
 

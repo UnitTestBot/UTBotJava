@@ -1,32 +1,29 @@
-package org.utbot.framework.concrete
+package org.utbot.instrumentation.instrumentation.execution.constructors
 
-import org.utbot.framework.concrete.constructors.UtAssembleModelConstructorBase
-import org.utbot.framework.concrete.constructors.UtModelConstructorInterface
-import org.utbot.framework.concrete.constructors.checkClassCast
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.longArrayClassId
 import org.utbot.framework.plugin.api.util.methodId
+import org.utbot.framework.plugin.api.util.stringClassId
+import java.util.*
 
-internal class BitSetConstructor : UtAssembleModelConstructorBase() {
-
+internal class LocaleConstructor : UtAssembleModelConstructorBase() {
     override fun provideInstantiationCall(
         internalConstructor: UtModelConstructorInterface,
         value: Any,
         classId: ClassId
     ): UtExecutableCallModel {
         checkClassCast(classId.jClass, value::class.java)
-        value as java.util.BitSet
+        value as Locale
+
         return with(internalConstructor) {
             UtExecutableCallModel(
                 instance = null,
-                methodId(classId, "valueOf", classId, longArrayClassId),
+                methodId(classId, "forLanguageTag", classId, stringClassId),
                 listOf(
-                    construct(value.toLongArray(), longArrayClassId),
+                    construct(value.toLanguageTag(), stringClassId),
                 ),
             )
         }
@@ -36,5 +33,4 @@ internal class BitSetConstructor : UtAssembleModelConstructorBase() {
         internalConstructor: UtModelConstructorInterface,
         value: Any
     ): List<UtStatementModel> = emptyList()
-
 }

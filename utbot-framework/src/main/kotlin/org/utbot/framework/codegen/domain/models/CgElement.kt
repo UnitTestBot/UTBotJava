@@ -134,7 +134,7 @@ class CgClass(
     val body: CgClassBody,
     val isStatic: Boolean,
     val isNested: Boolean,
-): CgStatement {
+): CgElement {
     val packageName
         get() = id.packageName
 

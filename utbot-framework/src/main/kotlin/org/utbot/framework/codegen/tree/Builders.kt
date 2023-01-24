@@ -85,7 +85,7 @@ interface CgMethodBuilder<T : CgMethod> : CgBuilder<T> {
 
 class CgTestMethodBuilder : CgMethodBuilder<CgTestMethod> {
     override lateinit var name: String
-    override var returnType: ClassId = voidClassId
+    override val returnType: ClassId = voidClassId
     override lateinit var parameters: List<CgParameterDeclaration>
     override lateinit var statements: List<CgStatement>
     override val exceptions: MutableSet<ClassId> = mutableSetOf()

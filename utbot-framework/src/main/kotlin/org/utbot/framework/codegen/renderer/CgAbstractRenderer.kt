@@ -623,15 +623,7 @@ abstract class CgAbstractRenderer(
                 is Boolean -> toStringConstant()
                 // String is "\"" + "str" + "\"", RawString is "str"
                 is String -> if (asRawString) "$this".escapeCharacters() else toStringConstant()
-                else -> {
-                    val t = this@toStringConstant.type
-                    val illegalType = t.toString().contains("$") || !t.isPublic
-                    if (this == null && UtSettings.greyBoxFuzzingCompetitionMode && !illegalType) {
-                        "(${this@toStringConstant.type}) null"
-                    } else {
-                        "$this"
-                    }
-                }
+                else -> "$this"
             }
         }
 

@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api
 
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import java.io.File
 import java.util.LinkedList
@@ -103,6 +104,11 @@ inline fun UtExecutionResult.onSuccess(action: (model: UtModel) -> Unit): UtExec
 inline fun UtExecutionResult.onFailure(action: (exception: Throwable) -> Unit): UtExecutionResult {
     if (this is UtExecutionFailure) action(rootCauseException)
     return this
+}
+
+fun UtExecutionResult.getOrThrow(): UtModel = when (this) {
+    is UtExecutionSuccess -> model
+    is UtExecutionFailure -> throw exception
 }
 
 fun UtExecutionResult.exceptionOrNull(): Throwable? = when (this) {

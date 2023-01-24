@@ -32,13 +32,9 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.UtFuzzingExecutionInstrumentation
 import org.utbot.framework.concrete.FuzzerConcreteExecutor
-import org.utbot.framework.concrete.constructors.UtModelConstructor
-import org.utbot.framework.concrete.phases.ValueConstructionContext
+import org.utbot.framework.concrete.UtFuzzingExecutionInstrumentation
+import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -53,6 +49,8 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
+import org.utbot.instrumentation.instrumentation.execution.phases.ValueConstructionContext
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -447,8 +445,7 @@ class UtBotSymbolicEngine(
                         collectConstantsForGreyBoxFuzzer(methodUnderTest.sootMethod, utModelConstructor),
                         fuzzerUtModelConstructor,
                         FuzzerConcreteExecutor(
-                            concreteExecutor.pathsToUserClasses,
-                            concreteExecutor.pathsToDependencyClasses
+                            concreteExecutor.pathsToUserClasses
                         )::execute,
                         ValueConstructionContext(UtFuzzingExecutionInstrumentation.instrumentationContext, true)::constructParameters,
                         timeBudget

@@ -122,11 +122,6 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
 
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)
 
-val ExecutableId.sootMethodExists: Boolean
-    get() {
-        val clazz = Scene.v().getSootClass(classId.name)
-        return clazz.methods.any { it.pureJavaSignature == signature }
-    }
 val ExecutableId.sootMethod: SootMethod
     get() {
         val clazz = Scene.v().getSootClass(classId.name)

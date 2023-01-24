@@ -20,6 +20,7 @@ import org.utbot.greyboxfuzzer.mutator.Seed
 import org.utbot.greyboxfuzzer.mutator.SeedCollector
 import org.utbot.greyboxfuzzer.quickcheck.generator.GeneratorContext
 import org.utbot.greyboxfuzzer.util.*
+import org.utbot.instrumentation.instrumentation.execution.UtFuzzingConcreteExecutionResult
 import ru.vyarus.java.generics.resolver.context.GenericsInfoFactory
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
@@ -135,7 +136,7 @@ class GreyBoxFuzzer(
                     logger.debug { "Execution of ${methodUnderTest.name} started" }
                     val executionResult = (executor::invoke)(methodUnderTest, stateBefore, listOf())
                     if (methodInstructions == null && executionResult.methodInstructions != null) {
-                        methodInstructions = executionResult.methodInstructions.toSet()
+                        methodInstructions = executionResult.methodInstructions!!.toSet()
                     }
                     logger.debug { "Execution of ${methodUnderTest.name} result: $executionResult" }
                     val seedCoverage = getCoverage(executionResult.coverage)
@@ -160,7 +161,7 @@ class GreyBoxFuzzer(
                                 if (executionResult.stateAfter != null) {
                                     UtFuzzedExecution(
                                         stateBefore = newStateBefore,
-                                        stateAfter = executionResult.stateAfter,
+                                        stateAfter = executionResult.stateAfter!!,
                                         result = executionResult.result,
                                         coverage = executionResult.coverage,
                                         fuzzingValues = generatedParameters.map { FuzzedValue(it.utModel) },
@@ -241,7 +242,7 @@ class GreyBoxFuzzer(
                             if (executionResult.stateAfter != null) {
                                 UtFuzzedExecution(
                                     stateBefore = newStateBefore,
-                                    stateAfter = executionResult.stateAfter,
+                                    stateAfter = executionResult.stateAfter!!,
                                     result = executionResult.result,
                                     coverage = executionResult.coverage,
                                     fuzzingValues = mutatedSeed.parameters.map { FuzzedValue(it.utModel) },

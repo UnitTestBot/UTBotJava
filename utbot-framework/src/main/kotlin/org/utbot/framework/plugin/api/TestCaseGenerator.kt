@@ -17,7 +17,6 @@ import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
-import org.utbot.engine.greyboxfuzzer.util.GreyBoxFuzzingStatisticPrinter
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.TestSelectionStrategyType
@@ -36,7 +35,6 @@ import org.utbot.framework.util.ConflictTriggers
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
-import org.utbot.framework.util.sootMethodExists
 import org.utbot.greyboxfuzzer.util.CoverageCollector
 import org.utbot.greyboxfuzzer.util.GreyBoxFuzzingStatisticPrinter
 import org.utbot.instrumentation.ConcreteExecutor
@@ -238,7 +236,7 @@ open class TestCaseGenerator(
         if (UtSettings.useGreyBoxFuzzing) {
             GreyBoxFuzzingStatisticPrinter.printFuzzingStats(method2executions)
         }
-        return methods.filter { it.sootMethodExists }.map { method ->
+        return methods.map { method ->
             UtMethodTestSet(
                 method,
                 minimizeExecutions(method2executions.getValue(method)),

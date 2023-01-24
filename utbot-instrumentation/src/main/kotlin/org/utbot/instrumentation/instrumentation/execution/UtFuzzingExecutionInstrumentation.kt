@@ -1,17 +1,18 @@
 package org.utbot.framework.concrete
 
 import org.objectweb.asm.Type
-import org.utbot.framework.concrete.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
-import org.utbot.framework.concrete.mock.InstrumentationContext
-import org.utbot.framework.concrete.phases.PhaseError
-import org.utbot.framework.concrete.phases.PhasesController
-import org.utbot.framework.concrete.phases.start
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.greyboxfuzzer.util.UtFuzzingConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtFuzzingConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
+import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
+import org.utbot.instrumentation.instrumentation.execution.phases.PhaseError
+import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
+import org.utbot.instrumentation.instrumentation.execution.phases.start
 import java.security.AccessControlException
 
 object UtFuzzingExecutionInstrumentation : UtExecutionInstrumentationWithStatsCollection {
@@ -22,6 +23,7 @@ object UtFuzzingExecutionInstrumentation : UtExecutionInstrumentationWithStatsCo
 
     override val traceHandler: TraceHandler = TraceHandler()
     override val pathsToUserClasses: MutableSet<String> = mutableSetOf<String>()
+
     override fun invoke(
         clazz: Class<*>,
         methodSignature: String,

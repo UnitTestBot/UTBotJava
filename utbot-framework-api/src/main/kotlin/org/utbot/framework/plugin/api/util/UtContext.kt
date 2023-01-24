@@ -5,7 +5,7 @@ import org.utbot.common.currentThreadInfo
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.ThreadContextElement
-//import mu.KotlinLogging
+import mu.KotlinLogging
 
 val utContext: UtContext
     get() = UtContext.currentContext()
@@ -75,7 +75,7 @@ inline fun <T> withUtContext(context: UtContext, block: () -> T): T = setUtConte
     try {
         return@use block.invoke()
     } catch (e: Exception) {
-        //KotlinLogging.logger("withUtContext").error { e }
+        KotlinLogging.logger("withUtContext").error { e }
         throw e
     }
 }

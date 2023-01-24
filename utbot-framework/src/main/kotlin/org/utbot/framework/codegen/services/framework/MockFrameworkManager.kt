@@ -20,30 +20,78 @@ import org.utbot.framework.codegen.domain.builtin.thenReturnMethodId
 import org.utbot.framework.codegen.domain.builtin.whenMethodId
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
-import org.utbot.framework.codegen.domain.models.*
+import org.utbot.framework.codegen.domain.models.CgAnnotation
+import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
+import org.utbot.framework.codegen.domain.models.CgAssignment
+import org.utbot.framework.codegen.domain.models.CgClass
+import org.utbot.framework.codegen.domain.models.CgClassBody
+import org.utbot.framework.codegen.domain.models.CgConstructorCall
+import org.utbot.framework.codegen.domain.models.CgDeclaration
+import org.utbot.framework.codegen.domain.models.CgDocumentationComment
+import org.utbot.framework.codegen.domain.models.CgExecutableCall
+import org.utbot.framework.codegen.domain.models.CgExpression
+import org.utbot.framework.codegen.domain.models.CgLiteral
+import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgMethodsCluster
+import org.utbot.framework.codegen.domain.models.CgMockMethod
+import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
+import org.utbot.framework.codegen.domain.models.CgRunnable
+import org.utbot.framework.codegen.domain.models.CgSimpleRegion
+import org.utbot.framework.codegen.domain.models.CgStatement
+import org.utbot.framework.codegen.domain.models.CgStatementExecutableCall
+import org.utbot.framework.codegen.domain.models.CgStaticRunnable
+import org.utbot.framework.codegen.domain.models.CgSwitchCase
+import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
+import org.utbot.framework.codegen.domain.models.CgValue
+import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl
 import org.utbot.framework.codegen.tree.*
+import org.utbot.framework.codegen.tree.buildClassBody
+import org.utbot.framework.codegen.tree.CgStatementConstructor
+import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.tree.hasAmbiguousOverloadsOf
 import org.utbot.framework.codegen.util.isAccessibleFrom
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.*
-import java.lang.IllegalStateException
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
+import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.util.atomicIntegerClassId
+import org.utbot.framework.plugin.api.util.atomicIntegerGet
+import org.utbot.framework.plugin.api.util.atomicIntegerGetAndIncrement
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.exceptions
 
 abstract class CgVariableConstructorComponent(val context: CgContext) :
-    CgContextOwner by context,
-    CgCallableAccessManager by CgCallableAccessManagerImpl(context),
-    CgStatementConstructor by CgStatementConstructorImpl(context) {
+        CgContextOwner by context,
+        CgCallableAccessManager by CgCallableAccessManagerImpl(context),
+        CgStatementConstructor by CgStatementConstructorImpl(context) {
 
     val variableConstructor: CgVariableConstructor by lazy { getVariableConstructorBy(context) }
 
     fun mockitoArgumentMatchersFor(executable: ExecutableId): Array<CgMethodCall> =
-        executable.parameters.map {
-            val matcher = it.mockitoAnyMatcher(executable.classId.hasAmbiguousOverloadsOf(executable))
-            if (matcher != anyOfClass) argumentMatchersClassId[matcher]() else matchByClass(it)
-        }.toTypedArray()
+            executable.parameters.map {
+                val matcher = it.mockitoAnyMatcher(executable.classId.hasAmbiguousOverloadsOf(executable))
+                if (matcher != anyOfClass) argumentMatchersClassId[matcher]() else matchByClass(it)
+            }.toTypedArray()
 
     /**
      * Clears all resources required for [currentExecution].
@@ -63,24 +111,27 @@ abstract class CgVariableConstructorComponent(val context: CgContext) :
     }
 
     fun ClassId.mockitoAnyMatcher(withExplicitClass: Boolean): MethodId =
-        when (this) {
-            byteClassId -> anyByte
-            charClassId -> anyChar
-            shortClassId -> anyShort
-            intClassId -> anyInt
-            longClassId -> anyLong
-            floatClassId -> anyFloat
-            doubleClassId -> anyDouble
-            booleanClassId -> anyBoolean
-            // we cannot match by string here
-            // because anyString accepts only non-nullable strings but argument could be null
-            else -> if (withExplicitClass) anyOfClass else any
-        }
+            when (this) {
+                byteClassId -> anyByte
+                charClassId -> anyChar
+                shortClassId -> anyShort
+                intClassId -> anyInt
+                longClassId -> anyLong
+                floatClassId -> anyFloat
+                doubleClassId -> anyDouble
+                booleanClassId -> anyBoolean
+                // we cannot match by string here
+                // because anyString accepts only non-nullable strings but argument could be null
+                else -> if (withExplicitClass) anyOfClass else any
+            }
 
     private fun matchByClass(id: ClassId): CgMethodCall =
-        argumentMatchersClassId[anyOfClass](getClassOf(id))
+            argumentMatchersClassId[anyOfClass](getClassOf(id))
 }
 
+/**
+ * Experimental in-place mocker
+ */
 private class InPlaceMocker(context: CgContext) : ObjectMocker(context) {
 
     private var mockID = 0
@@ -124,7 +175,8 @@ private class InPlaceMocker(context: CgContext) : ObjectMocker(context) {
                                     }
                                 }.catch(Throwable::class.id) {
                                     throwStatement {
-                                        val constructor = IllegalStateException::class.java.id.allConstructors.first { it.parameters.isEmpty() }
+                                        val constructor =
+                                            IllegalStateException::class.java.id.allConstructors.first { it.parameters.isEmpty() }
                                         constructor()
                                     }
                                 }
@@ -136,14 +188,14 @@ private class InPlaceMocker(context: CgContext) : ObjectMocker(context) {
                 )
             }
         val methodsCluster = CgSimpleRegion(null, methods)
-        val declaration = buildClass {
+        val classDeclaration = buildClass {
             id = mockClassId
             interfaces.add(model.classId)
             body = buildClassBody(mockClassId) {
                 methodRegions += CgMethodsCluster(header = null, content = listOf(methodsCluster))
             }
         }
-        currentBlock += declaration
+        currentBlock += CgClassAsStatement(classDeclaration)
         ++mockID
         val constructorId = ConstructorId(mockClassId, emptyList())
         return newVar(model.classId, baseName) {
@@ -159,11 +211,39 @@ private class InPlaceMocker(context: CgContext) : ObjectMocker(context) {
         TODO("Not yet implemented")
     }
 
+    private class CgClassAsStatement(
+        val id: ClassId,
+        val documentation: CgDocumentationComment?,
+        val annotations: List<CgAnnotation>,
+        val superclass: ClassId?,
+        val interfaces: List<ClassId>,
+        val body: CgClassBody,
+        val isStatic: Boolean,
+        val isNested: Boolean
+    ) : CgStatement {
+        constructor(cgClass: CgClass) : this(
+            cgClass.id,
+            cgClass.documentation,
+            cgClass.annotations,
+            cgClass.superclass,
+            cgClass.interfaces,
+            cgClass.body,
+            cgClass.isStatic,
+            cgClass.isNested
+        )
+
+        val packageName
+            get() = id.packageName
+
+        val simpleName
+            get() = id.simpleName
+    }
+
 }
 
 class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(context) {
 
-    private val objectMocker = InPlaceMocker(context)
+    private val objectMocker = MockitoMocker(context)
     private val staticMocker = when (context.staticsMocking) {
         is NoStaticMocking -> null
         is MockitoStaticMocking -> MockitoStaticMocker(context, objectMocker)
@@ -197,7 +277,7 @@ class MockFrameworkManager(context: CgContext) : CgVariableConstructorComponent(
 }
 
 private abstract class ObjectMocker(
-    context: CgContext
+        context: CgContext
 ) : CgVariableConstructorComponent(context) {
     abstract fun createMock(model: UtCompositeModel, baseName: String): CgVariable
 
@@ -207,7 +287,7 @@ private abstract class ObjectMocker(
 }
 
 private abstract class StaticMocker(
-    context: CgContext
+        context: CgContext
 ) : CgVariableConstructorComponent(context) {
     abstract fun mockNewInstance(mock: UtNewInstanceInstrumentation)
     abstract fun mockStaticMethodsOfClass(classId: ClassId, methodMocks: List<UtStaticMethodInstrumentation>)
@@ -229,7 +309,7 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
             when (executable) {
                 is MethodId -> {
                     if (executable.parameters.any { !it.isAccessibleFrom(testClassPackageName) }) {
-                        error("Cannot mock method $executable with not accessible parameters")
+                        error("Cannot mock method $executable with not accessible parameters" )
                     }
 
                     val matchers = mockitoArgumentMatchersFor(executable)
@@ -240,7 +320,6 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
                     val results = values.map { variableConstructor.getOrCreateVariable(it) }.toTypedArray()
                     `when`(mockObject[executable](*matchers)).thenReturn(executable.returnType, *results)
                 }
-
                 else -> error("ConstructorId was not expected to appear in simple mocker but got $executable")
             }
         }
@@ -249,10 +328,10 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
     }
 
     override fun mock(clazz: CgExpression): CgMethodCall =
-        mockitoClassId[mockMethodId](clazz)
+            mockitoClassId[mockMethodId](clazz)
 
     override fun `when`(call: CgExecutableCall): CgMethodCall =
-        mockitoClassId[whenMethodId](call)
+            mockitoClassId[whenMethodId](call)
 }
 
 private class MockitoStaticMocker(context: CgContext, private val mocker: ObjectMocker) : StaticMocker(context) {
@@ -298,7 +377,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
     override fun mockStaticMethodsOfClass(classId: ClassId, methodMocks: List<UtStaticMethodInstrumentation>) {
         for ((methodId, values) in methodMocks) {
             if (methodId.parameters.any { !it.isAccessibleFrom(testClassPackageName) }) {
-                error("Cannot mock static method $methodId with not accessible parameters")
+                error("Cannot mock static method $methodId with not accessible parameters" )
             }
 
             val matchers = mockitoArgumentMatchersFor(methodId)
@@ -313,10 +392,10 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                     listOf(
                         CgStatementExecutableCall(
                             CgMethodCall(
-                                caller = null,
-                                methodId,
-                                matchers.toList()
-                            )
+                        caller = null,
+                        methodId,
+                        matchers.toList()
+                    )
                         )
                     )
                 )
@@ -386,7 +465,6 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                             mocker.`when`(mockParameter[executable](*matchers))[thenReturnMethodId](*results)
                         )
                     }
-
                     else -> error("Expected MethodId but got ConstructorId $executable")
                 }
             }

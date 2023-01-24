@@ -238,11 +238,6 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         renderExceptions(element)
     }
 
-    private fun getTypeStringRepresentation(typeId: ClassId): String =
-        when {
-            typeId.isArray -> getTypeStringRepresentation(typeId.elementClassId!!) + "[]"
-            else -> typeId.toString()
-        }
 
     override fun renderMethodSignature(element: CgMockMethod) {
         val returnType = element.returnType.asString()

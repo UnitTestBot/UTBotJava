@@ -63,7 +63,7 @@ class ProcessingStorage {
     private val classMethodToId = mutableMapOf<ClassToMethod, Int>()
     private val idToClassMethod = mutableMapOf<Int, ClassToMethod>()
 
-    private val instructionsData = mutableMapOf<Long, InstructionData>()
+    val instructionsData = mutableMapOf<Long, InstructionData>()
     private val classToInstructionsCount = mutableMapOf<String, Long>()
 
     fun addClass(className: String): Int {

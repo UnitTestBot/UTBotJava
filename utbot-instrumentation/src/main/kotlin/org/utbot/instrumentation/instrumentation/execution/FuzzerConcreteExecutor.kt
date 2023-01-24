@@ -5,13 +5,26 @@ import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.greyboxfuzzer.util.UtFuzzingConcreteExecutionResult
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtFuzzingConcreteExecutionResult
 
 class FuzzerConcreteExecutor(
     private val pathsToUserClasses: String,
-    private val pathsToDependencyClasses: String,
 ) {
+
+    private val concreteExecutor =
+        if (UtSettings.greyBoxFuzzingCompetitionMode) {
+            ConcreteExecutor(
+                UtFuzzingExecutionInstrumentation,
+                pathsToUserClasses,
+            ).apply { this.classLoader = utContext.classLoader }
+        } else {
+            ConcreteExecutor(
+                UtFuzzingExecutionInstrumentationWithStateAfterCollection,
+                pathsToUserClasses,
+            ).apply { this.classLoader = utContext.classLoader }
+        }
 
     suspend fun execute(
         methodUnderTest: ExecutableId,
@@ -19,13 +32,8 @@ class FuzzerConcreteExecutor(
         instrumentation: List<UtInstrumentation>
     ): UtFuzzingConcreteExecutionResult {
         return if (UtSettings.greyBoxFuzzingCompetitionMode) {
-            val fuzzingExecutor =
-                ConcreteExecutor(
-                    UtFuzzingExecutionInstrumentation,
-                    pathsToUserClasses,
-                    pathsToDependencyClasses
-                ).apply { this.classLoader = utContext.classLoader }
-            val executionResult = fuzzingExecutor.executeConcretelyFuzz(methodUnderTest, stateBefore, instrumentation)
+            val executor = concreteExecutor as ConcreteExecutor<UtFuzzingConcreteExecutionResult, UtFuzzingExecutionInstrumentation>
+            val executionResult = executor.executeConcretelyFuzz(methodUnderTest, stateBefore, instrumentation)
             UtFuzzingConcreteExecutionResult(
                 null,
                 executionResult.result,
@@ -33,13 +41,8 @@ class FuzzerConcreteExecutor(
                 executionResult.methodInstructions
             )
         } else {
-            val fuzzingExecutor =
-                ConcreteExecutor(
-                    UtFuzzingExecutionInstrumentationWithStateAfterCollection,
-                    pathsToUserClasses,
-                    pathsToDependencyClasses
-                ).apply { this.classLoader = utContext.classLoader }
-            val executionResult = fuzzingExecutor.executeConcretelyFuzzWithStateAfterCollection(
+            val executor = concreteExecutor as ConcreteExecutor<UtFuzzingConcreteExecutionResult, UtFuzzingExecutionInstrumentationWithStateAfterCollection>
+            val executionResult = executor.executeConcretelyFuzzWithStateAfterCollection(
                 methodUnderTest,
                 stateBefore,
                 instrumentation

@@ -1,13 +1,7 @@
 package org.utbot.greyboxfuzzer.util
 
 import org.utbot.framework.plugin.api.*
-
-class UtFuzzingConcreteExecutionResult(
-    val stateAfter: EnvironmentModels?,
-    val result: UtExecutionResult,
-    val coverage: Coverage,
-    val methodInstructions: List<Instruction>? = null
-)
+import org.utbot.instrumentation.instrumentation.execution.UtFuzzingConcreteExecutionResult
 
 //class UtFuzzExecutionResult() : UtConcreteExecutionResult
 

@@ -1,7 +1,6 @@
 package org.utbot.fuzzer
 
 import mu.KotlinLogging
-import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.classId
@@ -22,6 +21,7 @@ import org.utbot.framework.plugin.api.util.intWrapperClassId
 import org.utbot.framework.plugin.api.util.longWrapperClassId
 import org.utbot.framework.plugin.api.util.shortWrapperClassId
 import org.utbot.framework.util.executableId
+import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType

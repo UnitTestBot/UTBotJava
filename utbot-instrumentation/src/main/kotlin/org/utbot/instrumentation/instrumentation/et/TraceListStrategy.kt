@@ -10,7 +10,7 @@ import org.objectweb.asm.commons.LocalVariablesSorter
 
 class TraceListStrategy(
     private val className: String,
-    private val storage: ProcessingStorage,
+    val storage: ProcessingStorage,
     private val inserter: TraceInstructionBytecodeInserter
 ) : IInstructionVisitor {
     var currentLine: Int = 0

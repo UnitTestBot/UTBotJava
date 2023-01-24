@@ -98,12 +98,7 @@ open class CgVariableConstructor(val context: CgContext) :
             }
         } else valueByModel.getOrPut(model) {
             when (model) {
-                is UtNullModel ->
-                    if (UtSettings.greyBoxFuzzingCompetitionMode && !model.classId.name.contains("Zilch")) {
-                        nullLiteralWithCast(model.classId)
-                    } else {
-                        nullLiteral()
-                    }
+                is UtNullModel -> nullLiteral()
                 is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
@@ -202,18 +197,22 @@ open class CgVariableConstructor(val context: CgContext) :
                 is UtDirectSetFieldModel -> {
                     val instance = declareOrGet(statementModel.instance)
                     // fields here are supposed to be accessible, so we assign them directly without any checks
-                    val fieldValue = declareOrGet(statementModel.fieldModel)
-                    if (statementModel.fieldId.canBeSetFrom(context) && fieldValue.type isSubtypeOf statementModel.fieldId.type) {
-                        instance[statementModel.fieldId] `=` fieldValue
-                    } else {
-                        with(statementModel) {
-                            +utilsClassId[setField](
-                                instance,
-                                fieldId.declaringClass.name,
-                                fieldId.name,
-                                fieldValue
-                            )
+                    if (UtSettings.useGreyBoxFuzzing) {
+                        val fieldValue = declareOrGet(statementModel.fieldModel)
+                        if (statementModel.fieldId.canBeSetFrom(context) && fieldValue.type isSubtypeOf statementModel.fieldId.type) {
+                            instance[statementModel.fieldId] `=` fieldValue
+                        } else {
+                            with(statementModel) {
+                                +utilsClassId[setField](
+                                    instance,
+                                    fieldId.declaringClass.name,
+                                    fieldId.name,
+                                    fieldValue
+                                )
+                            }
                         }
+                    } else {
+                        instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                     }
                 }
                 is UtExecutableCallModel -> {

@@ -12,7 +12,7 @@ import org.utbot.instrumentation.instrumentation.execution.phases.start
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtModel
@@ -51,6 +51,12 @@ class UtConcreteExecutionResult(
     }
 }
 
+class UtFuzzingConcreteExecutionResult(
+    val stateAfter: EnvironmentModels?,
+    val result: UtExecutionResult,
+    val coverage: Coverage,
+    val methodInstructions: List<Instruction>? = null
+)
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
@@ -191,12 +197,3 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         return instrumenter.classByteCode
     }
 }
-
-/**
- * Transforms a list of internal [EtInstruction]s to a list of api [Instruction]s.
- */
-internal fun List<EtInstruction>.toApiCoverage(instructionsCount: Long? = null): Coverage =
-    Coverage(
-        map { Instruction(it.className, it.methodSignature, it.line, it.id) },
-        instructionsCount
-    )

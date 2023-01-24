@@ -5,7 +5,6 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
 import org.utbot.engine.ArtificialError
-import org.utbot.engine.OverflowDetectionError
 import org.utbot.greyboxfuzzer.util.UtGreyBoxFuzzedExecution
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
@@ -1453,28 +1452,14 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     }
                 }
 
-                if (UtSettings.greyBoxFuzzingCompetitionMode) {
+                if (statics.isNotEmpty()) {
                     +tryBlock {
-                        if (statics.isNotEmpty()) {
-                            +tryBlock {
-                                mainBody()
-                            }.finally {
-                                recoverStaticFields()
-                            }
-                        } else {
-                            mainBody()
-                        }
-                    }.catch(Throwable::class.id) {}
-                } else {
-                    if (statics.isNotEmpty()) {
-                        +tryBlock {
-                            mainBody()
-                        }.finally {
-                            recoverStaticFields()
-                        }
-                    } else {
                         mainBody()
+                    }.finally {
+                        recoverStaticFields()
                     }
+                } else {
+                    mainBody()
                 }
 
                 mockFrameworkManager.getAndClearMethodResources()?.let { resources ->

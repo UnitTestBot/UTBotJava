@@ -77,5 +77,11 @@ class Configuration(
      * When true any [Seed.Collection] will not try
      * to generate modification if a current type is already known to fail to generate values.
      */
-    var generateEmptyListForMissedTypes: Boolean = true,
+    var generateEmptyCollectionsForMissedTypes: Boolean = true,
+
+    /**
+     * When true nay [Seed.Recursive] will not try
+     * to generate a recursive object, but will use [Seed.Recursive.empty] instead.
+     */
+    var generateEmptyRecursiveForMissedTypes: Boolean = true,
 )

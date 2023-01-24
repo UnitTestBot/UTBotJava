@@ -29,7 +29,7 @@ class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
     val exec: suspend (description: D, values: List<R>) -> F
 ) : Fuzzing<T, R, D, F> {
 
-    var update: (D, Statistic<T>, Configuration) -> Unit = { d, s, c -> super.update(d, s, c) }
+    var update: suspend (D, Statistic<T, R>, Configuration) -> Unit = { d, s, c -> super.update(d, s, c) }
 
     constructor(vararg providers: ValueProvider<T, R, D>, exec: suspend (description: D, values: List<R>) -> F) : this(providers.toList(), exec)
 
@@ -52,7 +52,7 @@ class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
         return exec(description, values)
     }
 
-    override fun update(description: D, statistic: Statistic<T>, configuration: Configuration) {
+    override suspend fun update(description: D, statistic: Statistic<T, R>, configuration: Configuration) {
         update.invoke(description, statistic, configuration)
     }
 }

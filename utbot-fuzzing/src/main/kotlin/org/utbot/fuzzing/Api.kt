@@ -4,7 +4,7 @@ package org.utbot.fuzzing
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
-import org.utbot.fuzzing.utils.Multiset
+import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import org.utbot.fuzzing.utils.transformIfNotEmpty
@@ -56,11 +56,7 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
      * @param statistic statistic about fuzzing generation like elapsed time or number of the runs.
      * @param configuration current used configuration; it can be changes for tuning fuzzing.
      */
-    fun update(description: DESCRIPTION, statistic: Statistic<TYPE>, configuration: Configuration) {
-        if (!configuration.generateEmptyListForMissedTypes && statistic.missedTypes.isNotEmpty()) {
-            error("No seed candidates generated for types:\n\t${statistic.missedTypes.joinToString("\n\t")}")
-        }
-    }
+    suspend fun update(description: DESCRIPTION, statistic: Statistic<TYPE, RESULT>, configuration: Configuration) {}
 }
 
 /**
@@ -270,8 +266,8 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
     class StatImpl(
         override var totalRuns: Long = 0,
         val startTime: Long = System.nanoTime(),
-        override var missedTypes: Multiset<T> = Multiset(),
-    ) : Statistic<T> {
+        override var missedTypes: MissedSeed<T, R> = MissedSeed(),
+    ) : Statistic<T, R> {
         override val elapsedTime: Long
             get() = System.nanoTime() - startTime
     }
@@ -292,17 +288,10 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
     run breaking@ {
         sequence {
             while (description.parameters.isNotEmpty()) {
-                fuzzing.update(description, userStatistic, configuration)
                 if (dynamicallyGenerated.isNotEmpty()) {
                     yield(dynamicallyGenerated.removeFirst())
                 } else {
-                    val fuzzOne = try {
-                        fuzzOne()
-                    } catch (nsv: NoSeedValueException) {
-                        @Suppress("UNCHECKED_CAST")
-                        userStatistic.missedTypes.add(nsv.type as T)
-                        continue
-                    }
+                    val fuzzOne = fuzzOne()
                     // fuzz one value, seems to be bad, when have only a few and simple values
                     yield(fuzzOne)
 
@@ -320,6 +309,9 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
             }
         }.forEach execution@ { values ->
             yield()
+            fuzzing.update(description, userStatistic.apply {
+                totalRuns++
+            }, configuration)
             check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
             val valuesCache = mutableMapOf<Result<T, R>, R>()
             val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
@@ -405,9 +397,8 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 ): Result<TYPE, RESULT> {
     return if (state.recursionTreeDepth > configuration.recursionTreeDepth) {
         Result.Empty { task.construct.builder(0) }
-    } else {
+    } else try {
         val iterations = when {
-            configuration.generateEmptyListForMissedTypes && task.modify.types.any(state.missedTypes::contains) -> 0
             state.iterations >= 0 && random.flipCoin(configuration.probCreateRectangleCollectionInsteadSawLike) -> state.iterations
             else -> random.nextInt(0, configuration.collectionIterations + 1)
         }
@@ -435,6 +426,14 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
             },
             iterations = iterations
         )
+    } catch (nsv: NoSeedValueException) {
+        @Suppress("UNCHECKED_CAST")
+        state.missedTypes[nsv.type as TYPE] = task
+        if (configuration.generateEmptyCollectionsForMissedTypes) {
+            Result.Empty { task.construct.builder(0) }
+        } else {
+            throw nsv
+        }
     }
 }
 
@@ -452,7 +451,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 ): Result<TYPE, RESULT> {
     return if (state.recursionTreeDepth > configuration.recursionTreeDepth) {
         Result.Empty { task.empty.builder() }
-    } else {
+    } else try {
         Result.Recursive(
             construct = fuzz(
                 task.construct.types,
@@ -479,6 +478,14 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                     take(random.nextInt(size + 1).coerceAtLeast(1))
                 }
         )
+    } catch (nsv: NoSeedValueException) {
+        @Suppress("UNCHECKED_CAST")
+        state.missedTypes[nsv.type as TYPE] = task
+        if (configuration.generateEmptyRecursiveForMissedTypes) {
+            Result.Empty { task.empty() }
+        } else {
+            throw nsv
+        }
     }
 }
 
@@ -617,7 +624,7 @@ private data class PassRoutine<T, R>(val description: String) : Routine<T, R>(em
 private class State<TYPE, RESULT>(
     val recursionTreeDepth: Int = 1,
     val cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>>,
-    val missedTypes: Multiset<TYPE>,
+    val missedTypes: MissedSeed<TYPE, RESULT>,
     val iterations: Int = -1,
 )
 

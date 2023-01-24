@@ -1,6 +1,7 @@
 package org.utbot.fuzzing
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.MethodId
@@ -242,7 +243,9 @@ class JavaFuzzingTest {
     private fun <T> runBlockingWithContext(block: suspend () -> T) : T {
         return withUtContext(UtContext(this::class.java.classLoader)) {
             runBlocking {
-                block()
+                withTimeout(10000) {
+                    block()
+                }
             }
         }
     }

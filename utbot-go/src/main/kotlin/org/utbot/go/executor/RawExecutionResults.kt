@@ -131,7 +131,7 @@ fun convertRawExecutionResultToExecutionResult(
         return GoUtTimeoutExceeded(timeoutMillis, rawExecutionResult.trace)
     }
     if (rawExecutionResult.panicMessage != null) {
-        val (rawResultValue, _) = rawExecutionResult.panicMessage
+        val (rawResultValue, implementsError) = rawExecutionResult.panicMessage
         val panicValue = if (goPrimitives.map { it.simpleName }.contains(rawResultValue.type)) {
             createGoUtPrimitiveModelFromRawValue(
                 rawResultValue as PrimitiveValue,
@@ -140,7 +140,7 @@ fun convertRawExecutionResultToExecutionResult(
         } else {
             error("Only primitive panic value is currently supported")
         }
-        return GoUtPanicFailure(panicValue, GoPrimitiveTypeId(rawResultValue.type), rawExecutionResult.trace)
+        return GoUtPanicFailure(panicValue, implementsError, rawExecutionResult.trace)
     }
     if (rawExecutionResult.rawResultValues.size != functionResultTypes.size) {
         error("Function completed execution must have as many result raw values as result types.")

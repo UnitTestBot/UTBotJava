@@ -1,7 +1,10 @@
 package org.utbot.go.simplecodegeneration
 
 import org.utbot.go.api.*
-import org.utbot.go.api.util.*
+import org.utbot.go.api.util.containsNaNOrInf
+import org.utbot.go.api.util.doesNotContainNaNOrInf
+import org.utbot.go.api.util.goFloat64TypeId
+import org.utbot.go.api.util.goStringTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.util.goRequiredImports
 
@@ -176,19 +179,18 @@ object GoTestCasesCodeGenerator {
         val actualFunctionCall =
             generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
         val actualFunctionCallLambda = "func() { $actualFunctionCall }"
-        val (expectedPanicValue, expectedPanicValueSourceGoType) = (executionResult as GoUtPanicFailure)
-
+        val (expectedPanicValue, isErrorMessage) = (executionResult as GoUtPanicFailure)
         val isPrimitiveWithOkEquals =
-            expectedPanicValueSourceGoType.isPrimitiveGoType && expectedPanicValue.doesNotContainNaNOrInf()
-        val testFunctionBody = if (isPrimitiveWithOkEquals || expectedPanicValue is GoUtNilModel) {
+            expectedPanicValue is GoUtPrimitiveModel && expectedPanicValue.doesNotContainNaNOrInf()
+        val testFunctionBody = if (isErrorMessage) {
+            "\tassert.PanicsWithError(t, $expectedPanicValue, $actualFunctionCallLambda)"
+        } else if (isPrimitiveWithOkEquals || expectedPanicValue is GoUtNilModel) {
             val expectedPanicValueCode = if (expectedPanicValue is GoUtNilModel) {
                 "$expectedPanicValue"
             } else {
                 generateCastedValueIfPossible(expectedPanicValue as GoUtPrimitiveModel)
             }
             "\tassert.PanicsWithValue(t, $expectedPanicValueCode, $actualFunctionCallLambda)"
-        } else if (expectedPanicValueSourceGoType.implementsError) {
-            "\tassert.PanicsWithError(t, $expectedPanicValue, $actualFunctionCallLambda)"
         } else {
             "\tassert.Panics(t, $actualFunctionCallLambda)"
         }

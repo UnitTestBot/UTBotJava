@@ -409,8 +409,16 @@ object GoCodeTemplates {
         		defer func() {
         			panicMessage := recover()
         			if panicked {
-        				_, implementsError := panicMessage.(error)
-        				resultValue, err := __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
+        				panicAsError, implementsError := panicMessage.(error)
+        				var (
+        					resultValue __RawValue__
+        					err         error
+        				)
+        				if implementsError {
+        					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicAsError.Error()))
+        				} else {
+        					resultValue, err = __convertReflectValueToRawValue__(reflect.ValueOf(panicMessage))
+        				}
         				__checkErrorAndExit__(err)
 
         				executionResult.PanicMessage = &__RawPanicMessage__{

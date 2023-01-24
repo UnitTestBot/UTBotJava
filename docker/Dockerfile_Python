@@ -5,8 +5,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /usr/src/
 
-COPY ${UTBOT_PYTHON_CLI} .
-
 RUN apt-get update \
     && apt-get install -y -q --no-install-recommends \
       curl \
@@ -14,8 +12,11 @@ RUN apt-get update \
       python3.9-distutils \
     && rm -rf /var/lib/apt/lists/* \
     && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
-    && python3.9 get-pip.py && \
-    && pip install -U pytest \
+    && python3.9 get-pip.py \
+    && pip install -U \
+      pytest
+
+COPY ${UTBOT_PYTHON_CLI} .
 
 RUN UTBOT_PYTHON_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
-    && ln -s "${UTBOT_PYTHON_CLI_PATH}" /usr/src/utbot-cli.jar \
+    && ln -s "${UTBOT_PYTHON_CLI_PATH}" /usr/src/utbot-cli.jar

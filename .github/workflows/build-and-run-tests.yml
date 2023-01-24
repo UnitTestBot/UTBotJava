@@ -34,10 +34,10 @@ jobs:
 
     - uses: actions/checkout@v3
 
+    # "You can make an environment variable available to any subsequent steps in a workflow job by
+    # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
     - name: Set environment variables
       run: |
-        # "You can make an environment variable available to any subsequent steps in a workflow job by 
-        # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
         echo VERSION="$(date +%Y).$(date +%-m)" >> $GITHUB_ENV
         
     - name: Build UTBot Java CLI

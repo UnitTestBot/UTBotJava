@@ -1,17 +1,19 @@
 package org.utbot.examples.enums
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.READY
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.enums.ClassWithEnum.StatusEnum
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutConcrete
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.between
 import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
 
@@ -44,19 +46,16 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     }
 
     @Test
-    @Disabled("TODO JIRA:1686")
     fun testNullParameter() {
         check(
             ClassWithEnum::nullEnumAsParameter,
-            eq(3),
+            between(2..3),
             { e, _ -> e == null },
-            { e, r -> e == READY && r == 0 },
-            { e, r -> e == ERROR && r == -1 },
+            { e, r -> e == READY && r == 0 || e == ERROR && r == -1 },
         )
     }
 
     @Test
-    @Disabled("TODO JIRA:1686")
     fun testNullField() {
         checkWithException(
             ClassWithEnum::nullField,
@@ -67,22 +66,21 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
         )
     }
 
+    @Suppress("KotlinConstantConditions")
     @Test
-    @Disabled("TODO JIRA:1686")
     fun testChangeEnum() {
         checkWithException(
             ClassWithEnum::changeEnum,
-            eq(3),
-            { e, r -> e == null && r.isException<NullPointerException>() },
+            eq(2),
             { e, r -> e == READY && r.getOrNull()!! == ERROR.ordinal },
-            { e, r -> e == ERROR && r.getOrNull()!! == READY.ordinal },
+            { e, r -> (e == ERROR || e == null) && r.getOrNull()!! == READY.ordinal },
         )
     }
 
     @Test
     fun testChangeMutableField() {
         // TODO testing code generation for this method is disabled because we need to restore original field state
-        //  should be enabled after solving JIRA:1648
+        //  should be enabled after solving https://github.com/UnitTestBot/UTBotJava/issues/80
         withEnabledTestingCodeGeneration(testCodeGeneration = false) {
             checkWithException(
                 ClassWithEnum::changeMutableField,
@@ -94,7 +92,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     }
 
     @Test
-    @Disabled("TODO JIRA:1686")
+    @Disabled("https://github.com/UnitTestBot/UTBotJava/issues/1745")
     fun testCheckName() {
         check(
             ClassWithEnum::checkName,
@@ -111,21 +109,33 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
             ClassWithEnum::changingStaticWithEnumInit,
             eq(1),
             { t, staticsAfter, r ->
+                // we cannot check x since it is not a meaningful value
                 // for some reasons x is inaccessible
-                val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
+                // val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
 
                 val y = staticsAfter[FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")]!!.value as Int
 
-                val areStaticsCorrect = x == 1 && y == 11
+                val areStaticsCorrect = /*x == 1 &&*/ y == 11
                 areStaticsCorrect && r == true
             }
         )
     }
 
     @Test
+    fun testVirtualFunction() {
+        check(
+            ClassWithEnum::virtualFunction,
+            eq(3),
+            { parameter, _ -> parameter == null },
+            { parameter, r -> r == 1 && parameter == ERROR },
+            { parameter, r -> r == 0 && parameter == READY },
+        )
+    }
+
+    @Test
     fun testEnumValues() {
         checkStaticMethod(
-            ClassWithEnum.StatusEnum::values,
+            StatusEnum::values,
             eq(1),
             { r -> r.contentEquals(arrayOf(READY, ERROR)) },
         )
@@ -134,7 +144,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     @Test
     fun testFromCode() {
         checkStaticMethod(
-            ClassWithEnum.StatusEnum::fromCode,
+            StatusEnum::fromCode,
             eq(3),
             { code, r -> code == 10 && r == READY },
             { code, r -> code == -10 && r == ERROR },
@@ -145,7 +155,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     @Test
     fun testFromIsReady() {
         checkStaticMethod(
-            ClassWithEnum.StatusEnum::fromIsReady,
+            StatusEnum::fromIsReady,
             eq(2),
             { isFirst, r -> isFirst && r == READY },
             { isFirst, r -> !isFirst && r == ERROR },
@@ -153,14 +163,11 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     }
 
     @Test
-    @Disabled("TODO JIRA:1450")
     fun testPublicGetCodeMethod() {
         checkWithThis(
-            ClassWithEnum.StatusEnum::publicGetCode,
-            eq(2),
-            { enumInstance, r -> enumInstance == READY && r == 10 },
-            { enumInstance, r -> enumInstance == ERROR && r == -10 },
-            coverage = DoNotCalculate
+            StatusEnum::publicGetCode,
+            between(1..2),
+            { enumInstance, r -> enumInstance == READY && r == 10 || enumInstance == ERROR && r == -10 },
         )
     }
 

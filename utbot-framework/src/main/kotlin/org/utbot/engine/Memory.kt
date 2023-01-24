@@ -40,7 +40,7 @@ import kotlinx.collections.immutable.toPersistentMap
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
 import org.utbot.engine.types.TypeResolver
-import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.id
 import soot.ArrayType
 import soot.CharType
 import soot.IntType
@@ -357,8 +357,9 @@ data class Memory( // TODO: split purely symbolic memory and information about s
 
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
 
+    // We check a superclass here since we added a superclass in here, not enum instances
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.classId == classId }
+        symbolicEnumValues.filter { it.type.sootClass.superClassOrNull()?.id == classId }
 }
 
 private fun initialArray(descriptor: MemoryChunkDescriptor) =
@@ -429,8 +430,9 @@ data class MemoryUpdate(
             symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
 
+    // We check a superclass here since we added a superclass in here, not enum instances
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.classId == classId }
+        symbolicEnumValues.filter { it.type.sootClass.superClassOrNull()?.id == classId }
 }
 
 // array - Java Array

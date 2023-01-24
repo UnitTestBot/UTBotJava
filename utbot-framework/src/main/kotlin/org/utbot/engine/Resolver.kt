@@ -558,9 +558,13 @@ class Resolver(
         }
 
         val clazz = classLoader.loadClass(sootClass.name)
+        // Since actualType for enums represents its instances and enum constants are not actually
+        // enum instances, we have to check the defaultType below instead on the actual one
+        // whether is it an Enum or not
+        val defaultClazz = classLoader.loadClass(defaultType.sootClass.name)
 
-        if (clazz.isEnum) {
-            return constructEnum(concreteAddr, actualType, clazz)
+        if (defaultClazz.isEnum) {
+            return constructEnum(concreteAddr, actualType, defaultClazz)
         }
 
         // check if we have mock with this address

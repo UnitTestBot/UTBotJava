@@ -2324,7 +2324,7 @@ class Traverser(
         }
 
     private fun createEnum(type: RefType, addr: UtAddrExpression): ObjectValue {
-        val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = true)
+        val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = false)
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 

@@ -71,5 +71,11 @@ class Configuration(
     /**
      * Probability of reusing same generated value when 2 or more parameters have the same type.
      */
-    var probReuseGeneratedValueForSameType: Int = 1
+    var probReuseGeneratedValueForSameType: Int = 1,
+
+    /**
+     * When true any [Seed.Collection] will not try
+     * to generate modification if a current type is already known to fail to generate values.
+     */
+    var generateEmptyListForMissedTypes: Boolean = true,
 )

@@ -80,7 +80,7 @@ class Configuration(
     var generateEmptyCollectionsForMissedTypes: Boolean = true,
 
     /**
-     * When true nay [Seed.Recursive] will not try
+     * When true any [Seed.Recursive] will not try
      * to generate a recursive object, but will use [Seed.Recursive.empty] instead.
      */
     var generateEmptyRecursiveForMissedTypes: Boolean = true,

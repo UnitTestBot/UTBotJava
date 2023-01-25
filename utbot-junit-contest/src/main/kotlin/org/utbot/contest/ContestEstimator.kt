@@ -589,6 +589,7 @@ fun parseExceptionsFile(exceptionsDescriptionFile: File): ExpectedExceptionsForP
 class ProjectToEstimate(
     val name: String,
     val classFQNs: List<String>,
+    val expectedExceptions:  ExpectedExceptionsForProject,
     private val jars: List<File>,
     testCandidatesDir: File,
     unzippedJars: File

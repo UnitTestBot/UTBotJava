@@ -2342,6 +2342,7 @@ class Traverser(
         return ObjectValue(typeStorage, addr)
     }
 
+    @Suppress("SameParameterValue")
     private fun arrayUpdate(array: ArrayValue, index: PrimitiveValue, value: UtExpression): MemoryUpdate {
         val type = array.type
         val chunkId = typeRegistry.arrayChunkId(type)

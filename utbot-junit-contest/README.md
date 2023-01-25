@@ -28,6 +28,9 @@ The projects are provided to Contest estimator in advance.
 All available projects are placed in the [resources][resources] folder, which contains:
 - [projects][projects] consisting of the folders with the project JAR files in them.
 - [classes][classes] consisting of the folders — each named after the project and containing the `list` file with the fully qualified class names.
+It also may contain an `exceptions` file with the description of the expected exceptions, that utbot should find.  
+Description is presented in the format: `<class fully qualified name>.<method name>: <expected exception fqn> <another fqn> ...`.
+For example, see this [file](src/main/resources/classes/codeforces/exceptions).
 
 ### How to add a new project
 You should add both the JAR files to the `projects` folder and the file with a list of classes to the `classes` folder.

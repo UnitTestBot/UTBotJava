@@ -18,15 +18,7 @@ _The project is currently under development._
 At the moment, only the _basic fuzzing technique_ is supported: namely, the execution of functions on predefined values,
 depending on the type of parameter.
 
-At the moment, functions are supported, the parameters of which have _any primitive types_, namely:
-
-* `bool`
-* `int`, `int8`, `int16`, `int32`, `int64`
-* `uint`, `uint8`, `uint16`, `uint32`, `uint64`
-* `byte`, `rune`, `string`
-* `float64`, `float32`
-* `complex128`, `complex64`
-* `uintptr`
+At the moment, functions are supported, the parameters of which have _any primitive types_, _arrays_ and _structs_.
 
 For floating point types, _correct work with infinities and NaNs_ is also supported.
 
@@ -34,7 +26,7 @@ Function result types are supported the same as for parameters, but with _suppor
 
 In addition, UTBot Go correctly captures not only errors returned by functions, but also _`panic` cases_.
 
-Examples of supported functions can be found [here](go-samples/simple/primitive_types.go).
+Examples of supported functions can be found [here](go-samples/simple/samples.go).
 
 ## Important notes
 
@@ -91,13 +83,13 @@ Go project automatically.
 
 <ins>_Requirements:_</ins>
 
-* `IntelliJ IDEA (Ultimate Edition)`, compatible with version `2022.1`;
+* `IntelliJ IDEA (Ultimate Edition)`, compatible with version `2022.2`;
 * installed `Go SDK` version later than `1.18`;
 * installed in IntelliJ IDEA [Go plugin](https://plugins.jetbrains.com/plugin/9568-go), compatible with the IDE
   version (it is for this that the `Ultimate` edition of the IDE is needed);
 * properly configured Go module for source code file (i.e. for file to generate tests for): corresponding `go.mod` file
   must exist;
-* installed Go module `github.com/stretchr/testify/assert` to run tests: fortunately, IDEA will automatically highlight
+* installed Go modules `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0`: fortunately, IDEA will automatically highlight
   it and offer to install the first time the tests are generated.
 
 Most likely, if you are already developing Go project in IntelliJ IDEA, then you have already met all the requirements.
@@ -116,9 +108,6 @@ Finally, you can <ins>_start using UTBot Go_</ins>: open any `.go` file in the I
 that, a window will appear in which you can configure the test generation settings and start running it in a couple
 of clicks.
 
-See an example demo for [`primitive_types.go`](go-samples)!
-
-![](docs/images/intellij-plugin-primitive-types-demo.gif)
 
 ### CLI application
 
@@ -128,7 +117,7 @@ See an example demo for [`primitive_types.go`](go-samples)!
 * installed `Go SDK` version later than `1.18`;
 * properly configured Go module for source code file (i.e. for file to generate tests for): corresponding `go.mod` file
   must exist;
-* installed `gcc` and Go module `github.com/stretchr/testify/assert` to run tests.
+* installed `gcc` and Go modules `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0` to run tests.
 
 <ins>_To install the UTBot Go CLI application:_</ins> download zip archive containing `utbot-cli JAR`
 from [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/3012565900), then extract its content (JAR file) to a
@@ -155,12 +144,14 @@ respectively.
 <ins>_Action `generateGo` options:_</ins>
 
 * `-s, --source TEXT`, _required_: specifies Go source file to generate tests for.
-* `-f, --function TEXT`: specifies function name to generate tests for. Can be used multiple times to select multiple
-  functions at the same time. If no functions are specified, all functions contained in the source file are selected.
+* `-f, --function TEXT`, _required_: specifies function name to generate tests for. Can be used multiple times to select multiple
+  functions at the same time.
 * `-go, --go-path TEXT`, _required_: specifies path to Go executable. For example, it could be `/usr/local/go/bin/go`
   for some systems.
-* `-t, --each-execution-timeout INT`: specifies a timeout in milliseconds for each fuzzed function execution. Default is
+* `-et, --each-execution-timeout INT`: specifies a timeout in milliseconds for each fuzzed function execution. Default is
   `1000` ms.
+* `-at, --all-execution-timeout INT`: specifies a timeout in milliseconds for all fuzzed function execution. Default is
+  `60000` ms.
 * `-p, --print-test`: specifies whether a test should be printed out to StdOut. Is disabled by default.
 * `-w, --overwrite`: specifies whether to overwrite the output test file if it already exists. Is disabled by default.
 * `-h, --help`: show help message and exit.

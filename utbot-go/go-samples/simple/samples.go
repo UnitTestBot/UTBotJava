@@ -2,7 +2,10 @@
 
 package simple
 
-import "math"
+import (
+	"errors"
+	"math"
+)
 
 // DivOrPanic divides x by y or panics if y is 0
 func DivOrPanic(x int, y int) int {
@@ -68,21 +71,47 @@ func GetAreaOfCircle(circle Circle) float64 {
 	return math.Pi * math.Pow(circle.Radius, 2)
 }
 
-type Matrix struct {
-	body [2][2]int
-}
-
-func isIdentity(matrix Matrix) bool {
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 2; j++ {
-			if i == j && matrix.body[i][j] != 1 {
+func IsIdentity(matrix [3][3]int) bool {
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			if i == j && matrix[i][j] != 1 {
 				return false
 			}
 
-			if i != j && matrix.body[i][j] != 0 {
+			if i != j && matrix[i][j] != 0 {
 				return false
 			}
 		}
 	}
 	return true
+}
+
+var ErrNotFound = errors.New("target not found in array")
+
+// Binary search for target within a sorted array by repeatedly dividing the array in half and comparing the midpoint with the target.
+// This function uses recursive call to itself.
+// If a target is found, the index of the target is returned. Else the function return -1 and ErrNotFound.
+func Binary(array [10]int, target int, lowIndex int, highIndex int) (int, error) {
+	if highIndex < lowIndex {
+		return -1, ErrNotFound
+	}
+	mid := lowIndex + (highIndex-lowIndex)/2
+	if array[mid] > target {
+		return Binary(array, target, lowIndex, mid-1)
+	} else if array[mid] < target {
+		return Binary(array, target, mid+1, highIndex)
+	} else {
+		return mid, nil
+	}
+}
+
+func StringSearch(str [3]byte) bool {
+	if str[0] == 'A' {
+		if str[1] == 'B' {
+			if str[2] == 'C' {
+				return true
+			}
+		}
+	}
+	return false
 }

@@ -109,8 +109,10 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
             ClassWithEnum::changingStaticWithEnumInit,
             eq(1),
             { t, staticsAfter, r ->
-                // we cannot check x since it is not a meaningful value
-                // for some reasons x is inaccessible
+                // We cannot check `x` since it is not a meaningful value since
+                // it is accessed only in a static initializer.
+
+                // For some reasons x is inaccessible
                 // val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
 
                 val y = staticsAfter[FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")]!!.value as Int

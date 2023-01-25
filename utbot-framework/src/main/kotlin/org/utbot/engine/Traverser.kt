@@ -2314,7 +2314,9 @@ class Traverser(
                 queuedSymbolicStateUpdates += addrEq(addr, nullObjectAddr).asSoftConstraint()
 
                 if (type.sootClass.isEnum) {
-                    createEnum(type, addr)
+                    // We don't know which enum constant should we create, so we
+                    // have to create an instance of unknown type to support virtual invokes.
+                    createEnum(type, addr, useConcreteType = false)
                 } else {
                     createObject(addr, type, useConcreteType = false, mockInfoGenerator)
                 }
@@ -2323,8 +2325,8 @@ class Traverser(
             else -> error("Can't create const from ${type::class}")
         }
 
-    private fun createEnum(type: RefType, addr: UtAddrExpression): ObjectValue {
-        val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = false)
+    private fun createEnum(type: RefType, addr: UtAddrExpression, useConcreteType: Boolean): ObjectValue {
+        val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType)
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 

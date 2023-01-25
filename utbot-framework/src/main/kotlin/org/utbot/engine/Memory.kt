@@ -41,6 +41,7 @@ import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.isEnum
 import soot.ArrayType
 import soot.CharType
 import soot.IntType
@@ -357,9 +358,21 @@ data class Memory( // TODO: split purely symbolic memory and information about s
 
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
 
-    // We check a superclass here since we added a superclass in here, not enum instances
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.sootClass.superClassOrNull()?.id == classId }
+        symbolicEnumValues.filter {
+            val symbolicValueClassId = it.type.id
+
+            // If symbolicValueClassId is not an enum in accordance with java.lang.Class.isEnum
+            // function, we have to take results for its superclass (a direct inheritor of java.lang.Enum).
+            // Otherwise, we should get results by its own classId.
+            val enumClass = if (symbolicValueClassId.isEnum) {
+                symbolicValueClassId
+            } else {
+                it.type.sootClass.superClassOrNull()?.id
+            }
+
+            enumClass == classId
+        }
 }
 
 private fun initialArray(descriptor: MemoryChunkDescriptor) =
@@ -430,9 +443,21 @@ data class MemoryUpdate(
             symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
 
-    // We check a superclass here since we added a superclass in here, not enum instances
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.sootClass.superClassOrNull()?.id == classId }
+        symbolicEnumValues.filter {
+            val symbolicValueClassId = it.type.id
+
+            // If symbolicValueClassId is not an enum in accordance with java.lang.Class.isEnum
+            // function, we have to take results for its superclass (a direct inheritor of java.lang.Enum).
+            // Otherwise, we should get results by its own classId.
+            val enumClass = if (symbolicValueClassId.isEnum) {
+                symbolicValueClassId
+            } else {
+                it.type.sootClass.superClassOrNull()?.id
+            }
+
+            enumClass == classId
+        }
 }
 
 // array - Java Array

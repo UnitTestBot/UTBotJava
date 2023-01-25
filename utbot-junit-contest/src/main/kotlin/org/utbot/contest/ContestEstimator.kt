@@ -137,7 +137,8 @@ enum class Tool {
             methodNameFilter: String?,
             statsForProject: StatsForProject,
             compiledTestDir: File,
-            classFqn: String
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
         ) = withUtContext(ContextManager.createNewContext(project.classloader)) {
             val classStats: StatsForClass = try {
                 runGeneration(
@@ -147,7 +148,8 @@ enum class Tool {
                     fuzzingRatio,
                     project.sootClasspathString,
                     runFromEstimator = true,
-                    methodNameFilter
+                    methodNameFilter,
+                    expectedExceptions
                 )
             } catch (e: CancellationException) {
                 logger.info { "[$classFqn] finished with CancellationException" }
@@ -277,7 +279,8 @@ enum class Tool {
         methodNameFilter: String?,
         statsForProject: StatsForProject,
         compiledTestDir: File,
-        classFqn: String
+        classFqn: String,
+        expectedExceptions: ExpectedExceptionsForClass
     )
 
     abstract fun moveProducedFilesIfNeeded()
@@ -391,7 +394,13 @@ fun runEstimator(
     if (updatedMethodFilter != null)
         logger.info { "Filtering: class='$classFqnFilter', method ='$methodNameFilter'" }
 
-    val projectToClassFQNs = classesLists.listFiles()!!.associate { it.name to File(it, "list").readLines() }
+    val projectDirs = classesLists.listFiles()!!
+    val projectToClassFQNs = projectDirs.associate {
+        it.name to File(it, "list").readLines()
+    }
+    val projectToExpectedExceptions = projectDirs.associate {
+        it.name to parseExceptionsFile(File(it, "exceptions"))
+    }
 
     val projects = mutableListOf<ProjectToEstimate>()
 
@@ -400,6 +409,7 @@ fun runEstimator(
         val project = ProjectToEstimate(
             name,
             classesFQN,
+            projectToExpectedExceptions[name]!!,
             File(classpathDir, name).listFiles()!!.filter { it.toString().endsWith("jar") },
             testCandidatesDir,
             unzippedJars
@@ -463,7 +473,8 @@ fun runEstimator(
                             methodNameFilter,
                             statsForProject,
                             compiledTestDir,
-                            classFqn
+                            classFqn,
+                            project.expectedExceptions.getForClass(classFqn)
                         )
                     }
                     catch (e: Throwable) {
@@ -521,6 +532,57 @@ private fun classNamesByJar(jar: File): List<String> {
             className.substringBeforeLast(".class")
         }
         .toList()
+}
+
+class ExpectedExceptionsForMethod(
+    val exceptionNames: List<String>
+)
+
+class ExpectedExceptionsForClass {
+
+    private val byMethodName: MutableMap<String, ExpectedExceptionsForMethod> =
+        mutableMapOf()
+
+    fun getForMethod(methodName: String): ExpectedExceptionsForMethod =
+        byMethodName[methodName] ?: ExpectedExceptionsForMethod(listOf())
+
+    fun setForMethod(methodName: String, exceptionNames: List<String>) {
+        byMethodName[methodName] = ExpectedExceptionsForMethod(exceptionNames)
+    }
+}
+
+class ExpectedExceptionsForProject {
+
+    private val byClassName: MutableMap<String, ExpectedExceptionsForClass> =
+        mutableMapOf()
+
+    fun getForClass(className: String): ExpectedExceptionsForClass =
+        byClassName[className] ?: ExpectedExceptionsForClass()
+
+    fun setForClass(className: String, methodName: String, exceptionNames: List<String>) {
+        val forClass = byClassName.getOrPut(className) { ExpectedExceptionsForClass() }
+        forClass.setForMethod(methodName, exceptionNames)
+    }
+}
+
+fun parseExceptionsFile(exceptionsDescriptionFile: File): ExpectedExceptionsForProject {
+    if (!exceptionsDescriptionFile.exists()) {
+        return ExpectedExceptionsForProject()
+    }
+
+    val forProject = ExpectedExceptionsForProject()
+    for (methodDescription in exceptionsDescriptionFile.readLines()) {
+        val methodFqn = methodDescription.substringBefore(':').trim()
+        val classFqn = methodFqn.substringBeforeLast('.')
+        val methodName = methodFqn.substringAfterLast('.')
+        val exceptionFqns = methodDescription.substringAfter(':')
+            .split(' ')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+        forProject.setForClass(classFqn, methodName, exceptionFqns)
+    }
+
+    return forProject
 }
 
 class ProjectToEstimate(

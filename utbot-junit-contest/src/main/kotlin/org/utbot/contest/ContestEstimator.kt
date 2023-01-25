@@ -208,7 +208,8 @@ enum class Tool {
             methodNameFilter: String?,
             statsForProject: StatsForProject,
             compiledTestDir: File,
-            classFqn: String
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
         ) {
             // EvoSuite has several phases, the variable below is responsible for assert generation
             // timeout. We want to give 10s for a big time budgets and timeLimit / 5 for small budgets.

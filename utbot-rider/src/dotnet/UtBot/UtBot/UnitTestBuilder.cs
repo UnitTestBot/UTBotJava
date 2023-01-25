@@ -119,7 +119,7 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
             _logger.Catch(() =>
             {
                 var port = NetworkUtil.GetFreePort();
-                var proc = new ProcessWithRdServer(VSharpMain.VSharpProcessName, project.ProjectFileLocation.Parent.FullPath, port, vsharpRunner.FullPath,
+                var proc = new ProcessWithRdServer(VSharpMain.VSharpProcessName, project.ProjectFileLocation.FullPath, port, vsharpRunner.FullPath,
                     project.Locks,
                     _lifetime);
                 var projectCsprojPath = project.ProjectFileLocation.FullPath;

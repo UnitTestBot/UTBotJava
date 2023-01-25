@@ -10,12 +10,9 @@ abstract class AbstractGoUtTestsGenerationController {
 
     fun generateTests(
         selectedFunctionsNamesBySourceFiles: Map<String, List<String>>,
-        testsGenerationConfig: GoUtTestsGenerationConfig
+        testsGenerationConfig: GoUtTestsGenerationConfig,
+        isCanceled: () -> Boolean = { false }
     ) {
-        val startTime = System.currentTimeMillis()
-        val timeoutExceeded: () -> Boolean = {
-            System.currentTimeMillis() - startTime > testsGenerationConfig.allExecutionTimeoutsMillisConfig
-        }
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
         val analysisResults = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
@@ -23,16 +20,24 @@ abstract class AbstractGoUtTestsGenerationController {
         )
         if (!onSourceCodeAnalysisFinished(analysisResults)) return
 
+        val numOfFunctions = analysisResults.values
+            .map { it.functions.size }
+            .reduce { acc, numOfFunctions -> acc + numOfFunctions }
+        val functionTimeoutStepMillis = testsGenerationConfig.allExecutionTimeoutsMillisConfig / numOfFunctions
+        var startTimeMillis = System.currentTimeMillis()
         val testCasesBySourceFiles = analysisResults.mapValues { (sourceFile, analysisResult) ->
             val functions = analysisResult.functions
-            if (!onTestCasesGenerationForGoSourceFileFunctionsStart(sourceFile, functions) || timeoutExceeded()) return
+            if (!onTestCasesGenerationForGoSourceFileFunctionsStart(sourceFile, functions)) return
             GoTestCasesGenerator.generateTestCasesForGoSourceFileFunctions(
                 sourceFile,
                 functions,
                 testsGenerationConfig.goExecutableAbsolutePath,
-                testsGenerationConfig.eachExecutionTimeoutsMillisConfig,
-                timeoutExceeded
-            ).also { if (!onTestCasesGenerationForGoSourceFileFunctionsFinished(sourceFile, it)) return }
+                testsGenerationConfig.eachExecutionTimeoutsMillisConfig
+            ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }
+                .also {
+                    startTimeMillis += functionTimeoutStepMillis * functions.size
+                    if (!onTestCasesGenerationForGoSourceFileFunctionsFinished(sourceFile, it)) return
+                }
         }
 
         testCasesBySourceFiles.forEach { (sourceFile, testCases) ->

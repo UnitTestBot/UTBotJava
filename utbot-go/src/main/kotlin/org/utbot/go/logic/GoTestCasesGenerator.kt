@@ -17,17 +17,17 @@ object GoTestCasesGenerator {
         functions: List<GoUtFunction>,
         goExecutableAbsolutePath: String,
         eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
-        timeoutExceeded: () -> Boolean
+        timeoutExceededOrIsCanceled: (index: Int) -> Boolean
     ): List<GoUtFuzzedFunctionTestCase> = runBlocking {
-        return@runBlocking functions.flatMap { function ->
+        return@runBlocking functions.flatMapIndexed { index, function ->
             val testCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
-            if (timeoutExceeded()) return@flatMap testCases
+            if (timeoutExceededOrIsCanceled(index)) return@flatMapIndexed testCases
             val engine = GoEngine(
                 function,
                 sourceFile,
                 goExecutableAbsolutePath,
                 eachExecutionTimeoutsMillisConfig,
-                timeoutExceeded
+                { timeoutExceededOrIsCanceled(index) }
             )
 
             fun GoTypeId.containsGoStructTypeId(): Boolean = when (this) {

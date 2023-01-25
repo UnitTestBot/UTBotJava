@@ -26,16 +26,15 @@ class GoEngine(
     private val sourceFile: GoUtFile,
     private val goExecutableAbsolutePath: String,
     private val eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
-    private val timeoutExceeded: () -> Boolean,
+    private val timeoutExceededOrIsCanceled: () -> Boolean,
     private val timeout: Int = 5000
 ) {
 
     fun fuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
         var attempts = 0
-        val attemptsLimit = 100
-        val linesToCover = (1..methodUnderTest.numberOfAllStatements).toMutableSet()
+        val attemptsLimit = Int.MAX_VALUE
         runGoFuzzing(methodUnderTest) { description, values ->
-            if (timeoutExceeded()) {
+            if (timeoutExceededOrIsCanceled()) {
                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
             }
             val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
@@ -46,13 +45,12 @@ class GoEngine(
                 eachExecutionTimeoutsMillisConfig
             )
             if (executionResult.trace.isEmpty()) {
-                logger.error { "Coverage is empty for ${methodUnderTest.name} with ${values.map { it.model }}" }
+                logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
                 if (executionResult is GoUtPanicFailure) {
                     logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
                 }
                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
-            linesToCover.removeAll(executionResult.trace.toSet())
             val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
             if (trieNode.count > 1) {
                 if (++attempts >= attemptsLimit) {
@@ -61,17 +59,13 @@ class GoEngine(
                 return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
             }
             emit(fuzzedFunction to executionResult)
-            if (linesToCover.isEmpty()) {
-                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-            }
             BaseFeedback(result = trieNode, control = Control.CONTINUE)
         }
     }
 
     fun fastFuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
         var attempts = 0
-        val attemptsLimit = 1_000_000
-        val linesToCover = (1..methodUnderTest.numberOfAllStatements).toMutableSet()
+        val attemptsLimit = Int.MAX_VALUE
         ServerSocket(0).use { serverSocket ->
             var fileToExecute: File? = null
             try {
@@ -119,7 +113,7 @@ class GoEngine(
                     emit(fuzzedFunction to executionResult)
                 } else {
                     runGoFuzzing(methodUnderTest) { description, values ->
-                        if (timeoutExceeded()) {
+                        if (timeoutExceededOrIsCanceled()) {
                             return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                         }
                         val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
@@ -138,7 +132,6 @@ class GoEngine(
                             }
                             return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
                         }
-                        linesToCover.removeAll(executionResult.trace.toSet())
                         val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
                         if (trieNode.count > 1) {
                             if (++attempts >= attemptsLimit) {
@@ -147,9 +140,6 @@ class GoEngine(
                             return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
                         }
                         emit(fuzzedFunction to executionResult)
-                        if (linesToCover.isEmpty()) {
-                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                        }
                         BaseFeedback(result = trieNode, control = Control.CONTINUE)
                     }
                     workerSocket.close()

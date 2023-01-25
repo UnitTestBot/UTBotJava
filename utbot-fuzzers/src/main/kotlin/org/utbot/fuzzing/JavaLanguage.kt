@@ -9,8 +9,8 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.providers.*
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.*
+import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
-import kotlin.system.measureNanoTime
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
@@ -105,23 +105,31 @@ suspend fun runJavaFuzzing(
     val tracer = Trie(Instruction::id)
     val descriptionWithOptionalThisInstance = FuzzedDescription(createFuzzedMethodDescription(thisInstance), tracer, typeCache, random)
     val descriptionWithOnlyParameters = FuzzedDescription(createFuzzedMethodDescription(null), tracer, typeCache, random)
+    val start = System.nanoTime()
     try {
         logger.info { "Starting fuzzing for method: $methodUnderTest" }
         logger.info { "\tuse thisInstance = ${thisInstance != null}" }
         logger.info { "\tparameters = $parameters" }
         var totalExecutionCalled = 0
-        val totalFuzzingTime = measureNanoTime {
-            runFuzzing(ValueProvider.of(providers), descriptionWithOptionalThisInstance, random) { _, t ->
-                totalExecutionCalled++
-                if (thisInstance == null) {
-                    exec(null, descriptionWithOnlyParameters, t)
-                } else {
-                    exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
-                }
+        runFuzzing(
+            provider = ValueProvider.of(providers),
+            description = descriptionWithOptionalThisInstance, random,
+            configuration = Configuration()
+        ) { _, t ->
+            totalExecutionCalled++
+            if (thisInstance == null) {
+                exec(null, descriptionWithOnlyParameters, t)
+            } else {
+                exec(t.first(), descriptionWithOnlyParameters, t.drop(1))
             }
         }
+        val totalFuzzingTime = System.nanoTime() - start
         logger.info { "Finishing fuzzing for method: $methodUnderTest in ${TimeUnit.NANOSECONDS.toMillis(totalFuzzingTime)} ms" }
         logger.info { "\tTotal execution called: $totalExecutionCalled" }
+    } catch (ce: CancellationException) {
+        val totalFuzzingTime = System.nanoTime() - start
+        logger.info { "Fuzzing is stopped because of timeout. Total execution time: ${TimeUnit.NANOSECONDS.toMillis(totalFuzzingTime)} ms" }
+        logger.debug(ce) { "\tStacktrace:" }
     } catch (t: Throwable) {
         logger.info(t) { "Fuzzing is stopped because of an error" }
     }

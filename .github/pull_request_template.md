@@ -25,7 +25,9 @@ Check that the title contains
 
 ## Description
 
-- Mention the related issue (_**"Fixes #..."**_) or describe why you've made the changes.
+Fixes # (issue)
+
+- If there is no related issue, describe why you've made the changes.
 - Add useful info for your reviewer or another contributor.
 
 ## How to test
@@ -46,11 +48,13 @@ If this is your case, share the detailed _manual scenarios_ that help to verify 
 
 ## Self-check list
 
-Check off the item if the statement is true:
+Check off the item if the statement is true. Hint: [x] is a marked item.
+
+Please do not delete the list or its items.
 
 - [ ] I've set the proper **labels** for my PR (at least, for category and component).
 - [ ] PR **title** and **description** are clear and intelligible.
-- [ ] I've added enough **comments**, particularly in hard-to-understand areas.
+- [ ] I've added enough **comments** to my code, particularly in hard-to-understand areas.
 - [ ] The functionality I've repaired, changed or added is covered with **automated tests**.
 - [ ] **Manual tests** have been provided optionally.
 - [ ] The **documentation** for the functionality I've been working on is up-to-date.

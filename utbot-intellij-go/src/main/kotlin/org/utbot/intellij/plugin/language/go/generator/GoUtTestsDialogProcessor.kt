@@ -53,7 +53,7 @@ object GoUtTestsDialogProcessor {
                 IntellijGoUtTestsGenerationController(model, indicator).generateTests(
                     selectedFunctionsNamesBySourceFiles,
                     testsGenerationConfig
-                )
+                ) { indicator.isCanceled }
             }
         })
     }

@@ -27,8 +27,9 @@ Check that the title contains
 
 Fixes # (issue)
 
-- If there is no related issue, describe why you've made the changes.
-- Add useful info for your reviewer or another contributor.
+Add more info _if needed_:
+* context/purpose for implementing changes
+* detailed description of the changes made
 
 ## How to test
 

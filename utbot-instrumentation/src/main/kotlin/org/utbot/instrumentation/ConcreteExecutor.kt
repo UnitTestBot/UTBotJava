@@ -19,7 +19,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -178,7 +178,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     suspend fun <T> withProcess(exclusively: Boolean = false, block: suspend InstrumentedProcess.() -> T): T {
         fun throwConcreteIfDead(e: Throwable, proc: InstrumentedProcess?) {
             if (proc?.lifetime?.isAlive != true) {
-                throw ConcreteExecutionFailureException(e,
+                throw InstrumentedProcessDeathException(e,
                     instrumentedProcessRunner.errorLogFile,
                     try {
                         proc?.run { process.inputStream.bufferedReader().lines().toList() } ?: emptyList()

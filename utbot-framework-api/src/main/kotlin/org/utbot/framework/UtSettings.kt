@@ -277,7 +277,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInInstrumentedProcess: Long by getLongProperty(
+    var concreteExecutionDefaultTimeoutInInstrumentedProcessMillis: Long by getLongProperty(
         DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 

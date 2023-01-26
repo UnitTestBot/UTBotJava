@@ -4,18 +4,13 @@ import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.jField
 
-class PostprocessingPhaseError(cause: Throwable) : PhaseError(
-    message = "Error during postprocessing phase",
-    cause
-)
 
 /**
  * The responsibility of this phase is resetting environment to the initial state.
  */
-class PostprocessingContext : PhaseContext<PostprocessingPhaseError> {
+class PostprocessingPhase : ExecutionPhase {
 
-    override fun wrapError(error: Throwable): PostprocessingPhaseError =
-        PostprocessingPhaseError(error)
+    override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseError(this.javaClass.simpleName, e)
 
     fun resetStaticFields(staticFields: Map<FieldId, Any?>) {
         staticFields.forEach { (fieldId, value) ->

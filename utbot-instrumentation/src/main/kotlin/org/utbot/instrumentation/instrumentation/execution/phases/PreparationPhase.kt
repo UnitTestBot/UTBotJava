@@ -6,20 +6,16 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 
-class PreparationPhaseError(cause: Throwable) : PhaseError(
-    message = "Error during environment preparation phase",
-    cause
-)
 
 /**
  * The responsibility of this phase is environment preparation before execution.
  */
-class PreparationContext(
+class PreparationPhase(
     private val traceHandler: TraceHandler
-) : PhaseContext<PreparationPhaseError> {
+) : ExecutionPhase {
 
-    override fun wrapError(error: Throwable): PreparationPhaseError =
-        PreparationPhaseError(error)
+    override fun wrapError(e: Throwable): ExecutionPhaseException =
+        ExecutionPhaseError(this.javaClass.simpleName, e)
 
     fun setStaticFields(staticFieldsValues: Map<FieldId, UtConcreteValue<*>>): Map<FieldId, Any?> {
         val savedStaticFields = mutableMapOf<FieldId, Any?>()

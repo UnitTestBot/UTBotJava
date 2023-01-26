@@ -3,7 +3,7 @@ package org.utbot.summary.name
 import com.github.javaparser.ast.stmt.CatchClause
 import com.github.javaparser.ast.stmt.ForStmt
 import com.github.javaparser.ast.stmt.ThrowStmt
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.isFailure
@@ -265,7 +265,7 @@ class SimpleNameBuilder(
 
     /**
      * [TraceTagWithoutExecution.path] could be empty in case exception is thrown not in source code but in engine
-     * (for example, [ConcreteExecutionFailureException]).
+     * (for example, [InstrumentedProcessDeathException]).
      */
     private fun exceptionThrow(testNames: MutableList<TestNameDescription>) {
         val throwsException = traceTag.result.exceptionOrNull()?.let { it::class.simpleName }

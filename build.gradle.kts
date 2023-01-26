@@ -53,6 +53,10 @@ allprojects {
             }
         }
         withType<Test> {
+            // uncomment if you want to see loggers output in console
+            // this is useful if you debug in docker
+            // testLogging.showStandardStreams = true
+            // testLogging.showStackTraces = true
             // set heap size for the test JVM(s)
             minHeapSize = "128m"
             maxHeapSize = "3072m"
@@ -68,6 +72,9 @@ allprojects {
                 override fun beforeTest(testDescriptor: TestDescriptor) {}
                 override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {
                     println("[$testDescriptor.classDisplayName] [$testDescriptor.displayName]: $result.resultType, length - ${(result.endTime - result.startTime) / 1000.0} sec")
+                    if (result.resultType == TestResult.ResultType.FAILURE) {
+                        println("Exception: " + result.exception?.stackTraceToString())
+                    }
                 }
 
                 override fun afterSuite(testDescriptor: TestDescriptor, result: TestResult) {

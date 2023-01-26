@@ -403,7 +403,7 @@ fun runGeneration(
 
         val testSets = testsByMethod.map { (method, executions) ->
             UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody(method))
-                .summarize(cut.classfileDir.toPath())
+                .summarize(cut.classfileDir.toPath(), sourceFile = null)
         }
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {

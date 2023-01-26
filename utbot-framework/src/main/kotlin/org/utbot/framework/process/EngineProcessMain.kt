@@ -113,7 +113,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 fuzzingValue = params.fuzzingValue
             })
             .apply { logger.info("generation ended, starting summarization, result size: ${this.size}") }
-            .map { it.summarize(Paths.get(params.searchDirectory)) }
+            .map { it.summarize(Paths.get(params.searchDirectory), sourceFile = null) }
             .apply { logger.info("summarization ended") }
             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 

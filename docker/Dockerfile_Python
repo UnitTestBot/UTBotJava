@@ -16,6 +16,8 @@ RUN apt-get update \
     && pip install -U \
       pytest
 
+# Install UTBot Python CLI
+
 COPY ${UTBOT_PYTHON_CLI} .
 
 RUN UTBOT_PYTHON_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \

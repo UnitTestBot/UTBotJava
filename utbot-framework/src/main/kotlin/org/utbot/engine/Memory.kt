@@ -40,7 +40,8 @@ import kotlinx.collections.immutable.toPersistentMap
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
 import org.utbot.engine.types.TypeResolver
-import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.isEnum
 import soot.ArrayType
 import soot.CharType
 import soot.IntType
@@ -358,7 +359,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
 
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.classId == classId }
+        extractSymbolicEnumValues(symbolicEnumValues, classId)
 }
 
 private fun initialArray(descriptor: MemoryChunkDescriptor) =
@@ -430,7 +431,7 @@ data class MemoryUpdate(
         )
 
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.classId == classId }
+        extractSymbolicEnumValues(symbolicEnumValues, classId)
 }
 
 // array - Java Array
@@ -570,4 +571,22 @@ private operator fun MockInfoEnriched.plus(update: MockInfoEnriched?): MockInfoE
 
 private fun <K, V> MutableMap<K, List<V>>.mergeValues(other: Map<K, List<V>>): Map<K, List<V>> = apply {
     other.forEach { (key, values) -> merge(key, values) { v1, v2 -> v1 + v2 } }
+}
+
+private fun extractSymbolicEnumValues(
+    symbolicEnumValuesSource: PersistentList<ObjectValue>,
+    classId: ClassId
+): List<ObjectValue> = symbolicEnumValuesSource.filter {
+    val symbolicValueClassId = it.type.id
+
+    // If symbolicValueClassId is not an enum in accordance with java.lang.Class.isEnum
+    // function, we have to take results for its superclass (a direct inheritor of java.lang.Enum).
+    // Otherwise, we should get results by its own classId.
+    val enumClass = if (symbolicValueClassId.isEnum) {
+        symbolicValueClassId
+    } else {
+        it.type.sootClass.superClassOrNull()?.id
+    }
+
+    enumClass == classId
 }

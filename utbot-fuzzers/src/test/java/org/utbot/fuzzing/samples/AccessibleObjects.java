@@ -16,4 +16,18 @@ public class AccessibleObjects {
             }
         }
     }
+
+    public int ordinal(InnEn val) {
+        switch (val) {
+            case ONE:
+                return 0;
+            case TWO:
+                return 1;
+        }
+        return -1;
+    }
+
+    private enum InnEn {
+        ONE, TWO
+    }
 }

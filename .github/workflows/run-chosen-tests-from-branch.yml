@@ -28,8 +28,6 @@ on:
           description: "{package-name}.{class-name-optional}.{test-name-optional}"
 
 env:
-  # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
   PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
 
 jobs:
@@ -51,7 +49,7 @@ jobs:
           
       - name: Run chosen tests
         run: |
-          gradle :${{ github.event.inputs.project-name }}:test --no-daemon --tests ${{ github.event.inputs.tests-bunch-name }}
+          gradle :${{ github.event.inputs.project-name }}:test --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g --tests ${{ github.event.inputs.tests-bunch-name }}
           
       - name: Upload ${{ github.event.inputs.project-name }} tests report if tests have failed
         if: ${{ failure() }}

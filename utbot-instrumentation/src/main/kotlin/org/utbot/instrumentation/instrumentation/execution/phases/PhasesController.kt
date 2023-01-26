@@ -1,20 +1,39 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
+import com.jetbrains.rd.util.debug
+import com.jetbrains.rd.util.getLogger
 import java.io.Closeable
 import java.security.AccessControlException
-import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.MissingState
+import org.utbot.framework.plugin.api.UtIgnoreFailure
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
+import org.utbot.instrumentation.instrumentation.execution.data.UtConcreteExecutionSpecification
+
+internal class UtConcreteExecutionForceException(override val cause: Throwable) : Exception()
+
+internal inline fun <reified T> withForceException(block: () -> T): T {
+    try {
+        return block()
+    } catch (e: UtConcreteExecutionForceException) {
+        throw e
+    } catch (e: Throwable) {
+        throw UtConcreteExecutionForceException(e)
+    }
+}
 
 class PhasesController(
     instrumentationContext: InstrumentationContext,
     traceHandler: TraceHandler,
     delegateInstrumentation: Instrumentation<Result<*>>,
+    private val specification: UtConcreteExecutionSpecification?,
 ) : Closeable {
+
+    private val logger by lazy { getLogger("InstrumentedProcess") }
 
     val valueConstructionContext = ValueConstructionContext(instrumentationContext)
 
@@ -28,10 +47,12 @@ class PhasesController(
 
     val postprocessingContext = PostprocessingContext()
 
-    inline fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
+    fun computeConcreteExecutionResult(block: PhasesController.() -> UtConcreteExecutionResult): UtConcreteExecutionResult {
         return use {
             try {
                 block()
+            } catch (e: UtConcreteExecutionForceException) {
+                throw e.cause
             } catch (e: PhaseError) {
                 if (e.cause.cause is AccessControlException) {
                     return@use UtConcreteExecutionResult(
@@ -40,7 +61,15 @@ class PhasesController(
                         Coverage()
                     )
                 }
-                // TODO: make failure results from different phase errors
+                if (specification != null && specification.exceptionIsExpected(e)) {
+                    logger.debug { "ignore exception by specification:" }
+                    logger.debug { e }
+                    return@use UtConcreteExecutionResult(
+                        MissingState,
+                        UtIgnoreFailure(e),
+                        Coverage()
+                    )
+                }
                 throw e
             }
         }

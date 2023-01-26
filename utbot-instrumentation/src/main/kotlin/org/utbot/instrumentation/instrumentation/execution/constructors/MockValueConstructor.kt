@@ -53,6 +53,7 @@ import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.anyInstance
+import org.utbot.instrumentation.instrumentation.execution.phases.withForceException
 import org.utbot.instrumentation.process.runSandbox
 
 /**
@@ -234,7 +235,10 @@ class MockValueConstructor(
     }
 
     private fun generateMockitoMock(clazz: Class<*>, mocks: Map<ExecutableId, List<UtModel>>): Any {
-        return Mockito.mock(clazz, generateMockitoAnswer(mocks))
+        val answer = generateMockitoAnswer(mocks)
+        return withForceException {
+            Mockito.mock(clazz, answer)
+        }
     }
 
     private fun computeConcreteValuesForMethods(
@@ -261,13 +265,15 @@ class MockValueConstructor(
             if (method !is MethodId) {
                 throw IllegalArgumentException("Expected MethodId, but got: $method")
             }
-            MethodMockController(
-                method.classId.jClass,
-                method.method,
-                instance,
-                values,
-                instrumentationContext
-            )
+            withForceException {
+                MethodMockController(
+                    method.classId.jClass,
+                    method.method,
+                    instance,
+                    values,
+                    instrumentationContext
+                )
+            }
         }
 
     }
@@ -289,11 +295,13 @@ class MockValueConstructor(
         instrumentations: List<UtNewInstanceInstrumentation>,
     ) {
         controllers += instrumentations.map { mock ->
-            InstanceMockController(
-                mock.classId,
-                mock.instances.map { mockAndGet(it) },
-                mock.callSites.map { Type.getType(it.jClass).internalName }.toSet()
-            )
+            withForceException {
+                InstanceMockController(
+                    mock.classId,
+                    mock.instances.map { mockAndGet(it) },
+                    mock.callSites.map { Type.getType(it.jClass).internalName }.toSet()
+                )
+            }
         }
     }
 
@@ -393,7 +401,9 @@ class MockValueConstructor(
             val capturedArguments = lambdaModel.capturedValues
                 .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
                 .toTypedArray()
-            constructStaticLambda(samType, declaringClass, lambdaName, *capturedArguments)
+            withForceException {
+                constructStaticLambda(samType, declaringClass, lambdaName, *capturedArguments)
+            }
         } else {
             val capturedReceiverModel = lambdaModel.capturedValues.firstOrNull()
                 ?: error("Non-static lambda must capture `this` instance, so there must be at least one captured value")
@@ -403,7 +413,9 @@ class MockValueConstructor(
             val capturedArguments = lambdaModel.capturedValues.subList(1, lambdaModel.capturedValues.size)
                 .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
                 .toTypedArray()
-            constructLambda(samType, declaringClass, lambdaName, capturedReceiver, *capturedArguments)
+            withForceException {
+                constructLambda(samType, declaringClass, lambdaName, capturedReceiver, *capturedArguments)
+            }
         }
         constructedObjects[lambdaModel] = lambda
         return lambda
@@ -495,7 +507,7 @@ class MockValueConstructor(
 
     private fun javaClass(id: ClassId) = kClass(id).java
 
-    private fun kClass(id: ClassId) =
+    private fun kClass(id: ClassId) = withForceException {
         if (id.elementClassId != null) {
             arrayClassOf(id.elementClassId!!)
         } else {
@@ -511,8 +523,9 @@ class MockValueConstructor(
                 else -> classLoader.loadClass(id.name).kotlin
             }
         }
+    }
 
-    private fun arrayClassOf(elementClassId: ClassId): KClass<*> =
+    private fun arrayClassOf(elementClassId: ClassId): KClass<*> = withForceException {
         if (elementClassId.elementClassId != null) {
             val elementClass = arrayClassOf(elementClassId.elementClassId!!)
             java.lang.reflect.Array.newInstance(elementClass.java, 0)::class
@@ -532,6 +545,7 @@ class MockValueConstructor(
                 }
             }
         }
+    }
 
     override fun close() {
         controllers.forEach { it.close() }

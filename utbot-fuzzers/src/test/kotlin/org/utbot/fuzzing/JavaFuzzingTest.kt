@@ -217,6 +217,23 @@ class JavaFuzzingTest {
     }
 
     @Test
+    fun `fuzzing should not generate values of private enums`() {
+        var exec = 0
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = AccessibleObjects::class.java.declaredMethods.first { it.name == "ordinal" }.executableId,
+                constants = emptyList(),
+                names = emptyList(),
+            ) { _, _, _ ->
+                exec += 1
+                BaseFeedback(Trie.emptyNode(), Control.STOP)
+            }
+        }
+        assertEquals(0, exec) { "Fuzzer should not create any values of private classes" }
+    }
+
+    @Test
     fun `fuzzing generate single test in case of collection with fail-to-generate generic type`() {
         val size = 100
         var exec = size

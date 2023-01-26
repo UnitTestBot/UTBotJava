@@ -19,7 +19,23 @@ env:
   IMAGE_NAME: utbot_java_cli
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
   # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+  #
+  # When configuring Gradle behavior you can use these methods,
+  # listed in order of highest to lowest precedence (first one wins):
+  # - Command-line flags such as --build-cache.
+  #   These have precedence over properties and environment variables.
+  # - System properties such as systemProp.http.proxyHost=somehost.org
+  #   stored in a gradle.properties file in a root project directory.
+  # - Gradle properties such as org.gradle.caching=true that are
+  #   typically stored in a gradle.properties file in a project
+  #   directory or in the GRADLE_USER_HOME.
+  # - Environment variables such as GRADLE_OPTS sourced by the
+  #   environment that executes Gradle.
+  #
+  # read more at: https://docs.gradle.org/current/userguide/build_environment.html
+  #
+  # example of GRADLE_OPTS:
+#  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process"
   PUSHGATEWAY_HOSTNAME: monitoring.utbot.org
   ELK_HOSTNAME: logs.utbot.org
   FILEBEAT_DIR: /tmp/filebeat
@@ -115,7 +131,7 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-framework
       - name: Run tests
         run: |
-          gradle --build-cache --no-daemon :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
+          gradle --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
 
       - name: Upload logs
         if: ${{ always() }}
@@ -191,13 +207,13 @@ jobs:
         id: first-project
         run: |
           cd ${{ matrix.projects.first }}
-          gradle build --build-cache --no-daemon
+          gradle build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
 
       - name: Build project ${{ matrix.projects.second }}
         if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
         run: |
           cd ${{ matrix.projects.second }}
-          gradle build --build-cache --no-daemon
+          gradle build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
 
       - name: Upload test report if tests have failed
         if: ${{ failure() }}
@@ -266,7 +282,7 @@ jobs:
       - name: Run tests
         run: |
           cd ${{ matrix.project }}
-          gradle build --build-cache --no-daemon
+          gradle build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx6g -Dkotlin.daemon.jvm.options=-Xmx4g
 
       - name: Upload test report if tests have failed
         if: ${{ failure() }}

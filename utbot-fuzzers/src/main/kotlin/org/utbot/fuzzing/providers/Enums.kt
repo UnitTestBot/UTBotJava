@@ -20,11 +20,14 @@ class EnumValueProvider(
         description: FuzzedDescription,
         type: FuzzedType
     ) = sequence<Seed<FuzzedType, FuzzedValue>> {
-        type.classId.jClass.enumConstants.filterIsInstance<Enum<*>>().forEach { enum ->
-            val id = idGenerator.getOrCreateIdForValue(enum)
-            yield(Seed.Simple(UtEnumConstantModel(id, type.classId, enum).fuzzed {
-                summary = "%var% = $enum"
-            }))
+        val jClass = type.classId.jClass
+        if (isAccessible(jClass, description.description.packageName)) {
+            jClass.enumConstants.filterIsInstance<Enum<*>>().forEach { enum ->
+                val id = idGenerator.getOrCreateIdForValue(enum)
+                yield(Seed.Simple(UtEnumConstantModel(id, type.classId, enum).fuzzed {
+                    summary = "%var% = $enum"
+                }))
+            }
         }
     }
 }

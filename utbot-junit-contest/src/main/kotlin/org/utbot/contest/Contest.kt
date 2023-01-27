@@ -146,8 +146,8 @@ fun main(args: Array<String>) {
                 fuzzingRatio = 0.1,
                 classpathString,
                 runFromEstimator = false,
-                methodNameFilter = null,
-                expectedExceptions = ExpectedExceptionsForClass()
+                expectedExceptions = ExpectedExceptionsForClass(),
+                methodNameFilter = null
             )
             println("${ContestMessage.READY}")
         }
@@ -180,8 +180,8 @@ fun runGeneration(
     fuzzingRatio: Double,
     classpathString: String,
     runFromEstimator: Boolean,
-    methodNameFilter: String? = null, // For debug purposes you can specify method name
-    expectedExceptions: ExpectedExceptionsForClass
+    expectedExceptions: ExpectedExceptionsForClass,
+    methodNameFilter: String? = null // For debug purposes you can specify method name
 ): StatsForClass = runBlocking {
     val testsByMethod: MutableMap<ExecutableId, MutableList<UtExecution>> = mutableMapOf()
     val currentContext = utContext

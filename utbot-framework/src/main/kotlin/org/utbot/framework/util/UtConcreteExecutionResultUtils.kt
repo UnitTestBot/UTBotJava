@@ -2,6 +2,7 @@ package org.utbot.framework.util
 
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
@@ -12,7 +13,7 @@ private fun UtConcreteExecutionResult.updateWithAssembleModels(
 ): UtConcreteExecutionResult {
     val toAssemble: (UtModel) -> UtModel = { assembledUtModels.getOrDefault(it, it) }
 
-    val resolvedStateAfter = EnvironmentModels(
+    val resolvedStateAfter = if (stateAfter is MissingState) MissingState else EnvironmentModels(
         stateAfter.thisInstance?.let { toAssemble(it) },
         stateAfter.parameters.map { toAssemble(it) },
         stateAfter.statics.mapValues { toAssemble(it.value) }

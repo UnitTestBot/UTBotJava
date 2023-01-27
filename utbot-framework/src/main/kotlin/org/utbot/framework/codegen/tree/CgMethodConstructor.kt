@@ -67,7 +67,7 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -343,7 +343,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 }
             }
             CRASH -> when (expectedException) {
-                is ConcreteExecutionFailureException -> {
+                is InstrumentedProcessDeathException -> {
                     writeWarningAboutCrash()
                     methodInvocationBlock()
                 }
@@ -425,7 +425,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     protected fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
-        if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
+        if (exception is TimeoutException || exception is InstrumentedProcessDeathException) return false
         if (exception is ArtificialError) return false
         if (UtSettings.treatAssertAsErrorSuite && exception is AssertionError) return false
 
@@ -1844,7 +1844,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     shouldTestPassWithTimeoutException(currentExecution, exception) -> TIMEOUT
                     else -> when (exception) {
                         is ArtificialError -> ARTIFICIAL
-                        is ConcreteExecutionFailureException -> CRASH
+                        is InstrumentedProcessDeathException -> CRASH
                         is AccessControlException -> CRASH // exception from sandbox
                         else -> FAILING
                     }

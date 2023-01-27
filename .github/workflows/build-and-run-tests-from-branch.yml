@@ -99,6 +99,7 @@ jobs:
       - name: Run monitoring
         # secret uploaded using base64 encoding to have one-line output:
         # cat file | base64 -w 0
+        continue-on-error: true
         run: |
           chmod +x ./scripts/project/monitoring.sh
           ./scripts/project/monitoring.sh "${PUSHGATEWAY_HOSTNAME}" "${{ secrets.PUSHGATEWAY_USER }}" "${{ secrets.PUSHGATEWAY_PASSWORD }}"

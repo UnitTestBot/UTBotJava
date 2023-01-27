@@ -21,7 +21,7 @@ object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
         type: JsClassId
     ): Sequence<Seed<JsClassId, FuzzedValue>> = sequence {
         val constants = description.concreteValues.asSequence()
-            .filter { it.type == jsStringClassId }
+            .filter { it.classId == jsStringClassId }
         val values = constants
             .mapNotNull { it.value as? String } +
                 sequenceOf("", "abc", "\n\t\r")

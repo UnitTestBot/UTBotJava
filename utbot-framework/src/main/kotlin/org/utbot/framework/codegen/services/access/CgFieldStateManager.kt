@@ -180,7 +180,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         for ((index, fieldPathElement) in path.withIndex()) {
             when (fieldPathElement) {
                 is FieldAccess -> {
-                    if (!fieldPathElement.field.canBeReadFrom(context)) {
+                    if (!fieldPathElement.field.canBeReadFrom(context, curType)) {
                         lastAccessibleIndex = index - 1
                         break
                     }
@@ -246,7 +246,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
 
     private fun variableForStaticFieldState(owner: ClassId, fieldPath: FieldPath, customName: String?): CgVariable {
         val firstField = (fieldPath.elements.first() as FieldAccess).field
-        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.canBeReadFrom(context)) {
+        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.canBeReadFrom(context, owner)) {
             owner[firstField]
         } else {
             // TODO: there is a function getClassOf() for these purposes, but it is not accessible from here for now

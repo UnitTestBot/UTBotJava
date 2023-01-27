@@ -26,7 +26,7 @@ public class ProcessWithRdServer
     private Process _process;
     private ILogger _logger = Logger.GetLogger<ProcessWithRdServer>();
 
-    public ProcessWithRdServer(string name, int port, string exePath, IShellLocks shellLocks, Lifetime? parent = null)
+    public ProcessWithRdServer(string name, string workingDir, int port, string exePath, IShellLocks shellLocks, Lifetime? parent = null)
     {
         using var blockingCollection = new BlockingCollection<String>(2);
         shellLocks.AssertNonMainThread();
@@ -41,7 +41,9 @@ public class ProcessWithRdServer
                 var wire = new SocketWire.Server(Lifetime, scheduler, socket);
                 var serializers = new Serializers();
                 var identities = new Identities(IdKind.Server);
-                var startInfo = new ProcessStartInfo("dotnet", $"{exePath} {port}");
+                var startInfo = new ProcessStartInfo("dotnet", $"\"{exePath}\" {port}");
+                
+                startInfo.WorkingDirectory = workingDir;
                 Protocol = new Protocol(name, serializers, identities, scheduler, wire, Lifetime);
                 scheduler.Queue(() =>
                 {

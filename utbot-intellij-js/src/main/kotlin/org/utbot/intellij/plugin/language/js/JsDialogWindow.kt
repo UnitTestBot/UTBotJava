@@ -52,7 +52,6 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
         )
 
     init {
-        model.pathToNPM = model.pathToNode.substringBeforeLast("/") + "/" + "npm.cmd"
         title = "Generate Tests with UtBot"
         isResizable = false
         init()

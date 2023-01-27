@@ -53,20 +53,41 @@ object JsDialogProcessor {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
                     getFrameworkLibraryPath(Mocha.displayName.lowercase(), model)
-                    createDialog(model)?.let { dialogProcessor ->
-                        if (!dialogProcessor.showAndGet()) return@invokeLater
+                    createDialog(model)?.let { dialogWindow ->
+                        if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
                         runWriteAction {
                             with(FileDocumentManager.getInstance()) {
                                 saveDocument(editor.document)
                             }
                         }
-                        createTests(dialogProcessor.model, containingFilePath, editor)
+                        createTests(dialogWindow.model, containingFilePath, editor)
                     }
                 }
             }
         }).queue()
     }
+
+    private fun findNodeAndNPM(): Pair<String, String>? =
+        try {
+            val pathToNode = NodeJsLocalInterpreterManager.getInstance()
+                .interpreters.first().interpreterSystemIndependentPath
+            val (_, error) = JsCmdExec.runCommand(
+                shouldWait = true,
+                cmd = arrayOf("\"${pathToNode}\"", "-v")
+            )
+            if (error.readText().isNotEmpty()) throw NoSuchElementException()
+            val pathToNPM = pathToNode.substringBeforeLast("/") + "/" + "npm.cmd"
+            pathToNode to pathToNPM
+        } catch (e: NoSuchElementException) {
+            Messages.showErrorDialog(
+                "Node.js interpreter is not found in IDEA settings.\n" +
+                        "Please set it in Settings > Languages & Frameworks > Node.js",
+                "Requirement Error"
+            )
+            logger.error { "Node.js interpreter was not found in IDEA settings." }
+            null
+        }
 
     private fun createJsTestModel(
         project: Project,
@@ -86,43 +107,22 @@ object JsDialogProcessor {
             showErrorDialogLater(project, errorMessage, "Test source roots not found")
             return null
         }
+        val (pathToNode, pathToNPM) = findNodeAndNPM() ?: return null
         return JsTestsModel(
             project = project,
             srcModule = srcModule,
             potentialTestModules = testModules,
             fileMethods = fileMethods,
             selectedMethods = if (focusedMethod != null) setOf(focusedMethod) else emptySet(),
-            file = file
+            file = file,
         ).apply {
             containingFilePath = filePath
-        }
-
-    }
-
-    private fun createDialog(
-        jsTestsModel: JsTestsModel?
-    ): JsDialogWindow? {
-        return jsTestsModel?.let {
-            try {
-                jsTestsModel.pathToNode = NodeJsLocalInterpreterManager.getInstance()
-                    .interpreters.first().interpreterSystemIndependentPath
-                val (_, error) = JsCmdExec.runCommand(
-                    shouldWait = true,
-                    cmd = arrayOf("\"${jsTestsModel.pathToNode}\"", "-v")
-                )
-                if (error.readText().isNotEmpty()) throw NoSuchElementException()
-                JsDialogWindow(it)
-            } catch (e: NoSuchElementException) {
-                Messages.showErrorDialog(
-                    "Node.js interpreter is not found in IDEA settings.\n" +
-                            "Please set it in Settings > Languages & Frameworks > Node.js",
-                    "Requirement Error"
-                )
-                logger.error { "Node.js interpreter was not found in IDEA settings." }
-                null
-            }
+            this.pathToNode = pathToNode
+            this.pathToNPM = pathToNPM
         }
     }
+
+    private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
 
     private fun unblockDocument(project: Project, document: Document) {
         PsiDocumentManager.getInstance(project).apply {

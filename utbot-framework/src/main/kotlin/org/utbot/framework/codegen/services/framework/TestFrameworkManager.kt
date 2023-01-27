@@ -88,8 +88,6 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     abstract val annotationForNestedClasses: CgAnnotation?
 
-    abstract val annotationForOuterClasses: CgAnnotation?
-
     /**
      * Determines whether appearance of expected exception in test method breaks current test execution or not.
      */
@@ -261,9 +259,6 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForNestedClasses: CgAnnotation?
         get() = null
 
-    override val annotationForOuterClasses: CgAnnotation?
-        get() = null
-
     override val isExpectedExceptionExecutionBreaking: Boolean = false
 
     override val timeoutArgumentName: String = "timeOut"
@@ -409,20 +404,6 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForNestedClasses: CgAnnotation?
         get() = null
 
-    override val annotationForOuterClasses: CgAnnotation
-        get() {
-            require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
-            return statementConstructor.annotation(
-                testFramework.runWithAnnotationClassId,
-                testFramework.enclosedClassId.let {
-                    when (codegenLanguage) {
-                        CodegenLanguage.JAVA   -> CgGetJavaClass(it)
-                        CodegenLanguage.KOTLIN -> CgGetKotlinClass(it)
-                    }
-                }
-            )
-        }
-
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
@@ -481,12 +462,8 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForNestedClasses: CgAnnotation
         get() {
             require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
-
             return statementConstructor.annotation(testFramework.nestedTestClassAnnotationId)
         }
-
-    override val annotationForOuterClasses: CgAnnotation?
-        get() = null
 
     override val isExpectedExceptionExecutionBreaking: Boolean = false
 

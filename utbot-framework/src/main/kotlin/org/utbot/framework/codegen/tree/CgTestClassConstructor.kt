@@ -1,7 +1,10 @@
 package org.utbot.framework.codegen.tree
 
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.Junit4
+import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
@@ -77,23 +80,30 @@ open class CgTestClassConstructor(val context: CgContext) :
                     currentTestClassContext.collectedTestClassAnnotations += it
                 }
             }
-            if (testClassModel.nestedClasses.isNotEmpty()) {
-                testFrameworkManager.annotationForOuterClasses?.let {
-                    currentTestClassContext.collectedTestClassAnnotations += it
-                }
-            }
 
             body = buildClassBody(currentTestClass) {
+                val notYetConstructedTestSets = testClassModel.methodTestSets.toMutableList()
+
                 for (nestedClass in testClassModel.nestedClasses) {
-                    nestedClassRegions += CgRealNestedClassesRegion(
-                        "Tests for ${nestedClass.classUnderTest.simpleName}",
-                        listOf(
-                            withNestedClassScope(nestedClass) { constructTestClass(nestedClass) }
-                        )
-                    )
+                    // It is not possible to run tests for both outer and inner class in JUnit4 at once,
+                    // so we locate all test methods in outer test class for JUnit4.
+                    // see https://stackoverflow.com/questions/69770700/how-to-run-tests-from-outer-class-and-nested-inner-classes-simultaneously-in-jun
+                    // or https://stackoverflow.com/questions/28230277/test-cases-in-inner-class-and-outer-class-with-junit4
+                    when (testFramework) {
+                        Junit4 -> {
+                            notYetConstructedTestSets += collectTestSetsFromInnerClasses(nestedClass)
+                        }
+                        Junit5,
+                        TestNg -> {
+                            nestedClassRegions += CgRealNestedClassesRegion(
+                                "Tests for ${nestedClass.classUnderTest.simpleName}",
+                                listOf(withNestedClassScope(nestedClass) { constructTestClass(nestedClass) })
+                            )
+                        }
+                    }
                 }
 
-                for (testSet in testClassModel.methodTestSets) {
+                for (testSet in notYetConstructedTestSets) {
                     updateCurrentExecutable(testSet.executableId)
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
                     val executableUnderTestCluster = CgMethodsCluster(
@@ -159,6 +169,15 @@ open class CgTestClassConstructor(val context: CgContext) :
         }
 
         return if (regions.any()) regions else null
+    }
+
+    private fun collectTestSetsFromInnerClasses(model: TestClassModel): List<CgMethodTestSet> {
+        val testSets = model.methodTestSets.toMutableList()
+        for (nestedClass in model.nestedClasses) {
+            testSets += collectTestSetsFromInnerClasses(nestedClass)
+        }
+
+        return testSets
     }
 
     private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {

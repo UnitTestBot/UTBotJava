@@ -5,6 +5,8 @@ on:
     branches:
       - 'main'
       - 'unit-test-bot/r**'
+      # temporary
+      - 'egor-vasiliev/1755-fix-publishing'
   pull_request:
     branches:
       - 'main'

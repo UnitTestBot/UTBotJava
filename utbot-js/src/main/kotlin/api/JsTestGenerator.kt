@@ -54,10 +54,11 @@ import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.dummyClassName
+import settings.JsTestGenerationSettings.fuzzingThreshold
 import utils.PathResolver
+import utils.ResultData
 import utils.constructClass
 import utils.toJsAny
-
 
 class JsTestGenerator(
     private val fileText: String,
@@ -135,23 +136,17 @@ class JsTestGenerator(
             it.name == funcNode.getAbstractFunctionName()
         } ?: throw IllegalStateException()
         manageExports(classNode, funcNode, execId)
-        val kek = mutableListOf<UtExecutionResult>()
+        val executionResults = mutableListOf<UtExecutionResult>()
+        // TODO: add timeout predicate
         runBlocking {
             runLol(funcNode, execId, context).collect {
-                kek += it
+                executionResults += it
             }
         }
-        val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId, context)
-        val (allCoveredStatements, executionResults) =
-            CoverageServiceProvider(context, InstrumentationService(context)).get(
-                settings.coverageMode,
-                fuzzedValues,
-                execId
-            )
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
         executionResults.forEachIndexed { index, value ->
-            if (value == "Error:Timeout") {
+            if (value is UtTimeoutException) {
                 errorsForGenerator["Timeout in generating test for ${
                     fuzzedValues[index]
                         .joinToString { f -> f.model.toString() }
@@ -164,7 +159,7 @@ class JsTestGenerator(
             val result =
                 getUtModelResult(
                     execId = execId,
-                    returnText = executionResults[paramIndex]
+                    resultData = executionResults[paramIndex]
                 )
             val thisInstance = makeThisInstance(execId, classId, concreteValues)
             val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
@@ -234,13 +229,14 @@ class JsTestGenerator(
 
     private fun getUtModelResult(
         execId: JsMethodId,
-        returnText: String
+        resultData: ResultData
     ): UtExecutionResult {
-        val (returnValue, valueClassId) = returnText.toJsAny(execId.returnType)
+        if (resultData.rawString == "Error:Timeout") return UtTimeoutException(TimeoutException(""))
+        val (returnValue, valueClassId) = resultData.rawString.toJsAny(execId.returnType)
         val result = JsUtModelConstructor().construct(returnValue, valueClassId)
         val utExecResult = when (result.classId) {
             jsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
-            else -> UtExecutionSuccess(result)
+            else -> UtFuzzedExecution(result)
         }
         return utExecResult
     }
@@ -255,6 +251,7 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
+            // TODO: make visitor return JsFuzzedConcreteValue
             concreteValues = fuzzerVisitor.fuzzedConcreteValues.map {
                 JsFuzzedConcreteValue(
                     it.classId.toJsClassId(),
@@ -264,28 +261,32 @@ class JsTestGenerator(
             }
         )
         val collectedValues = mutableListOf<List<FuzzedValue>>()
-        val chunkThreshold = 3
         val instrService = InstrumentationService(context)
         instrService.instrument()
+        val coverageProvider = CoverageServiceProvider(
+            context,
+            instrService,
+            context.settings.coverageMode
+        )
         val allStmts = instrService.allStatements
-        val currentlyCoveredStmts = mutableSetOf<Int>()
-        runFuzzing(jsDescription) { description, values ->
+        val currentlyCoveredStmts = mutableSetOf<Int>().apply {
+            this.addAll(coverageProvider.baseCoverage)
+        }
+        runFuzzing(jsDescription) { _, values ->
             collectedValues += values
-            if (collectedValues.size > chunkThreshold) {
+            if (collectedValues.size > fuzzingThreshold) {
                 try {
-                    val (coveredStmts, executionResults) = CoverageServiceProvider(context, instrService).get(
-                        context.settings.coverageMode,
+                    val (coveredStmts, executionResults) = coverageProvider.get(
                         collectedValues,
                         execId
                     )
                     collectedValues.clear()
                     coveredStmts.forEachIndexed { paramIndex, covData ->
-                        currentlyCoveredStmts += covData.baseCoverage
                         if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val result =
                                 getUtModelResult(
                                     execId = execId,
-                                    returnText = executionResults[paramIndex]
+                                    resultData = executionResults[paramIndex]
                                 )
                             emit(result)
                             currentlyCoveredStmts += covData.additionalCoverage

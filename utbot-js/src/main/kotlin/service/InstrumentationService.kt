@@ -34,14 +34,12 @@ class InstrumentationService(context: ServiceContext): ContextOwner by context {
     fun instrument() {
         val fileName = filePathToInference.substringAfterLast("/")
 
-        val (def, error) = JsCmdExec.runCommand(
+        JsCmdExec.runCommand(
             cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destinationFolderPath),
             dir = filePathToInference.substringBeforeLast("/"),
             shouldWait = true,
             timeout = settings.timeout,
         )
-        val a = def.readText()
-        val b = error.readText()
         val instrumentedFileText = File(instrumentedFilePath).readText()
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
         val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value ?: throw IllegalStateException("")

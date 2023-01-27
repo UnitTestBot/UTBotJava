@@ -13,4 +13,7 @@ object JsTestGenerationSettings {
 
     // Name of temporary files created.
     const val tempFileName = "temp"
+
+    // Number of test cases that can fit in one temporary file for Fast coverage mode
+    const val fuzzingThreshold = 1000
 }

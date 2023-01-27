@@ -11,24 +11,54 @@ import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
 import utils.PathResolver
+import utils.ResultData
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
-// TODO: remove classNode field.
 class CoverageServiceProvider(
     private val context: ServiceContext,
     private val instrumentationService: InstrumentationService,
-): ContextOwner by context {
+    private val mode: CoverageMode
+) : ContextOwner by context {
 
     private val importFileUnderTest = "instr/${filePathToInference.substringAfterLast("/")}"
 
-    private val imports = "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
-            "const fs = require(\"fs\")\n\n"
+    private val imports =
+        "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
+                "const fs = require(\"fs\")\n\n"
+
+    private val filePredicate = """
+function check_value(value, json) {
+    if (value === Infinity) {
+        json.is_inf = true
+        json.spec_sign = 1
+    }
+    if (value === -Infinity) {
+        json.is_inf = true
+        json.spec_sign = -1
+    }
+    if (isNaN(value)) {
+        json.is_nan = true
+    }
+}
+    """
+
+    val baseCoverage: List<Int>
+
+    init {
+        val temp = makeScriptForBaseCoverage(
+            instrumentationService.covFunName,
+            "${projectPath}/${utbotDir}/${tempFileName}Base.json"
+        )
+        baseCoverage = FastCoverageService.getBaseCoverage(
+            context,
+            temp
+        )
+    }
 
     fun get(
-        mode: CoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-    ): Pair<List<CoverageData>, List<String>> {
+    ): Pair<List<CoverageData>, List<ResultData>> {
         return when (mode) {
             CoverageMode.FAST -> runFastCoverageAnalysis(
                 fuzzedValues,
@@ -42,13 +72,17 @@ class CoverageServiceProvider(
         }
     }
 
-
     private fun runBasicCoverageAnalysis(
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-    ): Pair<List<CoverageData>, List<String>> {
+    ): Pair<List<CoverageData>, List<ResultData>> {
         val tempScriptTexts = fuzzedValues.indices.map {
-            "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
+            "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${
+                PathResolver.getRelativePath(
+                    "${context.projectPath}/${context.utbotDir}",
+                    context.filePathToInference
+                )
+            }\")\n" + "const fs = require(\"fs\")\n\n" + "$filePredicate\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
                 containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
@@ -61,6 +95,7 @@ class CoverageServiceProvider(
             context = context,
             scriptTexts = tempScriptTexts,
             testCaseIndices = fuzzedValues.indices,
+            baseCoverage = baseCoverage
         )
         return coverageService.getCoveredLines() to coverageService.resultList
     }
@@ -68,9 +103,9 @@ class CoverageServiceProvider(
     private fun runFastCoverageAnalysis(
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-    ): Pair<List<CoverageData>, List<String>> {
+    ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
-        val tempScriptTexts = fuzzedValues.indices.map {
+        val tempScriptTexts = imports + "$filePredicate\n\n" + fuzzedValues.indices.joinToString("\n\n") {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
@@ -81,34 +116,13 @@ class CoverageServiceProvider(
                 mode = CoverageMode.FAST
             )
         }
-        val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${projectPath}/${utbotDir}/${tempFileName}Base.json")
         val coverageService = FastCoverageService(
             context = context,
-            scriptTexts = splitTempScriptsIfNeeded(tempScriptTexts),
+            scriptTexts = listOf(tempScriptTexts),
             testCaseIndices = fuzzedValues.indices,
-            baseCoverageScriptText = baseCoverageScriptText,
+            baseCoverage = baseCoverage,
         )
         return coverageService.getCoveredLines() to coverageService.resultList
-    }
-
-    // TODO: do not hardcode 1000 constant - move to settings object.
-    private fun splitTempScriptsIfNeeded(tempScripts: List<String>): List<String> {
-        when {
-            // No need to run parallel execution, so only 1 element in the list
-            tempScripts.size < 1000 -> {
-                return listOf(
-                    imports + tempScripts.joinToString("\n\n")
-                )
-            }
-            else -> {
-                return tempScripts
-                    .withIndex()
-                    .groupBy { it.index / 1000 }
-                    .map { entry ->
-                        imports + entry.value.joinToString("\n\n") { it.value }
-                    }
-            }
-        }
     }
 
     private fun makeScriptForBaseCoverage(covFunName: String, resFilePath: String): String {
@@ -133,10 +147,13 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
         val callString = makeCallFunctionString(fuzzedValue, method, containingClass)
         return """
 let json$index = {}
-
+json$index.is_inf = false
+json$index.is_nan = false
+json$index.spec_sign = 1
 let res$index
 try {
     res$index = $callString
+    check_value(res$index, json$index)
 } catch(e) {
     res$index = "Error:" + e.message
 }

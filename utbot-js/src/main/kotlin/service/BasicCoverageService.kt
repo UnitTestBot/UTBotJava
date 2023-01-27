@@ -2,6 +2,7 @@ package service
 
 import java.io.File
 import java.util.Collections
+import java.util.concurrent.ConcurrentLinkedQueue
 import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
@@ -9,41 +10,47 @@ import org.utbot.framework.plugin.api.TimeoutException
 import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
 import utils.JsCmdExec
+import utils.ResultData
 
 // TODO: 1. Make searching for file coverage in coverage report more specific, not just by file name.
 class BasicCoverageService(
-    private val context: ServiceContext,
+    context: ServiceContext,
     private val scriptTexts: List<String>,
     private val testCaseIndices: IntRange,
-) : ICoverageService {
+    private val baseCoverage: List<Int>
+) : ICoverageService, ContextOwner by context {
 
-    private val errors = mutableListOf<Int>()
-    private var baseCoverage = emptyList<Int>()
+    private val errors = ConcurrentLinkedQueue<Int>()
     private val utbotDirPath = "${context.projectPath}/${context.utbotDir}"
-    private val _resultList = mutableListOf<Pair<Int, String>>()
-    val resultList: List<String>
+    private val _resultList = ConcurrentLinkedQueue<ResultData>()
+    val resultList: List<ResultData>
         get() = _resultList
-            .sortedBy { (index, _) -> index }
-            .map { (_, obj) -> obj }
+            .sortedBy { (_, index, _, _, _) -> index }
 
     init {
         generateTempFiles()
-        baseCoverage = getBaseCoverage()
         generateCoverageReportForAllFiles()
     }
 
     override fun getCoveredLines(): List<CoverageData> {
         try {
             val res = testCaseIndices.map { index ->
-                if (index in errors) CoverageData(emptySet(), baseCoverage.toSet()) else {
+                if (index in errors) CoverageData(emptySet()) else {
                     val fileCoverage =
-                        getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), index).toSet()
+                        getCoveragePerFile(filePathToInference.substringAfterLast("/"), index).toSet()
                     val resFile = File("$utbotDirPath/$tempFileName$index.json")
                     val rawResult = resFile.readText()
                     resFile.delete()
                     val json = JSONObject(rawResult)
-                    _resultList.add(index to json.get("result").toString())
-                    CoverageData(baseCoverage.toSet(), fileCoverage)
+                    val resultData = ResultData(
+                        rawString = json.get("result").toString(),
+                        index = index,
+                        isNan = json.getBoolean("is_nan"),
+                        isInf = json.getBoolean("is_inf"),
+                        specSign = json.getInt("spec_sign").toByte()
+                    )
+                    _resultList.add(resultData)
+                    CoverageData(fileCoverage)
                 }
             }
             return res
@@ -56,11 +63,9 @@ class BasicCoverageService(
 
     private fun getCoveragePerFile(fileName: String, index: Int): List<Int> {
         if (index in errors) return emptyList()
-        val jsonText = with(context) {
-            val file =
-                File("$utbotDirPath/coverage$index/coverage-final.json")
-            file.readText()
-        }
+        val file =
+            File("$utbotDirPath/coverage$index/coverage-final.json")
+        val jsonText = file.readText()
         val json = JSONObject(jsonText)
         try {
             val neededKey = json.keySet().find { it.contains(fileName) }
@@ -81,11 +86,6 @@ class BasicCoverageService(
         }
     }
 
-    private fun getBaseCoverage(): List<Int> {
-        generateCoverageReport(context.filePathToInference, 0)
-        return getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), 0)
-    }
-
     private fun removeTempFiles() {
         for (index in testCaseIndices) {
             File("$utbotDirPath/$tempFileName$index.js").delete()
@@ -102,29 +102,31 @@ class BasicCoverageService(
 
     private fun generateCoverageReport(filePath: String, index: Int) {
         try {
-            with(context) {
-                val (_, error) =
-                    JsCmdExec.runCommand(
-                        cmd = arrayOf(
-                            "\"${settings.pathToNYC}\"",
-                            "--report-dir=\"$utbotDir/coverage$index\"",
-                            "--reporter=json",
-                            "--temp-dir=\"$utbotDir/cache$index\"",
-                            "\"${settings.pathToNode}\"",
-                            "\"$filePath\""
-                        ),
-                        shouldWait = true,
-                        dir = context.projectPath,
-                        timeout = settings.timeout,
-                    )
-                val errText = error.readText()
-                if (errText.isNotEmpty()) {
-                    println(errText)
-                }
+            val (_, error) =
+                JsCmdExec.runCommand(
+                    cmd = arrayOf(
+                        "\"${settings.pathToNYC}\"",
+                        "--report-dir=\"$utbotDir/coverage$index\"",
+                        "--reporter=json",
+                        "--temp-dir=\"$utbotDir/cache$index\"",
+                        "\"${settings.pathToNode}\"",
+                        "\"$filePath\""
+                    ),
+                    shouldWait = true,
+                    dir = projectPath,
+                    timeout = settings.timeout,
+                )
+            val errText = error.readText()
+            if (errText.isNotEmpty()) {
+                println(errText)
             }
         } catch (e: TimeoutException) {
             errors += index
-            _resultList.add(index to "Error:Timeout")
+            val resultData = ResultData(
+                rawString = "Error:Timeout",
+                index = index,
+            )
+            _resultList.add(resultData)
         }
     }
 

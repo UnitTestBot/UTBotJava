@@ -51,6 +51,7 @@ object GoTestCasesGenerator {
                 }
             }
             logger.info { "Fuzzing for function [${function.name}] - completed in $totalFuzzingTime ms" }
+            logger.info { "Generated ${testCases.size} test cases"}
             testCases
         }
     }

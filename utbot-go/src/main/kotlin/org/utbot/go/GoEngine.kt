@@ -18,6 +18,7 @@ import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
 import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 
 val logger = KotlinLogging.logger {}
 
@@ -27,7 +28,7 @@ class GoEngine(
     private val goExecutableAbsolutePath: String,
     private val eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
     private val timeoutExceededOrIsCanceled: () -> Boolean,
-    private val timeout: Int = 5000
+    private val timeoutMillis: Long = 10000
 ) {
 
     fun fuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
@@ -82,24 +83,17 @@ class GoEngine(
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
                 val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir)
                 val workerSocket = try {
-                    serverSocket.soTimeout = timeout
+                    serverSocket.soTimeout = timeoutMillis.toInt()
                     serverSocket.accept()
                 } catch (e: SocketTimeoutException) {
-                    process.destroy()
-                    val exitCode = process.exitValue()
-                    if (exitCode != 0) {
-                        val processOutput = InputStreamReader(process.inputStream).readText()
-                        throw RuntimeException(
-                            StringBuilder()
-                                .append("Execution of ${"function [${methodUnderTest.name}] from $sourceFile"} in child process failed with non-zero exit code = $exitCode: ")
-                                .append("\n$processOutput")
-                                .toString()
-                        )
+                    val processHasExited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
+                    if (!processHasExited) {
+                        process.destroy()
                     }
                     throw TimeoutException("Timeout exceeded: Worker not connected")
                 }
+                logger.debug { "Worker connected" }
                 val worker = GoWorker(workerSocket)
-                workerSocket.soTimeout = timeout
                 if (methodUnderTest.parameters.isEmpty()) {
                     worker.sendFuzzedParametersValues(listOf())
                     val rawExecutionResult = worker.receiveRawExecutionResult()
@@ -143,7 +137,11 @@ class GoEngine(
                         BaseFeedback(result = trieNode, control = Control.CONTINUE)
                     }
                     workerSocket.close()
-                    process.waitFor()
+                    val processHasExited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
+                    if (!processHasExited) {
+                        process.destroy()
+                        throw TimeoutException("Timeout exceeded: Worker didn't finish")
+                    }
                     val exitCode = process.exitValue()
                     if (exitCode != 0) {
                         val processOutput = InputStreamReader(process.inputStream).readText()

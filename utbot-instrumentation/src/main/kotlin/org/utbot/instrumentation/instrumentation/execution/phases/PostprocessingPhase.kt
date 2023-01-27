@@ -10,10 +10,18 @@ import org.utbot.framework.plugin.api.util.jField
  */
 class PostprocessingPhase : ExecutionPhase {
 
+    private var savedStaticsInstance: Map<FieldId, Any?>? = null
+
+    var savedStatics: Map<FieldId, Any?>
+        get() = savedStaticsInstance!!
+        set(value) {
+            savedStaticsInstance = value
+        }
+
     override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseError(this.javaClass.simpleName, e)
 
-    fun resetStaticFields(staticFields: Map<FieldId, Any?>) {
-        staticFields.forEach { (fieldId, value) ->
+    fun resetStaticFields() {
+        savedStatics.forEach { (fieldId, value) ->
             fieldId.jField.run {
                 withAccessibility {
                     set(null, value)

@@ -84,8 +84,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             delegateInstrumentation,
             timeout
         ).computeConcreteExecutionResult {
-            var savedStatics: Map<FieldId, Any?>? = null
-
             try {
                 val (params, statics, cache) = this.executePhaseInTimeout(valueConstructionPhase) {
                     val params = constructParameters(stateBefore)
@@ -100,7 +98,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 // invariants:
                 // 1. phase must always complete if started as static reset relies on it
                 // 2. phase must be fast as there are no incremental changes
-                savedStatics = preparationPhase.start {
+                postprocessingPhase.savedStatics = preparationPhase.start {
                     val result = setStaticFields(statics)
                     resetTrace()
                     result
@@ -146,13 +144,10 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     coverage
                 )
             } finally {
-                // postprocessing
-                savedStatics?.let {
-                    postprocessingPhase.start {
-                        resetStaticFields(it)
-                    }
+                postprocessingPhase.start {
+                    resetStaticFields()
+                    valueConstructionPhase.resetMockMethods()
                 }
-                valueConstructionPhase.resetMockMethods()
             }
         }
     }

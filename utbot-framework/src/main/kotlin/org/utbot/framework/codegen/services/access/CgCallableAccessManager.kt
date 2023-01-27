@@ -323,26 +323,19 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return caller canBeReceiverOf this
     }
 
-    private fun FieldId.accessSuitability(accessor: CgExpression?): FieldAccessorSuitability {
+    private fun FieldId.accessSuitability(accessor: CgExpression): FieldAccessorSuitability {
         // Check field accessibility.
-        if (!canBeReadFrom(context)) {
+        if (!canBeReadFrom(context, accessor.type)) {
             return ReflectionOnly
         }
 
-        // If field is static, then it may not have an accessor.
-        if (this.isStatic && accessor == null) {
-            return Suitable
-        }
-
-        if (this.isStatic && accessor != null && codegenLanguage == CodegenLanguage.KOTLIN) {
+        if (this.isStatic && codegenLanguage == CodegenLanguage.KOTLIN) {
             error("In Kotlin, unlike Java, static fields cannot be accessed by an object: $this")
         }
 
         // if field is declared in the current test class
         if (this.declaringClass == currentTestClass) {
             return when {
-                // field of the current class can be accessed without explicit accessor
-                accessor == null -> Suitable
                 // field of the current class can be accessed with `this` reference
                 accessor isThisInstanceOf currentTestClass -> Suitable
                 // field of the current class can be accessed by the instance of this class
@@ -350,10 +343,6 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 // in any other case, we have to use reflection
                 else -> ReflectionOnly
             }
-        }
-
-        requireNotNull(accessor) {
-            "Field access must have a non-null accessor, unless it is the field of the current test class or a static field: $this"
         }
 
         if (this.declaringClass == accessor.type) {

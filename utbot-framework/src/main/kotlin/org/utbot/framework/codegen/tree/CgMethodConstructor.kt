@@ -150,7 +150,6 @@ import org.utbot.framework.plugin.api.util.doubleStreamClassId
 import org.utbot.framework.plugin.api.util.doubleStreamToArrayMethodId
 import org.utbot.framework.plugin.api.util.intStreamClassId
 import org.utbot.framework.plugin.api.util.intStreamToArrayMethodId
-import org.utbot.framework.plugin.api.util.isPackagePrivate
 import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.longStreamClassId
 import org.utbot.framework.plugin.api.util.longStreamToArrayMethodId
@@ -236,7 +235,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeReadFrom(context)
+            val fieldAccessible = field.canBeReadFrom(context, declaringClass)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
             val prevValue = newVar(
@@ -261,7 +260,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeSetFrom(context)
+            val fieldAccessible = field.canBeSetFrom(context, declaringClass)
 
             val fieldValue = if (isParametrized) {
                 currentMethodParameters[CgParameterKind.Statics(model)]
@@ -282,7 +281,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
     protected fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
-            if (field.canBeSetFrom(context)) {
+            if (field.canBeSetFrom(context, field.declaringClass)) {
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
@@ -1125,11 +1124,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(this)
-            //TODO: think about moving variable type checks into [isAccessibleFrom] after contest
-            && (!isPackagePrivate || variable.type.packageName == context.testClassPackageName)
-            && canBeReadFrom(context)
-        ) {
+        if (variable.type.hasField(this) && canBeReadFrom(context, variable.type)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)

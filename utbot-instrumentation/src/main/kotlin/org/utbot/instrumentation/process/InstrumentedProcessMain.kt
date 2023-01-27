@@ -3,6 +3,7 @@ package org.utbot.instrumentation.process
 import com.jetbrains.rd.util.*
 import com.jetbrains.rd.util.lifetime.Lifetime
 import kotlinx.coroutines.*
+import org.mockito.Mockito
 import org.utbot.common.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
@@ -63,6 +64,21 @@ fun logLevelArgument(level: LogLevel): String {
     return "$ENABLE_LOGS_OPTION=$level"
 }
 
+interface DummyForMockitoWarmup {
+    fun method1()
+}
+
+/**
+ * Mockito initialization take ~0.5-1 sec, which forces first `invoke` request to timeout
+ * it is crucial in tests as we start process just for 1-2 such requests
+ */
+fun warmupMockito() {
+    try {
+        val unused = Mockito.mock(DummyForMockitoWarmup::class.java)
+    } catch (ignored: Throwable) {
+    }
+}
+
 private fun findLogLevel(args: Array<String>): LogLevel {
     val logArgument = args.find{ it.contains(ENABLE_LOGS_OPTION) } ?: return LogLevel.Fatal
 
@@ -95,6 +111,7 @@ fun main(args: Array<String>) = runBlocking {
 
     try {
         ClientProtocolBuilder().withProtocolTimeout(messageFromMainTimeout).start(port) {
+            this.protocol.scheduler.queue { warmupMockito() }
             val kryoHelper = KryoHelper(lifetime)
             logger.info { "setup started" }
             AbstractSettings.setupFactory(RdSettingsContainerFactory(protocol.settingsModel))

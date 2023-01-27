@@ -68,7 +68,7 @@ import org.utbot.instrumentation.process.runSandbox
 // TODO: JIRA:1379 -- Refactor ValueConstructor and MockValueConstructor
 class MockValueConstructor(
     private val instrumentationContext: InstrumentationContext
-) : Closeable {
+) {
     private val classLoader: ClassLoader
         get() = utContext.classLoader
 
@@ -533,7 +533,7 @@ class MockValueConstructor(
             }
         }
 
-    override fun close() {
+    fun resetMockedMethods() {
         controllers.forEach { it.close() }
     }
 }

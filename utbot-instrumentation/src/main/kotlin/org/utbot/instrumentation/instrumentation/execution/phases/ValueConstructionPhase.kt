@@ -1,45 +1,44 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
+import org.utbot.framework.plugin.api.*
 import java.io.Closeable
 import java.util.IdentityHashMap
 import org.utbot.instrumentation.instrumentation.execution.constructors.MockValueConstructor
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 
-class ValueConstructionPhaseError(cause: Throwable) : PhaseError(
-    message = "Error during phase of constructing values from models",
-    cause
-)
+typealias ConstructedParameters = List<UtConcreteValue<*>>
+typealias ConstructedStatics = Map<FieldId, UtConcreteValue<*>>
+typealias ConstructedCache = IdentityHashMap<Any, UtModel>
 
 /**
  * This phase of values instantiation from given models.
  */
-class ValueConstructionContext(
+class ValueConstructionPhase(
     instrumentationContext: InstrumentationContext
-) : PhaseContext<ValueConstructionPhaseError>, Closeable {
+) : ExecutionPhase {
 
-    override fun wrapError(error: Throwable): ValueConstructionPhaseError =
-        ValueConstructionPhaseError(error)
+    override fun wrapError(e: Throwable): ExecutionPhaseException {
+        val message = this.javaClass.simpleName
+        return when(e) {
+            is TimeoutException ->  ExecutionPhaseStop(message, UtConcreteExecutionResult(MissingState, UtTimeoutException(e), Coverage()))
+            else -> ExecutionPhaseError(message, e)
+        }
+    }
 
     private val constructor = MockValueConstructor(instrumentationContext)
 
-    fun getCache(): IdentityHashMap<Any, UtModel> {
+    fun getCache(): ConstructedCache {
         return constructor.objectToModelCache
     }
 
-    fun constructParameters(state: EnvironmentModels): List<UtConcreteValue<*>> {
+    fun constructParameters(state: EnvironmentModels): ConstructedParameters {
         val parametersModels = listOfNotNull(state.thisInstance) + state.parameters
         return constructor.constructMethodParameters(parametersModels)
     }
 
-    fun constructStatics(state: EnvironmentModels): Map<FieldId, UtConcreteValue<*>> =
+    fun constructStatics(state: EnvironmentModels): ConstructedStatics =
         constructor.constructStatics(
             state.statics.filterKeys { !it.isInaccessibleViaReflection }
         )
@@ -59,8 +58,7 @@ class ValueConstructionContext(
         constructor.mockNewInstances(newInstanceInstrumentation)
     }
 
-    override fun close() {
-        constructor.close()
+    fun resetMockMethods() {
+        constructor.resetMockedMethods()
     }
-
 }

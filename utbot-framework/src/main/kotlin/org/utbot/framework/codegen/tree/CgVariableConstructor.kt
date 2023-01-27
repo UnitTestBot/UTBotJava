@@ -192,7 +192,7 @@ open class CgVariableConstructor(val context: CgContext) :
             // byteBuffer is field of type ByteBuffer and upper line is incorrect
             val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
                 fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
-            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context)) {
+            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetFrom(context, obj.type)) {
                 // TODO: check if it is correct to use declaringClass of a field here
                 val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
                 fieldAccess `=` variableForField

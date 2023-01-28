@@ -1,0 +1,246 @@
+{
+    "version": 2,
+    "targets": [
+        {
+            "target": "seata",
+            "summarised": [
+                {
+                    "parameters": {
+                        "fuzzing_ratio": 0.0,
+                        "class_timeout_sec": 20,
+                        "run_timeout_min": 20
+                    },
+                    "metrics": {
+                        "total_classes": 4,
+                        "testcases_generated": 159,
+                        "classes_failed_to_compile": 0,
+                        "classes_canceled_by_timeout": 0,
+                        "total_methods": 42,
+                        "methods_with_at_least_one_testcase_generated": 37,
+                        "methods_with_at_least_one_exception": 13,
+                        "methods_without_any_tests_and_exceptions": 4,
+                        "total_bytecode_instruction_coverage": 0.3637873754152824,
+                        "total_bytecode_instruction_coverage_by_fuzzing": 0.0,
+                        "total_bytecode_instruction_coverage_by_concolic": 0.3637873754152824,
+                        "averaged_bytecode_instruction_coverage_by_classes": 0.36330279163582746
+                    }
+                },
+                {
+                    "parameters": {
+                        "fuzzing_ratio": 0.05,
+                        "class_timeout_sec": 20,
+                        "run_timeout_min": 20
+                    },
+                    "metrics": {
+                        "total_classes": 4,
+                        "testcases_generated": 122,
+                        "classes_failed_to_compile": 1,
+                        "classes_canceled_by_timeout": 0,
+                        "total_methods": 42,
+                        "methods_with_at_least_one_testcase_generated": 29,
+                        "methods_with_at_least_one_exception": 14,
+                        "methods_without_any_tests_and_exceptions": 4,
+                        "total_bytecode_instruction_coverage": 0.28719723183391005,
+                        "total_bytecode_instruction_coverage_by_fuzzing": 0.0025951557093425604,
+                        "total_bytecode_instruction_coverage_by_concolic": 0.28460207612456745,
+                        "averaged_bytecode_instruction_coverage_by_classes": 0.31764600411160193
+                    }
+                }
+            ],
+            "by_class": [
+                {
+                    "class_name": "io.seata.core.rpc.netty.RpcServer",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 9,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 9,
+                                "methods_with_at_least_one_testcase_generated": 4,
+                                "methods_with_at_least_one_exception": 3,
+                                "methods_without_any_tests_and_exceptions": 4,
+                                "total_bytecode_instruction_coverage_in_class": 0.36764705882352944,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.36764705882352944
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 15,
+                                "failed_to_compile": true,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 9,
+                                "methods_with_at_least_one_testcase_generated": 5,
+                                "methods_with_at_least_one_exception": 6,
+                                "methods_without_any_tests_and_exceptions": 3,
+                                "total_bytecode_instruction_coverage_in_class": 0.4411764705882353,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.022058823529411766,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.41911764705882354
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "io.seata.core.rpc.netty.RmRpcClient",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 55,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 15,
+                                "methods_with_at_least_one_testcase_generated": 15,
+                                "methods_with_at_least_one_exception": 6,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.40700808625336926,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.40700808625336926
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 10,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 15,
+                                "methods_with_at_least_one_testcase_generated": 6,
+                                "methods_with_at_least_one_exception": 0,
+                                "methods_without_any_tests_and_exceptions": 1,
+                                "total_bytecode_instruction_coverage_in_class": 0.08086253369272237,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.08086253369272237
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "io.seata.core.rpc.netty.NettyPoolableFactory",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 39,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 8,
+                                "methods_with_at_least_one_testcase_generated": 8,
+                                "methods_with_at_least_one_exception": 3,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.3357664233576642,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.3357664233576642
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 42,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 8,
+                                "methods_with_at_least_one_testcase_generated": 8,
+                                "methods_with_at_least_one_exception": 5,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.38321167883211676,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.38321167883211676
+                            }
+                        }
+                    ]
+                },
+                {
+                    "class_name": "io.seata.core.rpc.DefaultServerMessageListenerImpl",
+                    "data": [
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.0,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 56,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 10,
+                                "methods_with_at_least_one_testcase_generated": 10,
+                                "methods_with_at_least_one_exception": 1,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.34278959810874704,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.34278959810874704
+                            }
+                        },
+                        {
+                            "parameters": {
+                                "fuzzing_ratio": 0.05,
+                                "class_timeout_sec": 20,
+                                "run_timeout_min": 20
+                            },
+                            "metrics": {
+                                "testcases_generated": 55,
+                                "failed_to_compile": false,
+                                "canceled_by_timeout": false,
+                                "total_methods_in_class": 10,
+                                "methods_with_at_least_one_testcase_generated": 10,
+                                "methods_with_at_least_one_exception": 3,
+                                "methods_without_any_tests_and_exceptions": 0,
+                                "total_bytecode_instruction_coverage_in_class": 0.36533333333333334,
+                                "total_bytecode_instruction_coverage_in_class_by_fuzzing": 0.0,
+                                "total_bytecode_instruction_coverage_in_class_by_concolic": 0.36533333333333334
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "source": {
+            "type": "github-action",
+            "id": "4029292488-3"
+        },
+        "commit_hash": "332c2157f16749e677512618ddba3fd94267a565",
+        "branch": "main",
+        "build_number": "2023.1",
+        "timestamp": 1674871591,
+        "date": "2023-01-28T02:06:31",
+        "environment": {
+            "host": "35daf7522db6",
+            "OS": "Linux version #38~20.04.1-Ubuntu SMP Mon Jan 9 18:23:48 UTC 2023",
+            "java_version": "openjdk version \"11.0.15\" 2022-04-19 LTS\nOpenJDK Runtime Environment Zulu11.56+19-CA (build 11.0.15+10-LTS)\nOpenJDK 64-Bit Server VM Zulu11.56+19-CA (build 11.0.15+10-LTS, mixed mode)\n",
+            "gradle_version": "Gradle 7.4.2",
+            "JAVA_HOME": "/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64",
+            "KOTLIN_HOME": "/opt/kotlin/kotlinc",
+            "PATH": "/__t/Python/3.9.16/x64/bin:/__t/Python/3.9.16/x64:/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64/bin:/opt/gradle/gradle-7.4.2/bin:/opt/kotlin/kotlinc/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        }
+    }
+}

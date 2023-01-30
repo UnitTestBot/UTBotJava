@@ -47,6 +47,7 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
+import service.CoverageMode
 import service.CoverageServiceProvider
 import service.InstrumentationService
 import service.ServiceContext
@@ -146,11 +147,8 @@ class JsTestGenerator(
         val errorsForGenerator = mutableMapOf<String, Int>()
         executionResults.forEach { value ->
             when (value) {
-                is JsTimeoutExecution -> errorsForGenerator[value.utTimeout.exception.toString()] = 1
+                is JsTimeoutExecution -> errorsForGenerator[value.utTimeout.exception.message!!] = 1
                 is JsValidExecution -> testsForGenerator.add(value.utFuzzedExecution)
-            }
-            if (value is JsTimeoutExecution) {
-                errorsForGenerator[value.utTimeout.exception.toString()] = 1
             }
         }
 
@@ -209,7 +207,9 @@ class JsTestGenerator(
                 fuzzedValues.joinToString { f -> f.model.toString() }
             } parameters\"")
         )
-        val (returnValue, valueClassId) = resultData.rawString.toJsAny(execId.returnType)
+        val (returnValue, valueClassId) = resultData.rawString.toJsAny(
+            if (execId.returnType.isJsBasic) JsClassId(resultData.type) else execId.returnType
+        )
         val result = JsUtModelConstructor().construct(returnValue, valueClassId)
         val utExecResult = when (result.classId) {
             jsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
@@ -239,7 +239,9 @@ class JsTestGenerator(
         )
         val thisInstance = makeThisInstance(execId, execId.classId)
         val collectedValues = mutableListOf<List<FuzzedValue>>()
-        val instrService = InstrumentationService(context)
+        // .location field gets us "jsFile:A:B", then we get A and B as ints
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:").split(":").map { it.toInt() }
+        val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
         instrService.instrument()
         val coverageProvider = CoverageServiceProvider(
             context,
@@ -251,23 +253,29 @@ class JsTestGenerator(
             this.addAll(coverageProvider.baseCoverage)
         }
         val startTime = System.currentTimeMillis()
+        // Used to emit at least 1 test case
+        var counter = 0
         runFuzzing(jsDescription) { _, values ->
-            if (System.currentTimeMillis() - startTime > 5_000) return@runFuzzing JsFeedback(Control.STOP)
+            if (System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
-            if (collectedValues.size > fuzzingThreshold) {
+            if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {
                     val (coveredStmts, executionResults) = coverageProvider.get(
                         collectedValues,
                         execId
                     )
                     coveredStmts.forEachIndexed { paramIndex, covData ->
-                        if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
-                            val result =
-                                getUtModelResult(
-                                    execId = execId,
-                                    resultData = executionResults[paramIndex],
-                                    collectedValues[paramIndex]
-                                )
+                        val result =
+                            getUtModelResult(
+                                execId = execId,
+                                resultData = executionResults[paramIndex],
+                                collectedValues[paramIndex]
+                            )
+                        if (result is UtTimeoutException) {
+                            emit(JsTimeoutExecution(result))
+                            return@runFuzzing JsFeedback(Control.CONTINUE)
+                        } else if (counter == 0 || !currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
+                            counter++
                             val initEnv =
                                 EnvironmentModels(thisInstance, collectedValues[paramIndex].map { it.model }, mapOf())
                             emit(

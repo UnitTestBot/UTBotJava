@@ -9,6 +9,7 @@ package utils
  */
 data class ResultData(
     val rawString: String,
+    val type: String = "string",
     val index: Int,
     val isNan: Boolean = false,
     val isInf: Boolean = false,

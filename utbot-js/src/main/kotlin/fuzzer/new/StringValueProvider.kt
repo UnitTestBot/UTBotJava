@@ -27,8 +27,8 @@ object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
                 sequenceOf("", "abc", "\n\t\r")
         values.forEach { value ->
             yield(Seed.Known(StringValue(value)) { known ->
-                JsPrimitiveModel(known.toString()).fuzzed {
-                    summary = "%var% = '${known}'"
+                JsPrimitiveModel(known.value).fuzzed {
+                    summary = "%var% = '${known.value}'"
                 }
             })
         }

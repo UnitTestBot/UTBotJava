@@ -177,7 +177,11 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
 
             val modelListIds = argsIds + kwargsIds
 
-            val resultValue = stateAfterMemory.getById(resultId).toPythonTree(stateAfterMemory)
+            val resultValue = if (resultId == "None") {
+                PythonTree.fromNone()
+            } else {
+                stateAfterMemory.getById(resultId).toPythonTree(stateAfterMemory)
+            }
 
             PythonEvaluationSuccess(
                 coverage,

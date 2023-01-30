@@ -106,8 +106,8 @@ object PythonTestGenerationProcessor {
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
 
-            if (isCanceled())
-                return
+//            if (isCanceled())
+//                return
 
             if (emptyTestSets.isNotEmpty()) {
                 notGeneratedTestsAction(emptyTestSets.map { it.method.name })
@@ -126,7 +126,6 @@ object PythonTestGenerationProcessor {
                 it.method to PythonMethodId(
                     classId,
                     it.method.name,
-                    //RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
                     RawPythonAnnotation(pythonAnyClassId.name),
                     it.method.arguments.map { argument ->
                         argument.annotation?.let { annotation ->
@@ -140,10 +139,12 @@ object PythonTestGenerationProcessor {
                 methodIds[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
             }.toMutableMap()
 
-
             val importParamModules = notEmptyTests.flatMap { testSet ->
                 testSet.executions.flatMap { execution ->
-                    execution.stateBefore.parameters.flatMap { utModel ->
+                    (execution.stateBefore.parameters + execution.stateAfter.parameters +
+                            listOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance))
+                        .filterNotNull()
+                        .flatMap { utModel ->
                         (utModel as PythonModel).let {
                             it.allContainingClassIds.map { classId ->
                                 PythonUserImport(importName_ = classId.moduleName)

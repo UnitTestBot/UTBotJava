@@ -126,7 +126,6 @@ fun calculateCoverage(statements: List<Int>, missedStatements: List<Int>, input:
 
 fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): PythonEvaluationResult {
     val result = getResult(process.process, timeout = timeout)
-//    process.fileWithCode.delete()
 
     if (result.terminatedByTimeout)
         return PythonEvaluationTimeout()

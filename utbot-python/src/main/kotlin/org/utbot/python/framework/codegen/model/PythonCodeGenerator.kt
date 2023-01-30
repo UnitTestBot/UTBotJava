@@ -37,10 +37,8 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
 import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
 import org.utbot.python.framework.codegen.model.tree.CgPythonTree
-import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonDescription
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 
@@ -176,7 +174,7 @@ class PythonCodeGenerator(
                         )
                     )
                     emptyLine()
-                    +CgPythonRepr(pythonAnyClassId, "exit()")
+                    +CgPythonRepr(pythonAnyClassId, "sys.exit()")
                 }
 
                 val args = CgPythonList(emptyList())

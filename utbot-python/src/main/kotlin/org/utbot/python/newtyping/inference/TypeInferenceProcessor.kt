@@ -12,10 +12,10 @@ import org.utbot.python.newtyping.ast.parseFunctionDefinition
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
 import org.utbot.python.newtyping.general.CompositeType
-import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.*
+import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.utils.*
 import java.io.File
 import java.nio.file.Path

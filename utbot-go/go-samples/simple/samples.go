@@ -105,7 +105,10 @@ func Binary(array [10]int, target int, lowIndex int, highIndex int) (int, error)
 	}
 }
 
-func StringSearch(str [3]byte) bool {
+func StringSearch(str string) bool {
+	if len(str) != 3 {
+		return false
+	}
 	if str[0] == 'A' {
 		if str[1] == 'B' {
 			if str[2] == 'C' {

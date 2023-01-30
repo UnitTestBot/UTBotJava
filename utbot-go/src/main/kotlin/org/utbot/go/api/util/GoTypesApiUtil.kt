@@ -112,7 +112,10 @@ fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
             this
         )
 
-        else -> GoUtNilModel(this)
+        goStringTypeId -> GoUtPrimitiveModel("", this)
+        goUintPtrTypeId -> GoUtPrimitiveModel(0, this)
+
+        else -> error("Go primitive ${this.javaClass} is not supported")
     }
 
     is GoStructTypeId -> GoUtStructModel(listOf(), this, packageName)

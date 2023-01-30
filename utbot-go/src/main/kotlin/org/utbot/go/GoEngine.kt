@@ -8,15 +8,15 @@ import org.utbot.fuzzing.BaseFeedback
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.go.api.*
-import org.utbot.go.executor.GoFuzzedFunctionsExecutor
-import org.utbot.go.executor.GoWorker
-import org.utbot.go.executor.GoWorkerCodeGenerationHelper
-import org.utbot.go.executor.convertRawExecutionResultToExecutionResult
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
+import org.utbot.go.worker.GoWorker
+import org.utbot.go.worker.GoWorkerCodeGenerationHelper
+import org.utbot.go.worker.convertRawExecutionResultToExecutionResult
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
+import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
@@ -34,39 +34,6 @@ class GoEngine(
     fun fuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
         var attempts = 0
         val attemptsLimit = Int.MAX_VALUE
-        runGoFuzzing(methodUnderTest) { description, values ->
-            if (timeoutExceededOrIsCanceled()) {
-                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-            }
-            val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
-            val executionResult = GoFuzzedFunctionsExecutor.executeGoSourceFileFuzzedFunction(
-                sourceFile,
-                fuzzedFunction,
-                goExecutableAbsolutePath,
-                eachExecutionTimeoutsMillisConfig
-            )
-            if (executionResult.trace.isEmpty()) {
-                logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
-                if (executionResult is GoUtPanicFailure) {
-                    logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
-                }
-                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-            }
-            val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
-            if (trieNode.count > 1) {
-                if (++attempts >= attemptsLimit) {
-                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                }
-                return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
-            }
-            emit(fuzzedFunction to executionResult)
-            BaseFeedback(result = trieNode, control = Control.CONTINUE)
-        }
-    }
-
-    fun fastFuzzing(): Flow<Pair<GoUtFuzzedFunction, GoUtExecutionResult>> = flow {
-        var attempts = 0
-        val attemptsLimit = Int.MAX_VALUE
         ServerSocket(0).use { serverSocket ->
             var fileToExecute: File? = null
             try {
@@ -81,6 +48,7 @@ class GoEngine(
                     goExecutableAbsolutePath, "test", "-run", testFunctionName
                 )
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
+                val processStartTime = System.currentTimeMillis()
                 val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir)
                 val workerSocket = try {
                     serverSocket.soTimeout = timeoutMillis.toInt()
@@ -92,26 +60,11 @@ class GoEngine(
                     }
                     throw TimeoutException("Timeout exceeded: Worker not connected")
                 }
-                logger.debug { "Worker connected" }
-                val worker = GoWorker(workerSocket)
-                if (methodUnderTest.parameters.isEmpty()) {
-                    worker.sendFuzzedParametersValues(listOf())
-                    val rawExecutionResult = worker.receiveRawExecutionResult()
-                    val executionResult = convertRawExecutionResultToExecutionResult(
-                        methodUnderTest.getPackageName(),
-                        rawExecutionResult,
-                        methodUnderTest.resultTypes,
-                        eachExecutionTimeoutsMillisConfig[methodUnderTest],
-                    )
-                    val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, listOf())
-                    emit(fuzzedFunction to executionResult)
-                } else {
-                    runGoFuzzing(methodUnderTest) { description, values ->
-                        if (timeoutExceededOrIsCanceled()) {
-                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
-                        }
-                        val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
-                        worker.sendFuzzedParametersValues(values)
+                logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
+                try {
+                    val worker = GoWorker(workerSocket)
+                    if (methodUnderTest.parameters.isEmpty()) {
+                        worker.sendFuzzedParametersValues(listOf())
                         val rawExecutionResult = worker.receiveRawExecutionResult()
                         val executionResult = convertRawExecutionResultToExecutionResult(
                             methodUnderTest.getPackageName(),
@@ -119,24 +72,60 @@ class GoEngine(
                             methodUnderTest.resultTypes,
                             eachExecutionTimeoutsMillisConfig[methodUnderTest],
                         )
-                        if (executionResult.trace.isEmpty()) {
-                            logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
-                            if (executionResult is GoUtPanicFailure) {
-                                logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
-                            }
-                            return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
-                        }
-                        val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
-                        if (trieNode.count > 1) {
-                            if (++attempts >= attemptsLimit) {
+                        val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, listOf())
+                        emit(fuzzedFunction to executionResult)
+                    } else {
+                        runGoFuzzing(methodUnderTest) { description, values ->
+                            if (timeoutExceededOrIsCanceled()) {
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                             }
-                            return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                            val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
+                            worker.sendFuzzedParametersValues(values)
+                            val rawExecutionResult = worker.receiveRawExecutionResult()
+                            val executionResult = convertRawExecutionResultToExecutionResult(
+                                methodUnderTest.getPackageName(),
+                                rawExecutionResult,
+                                methodUnderTest.resultTypes,
+                                eachExecutionTimeoutsMillisConfig[methodUnderTest],
+                            )
+                            if (executionResult.trace.isEmpty()) {
+                                logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
+                                if (executionResult is GoUtPanicFailure) {
+                                    logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
+                                }
+                                return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
+                            }
+                            val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
+                            if (trieNode.count > 1) {
+                                if (++attempts >= attemptsLimit) {
+                                    return@runGoFuzzing BaseFeedback(
+                                        result = Trie.emptyNode(),
+                                        control = Control.STOP
+                                    )
+                                }
+                                return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                            }
+                            emit(fuzzedFunction to executionResult)
+                            BaseFeedback(result = trieNode, control = Control.CONTINUE)
                         }
-                        emit(fuzzedFunction to executionResult)
-                        BaseFeedback(result = trieNode, control = Control.CONTINUE)
+                        workerSocket.close()
+                        val processHasExited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
+                        if (!processHasExited) {
+                            process.destroy()
+                            throw TimeoutException("Timeout exceeded: Worker didn't finish")
+                        }
+                        val exitCode = process.exitValue()
+                        if (exitCode != 0) {
+                            val processOutput = InputStreamReader(process.inputStream).readText()
+                            throw RuntimeException(
+                                StringBuilder()
+                                    .append("Execution of ${"function [${methodUnderTest.name}] from $sourceFile"} in child process failed with non-zero exit code = $exitCode: ")
+                                    .append("\n$processOutput")
+                                    .toString()
+                            )
+                        }
                     }
-                    workerSocket.close()
+                } catch (e: SocketException) {
                     val processHasExited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
                     if (!processHasExited) {
                         process.destroy()

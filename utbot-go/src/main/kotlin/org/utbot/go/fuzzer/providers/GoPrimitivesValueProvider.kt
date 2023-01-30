@@ -135,13 +135,13 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                     goStringTypeId -> listOf(
                         Seed.Known(StringValue("")) { obj: StringValue ->
                             GoUtPrimitiveModel(
-                                "\"${obj.value}\"",
+                                obj.value,
                                 primitiveType
                             ).fuzzed { summary = "%var% = ${obj.value}" }
                         },
                         Seed.Known(StringValue("hello")) { obj: StringValue ->
                             GoUtPrimitiveModel(
-                                "\"${obj.value}\"",
+                                obj.value,
                                 primitiveType
                             ).fuzzed { summary = "%var% = ${obj.value}" }
                         })

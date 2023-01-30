@@ -4,6 +4,7 @@ package org.utbot.go.api
 
 import org.utbot.go.api.util.goDefaultValueModel
 import org.utbot.go.api.util.goFloat64TypeId
+import org.utbot.go.api.util.goStringTypeId
 import org.utbot.go.api.util.neverRequiresExplicitCast
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtFieldModel
@@ -37,7 +38,7 @@ open class GoUtPrimitiveModel(
         ExplicitCastMode.DEPENDS, ExplicitCastMode.NEVER -> toValueGoCode()
     }
 
-    open fun toValueGoCode(): String = "$value"
+    open fun toValueGoCode(): String = if (classId == goStringTypeId) "\"$value\"" else "$value"
     fun toCastedValueGoCode(): String = "$classId(${toValueGoCode()})"
 }
 

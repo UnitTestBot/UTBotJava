@@ -1,7 +1,7 @@
-package org.utbot.go.executor
+package org.utbot.go.worker
 
-import org.utbot.go.api.GoUtFile
-import org.utbot.go.api.GoUtFunction
+import org.utbot.go.api.*
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
 import java.io.File
@@ -23,7 +23,8 @@ internal object GoWorkerCodeGenerationHelper {
         "strconv",
         "strings",
         "testing",
-        "time"
+        "time",
+        "unsafe"
     )
 
     fun createFileToExecute(
@@ -53,14 +54,30 @@ internal object GoWorkerCodeGenerationHelper {
         eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
         port: Int
     ): String {
-        val fileCodeBuilder = GoFileCodeBuilder(sourceFile.packageName, alwaysRequiredImports)
+        fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
+            is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
+                acc + (field.declaringClass as GoTypeId).getAllStructTypes()
+            }
+
+            is GoArrayTypeId -> elementTypeId.getAllStructTypes()
+            else -> emptySet()
+        }
+
+        val structTypes =
+            function.parameters.fold(emptySet()) { acc: Set<GoStructTypeId>, functionParameter: GoUtFunctionParameter ->
+                acc + functionParameter.type.getAllStructTypes()
+            }
+        val imports = structTypes.fold(emptySet()) { acc: Set<String>, goStructTypeId ->
+            if (goStructTypeId.packageName != sourceFile.packageName) acc + goStructTypeId.packagePath else acc
+        }
+        val fileCodeBuilder = GoFileCodeBuilder(sourceFile.packageName, alwaysRequiredImports + imports)
 
         val workerTestFunctionCode = generateWorkerTestFunctionCode(function, eachExecutionTimeoutsMillisConfig, port)
         val modifiedFunction = function.modifiedFunctionForCollectingTraces
         fileCodeBuilder.addTopLevelElements(
-            GoCodeTemplates.topLevelHelperStructsAndFunctionsForWorker + modifiedFunction + listOf(
-                workerTestFunctionCode
-            )
+            GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(
+                structTypes, sourceFile.packageName
+            ) + modifiedFunction + workerTestFunctionCode
         )
 
         return fileCodeBuilder.buildCodeString()

@@ -2,6 +2,7 @@ package simple
 
 import (
 	"errors"
+	"github.com/pmezard/go-difflib/difflib"
 	"math"
 )
 
@@ -135,6 +136,14 @@ func ArrayOfInt(array [10]int) [10]int {
 	return array
 }
 
+func ArrayOfUintPtr(array [10]uintptr) [10]uintptr {
+	return array
+}
+
+func ArrayOfString(array [10]string) [10]string {
+	return array
+}
+
 func ArrayOfStructs(array [10]Structure) [10]Structure {
 	return array
 }
@@ -144,10 +153,22 @@ func ArrayOfStructsWithNan(array [10]Structure) [10]Structure {
 	return array
 }
 
+func ArrayOfArrayOfUint(array [5][5]uint) [5][5]uint {
+	return array
+}
+
+func ArrayOfArrayOfStructs(array [5][5]Structure) [5][5]Structure {
+	return array
+}
+
 func returnErrorOrNil(n int) error {
 	if n > 0 {
 		return errors.New("error")
 	} else {
 		return nil
 	}
+}
+
+func ExternalStruct(match difflib.Match, structure Structure) Structure {
+	return structure
 }

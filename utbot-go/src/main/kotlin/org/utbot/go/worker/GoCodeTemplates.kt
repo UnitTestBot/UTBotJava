@@ -1,4 +1,6 @@
-package org.utbot.go.executor
+package org.utbot.go.worker
+
+import org.utbot.go.api.GoStructTypeId
 
 object GoCodeTemplates {
 
@@ -130,7 +132,7 @@ object GoCodeTemplates {
         		value, err := strconv.ParseUint(v.Value, 10, strconv.IntSize)
         		__checkErrorAndExit__(err)
 
-        		return reflect.ValueOf(uint(value)), nil
+        		return reflect.ValueOf(uintptr(value)), nil
         	}
         	return reflect.Value{}, fmt.Errorf("not supported type %s", v.Type)
         }
@@ -152,8 +154,26 @@ object GoCodeTemplates {
     """.trimIndent()
 
     private val structValueToReflectValueMethod = """
-        func (_ __StructValue__) __toReflectValue__() (reflect.Value, error) {
-        	panic("not implemented")
+        func (v __StructValue__) __toReflectValue__() (reflect.Value, error) {
+        	structType, err := __convertStringToReflectType__(v.Type)
+        	__checkErrorAndExit__(err)
+
+        	structPtr := reflect.New(structType)
+
+        	for _, f := range v.Value {
+        		field := structPtr.Elem().FieldByName(f.Name)
+
+        		reflectValue, err := f.Value.__toReflectValue__()
+        		__checkErrorAndExit__(err)
+        		
+        		if field.Type().Kind() == reflect.Uintptr {
+        			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().SetUint(reflectValue.Uint())
+        		} else {
+        			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflectValue)
+        		}
+        	}
+
+        	return structPtr.Elem(), nil
         }
     """.trimIndent()
 
@@ -187,7 +207,7 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val convertStringToReflectType = """
+    private fun convertStringToReflectType(structTypes: Set<GoStructTypeId>, packageName: String) = """
         func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
         	var result reflect.Type
 
@@ -254,6 +274,7 @@ object GoCodeTemplates {
         			result = reflect.TypeOf("")
         		case "uintptr":
         			result = reflect.TypeOf(uintptr(0))
+                ${structTypes.joinToString(separator = "\n") { "case \"${it.canonicalName}\": result = reflect.TypeOf(${it.getRelativeName(packageName)}{})" }}
         		default:
         			return nil, fmt.Errorf("type '%s' not supported", typeName)
         		}
@@ -341,7 +362,7 @@ object GoCodeTemplates {
         	case reflect.String:
         		return __PrimitiveValue__{
         			Type:  reflect.String.String(),
-        			Value: fmt.Sprintf("%#v", valueOfRes.String()),
+        			Value: fmt.Sprintf("%v", valueOfRes.String()),
         		}, nil
         	case reflect.Struct:
         		fields := reflect.VisibleFields(valueOfRes.Type())
@@ -448,29 +469,6 @@ object GoCodeTemplates {
         	}
         }
     """.trimIndent()
-
-    private val wrapResultValuesForExecutorFunction = """
-            //goland:noinspection GoPreferNilSlice
-            func __wrapResultValuesForUtBotGoExecutor__(values ...any) []__RawValue__ {
-            	rawValues := []__RawValue__{}
-            	for _, value := range values {
-            		if value == nil {
-            			rawValues = append(rawValues, nil)
-            			continue
-            		}
-
-            		if err, ok := value.(error); ok {
-            			value = err.Error()
-            		}
-
-            		resultValue, err := __convertReflectValueToRawValue__(reflect.ValueOf(value))
-            		__checkErrorAndExit__(err)
-
-            		rawValues = append(rawValues, resultValue)
-            	}
-            	return rawValues
-            }
-        """.trimIndent()
 
     private val wrapResultValuesForWorkerFunction = """
         //goland:noinspection GoPreferNilSlice
@@ -607,33 +605,63 @@ object GoCodeTemplates {
         				Value: value,
         			}, nil
         		default:
-        			return nil, fmt.Errorf("struct type not supported")
+        			value, ok := v.([]interface{})
+        			if !ok {
+        				return nil, fmt.Errorf("structValue field 'value' must be array")
+        			}
+
+        			values := []__FieldValue__{}
+        			for _, v := range value {
+        				nextValue, err := __convertParsedJsonToFieldValue__(v.(map[string]interface{}))
+        				__checkErrorAndExit__(err)
+
+        				values = append(values, nextValue)
+        			}
+
+        			return __StructValue__{
+        				Type:  typeNameStr,
+        				Value: values,
+        			}, nil
         		}
         	}
         }
     """.trimIndent()
 
-    val topLevelHelperStructsAndFunctionsForExecutor = listOf(
-        traces,
-        rawValueInterface,
-        primitiveValueStruct,
-        primitiveValueToReflectValueMethod,
-        fieldValueStruct,
-        structValueStruct,
-        structValueToReflectValueMethod,
-        arrayValueStruct,
-        arrayValueToReflectValueMethod,
-        convertStringToReflectType,
-        panicMessageStruct,
-        rawExecutionResultStruct,
-        checkErrorFunction,
-        convertFloat64ValueToStringFunction,
-        convertReflectValueToRawValueFunction,
-        executeFunctionFunction,
-        wrapResultValuesForExecutorFunction
-    )
+    private val convertParsedJsonToFieldValueFunction = """
+        func __convertParsedJsonToFieldValue__(p map[string]interface{}) (__FieldValue__, error) {
+        	name, ok := p["name"]
+        	if !ok {
+        		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'name'")
+        	}
+        	nameStr, ok := name.(string)
+        	if !ok {
+        		return __FieldValue__{}, fmt.Errorf("fieldValue 'name' must be string")
+        	}
 
-    val topLevelHelperStructsAndFunctionsForWorker = listOf(
+        	isExported, ok := p["isExported"]
+        	if !ok {
+        		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'isExported'")
+        	}
+        	isExportedBool, ok := isExported.(bool)
+        	if !ok {
+        		return __FieldValue__{}, fmt.Errorf("fieldValue 'isExported' must be bool")
+        	}
+
+        	if _, ok := p["value"]; !ok {
+        		return __FieldValue__{}, fmt.Errorf("fieldValue must contain field 'value'")
+        	}
+        	value, err := __convertParsedJsonToRawValue__(p["value"].(map[string]interface{}))
+        	__checkErrorAndExit__(err)
+
+        	return __FieldValue__{
+        		Name:       nameStr,
+        		Value:      value,
+        		IsExported: isExportedBool,
+        	}, nil
+        }
+    """.trimIndent()
+
+    fun getTopLevelHelperStructsAndFunctionsForWorker(structTypes: Set<GoStructTypeId>, packageName: String) = listOf(
         traces,
         rawValueInterface,
         primitiveValueStruct,
@@ -643,7 +671,7 @@ object GoCodeTemplates {
         structValueToReflectValueMethod,
         arrayValueStruct,
         arrayValueToReflectValueMethod,
-        convertStringToReflectType,
+        convertStringToReflectType(structTypes, packageName),
         panicMessageStruct,
         rawExecutionResultStruct,
         checkErrorFunction,
@@ -653,6 +681,7 @@ object GoCodeTemplates {
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
         parseJsonToRawValuesFunction,
-        convertParsedJsonToRawValueFunction
+        convertParsedJsonToRawValueFunction,
+        convertParsedJsonToFieldValueFunction
     )
 }

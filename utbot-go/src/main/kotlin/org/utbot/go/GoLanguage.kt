@@ -28,9 +28,5 @@ suspend fun runGoFuzzing(
     providers: List<ValueProvider<GoTypeId, FuzzedValue, GoDescription>> = goDefaultValueProviders(),
     exec: suspend (description: GoDescription, values: List<FuzzedValue>) -> BaseFeedback<Trie.Node<GoInstruction>, GoTypeId, FuzzedValue>
 ) {
-    BaseFuzzing(providers, exec).fuzz(
-        GoDescription(
-            methodUnderTest, Trie(GoInstruction::lineNumber)
-        )
-    )
+    BaseFuzzing(providers, exec).fuzz(GoDescription(methodUnderTest, Trie(GoInstruction::lineNumber)))
 }

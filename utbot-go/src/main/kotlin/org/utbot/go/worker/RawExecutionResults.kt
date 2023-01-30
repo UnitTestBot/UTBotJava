@@ -1,4 +1,4 @@
-package org.utbot.go.executor
+package org.utbot.go.worker
 
 import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
@@ -246,7 +246,7 @@ private fun createGoUtStructModelFromRawValue(
         GoUtFieldModel(
             createGoUtModelFromRawValue(
                 value.value,
-                fieldId.declaringClass as GoPrimitiveTypeId,
+                fieldId.declaringClass as GoTypeId,
                 packageName
             ), fieldId
         )

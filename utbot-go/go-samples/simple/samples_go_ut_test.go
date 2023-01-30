@@ -158,25 +158,31 @@ func TestBinaryPanicsByUtGoFuzzer(t *testing.T) {
 }
 
 func TestStringSearchByUtGoFuzzer1(t *testing.T) {
-	actualVal := StringSearch([3]byte{0, 0, 0})
+	actualVal := StringSearch("hello")
 
 	assert.Equal(t, false, actualVal)
 }
 
 func TestStringSearchByUtGoFuzzer2(t *testing.T) {
-	actualVal := StringSearch([3]byte{65, 1, 0})
+	actualVal := StringSearch("elo")
 
 	assert.Equal(t, false, actualVal)
 }
 
 func TestStringSearchByUtGoFuzzer3(t *testing.T) {
-	actualVal := StringSearch([3]byte{65, 66, 45})
+	actualVal := StringSearch("Am[")
 
 	assert.Equal(t, false, actualVal)
 }
 
 func TestStringSearchByUtGoFuzzer4(t *testing.T) {
-	actualVal := StringSearch([3]byte{65, 66, 67})
+	actualVal := StringSearch("AB3")
+
+	assert.Equal(t, false, actualVal)
+}
+
+func TestStringSearchByUtGoFuzzer5(t *testing.T) {
+	actualVal := StringSearch("ABC")
 
 	assert.Equal(t, true, actualVal)
 }

@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.language.python
 
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -17,6 +18,7 @@ import com.intellij.psi.PsiFileFactory
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
@@ -88,34 +90,37 @@ object PythonDialogProcessor {
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader>? {
-        val allFunctions: List<PyFunction> =
-            if (model.containingClass == null) {
-                model.file.topLevelFunctions
-            } else {
-                val classes = model.file.topLevelClasses
-                val myClass = classes.find { it.name == model.containingClass.name }
-                    ?: error("Didn't find containing class")
-                myClass.methods.filterNotNull()
-            }
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader> {
+        return runBlocking {
+            readAction {
+                val allFunctions: List<PyFunction> =
+                    if (model.containingClass == null) {
+                        model.file.topLevelFunctions
+                    } else {
+                        val classes = model.file.topLevelClasses
+                        val myClass = classes.find { it.name == model.containingClass.name }
+                            ?: error("Didn't find containing class")
+                        myClass.methods.filterNotNull()
+                    }
+                val shownFunctions: Set<PythonMethodHeader> = allFunctions
+                    .mapNotNull {
+                        val functionName = it.name ?: return@mapNotNull null
+                        val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
+                        val containingClassId = it.containingClass?.name?.let{ PythonClassId(it) }
+                        return@mapNotNull PythonMethodHeader(
+                                functionName,
+                                moduleFilename,
+                                containingClassId,
+                            )
+                    }
+                    .toSet()
 
-        val shownFunctions: Set<PythonMethodHeader> = allFunctions
-            .map {
-                val name = it.name ?: return null
-                val moduleFilename = model.file.virtualFile.canonicalPath ?: ""
-                val containingClass = it.containingClass?.name?.let{ className -> PythonClassId(className) }
-                PythonMethodHeader(
-                    name = name,
-                    moduleFilename = moduleFilename,
-                    containingPythonClassId = containingClass,
-                )
+                model.selectedFunctions.map { pyFunction ->
+                    shownFunctions.find { pythonMethod ->
+                        pythonMethod.name == pyFunction.name
+                    } ?: error("Didn't find PythonMethod ${pyFunction.name}")
+                }
             }
-            .toSet()
-
-        return model.selectedFunctions.map { pyFunction ->
-            shownFunctions.find { pythonMethod ->
-                pythonMethod.name == pyFunction.name
-            } ?: error("Didn't find PythonMethod ${pyFunction.name}")
         }
     }
 
@@ -139,14 +144,7 @@ object PythonDialogProcessor {
                         return
                     }
                     val methods = findSelectedPythonMethods(model)
-                    if (methods == null) {
-                        showErrorDialogLater(
-                            project,
-                            message = "Couldn't parse file. Maybe it contains syntax error?",
-                            title = "Python test generation error"
-                        )
-                        return
-                    }
+
                     processTestGeneration(
                         pythonPath = pythonPath,
                         pythonFilePath = model.file.virtualFile.path,

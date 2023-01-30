@@ -448,7 +448,15 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgMethod) {
-        visit(element.statements, printNextLine = false)
+        visit(listOf(element.documentation) + element.statements, printNextLine = false)
+    }
+
+    override fun visit(element: CgTestMethod) {
+        for (annotation in element.annotations) {
+            annotation.accept(this)
+        }
+        renderMethodSignature(element)
+        visit(element as CgMethod)
     }
 
     override fun visit(element: CgMethodCall) {

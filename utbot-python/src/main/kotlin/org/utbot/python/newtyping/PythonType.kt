@@ -91,11 +91,6 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
     open fun createTypeWithNewAnnotationParameters(like: Type, newParams: List<Type>): Type =  // overriden for Callable
         DefaultSubstitutionProvider.substituteAll(like.getOrigin(), newParams)
     open fun getTypeRepresentation(type: Type): String {  // overriden for Callable
-        val root =
-            if (name.prefix.isEmpty())
-                name.name
-            else
-                name.prefix.joinToString(separator = ".") + "." + name.name
         val root = getTypeName(type)
         val params = getAnnotationParameters(type)
         if (params.isEmpty())

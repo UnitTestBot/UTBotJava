@@ -14,8 +14,8 @@ import org.utbot.python.newtyping.PythonTypeDescription
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.getPythonAttributes
-import org.utbot.python.newtyping.runmypy.readMypyAnnotationStorageAndInitialErrors
-import org.utbot.python.newtyping.runmypy.setConfigFile
+import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
+import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
@@ -107,7 +107,7 @@ object PythonTestCaseGenerator {
             method.arguments.zip(args).associate { it.first.name to NormalizedPythonAnnotation((it.second.meta as PythonTypeDescription).name.toString()) },
             timeoutForRun,
             coveredLines,
-            PythonTypeStorage.get(storage)
+            PythonTypeStorage.get(mypyStorage)
         )
 
         runBlockingWithCancellationPredicate(isCancelled) {

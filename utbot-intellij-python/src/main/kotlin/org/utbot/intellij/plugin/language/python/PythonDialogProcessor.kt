@@ -30,6 +30,7 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
@@ -88,15 +89,28 @@ object PythonDialogProcessor {
     }
 
     private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader>? {
-        val shownFunctions: Set<PythonMethodHeader> =
+        val allFunctions: List<PyFunction> =
             if (model.containingClass == null) {
-                model.file.topLevelFunctions.mapNotNull { it.toPythonMethodDescription() }.toSet()
+                model.file.topLevelFunctions
             } else {
                 val classes = model.file.topLevelClasses
                 val myClass = classes.find { it.name == model.containingClass.name }
                     ?: error("Didn't find containing class")
-                myClass.methods.mapNotNull { it.toPythonMethodDescription() }.toSet()
+                myClass.methods.filterNotNull()
             }
+
+        val shownFunctions: Set<PythonMethodHeader> = allFunctions
+            .map {
+                val name = it.name ?: return null
+                val moduleFilename = model.file.virtualFile.canonicalPath ?: ""
+                val containingClass = it.containingClass?.name?.let{ className -> PythonClassId(className) }
+                PythonMethodHeader(
+                    name = name,
+                    moduleFilename = moduleFilename,
+                    containingPythonClassId = containingClass,
+                )
+            }
+            .toSet()
 
         return model.selectedFunctions.map { pyFunction ->
             shownFunctions.find { pythonMethod ->

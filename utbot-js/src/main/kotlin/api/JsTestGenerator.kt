@@ -7,13 +7,13 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
-import fuzzer.new.JsFeedback
-import fuzzer.new.JsFuzzingExecutionFeedback
-import fuzzer.new.JsMethodDescription
-import fuzzer.new.JsTimeoutExecution
-import fuzzer.new.JsValidExecution
-import fuzzer.new.runFuzzing
-import fuzzer.providers.JsObjectModelProvider
+import fuzzer.JsFeedback
+import fuzzer.JsFuzzingExecutionFeedback
+import fuzzer.JsMethodDescription
+import fuzzer.JsTimeoutExecution
+import fuzzer.JsValidExecution
+import fuzzer.defaultFuzzingIdGenerator
+import fuzzer.runFuzzing
 import java.io.File
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -188,7 +188,7 @@ class JsTestGenerator(
         val thisInstance = when {
             execId.isStatic -> null
             classId.allConstructors.first().parameters.isEmpty() -> {
-                val id = JsObjectModelProvider.idGenerator.asInt
+                val id = defaultFuzzingIdGenerator.createId()
                 val constructor = classId.allConstructors.first()
                 val instantiationCall = UtExecutableCallModel(
                     instance = null,

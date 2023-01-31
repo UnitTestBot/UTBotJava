@@ -1,9 +1,9 @@
-package fuzzer.new
+package fuzzer.providers
 
 import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
-import framework.api.js.util.jsDoubleClassId
+import fuzzer.JsMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
 import org.utbot.fuzzing.Seed

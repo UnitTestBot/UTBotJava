@@ -7,7 +7,7 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.JsUndefinedModel
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
-import fuzzer.providers.JsObjectModelProvider
+import fuzzer.defaultFuzzingIdGenerator
 import org.utbot.framework.concrete.constructors.UtModelConstructorInterface
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -50,7 +50,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
         val values = (value as Map<String, Any>).values.map {
             construct(it, JsEmptyClassId())
         }
-        val id = JsObjectModelProvider.idGenerator.asInt
+        val id = defaultFuzzingIdGenerator.createId()
         val instantiationCall = UtExecutableCallModel(null, constructor, values)
         return UtAssembleModel(
             id = id,

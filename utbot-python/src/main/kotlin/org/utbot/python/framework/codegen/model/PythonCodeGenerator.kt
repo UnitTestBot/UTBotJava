@@ -77,7 +77,7 @@ class PythonCodeGenerator(
         testClassCustomName: String? = null,
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
-            (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
+            (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
 
@@ -105,7 +105,7 @@ class PythonCodeGenerator(
                 context.cgLanguageAssistant.getStatementConstructorBy(context) as PythonCgStatementConstructorImpl
             with(cgStatementConstructor) {
                 clearContextRelatedStorage()
-                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
+                (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
 
                 val renderer = CgAbstractRenderer.makeRenderer(context) as CgPythonRenderer
 

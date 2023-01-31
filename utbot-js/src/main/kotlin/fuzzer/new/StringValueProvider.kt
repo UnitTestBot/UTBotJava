@@ -24,7 +24,7 @@ object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
             .filter { it.classId == jsStringClassId }
         val values = constants
             .mapNotNull { it.value as? String } +
-                sequenceOf("", "abc", "\n\t\r")
+                sequenceOf("", "abc", "\n\t\n")
         values.forEach { value ->
             yield(Seed.Known(StringValue(value)) { known ->
                 JsPrimitiveModel(known.value).fuzzed {

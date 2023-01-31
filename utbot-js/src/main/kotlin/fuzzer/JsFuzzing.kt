@@ -1,4 +1,5 @@
 package fuzzer
+
 import framework.api.js.JsClassId
 import fuzzer.providers.BoolValueProvider
 import fuzzer.providers.FloatValueProvider

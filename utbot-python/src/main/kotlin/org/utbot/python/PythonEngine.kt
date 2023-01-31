@@ -19,6 +19,7 @@ import org.utbot.python.code.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
+import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonFuzzing
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeStorage
@@ -27,7 +28,6 @@ import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
-import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
 const val TIMEOUT: Long = 10
@@ -49,16 +49,8 @@ class PythonEngine(
     private val pythonTypeStorage: PythonTypeStorage,
 ) {
 
-    private data class JobResult(
-        val evalResult: PythonEvaluationResult,
-        val values: List<FuzzedValue>,
-        val thisObject: UtModel?,
-        val modelList: List<UtModel>
-    )
-
     private fun suggestExecutionName(
         description: PythonMethodDescription,
-        jobResult: JobResult,
         executionResult: UtExecutionResult
     ): TestSuggestedInfo {
         val testSuffix = when (executionResult) {
@@ -134,7 +126,7 @@ class PythonEngine(
                 UtExecutionSuccess(resultAsModel)
             }
 
-        val testMethodName = suggestExecutionName(methodUnderTestDescription, jobResult, executionResult)
+        val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
 
         val (beforeThisObject, beforeModelList) = transformModelList(jobResult.thisObject, evaluationResult.stateBefore, evaluationResult.modelListIds)
         val (afterThisObject, afterModelList) = transformModelList(jobResult.thisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
@@ -149,6 +141,34 @@ class PythonEngine(
             summary = summary.map { DocRegularStmt(it) }
         )
         return ValidExecution(utFuzzedExecution)
+    }
+
+    private fun constructEvaluationInput(arguments: List<PythonFuzzedValue>, additionalModules: List<String>): EvaluationInput {
+        val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
+
+        val (thisObject, modelList) =
+            if (methodUnderTest.hasThisArgument)
+                Pair(argumentValues[0], argumentValues.drop(1))
+            else
+                Pair(null, argumentValues)
+
+        val argumentModules = argumentValues
+            .flatMap { it.allContainingClassIds }
+            .map { it.moduleName }
+        val localAdditionalModules = (additionalModules + argumentModules).toSet()
+
+        return EvaluationInput(
+            methodUnderTest,
+            argumentValues,
+            directoriesForSysPath,
+            moduleToImport,
+            pythonPath,
+            timeoutForRun,
+            thisObject,
+            modelList,
+            argumentValues.map { FuzzedValue(it) },
+            localAdditionalModules
+        )
     }
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
@@ -174,48 +194,8 @@ class PythonEngine(
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
             }
 
-            val argumentValues = arguments.map {
-                PythonTreeModel(it.tree, it.tree.type)
-            }
-            val summary = arguments
-                .zip(methodUnderTest.arguments)
-                .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
-
-            val (thisObject, modelList) =
-                if (methodUnderTest.containingPythonClassId == null)
-                    Pair(null, argumentValues)
-                else
-                    Pair(argumentValues[0], argumentValues.drop(1))
-
-            val argumentModules = argumentValues.flatMap {
-                it.allContainingClassIds
-            }.map {
-                it.moduleName
-            }
-            val localAdditionalModules = (additionalModules + argumentModules).toSet()
-
-            val evaluationInput = EvaluationInput(
-                methodUnderTest,
-                argumentValues,
-                directoriesForSysPath,
-                moduleToImport,
-                pythonPath,
-                timeoutForRun,
-                thisObject,
-                modelList,
-                argumentValues.map { FuzzedValue(it) },
-                localAdditionalModules
-            )
-
-            val process = startEvaluationProcess(evaluationInput)
-            val startedTime = System.currentTimeMillis()
-            val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
-            val jobResult = JobResult(
-                getEvaluationResult(evaluationInput, process, wait),
-                evaluationInput.values,
-                evaluationInput.thisObject,
-                evaluationInput.modelList
-            )
+            val evaluationInput = constructEvaluationInput(arguments, additionalModules)
+            val jobResult = evaluationInput.evaluate()
 
             when (val evaluationResult = jobResult.evalResult) {
                 is PythonEvaluationError -> {
@@ -241,8 +221,13 @@ class PythonEngine(
                         sourceLinesCount = instructionsCount
                     }
 
+                    val summary = arguments
+                        .zip(methodUnderTest.arguments)
+                        .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+
                     val result = handleSuccessResult(parameters, evaluationResult, description, jobResult, summary)
                     emit(result)
+
                     if (coveredLines.size.toLong() == sourceLinesCount) {
                         return@PythonFuzzing PythonFeedback(control = Control.STOP)
                     }
@@ -255,10 +240,10 @@ class PythonEngine(
                             return@PythonFuzzing PythonFeedback(control = Control.PASS)
                         }
                         is TypeErrorFeedback -> {
-                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
                         }
                         is InvalidExecution -> {
-                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                         }
                     }
                 }

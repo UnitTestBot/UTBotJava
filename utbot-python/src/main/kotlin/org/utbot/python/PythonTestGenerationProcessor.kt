@@ -106,9 +106,6 @@ object PythonTestGenerationProcessor {
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
 
-//            if (isCanceled())
-//                return
-
             if (emptyTestSets.isNotEmpty()) {
                 notGeneratedTestsAction(emptyTestSets.map { it.method.name })
             }
@@ -136,7 +133,11 @@ object PythonTestGenerationProcessor {
             }
 
             val paramNames = notEmptyTests.associate { testSet ->
-                methodIds[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
+                var params = testSet.method.arguments.map { it.name }
+                if (testSet.method.hasThisArgument) {
+                    params = params.drop(1)
+                }
+                methodIds[testSet.method] as ExecutableId to params
             }.toMutableMap()
 
             val importParamModules = notEmptyTests.flatMap { testSet ->
@@ -180,7 +181,7 @@ object PythonTestGenerationProcessor {
                         testFrameworkModule,
                         sysImport
                     )
-                    ).filterNotNull().toSet()
+                ).filterNotNull().toSet()
 
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {

@@ -19,6 +19,7 @@ import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
 import java.io.File
+import java.lang.Long.max
 
 sealed class PythonEvaluationResult
 
@@ -52,6 +53,13 @@ data class OutputData(
     val type: PythonClassId,
 )
 
+data class JobResult(
+    val evalResult: PythonEvaluationResult,
+    val values: List<FuzzedValue>,
+    val thisObject: UtModel?,
+    val modelList: List<UtModel>
+)
+
 data class EvaluationInput(
     val method: PythonMethod,
     val methodArguments: List<UtModel>,
@@ -63,7 +71,19 @@ data class EvaluationInput(
     val modelList: List<UtModel>,
     val values: List<FuzzedValue>,
     val additionalModulesToImport: Set<String> = emptySet()
-)
+) {
+    fun evaluate(): JobResult {
+        val process = startEvaluationProcess(this)
+        val startedTime = System.currentTimeMillis()
+        val wait = max(TIMEOUT, timeoutForRun - (System.currentTimeMillis() - startedTime))
+        return JobResult(
+            getEvaluationResult(this, process, wait),
+            values,
+            thisObject,
+            modelList
+        )
+    }
+}
 
 data class EvaluationProcess(
     val process: Process,

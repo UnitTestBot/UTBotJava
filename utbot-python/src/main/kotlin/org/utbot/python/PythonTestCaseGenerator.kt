@@ -110,7 +110,7 @@ class PythonTestCaseGenerator(
         var generated = 0
         val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
-        getAnnotations(
+        inferAnnotations(
             method,
             mypyStorage,
             typeStorage,
@@ -121,11 +121,7 @@ class PythonTestCaseGenerator(
         ) { functionType ->
             val args = (functionType as FunctionType).arguments
 
-            logger.info {
-                "Inferred annotations: ${
-                    args.joinToString { it.pythonTypeRepresentation() }
-                }"
-            }
+            logger.info { "Inferred annotations: ${ args.joinToString { it.pythonTypeRepresentation() } }" }
 
             val engine = PythonEngine(
                 method,
@@ -202,7 +198,7 @@ class PythonTestCaseGenerator(
         return if (missingLines == null) curMissing else missingLines intersect curMissing
     }
 
-    private fun getAnnotations(
+    private fun inferAnnotations(
         method: PythonMethod,
         mypyStorage: MypyAnnotationStorage,
         typeStorage: PythonTypeStorage,

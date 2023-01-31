@@ -27,6 +27,16 @@ class PythonMethod(
     fun methodSignature(): String = "$name(" + arguments.joinToString(", ") {
         "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
     } + ")"
+
+    /*
+    Check that the first argument is `self` of `cls`.
+    TODO: Now we think that all class methods has `self` argument! We should support `@property` decorator
+     */
+    val hasThisArgument: Boolean
+        get() {
+            return containingPythonClassId != null
+        }
+
     val arguments: List<PythonArgument>
         get() {
             val paramNames = definition.meta.args.map { it.name }

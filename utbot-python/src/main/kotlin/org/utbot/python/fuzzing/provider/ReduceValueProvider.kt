@@ -15,7 +15,7 @@ import org.utbot.python.newtyping.general.Type
 class ReduceValueProvider(
     private val idGenerator: IdGenerator<Long>
 ) : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
-    private val unsupportedTypes = listOf<String>(
+    private val unsupportedTypes = listOf(
         "builtins.list",
         "builtins.set",
         "builtins.tuple",
@@ -30,19 +30,19 @@ class ReduceValueProvider(
     )
 
     override fun accept(type: Type): Boolean {
-        val hasInit =
-            type.getPythonAttributes().any { it.meta.name == "__init__" }
-        val hasNew =
-            type.getPythonAttributes().any { it.meta.name == "__new__" }
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
-        return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription && (hasInit || hasNew)
+        return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription // && (hasInit || hasNew)
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        type.getPythonAttributes()
-            .filter { it.meta.name == "__init__" || it.meta.name == "__new__" }
+        val initMethods = type.getPythonAttributeByName(description.pythonTypeStorage, "__init__")
+        val newMethods = type.getPythonAttributeByName(description.pythonTypeStorage, "__new__")
+        val constructors = listOfNotNull(initMethods, newMethods)
+        constructors
             .forEach {
+                // TODO: here we need to use same as .getPythonAttributeByName but without name
+                // TODO: now we do not have fields from parents
                 val fields = type.getPythonAttributes()
                     .filter { attr ->
                         !(attr.meta.name.startsWith("__") && attr.meta.name.endsWith("__") && attr.meta.name.length >= 4)

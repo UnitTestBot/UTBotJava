@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import kotlin.math.max
 
 /**
  * Useful links:
@@ -224,7 +223,12 @@ data class SarifRegion(
             val startColumn = neededLine?.run {
                 takeWhile { it.toString().isBlank() }.length + 1 // to one-based
             }
-            val safeStartLine = max(1, startLine) // we don't want to fail if for some reason startLine < 1
+            val safeStartLine = if (startLine < 1) {
+                logger.warn { "For some reason startLine < 1, so now it is equal to 1" }
+                1 // we don't want to fail, so just set the line number to 1
+            } else {
+                startLine
+            }
             return SarifRegion(startLine = safeStartLine, startColumn = startColumn)
         }
     }

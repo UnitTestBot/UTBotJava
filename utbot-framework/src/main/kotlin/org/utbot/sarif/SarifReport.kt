@@ -1,11 +1,14 @@
 package org.utbot.sarif
 
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension
+
+internal val logger = KotlinLogging.logger {}
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.

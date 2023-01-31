@@ -28,7 +28,14 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return type == other.type
+        }
+
+        override fun hashCode(): Int {
+            var result = type.hashCode()
+            result = 31 * result + comparable.hashCode()
+            result = 31 * result + children.hashCode()
+            return result
         }
     }
 
@@ -41,6 +48,12 @@ object PythonTree {
                 return false
             }
             return repr == other.repr && type == other.type
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + repr.hashCode()
+            return result
         }
     }
 
@@ -62,7 +75,13 @@ object PythonTree {
             if (other !is ListNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return children == other.children
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
         }
     }
 
@@ -85,7 +104,13 @@ object PythonTree {
             if (other !is DictNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return children == other.children
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
         }
 
     }
@@ -113,7 +138,13 @@ object PythonTree {
             if (other !is SetNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return items == other.items
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
         }
 
     }
@@ -138,7 +169,13 @@ object PythonTree {
             if (other !is TupleNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return items == other.items
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
         }
     }
 
@@ -177,7 +214,24 @@ object PythonTree {
             if (other !is ReduceNode) {
                 return false
             }
-            return type == other.type && id == other.id //children == other.children
+            return type == other.type &&
+                    id == other.id &&
+                    constructor == other.constructor &&
+                    args == other.args &&
+                    state == other.state &&
+                    listitems == other.listitems &&
+                    dictitems == other.dictitems
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + id.hashCode()
+            result = 31 * result + constructor.hashCode()
+            result = 31 * result + args.hashCode()
+            result = 31 * result + state.hashCode()
+            result = 31 * result + listitems.hashCode()
+            result = 31 * result + dictitems.hashCode()
+            return result
         }
     }
 

@@ -71,6 +71,17 @@ class PythonTreeModel(
         }
         return super.allContainingClassIds + childrenClassIds
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is PythonTreeModel) {
+            return tree == other.tree
+        }
+        return false
+    }
+
+    override fun hashCode(): Int {
+        return tree.hashCode()
+    }
 }
 
 class PythonDefaultModel(

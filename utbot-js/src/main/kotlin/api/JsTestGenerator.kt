@@ -7,7 +7,6 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
-import framework.api.js.util.toJsClassId
 import fuzzer.new.JsFeedback
 import fuzzer.new.JsFuzzingExecutionFeedback
 import fuzzer.new.JsMethodDescription
@@ -19,6 +18,7 @@ import java.io.File
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import mu.KotlinLogging
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
@@ -33,7 +33,6 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
@@ -60,6 +59,8 @@ import utils.PathResolver
 import utils.ResultData
 import utils.constructClass
 import utils.toJsAny
+
+private val logger = KotlinLogging.logger {}
 
 class JsTestGenerator(
     private val fileText: String,
@@ -146,12 +147,13 @@ class JsTestGenerator(
                 }
             }
         } catch (e: CancellationException) {
-            //TODO: log that job was cancelled here
+            logger.info { "Fuzzing was stopped due to test generation cancellation" }
         }
         if (executionResults.isEmpty()) {
             if (isCancelled()) return
             throw UnsupportedOperationException("No test cases were generated for ${funcNode.getAbstractFunctionName()}")
         }
+        logger.info { "${executionResults.size} test cases were suggested after fuzzing" }
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
         executionResults.forEach { value ->
@@ -237,19 +239,13 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
-            // TODO: make visitor return JsFuzzedConcreteValue
-            concreteValues = fuzzerVisitor.fuzzedConcreteValues.map {
-                FuzzedConcreteValue(
-                    it.classId.toJsClassId(),
-                    it.value,
-                    it.fuzzedContext
-                )
-            }
+            concreteValues = fuzzerVisitor.fuzzedConcreteValues
         )
         val thisInstance = makeThisInstance(execId, execId.classId)
         val collectedValues = mutableListOf<List<FuzzedValue>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
         val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:").split(":").map { it.toInt() }
+        logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
         val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
         instrService.instrument()
         val coverageProvider = CoverageServiceProvider(
@@ -258,6 +254,7 @@ class JsTestGenerator(
             context.settings.coverageMode
         )
         val allStmts = instrService.allStatements
+        logger.info { "Statements to cover: (${allStmts.joinToString { toString() }})" }
         val currentlyCoveredStmts = mutableSetOf<Int>().apply {
             this.addAll(coverageProvider.baseCoverage)
         }

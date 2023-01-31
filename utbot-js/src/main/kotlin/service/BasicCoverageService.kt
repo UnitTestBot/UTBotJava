@@ -1,11 +1,14 @@
 package service
 
 import java.io.File
+import mu.KotlinLogging
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
 import utils.ResultData
+
+private val logger = KotlinLogging.logger {}
 
 class BasicCoverageService(
     context: ServiceContext,
@@ -38,7 +41,7 @@ class BasicCoverageService(
                 _resultList.add(resultData)
                 val errText = error.readText()
                 if (errText.isNotEmpty()) {
-                    println(errText)
+                    logger.error { errText }
                 }
             } catch (e: TimeoutException) {
                 val resultData = ResultData(

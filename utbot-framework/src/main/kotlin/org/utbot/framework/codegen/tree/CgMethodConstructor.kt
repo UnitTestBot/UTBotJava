@@ -524,7 +524,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
      *
      * Note: not supported in parameterized tests.
      */
-    protected open fun generateFieldStateAssertions() {
+    protected fun generateFieldStateAssertions() {
         val thisInstanceCache = statesCache.thisInstance
         for (path in thisInstanceCache.paths) {
             assertStatesByPath(thisInstanceCache, path)

@@ -4,13 +4,12 @@
 
 ### Basic
 
-- There are 4 sections: sources, passes, cleaners and sinks. Each of them contains a list of methods descriptions (rules). Fully qualified name of the method can be written in one line, or it can be defined by nested parts — first the package names, then the class name, and finally the method name. Note that, regular expressions in names are not supported.
-- Each rule can contain a method signature — a list of argument types (in compile-time): `signature: [<int>, _, <java.lang.String>]`
+- There are 4 sections: sources, passes, cleaners and sinks. Each of them contains a list of methods descriptions (rules). Fully qualified method names can be written in one line, or it can be defined by nested parts — first the package names, then the class name, and finally the method name. Note that regular expressions in names are not supported.
+- Each rule can contain a method signature — a list of argument types (in compile-time): `signature: [  <int>, _, <java.lang.String> ]`
   - name of the type is written in `<>`.
   - `_` means any type.
-- Also, the rule can contain runtime conditions that must be met for this rule to trigger. Here you can set specific values of method arguments or their runtime types. More details about the `conditions` key below.
-- The `signature` and `conditions` fields are optional. If you do not specify them, the rule will be triggered on any method call.
-- Если для одного вызова метода выполняется несколько правил, они будут применены все в некотором порядке.
+- Also, the rule can contain runtime conditions that must be met for triggering this rule. Here you can set specific values of method arguments or their runtime types. More detailed information about the `conditions` is given below.
+- The `signature` and `conditions` fields are optional. If you do not specify them, the rule will be triggered on any call of the method.
 - If several rules are suitable for one method call, they will all be applied in some kind of order.
 
 ### Sources

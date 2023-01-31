@@ -19,6 +19,7 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
 import framework.codegen.Mocha
+import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
@@ -45,7 +46,7 @@ object JsDialogProcessor {
         editor: Editor,
         file: JSFile
     ) {
-        val model = createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file)
+        val model = createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file) ?: return
         (object : Task.Backgroundable(
             project,
             "Check the requirements"
@@ -87,7 +88,16 @@ object JsDialogProcessor {
             )
             logger.error { "Node.js interpreter was not found in IDEA settings." }
             null
+        } catch (e: IOException) {
+            Messages.showErrorDialog(
+                "Node.js interpreter path is corrupted in IDEA settings.\n" +
+                        "Please check Settings > Languages & Frameworks > Node.js",
+                "Requirement Error"
+            )
+            logger.error { "Node.js interpreter path is corrupted in IDEA settings." }
+            null
         }
+
 
     private fun createJsTestModel(
         project: Project,

@@ -2,7 +2,7 @@ package service
 
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
-import framework.api.js.util.jsUndefinedClassId
+import framework.api.js.util.isUndefined
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
@@ -80,7 +80,7 @@ function check_value(value, json) {
             imports + "$filePredicate\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
+                containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
                 resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
@@ -104,7 +104,7 @@ function check_value(value, json) {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
+                containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
                 resFilePath = "${projectPath}/${utbotDir}/$tempFileName",

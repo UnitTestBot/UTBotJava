@@ -1,13 +1,12 @@
 package service
 
-import com.google.javascript.jscomp.Compiler
 import com.google.javascript.jscomp.NodeUtil
-import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import java.io.File
 import org.apache.commons.io.FileUtils
 import parser.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
+import parser.JsParserUtils.runParser
 import utils.JsCmdExec
 import kotlin.math.roundToInt
 
@@ -85,7 +84,7 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
 
     private fun getStatementMapKeys() = buildSet {
         val fileText = File(instrumentedFilePath).readText()
-        val rootNode = Compiler().parse(SourceFile.fromCode("jsFile", fileText))
+        val rootNode = runParser(fileText)
         val funcVisitor = JsFunctionAstVisitor(covFunName, null)
         funcVisitor.accept(rootNode)
         val funcNode = funcVisitor.targetFunctionNode

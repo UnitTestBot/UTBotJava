@@ -44,8 +44,6 @@ class MochaManager(context: CgContext) : TestFrameworkManager(context) {
         get() = TODO("Not yet implemented")
     override val annotationForNestedClasses: CgAnnotation
         get() = TODO("Not yet implemented")
-    override val annotationForOuterClasses: CgAnnotation
-        get() = TODO("Not yet implemented")
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +assertions[jsAssertEquals](expected, actual)

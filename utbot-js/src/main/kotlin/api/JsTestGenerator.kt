@@ -7,18 +7,19 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
-import framework.api.js.util.toJsClassId
-import fuzzer.new.JsFeedback
-import fuzzer.new.JsFuzzingExecutionFeedback
-import fuzzer.new.JsMethodDescription
-import fuzzer.new.JsTimeoutExecution
-import fuzzer.new.JsValidExecution
-import fuzzer.new.runFuzzing
-import fuzzer.providers.JsObjectModelProvider
+import fuzzer.JsFeedback
+import fuzzer.JsFuzzingExecutionFeedback
+import fuzzer.JsMethodDescription
+import fuzzer.JsTimeoutExecution
+import fuzzer.JsValidExecution
+import fuzzer.defaultFuzzingIdGenerator
+import fuzzer.runFuzzing
 import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
+import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -32,7 +33,6 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
@@ -47,6 +47,7 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
+import service.CoverageMode
 import service.CoverageServiceProvider
 import service.InstrumentationService
 import service.ServiceContext
@@ -59,6 +60,8 @@ import utils.ResultData
 import utils.constructClass
 import utils.toJsAny
 
+private val logger = KotlinLogging.logger {}
+
 class JsTestGenerator(
     private val fileText: String,
     private var sourceFilePath: String,
@@ -68,6 +71,7 @@ class JsTestGenerator(
     private var outputFilePath: String?,
     private val exportsManager: (List<String>) -> Unit,
     private val settings: JsDynamicSettings,
+    private val isCancelled: () -> Boolean = { false }
 ) {
 
     private val exports = mutableSetOf<String>()
@@ -136,21 +140,26 @@ class JsTestGenerator(
         } ?: throw IllegalStateException()
         manageExports(classNode, funcNode, execId)
         val executionResults = mutableListOf<JsFuzzingExecutionFeedback>()
-        // TODO: add timeout predicate
-        runBlocking {
-            runLol(funcNode, execId, context).collect {
-                executionResults += it
+        try {
+            runBlockingWithCancellationPredicate(isCancelled) {
+                runFuzzingFlow(funcNode, execId, context).collect {
+                    executionResults += it
+                }
             }
+        } catch (e: CancellationException) {
+            logger.info { "Fuzzing was stopped due to test generation cancellation" }
         }
+        if (executionResults.isEmpty()) {
+            if (isCancelled()) return
+            throw UnsupportedOperationException("No test cases were generated for ${funcNode.getAbstractFunctionName()}")
+        }
+        logger.info { "${executionResults.size} test cases were suggested after fuzzing" }
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
         executionResults.forEach { value ->
             when (value) {
-                is JsTimeoutExecution -> errorsForGenerator[value.utTimeout.exception.toString()] = 1
+                is JsTimeoutExecution -> errorsForGenerator[value.utTimeout.exception.message!!] = 1
                 is JsValidExecution -> testsForGenerator.add(value.utFuzzedExecution)
-            }
-            if (value is JsTimeoutExecution) {
-                errorsForGenerator[value.utTimeout.exception.toString()] = 1
             }
         }
 
@@ -179,7 +188,7 @@ class JsTestGenerator(
         val thisInstance = when {
             execId.isStatic -> null
             classId.allConstructors.first().parameters.isEmpty() -> {
-                val id = JsObjectModelProvider.idGenerator.asInt
+                val id = defaultFuzzingIdGenerator.createId()
                 val constructor = classId.allConstructors.first()
                 val instantiationCall = UtExecutableCallModel(
                     instance = null,
@@ -209,7 +218,9 @@ class JsTestGenerator(
                 fuzzedValues.joinToString { f -> f.model.toString() }
             } parameters\"")
         )
-        val (returnValue, valueClassId) = resultData.rawString.toJsAny(execId.returnType)
+        val (returnValue, valueClassId) = resultData.toJsAny(
+            if (execId.returnType.isJsBasic) JsClassId(resultData.type) else execId.returnType
+        )
         val result = JsUtModelConstructor().construct(returnValue, valueClassId)
         val utExecResult = when (result.classId) {
             jsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
@@ -218,7 +229,7 @@ class JsTestGenerator(
         return utExecResult
     }
 
-    private fun runLol(
+    private fun runFuzzingFlow(
         funcNode: Node,
         execId: JsMethodId,
         context: ServiceContext,
@@ -228,18 +239,14 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
-            // TODO: make visitor return JsFuzzedConcreteValue
-            concreteValues = fuzzerVisitor.fuzzedConcreteValues.map {
-                FuzzedConcreteValue(
-                    it.classId.toJsClassId(),
-                    it.value,
-                    it.fuzzedContext
-                )
-            }
+            concreteValues = fuzzerVisitor.fuzzedConcreteValues
         )
         val thisInstance = makeThisInstance(execId, execId.classId)
         val collectedValues = mutableListOf<List<FuzzedValue>>()
-        val instrService = InstrumentationService(context)
+        // .location field gets us "jsFile:A:B", then we get A and B as ints
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:").split(":").map { it.toInt() }
+        logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
+        val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
         instrService.instrument()
         val coverageProvider = CoverageServiceProvider(
             context,
@@ -247,29 +254,37 @@ class JsTestGenerator(
             context.settings.coverageMode
         )
         val allStmts = instrService.allStatements
+        logger.info { "Statements to cover: (${allStmts.joinToString { toString() }})" }
         val currentlyCoveredStmts = mutableSetOf<Int>().apply {
             this.addAll(coverageProvider.baseCoverage)
         }
         val startTime = System.currentTimeMillis()
+        // Used to emit at least 1 test case
+        var counter = 0
         runFuzzing(jsDescription) { _, values ->
-            if (System.currentTimeMillis() - startTime > 5_000) return@runFuzzing JsFeedback(Control.STOP)
+            if (isCancelled() || System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
-            if (collectedValues.size > fuzzingThreshold) {
+            if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {
                     val (coveredStmts, executionResults) = coverageProvider.get(
                         collectedValues,
                         execId
                     )
                     coveredStmts.forEachIndexed { paramIndex, covData ->
-                        if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
-                            val result =
-                                getUtModelResult(
-                                    execId = execId,
-                                    resultData = executionResults[paramIndex],
-                                    collectedValues[paramIndex]
-                                )
+                        val resultData = executionResults[paramIndex]
+                        val result =
+                            getUtModelResult(
+                                execId = execId,
+                                resultData = resultData,
+                                collectedValues[resultData.index]
+                            )
+                        if (result is UtTimeoutException) {
+                            emit(JsTimeoutExecution(result))
+                            return@runFuzzing JsFeedback(Control.CONTINUE)
+                        } else if (counter == 0 || !currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
+                            counter++
                             val initEnv =
-                                EnvironmentModels(thisInstance, collectedValues[paramIndex].map { it.model }, mapOf())
+                                EnvironmentModels(thisInstance, collectedValues[resultData.index].map { it.model }, mapOf())
                             emit(
                                 JsValidExecution(
                                     UtFuzzedExecution(
@@ -282,12 +297,11 @@ class JsTestGenerator(
                             currentlyCoveredStmts += covData.additionalCoverage
                             return@runFuzzing when (result) {
                                 is UtExecutionSuccess -> JsFeedback(Control.CONTINUE)
-                                // TODO: Maybe continue?
                                 else -> JsFeedback(Control.PASS)
                             }
                         }
+                        if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                     }
-                    if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                 } catch (e: TimeoutException) {
                     emit(
                         JsTimeoutExecution(

@@ -1,8 +1,9 @@
-package fuzzer.new
+package fuzzer.providers
 
 import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
+import fuzzer.JsMethodDescription
 import org.utbot.fuzzer.FuzzedContext.Comparison.EQ
 import org.utbot.fuzzer.FuzzedContext.Comparison.GE
 import org.utbot.fuzzer.FuzzedContext.Comparison.GT

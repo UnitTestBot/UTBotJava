@@ -1,4 +1,4 @@
-package fuzzer.new
+package fuzzer
 
 import framework.api.js.JsClassId
 import org.utbot.framework.plugin.api.UtTimeoutException

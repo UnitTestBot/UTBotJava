@@ -1,11 +1,13 @@
-package fuzzer.new
+package fuzzer
 import framework.api.js.JsClassId
+import fuzzer.providers.BoolValueProvider
+import fuzzer.providers.FloatValueProvider
+import fuzzer.providers.StringValueProvider
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzing.Configuration
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.fuzz
-import kotlin.random.Random
 
 
 fun defaultValueProviders() = listOf(
@@ -33,7 +35,10 @@ class JsFuzzing(
     }
 }
 
+internal val defaultFuzzingIdGenerator = ReferencePreservingIntIdGenerator()
+
+
 suspend fun runFuzzing(
     description: JsMethodDescription,
     exec: suspend (JsMethodDescription, List<FuzzedValue>) -> JsFeedback
-) = JsFuzzing(exec).fuzz(description, Random(0), Configuration())
+) = JsFuzzing(exec).fuzz(description)

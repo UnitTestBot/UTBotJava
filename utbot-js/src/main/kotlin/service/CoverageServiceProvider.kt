@@ -2,7 +2,7 @@ package service
 
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
-import framework.api.js.util.jsUndefinedClassId
+import framework.api.js.util.isUndefined
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
@@ -10,7 +10,6 @@ import org.utbot.fuzzer.FuzzedValue
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
-import utils.PathResolver
 import utils.ResultData
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
@@ -49,7 +48,7 @@ function check_value(value, json) {
             instrumentationService.covFunName,
             "${projectPath}/${utbotDir}/${tempFileName}Base.json"
         )
-        baseCoverage = FastCoverageService.getBaseCoverage(
+        baseCoverage = CoverageService.getBaseCoverage(
             context,
             temp
         )
@@ -76,27 +75,23 @@ function check_value(value, json) {
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
+        val covFunName = instrumentationService.covFunName
         val tempScriptTexts = fuzzedValues.indices.map {
-            "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${
-                PathResolver.getRelativePath(
-                    "${context.projectPath}/${context.utbotDir}",
-                    context.filePathToInference
-                )
-            }\")\n" + "const fs = require(\"fs\")\n\n" + "$filePredicate\n\n" + makeStringForRunJs(
+            imports + "$filePredicate\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
+                containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
+                covFunName = covFunName,
                 index = it,
                 resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
-                mode = CoverageMode.BASIC
             )
         }
         val coverageService = BasicCoverageService(
             context = context,
             scriptTexts = tempScriptTexts,
-            testCaseIndices = fuzzedValues.indices,
             baseCoverage = baseCoverage
         )
+        coverageService.generateCoverageReport()
         return coverageService.getCoveredLines() to coverageService.resultList
     }
 
@@ -109,11 +104,10 @@ function check_value(value, json) {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = if (execId.classId != jsUndefinedClassId) execId.classId.name else null,
+                containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
                 resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
-                mode = CoverageMode.FAST
             )
         }
         val coverageService = FastCoverageService(
@@ -122,6 +116,7 @@ function check_value(value, json) {
             testCaseIndices = fuzzedValues.indices,
             baseCoverage = baseCoverage,
         )
+        coverageService.generateCoverageReport()
         return coverageService.getCoveredLines() to coverageService.resultList
     }
 
@@ -139,10 +134,9 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
         fuzzedValue: List<FuzzedValue>,
         method: JsMethodId,
         containingClass: String?,
-        covFunName: String = "",
+        covFunName: String,
         index: Int,
         resFilePath: String,
-        mode: CoverageMode,
     ): String {
         val callString = makeCallFunctionString(fuzzedValue, method, containingClass)
         return """
@@ -157,11 +151,11 @@ try {
 } catch(e) {
     res$index = "Error:" + e.message
 }
-${
-"json$index.result = res$index\n" +
-if (mode == CoverageMode.FAST ) "json$index.index = $index\n" +
-"json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
-}            
+json$index.result = res$index
+json$index.type = typeof res$index
+json$index.index = $index
+json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s   
+    
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             """
     }
@@ -186,7 +180,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
 
     private fun Any.quoteWrapIfNecessary(): String =
         when (this) {
-            is String -> "\"$this\""
+            is String -> "`$this`"
             else -> "$this"
         }
 

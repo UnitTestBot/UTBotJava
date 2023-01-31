@@ -14,7 +14,7 @@
 
 ### Sources
 
-- The `add-to` field specifies which objects the `marks` will be added to. You can specify only one value here or a whole list. Possible values:
+- The `add-to` field specifies which objects will be marked. You can specify only one value here or a whole list. Possible values:
     - `this`
     - `arg1`
     - `arg2`
@@ -47,7 +47,7 @@ sources:
 ### Passes
 
 - The `get-from` field specifies the sources of `marks`.
-- The `add-to` field specifies which objects to add a mark to, if any element from `get-from` has one.
+- The `add-to` field specifies which objects will be marked, if any element from `get-from` has any mark.
 - The `marks` field specifies the actual marks that can passed from one object to another.
 - For all the keys listed above, there can be only one value or a whole list of values. Also, it's true for similar keys in the sections below.
 
@@ -95,7 +95,7 @@ sinks:
 
 ### Conditions
 
-- The `conditions` field specifies runtime conditions for arguments (`arg1`, `arg2`, ...). Conditions can also be specified for `this` and `return` (if that makes sense).
+- The `conditions` field specifies runtime conditions for arguments (`arg1`, `arg2`, ...). Conditions can also be specified for `this` and `return` (if it makes sense).
 - The rule is triggered if all the specified conditions are met.
 - The condition can check a specific value or runtime type.
 - Values can be set for the following types: boolean, int, float or string.
@@ -107,8 +107,8 @@ sinks:
 conditions:
   this: <java.lang.String> # this should be java.lang.String
   arg1: "test" # the first argument should be equal to "test"
-  arg2: 227
-  arg3: 227.001
+  arg2: 227 # int
+  arg3: 227.001 # float
   return: true # return value should be equal to `true`
 ```
 
@@ -124,7 +124,7 @@ conditions:
   arg2: { not: 0 } # arg2 should not be equal to 0
   arg3:
     not: [ 1, 2, 3, 5, 8 ] # should not be equal to any of the listed numbers
-  arg4: [ "", { not: <int> } ] # should be empty string or int
+  arg4: [ "", { not: <java.lang.String> } ] # should be an empty string or not a string at all
 ```
 
 ### Overall example

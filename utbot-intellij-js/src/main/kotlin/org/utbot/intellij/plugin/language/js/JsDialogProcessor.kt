@@ -164,7 +164,8 @@ object JsDialogProcessor {
                         pathToNPM = model.pathToNPM,
                         timeout = model.timeout,
                         coverageMode = model.coverageMode
-                    )
+                    ),
+                    isCancelled = { indicator.isCanceled }
                 )
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)

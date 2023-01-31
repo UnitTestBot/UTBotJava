@@ -16,9 +16,10 @@ import fuzzer.new.JsValidExecution
 import fuzzer.new.runFuzzing
 import fuzzer.providers.JsObjectModelProvider
 import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.runBlocking
+import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
@@ -69,6 +70,7 @@ class JsTestGenerator(
     private var outputFilePath: String?,
     private val exportsManager: (List<String>) -> Unit,
     private val settings: JsDynamicSettings,
+    private val isCancelled: () -> Boolean = { false }
 ) {
 
     private val exports = mutableSetOf<String>()
@@ -137,11 +139,18 @@ class JsTestGenerator(
         } ?: throw IllegalStateException()
         manageExports(classNode, funcNode, execId)
         val executionResults = mutableListOf<JsFuzzingExecutionFeedback>()
-        // TODO: add timeout predicate
-        runBlocking {
-            runLol(funcNode, execId, context).collect {
-                executionResults += it
+        try {
+            runBlockingWithCancellationPredicate(isCancelled) {
+                runFuzzingFlow(funcNode, execId, context).collect {
+                    executionResults += it
+                }
             }
+        } catch (e: CancellationException) {
+            //TODO: log that job was cancelled here
+        }
+        if (executionResults.isEmpty()) {
+            if (isCancelled()) return
+            throw UnsupportedOperationException("No test cases were generated for ${funcNode.getAbstractFunctionName()}")
         }
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
@@ -207,7 +216,7 @@ class JsTestGenerator(
                 fuzzedValues.joinToString { f -> f.model.toString() }
             } parameters\"")
         )
-        val (returnValue, valueClassId) = resultData.rawString.toJsAny(
+        val (returnValue, valueClassId) = resultData.toJsAny(
             if (execId.returnType.isJsBasic) JsClassId(resultData.type) else execId.returnType
         )
         val result = JsUtModelConstructor().construct(returnValue, valueClassId)
@@ -218,7 +227,7 @@ class JsTestGenerator(
         return utExecResult
     }
 
-    private fun runLol(
+    private fun runFuzzingFlow(
         funcNode: Node,
         execId: JsMethodId,
         context: ServiceContext,
@@ -256,7 +265,7 @@ class JsTestGenerator(
         // Used to emit at least 1 test case
         var counter = 0
         runFuzzing(jsDescription) { _, values ->
-            if (System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
+            if (isCancelled() || System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
             if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {
@@ -265,11 +274,12 @@ class JsTestGenerator(
                         execId
                     )
                     coveredStmts.forEachIndexed { paramIndex, covData ->
+                        val resultData = executionResults[paramIndex]
                         val result =
                             getUtModelResult(
                                 execId = execId,
-                                resultData = executionResults[paramIndex],
-                                collectedValues[paramIndex]
+                                resultData = resultData,
+                                collectedValues[resultData.index]
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
@@ -277,7 +287,7 @@ class JsTestGenerator(
                         } else if (counter == 0 || !currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             counter++
                             val initEnv =
-                                EnvironmentModels(thisInstance, collectedValues[paramIndex].map { it.model }, mapOf())
+                                EnvironmentModels(thisInstance, collectedValues[resultData.index].map { it.model }, mapOf())
                             emit(
                                 JsValidExecution(
                                     UtFuzzedExecution(
@@ -290,12 +300,11 @@ class JsTestGenerator(
                             currentlyCoveredStmts += covData.additionalCoverage
                             return@runFuzzing when (result) {
                                 is UtExecutionSuccess -> JsFeedback(Control.CONTINUE)
-                                // TODO: Maybe continue?
                                 else -> JsFeedback(Control.PASS)
                             }
                         }
+                        if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                     }
-                    if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                 } catch (e: TimeoutException) {
                     emit(
                         JsTimeoutExecution(

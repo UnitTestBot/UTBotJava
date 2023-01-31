@@ -1,11 +1,9 @@
 package fuzzer.new
 import framework.api.js.JsClassId
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzing.Configuration
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.fuzz
-import kotlin.random.Random
 
 
 fun defaultValueProviders() = listOf(
@@ -36,4 +34,4 @@ class JsFuzzing(
 suspend fun runFuzzing(
     description: JsMethodDescription,
     exec: suspend (JsMethodDescription, List<FuzzedValue>) -> JsFeedback
-) = JsFuzzing(exec).fuzz(description, Random(0), Configuration())
+) = JsFuzzing(exec).fuzz(description)

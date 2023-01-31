@@ -10,15 +10,10 @@ import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
 
 sealed interface JsFuzzingExecutionFeedback
-class JsValidExecution(val utFuzzedExecution: UtFuzzedExecution): JsFuzzingExecutionFeedback
+class JsValidExecution(val utFuzzedExecution: UtFuzzedExecution) : JsFuzzingExecutionFeedback
 
-class JsTimeoutExecution(val utTimeout: UtTimeoutException): JsFuzzingExecutionFeedback
+class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecutionFeedback
 
-//data class JsFuzzedConcreteValue(
-//    val type: JsClassId,
-//    val value: Any,
-//    val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
-//)
 
 class JsMethodDescription(
     val name: String,

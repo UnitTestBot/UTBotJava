@@ -2,12 +2,12 @@ package service
 
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
-import java.io.File
 import org.apache.commons.io.FileUtils
 import parser.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
 import parser.JsParserUtils.runParser
 import utils.JsCmdExec
+import java.io.File
 import kotlin.math.roundToInt
 
 class InstrumentationService(context: ServiceContext, private val funcDeclOffset: Pair<Int, Int>): ContextOwner by context {
@@ -42,7 +42,8 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
          Node.getObjectValue() returns 4 if called on any "line" Node.
          Node.getObjectLocation("decl") returns Location class ((4, 9), (4, 12)) if called on "0" Node.
      */
-    private fun Node.getObjectFirstKey(): Node = this.firstFirstChild ?: throw IllegalStateException("Node doesn't have child of child")
+    private fun Node.getObjectFirstKey(): Node = this.firstFirstChild
+        ?: throw IllegalStateException("Node doesn't have child of child")
 
     private fun Node.getObjectField(fieldName: String): Node? {
         var fieldNode: Node? = this.getObjectFirstKey()
@@ -53,10 +54,11 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
         return null
     }
 
-    private fun Node.getObjectValue(): Any = this.firstChild?.getAnyValue() ?: throw IllegalStateException("Can't get Node's simple value")
+    private fun Node.getObjectValue(): Any = this.firstChild?.getAnyValue()
+        ?: throw IllegalStateException("Can't get Node's simple value")
 
     private fun Node.getObjectLocation(locKey: String?): Location {
-        val generalField = locKey?.let { this.getObjectField(it)} ?: this
+        val generalField = locKey?.let { this.getObjectField(it) } ?: this
         val startField = generalField.getObjectFirstKey()
         val endField = startField.next!!
         return Location(
@@ -65,13 +67,20 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
         )
     }
 
-    private fun Node.getLineValue(): Int = this.getObjectFirstKey().getObjectValue().toString().toFloat().roundToInt()
+    private fun Node.getLineValue(): Int = this.getObjectFirstKey().getObjectValue()
+        .toString()
+        .toFloat()
+        .roundToInt()
 
-    private fun Node.getColumnValue(): Int = this.getObjectFirstKey().next!!.getObjectValue().toString().toFloat().roundToInt()
+    private fun Node.getColumnValue(): Int = this.getObjectFirstKey().next!!
+        .getObjectValue()
+        .toString()
+        .toFloat()
+        .roundToInt()
 
     private fun Node.findAndIterateOver(key: String, func: (Node?) -> Unit) {
         NodeUtil.visitPreOrder(this) { node ->
-            if(node.isStringKey && node.string == key) {
+            if (node.isStringKey && node.string == key) {
                 var currKey: Node? = node.firstChild!!.firstChild!!
                 do {
                     func(currKey)
@@ -98,7 +107,8 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
                 }
 
             val stmtLocation = currKey!!.getObjectLocation(null)
-            if (funcLocation.start < stmtLocation.start && funcLocation.end > stmtLocation.end) add(currKey.string.toInt())
+            if (funcLocation.start < stmtLocation.start && funcLocation.end > stmtLocation.end)
+                add(currKey.string.toInt())
         }
     }
 
@@ -125,7 +135,8 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
         )
         val instrumentedFileText = File(instrumentedFilePath).readText()
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
-        val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value ?: throw IllegalStateException("")
+        val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
+            ?: throw IllegalStateException("")
         val fixedFileText = "$instrumentedFileText\nexports.$funName = $funName"
         File(instrumentedFilePath).writeText(fixedFileText)
 

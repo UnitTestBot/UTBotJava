@@ -184,6 +184,12 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             else -> "$this"
         }
 
+    private fun Any.escapeSymbolsIfNecessary(): Any =
+        when (this) {
+            is String -> this.replace("`", "")
+            else -> this
+        }
+
     private fun UtAssembleModel.toParamString(): String =
         with(this) {
             val callConstructorString = "new ${JsTestGenerationSettings.fileUnderTestAliases}.${classId.name}"
@@ -200,7 +206,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         when (this) {
             is UtAssembleModel -> this.toParamString()
             else -> {
-                (this as JsPrimitiveModel).value.quoteWrapIfNecessary()
+                (this as JsPrimitiveModel).value.escapeSymbolsIfNecessary().quoteWrapIfNecessary()
             }
         }
 }

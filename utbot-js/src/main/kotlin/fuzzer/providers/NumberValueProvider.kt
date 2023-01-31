@@ -9,7 +9,6 @@ import org.utbot.fuzzer.FuzzedContext.Comparison.GE
 import org.utbot.fuzzer.FuzzedContext.Comparison.GT
 import org.utbot.fuzzer.FuzzedContext.Comparison.LE
 import org.utbot.fuzzer.FuzzedContext.Comparison.LT
-import org.utbot.fuzzer.FuzzedContext.Comparison.NE
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
 import org.utbot.fuzzing.Seed
@@ -63,7 +62,7 @@ import org.utbot.fuzzing.seeds.IEEE754Value
 //    }
 //}
 
-object FloatValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+object NumberValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean {
         return type.isJsBasic
@@ -73,10 +72,11 @@ object FloatValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescri
         sequence {
             description.concreteValues.forEach { (_, v, c) ->
                 val balance = when (c) {
-                    EQ, NE, LE, GT -> 1
+                    EQ, LE, GT -> 1
                     LT, GE -> -1
                     else -> 0
                 }
+
                 yield(Seed.Known(IEEE754Value.fromValue(v)) { known ->
                     JsPrimitiveModel(known.toDouble() + balance).fuzzed {
                         summary = "%var% = ${known.toDouble() + balance}"

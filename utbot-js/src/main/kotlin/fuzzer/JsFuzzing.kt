@@ -2,7 +2,7 @@ package fuzzer
 
 import framework.api.js.JsClassId
 import fuzzer.providers.BoolValueProvider
-import fuzzer.providers.FloatValueProvider
+import fuzzer.providers.NumberValueProvider
 import fuzzer.providers.StringValueProvider
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
@@ -13,7 +13,7 @@ import org.utbot.fuzzing.fuzz
 
 fun defaultValueProviders() = listOf(
     BoolValueProvider,
-    FloatValueProvider,
+    NumberValueProvider,
     StringValueProvider
 )
 

@@ -3,13 +3,14 @@
 ## Configuration
 
 - Each method description can contain the key `conditions` (optionally).
-- Keys like `add-to` or `remove-from` may contain a list of values or only one value. 
+- Keys like `add-to` or `remove-from` can contain a list of values or only one value. 
   Possible values:
   - this
   - arg1
   - arg2
   - ...
   - return
+- The `marks` key can also contain a list of marks or only one mark.
 - Fully qualified name of the method may be determined in parts.
 
 **Example:**

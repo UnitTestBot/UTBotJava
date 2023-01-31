@@ -20,7 +20,7 @@ sources:
   com:
     abc.method1:
       add-to: [this, return] 
-      marks: nullable
+      marks: xss
     bca.method2:
       add-to: return
       marks: [sensitive-data, sql-injection]
@@ -51,14 +51,14 @@ cleaners:
     marks: [sensitive-data, sql-injection]
   com.company.method8:
     remove-from: [arg1, return]
-    marks: nullable
+    marks: xss
 
 sinks:
   org.example:
     log:
-      check-in: arg1
-      marks: [sensitive-data, nullable]
+      check: arg1
+      marks: sensitive-data
     sink0:
-      check-in: [arg1, arg3]
-      marks: nullable
+      check: [arg1, arg3]
+      marks: [sql-injection, xss]
 ```

@@ -71,7 +71,7 @@ class ReduceMemoryObject(
 ): MemoryObject(kind, comparable)
 
 fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode {
-    return when(this) {
+    val obj = when(this) {
         is ReprMemoryObject -> {
            PythonTree.PrimitiveNode(PythonClassId(this.kind), this.value)
         }
@@ -99,27 +99,29 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
             }
         }
         is ReduceMemoryObject -> {
-            val state_objs = memoryDump.getById(state) as DictMemoryObject
+            val stateObjs = memoryDump.getById(state) as DictMemoryObject
             val arguments = memoryDump.getById(args) as ListMemoryObject
-            val listitems_objs = memoryDump.getById(listitems) as ListMemoryObject
-            val dictitems_objs = memoryDump.getById(dictitems) as DictMemoryObject
+            val listitemsObjs = memoryDump.getById(listitems) as ListMemoryObject
+            val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
             PythonTree.ReduceNode(
                 memoryDump.getByValue(this).toLong(),
                 PythonClassId(this.kind),
                 PythonClassId(this.constructor),
                 arguments.items.map { memoryDump.getById(it).toPythonTree(memoryDump) },
-                state_objs.items.entries.associate {
+                stateObjs.items.entries.associate {
                     (memoryDump.getById(it.key).toPythonTree(memoryDump) as PythonTree.PrimitiveNode).repr.drop(1).dropLast(1) to
                     memoryDump.getById(it.value).toPythonTree(memoryDump)
                 }.toMutableMap(),
-                listitems_objs.items.map { memoryDump.getById(it).toPythonTree(memoryDump) },
-                dictitems_objs.items.entries.associate {
+                listitemsObjs.items.map { memoryDump.getById(it).toPythonTree(memoryDump) },
+                dictitemsObjs.items.entries.associate {
                     memoryDump.getById(it.key).toPythonTree(memoryDump) to
                     memoryDump.getById(it.value).toPythonTree(memoryDump)
-                }
+                },
             )
         }
     }
+    obj.comparable = this.comparable
+    return obj
 }
 
 fun main() {

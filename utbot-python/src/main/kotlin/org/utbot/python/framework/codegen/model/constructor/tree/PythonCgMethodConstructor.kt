@@ -110,10 +110,10 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     recordActualResult()
                     generateResultAssertions()
 
+                    emptyLineIfNeeded()
                     generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
 
-                    if (executableId is PythonMethodId)
-                        generatePythonTestComments(execution)
+                    generatePythonTestComments(execution)
                 }
 
                 if (statics.isNotEmpty()) {

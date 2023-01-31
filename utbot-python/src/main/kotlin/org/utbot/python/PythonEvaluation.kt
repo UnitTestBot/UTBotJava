@@ -194,6 +194,7 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
             val kwargsIds = kwargsIdsAdapter.fromJson(output[6])!!
             val resultId = output[7]
 
+            // thisObject id is the first if it exists
             val modelListIds = argsIds + kwargsIds
 
             val resultValue = if (resultId == "None") {

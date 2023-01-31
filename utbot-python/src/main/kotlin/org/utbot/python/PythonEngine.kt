@@ -118,12 +118,7 @@ class PythonEngine(
                 UtExplicitlyThrownException(Throwable(evaluationResult.result.output.type.toString()), false)
             }
             else {
-                val outputType = evaluationResult.result.type
-                val resultAsModel = PythonTreeModel(
-                    evaluationResult.result.output,
-                    outputType
-                )
-                UtExecutionSuccess(resultAsModel)
+                UtExecutionSuccess(PythonTreeModel(evaluationResult.result.output))
             }
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)

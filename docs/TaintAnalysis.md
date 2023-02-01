@@ -5,7 +5,7 @@
 ### Basic
 
 - There are 4 sections: sources, passes, cleaners and sinks. Each of them contains a list of methods descriptions (rules). Fully qualified method names can be written in one line, or it can be defined by nested parts — first the package names, then the class name, and finally the method name. Note that regular expressions in names are not supported.
-- Each rule can contain a method signature — a list of argument types (in compile-time): `signature: [  <int>, _, <java.lang.String> ]`
+- Each rule can contain a method signature — a list of argument types (at compile-time): `signature: [  <int>, _, <java.lang.String> ]`
   - name of the type is written in `<>`.
   - `_` means any type.
 - Also, the rule can contain runtime conditions that must be met for triggering this rule. Here you can set specific values of method arguments or their runtime types. More detailed information about the `conditions` is given below.
@@ -176,3 +176,71 @@ sinks:
           check: [ arg1, arg3 ]
           marks: [ sql-injection, xss ]
 ```
+
+## Usage examples
+
+- `java.lang.System.getenv` is a source of the mark "environment". But there are two overloads of this method: with one string parameter and no parameters at all. We want to describe only the first overload:
+
+  ```yaml
+  sources:
+    - java.lang.System.getenv:
+        signature: [ <java.lang.String> ]
+        add-to: return
+        marks: environment
+  ```
+
+- `java.lang.String.concat` is a pass-through only if `this` is marked and not equal to `""` or if `arg1` is marked and not equal to `""`:
+
+  ```yaml
+  passes:
+    - java.lang.String:
+        - concat:
+            conditions:
+              this: { not: "" }
+            get-from: this
+            add-to: return
+            marks: sensitive-data
+        - concat:
+            conditions:
+              arg1: { not: "" }
+            get-from: arg1
+            add-to: return
+            marks: sensitive-data
+  ```
+
+- `java.lang.String.isEmpty` is a cleaner only if it returns `true`:
+
+  ```yaml
+  cleaners:
+    - java.lang.String.isEmpty:
+        conditions:
+          return: true
+        remove-from: this
+        marks: [ sql-injection, xss ]
+  ```
+
+- Suppose that the method `org.example.util.unsafe` is a sink for the mark "environment" if the second argument is an `Integer` and equal to zero:
+
+  ```yaml
+  sinks:
+    - org.example.util.unsafe:
+        signature: [ _, <java.lang.Integer> ]
+        conditions:
+          arg2: 0
+        check: arg2
+        marks: environment
+  ```
+  
+  The configuration above checks the type at compile-time, but sometimes we want to check the type at runtime:
+
+  ```yaml
+  sinks:
+    - org.example.util.unsafe:
+        conditions:
+          arg2:
+            not: [ { not: 0 }, { not: <java.lang.Integer> } ]
+        check: arg2
+        marks: environment
+  ```
+  
+  Perhaps explicit `and` for `conditions` will be added in the future.

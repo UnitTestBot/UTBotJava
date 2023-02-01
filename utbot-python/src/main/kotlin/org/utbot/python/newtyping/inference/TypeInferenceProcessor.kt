@@ -46,8 +46,6 @@ class TypeInferenceProcessor(
     ): List<Type> {
         Cleaner.restart()
         try {
-            TemporaryFileManager.setup()
-
             checkRequirementsAction()
 
             if (!RequirementsUtils.requirementsAreInstalled(pythonPath)) {

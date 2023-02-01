@@ -23,17 +23,17 @@ import java.lang.Long.max
 
 sealed class PythonEvaluationResult
 
-class PythonEvaluationError(
+data class PythonEvaluationError(
     val status: Int,
     val message: String,
     val stackTrace: List<String>
 ) : PythonEvaluationResult()
 
-class PythonEvaluationTimeout(
+data class PythonEvaluationTimeout(
     val message: String = "Timeout"
 ) : PythonEvaluationResult()
 
-class PythonEvaluationSuccess(
+data class PythonEvaluationSuccess(
     val coverage: Coverage,
     val isException: Boolean,
     val stateBefore: MemoryDump,
@@ -62,7 +62,6 @@ data class JobResult(
 
 data class EvaluationInput(
     val method: PythonMethod,
-    val methodArguments: List<UtModel>,
     val directoriesForSysPath: Set<String>,
     val moduleToImport: String,
     val pythonPath: String,
@@ -72,6 +71,7 @@ data class EvaluationInput(
     val values: List<FuzzedValue>,
     val additionalModulesToImport: Set<String> = emptySet()
 ) {
+    val methodArguments = (listOf(thisObject) + modelList).filterNotNull()
     fun evaluate(): JobResult {
         val process = startEvaluationProcess(this)
         val startedTime = System.currentTimeMillis()

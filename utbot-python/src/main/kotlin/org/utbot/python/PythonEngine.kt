@@ -69,22 +69,22 @@ class PythonEngine(
     }
 
     private fun transformModelList(
-        thisObject: UtModel?,
+        hasThisObject: Boolean,
         state: MemoryDump,
         modelListIds: List<String>
     ): Pair<UtModel?, List<UtModel>> {
-        val (stateThisId, afterModelListIds) =
-            if (thisObject == null) {
-                Pair(null, modelListIds)
-            } else {
+        val (stateThisId, resultModelListIds) =
+            if (hasThisObject) {
                 Pair(modelListIds.first(), modelListIds.drop(1))
+            } else {
+                Pair(null, modelListIds)
             }
         val stateThisObject = stateThisId?.let {
             PythonTreeModel(
                 state.getById(it).toPythonTree(state)
             )
         }
-        val modelList = afterModelListIds.map {
+        val modelList = resultModelListIds.map {
             PythonTreeModel(
                 state.getById(it).toPythonTree(state)
             )
@@ -96,7 +96,7 @@ class PythonEngine(
         types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
-        jobResult: JobResult,
+        hasThisObject: Boolean,
         summary: List<String>,
     ): FuzzingExecutionFeedback {
         val prohibitedExceptions = listOf(
@@ -123,8 +123,8 @@ class PythonEngine(
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
 
-        val (beforeThisObject, beforeModelList) = transformModelList(jobResult.thisObject, evaluationResult.stateBefore, evaluationResult.modelListIds)
-        val (afterThisObject, afterModelList) = transformModelList(jobResult.thisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
+        val (beforeThisObject, beforeModelList) = transformModelList(hasThisObject, evaluationResult.stateBefore, evaluationResult.modelListIds)
+        val (afterThisObject, afterModelList) = transformModelList(hasThisObject, evaluationResult.stateAfter, evaluationResult.modelListIds)
 
         val utFuzzedExecution = UtFuzzedExecution(
             stateBefore = EnvironmentModels(beforeThisObject, beforeModelList, emptyMap()),
@@ -154,7 +154,6 @@ class PythonEngine(
 
         return EvaluationInput(
             methodUnderTest,
-            argumentValues,
             directoriesForSysPath,
             moduleToImport,
             pythonPath,
@@ -220,7 +219,8 @@ class PythonEngine(
                         .zip(methodUnderTest.arguments)
                         .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
-                    val result = handleSuccessResult(parameters, evaluationResult, description, jobResult, summary)
+                    val hasThisObject = jobResult.thisObject != null
+                    val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)
                     emit(result)
 
                     if (coveredLines.size.toLong() == sourceLinesCount) {

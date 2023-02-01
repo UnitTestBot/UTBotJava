@@ -23,6 +23,8 @@ jobs:
 #    needs: build-and-run-tests
 #    if: ${{ github.event_name == 'push' }}
     strategy:
+      # The option forces to execute all jobs even though some of them have failed.
+      fail-fast: false
       matrix:
         configuration:
           - image_name: utbot_java_cli
@@ -48,10 +50,6 @@ jobs:
       run: |
         echo VERSION="$(date +%Y).$(date +%-m)" >> $GITHUB_ENV
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        sudo: false
     - name: Build UTBot CLI
       run: |
         cd ${{ matrix.configuration.directory }}

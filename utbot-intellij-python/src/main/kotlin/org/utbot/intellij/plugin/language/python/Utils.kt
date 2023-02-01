@@ -33,6 +33,7 @@ fun generateRandomString(length: Int): String {
 
 fun VirtualFile.isProjectSubmodule(ancestor: VirtualFile?): Boolean {
     return VfsUtil.isUnder(this, setOf(ancestor).toMutableSet())
+}
 
 fun checkModuleIsInstalled(pythonPath: String, moduleName: String): Boolean {
     return RequirementsUtils.requirementsAreInstalled(pythonPath, listOf(moduleName))

@@ -41,6 +41,7 @@ import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.framework.codegen.toPythonRawString
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -128,9 +129,9 @@ class PythonCodeGenerator(
                     renderer.renderPythonImport(it)
                 }
 
-                val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
-                val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
-                val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
+                val fullpath = CgLiteral(pythonStrClassId, method.moduleFilename.toPythonRawString())
+                val outputPath = CgLiteral(pythonStrClassId, fileForOutputName.toPythonRawString())
+                val databasePath = CgLiteral(pythonStrClassId, coverageDatabasePath.toPythonRawString())
 
                 val containingClass = method.containingPythonClassId
                 var functionTextName =

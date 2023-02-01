@@ -6,10 +6,10 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 object TemporaryFileManager {
-    private lateinit var tmpDirectory: Path
+    private var tmpDirectory: Path
     private var nextId = 0
 
-    fun setup() {
+    init {
         tmpDirectory = FileUtil.createTempDirectory("python-test-generation-${nextId++}")
         Cleaner.addFunction { tmpDirectory.toFile().deleteRecursively() }
     }

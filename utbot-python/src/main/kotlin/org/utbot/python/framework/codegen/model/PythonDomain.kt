@@ -48,6 +48,10 @@ object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
 }
 
 object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
+    init {
+        isInstalled = true
+    }
+
     override val testSuperClass: ClassId = PythonClassId("unittest.TestCase")
     override val mainPackage: String = "unittest"
     override val assertionsClass: ClassId = PythonClassId("self")

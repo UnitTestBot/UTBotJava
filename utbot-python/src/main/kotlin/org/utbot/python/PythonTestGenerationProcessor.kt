@@ -21,8 +21,8 @@ import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.Cleaner
+import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
-import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getLineOfFunction
 import java.nio.file.Path
 import kotlin.io.path.Path
@@ -46,6 +46,8 @@ object PythonTestGenerationProcessor {
         withMinimization: Boolean = true,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
+        installingRequirementsAction: () -> Unit = {},
+        testFrameworkInstallationAction: () -> Unit = {},
         requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
             MissingRequirementsActionResult.NOT_INSTALLED
         },
@@ -60,11 +62,14 @@ object PythonTestGenerationProcessor {
         Cleaner.restart()
 
         try {
-            TemporaryFileManager.setup()
-
+            if (!testFramework.isInstalled) {
+                testFrameworkInstallationAction()
+                installRequirements(pythonPath, listOf(testFramework.mainPackage))
+            }
             if (!doNotCheckRequirements) {
                 checkingRequirementsAction()
                 if (!requirementsAreInstalled(pythonPath)) {
+                    installingRequirementsAction()
                     val result = requirementsAreNotInstalledAction()
                     if (result == MissingRequirementsActionResult.NOT_INSTALLED)
                         return

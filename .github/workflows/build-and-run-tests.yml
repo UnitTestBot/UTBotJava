@@ -47,8 +47,12 @@ jobs:
     - name: Set environment variables
       run: |
         echo VERSION="$(date +%Y).$(date +%-m)" >> $GITHUB_ENV
-        
-    - name: Build UTBot Java CLI
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        sudo: false
+    - name: Build UTBot CLI
       run: |
         cd ${{ matrix.configuration.directory }}
         gradle build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}

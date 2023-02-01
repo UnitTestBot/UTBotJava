@@ -32,6 +32,8 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
+import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgVariable
@@ -318,6 +320,27 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
             element.defaultLabel?.accept(this)
         }
         println("}")
+    }
+
+    override fun visit(element: CgFormattedString) {
+        val nonLiteralElements = element.array.filterNot { it is CgLiteral }
+
+        print("String.format(")
+        val constructedMsg = buildString {
+            element.array.forEachIndexed { index, cgElement ->
+                if (cgElement is CgLiteral) append(
+                    cgElement.toStringConstant(asRawString = true)
+                ) else append("%s")
+                if (index < element.array.lastIndex) append(" ")
+            }
+        }
+
+        print(constructedMsg.toStringConstant())
+
+        // Comma to separate msg from variables
+        if (nonLiteralElements.isNotEmpty()) print(", ")
+        nonLiteralElements.renderSeparated(newLines = false)
+        print(")")
     }
 
     override fun toStringConstantImpl(byte: Byte): String = "(byte) $byte"

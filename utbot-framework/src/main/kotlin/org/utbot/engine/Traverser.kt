@@ -5,7 +5,9 @@ import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
+import mu.KotlinLogging
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
@@ -88,6 +90,7 @@ import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.simplificators.MemoryUpdateSimplificator
 import org.utbot.engine.simplificators.simplifySymbolicStateUpdate
 import org.utbot.engine.simplificators.simplifySymbolicValue
+import org.utbot.engine.types.ARRAYS_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_SOOT_CLASS
 import org.utbot.engine.types.CLASS_REF_TYPE
 import org.utbot.engine.types.ENUM_ORDINAL
@@ -118,6 +121,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
@@ -125,7 +129,7 @@ import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
-import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -219,9 +223,9 @@ import soot.toolkits.graph.ExceptionalUnitGraph
 import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
-import java.util.concurrent.atomic.AtomicInteger
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
+private val logger = KotlinLogging.logger {}
 
 class Traverser(
     private val methodUnderTest: ExecutableId,
@@ -255,16 +259,20 @@ class Traverser(
 
     /**
      * Contains information about the generic types used in the parameters of the method under test.
+     *
+     * Mutable set here is required since this object might be passed into several methods
+     * and get several piece of information about their parameterized types
      */
-    private val parameterAddrToGenericType = mutableMapOf<UtAddrExpression, ParameterizedType>()
+    private val instanceAddrToGenericType = mutableMapOf<UtAddrExpression, MutableSet<ParameterizedType>>()
 
     private val preferredCexInstanceCache = mutableMapOf<ObjectValue, MutableSet<SootField>>()
 
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
-    private val objectCounter = AtomicInteger(TypeRegistry.objectCounterInitialValue)
+    internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
+
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
-        val newAddr = objectCounter.getAndIncrement()
+        val newAddr = objectCounter.createNewAddr()
         // return negative address for objects created inside static initializer
         // to make their address space be intersected with address space of
         // parameters of method under symbolic execution
@@ -478,7 +486,20 @@ class Traverser(
         fieldRef: StaticFieldRef,
         stmt: Stmt
     ): Boolean {
+        // This order of processing options is important.
+        // First, we should process classes that
+        // cannot be analyzed without clinit sections, e.g., enums
         if (shouldProcessStaticFieldConcretely(fieldRef)) {
+            return processStaticFieldConcretely(fieldRef, stmt)
+        }
+
+        // Then we should check if we should analyze clinit sections at all
+        if (!UtSettings.enableClinitSectionsAnalysis) {
+            return false
+        }
+
+        // Finally, we decide whether we should analyze clinit sections concretely or not
+        if (UtSettings.processAllClinitSectionsConcretely) {
             return processStaticFieldConcretely(fieldRef, stmt)
         }
 
@@ -961,7 +982,10 @@ class Traverser(
                 }
             }
 
-            SymbolicStateUpdate(memoryUpdates = objectUpdate)
+            // Associate created value with field of used instance. For more information check Memory#fieldValue docs.
+            val fieldValuesUpdate = fieldUpdate(left.field, instanceForField.addr, value)
+
+            SymbolicStateUpdate(memoryUpdates = objectUpdate + fieldValuesUpdate)
         }
         is JimpleLocal -> SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(left.variable to value))
         is InvokeExpr -> TODO("Not implemented: $left")
@@ -1032,7 +1056,8 @@ class Traverser(
 
                     if (createdValue is ReferenceValue) {
                         // Update generic type info for method under test' parameters
-                        updateGenericTypeInfo(identityRef, createdValue)
+                        val index = (identityRef as? ParameterRef)?.index?.plus(1) ?: 0
+                        updateGenericTypeInfoFromMethod(methodUnderTest, createdValue, index)
 
                         if (isNonNullable) {
                             queuedSymbolicStateUpdates += mkNot(
@@ -1083,81 +1108,120 @@ class Traverser(
         return UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(type.id, mockAddr) }
     }
 
+    private fun updateGenericTypeInfoFromMethod(method: ExecutableId, value: ReferenceValue, parameterIndex: Int) {
+        val type = extractParameterizedType(method, parameterIndex) as? ParameterizedType ?: return
+
+        updateGenericTypeInfo(type, value)
+    }
+
     /**
      * Stores information about the generic types used in the parameters of the method under test.
      */
-    private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
+    private fun updateGenericTypeInfo(type: ParameterizedType, value: ReferenceValue) {
+        val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
+            when (actualTypeArgument) {
+                is WildcardType -> {
+                    val upperBounds = actualTypeArgument.upperBounds
+                    val lowerBounds = actualTypeArgument.lowerBounds
+                    val allTypes = upperBounds + lowerBounds
+
+                    if (allTypes.any { it is GenericArrayType }) {
+                        val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
+                        logger.warn { "we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446" }
+                        return
+                    }
+
+                    val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
+                    val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
+
+                    // For now, we take into account only one type bound.
+                    // If we have the only upper bound, we should create a type storage
+                    // with a corresponding type if it exists or with
+                    // OBJECT_TYPE if there is no such type (e.g., E or T)
+                    val leastCommonType = upperBounds
+                        .singleOrNull()
+                        ?.let { Scene.v().getRefTypeUnsafe(it.typeName) }
+                        ?: OBJECT_TYPE
+
+                    typeResolver.constructTypeStorage(leastCommonType, upperBoundsTypes.intersect(lowerBoundsTypes))
+                }
+                is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
+                    val upperBounds = actualTypeArgument.bounds
+
+                    if (upperBounds.any { it is GenericArrayType }) {
+                        val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
+                        logger.warn { "we do not support GenericArrayType yet, and $errorTypes found. SAT-1446" }
+                        return
+                    }
+
+                    val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
+
+                    // For now, we take into account only one type bound.
+                    // If we have the only upper bound, we should create a type storage
+                    // with a corresponding type if it exists or with
+                    // OBJECT_TYPE if there is no such type (e.g., E or T)
+                    val leastCommonType = upperBounds
+                        .singleOrNull()
+                        ?.let { Scene.v().getRefTypeUnsafe(it.typeName) }
+                        ?: OBJECT_TYPE
+
+                    typeResolver.constructTypeStorage(leastCommonType, upperBoundsTypes)
+                }
+                is GenericArrayType -> {
+                    // TODO bug with T[][], because there is no such time T JIRA:1446
+                    typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
+                }
+                is ParameterizedType, is Class<*> -> {
+                    val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
+
+                    typeResolver.constructTypeStorage(sootType, useConcreteType = false)
+                }
+                else -> error("Unsupported argument type ${actualTypeArgument::class}")
+            }
+        }
+
+        queuedSymbolicStateUpdates += typeRegistry
+            .genericTypeParameterConstraint(value.addr, typeStorages)
+            .asHardConstraint()
+
+        instanceAddrToGenericType.getOrPut(value.addr) { mutableSetOf() }.add(type)
+
+        val memoryUpdate = TypeResolver.createGenericTypeInfoUpdate(
+            value.addr,
+            typeStorages,
+            memory.getAllGenericTypeInfo()
+        )
+
+        queuedSymbolicStateUpdates += memoryUpdate
+    }
+
+    private fun extractParameterizedType(
+        method: ExecutableId,
+        index: Int
+    ): java.lang.reflect.Type? {
         // If we don't have access to methodUnderTest's jClass, the engine should not fail
         // We just won't update generic information for it
-        val callable = runCatching { methodUnderTest.executable }.getOrNull() ?: return
+        val callable = runCatching { method.executable }.getOrNull() ?: return null
 
-        val type = if (identityRef is ThisRef) {
+        val type = if (index == 0) {
             // TODO: for ThisRef both methods don't return parameterized type
-            if (methodUnderTest.isConstructor) {
+            if (method.isConstructor) {
                 callable.annotatedReturnType?.type
             } else {
                 callable.declaringClass // same as it was, but it isn't parametrized type
-                    ?: error("No instanceParameter for ${callable} found")
+                    ?: error("No instanceParameter for $callable found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
-                val index = (identityRef as ParameterRef).index
                 val valueParameters = callable.genericParameterTypes
 
-                if (index > valueParameters.lastIndex) return
-                valueParameters[index]
+                if (index - 1 > valueParameters.lastIndex) return null
+                valueParameters[index - 1]
             }
         }
 
-        if (type is ParameterizedType) {
-            val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
-                when (actualTypeArgument) {
-                    is WildcardType -> {
-                        val upperBounds = actualTypeArgument.upperBounds
-                        val lowerBounds = actualTypeArgument.lowerBounds
-                        val allTypes = upperBounds + lowerBounds
-
-                        if (allTypes.any { it is GenericArrayType }) {
-                            val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
-                            TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
-                        }
-
-                        val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
-                        val lowerBoundsTypes = typeResolver.intersectAncestors(lowerBounds)
-
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
-                    }
-                    is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
-                        val upperBounds = actualTypeArgument.bounds
-
-                        if (upperBounds.any { it is GenericArrayType }) {
-                            val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
-                            TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
-                        }
-
-                        val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
-
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
-                    }
-                    is GenericArrayType -> {
-                        // TODO bug with T[][], because there is no such time T JIRA:1446
-                        typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
-                    }
-                    is ParameterizedType, is Class<*> -> {
-                        val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
-
-                        typeResolver.constructTypeStorage(sootType, useConcreteType = false)
-                    }
-                    else -> error("Unsupported argument type ${actualTypeArgument::class}")
-                }
-            }
-
-            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
-            parameterAddrToGenericType += value.addr to type
-
-            typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
-        }
+        return type
     }
 
     private fun TraversalContext.traverseIfStmt(current: JIfStmt) {
@@ -1343,7 +1407,45 @@ class Traverser(
                 possibleConcreteTypes
             )
         } else {
-            typeStoragePossiblyWithOverriddenTypes
+            if (addr.isThisAddr) {
+                val possibleTypes = typeStoragePossiblyWithOverriddenTypes.possibleConcreteTypes
+                val isTypeInappropriate = type.sootClass?.isInappropriate == true
+
+                // If we're trying to construct this instance and it has an inappropriate type,
+                // we won't be able to instantiate its instance in resulting tests.
+                // Therefore, we have to test one of its inheritors that does not override
+                // the method under test
+                if (isTypeInappropriate) {
+                    require(possibleTypes.isNotEmpty()) {
+                        "We do not support testing for abstract classes (or interfaces) without any non-abstract " +
+                                "inheritors (implementors). Probably, it'll be supported in the future."
+                    }
+
+                    val possibleTypesWithNonOverriddenMethod = possibleTypes
+                        .filterTo(mutableSetOf()) {
+                            val methods = (it as RefType).sootClass.methods
+                            methods.none { method ->
+                                val methodUnderTest = environment.method
+                                val parameterTypes = method.parameterTypes
+
+                                method.name == methodUnderTest.name && parameterTypes == methodUnderTest.parameterTypes
+                            }
+                        }
+
+                    require(possibleTypesWithNonOverriddenMethod.isNotEmpty()) {
+                        "There is no instantiatable inheritor of the class under test that does not override " +
+                                "a method given for testing"
+                    }
+
+                    TypeStorage.constructTypeStorageUnsafe(type, possibleTypesWithNonOverriddenMethod)
+                } else {
+                    // If we create a `this` instance and its type is instantiatable,
+                    // we should construct a type storage with single type
+                    TypeStorage.constructTypeStorageWithSingleType(type)
+                }
+            } else {
+                typeStoragePossiblyWithOverriddenTypes
+            }
         }
 
         val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
@@ -1906,10 +2008,10 @@ class Traverser(
         with(simplificator) { simplifySymbolicValue(it) }
     }
 
-    private fun readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
+    private fun TraversalContext.readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
         val field = fieldRef.field
         val declaringClassType = field.declaringClass.type
-        val staticObject = findOrCreateStaticObject(declaringClassType)
+        val staticObject = resolveInstanceForField(fieldRef)
 
         val generator = (field.type as? RefType)?.let { refType ->
             UtMockInfoGenerator { mockAddr ->
@@ -1931,7 +2033,6 @@ class Traverser(
         val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
         queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
 
-        // TODO filter enum constant static fields JIRA:1681
         if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(field)) {
             queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
         }
@@ -1941,7 +2042,7 @@ class Traverser(
 
     /**
      * For now the field is `meaningful` if it is safe to set, that is, it is not an internal system field nor a
-     * synthetic field. This filter is needed to prohibit changing internal fields, which can break up our own
+     * synthetic field or a wrapper's field. This filter is needed to prohibit changing internal fields, which can break up our own
      * code and which are useless for the user.
      *
      * @return `true` if the field is meaningful, `false` otherwise.
@@ -1950,7 +2051,9 @@ class Traverser(
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields that cannot be set via reflection anyway
             !field.fieldId.isInaccessibleViaReflection &&
-                // we should not manually set enum constants
+            // we should not set static fields from wrappers
+            !field.declaringClass.isOverridden &&
+            // we should not manually set enum constants
             !(field.declaringClass.isEnum && field.isEnumConstant) &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
@@ -2063,6 +2166,10 @@ class Traverser(
         field: SootField,
         mockInfoGenerator: UtMockInfoGenerator?
     ): SymbolicValue {
+        memory.fieldValue(field, addr)?.let {
+            return it
+        }
+
         val chunkId = hierarchy.chunkIdForField(objectType, field)
         val createdField = createField(objectType, addr, field.type, chunkId, mockInfoGenerator)
 
@@ -2075,7 +2182,28 @@ class Traverser(
             checkAndMarkLibraryFieldSpeculativelyNotNull(field, createdField)
         }
 
+        updateGenericInfoForField(createdField, field)
+
         return createdField
+    }
+
+    /**
+     * Updates generic info for provided [field] and [createdField] using
+     * type information. If [createdField] is not a reference value or
+     * if field's type is not a parameterized one, nothing will happen.
+     */
+    private fun updateGenericInfoForField(createdField: SymbolicValue, field: SootField) {
+        runCatching {
+            if (createdField !is ReferenceValue) return
+
+            // We must have `runCatching` here since might be a situation when we do not have
+            // such declaring class in a classpath, that might (but should not) lead to an exception
+            val classId = field.declaringClass.id
+            val requiredField = classId.findFieldByIdOrNull(field.fieldId)
+            val genericInfo = requiredField?.genericType as? ParameterizedType ?: return
+
+            updateGenericTypeInfo(genericInfo, createdField)
+        }
     }
 
     /**
@@ -2188,17 +2316,19 @@ class Traverser(
                 queuedSymbolicStateUpdates += addrEq(addr, nullObjectAddr).asSoftConstraint()
 
                 if (type.sootClass.isEnum) {
-                    createEnum(type, addr)
+                    // We don't know which enum constant should we create, so we
+                    // have to create an instance of unknown type to support virtual invokes.
+                    createEnum(type, addr, useConcreteType = false)
                 } else {
-                    createObject(addr, type, useConcreteType = addr.isThisAddr, mockInfoGenerator)
+                    createObject(addr, type, useConcreteType = false, mockInfoGenerator)
                 }
             }
             is VoidType -> voidValue
             else -> error("Can't create const from ${type::class}")
         }
 
-    private fun createEnum(type: RefType, addr: UtAddrExpression): ObjectValue {
-        val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = true)
+    private fun createEnum(type: RefType, addr: UtAddrExpression, useConcreteType: Boolean): ObjectValue {
+        val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType)
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 
@@ -2214,6 +2344,7 @@ class Traverser(
         return ObjectValue(typeStorage, addr)
     }
 
+    @Suppress("SameParameterValue")
     private fun arrayUpdate(array: ArrayValue, index: PrimitiveValue, value: UtExpression): MemoryUpdate {
         val type = array.type
         val chunkId = typeRegistry.arrayChunkId(type)
@@ -2234,6 +2365,20 @@ class Traverser(
         val chunkId = hierarchy.chunkIdForField(instance.type, field)
         val descriptor = MemoryChunkDescriptor(chunkId, instance.type, field.type)
         return MemoryUpdate(persistentListOf(namedStore(descriptor, instance.addr, value)))
+    }
+
+    /**
+     * Creates a [MemoryUpdate] with [MemoryUpdate.fieldValues] containing [fieldValue] associated with the non-staitc [field]
+     * of the object instance with the specified [instanceAddr].
+     */
+    private fun fieldUpdate(
+        field: SootField,
+        instanceAddr: UtAddrExpression,
+        fieldValue: SymbolicValue
+    ): MemoryUpdate {
+        val fieldValuesUpdate = persistentHashMapOf(field to persistentHashMapOf(instanceAddr to fieldValue))
+
+        return MemoryUpdate(fieldValues = fieldValuesUpdate)
     }
 
     fun arrayUpdateWithValue(
@@ -2300,6 +2445,10 @@ class Traverser(
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
     ): Boolean {
+        if (exception.concrete is ArtificialError) {
+            return false
+        }
+
         val classId = exception.fold(
             { it.javaClass.id },
             { (exception.symbolic as ObjectValue).type.id }
@@ -2482,17 +2631,28 @@ class Traverser(
     ): List<InvocationTarget> {
         val visitor = solver.simplificator.axiomInstantiationVisitor
         val simplifiedAddr = instance.addr.accept(visitor)
+
         // UtIsExpression for object with address the same as instance.addr
-        val instanceOfConstraint = solver.assertions.singleOrNull {
-            it is UtIsExpression && it.addr == simplifiedAddr
-        } as? UtIsExpression
+        // If there are several such constraints, take the one with the least number of possible types
+        val instanceOfConstraint = solver.assertions
+            .filter { it is UtIsExpression && it.addr == simplifiedAddr }
+            .takeIf { it.isNotEmpty() }
+            ?.minBy { (it as UtIsExpression).typeStorage.possibleConcreteTypes.size } as? UtIsExpression
+
         // if we have UtIsExpression constraint for [instance], then find invocation targets
         // for possibleTypes from this constraints, instead of the type maintained by solver.
 
         // While using simplifications with RewritingVisitor, assertions can maintain types
         // for objects (especially objects with type equals to type parameter of generic)
         // better than engine.
-        val types = instanceOfConstraint?.typeStorage?.possibleConcreteTypes ?: instance.possibleConcreteTypes
+        val types = instanceOfConstraint
+            ?.typeStorage
+            ?.possibleConcreteTypes
+            // we should take this constraint into consideration only if it has less
+            // possible types than our current object, otherwise, it doesn't add
+            // any helpful information
+            ?.takeIf { it.size < instance.possibleConcreteTypes.size }
+            ?: instance.possibleConcreteTypes
 
         val allPossibleConcreteTypes = typeResolver
             .constructTypeStorage(instance.type, useConcreteType = false)
@@ -2623,6 +2783,22 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
+        val method = invocation.method.executableId
+
+        // This code is supposed to support generic information from signatures for nested methods.
+        // If we have some method 'foo` and a method `bar(List<Integer>), and inside `foo`
+        // there is an invocation `bar(object)`, this object must have information about
+        // its `Integer` generic type.
+        invocation.parameters.forEachIndexed { index, param ->
+            if (param !is ReferenceValue) return@forEachIndexed
+
+            updateGenericTypeInfoFromMethod(method, param, parameterIndex = index + 1)
+        }
+
+        if (invocation.instance != null) {
+            updateGenericTypeInfoFromMethod(method, invocation.instance, parameterIndex = 0)
+        }
+
         /**
          * First, check if there is override for the invocation itself, not for the targets.
          *
@@ -2886,20 +3062,26 @@ class Traverser(
                     )
                 )
             }
-            utArrayMockCopyOfMethodName -> {
-                val src = parameters[0] as ArrayValue
-                val length = parameters[1] as PrimitiveValue
-                val arrayType = target.method.returnType as ArrayType
-                val newArray = createNewArray(length, arrayType, arrayType.elementType)
-                return listOf(
-                    MethodResult(
-                        newArray,
-                        memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
-                    )
-                )
-            }
+            utArrayMockCopyOfMethodName -> return listOf(createArrayCopyWithSpecifiedLength(parameters))
             else -> unreachableBranch("unknown method ${target.method.signature} for ${UtArrayMock::class.qualifiedName}")
         }
+    }
+
+    private fun createArrayCopyWithSpecifiedLength(parameters: List<SymbolicValue>): MethodResult {
+        val src = parameters[0] as ArrayValue
+        val length = parameters[1] as PrimitiveValue
+        val arrayType = src.type
+
+        // Even if the new length differs from the original one, it does not affect elements - we will retrieve
+        // correct elements in the new array anyway
+        val newArray = createNewArray(length, arrayType, arrayType.elementType)
+
+        // Since z3 arrays are persistent, we can just copy the whole original array value instead of manual
+        // setting elements equality by indices
+        return MethodResult(
+            newArray,
+            memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
+        )
     }
 
     private fun utLogicMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
@@ -3016,6 +3198,14 @@ class Traverser(
             return OverrideResult(success = true, cloneArray(instance))
         }
 
+        if (instance == null && invocation.method.declaringClass == ARRAYS_SOOT_CLASS && invocation.method.name == "copyOf") {
+            return OverrideResult(success = true, copyOf(invocation.parameters))
+        }
+
+        if (instance == null && invocation.method.declaringClass == ARRAYS_SOOT_CLASS && invocation.method.name == "copyOfRange") {
+            return OverrideResult(success = true, copyOfRange(invocation.parameters))
+        }
+
         instanceAsWrapperOrNull?.run {
             // For methods with concrete implementation (for example, RangeModifiableUnlimitedArray.toCastedArray)
             // we should not return successful override result.
@@ -3067,6 +3257,66 @@ class Traverser(
         val clone = ArrayValue(typeStorage, addr)
 
         return MethodResult(clone, constraints.asHardConstraint(), memoryUpdates = memoryUpdate)
+    }
+
+    private fun TraversalContext.copyOf(parameters: List<SymbolicValue>): MethodResult {
+        val src = parameters[0] as ArrayValue
+        nullPointerExceptionCheck(src.addr)
+
+        val length = parameters[1] as PrimitiveValue
+        val isNegativeLength = Lt(length, 0)
+        implicitlyThrowException(NegativeArraySizeException("Length is less than zero"), setOf(isNegativeLength))
+        queuedSymbolicStateUpdates += mkNot(isNegativeLength).asHardConstraint()
+
+        return createArrayCopyWithSpecifiedLength(parameters)
+    }
+
+    private fun TraversalContext.copyOfRange(parameters: List<SymbolicValue>): MethodResult {
+        val original = parameters[0] as ArrayValue
+        nullPointerExceptionCheck(original.addr)
+
+        val from = parameters[1] as PrimitiveValue
+        val to = parameters[2] as PrimitiveValue
+
+        val originalLength = memory.findArrayLength(original.addr)
+
+        val isNegativeFrom = Lt(from, 0)
+        implicitlyThrowException(ArrayIndexOutOfBoundsException("From is less than zero"), setOf(isNegativeFrom))
+        queuedSymbolicStateUpdates += mkNot(isNegativeFrom).asHardConstraint()
+
+        val isFromBiggerThanLength = Gt(from, originalLength)
+        implicitlyThrowException(ArrayIndexOutOfBoundsException("From is bigger than original length"), setOf(isFromBiggerThanLength))
+        queuedSymbolicStateUpdates += mkNot(isFromBiggerThanLength).asHardConstraint()
+
+        val isFromBiggerThanTo = Gt(from, to)
+        implicitlyThrowException(IllegalArgumentException("From is bigger than to"), setOf(isFromBiggerThanTo))
+        queuedSymbolicStateUpdates += mkNot(isFromBiggerThanTo).asHardConstraint()
+
+        val newLength = Sub(to, from)
+        val newLengthValue = newLength.toIntValue()
+
+        val originalLengthDifference = Sub(originalLength, from)
+        val originalLengthDifferenceValue = originalLengthDifference.toIntValue()
+
+        val resultedLength =
+            UtIteExpression(Lt(originalLengthDifferenceValue, newLengthValue), originalLengthDifference, newLength)
+        val resultedLengthValue = resultedLength.toIntValue()
+
+        val arrayType = original.type
+        val newArray = createNewArray(newLengthValue, arrayType, arrayType.elementType)
+        val destPos = 0.toPrimitiveValue()
+        val copyValue = UtArraySetRange(
+            selectArrayExpressionFromMemory(newArray),
+            destPos,
+            selectArrayExpressionFromMemory(original),
+            from,
+            resultedLengthValue
+        )
+
+        return MethodResult(
+            newArray,
+            memoryUpdates = arrayUpdateWithValue(newArray.addr, newArray.type, copyValue)
+        )
     }
 
     // For now, we just create unbounded symbolic variable as a result.
@@ -3406,7 +3656,7 @@ class Traverser(
         }
 
         if (overflow != null) {
-            implicitlyThrowException(ArithmeticException("${left.type} ${op.symbol} overflow"), setOf(overflow))
+            implicitlyThrowException(OverflowDetectionError("${left.type} ${op.symbol} overflow"), setOf(overflow))
             queuedSymbolicStateUpdates += mkNot(overflow).asHardConstraint()
         }
     }
@@ -3442,16 +3692,13 @@ class Traverser(
         if (baseTypeAfterCast is RefType) {
             // Find parameterized type for the object if it is a parameter of the method under test and it has generic type
             val newAddr = addr.accept(solver.simplificator) as UtAddrExpression
-            val parameterizedType = when (newAddr.internal) {
-                is UtArraySelectExpression -> parameterAddrToGenericType[findTheMostNestedAddr(newAddr.internal)]
-                is UtBvConst -> parameterAddrToGenericType[newAddr]
+            val parameterizedTypes = when (newAddr.internal) {
+                is UtArraySelectExpression -> instanceAddrToGenericType[findTheMostNestedAddr(newAddr.internal)]
+                is UtBvConst -> instanceAddrToGenericType[newAddr]
                 else -> null
             }
 
-            if (parameterizedType != null) {
-                // Find all generics used in the type of the parameter and it's superclasses
-                // If we're trying to cast something related to the parameter and typeAfterCast is equal to one of the generic
-                // types used in it, don't throw ClassCastException
+            parameterizedTypes?.forEach { parameterizedType ->
                 val genericTypes = generateSequence(parameterizedType) { it.ownerType as? ParameterizedType }
                     .flatMapTo(mutableSetOf()) { it.actualTypeArguments.map { arg -> arg.typeName } }
 
@@ -3482,13 +3729,13 @@ class Traverser(
     }
 
     private fun TraversalContext.implicitlyThrowException(
-        exception: Exception,
+        throwable: Throwable,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
     ) {
         if (environment.state.executionStack.last().doesntThrow) return
 
-        val symException = implicitThrown(exception, findNewAddr(), environment.state.isInNestedMethod())
+        val symException = implicitThrown(throwable, findNewAddr(), environment.state.isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
             environment.state.expectUndefined()
             val nextState = createExceptionStateQueued(
@@ -3550,6 +3797,7 @@ class Traverser(
         val declaringClassId = declaringClass.id
 
         val staticFieldsUpdates = updates.staticFieldsUpdates.toMutableList()
+        val fieldValuesUpdates = updates.fieldValues.toMutableMap()
         val updatedFields = staticFieldsUpdates.mapTo(mutableSetOf()) { it.fieldId }
         val objectUpdates = mutableListOf<UtNamedStore>()
 
@@ -3562,8 +3810,14 @@ class Traverser(
                 // remove updates from clinit, because we'll replace those values
                 // with new unbounded symbolic variable
                 staticFieldsUpdates.removeAll { update -> update.fieldId == it.fieldId }
+                fieldValuesUpdates.keys.removeAll { key -> key.fieldId == it.fieldId }
 
-                val value = createConst(it.type, it.name)
+                val generator = UtMockInfoGenerator { mockAddr ->
+                    val fieldId = FieldId(it.declaringClass.id, it.name)
+                    UtFieldMockInfo(it.type.classId, mockAddr, fieldId, ownerAddr = null)
+                }
+
+                val value = createConst(it.type, it.name, generator)
                 val valueToStore = if (value is ReferenceValue) {
                     value.addr
                 } else {
@@ -3581,6 +3835,7 @@ class Traverser(
         return updates.copy(
             stores = updates.stores.addAll(objectUpdates),
             staticFieldsUpdates = staticFieldsUpdates.toPersistentList(),
+            fieldValues = fieldValuesUpdates.toPersistentMap(),
             classIdToClearStatics = declaringClassId
         )
     }

@@ -2,6 +2,7 @@ package org.utbot.examples.math
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.engine.OverflowDetectionError
 import org.utbot.examples.algorithms.Sort
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
@@ -31,8 +32,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::intOverflow,
                 eq(5),
-                { x, _, r -> x * x * x <= 0 && x > 0 && r.isException<ArithmeticException>() }, // through overflow
-                { x, _, r -> x * x * x <= 0 && x > 0 && r.isException<ArithmeticException>() }, // through overflow (2nd '*')
+                { x, _, r -> x * x * x <= 0 && x > 0 && r.isException<OverflowDetectionError>() }, // through overflow
+                { x, _, r -> x * x * x <= 0 && x > 0 && r.isException<OverflowDetectionError>() }, // through overflow (2nd '*')
                 { x, _, r -> x * x * x >= 0 && x >= 0 && r.getOrNull() == 0 },
                 { x, y, r -> x * x * x > 0 && x > 0 && y == 10 && r.getOrNull() == 1 },
                 { x, y, r -> x * x * x > 0 && x > 0 && y != 10 && r.getOrNull() == 0 },
@@ -47,11 +48,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::byteAddOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x + y).toByte() >= 0 && x < 0 && y < 0)
                     val posOverflow = ((x + y).toByte() <= 0 && x > 0 && y > 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -63,11 +64,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::byteSubOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x - y).toByte() >= 0 && x < 0 && y > 0)
                     val posOverflow = ((x - y).toByte() <= 0 && x > 0 && y < 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -79,8 +80,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::byteMulOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
-                { _, _, r -> r.isException<ArithmeticException>() }, // through overflow
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
+                { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
             )
         }
     }
@@ -91,11 +92,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::shortAddOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x + y).toShort() >= 0 && x < 0 && y < 0)
                     val posOverflow = ((x + y).toShort() <= 0 && x > 0 && y > 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -107,11 +108,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::shortSubOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x - y).toShort() >= 0 && x < 0 && y > 0)
                     val posOverflow = ((x - y).toShort() <= 0 && x > 0 && y < 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -123,8 +124,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::shortMulOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
-                { _, _, r -> r.isException<ArithmeticException>() }, // through overflow
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
+                { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
             )
         }
     }
@@ -135,11 +136,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::intAddOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x + y) >= 0 && x < 0 && y < 0)
                     val posOverflow = ((x + y) <= 0 && x > 0 && y > 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -151,11 +152,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::intSubOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x - y) >= 0 && x < 0 && y > 0)
                     val posOverflow = ((x - y) <= 0 && x > 0 && y < 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -171,8 +172,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
                 checkWithException(
                     OverflowExamples::intMulOverflow,
                     eq(2),
-                    { _, _, r -> !r.isException<ArithmeticException>() },
-                    { _, _, r -> r.isException<ArithmeticException>() }, // through overflow
+                    { _, _, r -> !r.isException<OverflowDetectionError>() },
+                    { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
                 )
             }
         }
@@ -184,11 +185,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::longAddOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x + y) >= 0 && x < 0 && y < 0)
                     val posOverflow = ((x + y) <= 0 && x > 0 && y > 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -200,11 +201,11 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::longSubOverflow,
                 eq(2),
-                { _, _, r -> !r.isException<ArithmeticException>() },
+                { _, _, r -> !r.isException<OverflowDetectionError>() },
                 { x, y, r ->
                     val negOverflow = ((x - y) >= 0 && x < 0 && y > 0)
                     val posOverflow = ((x - y) <= 0 && x > 0 && y < 0)
-                    (negOverflow || posOverflow) && r.isException<ArithmeticException>()
+                    (negOverflow || posOverflow) && r.isException<OverflowDetectionError>()
                 }, // through overflow
             )
         }
@@ -221,8 +222,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
                 checkWithException(
                     OverflowExamples::longMulOverflow,
                     eq(2),
-                    { _, _, r -> !r.isException<ArithmeticException>() },
-                    { _, _, r -> r.isException<ArithmeticException>() }, // through overflow
+                    { _, _, r -> !r.isException<OverflowDetectionError>() },
+                    { _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
                 )
             }
         }
@@ -234,8 +235,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 OverflowExamples::incOverflow,
                 eq(2),
-                { _, r -> !r.isException<ArithmeticException>() },
-                { _, r -> r.isException<ArithmeticException>() }, // through overflow
+                { _, r -> !r.isException<OverflowDetectionError>() },
+                { _, r -> r.isException<OverflowDetectionError>() }, // through overflow
             )
         }
     }
@@ -251,8 +252,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
                 // Can't use abs(x) below, because abs(Int.MIN_VALUE) == Int.MIN_VALUE.
                 // (Int.MAX_VALUE shr 16) is the border of square overflow and cube overflow.
                 // Int.MAX_VALUE.toDouble().pow(1/3.toDouble())
-                { x, r -> (x > -sqrtIntMax && x < sqrtIntMax) && r.isException<ArithmeticException>() }, // through overflow
-                { x, r -> (x <= -sqrtIntMax || x >= sqrtIntMax) && r.isException<ArithmeticException>() }, // through overflow
+                { x, r -> (x > -sqrtIntMax && x < sqrtIntMax) && r.isException<OverflowDetectionError>() }, // through overflow
+                { x, r -> (x <= -sqrtIntMax || x >= sqrtIntMax) && r.isException<OverflowDetectionError>() }, // through overflow
             )
         }
     }
@@ -265,8 +266,8 @@ internal class OverflowAsErrorTest : UtValueTestCaseChecker(
             checkWithException(
                 Sort::quickSort,
                 ignoreExecutionsNumber,
-                { _, _, _, r -> !r.isException<ArithmeticException>() },
-                { _, _, _, r -> r.isException<ArithmeticException>() }, // through overflow
+                { _, _, _, r -> !r.isException<OverflowDetectionError>() },
+                { _, _, _, r -> r.isException<OverflowDetectionError>() }, // through overflow
             )
         }
     }

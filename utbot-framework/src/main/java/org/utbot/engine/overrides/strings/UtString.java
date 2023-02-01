@@ -13,7 +13,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 import static java.lang.Math.min;
 
-@SuppressWarnings({"ConstantConditions", "unused"})
+@SuppressWarnings("unused")
 public class UtString implements java.io.Serializable, Comparable<String>, CharSequence {
     char[] value;
     int length;
@@ -857,10 +857,12 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
     }
 
     private String[] splitImpl(String regex) {
+        executeConcretely();
         return toString().split(regex);
     }
 
     public String[] split(String regex) {
+        preconditionCheck();
         return splitImpl(regex);
     }
 

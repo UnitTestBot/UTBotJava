@@ -8,11 +8,9 @@ import com.esotericsoftware.kryo.kryo5.io.Output
 import com.esotericsoftware.kryo.kryo5.objenesis.instantiator.ObjectInstantiator
 import com.esotericsoftware.kryo.kryo5.objenesis.strategy.InstantiatorStrategy
 import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy
-import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
 import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
-import org.utbot.framework.plugin.api.TimeoutException
 import java.io.ByteArrayOutputStream
 
 /**
@@ -122,31 +120,14 @@ internal class TunedKryo : Kryo() {
         }
 
         this.setOptimizedGenerics(false)
-        register(TimeoutException::class.java, TimeoutExceptionSerializer())
 
         // TODO: JIRA:1492
-        addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializer())
+        addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializerWrapper())
 
         val factory = object : SerializerFactory.FieldSerializerFactory() {}
         factory.config.ignoreSyntheticFields = true
         factory.config.serializeTransient = false
         factory.config.fieldsCanBeNull = true
         this.setDefaultSerializer(factory)
-    }
-
-    /**
-     * Specific serializer for [TimeoutException] - [JavaSerializer] is not applicable
-     * because [TimeoutException] is not in class loader.
-     *
-     * This serializer is very simple - it just writes [TimeoutException.message]
-     * because we do not need other components.
-     */
-    private class TimeoutExceptionSerializer : Serializer<TimeoutException>() {
-        override fun write(kryo: Kryo, output: Output, value: TimeoutException) {
-            output.writeString(value.message)
-        }
-
-        override fun read(kryo: Kryo?, input: Input, type: Class<out TimeoutException>?): TimeoutException =
-            TimeoutException(input.readString())
     }
 }

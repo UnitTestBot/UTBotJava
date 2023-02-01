@@ -21,6 +21,7 @@ import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgForLoop
+import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgGetKotlinClass
 import org.utbot.framework.codegen.domain.models.CgGetLength
@@ -338,6 +339,10 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         } else {
             renderExecutableCallArguments(element)
         }
+    }
+
+    override fun visit(element: CgFormattedString) {
+        throw NotImplementedError("String interpolation is not supported in JavaScript renderer")
     }
 
     //TODO MINOR: check

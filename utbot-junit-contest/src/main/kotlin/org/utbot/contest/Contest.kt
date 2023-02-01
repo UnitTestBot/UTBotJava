@@ -14,14 +14,6 @@ import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.junitByVersion
 import org.utbot.framework.codegen.CodeGenerator
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -59,8 +51,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
+import org.utbot.framework.SummariesGenerationType
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.minimization.minimizeExecutions
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isSynthetic
+import org.utbot.framework.util.jimpleBody
+import org.utbot.summary.summarize
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -117,6 +114,10 @@ fun main(args: Array<String>) {
 
 
     withUtContext(context) {
+        // Initialize the soot before a contest is started.
+        // This saves the time budget for real work instead of soot initialization.
+        TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
+
         logger.info().bracket("warmup: kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
@@ -145,6 +146,7 @@ fun main(args: Array<String>) {
                 fuzzingRatio = 0.1,
                 classpathString,
                 runFromEstimator = false,
+                expectedExceptions = ExpectedExceptionsForClass(),
                 methodNameFilter = null
             )
             println("${ContestMessage.READY}")
@@ -157,13 +159,15 @@ fun setOptions() {
     Settings.defaultConcreteExecutorPoolSize = 1
     UtSettings.useFuzzing = true
     UtSettings.classfilesCanChange = false
-    UtSettings.useAssembleModelGenerator = false
-    UtSettings.enableSummariesGeneration = false
+    // We need to use assemble model generator to increase readability
+    UtSettings.useAssembleModelGenerator = true
+    UtSettings.summaryGenerationType = SummariesGenerationType.LIGHT
     UtSettings.preferredCexOption = false
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
     UtSettings.ignoreStringLiterals = true
     UtSettings.maximizeCoverageUsingReflection = true
+    UtSettings.useSandbox = false
 }
 
 
@@ -176,12 +180,10 @@ fun runGeneration(
     fuzzingRatio: Double,
     classpathString: String,
     runFromEstimator: Boolean,
+    expectedExceptions: ExpectedExceptionsForClass,
     methodNameFilter: String? = null // For debug purposes you can specify method name
 ): StatsForClass = runBlocking {
-
-
-
-    val testSets: MutableList<UtMethodTestSet> = mutableListOf()
+    val testsByMethod: MutableMap<ExecutableId, MutableList<UtExecution>> = mutableMapOf()
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
@@ -197,7 +199,7 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
+            TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
@@ -222,7 +224,8 @@ fun runGeneration(
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
-            generateWarningsForStaticMocking = false
+            generateWarningsForStaticMocking = false,
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
         )
 
     logger.info().bracket("class ${cut.fqn}", { statsForClass }) {
@@ -238,7 +241,7 @@ fun runGeneration(
 
         val testCaseGenerator =
             logger.info().bracket("2nd optional soot initialization") {
-                TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide())
+                TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
             }
 
 
@@ -257,7 +260,10 @@ fun runGeneration(
                     val methodJob = currentCoroutineContext().job
 
                     logger.debug { " ... " }
-                    val statsForMethod = StatsForMethod("${method.classId.simpleName}#${method.name}")
+                    val statsForMethod = StatsForMethod(
+                        "${method.classId.simpleName}#${method.name}",
+                        expectedExceptions.getForMethod(method.name).exceptionNames
+                    )
                     statsForClass.statsForMethods.add(statsForMethod)
 
 
@@ -328,6 +334,9 @@ fun runGeneration(
                                             val className = Type.getInternalName(method.classId.jClass)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }
                                             statsForMethod.testsGeneratedCount++
+                                            result.result.exceptionOrNull()?.let { exception ->
+                                                statsForMethod.detectedExceptionFqns += exception::class.java.name
+                                            }
                                             result.coverage?.let {
                                                 statsForClass.updateCoverage(
                                                     newCoverage = it,
@@ -337,8 +346,7 @@ fun runGeneration(
                                             }
                                             statsForClass.testedClassNames.add(className)
 
-                                            //TODO: it is a strange hack to create fake test case for one [UtResult]
-                                            testSets.add(UtMethodTestSet(method, listOf(result)))
+                                            testsByMethod.getOrPut(method) { mutableListOf() } += result
                                         } catch (e: Throwable) {
                                             //Here we need isolation
                                             logger.error(e) { "Code generation failed" }
@@ -363,8 +371,11 @@ fun runGeneration(
                 controller.job = job
 
                 //don't start other methods while last method still in progress
-                while (job.isActive)
-                    yield()
+                try {
+                    job.join()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Internal job error" }
+                }
 
                 remainingMethodsCount--
             }
@@ -389,6 +400,11 @@ fun runGeneration(
             }
         }
         cancellator.cancel()
+
+        val testSets = testsByMethod.map { (method, executions) ->
+            UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody(method))
+                .summarize(cut.classfileDir.toPath(), sourceFile = null)
+        }
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
             writeTestClass(cut, codeGenerator.generateAsString(testSets))

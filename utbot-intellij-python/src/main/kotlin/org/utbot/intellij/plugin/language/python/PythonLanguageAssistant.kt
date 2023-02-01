@@ -12,6 +12,7 @@ import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.sdk.PythonSdkType
 import org.jetbrains.kotlin.idea.util.projectStructure.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
+import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 
 object PythonLanguageAssistant : LanguageAssistant() {
@@ -40,7 +41,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabled = getPsiTargets(e) != null
+        e.presentation.isEnabled = !LockFile.isLocked() && getPsiTargets(e) != null
     }
 
     private fun getPsiTargets(e: AnActionEvent): Targets? {

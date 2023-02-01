@@ -101,6 +101,8 @@ import org.utbot.engine.types.TypeRegistry
 import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
+import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
+import org.utbot.framework.plugin.api.util.isStatic
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -125,12 +127,13 @@ typealias Address = Int
  */
 class Resolver(
     val hierarchy: Hierarchy,
-    private val memory: Memory,
+    val memory: Memory,
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
     methodUnderTest: ExecutableId,
-    private val softMaxArraySize: Int
+    private val softMaxArraySize: Int,
+    private val objectCounter: ObjectCounter
 ) {
 
     private val classLoader: ClassLoader
@@ -390,10 +393,9 @@ class Resolver(
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
-            when {
-                // TODO SAT-1561
-                exception is ArithmeticException && exception.message?.contains("overflow") == true -> UtOverflowFailure(exception)
-                exception is AccessControlException -> UtSandboxFailure(exception)
+            when (exception) {
+                is OverflowDetectionError -> UtOverflowFailure(exception)
+                is AccessControlException -> UtSandboxFailure(exception)
                 else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }
@@ -530,14 +532,49 @@ class Resolver(
 
         if (sootClass.isLambda) {
             return constructLambda(concreteAddr, sootClass).also { lambda ->
-                lambda.capturedValues += collectFieldModels(addr, actualType).values
+                val collectedFieldModels = collectFieldModels(addr, actualType).toMutableMap()
+
+                if (!lambda.lambdaMethodId.isStatic) {
+                    val thisInstanceField = FieldId(declaringClass = sootClass.id, name = "cap0")
+
+                    if (thisInstanceField !in collectedFieldModels || collectedFieldModels[thisInstanceField] is UtNullModel) {
+                        // Non-static lambda has to have `this` instance captured as `cap0` field that cannot be null,
+                        // so if we do not have it as field or it is null (for example, an exception was thrown before initializing lambda),
+                        // we need to construct `this` instance by ourselves.
+                        // Since we do not know its fields, we create an empty object of the corresponding type that will be
+                        // constructed in codegen using reflection.
+                        val thisInstanceClassId = sootClass.name.substringBeforeLast("\$lambda").let {
+                            Scene.v().getSootClass(it)
+                        }.id
+                        val thisInstanceModel =
+                            UtCompositeModel(objectCounter.createNewAddr(), thisInstanceClassId, isMock = false)
+
+                        collectedFieldModels[thisInstanceField] = thisInstanceModel
+                    }
+                }
+
+                lambda.capturedValues += collectedFieldModels.values
             }
         }
 
         val clazz = classLoader.loadClass(sootClass.name)
-
+        // If we have an actual type as an Enum instance (a direct inheritor of java.lang.Enum),
+        // we should construct it using information about corresponding ordinal.
+        // The right enum constant will be constructed due to constraints added to the solver.
         if (clazz.isEnum) {
             return constructEnum(concreteAddr, actualType, clazz)
+        }
+
+        // But, if we have the actualType that is not a direct inheritor of java.lang.Enum,
+        // we have to check its ancestor instead, because we might be in a situation when
+        // we worked with an enum constant as a parameter, and now we have correctly calculated actual type.
+        // Since actualType for enums represents its instances and enum constants are not actually
+        // enum instances (in accordance to java.lang.Class#isEnum), we have to check
+        // the defaultType below instead on the actual one whether is it an Enum or not.
+        val defaultClazz = classLoader.loadClass(defaultType.sootClass.name)
+
+        if (defaultClazz.isEnum) {
+            return constructEnum(concreteAddr, actualType, defaultClazz)
         }
 
         // check if we have mock with this address
@@ -1212,7 +1249,14 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
 
                 val createdElement = if (elementType is RefType) {
                     val className = value[it]!!.javaClass.id.name
-                    createObject(addr, Scene.v().getRefType(className), useConcreteType = true)
+                    // Try to take an instance of class we find in Runtime
+                    // If it is impossible, take the default `elementType` without a concrete type instead.
+                    val (type, useConcreteType) =
+                        Scene.v().getRefTypeUnsafe(className)
+                            ?.let { type -> type to true }
+                            ?: (elementType to false)
+
+                    createObject(addr, type, useConcreteType)
                 } else {
                     require(elementType is ArrayType)
                     // We cannot use concrete types since we do not receive
@@ -1239,7 +1283,14 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
 
                 return asMethodResult {
                     val addr = UtAddrExpression(mkBVConst("staticVariable${value.hashCode()}", UtInt32Sort))
-                    createObject(addr, Scene.v().getRefType(refTypeName), useConcreteType = true)
+                    // Try to take a type from an object from the Runtime.
+                    // If it is impossible, create an instance of a default `sootType` without a concrete type.
+                    val (type, useConcreteType) = Scene.v()
+                        .getRefTypeUnsafe(refTypeName)
+                        ?.let { type -> type to true }
+                        ?: (sootType as RefType to false)
+
+                    createObject(addr, type, useConcreteType)
                 }
             }
         }

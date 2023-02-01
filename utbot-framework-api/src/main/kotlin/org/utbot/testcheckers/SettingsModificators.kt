@@ -109,6 +109,27 @@ inline fun <reified T> withoutConcrete(block: () -> T): T {
     }
 }
 
+inline fun <reified T> withProcessingClinitSections(value: Boolean, block: () -> T): T {
+    val prev = UtSettings.enableClinitSectionsAnalysis
+    UtSettings.enableClinitSectionsAnalysis = value
+    try {
+        return block()
+    } finally {
+        UtSettings.enableClinitSectionsAnalysis = prev
+    }
+}
+
+inline fun <reified T> withProcessingAllClinitSectionsConcretely(value: Boolean, block: () -> T): T {
+    val prev = UtSettings.processAllClinitSectionsConcretely
+    UtSettings.processAllClinitSectionsConcretely = value
+    try {
+        return block()
+    } finally {
+        UtSettings.processAllClinitSectionsConcretely = prev
+    }
+}
+
+
 /**
  * Run [block] with disabled sandbox in the concrete executor
  */

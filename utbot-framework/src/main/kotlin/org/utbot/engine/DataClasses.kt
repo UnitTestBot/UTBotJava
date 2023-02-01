@@ -63,11 +63,11 @@ fun explicitThrown(exception: Throwable, addr: UtAddrExpression, inNestedMethod:
 /**
  * Implicitly thrown exception. There are no difference if it happens in nested call or not.
  */
-fun implicitThrown(exception: Throwable, addr: UtAddrExpression, inNestedMethod: Boolean) =
-    SymbolicFailure(symbolic(exception, addr), exception, explicit = false, inNestedMethod = inNestedMethod)
+fun implicitThrown(throwable: Throwable, addr: UtAddrExpression, inNestedMethod: Boolean) =
+    SymbolicFailure(symbolic(throwable, addr), throwable, explicit = false, inNestedMethod = inNestedMethod)
 
-private fun symbolic(exception: Throwable, addr: UtAddrExpression) =
-    objectValue(Scene.v().getRefType(exception.javaClass.canonicalName), addr, ThrowableWrapper(exception))
+private fun symbolic(throwable: Throwable, addr: UtAddrExpression) =
+    objectValue(Scene.v().getRefType(throwable.javaClass.canonicalName), addr, ThrowableWrapper(throwable))
 
 private fun extractConcrete(symbolic: SymbolicValue) =
     (symbolic.asWrapperOrNull as? ThrowableWrapper)?.throwable

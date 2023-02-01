@@ -19,7 +19,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -48,9 +48,8 @@ private val logger = KotlinLogging.logger {}
 inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withInstrumentation(
     instrumentation: T,
     pathsToUserClasses: String,
-    pathsToDependencyClasses: String = ConcreteExecutor.defaultPathsToDependencyClasses,
     block: (ConcreteExecutor<TIResult, T>) -> TBlockResult
-) = ConcreteExecutor(instrumentation, pathsToUserClasses, pathsToDependencyClasses).use {
+) = ConcreteExecutor(instrumentation, pathsToUserClasses).use {
     block(it)
 }
 
@@ -64,15 +63,14 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
     fun <TIResult, TInstrumentation : Instrumentation<TIResult>> get(
         instrumentation: TInstrumentation,
         pathsToUserClasses: String,
-        pathsToDependencyClasses: String
     ): ConcreteExecutor<TIResult, TInstrumentation> {
         executors.removeIf { !it.alive }
 
         @Suppress("UNCHECKED_CAST")
         return executors.firstOrNull {
-            it.pathsToUserClasses == pathsToUserClasses && it.instrumentation == instrumentation && it.pathsToDependencyClasses == pathsToDependencyClasses
+            it.pathsToUserClasses == pathsToUserClasses && it.instrumentation == instrumentation
         } as? ConcreteExecutor<TIResult, TInstrumentation>
-            ?: ConcreteExecutor.createNew(instrumentation, pathsToUserClasses, pathsToDependencyClasses).apply {
+            ?: ConcreteExecutor.createNew(instrumentation, pathsToUserClasses).apply {
                 executors.addFirst(this)
                 if (executors.size > maxCount) {
                     executors.removeLast().close()
@@ -106,8 +104,7 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
  */
 class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> private constructor(
     internal val instrumentation: TInstrumentation,
-    internal val pathsToUserClasses: String,
-    internal val pathsToDependencyClasses: String
+    internal val pathsToUserClasses: String
 ) : Closeable, Executor<TIResult> {
     private val ldef: LifetimeDefinition = LifetimeDefinition()
     private val instrumentedProcessRunner: InstrumentedProcessRunner = InstrumentedProcessRunner()
@@ -121,7 +118,6 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         val lastReceiveTimeMs: Long
             get() = receiveTimeStamp.get()
         val defaultPool = ConcreteExecutorPool()
-        var defaultPathsToDependencyClasses = ""
 
         init {
             Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
@@ -134,14 +130,12 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
             instrumentation: TInstrumentation,
             pathsToUserClasses: String,
-            pathsToDependencyClasses: String = defaultPathsToDependencyClasses
-        ) = defaultPool.get(instrumentation, pathsToUserClasses, pathsToDependencyClasses)
+        ) = defaultPool.get(instrumentation, pathsToUserClasses)
 
         internal fun <TIResult, TInstrumentation : Instrumentation<TIResult>> createNew(
             instrumentation: TInstrumentation,
-            pathsToUserClasses: String,
-            pathsToDependencyClasses: String
-        ) = ConcreteExecutor(instrumentation, pathsToUserClasses, pathsToDependencyClasses)
+            pathsToUserClasses: String
+        ) = ConcreteExecutor(instrumentation, pathsToUserClasses)
     }
 
     var classLoader: ClassLoader? = UtContext.currentContext()?.classLoader
@@ -165,7 +159,6 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 instrumentedProcessRunner,
                 instrumentation,
                 pathsToUserClasses,
-                pathsToDependencyClasses,
                 classLoader
             )
             processInstance = proc
@@ -185,7 +178,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     suspend fun <T> withProcess(exclusively: Boolean = false, block: suspend InstrumentedProcess.() -> T): T {
         fun throwConcreteIfDead(e: Throwable, proc: InstrumentedProcess?) {
             if (proc?.lifetime?.isAlive != true) {
-                throw ConcreteExecutionFailureException(e,
+                throw InstrumentedProcessDeathException(e,
                     instrumentedProcessRunner.errorLogFile,
                     try {
                         proc?.run { process.inputStream.bufferedReader().lines().toList() } ?: emptyList()

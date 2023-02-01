@@ -39,12 +39,15 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import org.utbot.engine.types.STRING_TYPE
 import org.utbot.engine.types.SeqType
-import org.utbot.framework.plugin.api.classId
+import org.utbot.engine.types.TypeResolver
+import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.isEnum
 import soot.ArrayType
 import soot.CharType
 import soot.IntType
 import soot.RefLikeType
 import soot.Scene
+import soot.SootField
 import soot.Type
 
 
@@ -64,6 +67,11 @@ import soot.Type
  *
  * Note: [staticInitial] contains mapping from [FieldId] to the memory state at the moment of the field initialization.
  *
+ * [fieldValues] stores symbolic values for specified fields of the concrete object instances.
+ * We need to associate field of a concrete instance with the created symbolic value to not lose an information about its type.
+ * For example, if field's declared type is Runnable but at the current state it is a specific lambda,
+ * we have to save this lambda as a type of this field to be able to retrieve it in the future.
+ *
  * @see memoryForNestedMethod
  * @see FieldStates
  */
@@ -77,7 +85,9 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     private val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val staticFieldsStates: PersistentMap<FieldId, FieldStates> = persistentHashMapOf(),
     private val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
+    private val fieldValues: PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>> = persistentHashMapOf(),
     private val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
+    private val genericTypeStorageByAddr: PersistentMap<UtAddrExpression, List<TypeStorage>> = persistentHashMapOf(),
     private val addrToMockInfo: PersistentMap<UtAddrExpression, UtMockInfo> = persistentHashMapOf(),
     private val updates: MemoryUpdate = MemoryUpdate(), // TODO: refactor this later. Now we use it only for statics substitution
     private val visitedValues: UtArrayExpressionBase = UtConstArrayExpression(
@@ -109,6 +119,25 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun mocks(): List<MockInfoEnriched> = mockInfos
 
     fun staticFields(): Map<FieldId, FieldStates> = staticFieldsStates.filterKeys { it in meaningfulStaticFields }
+
+    /**
+     * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
+     */
+    fun getTypeStoragesForObjectTypeParameters(
+        addr: UtAddrExpression
+    ): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+
+    /**
+     * Returns all collected information about addresses and corresponding generic types.
+     */
+    fun getAllGenericTypeInfo(): Map<UtAddrExpression, List<TypeStorage>> = genericTypeStorageByAddr
+
+    /**
+     * Returns a symbolic value, associated with the specified [field] of the object with the specified [instanceAddr],
+     * if present, and null otherwise.
+     */
+    fun fieldValue(field: SootField, instanceAddr: UtAddrExpression): SymbolicValue? =
+        fieldValues[field]?.get(instanceAddr)
 
     /**
      * Construct the mapping from addresses to sets of fields whose values are read during the code execution
@@ -188,6 +217,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             .mapValues { (_, values) -> values.first().value to values.last().value }
 
         val previousMemoryStates = staticFieldsStates.toMutableMap()
+        val previousFieldValues = fieldValues.toMutableMap()
 
 
         /**
@@ -201,6 +231,11 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         update.classIdToClearStatics?.let { classId ->
             Scene.v().getSootClass(classId.name).fields.forEach { sootField ->
                 previousMemoryStates.remove(sootField.fieldId)
+
+                if (sootField.isStatic) {
+                    // Only statics should be cleared here
+                    previousFieldValues.remove(sootField)
+                }
             }
         }
 
@@ -233,6 +268,23 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
+        // We have a list with updates for generic type info, and we want to apply
+        // them in such way that only updates with more precise type information
+        // should be applied.
+        val currentGenericsMap = update
+            .genericTypeStorageByAddr
+            // go over type generic updates and apply them to already existed info
+            .fold(genericTypeStorageByAddr.toMutableMap()) { acc, value ->
+                // If we have more type information, a new type storage will be returned.
+                // Otherwise, we will have the same info taken from the memory.
+                val (addr, typeStorages) =
+                    TypeResolver.createGenericTypeInfoUpdate(value.first, value.second, acc)
+                        .genericTypeStorageByAddr
+                        .single()
+                acc[addr] = typeStorages
+                acc
+            }
+
         return this.copy(
             initial = updInitial,
             current = updCurrent,
@@ -243,7 +295,9 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             initializedStaticFields = initializedStaticFields.addAll(update.initializedStaticFields),
             staticFieldsStates = previousMemoryStates.toPersistentMap().putAll(updatedStaticFields),
             meaningfulStaticFields = meaningfulStaticFields.addAll(update.meaningfulStaticFields),
+            fieldValues = previousFieldValues.toPersistentMap().putAll(update.fieldValues),
             addrToArrayType = addrToArrayType.putAll(update.addrToArrayType),
+            genericTypeStorageByAddr = currentGenericsMap.toPersistentMap(),
             addrToMockInfo = addrToMockInfo.putAll(update.addrToMockInfo),
             updates = updates + update,
             visitedValues = updVisitedValues,
@@ -266,7 +320,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      */
     fun queuedStaticMemoryUpdates(): MemoryUpdate = MemoryUpdate(
         staticInstanceStorage = updates.staticInstanceStorage,
-        staticFieldsUpdates = updates.staticFieldsUpdates
+        staticFieldsUpdates = updates.staticFieldsUpdates,
+        fieldValues = updates.fieldValues.filter { it.key.isStatic }.toPersistentMap()
     )
 
     /**
@@ -304,7 +359,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
 
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.classId == classId }
+        extractSymbolicEnumValues(symbolicEnumValues, classId)
 }
 
 private fun initialArray(descriptor: MemoryChunkDescriptor) =
@@ -342,7 +397,9 @@ data class MemoryUpdate(
     val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val staticFieldsUpdates: PersistentList<StaticFieldMemoryUpdateInfo> = persistentListOf(),
     val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
+    val fieldValues: PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>> = persistentHashMapOf(),
     val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
+    val genericTypeStorageByAddr: PersistentList<Pair<UtAddrExpression, List<TypeStorage>>> = persistentListOf(),
     val addrToMockInfo: PersistentMap<UtAddrExpression, UtMockInfo> = persistentHashMapOf(),
     val visitedValues: PersistentList<UtAddrExpression> = persistentListOf(),
     val touchedAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
@@ -361,7 +418,9 @@ data class MemoryUpdate(
             initializedStaticFields = initializedStaticFields.addAll(other.initializedStaticFields),
             staticFieldsUpdates = staticFieldsUpdates.addAll(other.staticFieldsUpdates),
             meaningfulStaticFields = meaningfulStaticFields.addAll(other.meaningfulStaticFields),
+            fieldValues = fieldValues.putAll(other.fieldValues),
             addrToArrayType = addrToArrayType.putAll(other.addrToArrayType),
+            genericTypeStorageByAddr = genericTypeStorageByAddr.addAll(other.genericTypeStorageByAddr),
             addrToMockInfo = addrToMockInfo.putAll(other.addrToMockInfo),
             visitedValues = visitedValues.addAll(other.visitedValues),
             touchedAddresses = touchedAddresses.addAll(other.touchedAddresses),
@@ -372,7 +431,7 @@ data class MemoryUpdate(
         )
 
     fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
-        symbolicEnumValues.filter { it.type.classId == classId }
+        extractSymbolicEnumValues(symbolicEnumValues, classId)
 }
 
 // array - Java Array
@@ -512,4 +571,22 @@ private operator fun MockInfoEnriched.plus(update: MockInfoEnriched?): MockInfoE
 
 private fun <K, V> MutableMap<K, List<V>>.mergeValues(other: Map<K, List<V>>): Map<K, List<V>> = apply {
     other.forEach { (key, values) -> merge(key, values) { v1, v2 -> v1 + v2 } }
+}
+
+private fun extractSymbolicEnumValues(
+    symbolicEnumValuesSource: PersistentList<ObjectValue>,
+    classId: ClassId
+): List<ObjectValue> = symbolicEnumValuesSource.filter {
+    val symbolicValueClassId = it.type.id
+
+    // If symbolicValueClassId is not an enum in accordance with java.lang.Class.isEnum
+    // function, we have to take results for its superclass (a direct inheritor of java.lang.Enum).
+    // Otherwise, we should get results by its own classId.
+    val enumClass = if (symbolicValueClassId.isEnum) {
+        symbolicValueClassId
+    } else {
+        it.type.sootClass.superClassOrNull()?.id
+    }
+
+    enumClass == classId
 }

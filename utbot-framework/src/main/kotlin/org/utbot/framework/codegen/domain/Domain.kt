@@ -178,6 +178,7 @@ abstract class TestFramework(
     abstract val mainPackage: String
     abstract val assertionsClass: ClassId
     abstract val arraysAssertionsClass: ClassId
+    abstract val kotlinFailureAssertionsClass: ClassId
     abstract val testAnnotation: String
     abstract val testAnnotationId: ClassId
     abstract val testAnnotationFqn: String
@@ -226,10 +227,18 @@ abstract class TestFramework(
 
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
+    val fail by lazy { assertionId("fail", objectClassId) }
+
+    val kotlinFail by lazy { kotlinFailAssertionId("fail", objectClassId) }
+
     protected open fun assertionId(name: String, vararg params: ClassId): MethodId =
         builtinStaticMethodId(assertionsClass, name, voidClassId, *params)
+
     private fun arrayAssertionId(name: String, vararg params: ClassId): MethodId =
         builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
+
+    private fun kotlinFailAssertionId(name: String, vararg params: ClassId): MethodId =
+        builtinStaticMethodId(kotlinFailureAssertionsClass, name, voidClassId, *params)
 
     abstract fun getRunTestsCommand(
         executionInvoke: String,
@@ -271,6 +280,8 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
         canonicalName = TEST_NG_ARRAYS_ASSERTIONS,
         simpleName = "ArrayAsserts"
     )
+
+    override val kotlinFailureAssertionsClass = assertionsClass
 
     override val assertBooleanArrayEquals by lazy { assertionId("assertEquals", booleanArrayClassId, booleanArrayClassId) }
 
@@ -389,6 +400,7 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
         simpleName = "Assert"
     )
     override val arraysAssertionsClass = assertionsClass
+    override val kotlinFailureAssertionsClass = assertionsClass
 
     val ignoreAnnotationClassId = with("$JUNIT4_PACKAGE.Ignore") {
         BuiltinClassId(
@@ -396,11 +408,6 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
             simpleName = "Ignore"
         )
     }
-
-    val enclosedClassId = BuiltinClassId(
-        canonicalName = "org.junit.experimental.runners.Enclosed",
-        simpleName = "Enclosed"
-    )
 
     override val nestedClassesShouldBeStatic = true
 
@@ -484,6 +491,11 @@ object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
     )
 
     override val arraysAssertionsClass = assertionsClass
+
+    override val kotlinFailureAssertionsClass = BuiltinClassId(
+        canonicalName = "org.junit.jupiter.api",
+        simpleName = "Assertions"
+    )
 
     val assertThrows = builtinStaticMethodId(
         classId = assertionsClass,

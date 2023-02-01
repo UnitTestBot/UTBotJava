@@ -1,38 +1,24 @@
 package org.utbot.framework.codegen.tree
 
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
+import org.utbot.framework.codegen.domain.builtin.setArrayElement
 import org.utbot.framework.codegen.domain.context.CgContextOwner
+import org.utbot.framework.codegen.domain.models.CgAllocateInitializedArray
+import org.utbot.framework.codegen.domain.models.CgArrayInitializer
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.services.access.CgCallableAccessManager
+import org.utbot.framework.codegen.util.at
 import org.utbot.framework.codegen.util.isAccessibleFrom
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.enclosingClass
-import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.underlyingType
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.PersistentSet
-import org.utbot.framework.codegen.domain.builtin.setArrayElement
-import org.utbot.framework.codegen.domain.models.CgAllocateInitializedArray
-import org.utbot.framework.codegen.domain.models.CgArrayInitializer
-import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.util.at
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -45,13 +31,33 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.denotableType
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.enclosingClass
+import org.utbot.framework.plugin.api.util.executable
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.signature
+import org.utbot.framework.plugin.api.util.underlyingType
+import soot.Scene
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 
 data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -205,13 +211,24 @@ internal fun infiniteInts(): Sequence<Int> =
 
 internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
 
+private val simpleNamesNotRequiringImports by lazy { findSimpleNamesNotRequiringImports() }
+
+/**
+ * Some class names do not require imports, but may lead to simple names clash.
+ * For example, custom class [Compiler] may clash with [java.lang.Compiler].
+ */
+private fun findSimpleNamesNotRequiringImports(): Set<String> =
+    Scene.v().classes
+        .filter { it.packageName == "java.lang" }
+        .mapNotNullTo(mutableSetOf()) { it.shortName }
+
 /**
  * Checks if we have already imported a class with such simple name.
  * If so, we cannot import [type] (because it will be used with simple name and will be clashed with already imported)
  * and should use its fully qualified name instead.
  */
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
-    importedClasses.none { it.simpleName == type.simpleName }
+    importedClasses.none { it.simpleName == type.simpleName } && type.simpleName !in simpleNamesNotRequiringImports
 
 fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change
@@ -335,15 +352,64 @@ internal fun Class<*>.overridesEquals(): Boolean =
         else -> declaredMethods.any { it.name == "equals" && it.parameterTypes.contentEquals(arrayOf(Any::class.java)) }
     }
 
+/**
+ * Returns all methods of [this] class (including inherited), except base methods (i.e., if any method is overridden,
+ * only the latest overriding will be included).
+ * NOTE: for the reference [see also](https://stackoverflow.com/a/28408148)
+ */
+private fun Class<*>.allMethodsWithoutBaseMethods(): Set<Method> {
+    val collectedMethods = mutableSetOf<Method>(*methods)
+    val types = collectedMethods.map { it.signature }.associateWithTo(mutableMapOf()) { mutableSetOf<Package>() }
+    val access = Modifier.PUBLIC or Modifier.PROTECTED or Modifier.PRIVATE
+
+    var currentClass: Class<*>? = this
+    while (currentClass != null) {
+        for (method in currentClass.declaredMethods) {
+            val modifiers = method.modifiers
+
+            if (!Modifier.isStatic(modifiers)) {
+                when (modifiers and access) {
+                    Modifier.PUBLIC -> continue
+                    Modifier.PROTECTED -> {
+                        if (types.putIfAbsent(method.signature, mutableSetOf()) != null) {
+                            continue
+                        }
+                    }
+                    Modifier.PRIVATE -> {}
+                    else -> { // package-private
+                        val pkg = types.computeIfAbsent(method.signature) { mutableSetOf() }
+
+                        if (pkg.isNotEmpty() && pkg.add(currentClass.getPackage())) {
+                            break
+                        } else {
+                            continue
+                        }
+                    }
+                }
+            }
+
+            collectedMethods += method
+        }
+
+        currentClass = currentClass.superclass
+    }
+
+    return collectedMethods
+}
+
 // NOTE: this function does not consider executable return type because it is not important in our case
 internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequence<ExecutableId> {
     val allExecutables = when (executableId) {
-        is MethodId -> allMethods
+        is MethodId -> {
+            // For method we should check all overloadings and inherited methods, but do not consider base methods
+            // in case of overriding (for example, for ArrayList#add we should not take List#add and AbstractCollection#add)
+            executableId.classId.jClass.allMethodsWithoutBaseMethods().map { it.executableId }.asSequence()
+        }
         is ConstructorId -> allConstructors
     }
 
     return allExecutables.filter {
-        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size && it.classId == executableId.classId
+        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size
     }
 }
 
@@ -406,7 +472,7 @@ internal fun ClassId.utilMethodId(
 ): MethodId =
     BuiltinMethodId(this, name, returnType, arguments.toList(), isStatic = isStatic)
 
-fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosings)
+fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosingClasses)
 
 // Immutable collections utils
 

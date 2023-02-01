@@ -40,10 +40,6 @@ on:
           - alpha
           - beta
 
-env:
-  # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
-
 jobs:
     publish_plugin_and_cli:
       runs-on: ubuntu-20.04
@@ -79,7 +75,7 @@ jobs:
 
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
-          gradle clean buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
+          gradle clean buildPlugin --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
           cd utbot-intellij/build/distributions
           unzip utbot-intellij-${{ env.VERSION }}.zip
           rm utbot-intellij-${{ env.VERSION }}.zip
@@ -93,7 +89,7 @@ jobs:
       - name: Build UTBot CLI
         run: |
           cd utbot-cli
-          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
+          gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
           
       - name: Archive UTBot CLI
         uses: actions/upload-artifact@v3

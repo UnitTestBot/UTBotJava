@@ -2,10 +2,10 @@ package org.utbot.framework.util
 
 import org.utbot.common.FileUtil
 import org.utbot.engine.jimpleBody
+import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
 import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
@@ -152,16 +152,20 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.Long::class,
     org.utbot.engine.overrides.Short::class,
     org.utbot.engine.overrides.System::class,
+    org.utbot.engine.overrides.Throwable::class,
+    org.utbot.engine.overrides.AutoCloseable::class,
+    org.utbot.engine.overrides.AccessController::class,
     org.utbot.engine.overrides.collections.UtOptional::class,
     org.utbot.engine.overrides.collections.UtOptionalInt::class,
     org.utbot.engine.overrides.collections.UtOptionalLong::class,
     org.utbot.engine.overrides.collections.UtOptionalDouble::class,
     org.utbot.engine.overrides.collections.UtArrayList::class,
+    org.utbot.engine.overrides.collections.UtArrayList.UtArrayListSimpleIterator::class,
     org.utbot.engine.overrides.collections.UtArrayList.UtArrayListIterator::class,
     org.utbot.engine.overrides.collections.UtLinkedList::class,
     org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck::class,
     org.utbot.engine.overrides.collections.UtLinkedList.UtLinkedListIterator::class,
-    org.utbot.engine.overrides.collections.UtLinkedList.ReverseIteratorWrapper::class,
+    org.utbot.engine.overrides.collections.UtLinkedList.UtReverseIterator::class,
     org.utbot.engine.overrides.collections.UtHashSet::class,
     org.utbot.engine.overrides.collections.UtHashSet.UtHashSetIterator::class,
     org.utbot.engine.overrides.collections.UtHashMap::class,
@@ -181,11 +185,18 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.strings.UtString::class,
     org.utbot.engine.overrides.strings.UtStringBuilder::class,
     org.utbot.engine.overrides.strings.UtStringBuffer::class,
+    org.utbot.engine.overrides.threads.UtThread::class,
+    org.utbot.engine.overrides.threads.UtThreadGroup::class,
+    org.utbot.engine.overrides.threads.UtCompletableFuture::class,
+    org.utbot.engine.overrides.threads.CompletableFuture::class,
+    org.utbot.engine.overrides.threads.Executors::class,
+    org.utbot.engine.overrides.threads.UtExecutorService::class,
+    org.utbot.engine.overrides.threads.UtCountDownLatch::class,
     org.utbot.engine.overrides.stream.Stream::class,
     org.utbot.engine.overrides.stream.Arrays::class,
     org.utbot.engine.overrides.collections.Collection::class,
     org.utbot.engine.overrides.collections.List::class,
-    UtStreamConsumingException::class,
+    org.utbot.framework.plugin.api.visible.UtStreamConsumingException::class,
     org.utbot.engine.overrides.stream.UtStream::class,
     org.utbot.engine.overrides.stream.UtIntStream::class,
     org.utbot.engine.overrides.stream.UtLongStream::class,
@@ -197,6 +208,7 @@ private val classesToLoad = arrayOf(
     org.utbot.engine.overrides.stream.IntStream::class,
     org.utbot.engine.overrides.stream.LongStream::class,
     org.utbot.engine.overrides.stream.DoubleStream::class,
+    org.utbot.engine.OverflowDetectionError::class,
 ).map { it.java }.toTypedArray()
 
 private const val UTBOT_PACKAGE_PREFIX = "org.utbot"

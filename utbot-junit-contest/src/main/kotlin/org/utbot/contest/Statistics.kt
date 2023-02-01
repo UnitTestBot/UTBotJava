@@ -14,6 +14,9 @@ fun <T> Iterable<T>.printMultiline(printer: (T) -> Any?) = "\n" + joinToString("
 class GlobalStats {
     val projectStats = mutableListOf<StatsForProject>()
     var duration: Long? = null
+
+    override fun toString(): String = "\n<Global statistics> :" +
+            projectStats.joinToString(separator = "\n")
 }
 
 class StatsForProject(val project: String) {
@@ -72,9 +75,15 @@ class StatsForProject(val project: String) {
                 else this
             }
 
-    override fun toString(): String = "\n<Global statistics> :" +
+    val detectedExceptionsCount: Int
+        get() = statsForClasses.sumOf { it.detectedExceptionsCount }
+    val expectedExceptionsCount: Int
+        get() = statsForClasses.sumOf { it.expectedExceptionsCount }
+
+    override fun toString(): String = "\n<StatsForProject($project)> :" +
             "\n\t#classes for generation = $classesForGeneration" +
             "\n\t#tc generated = $testCasesGenerated" +
+            (if (expectedExceptionsCount > 0) "\n\t#detected exceptions = $detectedExceptionsCount/$expectedExceptionsCount" else "") +
             "\n\t#classes without problems = $classesWithoutProblems" +
             "\n\t#classes canceled by timeout = $classesCanceledByTimeout" +
             "\n----------------------------------------" +
@@ -125,6 +134,11 @@ class StatsForClass(val project: String, val className: String) {
     val methodsWithAtLeastOneException: Int get() = statsForMethods.count { it.failReasons.isNotEmpty() }
     val testcasesGenerated: Int get() = statsForMethods.sumOf { it.testsGeneratedCount }
 
+    val detectedExceptionsCount: Int
+        get() = statsForMethods.sumOf { it.detectedExceptionsCount }
+    val expectedExceptionsCount: Int
+        get() = statsForMethods.sumOf { it.expectedExceptionsCount }
+
     var coverage = CoverageInstructionsSet()
     var fuzzedCoverage = CoverageInstructionsSet()
     var concolicCoverage = CoverageInstructionsSet()
@@ -139,30 +153,44 @@ class StatsForClass(val project: String, val className: String) {
     fun getConcolicCoverageInfo(): CoverageStatistic =
         concolicCoverage.getCoverageInfo(testedClassNames)
 
-    override fun toString(): String = "\n<StatsForClass> :" +
+    override fun toString(): String = "\n<StatsForClass($className)> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
             "\n\t#methods = $methodsCount, " +
             "\n\t#methods started symbolic exploration = ${statsForMethods.size}" +
             "\n\t#methods with at least one TC = ${statsForMethods.count { it.testsGeneratedCount > 0 }}" +
             "\n\t#methods with exceptions = $methodsWithAtLeastOneException" +
             "\n\t#generated TC = $testcasesGenerated" +
+            (if (expectedExceptionsCount > 0) "\n\t#detected exceptions = $detectedExceptionsCount/$expectedExceptionsCount" else "") +
             "\n\t#total coverage = ${coverage.prettyInfo()}" +
             "\n\t#fuzzed coverage = ${fuzzedCoverage.prettyInfo()}" +
             "\n\t#concolic coverage = ${concolicCoverage.prettyInfo()}"
 }
 
 
-class StatsForMethod(val methodName: String) {
+class StatsForMethod(
+    val methodName: String,
+    val expectedExceptionFqns: List<String>
+) {
     var testsGeneratedCount = 0
 
     val failReasons: MutableMultiset<FailReason> = mutableMultisetOf()
 
+    val detectedExceptionFqns: MutableSet<String> = mutableSetOf()
+
     //generated no TC, nor exception
     val isSuspicious: Boolean get() = failReasons.isEmpty() && testsGeneratedCount == 0
 
+    val detectedExceptionsCount: Int
+        get() = expectedExceptionFqns.toSet().intersect(detectedExceptionFqns).size
+
+    val expectedExceptionsCount: Int =
+        expectedExceptionFqns.size
+
 
     override fun toString(): String = "\n<StatsForMethod> :" + (if (isSuspicious) " SUSPICIOUS" else "") +
-            "\n\t#generatedTC=$testsGeneratedCount\n\t" +
+            "\n\t#generated TC = $testsGeneratedCount" +
+            (if (expectedExceptionsCount > 0) "\n\t#detected exceptions = $detectedExceptionsCount/$expectedExceptionsCount" else "") +
+            "\n\t" +
             (if (failReasons.isEmpty()) "WITH NO EXCEPTIONS"
             else "FAILED ${failReasons.sumOfMultiplicities} time(s) with ${failReasons.size} different exception(s)\"")
 

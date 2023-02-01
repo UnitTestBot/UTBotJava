@@ -1,43 +1,61 @@
-# Description
+## Labels (hint)
 
-Substitute this text with a concise description of the proposed change. Emphasize, why particular solution was chosen.
+Choose the obligatory labels:
+- "ctg" (category): _bug-fix_, _enhancement_, _refactoring_, etc.
+- "comp" (component): _symbolic-engine_, _fuzzing_, _codegen_, etc.
+
+Feel free to apply more labels to your PR, e.g.: _lang-java_, _priority-minor_, _spec-performance_
+
+## Title (hint)
+
+Describe what you've changed or added in terms of functionality.
+
+For example:
+
+> Add summaries for the nested classes
+
+> Support test generation for paths with spaces in JavaScript
+
+> Remove packageName property not defined in Java 8
+
+Check that the title contains
+* no branch name
+* no GitHub nickname
+* no copy-pasted issue title
+
+## Description
 
 Fixes # (issue)
 
-## Type of Change
+Add more info _if needed_:
+* context/purpose for implementing changes
+* detailed description of the changes made
 
-Please delete options that are not relevant.
+## How to test
 
-- Minor bug fix (non-breaking small changes)
-- Bug fix (non-breaking change which fixes an issue)
-- Refactoring (typos and non-functional changes) 
-- New feature (non-breaking change which adds functionality)
-- Breaking change (fix or feature that would cause existing functionality to not work as expected)
+### Automated tests
 
-# How Has This Been Tested?
+Please specify the _automated tests_ for your code changes: you should either mention the existing tests or add the new ones.
 
-## Regression and integration tests
+For example:
 
-Please, provide regression or integration tests for your code changes. If you don't do that, the reviewer can and highly likely **_will reject_** the PR. It is the contributor's responsibility to provide such tests or to reason why they are missing.
+> The proposed changes are verified with tests:
+> `utbot-fuzzing/src/test/kotlin/org/utbot/fuzzing/FuzzerSmokeTest.kt`
 
-## Automated Testing
+### Manual tests
 
-Specify tests that help to verify the change automatically.  
+If it is impossible to provide the automated tests, please reason why. Usually, it is relevant only for UI- or documentation-related PRs.
+If this is your case, share the detailed _manual scenarios_ that help to verify your changes.
 
-_Example:_ org.utbot.examples.algorithms.BinarySearchTest
+## Self-check list
 
-## Manual Scenario 
+Check off the item if the statement is true. Hint: [x] is a marked item.
 
-Please, provide several scenarios that you went through to verify that the change worked as expected.  
+Please do not delete the list or its items.
 
-# Checklist (remove irrelevant options):
-
-_This is the author self-check list_
-
-- [ ] The change followed the style guidelines of the UTBot project
-- [ ] Self-review of the code is passed
-- [ ] The change contains enough commentaries, particularly in hard-to-understand areas
-- [ ] New documentation is provided or existed one is altered
-- [ ] No new warnings
-- [ ] New tests have been added
-- [ ] All tests pass locally with my changes
+- [ ] I've set the proper **labels** for my PR (at least, for category and component).
+- [ ] PR **title** and **description** are clear and intelligible.
+- [ ] I've added enough **comments** to my code, particularly in hard-to-understand areas.
+- [ ] The functionality I've repaired, changed or added is covered with **automated tests**.
+- [ ] **Manual tests** have been provided optionally.
+- [ ] The **documentation** for the functionality I've been working on is up-to-date.

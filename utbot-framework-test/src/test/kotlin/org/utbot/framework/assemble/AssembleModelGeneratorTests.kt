@@ -57,13 +57,14 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
-import org.utbot.framework.util.modelIdCounter
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.full.functions
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
  */
 class AssembleModelGeneratorTests {
+    val modelIdCounter = AtomicInteger(0)
 
     private lateinit var context: AutoCloseable
     private lateinit var statementsChain: MutableList<String>

@@ -5,8 +5,10 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
@@ -17,16 +19,15 @@ import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.framework.codegen.domain.TestFramework
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JCheckBox
-import javax.swing.JComponent
-import javax.swing.JPanel
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
+import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
+import javax.swing.*
 
 
+private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
@@ -55,12 +56,16 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     private lateinit var panel: DialogPanel
 
     init {
-        title = "Generate Tests With UtBot"
+        title = "Generate Tests with UnitTestBot"
         isResizable = false
+
+        model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
+            it.isInstalled = it.isInstalled || checkModuleIsInstalled(model.pythonPath, it.mainPackage)
+        }
+
         init()
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun createCenterPanel(): JComponent {
 
         panel = panel {
@@ -69,7 +74,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             }
             row("Test framework:") {
                 makePanelWithHelpTooltip(
-                    testFrameworks as ComboBox<CodeGenerationSettingItem>,
+                    testFrameworks,
                     null
                 )
             }
@@ -100,7 +105,12 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         }
 
         updateFunctionsTable()
+        updateTestFrameworksList()
         return panel
+    }
+
+    private fun updateTestFrameworksList() {
+        testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
     }
 
     private fun globalPyFunctionsToPyMemberInfo(

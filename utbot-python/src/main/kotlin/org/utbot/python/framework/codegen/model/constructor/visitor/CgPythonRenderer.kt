@@ -28,6 +28,7 @@ import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgForEachLoop
 import org.utbot.framework.codegen.domain.models.CgForLoop
+import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgGetKotlinClass
 import org.utbot.framework.codegen.domain.models.CgGetLength
@@ -529,6 +530,10 @@ internal class CgPythonRenderer(
 
     override fun visit(element: CgLiteral) {
         print(element.value.toString())
+    }
+
+    override fun visit(element: CgFormattedString) {
+        throw NotImplementedError("String interpolation is not supported in Python renderer")
     }
 
     override fun String.escapeCharacters(): String =

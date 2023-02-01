@@ -2,6 +2,7 @@ package org.utbot.contest
 
 import org.utbot.common.FileUtil
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.nameWithEnclosingClassesAsContigousString
 import org.utbot.framework.plugin.api.util.utContext
 import java.io.File
 import java.nio.file.Paths
@@ -32,11 +33,12 @@ class ClassUnderTest(
 //    val classpathDir : File get() = FileUtil.locateClassPath(kotlinClass)?.absoluteFile !!
 
 
-    val packageName: String get() = fqn.substringBeforeLast('.', "")
-    val simpleName: String get() = createTestClassName(fqn)
-
+    /**
+     * These properties should be obtained only with utContext set
+     */
+    private val packageName: String get() = classId.packageName
+    val simpleName: String get() = classId.nameWithEnclosingClassesAsContigousString
     val testClassSimpleName: String get() = simpleName + "Test"
-
     val generatedTestFile: File
         get() = Paths.get(
             generatedTestsSourcesDir.canonicalPath,
@@ -51,13 +53,4 @@ class ClassUnderTest(
             "\n    generatedTestsSourcesDir: $generatedTestsSourcesDir" +
             "\n]"
     }
-
-    /**
-     * Creates a name of test class.
-     * We need the name in code and the name of test class file be similar.
-     * On this way we need to avoid symbols like '$'.
-     */
-    private fun createTestClassName(name: String): String = name
-        .substringAfterLast('.')
-        .replace('\$', '_')
 }

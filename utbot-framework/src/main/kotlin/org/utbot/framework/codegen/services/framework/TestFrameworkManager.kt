@@ -66,6 +66,9 @@ abstract class TestFrameworkManager(val context: CgContext)
     val assertTrue = context.testFramework.assertTrue
     val assertFalse = context.testFramework.assertFalse
 
+    val fail = context.testFramework.fail
+    val kotlinFail = context.testFramework.kotlinFail
+
     val assertArrayEquals = context.testFramework.assertArrayEquals
     val assertBooleanArrayEquals = context.testFramework.assertBooleanArrayEquals
     val assertByteArrayEquals = context.testFramework.assertByteArrayEquals
@@ -84,8 +87,6 @@ abstract class TestFrameworkManager(val context: CgContext)
     protected val statementConstructor = getStatementConstructorBy(context)
 
     abstract val annotationForNestedClasses: CgAnnotation?
-
-    abstract val annotationForOuterClasses: CgAnnotation?
 
     /**
      * Determines whether appearance of expected exception in test method breaks current test execution or not.
@@ -173,6 +174,15 @@ abstract class TestFrameworkManager(val context: CgContext)
 
     fun assertBoolean(actual: CgExpression) = assertBoolean(expected = true, actual)
 
+    fun fail(actual: CgExpression) {
+        // failure assertion may be implemented in different packages in Java and Kotlin
+        // more details at https://stackoverflow.com/questions/52967039/junit-5-assertions-fail-can-not-infer-type-in-kotlin
+        when (codegenLanguage) {
+            CodegenLanguage.JAVA -> +assertions[fail](actual)
+            CodegenLanguage.KOTLIN -> +assertions[kotlinFail](actual)
+        }
+    }
+
     // Exception expectation differs between test frameworks
     // JUnit4 requires to add a specific argument to the test method annotation
     // JUnit5 requires using method assertThrows()
@@ -247,9 +257,6 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
         get() = currentTestClassContext
 
     override val annotationForNestedClasses: CgAnnotation?
-        get() = null
-
-    override val annotationForOuterClasses: CgAnnotation?
         get() = null
 
     override val isExpectedExceptionExecutionBreaking: Boolean = false
@@ -397,20 +404,6 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForNestedClasses: CgAnnotation?
         get() = null
 
-    override val annotationForOuterClasses: CgAnnotation
-        get() {
-            require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
-            return statementConstructor.annotation(
-                testFramework.runWithAnnotationClassId,
-                testFramework.enclosedClassId.let {
-                    when (codegenLanguage) {
-                        CodegenLanguage.JAVA   -> CgGetJavaClass(it)
-                        CodegenLanguage.KOTLIN -> CgGetKotlinClass(it)
-                    }
-                }
-            )
-        }
-
     override val isExpectedExceptionExecutionBreaking: Boolean = true
 
     override fun expectException(exception: ClassId, block: () -> Unit) {
@@ -469,12 +462,8 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override val annotationForNestedClasses: CgAnnotation
         get() {
             require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
-
             return statementConstructor.annotation(testFramework.nestedTestClassAnnotationId)
         }
-
-    override val annotationForOuterClasses: CgAnnotation?
-        get() = null
 
     override val isExpectedExceptionExecutionBreaking: Boolean = false
 

@@ -8,7 +8,6 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgVariable
@@ -62,24 +61,9 @@ class PythonCodeGenerator(
     runtimeExceptionTestsBehaviour=runtimeExceptionTestsBehaviour,
     hangingTestsTimeout=hangingTestsTimeout,
     enableTestsTimeout=enableTestsTimeout,
-    testClassPackageName=testClassPackageName
+    testClassPackageName=testClassPackageName,
+    cgLanguageAssistant = PythonCgLanguageAssistant,
 ) {
-    override var context: CgContext = CgContext(
-        classUnderTest = classUnderTest,
-        paramNames = paramNames,
-        testFramework = testFramework,
-        mockFramework = mockFramework,
-        cgLanguageAssistant = PythonCgLanguageAssistant,
-        parametrizedTestSource = parameterizedTestSource,
-        staticsMocking = staticsMocking,
-        forceStaticMocking = forceStaticMocking,
-        generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-        hangingTestsTimeout = hangingTestsTimeout,
-        enableTestsTimeout = enableTestsTimeout,
-        testClassPackageName = testClassPackageName
-    )
-
     fun pythonGenerateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         importModules: Set<PythonImport>,

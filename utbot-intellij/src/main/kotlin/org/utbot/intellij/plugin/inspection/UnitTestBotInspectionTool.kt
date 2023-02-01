@@ -6,6 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.jetbrains.kotlin.idea.search.allScope
 import org.utbot.sarif.*
 import java.nio.file.Path
@@ -59,7 +60,14 @@ class UnitTestBotInspectionTool : GlobalSimpleInspectionTool() {
             val errorPsiFile = srcFileLogicalLocation?.fullyQualifiedName?.let { errorClassFqn ->
                 val psiFacade = JavaPsiFacade.getInstance(srcPsiFile.project)
                 val psiClass = psiFacade.findClass(errorClassFqn, srcPsiFile.project.allScope())
-                psiClass?.containingFile
+                val psiFile = psiClass?.containingFile ?: return@let null
+
+                // We can't just return psiFile because it may be non-physical
+                if (psiFile.isPhysical) {
+                    psiFile
+                } else {
+                    psiFile.virtualFile.toPsiFile(srcPsiFile.project)
+                }
             } ?: srcPsiFile
             val errorRegion = srcFilePhysicalLocation.region
             val errorTextRange = getTextRange(problemsHolder.project, errorPsiFile, errorRegion)

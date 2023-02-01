@@ -38,8 +38,11 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
+import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
+import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -478,6 +481,29 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
             element.defaultLabel?.accept(this)
         }
         println("}")
+    }
+
+    override fun visit(element: CgFormattedString) {
+        print("\"")
+        element.array.forEachIndexed { index, cgElement ->
+            if (cgElement is CgLiteral)
+                print(cgElement.toStringConstant(asRawString = true))
+            else {
+                print("$")
+                when (cgElement) {
+                    // It is not necessary to wrap variables with curly brackets
+                    is CgVariable -> cgElement.accept(this)
+                    else -> {
+                        print("{")
+                        cgElement.accept(this)
+                        print("}")
+                    }
+                }
+            }
+
+            if (index < element.array.lastIndex) print(" ")
+        }
+        print("\"")
     }
 
     override fun toStringConstantImpl(byte: Byte): String = buildString {

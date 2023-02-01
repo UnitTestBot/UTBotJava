@@ -3,9 +3,11 @@ package examples
 import org.junit.jupiter.api.*
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
+import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
+import org.utbot.framework.UtSettings.summaryGenerationType
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
@@ -58,7 +60,7 @@ open class SummaryTestCaseGeneratorTest(
             checkNpeInNestedNotPrivateMethods = true
         }
         val testSet = executionsModel(method.executableId, mockStrategy)
-        val testSetWithSummarization = testSet.summarize(searchDirectory)
+        val testSetWithSummarization = testSet.summarize(searchDirectory, sourceFile = null)
 
         testSetWithSummarization.executions.checkMatchersWithTextSummary(summaryKeys)
         testSetWithSummarization.executions.checkMatchersWithMethodNames(methodNames)

@@ -76,6 +76,7 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgDocRegularLineStmt
+import org.utbot.framework.codegen.domain.models.CgFormattedString
 import org.utbot.framework.codegen.domain.models.CgNestedClassesRegion
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTestMethodCluster
@@ -222,6 +223,9 @@ interface CgVisitor<R> {
 
     // Spread operator
     fun visit(element: CgSpread): R
+
+    // Formatted string
+    fun visit(element: CgFormattedString): R
 
     // Enum constant
     fun visit(element: CgEnumConstantAccess): R

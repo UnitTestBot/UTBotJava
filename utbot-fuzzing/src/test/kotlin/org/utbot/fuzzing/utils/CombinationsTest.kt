@@ -267,4 +267,33 @@ class CombinationsTest {
         assertArrayEquals(intArrayOf(1, 1), combinations[Int.MAX_VALUE + 1L])
         assertArrayEquals(intArrayOf(1, Int.MAX_VALUE - 1), combinations[Int.MAX_VALUE * 2L - 1])
     }
+
+    @Test
+    fun testLazyCartesian() {
+        val source = listOf(
+            (1..10).toList(),
+            listOf("a", "b", "c"),
+            listOf(true, false)
+        )
+        val eager = CartesianProduct(source).asSequence().toList()
+        val lazy = source.cartesian().toList()
+        assertEquals(eager.size, lazy.size)
+        for (i in eager.indices) {
+            assertEquals(eager[i], lazy[i])
+        }
+    }
+
+    @Test
+    fun testLazyCartesian2() {
+        val source = listOf(
+            (1..10).toList(),
+            listOf("a", "b", "c"),
+            listOf(true, false)
+        )
+        val eager = CartesianProduct(source).asSequence().toList()
+        var index = 0
+        source.cartesian {
+            assertEquals(eager[index++], it)
+        }
+    }
 }

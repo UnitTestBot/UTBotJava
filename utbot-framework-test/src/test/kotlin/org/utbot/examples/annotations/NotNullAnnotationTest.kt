@@ -3,6 +3,7 @@ package org.utbot.examples.annotations
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
+import org.utbot.testing.AtLeast
 import org.utbot.testing.UtValueTestCaseChecker
 
 internal class NotNullAnnotationTest : UtValueTestCaseChecker(testClass = NotNullAnnotation::class) {
@@ -68,7 +69,8 @@ internal class NotNullAnnotationTest : UtValueTestCaseChecker(testClass = NotNul
         checkStatics(
             NotNullAnnotation::notNullStaticField,
             eq(1),
-            { statics, result -> result == statics.values.single().value }
+            { statics, result -> result == statics.values.single().value },
+            coverage = AtLeast(66)
         )
     }
 

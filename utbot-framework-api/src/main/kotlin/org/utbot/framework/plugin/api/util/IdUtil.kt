@@ -206,6 +206,12 @@ val ClassId.isKotlinFile: Boolean
         KotlinClassHeader.Kind.getById(it.kind) == KotlinClassHeader.Kind.FILE_FACADE
     } ?: false
 
+/**
+ * Returns [ClassId.simpleNameWithEnclosingClasses] with '.' replaced with '_' - to use it as a class name.
+ */
+val ClassId.nameWithEnclosingClassesAsContigousString: String
+    get() = simpleNameWithEnclosingClasses.replace('.', '_')
+
 val voidClassId = ClassId("void")
 val booleanClassId = ClassId("boolean")
 val byteClassId = ClassId("byte")
@@ -295,6 +301,7 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
+val collectionClassId = java.util.Collection::class.id
 
 val baseStreamClassId = java.util.stream.BaseStream::class.id
 val streamClassId = java.util.stream.Stream::class.id
@@ -398,6 +405,12 @@ val ClassId.isMap: Boolean
 
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
+
+val ClassId.isCollection: Boolean
+    get() = isSubtypeOf(collectionClassId)
+
+val ClassId.isCollectionOrMap: Boolean
+    get() = isCollection || isMap
 
 val ClassId.isEnum: Boolean
     get() = jClass.isEnum

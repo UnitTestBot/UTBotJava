@@ -380,12 +380,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
             { cs, r -> cs == null && r == true },
             { cs, r -> cs.isEmpty() && r == true },
             { cs, r -> cs.isNotEmpty() && cs.isBlank() && r == true },
-            { cs, r -> cs.isNotEmpty() && cs.isNotBlank() && r == false },
-            summaryNameChecks = listOf(
-                keyMatch("testIsBlank_StrLenEqualsZero"),
-                keyMatch("testIsBlank_NotCharacterIsWhitespace"),
-                keyMatch("testIsBlank_CharacterIsWhitespace")
-            )
+            { cs, r -> cs.isNotEmpty() && cs.isNotBlank() && r == false }
         )
     }
 

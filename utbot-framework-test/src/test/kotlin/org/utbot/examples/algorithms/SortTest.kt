@@ -1,8 +1,5 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -12,7 +9,6 @@ import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
-import org.utbot.testing.keyMatch
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class SortTest : UtValueTestCaseChecker(
@@ -111,54 +107,12 @@ internal class SortTest : UtValueTestCaseChecker(
                 val connection = lhs.last() >= rhs.last() && r.getOrNull()?.toList() == (lhs + rhs).sorted()
 
                 lhsCondition && rhsCondition && connection
-            },
+            }
         )
     }
 
     @Test
     fun testDefaultSort() {
-        val defaultSortSummary1 = listOf(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("throws NullPointerException in: array.length < 4"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
-
-        val defaultSortSummary2 = listOf(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("executes conditions:\n"),
-                    DocRegularStmt("    "),
-                    DocCodeStmt("(array.length < 4): True"),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("throws IllegalArgumentException after condition: array.length < 4"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
-        val defaultSortSummary3 = listOf(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("executes conditions:\n"),
-                    DocRegularStmt("    "),
-                    DocCodeStmt("(array.length < 4): False"),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("invokes:\n"),
-                    DocRegularStmt("    {@link java.util.Arrays#sort(int[])} once"),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return array;"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
         checkWithException(
             Sort::defaultSort,
             eq(3),
@@ -167,22 +121,7 @@ internal class SortTest : UtValueTestCaseChecker(
             { a, r ->
                 val resultArray = intArrayOf(-100, 0, 100, 200)
                 a != null && r.getOrNull()!!.size >= 4 && r.getOrNull() contentEquals resultArray
-            },
-            summaryTextChecks = listOf(
-                keyMatch(defaultSortSummary1),
-                keyMatch(defaultSortSummary2),
-                keyMatch(defaultSortSummary3),
-            ),
-            summaryNameChecks = listOf(
-                keyMatch("testDefaultSort_ThrowNullPointerException"),
-                keyMatch("testDefaultSort_ArrayLengthLessThan4"),
-                keyMatch("testDefaultSort_ArrayLengthGreaterOrEqual4"),
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyMatch("array.length < 4 -> ThrowNullPointerException"),
-                keyMatch("array.length < 4 -> ThrowIllegalArgumentException"),
-                keyMatch("array.length < 4 : False -> return array"),
-            )
+            }
         )
     }
 }

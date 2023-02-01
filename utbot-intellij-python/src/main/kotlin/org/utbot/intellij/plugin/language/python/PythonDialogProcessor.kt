@@ -51,12 +51,31 @@ object PythonDialogProcessor {
         focusedMethod: PyFunction?,
         file: PyFile
     ) {
-        val dialog = createDialog(project, functionsToShow, containingClass, focusedMethod, file)
-        if (!dialog.showAndGet()) {
-            return
+        val pythonPath = getPythonPath(functionsToShow)
+        if (pythonPath == null) {
+            showErrorDialogLater(
+                project,
+                message = "Couldn't find Python interpreter",
+                title = "Python test generation error"
+            )
+        } else {
+            val dialog = createDialog(
+                project,
+                functionsToShow,
+                containingClass,
+                focusedMethod,
+                file,
+                pythonPath,
+            )
+            if (!dialog.showAndGet()) {
+                return
+            }
+            createTests(project, dialog.model)
         }
+    }
 
-        createTests(project, dialog.model)
+    private fun getPythonPath(functionsToShow: Set<PyFunction>): String? {
+        return findSrcModule(functionsToShow).sdk?.homePath
     }
 
     private fun createDialog(
@@ -64,7 +83,8 @@ object PythonDialogProcessor {
         functionsToShow: Set<PyFunction>,
         containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        file: PyFile
+        file: PyFile,
+        pythonPath: String,
     ): PythonDialogWindow {
         val srcModule = findSrcModule(functionsToShow)
         val testModules = srcModule.testModules(project)
@@ -85,6 +105,7 @@ object PythonDialogProcessor {
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 visitOnlySpecifiedSource = false,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
+                pythonPath = pythonPath,
             )
         )
     }
@@ -119,15 +140,7 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
-                    val pythonPath = model.srcModule.sdk?.homePath
-                    if (pythonPath == null) {
-                        showErrorDialogLater(
-                            project,
-                            message = "Couldn't find Python interpreter",
-                            title = "Python test generation error"
-                        )
-                        return
-                    }
+
                     val methods = findSelectedPythonMethods(model)
                     if (methods == null) {
                         showErrorDialogLater(
@@ -138,7 +151,7 @@ object PythonDialogProcessor {
                         return
                     }
                     processTestGeneration(
-                        pythonPath = pythonPath,
+                        pythonPath = model.pythonPath,
                         pythonFilePath = model.file.virtualFile.path,
                         pythonFileContent = getContentFromPyFile(model.file),
                         directoriesForSysPath = model.directoriesForSysPath,
@@ -151,8 +164,10 @@ object PythonDialogProcessor {
                         visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
+                        installingRequirementsAction = { indicator.text = "Installing requirements..." },
+                        testFrameworkInstallationAction = { indicator.text = "Test framework installation" },
                         requirementsAreNotInstalledAction = {
-                            askAndInstallRequirementsLater(model.project, pythonPath)
+                            askAndInstallRequirementsLater(model.project, model.pythonPath)
                             PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                         },
                         startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },

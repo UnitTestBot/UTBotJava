@@ -110,7 +110,6 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     recordActualResult()
                     generateResultAssertions()
 
-                    emptyLineIfNeeded()
                     generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
 
                     generatePythonTestComments(execution)
@@ -133,6 +132,9 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
         assertThisObject: MutableList<Pair<CgVariable, UtModel>>,
         executableId: ExecutableId,
     ) {
+        if (stateAssertions.size + assertThisObject.size > 0) {
+            emptyLineIfNeeded()
+        }
         stateAssertions.forEach { (index, it) ->
             val name = paramNames[executableId]?.get(index) + "_modified"
             val modifiedArgument = variableConstructor.getOrCreateVariable(it.second, name)

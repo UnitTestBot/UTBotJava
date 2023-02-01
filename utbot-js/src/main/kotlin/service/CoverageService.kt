@@ -2,7 +2,6 @@ package service
 
 import java.io.File
 import java.util.Collections
-import java.util.concurrent.ConcurrentLinkedQueue
 import org.json.JSONException
 import org.json.JSONObject
 import settings.JsTestGenerationSettings
@@ -19,11 +18,10 @@ abstract class CoverageService(
     private val _utbotDirPath = lazy { "${projectPath}/${utbotDir}" }
     protected val utbotDirPath: String
         get() = _utbotDirPath.value
-    protected val coverageList = ConcurrentLinkedQueue<Pair<Int, JSONObject>>()
-    protected val _resultList = ConcurrentLinkedQueue<ResultData>()
+    protected val coverageList = mutableListOf<Pair<Int, JSONObject>>()
+    protected val _resultList = mutableListOf<ResultData>()
     val resultList: List<ResultData>
-        get() = _resultList
-            .sortedBy { (_, index, _, _, _) -> index }
+        get() = _resultList.toList()
 
     companion object {
 
@@ -73,7 +71,8 @@ abstract class CoverageService(
 
     fun getCoveredLines(): List<CoverageData> {
         try {
-            return coverageList.sortedBy { (index, _) -> index }
+            // TODO: sort by coverage size desc
+            return coverageList
                 .map { (_, obj) ->
                     val dirtyCoverage = obj
                         .let {

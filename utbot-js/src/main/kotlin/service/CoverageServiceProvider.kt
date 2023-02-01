@@ -35,7 +35,7 @@ function check_value(value, json) {
         json.is_inf = true
         json.spec_sign = -1
     }
-    if (isNaN(value)) {
+    if (Number.isNaN(value)) {
         json.is_nan = true
     }
 }

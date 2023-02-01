@@ -1,6 +1,7 @@
 package framework.api.js.util
 
 import framework.api.js.JsClassId
+import framework.api.js.JsMultipleClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
@@ -31,7 +32,7 @@ fun ClassId.toJsClassId() =
     }
 
 val JsClassId.isJsBasic: Boolean
-    get() = this in jsBasic
+    get() = this in jsBasic || this is JsMultipleClassId
 
 val JsClassId.isUndefined: Boolean
     get() = this == jsUndefinedClassId

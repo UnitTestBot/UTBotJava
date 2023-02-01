@@ -280,7 +280,6 @@ class JsTestGenerator(
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
-                            return@runFuzzing JsFeedback(Control.CONTINUE)
                         } else if (counter == 0 || !currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             counter++
                             val initEnv =
@@ -295,10 +294,6 @@ class JsTestGenerator(
                                 )
                             )
                             currentlyCoveredStmts += covData.additionalCoverage
-                            return@runFuzzing when (result) {
-                                is UtExecutionSuccess -> JsFeedback(Control.CONTINUE)
-                                else -> JsFeedback(Control.PASS)
-                            }
                         }
                         if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                     }
@@ -310,12 +305,12 @@ class JsTestGenerator(
                             )
                         )
                     )
-                    return@runFuzzing JsFeedback(Control.PASS)
+                    return@runFuzzing JsFeedback(Control.STOP)
                 } finally {
                     collectedValues.clear()
                 }
             }
-            return@runFuzzing JsFeedback(Control.PASS)
+            return@runFuzzing JsFeedback(Control.CONTINUE)
         }
         instrService.removeTempFiles()
     }

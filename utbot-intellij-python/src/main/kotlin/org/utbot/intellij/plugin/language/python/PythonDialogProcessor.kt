@@ -287,11 +287,6 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
-fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode? {
-    val content = getContentFromPyFile(file)
-    return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)
-}
-
 /*
  * Returns set of sys paths and tested file import path
  */

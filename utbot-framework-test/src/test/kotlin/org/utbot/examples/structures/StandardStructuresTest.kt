@@ -1,9 +1,5 @@
 package org.utbot.examples.structures
 
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
 import java.util.LinkedList
 import java.util.TreeMap
 import org.junit.jupiter.api.Disabled
@@ -13,8 +9,6 @@ import org.utbot.testcheckers.eq
 import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
-import org.utbot.testing.keyContain
-import org.utbot.testing.keyMatch
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,

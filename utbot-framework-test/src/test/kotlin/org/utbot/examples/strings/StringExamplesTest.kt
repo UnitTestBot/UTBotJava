@@ -16,7 +16,6 @@ import org.utbot.testing.atLeast
 import org.utbot.testing.between
 import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
-import org.utbot.testing.keyMatch
 import java.util.Locale
 
 internal class StringExamplesTest : UtValueTestCaseChecker(

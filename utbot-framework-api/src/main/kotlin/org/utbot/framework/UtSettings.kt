@@ -117,21 +117,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var useExpressionSimplification by getBooleanProperty(true)
 
     /**
-    * Activate or deactivate tests on comments
-    */
-    var testSummary by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on names
-    */
-    var testName by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on displayNames
-    */
-    var testDisplayName by getBooleanProperty(true)
-
-    /**
      * Enable the Summarization module to generate summaries for methods under test.
      *
      * Note: if it is [SummariesGenerationType.NONE],

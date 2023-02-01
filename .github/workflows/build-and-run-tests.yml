@@ -93,7 +93,7 @@ jobs:
           --cache-from "type=local,src=/tmp/.buildx-cache" \
           --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
           --tag ${{ steps.meta.outputs.tags }} \
-          --build-arg UTBOT_JAVA_CLI=utbot-cli/build/libs/${{ matrix.configuration.directory }}-${{ env.VERSION }}.jar \
+          --build-arg UTBOT_JAVA_CLI=${{ matrix.configuration.directory }}/build/libs/${{ matrix.configuration.directory }}-${{ env.VERSION }}.jar \
           --push .
       # Temp fix
       # https://github.com/docker/build-push-action/issues/252

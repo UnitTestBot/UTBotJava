@@ -16,6 +16,11 @@ import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
 import org.utbot.python.code.MemoryDump
 import org.utbot.python.code.toPythonTree
+import org.utbot.python.evaluation.PythonCodeExecutor
+import org.utbot.python.evaluation.PythonCodeExecutorImpl
+import org.utbot.python.evaluation.PythonEvaluationError
+import org.utbot.python.evaluation.PythonEvaluationSuccess
+import org.utbot.python.evaluation.PythonEvaluationTimeout
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
@@ -30,7 +35,6 @@ import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 
 private val logger = KotlinLogging.logger {}
-const val TIMEOUT: Long = 10
 
 sealed interface FuzzingExecutionFeedback
 class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecutionFeedback
@@ -104,10 +108,12 @@ class PythonEngine(
             "builtins.TypeError"
         )
 
-        if (evaluationResult.isException && (evaluationResult.result.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+        val resultModel = evaluationResult.stateAfter.getById(evaluationResult.resultId).toPythonTree(evaluationResult.stateAfter)
+
+        if (evaluationResult.isException && (resultModel.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
             val errorMessage = "Evaluation with prohibited exception. Substituted types: ${
                 types.joinToString { it.pythonTypeRepresentation() }
-            }. Exception type: ${evaluationResult.result.type.name}"
+            }. Exception type: ${resultModel.type.name}"
 
             logger.info(errorMessage)
             return TypeErrorFeedback(errorMessage)
@@ -115,10 +121,10 @@ class PythonEngine(
 
         val executionResult =
             if (evaluationResult.isException) {
-                UtExplicitlyThrownException(Throwable(evaluationResult.result.output.type.toString()), false)
+                UtExplicitlyThrownException(Throwable(resultModel.type.toString()), false)
             }
             else {
-                UtExecutionSuccess(PythonTreeModel(evaluationResult.result.output))
+                UtExecutionSuccess(PythonTreeModel(resultModel))
             }
 
         val testMethodName = suggestExecutionName(methodUnderTestDescription, executionResult)
@@ -138,7 +144,7 @@ class PythonEngine(
         return ValidExecution(utFuzzedExecution)
     }
 
-    private fun constructEvaluationInput(arguments: List<PythonFuzzedValue>, additionalModules: List<String>): EvaluationInput {
+    private fun constructEvaluationInput(arguments: List<PythonFuzzedValue>, additionalModules: List<String>): PythonCodeExecutor {
         val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
 
         val (thisObject, modelList) =
@@ -152,16 +158,15 @@ class PythonEngine(
             .map { it.moduleName }
         val localAdditionalModules = (additionalModules + argumentModules).toSet()
 
-        return EvaluationInput(
+        return PythonCodeExecutorImpl(
             methodUnderTest,
-            directoriesForSysPath,
-            moduleToImport,
-            pythonPath,
-            timeoutForRun,
-            thisObject,
-            modelList,
+            FunctionArguments(thisObject, methodUnderTest.thisObjectName, modelList, methodUnderTest.argumentsNames),
             argumentValues.map { FuzzedValue(it) },
-            localAdditionalModules
+            moduleToImport,
+            localAdditionalModules,
+            pythonPath,
+            directoriesForSysPath,
+            timeoutForRun,
         )
     }
 
@@ -188,10 +193,10 @@ class PythonEngine(
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
             }
 
-            val evaluationInput = constructEvaluationInput(arguments, additionalModules)
-            val jobResult = evaluationInput.evaluate()
+            val codeExecutor = constructEvaluationInput(arguments, additionalModules)
+            //            val jobResult = evaluationInput.evaluate()
 
-            when (val evaluationResult = jobResult.evalResult) {
+            when (val evaluationResult = codeExecutor.run()) {
                 is PythonEvaluationError -> {
                     val utError = UtError(
                         "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
@@ -219,7 +224,7 @@ class PythonEngine(
                         .zip(methodUnderTest.arguments)
                         .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
-                    val hasThisObject = jobResult.thisObject != null
+                    val hasThisObject = codeExecutor.methodArguments.thisObject != null
                     val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)
                     emit(result)
 

@@ -96,7 +96,7 @@ class PythonCodeGenerator(
         method: PythonMethod,
         methodArguments: List<UtModel>,
         directoriesForSysPath: Set<String>,
-        moduleToImport: String,
+        functionModule: String,
         additionalModules: Set<String> = emptySet(),
         fileForOutputName: String,
         coverageDatabasePath: String,
@@ -118,7 +118,7 @@ class PythonCodeGenerator(
                 val importExecutor = PythonUserImport(executorModuleName, alias_ = executorModuleNameAlias)
                 val importSys = PythonSystemImport("sys")
                 val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
-                val importFunction = PythonUserImport(moduleToImport)
+                val importFunction = PythonUserImport(functionModule)
                 val imports =
                     listOf(importSys) + importSysPaths + listOf(
                         importExecutor,
@@ -139,8 +139,8 @@ class PythonCodeGenerator(
                         method.name
                     else
                         "${containingClass.simpleName}.${method.name}"
-                if (moduleToImport.isNotEmpty()) {
-                    functionTextName = "$moduleToImport.$functionTextName"
+                if (functionModule.isNotEmpty()) {
+                    functionTextName = "$functionModule.$functionTextName"
                 }
 
                 val functionName = CgLiteral(pythonStrClassId, functionTextName)
@@ -155,7 +155,6 @@ class PythonCodeGenerator(
                             val obj =
                                 (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor)
                                     .getOrCreateVariable(model)
-//                            (obj as CgPythonTree).arguments.forEach { +it }
                             +CgAssignment(
                                 argument,
                                 (obj as CgPythonTree).value
@@ -196,7 +195,6 @@ class PythonCodeGenerator(
                     )
                 )
 
-//            parameters.forEach { it.accept(renderer) }
                 argumentsTryCatch.accept(renderer)
                 executorCall.accept(renderer)
 

@@ -109,6 +109,7 @@ conditions:
   arg1: "test" # the first argument should be equal to "test"
   arg2: 227 # int
   arg3: 227.001 # float
+  arg4: null # null
   return: true # return value should be equal to `true`
 ```
 

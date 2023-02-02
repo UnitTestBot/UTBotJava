@@ -12,16 +12,14 @@ class PostprocessingPhase : ExecutionPhase {
 
     private var savedStaticsInstance: Map<FieldId, Any?>? = null
 
-    var savedStatics: Map<FieldId, Any?>
-        get() = savedStaticsInstance!!
-        set(value) {
-            savedStaticsInstance = value
-        }
+    fun setStaticFields(savedStatics: Map<FieldId, Any?>) {
+        savedStaticsInstance = savedStatics
+    }
 
     override fun wrapError(e: Throwable): ExecutionPhaseException = ExecutionPhaseError(this.javaClass.simpleName, e)
 
     fun resetStaticFields() {
-        savedStatics.forEach { (fieldId, value) ->
+        savedStaticsInstance?.forEach { (fieldId, value) ->
             fieldId.jField.run {
                 withAccessibility {
                     set(null, value)

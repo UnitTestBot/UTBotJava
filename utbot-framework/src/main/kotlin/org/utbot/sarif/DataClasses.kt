@@ -203,7 +203,9 @@ data class SarifArtifact(
     val uriBaseId: String = "%SRCROOT%"
 )
 
-// all fields should be one-based
+/**
+ * All fields should be one-based.
+ */
 data class SarifRegion(
     val startLine: Int,
     val endLine: Int? = null,
@@ -214,13 +216,20 @@ data class SarifRegion(
         /**
          * Makes [startColumn] the first non-whitespace character in [startLine] in the [text].
          * If the [text] contains less than [startLine] lines, [startColumn] == null.
+         * @param startLine should be one-based
          */
         fun withStartLine(text: String, startLine: Int): SarifRegion {
             val neededLine = text.split('\n').getOrNull(startLine - 1) // to zero-based
             val startColumn = neededLine?.run {
                 takeWhile { it.toString().isBlank() }.length + 1 // to one-based
             }
-            return SarifRegion(startLine = startLine, startColumn = startColumn)
+            val safeStartLine = if (startLine < 1) {
+                logger.warn { "For some reason startLine < 1, so now it is equal to 1" }
+                1 // we don't want to fail, so just set the line number to 1
+            } else {
+                startLine
+            }
+            return SarifRegion(startLine = safeStartLine, startColumn = startColumn)
         }
     }
 }

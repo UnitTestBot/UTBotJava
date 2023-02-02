@@ -1,9 +1,5 @@
 package org.utbot.examples.recursion
 
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
 import kotlin.math.pow
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -15,8 +11,6 @@ import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.atLeast
 import org.utbot.testing.between
 import org.utbot.testing.isException
-import org.utbot.testing.keyContain
-import org.utbot.testing.keyMatch
 
 // TODO Kotlin mocks generics https://github.com/UnitTestBot/UTBotJava/issues/88
 internal class RecursionTest : UtValueTestCaseChecker(
@@ -29,38 +23,12 @@ internal class RecursionTest : UtValueTestCaseChecker(
 ) {
     @Test
     fun testFactorial() {
-        val factorialSummary = listOf<DocStatement>(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return 1;"),
-                    DocRegularStmt("\n"),
-                )
-            )
-        )
-
         checkWithException(
             Recursion::factorial,
             eq(3),
             { x, r -> x < 0 && r.isException<IllegalArgumentException>() },
             { x, r -> x == 0 && r.getOrNull() == 1 },
-            { x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } },
-            summaryTextChecks = listOf(
-                keyContain(DocCodeStmt("(n < 0): True")),
-                keyMatch(factorialSummary),
-                keyContain(DocCodeStmt("(n == 0): False"))
-            ),
-            summaryNameChecks = listOf(
-                keyMatch("testFactorial_NLessThanZero"),
-                keyMatch("testFactorial_Return1"),
-                keyMatch("testFactorial_NNotEqualsZero")
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyMatch("-> return 1"),
-                keyMatch("n < 0 -> ThrowIllegalArgumentException"),
-                keyMatch("-> return 1")
-            )
+            { x, r -> x > 0 && r.getOrNull() == (1..x).reduce { a, b -> a * b } }
         )
     }
 

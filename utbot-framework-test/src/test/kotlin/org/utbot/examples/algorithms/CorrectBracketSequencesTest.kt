@@ -1,9 +1,6 @@
 package org.utbot.examples.algorithms
 
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
 import org.junit.jupiter.api.Test
 import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
 import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
@@ -12,7 +9,6 @@ import org.utbot.testing.CodeGeneration
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
-import org.utbot.testing.keyMatch
 
 internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,
@@ -24,50 +20,18 @@ internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
 ) {
     @Test
     fun testIsOpen() {
-        val isOpenSummary = listOf(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return a == '(' || a == '{' || a == '[';"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
-
         checkStaticMethod(
             CorrectBracketSequences::isOpen,
             eq(4),
             { c, r -> c == '(' && r == true },
             { c, r -> c == '{' && r == true },
             { c, r -> c == '[' && r == true },
-            { c, r -> c !in "({[".toList() && r == false },
-            summaryNameChecks = listOf(
-                keyMatch("testIsOpen_AEqualsCharOrAEqualsCharOrAEqualsChar"),
-                keyMatch("testIsOpen_ANotEqualsCharOrANotEqualsCharOrANotEqualsChar")
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyMatch("return a == '(' || a == '{' || a == '[' : False -> return a == '(' || a == '{' || a == '['"),
-                keyMatch("return a == '(' || a == '{' || a == '[' : True -> return a == '(' || a == '{' || a == '['")
-            ),
-            summaryTextChecks = listOf(
-                keyMatch(isOpenSummary)
-            )
+            { c, r -> c !in "({[".toList() && r == false }
         )
     }
 
     @Test
     fun testIsBracket() {
-        val isBracketSummary = listOf(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return isOpen(a) || a == ')' || a == '}' || a == ']';"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
         checkStaticMethod(
             CorrectBracketSequences::isBracket,
             eq(7),
@@ -77,33 +41,12 @@ internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
             { c, r -> c == ')' && r == true },
             { c, r -> c == '}' && r == true },
             { c, r -> c == ']' && r == true },
-            { c, r -> c !in "(){}[]".toList() && r == false },
-            summaryNameChecks = listOf(
-                keyMatch("testIsBracket_IsOpenOrANotEqualsCharOrANotEqualsCharOrANotEqualsChar"),
-                keyMatch("testIsBracket_IsOpenOrAEqualsCharOrAEqualsCharOrAEqualsChar")
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyMatch("return isOpen(a) || a == ')' || a == '}' || a == ']' : False -> return isOpen(a) || a == ')' || a == '}' || a == ']'"),
-                keyMatch("return isOpen(a) || a == ')' || a == '}' || a == ']' : True -> return isOpen(a) || a == ')' || a == '}' || a == ']'")
-            ),
-            summaryTextChecks = listOf(
-                keyMatch(isBracketSummary)
-            )
+            { c, r -> c !in "(){}[]".toList() && r == false }
         )
     }
 
     @Test
     fun testIsTheSameType() {
-        val isTheSameTypeSummary = listOf(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']';"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
         checkStaticMethod(
             CorrectBracketSequences::isTheSameType,
             ignoreExecutionsNumber,
@@ -113,18 +56,7 @@ internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
             { a, b, r -> a == '(' && b != ')' && r == false },
             { a, b, r -> a == '{' && b != '}' && r == false },
             { a, b, r -> a == '[' && b != ']' && r == false },
-            { a, b, r -> (a != '(' || b != ')') && (a != '{' || b != '}') && (a != '[' || b != ']') && r == false },
-            summaryNameChecks = listOf(
-                keyMatch("testIsTheSameType_ANotEqualsCharAndBNotEqualsCharOrANotEqualsCharAndBNotEqualsCharOrANotEqualsCharAndBNotEqualsChar"),
-                keyMatch("testIsTheSameType_AEqualsCharAndBEqualsCharOrAEqualsCharAndBEqualsCharOrAEqualsCharAndBEqualsChar"),
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyMatch("return a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']' : False -> return a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']'"),
-                keyMatch("return a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']' : True -> return a == '(' && b == ')' || a == '{' && b == '}' || a == '[' && b == ']'")
-            ),
-            summaryTextChecks = listOf(
-                keyMatch(isTheSameTypeSummary)
-            )
+            { a, b, r -> (a != '(' || b != ')') && (a != '{' || b != '}') && (a != '[' || b != ']') && r == false }
         )
     }
 

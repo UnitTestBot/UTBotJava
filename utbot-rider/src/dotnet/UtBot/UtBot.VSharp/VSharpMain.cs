@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
 using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
 using JetBrains.Rd;
@@ -13,15 +14,34 @@ using JetBrains.Util;
 using UtBot.Rd;
 using UtBot.Rd.Generated;
 using VSharp;
-using VSharp.System;
 using VSharp.TestRenderer;
-using Thread = System.Threading.Thread;
 
 namespace UtBot.VSharp;
 
 public static class VSharpMain
 {
     public static readonly string VSharpProcessName = "VSharp";
+
+    private class SignalWriter : TextWriter
+    {
+        private readonly ISignal<string> _signal;
+        public SignalWriter(ISignal<string> signal)
+        {
+            _signal = signal;
+        }
+
+        public override void Write(string value)
+        {
+            _signal.Fire(value);
+        }
+
+        public override void WriteLine(string value)
+        {
+            Write(value);
+        }
+
+        public override Encoding Encoding => Encoding.Default;
+    }
 
     private static GenerateResults GenerateImpl(GenerateArguments arguments)
     {
@@ -40,7 +60,7 @@ public static class VSharpMain
         if (methodInfo?.Name != descriptor.MethodName)
             throw new InvalidDataException(
                 $"cannot find method - ${descriptor.MethodName} for type - ${descriptor.TypeName}");
-        var stat = TestGenerator.Cover(methodInfo, generationTimeout);
+        var stat = TestGenerator.Cover(methodInfo, generationTimeout, verbosity:Verbosity.Info);
         var targetProject = new FileInfo(projectCsprojPath);
         var solution = new FileInfo(solutionFilePath);
         var declaringType = methodInfo.DeclaringType;
@@ -48,7 +68,6 @@ public static class VSharpMain
         var (generatedProject, renderedFiles) =
             Renderer.Render(stat.Results(), targetProject, declaringType, assemblyLoadContext, solution, targetFramework);
         return new GenerateResults(true, generatedProject.FullName, renderedFiles.ToArray(), null);
-        ;
     }
 
     public static void Main(string[] args)
@@ -65,6 +84,8 @@ public static class VSharpMain
             scheduler.Queue(() =>
             {
                 var vSharpModel = new VSharpModel(ldef.Lifetime, protocol);
+                // Configuring V# logger: messages will be send via RD to UTBot plugin process
+                Logger.ConfigureWriter(new SignalWriter(vSharpModel.Log));
                 vSharpModel.Generate.Set((_, arguments) =>
                 {
                     try

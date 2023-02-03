@@ -118,17 +118,18 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
 
             _logger.Catch(() =>
             {
+                var name = VSharpMain.VSharpProcessName;
+                var workingDir = project.ProjectFileLocation.Directory.FullPath;
                 var port = NetworkUtil.GetFreePort();
-                var proc = new ProcessWithRdServer(VSharpMain.VSharpProcessName, project.ProjectFileLocation.FullPath, port, vsharpRunner.FullPath,
-                    project.Locks,
-                    _lifetime);
+                var runnerPath = vsharpRunner.FullPath;
+                var proc = new ProcessWithRdServer(name, workingDir, port, runnerPath, project.Locks, _lifetime, _logger);
                 var projectCsprojPath = project.ProjectFileLocation.FullPath;
-                var vsharpProjectTarget = calculateTestProjectTarget(tfm);
+                var vSharpProjectTarget = calculateTestProjectTarget(tfm);
                 var args = new GenerateArguments(assemblyPath.FullPath, projectCsprojPath, solutionFilePath, descriptor,
-                    GenerationTimeout, vsharpProjectTarget);
-                var result = proc.VSharpModel.Generate.Sync(args, RpcTimeouts.Maximal);
+                    GenerationTimeout, vSharpProjectTarget);
+                var result = proc.VSharpModel?.Generate.Sync(args, RpcTimeouts.Maximal);
                 _logger.Info("Result acquired");
-                if (result.IsGenerated)
+                if (result is { IsGenerated: true })
                 {
                     _shellLocks.ExecuteOrQueue(_lifetime, "UnitTestBuilder::Generate", () =>
                     {
@@ -142,8 +143,8 @@ internal sealed class UnitTestBuilder : GeneratorBuilderBase<CSharpGeneratorCont
                 }
                 else
                 {
-                    _logger.Info(
-                        $"Could not generate tests for ${currentGeneratedItem}, exception - ${result.ExceptionMessage}");
+                    var ex = result == null ? "Could not start V#" : result.ExceptionMessage;
+                    _logger.Info($"Could not generate tests for ${currentGeneratedItem}, exception - {ex}");
                 }
             });
 

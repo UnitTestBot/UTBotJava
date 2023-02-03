@@ -30,5 +30,6 @@ object VSharpModel: Ext(CSharpRoot) {
     init {
         call("generate", generateArguments, generateResults).async
         signal("ping", PredefinedType.string).async
+        signal("log", PredefinedType.string).async
     }
 }

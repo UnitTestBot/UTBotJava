@@ -6,6 +6,11 @@ import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
 import org.json.JSONException
 import org.json.JSONObject
+import parser.JsParserUtils
+import parser.JsParserUtils.getAbstractFunctionName
+import parser.JsParserUtils.getAbstractFunctionParams
+import parser.JsParserUtils.getClassName
+import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
 import utils.MethodTypes
 import utils.constructClass

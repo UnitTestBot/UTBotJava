@@ -4,11 +4,9 @@
 
 There are four _rule types_: sources, passes, cleaners and sinks.
 
-Each rule type contains
+The rule of each type contains
 * a method name,
-* a method description,
-* a method signature (optional),
-* runtime conditions (optional).
+* a method description.
 
 ### Method name
 
@@ -38,7 +36,7 @@ Possible values are:
 
 The `marks` field specifies the `marks` that should be added to the objects from the `add-to` list. You can also specify only one mark here or a whole list.
 
-**Example:**
+Example:
 
 ```yaml
 sources:
@@ -71,7 +69,7 @@ The `marks` field specifies the actual marks that can be passed from one object 
 For all the keys listed above, there can be only one value or a whole list of values.
 This is also true for similar keys in the sections below.
 
-**Example:**
+Example:
 
 ```yaml
 passes:
@@ -87,7 +85,7 @@ The `remove-from` field specifies the objects the `marks` should be removed from
 
 The `marks` field specifies the marks to be removed.
 
-**Example:**
+Example:
 
 ```yaml
 cleaners:
@@ -102,7 +100,7 @@ The `check` field specifies the objects that will be checked for `marks`.
 
 When one of the `marks` is found in one of the objects from the `check`, the analysis will report the problem found.
 
-**Example:**
+Example:
 
 ```yaml
 sinks:
@@ -115,9 +113,11 @@ sinks:
           marks: [ sql-injection, xss ]
 ```
 
-### Method signature (optional)
+For all the rule types, method descriptions can optionally contain
+* a method signature,
+* runtime conditions.
 
-Each rule can contain a method `signature` — a list of _argument types_ (at compile time):
+Method `signature` (optional) is a list of _argument types_ (at compile time):
 
 `signature: [  <int>, _, <java.lang.String> ]`
 
@@ -125,11 +125,9 @@ Please note that
 - the type name is written in `<>`,
 - `_` means any type.
 
-### Runtime conditions (optional)
+Runtime `conditions` (optional) are conditions that must be met to trigger this rule.
 
-The rule can also contain _runtime conditions_ that must be met to trigger this rule.
-
-For check, you can set:
+To check the conformity to conditions, you can set:
 * the specific values of method arguments 
 * or their runtime types.
 
@@ -145,7 +143,7 @@ The `conditions` field specifies runtime conditions for arguments (`arg1`, `arg2
 
 The rule is triggered if all the specified conditions are met.
 
-**Example:**
+Example:
 
 ```yaml
 conditions:
@@ -161,7 +159,7 @@ Values and types can be negated using the `not` key, as well as combined using l
 
 Nesting is allowed.
 
-**Example:**
+Example:
 
 ```yaml
 conditions:

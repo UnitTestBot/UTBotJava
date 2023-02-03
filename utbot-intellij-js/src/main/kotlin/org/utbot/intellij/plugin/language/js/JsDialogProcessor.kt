@@ -32,6 +32,7 @@ import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
 import settings.JsTestGenerationSettings.dummyClassName
 import utils.JsCmdExec
+import utils.OsProvider
 
 private val logger = KotlinLogging.logger {}
 
@@ -46,7 +47,8 @@ object JsDialogProcessor {
         editor: Editor,
         file: JSFile
     ) {
-        val model = createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file) ?: return
+        val model =
+            createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file) ?: return
         (object : Task.Backgroundable(
             project,
             "Check the requirements"
@@ -78,7 +80,8 @@ object JsDialogProcessor {
                 cmd = arrayOf("\"${pathToNode}\"", "-v")
             )
             if (error.readText().isNotEmpty()) throw NoSuchElementException()
-            val pathToNPM = pathToNode.substringBeforeLast("/") + "/" + "npm.cmd"
+            val pathToNPM =
+                pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
             pathToNode to pathToNPM
         } catch (e: NoSuchElementException) {
             Messages.showErrorDialog(

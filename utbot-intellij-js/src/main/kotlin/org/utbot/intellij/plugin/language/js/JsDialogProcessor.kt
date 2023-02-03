@@ -18,8 +18,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
-import framework.codegen.Mocha
-import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
@@ -30,9 +28,12 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
+import settings.JsPackagesSettings.mochaData
 import settings.JsTestGenerationSettings.dummyClassName
+import settings.PackageData
 import utils.JsCmdExec
 import utils.OsProvider
+import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
 
@@ -55,7 +56,9 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    getFrameworkLibraryPath(Mocha.displayName.lowercase(), model)
+                    if (!mochaData.findPackageByNpm(model.project.basePath!!, model.pathToNPM)) {
+                        installMissingRequirement(model.project, model.pathToNPM, mochaData)
+                    }
                     createDialog(model)?.let { dialogProcessor ->
                         if (!dialogProcessor.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
@@ -261,10 +264,10 @@ object JsDialogProcessor {
 }
 
 // TODO(MINOR): Add indicator.text for each installation
-fun installMissingRequirement(project: Project, pathToNPM: String, requirement: String) {
+fun installMissingRequirement(project: Project, pathToNPM: String, requirement: PackageData) {
     val message = """
             Requirement is not installed:
-            $requirement
+            ${requirement.packageName}
             Install it?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
@@ -279,7 +282,7 @@ fun installMissingRequirement(project: Project, pathToNPM: String, requirement: 
     if (result == Messages.CANCEL)
         return
 
-    val (_, errorText) = installRequirement(pathToNPM, requirement, project.basePath)
+    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
 
     if (errorText.isNotEmpty()) {
         showErrorDialogLater(

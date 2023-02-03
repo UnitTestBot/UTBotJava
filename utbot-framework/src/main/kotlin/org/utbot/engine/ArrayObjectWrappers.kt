@@ -20,6 +20,7 @@ import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -201,9 +202,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
             val addr = UtAddrExpression(value)
 
             // Try to retrieve manually set type if present
-            val valueType = typeRegistry
-                .getTypeStoragesForObjectTypeParameters(wrapper.addr)
-                ?.singleOrNull()
+            val valueType = extractSingleTypeParameterForRangeModifiableArray(wrapper.addr, memory)
                 ?.leastCommonType
                 ?: OBJECT_TYPE
 
@@ -343,8 +342,8 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         resolver.addConstructedModel(concreteAddr, resultModel)
 
         // try to retrieve type storage for the single type parameter
-        val typeStorage =
-            resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)?.singleOrNull() ?: TypeRegistry.objectTypeStorage
+        val typeStorage = extractSingleTypeParameterForRangeModifiableArray(wrapper.addr, resolver.memory)
+            ?: TypeRegistry.objectTypeStorage
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
             val addr = UtAddrExpression(arrayExpression.select(mkInt(i + firstValue)))
@@ -360,6 +359,15 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 
         return resultModel
     }
+
+    private fun extractSingleTypeParameterForRangeModifiableArray(
+        addr: UtAddrExpression,
+        memory: Memory
+    ): TypeStorage? = TypeResolver.extractTypeStorageForObjectWithSingleTypeParameter(
+        addr,
+        objectClassName = "Range modifiable array",
+        memory
+    )
 
     companion object {
         internal val rangeModifiableArrayClass: SootClass

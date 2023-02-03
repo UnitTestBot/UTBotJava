@@ -1,13 +1,13 @@
 package service
 
-import java.io.File
-import java.util.Collections
 import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
+import java.io.File
+import java.util.Collections
 
 // TODO: 1. Make searching for file coverage in coverage report more specific, not just by file name.
 class BasicCoverageService(
@@ -102,7 +102,7 @@ class BasicCoverageService(
     private fun generateCoverageReport(filePath: String, index: Int) {
         try {
             with(context) {
-                val (_, error) =
+                val (_, errorText) =
                     JsCmdExec.runCommand(
                         cmd = arrayOf(
                             "\"${settings.pathToNYC}\"",
@@ -116,9 +116,8 @@ class BasicCoverageService(
                         dir = context.projectPath,
                         timeout = settings.timeout,
                     )
-                val errText = error.readText()
-                if (errText.isNotEmpty()) {
-                    println(errText)
+                if (errorText.isNotEmpty()) {
+                    println(errorText)
                 }
             }
         } catch (e: TimeoutException) {

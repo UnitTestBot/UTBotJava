@@ -11,7 +11,7 @@ class Configuration(
      *
      * To stop recursion [Seed.Recursive.empty] is called to create new values.
      */
-    var recursionTreeDepth: Int = 3,
+    var recursionTreeDepth: Int = 4,
 
     /**
      * The limit of collection size to create.
@@ -71,5 +71,17 @@ class Configuration(
     /**
      * Probability of reusing same generated value when 2 or more parameters have the same type.
      */
-    var probReuseGeneratedValueForSameType: Int = 1
+    var probReuseGeneratedValueForSameType: Int = 1,
+
+    /**
+     * When true any [Seed.Collection] will not try
+     * to generate modification if a current type is already known to fail to generate values.
+     */
+    var generateEmptyCollectionsForMissedTypes: Boolean = true,
+
+    /**
+     * When true any [Seed.Recursive] will not try
+     * to generate a recursive object, but will use [Seed.Recursive.empty] instead.
+     */
+    var generateEmptyRecursiveForMissedTypes: Boolean = true,
 )

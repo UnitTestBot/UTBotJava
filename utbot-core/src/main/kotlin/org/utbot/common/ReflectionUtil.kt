@@ -22,6 +22,7 @@ object Reflection {
             isAccessible = true
         }
 
+
     @Suppress("UNCHECKED_CAST")
     private val fields: Array<Field> =
         getDeclaredFields0Method.invoke(Field::class.java, false) as Array<Field>
@@ -43,7 +44,7 @@ object Reflection {
     }
 }
 
-inline fun <R> AccessibleObject.withAccessibility(block: () -> R): R {
+inline fun <T : AccessibleObject, R> T.withAccessibility(block: T.() -> R): R {
     val prevAccessibility = isAccessible
     isAccessible = true
 
@@ -64,7 +65,7 @@ inline fun <R> AccessibleObject.withAccessibility(block: () -> R): R {
  *
  * Also note, that primitive static final fields may be inlined, so may not be possible to change.
  */
-inline fun <reified R> Field.withAccessibility(block: () -> R): R {
+inline fun <reified R> Field.withAccessibility(block: Field.() -> R): R {
     val prevModifiers = modifiers
     val prevAccessibility = isAccessible
 

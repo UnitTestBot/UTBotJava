@@ -55,6 +55,7 @@ dependencies {
     implementation project(":utbot-framework")
     implementation project(":utbot-analytics")
 
+
     implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
         exclude group:'com.google.guava', module:'guava'
     }

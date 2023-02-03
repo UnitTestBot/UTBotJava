@@ -98,9 +98,28 @@ public class ClassWithEnum {
         return true;
     }
 
+    public int virtualFunction(StatusEnum parameter) {
+        int value = parameter.virtualFunction();
+        if (value > 0) {
+            return value;
+        }
+
+        return Math.abs(value);
+    }
+
     enum StatusEnum {
-        READY(0, 10, "200"),
-        ERROR(-1, -10, null);
+        READY(0, 10, "200") {
+            @Override
+            public int virtualFunction() {
+                return 0;
+            }
+        },
+        ERROR(-1, -10, null) {
+            @Override
+            int virtualFunction() {
+                return 1;
+            }
+        };
 
         int mutableInt;
         final int code;
@@ -137,6 +156,8 @@ public class ClassWithEnum {
         int publicGetCode() {
             return this == READY ? 10 : -10;
         }
+
+        abstract int virtualFunction();
     }
 
     enum ManyConstantsEnum {

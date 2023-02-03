@@ -1,5 +1,7 @@
 package org.utbot.instrumentation.util
 
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
+
 // TODO: refactor this
 
 /**
@@ -28,7 +30,7 @@ class WritingToKryoException(e: Throwable) :
  * this exception is thrown only in main process.
  * currently it means that {e: Throwable} happened in instrumented process,
  * but instrumented process still can operate and not dead.
- * on instrumented process death - ConcreteExecutionFailureException is thrown
+ * on instrumented process death - [InstrumentedProcessDeathException] is thrown
 */
 class InstrumentedProcessError(e: Throwable) :
     InstrumentationException("Error in the instrumented process |> ${e.stackTraceToString()}", e)

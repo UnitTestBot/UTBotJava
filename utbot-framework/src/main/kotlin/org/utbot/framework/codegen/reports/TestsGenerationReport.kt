@@ -53,6 +53,7 @@ data class TestsGenerationReport(
         }
 
     fun addMethodErrors(testSet: CgMethodTestSet, errors: Map<String, Int>) {
+        this.executables += testSet.executableId
         this.errors[testSet.executableId] = errors
     }
 

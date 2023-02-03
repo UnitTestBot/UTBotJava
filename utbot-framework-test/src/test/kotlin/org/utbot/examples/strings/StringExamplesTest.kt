@@ -10,12 +10,13 @@ import org.utbot.testcheckers.withSolverTimeoutInMillis
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
+import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.atLeast
 import org.utbot.testing.between
 import org.utbot.testing.ignoreExecutionsNumber
 import org.utbot.testing.isException
-import org.utbot.testing.keyMatch
+import java.util.Locale
 
 internal class StringExamplesTest : UtValueTestCaseChecker(
     testClass = StringExamples::class,
@@ -161,7 +162,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
             { v, _ -> v == null },
             { v, r -> v != null && v.startsWith("1234567890") && r!!.startsWith("12a4567890") },
             { v, r -> v != null && v[0] == 'x' && r!![0] == 'x' },
-            { v, r -> v != null && v.toLowerCase() == r }
+            { v, r -> v != null && v.lowercase(Locale.getDefault()) == r }
         )
     }
 
@@ -245,7 +246,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         check(
             StringExamples::concat,
             between(1..2),
-            { fst, snd, r -> fst == null || snd == null && r == fst + snd },
+            { fst, snd, r -> (fst == null || snd == null) && r == fst + snd },
             { fst, snd, r -> r == fst + snd },
         )
     }
@@ -300,6 +301,15 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testStringBuilderAsParameterExample() {
+        check(
+            StringExamples::stringBuilderAsParameterExample,
+            eq(1),
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
+    }
+
+    @Test
     fun testNullableStringBuffer() {
         checkWithException(
             StringExamples::nullableStringBuffer,
@@ -327,9 +337,9 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         check(
             StringExamples::isValidUuid,
             ignoreExecutionsNumber,
-            { uuid, r -> uuid == null || uuid.length == 0 && r == false },
-            { uuid, r -> uuid.length > 0 && uuid.isBlank() && r == false },
-            { uuid, r -> uuid.length > 0 && uuid.isNotBlank() && r == false },
+            { uuid, r -> uuid == null || uuid.isEmpty() && r == false },
+            { uuid, r -> uuid.isNotEmpty() && uuid.isBlank() && r == false },
+            { uuid, r -> uuid.isNotEmpty() && uuid.isNotBlank() && r == false },
             { uuid, r -> uuid.length > 1 && uuid.isNotBlank() && !uuid.matches(pattern) && r == false },
             { uuid, r -> uuid.length > 1 && uuid.isNotBlank() && uuid.matches(pattern) && r == true },
         )
@@ -348,19 +358,28 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    fun testSplitExample() {
+        check(
+            StringExamples::splitExample,
+            ignoreExecutionsNumber,
+            { s, r -> s.all { it.isWhitespace() } && r == 0 },
+            { s, r -> s.none { it.isWhitespace() } && r == 1 },
+            { s, r -> s[0].isWhitespace() && s.any { !it.isWhitespace() } && r == 2 },
+            { s, r -> !s[0].isWhitespace() && s[2].isWhitespace() && r == 1 },
+            { s, r -> !s[0].isWhitespace() && s[1].isWhitespace() && !s[2].isWhitespace() && r == 2 },
+            coverage = FullWithAssumptions(assumeCallsNumber = 2)
+        )
+    }
+
+    @Test
     fun testIsBlank() {
         check(
             StringExamples::isBlank,
             ge(4),
             { cs, r -> cs == null && r == true },
-            { cs, r -> cs.length == 0 && r == true },
-            { cs, r -> cs.length > 0 && cs.isBlank() && r == true },
-            { cs, r -> cs.length > 0 && cs.isNotBlank() && r == false },
-            summaryNameChecks = listOf(
-                keyMatch("testIsBlank_StrLenEqualsZero"),
-                keyMatch("testIsBlank_NotCharacterIsWhitespace"),
-                keyMatch("testIsBlank_CharacterIsWhitespace")
-            )
+            { cs, r -> cs.isEmpty() && r == true },
+            { cs, r -> cs.isNotEmpty() && cs.isBlank() && r == true },
+            { cs, r -> cs.isNotEmpty() && cs.isNotBlank() && r == false }
         )
     }
 
@@ -541,9 +560,9 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         check(
             StringExamples::endsWith,
             between(5..6),
-            { s, suffix, r -> suffix == null },
-            { s, suffix, r -> suffix != null && suffix.length < 2 },
-            { s, suffix, r -> suffix != null && suffix.length >= 2 && s == null },
+            { _, suffix, _ -> suffix == null },
+            { _, suffix, _ -> suffix != null && suffix.length < 2 },
+            { s, suffix, _ -> suffix != null && suffix.length >= 2 && s == null },
             { s, suffix, r -> suffix != null && suffix.length >= 2 && s != null && s.endsWith(suffix) && r == true },
             { s, suffix, r -> suffix != null && suffix.length >= 2 && s != null && !s.endsWith(suffix) && r == false }
         )
@@ -609,10 +628,10 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         checkWithException(
             StringExamples::compareCodePoints,
             between(8..10),
-            { s, t, i, r -> s == null && r.isException<NullPointerException>() },
-            { s, t, i, r -> s != null && i < 0 || i >= s.length && r.isException<StringIndexOutOfBoundsException>() },
-            { s, t, i, r -> s != null && t == null && r.isException<NullPointerException>() },
-            { s, t, i, r -> t != null && i < 0 || i >= t.length && r.isException<StringIndexOutOfBoundsException>() },
+            { s, _, _, r -> s == null && r.isException<NullPointerException>() },
+            { s, _, i, r -> s != null && i < 0 || i >= s.length && r.isException<StringIndexOutOfBoundsException>() },
+            { s, t, _, r -> s != null && t == null && r.isException<NullPointerException>() },
+            { _, t, i, r -> t != null && i < 0 || i >= t.length && r.isException<StringIndexOutOfBoundsException>() },
             { s, t, i, r -> s != null && t != null && s.codePointAt(i) < t.codePointAt(i) && i == 0 && r.getOrThrow() == 0 },
             { s, t, i, r -> s != null && t != null && s.codePointAt(i) < t.codePointAt(i) && i != 0 && r.getOrThrow() == 1 },
             { s, t, i, r -> s != null && t != null && s.codePointAt(i) >= t.codePointAt(i) && i == 0 && r.getOrThrow() == 2 },
@@ -625,7 +644,7 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
         check(
             StringExamples::toCharArray,
             eq(2),
-            { s, r -> s == null },
+            { s, _ -> s == null },
             { s, r -> s.toCharArray().contentEquals(r) }
         )
     }

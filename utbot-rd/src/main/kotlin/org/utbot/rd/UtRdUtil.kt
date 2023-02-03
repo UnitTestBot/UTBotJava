@@ -1,9 +1,10 @@
 package org.utbot.rd
 
 import com.jetbrains.rd.framework.*
-import com.jetbrains.rd.framework.impl.RdCall
 import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.framework.util.synchronizeWith
+import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.debug
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -122,5 +123,20 @@ suspend fun startUtProcessWithRdServer(
             SocketWire.Server(it, rdServerProtocolScheduler, port, "ServerSocket"),
             it
         )
+    }
+}
+
+inline fun <T> Logger.logMeasure(tag: String = "", block: () -> T): T {
+    val start = System.currentTimeMillis()
+    this.debug { "started evaluating $tag" }
+    try {
+        return block()
+    }
+    catch (e: Throwable) {
+        this.debug { "exception during evaluating $tag: ${e.stackTraceToString()}" }
+        throw e
+    }
+    finally {
+        this.debug { "evaluating $tag took ${System.currentTimeMillis() - start} ms" }
     }
 }

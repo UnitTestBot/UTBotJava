@@ -11,6 +11,7 @@ import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind.Companion.UT_UTILS_INSTANCE_NAME
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -271,6 +272,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                     forceStaticMocking = forceStaticMocking,
                     generateWarningsForStaticMocking = false,
                     codegenLanguage = codegenLanguage,
+                    cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
                     parameterizedTestSource = parametrizedTestSource,
                     runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
                     enableTestsTimeout = enableTestsTimeout

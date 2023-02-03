@@ -14,8 +14,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: utbot_java_cli
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
-  # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
 
 jobs:
   build-and-run-tests:
@@ -43,7 +41,7 @@ jobs:
     - name: Build UTBot Java CLI
       run: |
         cd utbot-cli
-        gradle build --no-daemon -x test -PsemVer=${{ env.VERSION }}
+        gradle build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}
     - name: Set docker tag
       run:
         # "You can make an environment variable available to any subsequent steps in a workflow job by 
@@ -59,6 +57,11 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+      with:
+        # fix of containerd issue, see https://github.com/containerd/containerd/issues/7972
+        # could be removed as soon as new containerd version will be released and included in buildkit
+        driver-opts: |
+          image=moby/buildkit:v0.10.6
 
     - name: Cache Docker layers
       uses: actions/cache@v3

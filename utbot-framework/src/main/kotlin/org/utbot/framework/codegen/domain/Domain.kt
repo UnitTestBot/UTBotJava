@@ -409,11 +409,6 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
         )
     }
 
-    val enclosedClassId = BuiltinClassId(
-        canonicalName = "org.junit.experimental.runners.Enclosed",
-        simpleName = "Enclosed"
-    )
-
     override val nestedClassesShouldBeStatic = true
 
     override val argListClassId: ClassId

@@ -8,7 +8,6 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgVariable
@@ -34,6 +33,7 @@ import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRend
 import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.toPythonRawString
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -61,24 +61,9 @@ class PythonCodeGenerator(
     runtimeExceptionTestsBehaviour=runtimeExceptionTestsBehaviour,
     hangingTestsTimeout=hangingTestsTimeout,
     enableTestsTimeout=enableTestsTimeout,
-    testClassPackageName=testClassPackageName
+    testClassPackageName=testClassPackageName,
+    cgLanguageAssistant = PythonCgLanguageAssistant,
 ) {
-    override var context: CgContext = CgContext(
-        classUnderTest = classUnderTest,
-        paramNames = paramNames,
-        testFramework = testFramework,
-        mockFramework = mockFramework,
-        cgLanguageAssistant = PythonCgLanguageAssistant,
-        parametrizedTestSource = parameterizedTestSource,
-        staticsMocking = staticsMocking,
-        forceStaticMocking = forceStaticMocking,
-        generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-        hangingTestsTimeout = hangingTestsTimeout,
-        enableTestsTimeout = enableTestsTimeout,
-        testClassPackageName = testClassPackageName
-    )
-
     fun pythonGenerateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         importModules: Set<PythonImport>,
@@ -144,9 +129,9 @@ class PythonCodeGenerator(
             arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
         )
 
-        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
-        val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
-        val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
+        val fullpath = CgLiteral(pythonStrClassId, method.moduleFilename.toPythonRawString())
+        val outputPath = CgLiteral(pythonStrClassId, fileForOutputName.toPythonRawString())
+        val databasePath = CgLiteral(pythonStrClassId, coverageDatabasePath.toPythonRawString())
 
         val executorCall = CgPythonFunctionCall(
             pythonNoneClassId,

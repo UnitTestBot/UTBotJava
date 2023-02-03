@@ -29,6 +29,8 @@ class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
     val exec: suspend (description: D, values: List<R>) -> F
 ) : Fuzzing<T, R, D, F> {
 
+    var update: suspend (D, Statistic<T, R>, Configuration) -> Unit = { d, s, c -> super.update(d, s, c) }
+
     constructor(vararg providers: ValueProvider<T, R, D>, exec: suspend (description: D, values: List<R>) -> F) : this(providers.toList(), exec)
 
     override fun generate(description: D, type: T): Sequence<Seed<T, R>> {
@@ -48,6 +50,10 @@ class BaseFuzzing<T, R, D : Description<T>, F : Feedback<T, R>>(
 
     override suspend fun handle(description: D, values: List<R>): F {
         return exec(description, values)
+    }
+
+    override suspend fun update(description: D, statistic: Statistic<T, R>, configuration: Configuration) {
+        update.invoke(description, statistic, configuration)
     }
 }
 

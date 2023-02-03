@@ -116,7 +116,6 @@ import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.plugin.api.utils.MOCKITO_EXTENSIONS_FOLDER
 import org.utbot.framework.plugin.api.utils.MOCKITO_MOCKMAKER_FILE_NAME
 import org.utbot.framework.util.Conflict
-import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.id
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
@@ -132,6 +131,7 @@ import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
+import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
@@ -530,7 +530,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
             model.fuzzingValue = fuzzingValue
             model.commentStyle = javaDocCommentStyle
-            model.enableSummariesGeneration = state.enableSummariesGeneration
+            model.summariesGenerationType = state.summariesGenerationType
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
         }
 
@@ -985,17 +985,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
         testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
-        testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
-            override fun customizeCellRenderer(
-                list: JList<out TestFramework>, value: TestFramework,
-                index: Int, selected: Boolean, hasFocus: Boolean
-            ) {
-                this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (!value.isInstalled) {
-                    this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
-                }
-            }
-        }
+        testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
 
         currentFrameworkItem = testFrameworks.item
     }

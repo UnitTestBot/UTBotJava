@@ -1,11 +1,34 @@
 package org.utbot.examples.collections;
 
+import org.utbot.api.mock.UtMock;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
 public class ListIterators {
+    @SuppressWarnings({"IfStatementWithIdenticalBranches", "RedundantOperationOnEmptyContainer"})
+    Iterator<Integer> returnIterator(List<Integer> list) {
+        UtMock.assume(list != null);
+
+        if (list.isEmpty()) {
+            return list.iterator();
+        } else {
+            return list.iterator();
+        }
+    }
+
+    @SuppressWarnings("IfStatementWithIdenticalBranches")
+    ListIterator<Integer> returnListIterator(List<Integer> list) {
+        UtMock.assume(list != null);
+
+        if (list.isEmpty()) {
+            return list.listIterator();
+        } else {
+            return list.listIterator();
+        }
+    }
 
     List<Integer> iterate(List<Integer> list) {
         Iterator<Integer> iterator = list.iterator();

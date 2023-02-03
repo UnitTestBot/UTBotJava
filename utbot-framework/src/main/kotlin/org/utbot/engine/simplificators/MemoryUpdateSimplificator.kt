@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.engine.Concrete
@@ -13,6 +14,8 @@ import org.utbot.engine.MemoryUpdate
 import org.utbot.engine.MockInfoEnriched
 import org.utbot.engine.ObjectValue
 import org.utbot.engine.StaticFieldMemoryUpdateInfo
+import org.utbot.engine.SymbolicValue
+import org.utbot.engine.TypeStorage
 import org.utbot.engine.UtMockInfo
 import org.utbot.engine.UtNamedStore
 import org.utbot.engine.pc.Simplificator
@@ -20,6 +23,7 @@ import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import soot.ArrayType
+import soot.SootField
 
 typealias StoresType = PersistentList<UtNamedStore>
 typealias TouchedChunkDescriptorsType = PersistentSet<MemoryChunkDescriptor>
@@ -29,7 +33,9 @@ typealias StaticInstanceStorageType = PersistentMap<ClassId, ObjectValue>
 typealias InitializedStaticFieldsType = PersistentSet<FieldId>
 typealias StaticFieldsUpdatesType = PersistentList<StaticFieldMemoryUpdateInfo>
 typealias MeaningfulStaticFieldsType = PersistentSet<FieldId>
+typealias FieldValuesType = PersistentMap<SootField, PersistentMap<UtAddrExpression, SymbolicValue>>
 typealias AddrToArrayTypeType = PersistentMap<UtAddrExpression, ArrayType>
+typealias AddrToGenericTypeInfo = PersistentList<Pair<UtAddrExpression, List<TypeStorage>>>
 typealias AddrToMockInfoType = PersistentMap<UtAddrExpression, UtMockInfo>
 typealias VisitedValuesType = PersistentList<UtAddrExpression>
 typealias TouchedAddressesType = PersistentList<UtAddrExpression>
@@ -50,7 +56,9 @@ class MemoryUpdateSimplificator(
         val initializedStaticFields = simplifyInitializedStaticFields(initializedStaticFields)
         val staticFieldsUpdates = simplifyStaticFieldsUpdates(staticFieldsUpdates)
         val meaningfulStaticFields = simplifyMeaningfulStaticFields(meaningfulStaticFields)
+        val fieldValues = simplifyFieldValues(fieldValues)
         val addrToArrayType = simplifyAddrToArrayType(addrToArrayType)
+        val genericTypeStorageByAddr = simplifyGenericTypeStorageByAddr(genericTypeStorageByAddr)
         val addrToMockInfo = simplifyAddrToMockInfo(addrToMockInfo)
         val visitedValues = simplifyVisitedValues(visitedValues)
         val touchedAddresses = simplifyTouchedAddresses(touchedAddresses)
@@ -68,7 +76,9 @@ class MemoryUpdateSimplificator(
             initializedStaticFields,
             staticFieldsUpdates,
             meaningfulStaticFields,
+            fieldValues,
             addrToArrayType,
+            genericTypeStorageByAddr,
             addrToMockInfo,
             visitedValues,
             touchedAddresses,
@@ -124,12 +134,17 @@ class MemoryUpdateSimplificator(
     private fun simplifyMeaningfulStaticFields(meaningfulStaticFields: MeaningfulStaticFieldsType): MeaningfulStaticFieldsType =
         meaningfulStaticFields
 
+    private fun simplifyFieldValues(fieldValues: FieldValuesType): FieldValuesType = fieldValues
 
     private fun simplifyAddrToArrayType(addrToArrayType: AddrToArrayTypeType): AddrToArrayTypeType =
         addrToArrayType
             .mapKeys { (k, _) -> k.accept(simplificator) as UtAddrExpression }
             .toPersistentMap()
 
+    private fun simplifyGenericTypeStorageByAddr(genericTypeStorageByAddr: AddrToGenericTypeInfo): AddrToGenericTypeInfo =
+        genericTypeStorageByAddr
+            .map { (k, v) -> k.accept(simplificator) as UtAddrExpression to v }
+            .toPersistentList()
 
     private fun simplifyAddrToMockInfo(addrToMockInfo: AddrToMockInfoType): AddrToMockInfoType =
         addrToMockInfo

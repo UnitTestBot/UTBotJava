@@ -60,7 +60,7 @@ data class UtTimeoutException(override val exception: TimeoutException) : UtExec
  * Indicates failure in concrete execution.
  * For now it is explicitly throwing by ConcreteExecutor in case instrumented process death.
  */
-class ConcreteExecutionFailureException(cause: Throwable, errorFile: File, val processStdout: List<String>) :
+class InstrumentedProcessDeathException(cause: Throwable, errorFile: File, val processStdout: List<String>) :
     Exception(
         buildString {
             appendLine()
@@ -84,7 +84,7 @@ class ConcreteExecutionFailureException(cause: Throwable, errorFile: File, val p
         cause
     )
 
-data class UtConcreteExecutionFailure(override val exception: ConcreteExecutionFailureException) : UtExecutionFailure()
+data class UtConcreteExecutionFailure(override val exception: InstrumentedProcessDeathException) : UtExecutionFailure()
 
 val UtExecutionResult.isSuccess: Boolean
     get() = this is UtExecutionSuccess

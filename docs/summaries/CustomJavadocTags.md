@@ -54,17 +54,6 @@ Added a flag `USE_CUSTOM_TAGS` to settings.
 After plugin's removal, IDE doesn't recognize our custom tags. It doesn't lead to errors, but highlights tags with
 yellow color.
 
-## Feedback
-
-We held a Feature Demo meeting to gather some feedback (16.08.2022).
-
-In general, teammates said that the idea and the way it looks like is good and suggested several things to do:
-
-- Investigate if it's possible to add a link to menu settings or file with stacktrace in comments.
-- There is no need in classUnderTest tag because methodUnderTest contains this information.
-- Add a tag describing the test intention: check boundary cases, calls of some interesting methods.
-- Prepare survey and ask Artem Aliev's team to try the feature and share feedback.
-
 ## Test scenarios
 
 Currently, the feature works only for Symbolic execution engine, so make sure the slider is on the Symbolic execution
@@ -86,11 +75,11 @@ side.
 
 ### Content
 
-1. First, generate comment with one style, then generate with another one and compare its content. If it differs,
-   please, provide code snippet and both generated comments. It could differ because currently the
-   style with custom Javadoc tags is a bit simplified.
+First, generate comment with one style, then generate with another one and compare its content. If it differs,
+please, provide code snippet and both generated comments. It could differ because currently the
+style with custom Javadoc tags is a bit simplified.
 
 ### View
 
-1. Check that the comments are rendered well. To do it, click on the toggle near the comment (see post about Rendered
-   view feature in IntelliJ IDEA).
+Check that the comments are rendered well. To do it, click on the toggle near the comment (see post about Rendered
+view feature in IntelliJ IDEA).

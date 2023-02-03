@@ -32,9 +32,7 @@ import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.util.convertToAssemble
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.util.*
@@ -44,12 +42,16 @@ import org.utbot.fuzzer.*
 import org.utbot.fuzzing.*
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
+import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
+import kotlin.math.min
 import kotlin.system.measureTimeMillis
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
 
 //in future we should put all timeouts here
@@ -151,7 +153,6 @@ class UtBotSymbolicEngine(
         ConcreteExecutor(
             UtExecutionInstrumentation,
             classpath,
-            dependencyPaths
         ).apply { this.classLoader = utContext.classLoader }
 
     private val featureProcessor: FeatureProcessor? =
@@ -237,7 +238,8 @@ class UtBotSymbolicEngine(
                             typeResolver,
                             state.solver.lastStatus as UtSolverStatusSAT,
                             methodUnderTest,
-                            softMaxArraySize
+                            softMaxArraySize,
+                            traverser.objectCounter
                         )
 
                         val resolvedParameters = state.methodUnderTestParameters
@@ -246,7 +248,12 @@ class UtBotSymbolicEngine(
 
                         try {
                             val concreteExecutionResult =
-                                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
+                                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
+
+                            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                                logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                                return@bracket
+                            }
 
                             val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
@@ -262,7 +269,7 @@ class UtBotSymbolicEngine(
                             logger.debug { "concolicStrategy<${methodUnderTest}>: returned $concreteUtExecution" }
                         } catch (e: CancellationException) {
                             logger.debug(e) { "Cancellation happened" }
-                        } catch (e: ConcreteExecutionFailureException) {
+                        } catch (e: InstrumentedProcessDeathException) {
                             emitFailedConcreteExecutionResult(stateBefore, e)
                         } catch (e: Throwable) {
                             emit(UtError("Concrete execution failed", e))
@@ -347,7 +354,14 @@ class UtBotSymbolicEngine(
             names,
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
         ) { thisInstance, descr, values ->
-            if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
+            val diff = until - System.currentTimeMillis()
+            val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
+            // to concretely execute that values because request to instrumentation process involves
+            // 1. serializing/deserializing it with kryo
+            // 2. sending over rd
+            // 3. concrete execution itself
+            // 4. analyzing concrete result
+            if (controller.job?.isActive == false || diff <= thresholdMillisForFuzzingOperation) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
@@ -356,10 +370,11 @@ class UtBotSymbolicEngine(
             val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
-                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+                val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
+                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf(), timeoutMillis)
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
-            } catch (e: ConcreteExecutionFailureException) {
+            } catch (e: InstrumentedProcessDeathException) {
                 emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
             } catch (e: Throwable) {
                 emit(UtError("Default concrete execution failed", e)); null
@@ -368,8 +383,8 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
 
-            if (concreteExecutionResult.result.exceptionOrNull() is UtMockAssumptionViolatedException) {
-                logger.debug { "Generated test case by fuzzer violates the UtMock assumption" }
+            if (concreteExecutionResult.violatesUtMockAssumption()) {
+                logger.debug { "Generated test case by fuzzer violates the UtMock assumption: $concreteExecutionResult" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.PASS)
             }
 
@@ -412,7 +427,7 @@ class UtBotSymbolicEngine(
 
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,
-        e: ConcreteExecutionFailureException
+        e: InstrumentedProcessDeathException
     ) {
         val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
@@ -439,8 +454,16 @@ class UtBotSymbolicEngine(
         Predictors.testName.provide(state.path, predictedTestName, "")
 
         // resolving
-        val resolver =
-            Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
+        val resolver = Resolver(
+            hierarchy,
+            memory,
+            typeRegistry,
+            typeResolver,
+            holder,
+            methodUnderTest,
+            softMaxArraySize,
+            traverser.objectCounter
+        )
 
         val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(parameters)
 
@@ -494,8 +517,14 @@ class UtBotSymbolicEngine(
                 val concreteExecutionResult = concreteExecutor.executeConcretely(
                     methodUnderTest,
                     stateBefore,
-                    instrumentation
+                    instrumentation,
+                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
                 )
+
+                if (concreteExecutionResult.violatesUtMockAssumption()) {
+                    logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
+                    return
+                }
 
                 val concolicUtExecution = symbolicUtExecution.copy(
                     stateAfter = concreteExecutionResult.stateAfter,
@@ -506,8 +535,12 @@ class UtBotSymbolicEngine(
                 emit(concolicUtExecution)
                 logger.debug { "processResult<${methodUnderTest}>: returned $concolicUtExecution" }
             }
-        } catch (e: ConcreteExecutionFailureException) {
+        } catch (e: InstrumentedProcessDeathException) {
             emitFailedConcreteExecutionResult(stateBefore, e)
+        } catch (e: CancellationException) {
+            logger.debug(e) { "Cancellation happened" }
+        } catch (e: Throwable) {
+            emit(UtError("Default concrete execution failed", e));
         }
     }
 
@@ -540,12 +573,17 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
 private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
-    instrumentation: List<UtInstrumentation>
+    instrumentation: List<UtInstrumentation>,
+    timeoutInMillis: Long
 ): UtConcreteExecutionResult = executeAsync(
     methodUnderTest.classId.name,
     methodUnderTest.signature,
     arrayOf(),
-    parameters = UtConcreteExecutionData(stateBefore, instrumentation)
+    parameters = UtConcreteExecutionData(
+        stateBefore,
+        instrumentation,
+        timeoutInMillis
+    )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 
 /**
@@ -592,4 +630,12 @@ private fun makeWrapperConsistencyCheck(
 ) {
     val visitedSelectExpression = memory.isVisited(symbolicValue.addr)
     visitedConstraints += mkEq(visitedSelectExpression, mkInt(1))
+}
+
+private fun UtConcreteExecutionResult.violatesUtMockAssumption(): Boolean {
+    // We should compare FQNs instead of `if (... is UtMockAssumptionViolatedException)`
+    // because the exception from the `concreteExecutionResult` is loaded by user's ClassLoader,
+    // but the `UtMockAssumptionViolatedException` is loaded by the current ClassLoader,
+    // so we can't cast them to each other.
+    return result.exceptionOrNull()?.javaClass?.name == UtMockAssumptionViolatedException::class.java.name
 }

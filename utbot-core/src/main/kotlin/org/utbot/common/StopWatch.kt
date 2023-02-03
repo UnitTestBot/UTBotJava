@@ -52,7 +52,7 @@ class StopWatch {
         }
     }
 
-    fun get(unit: TimeUnit) = lock.withLockInterruptibly {
+    fun get(unit: TimeUnit = TimeUnit.MILLISECONDS) = lock.withLockInterruptibly {
         unsafeUpdate()
         unit.convert(elapsedMillis, TimeUnit.MILLISECONDS)
     }

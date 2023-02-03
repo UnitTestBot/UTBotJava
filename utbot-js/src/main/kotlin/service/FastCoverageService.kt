@@ -1,19 +1,22 @@
 package service
 
-import java.io.File
-import java.util.Collections
+import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
 import org.json.JSONException
 import org.json.JSONObject
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
+import java.io.File
+import java.util.Collections
+
+private val logger = KotlinLogging.logger {}
 
 class FastCoverageService(
     private val context: ServiceContext,
     private val scriptTexts: List<String>,
     private val testCaseIndices: IntRange,
     private val baseCoverageScriptText: String,
-): ICoverageService {
+) : ICoverageService {
 
     private val utbotDirPath = "${context.projectPath}/${context.utbotDir}"
     private val coverageList = mutableListOf<Pair<Int, JSONObject>>()
@@ -30,7 +33,7 @@ class FastCoverageService(
             val fileName = context.filePathToInference.substringAfterLast("/")
             with(context) {
                 JsCmdExec.runCommand(
-                    cmd = arrayOf("\"${settings.pathToNYC}\"", "instrument", "\"$fileName\"", "\"$destination\""),
+                    cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destination),
                     dir = context.filePathToInference.substringBeforeLast("/"),
                     shouldWait = true,
                     timeout = settings.timeout,
@@ -71,7 +74,7 @@ class FastCoverageService(
     private fun getBaseCoverage(): List<Int> {
         with(context) {
             JsCmdExec.runCommand(
-                cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/${tempFileName}Base.js\""),
+                cmd = arrayOf(settings.pathToNode, "$utbotDirPath/${tempFileName}Base.js"),
                 dir = context.projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
@@ -125,8 +128,8 @@ class FastCoverageService(
     private fun generateCoverageReport() {
         scriptTexts.indices.toList().parallelStream().forEach { parallelIndex ->
             with(context) {
-                val (_, error) = JsCmdExec.runCommand(
-                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$parallelIndex.js\""),
+                val (_, errorText) = JsCmdExec.runCommand(
+                    cmd = arrayOf(settings.pathToNode, "$utbotDirPath/$tempFileName$parallelIndex.js"),
                     dir = context.projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,
@@ -137,13 +140,12 @@ class FastCoverageService(
                     resFile.delete()
                     val json = JSONObject(rawResult)
                     val index = json.getInt("index")
-                    if (index != i) println("ERROR: index $index != i $i")
+                    if (index != i) logger.error { "ERROR: index $index != i $i" }
                     coverageList.add(index to json.getJSONObject("s"))
                     _resultList.add(index to json.get("result").toString())
                 }
-                val errText = error.readText()
-                if (errText.isNotEmpty()) {
-                    println(errText)
+                if (errorText.isNotEmpty()) {
+                    logger.error { errorText }
                 }
             }
         }

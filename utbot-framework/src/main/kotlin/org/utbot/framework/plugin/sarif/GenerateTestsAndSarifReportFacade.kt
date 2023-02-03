@@ -3,6 +3,7 @@ package org.utbot.framework.plugin.sarif
 import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
@@ -59,7 +60,7 @@ class GenerateTestsAndSarifReportFacade(
                 sarifProperties.classesToMockAlways,
                 sarifProperties.generationTimeout
             ).map {
-                it.summarize(targetClass.sourceCodeFile, workingDirectory)
+                it.summarize(workingDirectory, targetClass.sourceCodeFile)
             }
 
     private fun generateTestCode(targetClass: TargetClassWrapper, testSets: List<UtMethodTestSet>): String =
@@ -77,7 +78,8 @@ class GenerateTestsAndSarifReportFacade(
             staticsMocking = sarifProperties.staticsMocking,
             forceStaticMocking = sarifProperties.forceStaticMocking,
             generateWarningsForStaticMocking = isNoStaticMocking && isForceStaticMocking,
-            codegenLanguage = sarifProperties.codegenLanguage
+            codegenLanguage = sarifProperties.codegenLanguage,
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(sarifProperties.codegenLanguage),
         )
     }
 

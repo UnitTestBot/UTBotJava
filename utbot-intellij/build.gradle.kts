@@ -68,6 +68,8 @@ intellij {
     SettingsTemplateHelper.proceed(project)
 }
 
+val remoteRobotVersion = "0.11.16"
+
 tasks {
     compileKotlin {
         kotlinOptions {
@@ -93,6 +95,36 @@ tasks {
         untilBuild.set("222.*")
         version.set(semVer)
     }
+
+    runIdeForUiTests {
+        jvmArgs("-Xmx2048m", "-Didea.is.internal=true", "-Didea.ui.debug.mode=true")
+
+        systemProperty("robot-server.port", "8082") // default port 8580
+        systemProperty("ide.mac.message.dialogs.as.sheets", "false")
+        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
+        systemProperty("jb.consents.confirmation.enabled", "false")
+        systemProperty("idea.trust.all.projects", "true")
+        systemProperty("ide.mac.file.chooser.native", "false")
+        systemProperty("jbScreenMenuBar.enabled", "false")
+        systemProperty("apple.laf.useScreenMenuBar", "false")
+        systemProperty("ide.show.tips.on.startup.default.value", "false")
+    }
+
+    downloadRobotServerPlugin {
+        version.set(remoteRobotVersion)
+    }
+
+    test {
+        description = "Runs UI integration tests."
+        useJUnitPlatform {
+            exclude("/org/utbot/**") //Comment this line to run the tests locally
+        }
+    }
+}
+
+repositories {
+    maven("https://jitpack.io")
+    maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
 }
 
 dependencies {
@@ -124,4 +156,15 @@ dependencies {
     }
 
     implementation(project(":utbot-android-studio"))
+
+    testImplementation("com.intellij.remoterobot:remote-robot:$remoteRobotVersion")
+    testImplementation("com.intellij.remoterobot:remote-fixtures:$remoteRobotVersion")
+
+    testImplementation("org.assertj:assertj-core:3.11.1")
+
+    // Logging Network Calls
+    testImplementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+    // Video Recording
+    implementation("com.automation-remarks:video-recorder-junit5:2.0")
 }

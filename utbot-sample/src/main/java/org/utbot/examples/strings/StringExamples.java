@@ -1,6 +1,7 @@
 package org.utbot.examples.strings;
 
 import org.jetbrains.annotations.NotNull;
+import org.utbot.api.mock.UtMock;
 
 import java.util.Arrays;
 
@@ -208,6 +209,11 @@ public class StringExamples {
         return buffer.toString();
     }
 
+    // This test checks StringBuilder can be correctly constructed
+    public void stringBuilderAsParameterExample(StringBuilder sb) {
+        UtMock.assume(sb != null);
+    }
+
     public String nullableStringBuffer(StringBuffer buffer, int i) {
         if (i >= 0) {
             buffer.append("Positive");
@@ -234,6 +240,50 @@ public class StringExamples {
 
     public boolean isValidUuidShortVersion(String uuid) {
         return uuid != null && uuid.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+    }
+
+    @SuppressWarnings("IfStatementWithIdenticalBranches")
+    public int splitExample(String s) {
+        UtMock.assume(s != null);
+        UtMock.assume(s.length() == 3);
+
+        final char firstChar = s.charAt(0);
+        final char secondChar = s.charAt(1);
+        final char thirdChar = s.charAt(2);
+
+        final boolean isFirstWhitespace = Character.isWhitespace(firstChar);
+        final boolean isSecondWhitespace = Character.isWhitespace(secondChar);
+        final boolean isThirdWhitespace = Character.isWhitespace(thirdChar);
+
+        if (isFirstWhitespace) {
+            if (isSecondWhitespace) {
+                if (isThirdWhitespace) {
+                    return s.split("\\s+").length;
+                } else {
+                    return s.split("\\s+").length;
+                }
+            } else {
+                if (isThirdWhitespace) {
+                    return s.split("\\s+").length;
+                } else {
+                    return s.split("\\s+").length;
+                }
+            }
+        } else {
+            if (isSecondWhitespace) {
+                if (isThirdWhitespace) {
+                    return s.split("\\s+").length;
+                } else {
+                    return s.split("\\s+").length;
+                }
+            } else {
+                if (isThirdWhitespace) {
+                    return s.split("\\s+").length;
+                } else {
+                    return s.split("\\s+").length;
+                }
+            }
+        }
     }
 
     public boolean isNotBlank(CharSequence cs) {

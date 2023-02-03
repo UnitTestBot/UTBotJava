@@ -56,15 +56,15 @@ object JsDialogProcessor {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
                     getFrameworkLibraryPath(Mocha.displayName.lowercase(), model)
-                    createDialog(model)?.let { dialogWindow ->
-                        if (!dialogWindow.showAndGet()) return@invokeLater
+                    createDialog(model)?.let { dialogProcessor ->
+                        if (!dialogProcessor.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
                         runWriteAction {
                             with(FileDocumentManager.getInstance()) {
                                 saveDocument(editor.document)
                             }
                         }
-                        createTests(dialogWindow.model, containingFilePath, editor)
+                        createTests(dialogProcessor.model, containingFilePath, editor)
                     }
                 }
             }
@@ -75,11 +75,11 @@ object JsDialogProcessor {
         try {
             val pathToNode = NodeJsLocalInterpreterManager.getInstance()
                 .interpreters.first().interpreterSystemIndependentPath
-            val (_, error) = JsCmdExec.runCommand(
+            val (_, errorText) = JsCmdExec.runCommand(
                 shouldWait = true,
                 cmd = arrayOf("\"${pathToNode}\"", "-v")
             )
-            if (error.readText().isNotEmpty()) throw NoSuchElementException()
+            if (errorText.isNotEmpty()) throw NoSuchElementException()
             val pathToNPM =
                 pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
             pathToNode to pathToNPM
@@ -279,9 +279,8 @@ fun installMissingRequirement(project: Project, pathToNPM: String, requirement: 
     if (result == Messages.CANCEL)
         return
 
-    val (_, errorStream) = installRequirement(pathToNPM, requirement, project.basePath)
+    val (_, errorText) = installRequirement(pathToNPM, requirement, project.basePath)
 
-    val errorText = errorStream.readText()
     if (errorText.isNotEmpty()) {
         showErrorDialogLater(
             project,

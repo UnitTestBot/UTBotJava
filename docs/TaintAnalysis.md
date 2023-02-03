@@ -1,12 +1,14 @@
 # Taint analysis
 
+[//]: # (TODO)
+
 ## Configuration
 
 There are four _rule types_: sources, passes, cleaners and sinks.
 
 The rule of each type contains
 * a method name,
-* a method description.
+* a method description
 
 ### Method name
 
@@ -112,10 +114,13 @@ sinks:
           check: [ arg1, arg3 ]
           marks: [ sql-injection, xss ]
 ```
+***
 
 For all the rule types, method descriptions can optionally contain
 * a method signature,
 * runtime conditions.
+
+**Signature**
 
 Method `signature` (optional) is a list of _argument types_ (at compile time):
 
@@ -124,6 +129,8 @@ Method `signature` (optional) is a list of _argument types_ (at compile time):
 Please note that
 - the type name is written in `<>`,
 - `_` means any type.
+
+**Conditions**
 
 Runtime `conditions` (optional) are conditions that must be met to trigger this rule.
 

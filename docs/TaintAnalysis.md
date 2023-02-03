@@ -1,26 +1,42 @@
-# Taint Analysis
+# Taint analysis
 
 ## Configuration
 
-### Basic
+There are four _rule types_: sources, passes, cleaners and sinks.
 
-- There are 4 sections: sources, passes, cleaners and sinks. Each of them contains a list of methods descriptions (rules). Fully qualified method names can be written in one line, or it can be defined by nested parts — first the package names, then the class name, and finally the method name. Note that regular expressions in names are not supported.
-- Each rule can contain a method signature — a list of argument types (at compile-time): `signature: [  <int>, _, <java.lang.String> ]`
-  - name of the type is written in `<>`.
-  - `_` means any type.
-- Also, the rule can contain runtime conditions that must be met for triggering this rule. Here you can set specific values of method arguments or their runtime types. More detailed information about the `conditions` is given below.
-- The `signature` and `conditions` fields are optional. If you do not specify them, the rule will be triggered on any call of the method.
-- If several rules are suitable for one method call, they will all be applied in some kind of order.
+Each rule type contains
+* a method name,
+* a method description,
+* a method signature (optional),
+* runtime conditions (optional).
 
-### Sources
+### Method name
 
-- The `add-to` field specifies which objects will be marked. You can specify only one value here or a whole list. Possible values:
-    - `this`
-    - `arg1`
-    - `arg2`
-    - ...
-    - `return`
-- The `marks` field specifies which `marks` to add to objects from `add-to`. You can also specify only one mark here or a whole list.
+Fully qualified _method names_ can be written in one line.
+
+One can also define a full _method name_ using nested structure: the package name is specified first,
+then the class name appears, and finally there is the method name itself.
+
+Note that regular expressions in names are not supported.
+
+### Method description
+
+Method description constitutes the essence of a rule.
+Here are method descriptions for the rules of each type: sources, passes, cleaners and sinks.
+
+#### Sources
+
+The `add-to` field specifies the objects to be marked.
+You can specify only one value here or a whole list.
+
+Possible values are:
+* `this`
+* `arg1`
+* `arg2`
+* ...
+* `return`
+
+The `marks` field specifies the `marks` that should be added to the objects from the `add-to` list. You can also specify only one mark here or a whole list.
 
 **Example:**
 
@@ -44,12 +60,16 @@ sources:
       marks: sensitive-data
 ```
 
-### Passes
+#### Passes
 
-- The `get-from` field specifies the sources of `marks`.
-- The `add-to` field specifies which objects will be marked, if any element from `get-from` has any mark.
-- The `marks` field specifies the actual marks that can passed from one object to another.
-- For all the keys listed above, there can be only one value or a whole list of values. Also, it's true for similar keys in the sections below.
+The `get-from` field specifies the sources of `marks`.
+
+The `add-to` field specifies the objects that will be marked if any element from `get-from` has any mark.
+
+The `marks` field specifies the actual marks that can be passed from one object to another.
+
+For all the keys listed above, there can be only one value or a whole list of values.
+This is also true for similar keys in the sections below.
 
 **Example:**
 
@@ -61,10 +81,11 @@ passes:
       marks: sensitive-data
 ```
 
-### Cleaners
+#### Cleaners
 
-- The `remove-from` field specifies which objects to remove `marks` from.
-- The `marks` field specifies the marks to be removed.
+The `remove-from` field specifies the objects the `marks` should be removed from.
+
+The `marks` field specifies the marks to be removed.
 
 **Example:**
 
@@ -75,10 +96,11 @@ cleaners:
       marks: [ sensitive-data, sql-injection ]
 ```
 
-### Sinks
+#### Sinks
 
-- The `check` field specifies which objects will be checked for `marks`.
-- When one of the `marks` is found in one of the objects from the `check`, the analysis will report the problem found.
+The `check` field specifies the objects that will be checked for `marks`.
+
+When one of the `marks` is found in one of the objects from the `check`, the analysis will report the problem found.
 
 **Example:**
 
@@ -93,13 +115,35 @@ sinks:
           marks: [ sql-injection, xss ]
 ```
 
-### Conditions
+### Method signature (optional)
 
-- The `conditions` field specifies runtime conditions for arguments (`arg1`, `arg2`, ...). Conditions can also be specified for `this` and `return` (if it makes sense).
-- The rule is triggered if all the specified conditions are met.
-- The condition can check a specific value or runtime type.
-- Values can be set for the following types: boolean, int, float or string.
-- The full name of the type must be specified in triangular brackets `<>`.
+Each rule can contain a method `signature` — a list of _argument types_ (at compile time):
+
+`signature: [  <int>, _, <java.lang.String> ]`
+
+Please note that
+- the type name is written in `<>`,
+- `_` means any type.
+
+### Runtime conditions (optional)
+
+The rule can also contain _runtime conditions_ that must be met to trigger this rule.
+
+For check, you can set:
+* the specific values of method arguments 
+* or their runtime types.
+
+Values can be set for the following types: `boolean`, `int`, `float` or `string`.
+
+The full type name must be specified in the angle brackets `<>`.
+
+If you do not specify `conditions`, the rule will be triggered by any call of the method.
+
+If several rules are suitable for one method call, they will all be applied in some kind of order.
+
+The `conditions` field specifies runtime conditions for arguments (`arg1`, `arg2`, ...). Conditions can also be specified for `this` and `return` (if it makes sense).
+
+The rule is triggered if all the specified conditions are met.
 
 **Example:**
 
@@ -113,14 +157,15 @@ conditions:
   return: true # return value should be equal to `true`
 ```
 
-- Values and types can be negated using the `not` key, as well as combined using lists (`or` semantics).
-- Nesting is allowed.
+Values and types can be negated using the `not` key, as well as combined using lists (`or` semantics).
+
+Nesting is allowed.
 
 **Example:**
 
 ```yaml
 conditions:
-  this: [ "in", "out" ] # this should be equal to one of: "in" or "out"
+  this: [ "in", "out" ] # this should be equal to either "in" or "out"
   arg1: [ <int>, <float> ] # arg1 should be int or float
   arg2: { not: 0 } # arg2 should not be equal to 0
   arg3:
@@ -180,7 +225,7 @@ sinks:
 
 ## Usage examples
 
-- `java.lang.System.getenv` is a source of the mark "environment". But there are two overloads of this method: with one string parameter and no parameters at all. We want to describe only the first overload:
+`java.lang.System.getenv` is a source of the "environment" mark. There are two overloads of this method: with one string parameter and no parameters at all. We want to describe only the first overload:
 
   ```yaml
   sources:
@@ -190,7 +235,7 @@ sinks:
         marks: environment
   ```
 
-- `java.lang.String.concat` is a pass-through only if `this` is marked and not equal to `""` or if `arg1` is marked and not equal to `""`:
+`java.lang.String.concat` is a pass-through only if `this` is marked and not equal to `""`, or if `arg1` is marked and not equal to `""`:
 
   ```yaml
   passes:
@@ -209,7 +254,7 @@ sinks:
             marks: sensitive-data
   ```
 
-- `java.lang.String.isEmpty` is a cleaner only if it returns `true`:
+`java.lang.String.isEmpty` is a cleaner only if it returns `true`:
 
   ```yaml
   cleaners:
@@ -220,7 +265,7 @@ sinks:
         marks: [ sql-injection, xss ]
   ```
 
-- Suppose that the method `org.example.util.unsafe` is a sink for the mark "environment" if the second argument is an `Integer` and equal to zero:
+Suppose that the `org.example.util.unsafe` method is a sink for the "environment" mark if the second argument is an `Integer` and equal to zero:
 
   ```yaml
   sinks:
@@ -232,7 +277,7 @@ sinks:
         marks: environment
   ```
   
-  The configuration above checks the type at compile-time, but sometimes we want to check the type at runtime:
+The configuration above checks the type at compile-time, but sometimes we want to check the type at runtime:
 
   ```yaml
   sinks:
@@ -244,4 +289,4 @@ sinks:
         marks: environment
   ```
   
-  Perhaps explicit `and` for `conditions` will be added in the future.
+Perhaps explicit `and` for `conditions` will be added in the future.

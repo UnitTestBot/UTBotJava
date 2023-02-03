@@ -1,7 +1,9 @@
 val ideType: String by settings
+val buildType: String by settings
 
 val pythonIde: String by settings
 val jsIde: String by settings
+val jsBuild: String by settings
 val includeRiderInBuild: String by settings
 
 pluginManagement {
@@ -54,8 +56,11 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-intellij-python")
 }
 
-if (jsIde.split(",").contains(ideType)) {
+if (jsBuild == buildType) {
     include("utbot-js")
     include("utbot-cli-js")
+}
+
+if (jsIde.split(",").contains(ideType)) {
     include("utbot-intellij-js")
 }

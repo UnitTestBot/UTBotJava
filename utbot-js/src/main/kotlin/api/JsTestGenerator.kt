@@ -4,7 +4,6 @@ import codegen.JsCodeGenerator
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
-import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import fuzzer.JsFeedback
@@ -13,6 +12,7 @@ import fuzzer.JsMethodDescription
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.defaultFuzzingIdGenerator
+import fuzzer.providers.ObjectValueProvider
 import fuzzer.runFuzzing
 import java.io.File
 import java.util.concurrent.CancellationException
@@ -183,13 +183,13 @@ class JsTestGenerator(
 
     private fun makeThisInstance(
         execId: JsMethodId,
-        classId: JsClassId
+        description: JsMethodDescription
     ): UtModel? {
         val thisInstance = when {
             execId.isStatic -> null
-            classId.allConstructors.first().parameters.isEmpty() -> {
+            execId.classId.allConstructors.first().parameters.isEmpty() -> {
                 val id = defaultFuzzingIdGenerator.createId()
-                val constructor = classId.allConstructors.first()
+                val constructor = execId.classId.allConstructors.first()
                 val instantiationCall = UtExecutableCallModel(
                     instance = null,
                     executable = constructor,
@@ -203,7 +203,7 @@ class JsTestGenerator(
                 )
             }
 
-            else -> throw UnsupportedOperationException("Not yet implemented!")
+            else -> ObjectValueProvider().generate(description, execId.classId).first().empty.builder.invoke().model
         }
         return thisInstance
     }
@@ -239,9 +239,9 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
+            execId.classId,
             concreteValues = fuzzerVisitor.fuzzedConcreteValues
         )
-        val thisInstance = makeThisInstance(execId, execId.classId)
         val collectedValues = mutableListOf<List<FuzzedValue>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
         val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:").split(":").map { it.toInt() }
@@ -251,16 +251,13 @@ class JsTestGenerator(
         val coverageProvider = CoverageServiceProvider(
             context,
             instrService,
-            context.settings.coverageMode
+            context.settings.coverageMode,
+            jsDescription
         )
         val allStmts = instrService.allStatements
         logger.info { "Statements to cover: (${allStmts.joinToString { toString() }})" }
-        val currentlyCoveredStmts = mutableSetOf<Int>().apply {
-            this.addAll(coverageProvider.baseCoverage)
-        }
+        val currentlyCoveredStmts = mutableSetOf<Int>()
         val startTime = System.currentTimeMillis()
-        // Used to emit at least 1 test case
-        var counter = 0
         runFuzzing(jsDescription) { _, values ->
             if (isCancelled() || System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
@@ -272,18 +269,21 @@ class JsTestGenerator(
                     )
                     coveredStmts.forEachIndexed { paramIndex, covData ->
                         val resultData = executionResults[paramIndex]
+                        val params = collectedValues[resultData.index]
                         val result =
                             getUtModelResult(
                                 execId = execId,
                                 resultData = resultData,
-                                collectedValues[resultData.index]
+                                params
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
-                        } else if (counter == 0 || !currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
-                            counter++
+                        } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
+                            val (thisObject, modelList) = if (funcNode.isClassMembers) {
+                                null to params.map { it.model }
+                            } else params[0].model to params.drop(1).map { it.model }
                             val initEnv =
-                                EnvironmentModels(thisInstance, collectedValues[resultData.index].map { it.model }, mapOf())
+                                EnvironmentModels(thisObject, modelList, mapOf())
                             emit(
                                 JsValidExecution(
                                     UtFuzzedExecution(
@@ -356,11 +356,11 @@ class JsTestGenerator(
     private fun collectExports(methodId: JsMethodId): List<String> {
         val res = mutableListOf<String>()
         methodId.parameters.forEach {
-            if (!(it.isJsBasic || it is JsMultipleClassId)) {
+            if (!it.isJsBasic) {
                 res += it.name
             }
         }
-        if (!(methodId.returnType.isJsBasic || methodId.returnType is JsMultipleClassId)) res += methodId.returnType.name
+        if (!methodId.returnType.isJsBasic) res += methodId.returnType.name
         return res
     }
 

@@ -1,6 +1,7 @@
 package fuzzer
 
 import framework.api.js.JsClassId
+import framework.api.js.util.isClass
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedValue
@@ -18,8 +19,23 @@ class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecution
 class JsMethodDescription(
     val name: String,
     parameters: List<JsClassId>,
-    val concreteValues: Collection<FuzzedConcreteValue>
-) : Description<JsClassId>(parameters)
+    val concreteValues: Collection<FuzzedConcreteValue>,
+    val thisInstance: JsClassId? = null
+) : Description<JsClassId>(parameters) {
+
+    constructor(
+        name: String,
+        parameters: List<JsClassId>,
+        classId: JsClassId,
+        concreteValues: Collection<FuzzedConcreteValue>
+    ) : this(
+        name,
+        if (classId.isClass) listOf(classId) + parameters else parameters,
+        concreteValues,
+        classId
+    )
+
+}
 
 class JsFeedback(
     override val control: Control = Control.CONTINUE,

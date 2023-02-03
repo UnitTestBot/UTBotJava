@@ -11,7 +11,7 @@ import java.lang.reflect.Modifier
 open class JsClassId(
     private val jsName: String,
     private val methods: Sequence<JsMethodId> = emptySequence(),
-    private val constructor: JsConstructorId? = null,
+    val constructor: JsConstructorId? = null,
     private val classPackagePath: String = "",
     private val classFilePath: String = "",
     elementClassId: JsClassId? = null

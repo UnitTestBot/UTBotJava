@@ -3,6 +3,8 @@ package service
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isUndefined
+import fuzzer.JsMethodDescription
+import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
@@ -16,7 +18,8 @@ import utils.ResultData
 class CoverageServiceProvider(
     private val context: ServiceContext,
     private val instrumentationService: InstrumentationService,
-    private val mode: CoverageMode
+    private val mode: CoverageMode,
+    private val description: JsMethodDescription
 ) : ContextOwner by context {
 
     private val importFileUnderTest = "instr/${filePathToInference.substringAfterLast("/")}"
@@ -41,7 +44,7 @@ function check_value(value, json) {
 }
     """
 
-    val baseCoverage: List<Int>
+    private val baseCoverage: List<Int>
 
     init {
         val temp = makeScriptForBaseCoverage(
@@ -165,13 +168,15 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         method: JsMethodId,
         containingClass: String?
     ): String {
+        val actualParams = description.thisInstance?.let{ fuzzedValue.drop(1) } ?: fuzzedValue
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()."
-            } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it."
-        } ?: "${JsTestGenerationSettings.fileUnderTestAliases}."
-        var callString = "$initClass${method.name}"
-        callString += fuzzedValue.joinToString(
+                description.thisInstance?.let { fuzzedValue[0].model.toCallString() } ?:
+                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
+            } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it"
+        } ?: JsTestGenerationSettings.fileUnderTestAliases
+        var callString = "$initClass.${method.name}"
+        callString += actualParams.joinToString(
             prefix = "(",
             postfix = ")",
         ) { value -> value.model.toCallString() }
@@ -184,23 +189,25 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             else -> "$this"
         }
 
+    private val symbolsToEscape = setOf("`", Pattern.quote("\\"))
+
     private fun Any.escapeSymbolsIfNecessary(): Any =
         when (this) {
-            is String -> this.replace("`", "")
+            is String -> this.replace(Regex(symbolsToEscape.joinToString(separator = "|")), "")
             else -> this
         }
 
-    private fun UtAssembleModel.toParamString(): String =
-        with(this) {
-            val callConstructorString = "new ${JsTestGenerationSettings.fileUnderTestAliases}.${classId.name}"
-            val paramsString = instantiationCall.params.joinToString(
-                prefix = "(",
-                postfix = ")",
-            ) {
-                (it as JsPrimitiveModel).value.quoteWrapIfNecessary()
-            }
-            return callConstructorString + paramsString
+    private fun UtAssembleModel.toParamString(): String {
+        val callConstructorString = "new ${JsTestGenerationSettings.fileUnderTestAliases}.${classId.name}"
+        val paramsString = instantiationCall.params.joinToString(
+            prefix = "(",
+            postfix = ")",
+        ) {
+            it.toCallString()
         }
+        return callConstructorString + paramsString
+    }
+
 
     private fun UtModel.toCallString(): String =
         when (this) {

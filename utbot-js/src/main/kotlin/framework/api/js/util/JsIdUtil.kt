@@ -34,5 +34,8 @@ fun ClassId.toJsClassId() =
 val JsClassId.isJsBasic: Boolean
     get() = this in jsBasic || this is JsMultipleClassId
 
+val JsClassId.isClass: Boolean
+    get() = !(this.isJsBasic || this == jsErrorClassId)
+
 val JsClassId.isUndefined: Boolean
     get() = this == jsUndefinedClassId

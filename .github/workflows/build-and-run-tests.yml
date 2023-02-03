@@ -53,7 +53,7 @@ jobs:
     - name: Build UTBot CLI
       run: |
         cd ${{ matrix.configuration.directory }}
-        gradle build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}
+        gradle build --no-daemon --build-cache  --no-parallel -DbuildType=ALL -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}
     - name: Set docker tag
       run:
         SHA=$(echo ${{ github.sha }} | cut -c 1-7)

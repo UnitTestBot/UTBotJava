@@ -156,7 +156,7 @@ object GoTestCasesCodeGenerator {
             val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.classId, actualResultCode)
             return "True(${assertionTParameter}math.IsInf($castedActualResultCode, ${expectedModel.sign}))"
         }
-        val prefix = if (expectedModel.canNotBeEqual()) "Not" else ""
+        val prefix = if (!expectedModel.isComparable()) "Not" else ""
         val castedExpectedResultCode =
             if (expectedModel is GoUtPrimitiveModel) {
                 generateCastedValueIfPossible(expectedModel)

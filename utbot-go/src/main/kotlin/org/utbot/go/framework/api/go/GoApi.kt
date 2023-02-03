@@ -51,7 +51,7 @@ abstract class GoUtModel(
     override val classId: GoTypeId,
 ) : UtModel(classId) {
     open fun getRequiredImports(): Set<String> = emptySet()
-    abstract fun canNotBeEqual(): Boolean
+    abstract fun isComparable(): Boolean
     override fun toString(): String = error("not supported")
 }
 

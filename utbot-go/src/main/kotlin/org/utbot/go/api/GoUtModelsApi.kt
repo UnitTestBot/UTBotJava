@@ -31,7 +31,7 @@ open class GoUtPrimitiveModel(
 
     override fun getRequiredImports(): Set<String> = requiredImports
 
-    override fun canNotBeEqual(): Boolean = false
+    override fun isComparable(): Boolean = true
 
     override fun toString(): String = when (explicitCastMode) {
         ExplicitCastMode.REQUIRED -> toCastedValueGoCode()
@@ -67,7 +67,7 @@ class GoUtStructModel(
         return imports
     }
 
-    override fun canNotBeEqual(): Boolean = value.any { it.model.canNotBeEqual() }
+    override fun isComparable(): Boolean = value.all { it.model.isComparable() }
 
     fun toStringWithoutStructName(): String =
         value.filter { packageName == classId.packageName || it.fieldId.isExported }
@@ -98,7 +98,7 @@ class GoUtArrayModel(
         return imports
     }
 
-    override fun canNotBeEqual(): Boolean = value.values.any { it.canNotBeEqual() }
+    override fun isComparable(): Boolean = value.values.all { it.isComparable() }
 
     fun getElements(typeId: GoTypeId): List<GoUtModel> = (0 until length).map {
         value[it] ?: typeId.goDefaultValueModel(packageName)
@@ -144,7 +144,7 @@ class GoUtFloatNaNModel(
     },
     requiredImports = setOf("math"),
 ) {
-    override fun canNotBeEqual(): Boolean = true
+    override fun isComparable(): Boolean = false
 }
 
 class GoUtFloatInfModel(
@@ -171,13 +171,13 @@ class GoUtComplexModel(
     requiredImports = realValue.getRequiredImports() + imagValue.getRequiredImports(),
     explicitCastMode = ExplicitCastMode.NEVER
 ) {
-    override fun canNotBeEqual(): Boolean = realValue.canNotBeEqual() || imagValue.canNotBeEqual()
+    override fun isComparable(): Boolean = realValue.isComparable() && imagValue.isComparable()
     override fun toValueGoCode(): String = "complex($realValue, $imagValue)"
 }
 
 class GoUtNilModel(
     typeId: GoTypeId
 ) : GoUtModel(typeId) {
-    override fun canNotBeEqual(): Boolean = false
+    override fun isComparable(): Boolean = true
     override fun toString() = "nil"
 }

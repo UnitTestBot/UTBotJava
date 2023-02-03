@@ -15,7 +15,6 @@ class JsValidExecution(val utFuzzedExecution: UtFuzzedExecution) : JsFuzzingExec
 
 class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecutionFeedback
 
-
 class JsMethodDescription(
     val name: String,
     parameters: List<JsClassId>,
@@ -34,7 +33,6 @@ class JsMethodDescription(
         concreteValues,
         classId
     )
-
 }
 
 class JsFeedback(

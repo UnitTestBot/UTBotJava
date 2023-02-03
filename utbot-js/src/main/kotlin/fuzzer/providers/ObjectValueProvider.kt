@@ -27,14 +27,11 @@ class ObjectValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescri
         description: JsMethodDescription,
         type: JsClassId
     ) = sequence {
-        val constructor = type.allConstructors.toList()
-            .takeIf { it.isNotEmpty() }
-            ?.first()
-            ?: JsConstructorId(type, emptyList())
-        yield(createValue(type, constructor as JsConstructorId, description))
+        val constructor = type.constructor ?: JsConstructorId(type, emptyList())
+        yield(createValue(type, constructor))
     }
 
-    private fun createValue(classId: JsClassId, constructorId: JsConstructorId, description: JsMethodDescription): Seed.Recursive<JsClassId, FuzzedValue> {
+    private fun createValue(classId: JsClassId, constructorId: JsConstructorId): Seed.Recursive<JsClassId, FuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.parameters) { values ->
                 val id = idGenerator.createId()

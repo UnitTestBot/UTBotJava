@@ -11,7 +11,6 @@ import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.fuzz
 
-
 fun defaultValueProviders() = listOf(
     BoolValueProvider,
     NumberValueProvider,
@@ -39,7 +38,6 @@ class JsFuzzing(
 }
 
 internal val defaultFuzzingIdGenerator = ReferencePreservingIntIdGenerator()
-
 
 suspend fun runFuzzing(
     description: JsMethodDescription,

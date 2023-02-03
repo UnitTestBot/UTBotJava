@@ -120,11 +120,14 @@ object RuleParser {
      */
     fun parseSourceRule(node: YamlNode, methodNameParts: List<String>): Source {
         validate(node is YamlMap, "The source-rule node should be a map", node)
+        validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_ADD_TO, Constants.KEY_MARKS))
+
         val methodFqn = getMethodFqnFromParts(methodNameParts)
         val signature = parseSignatureKey(node)
         val conditions = parseConditionsKey(node)
         val addTo = parseTaintEntities(node[Constants.KEY_ADD_TO]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
+
         return Source(methodFqn, addTo, marks, signature, conditions)
     }
 
@@ -143,12 +146,15 @@ object RuleParser {
      */
     fun parsePassRule(node: YamlNode, methodNameParts: List<String>): Pass {
         validate(node is YamlMap, "The pass-rule node should be a map", node)
+        validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_GET_FROM, Constants.KEY_ADD_TO, Constants.KEY_MARKS))
+
         val methodFqn = getMethodFqnFromParts(methodNameParts)
         val signature = parseSignatureKey(node)
         val conditions = parseConditionsKey(node)
         val getFrom = parseTaintEntities(node[Constants.KEY_GET_FROM]!!)
         val addTo = parseTaintEntities(node[Constants.KEY_ADD_TO]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
+
         return Pass(methodFqn, getFrom, addTo, marks, signature, conditions)
     }
 
@@ -166,11 +172,14 @@ object RuleParser {
      */
     fun parseCleanerRule(node: YamlNode, methodNameParts: List<String>): Cleaner {
         validate(node is YamlMap, "The cleaner-rule node should be a map", node)
+        validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_REMOVE_FROM, Constants.KEY_MARKS))
+
         val methodFqn = getMethodFqnFromParts(methodNameParts)
         val signature = parseSignatureKey(node)
         val conditions = parseConditionsKey(node)
         val removeFrom = parseTaintEntities(node[Constants.KEY_REMOVE_FROM]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
+
         return Cleaner(methodFqn, removeFrom, marks, signature, conditions)
     }
 
@@ -188,11 +197,14 @@ object RuleParser {
      */
     fun parseSinkRule(node: YamlNode, methodNameParts: List<String>): Sink {
         validate(node is YamlMap, "The sink-rule node should be a map", node)
+        validateYamlMapKeys(node, setOf(Constants.KEY_SIGNATURE, Constants.KEY_CONDITIONS, Constants.KEY_CHECK, Constants.KEY_MARKS))
+
         val methodFqn = getMethodFqnFromParts(methodNameParts)
         val signature = parseSignatureKey(node)
         val conditions = parseConditionsKey(node)
         val check = parseTaintEntities(node[Constants.KEY_CHECK]!!)
         val marks = parseTaintMarks(node[Constants.KEY_MARKS]!!)
+
         return Sink(methodFqn, check, marks, signature, conditions)
     }
 

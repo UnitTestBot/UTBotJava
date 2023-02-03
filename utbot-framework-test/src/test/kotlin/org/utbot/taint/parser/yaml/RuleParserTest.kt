@@ -3,6 +3,7 @@ package org.utbot.taint.parser.yaml
 import com.charleskorn.kaml.Yaml
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
 
 class RuleParserTest {
@@ -84,6 +85,17 @@ class RuleParserTest {
                 assertEquals(expectedRule, actualRule)
             }
         }
+
+        @TestFactory
+        fun `should fail on yaml map with unknown keys`() = parseRuleData.map { (ruleData, parseRule) ->
+            DynamicTest.dynamicTest(parseRule.name) {
+                val yamlMap = Yaml.default.parseToYamlNode(ruleData.yamlInputUnknownKey)
+
+                assertThrows<ConfigurationParseError> {
+                    parseRule(yamlMap, defaultMethodNameParts)
+                }
+            }
+        }
     }
 
     @Nested
@@ -142,15 +154,17 @@ class RuleParserTest {
         val yamlInput: String
         val yamlInputAdvanced: String
         val yamlInputInvalid: String
+        val yamlInputUnknownKey: String
 
         fun yamlInputParsed(methodFqn: MethodFqn): Rule
         fun yamlInputAdvancedParsed(methodFqn: MethodFqn): Rule
     }
 
     private object SourceData : RuleData<Source> {
-        override val yamlInput = "{ add-to: return, marks: [] }"
-        override val yamlInputAdvanced = "{ signature: [], conditions: {}, add-to: return, marks: [] }"
-        override val yamlInputInvalid = "{ invalid-key: return, marks: [] }"
+        override val yamlInput = "{ $k_addTo: $k_return, $k_marks: [] }"
+        override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_addTo: $k_return, $k_marks: [] }"
+        override val yamlInputInvalid = "{ invalid-key: $k_return, $k_marks: [] }"
+        override val yamlInputUnknownKey = "{ $k_addTo: $k_return, $k_marks: [], unknown-key: [] }"
 
         override fun yamlInputParsed(methodFqn: MethodFqn) =
             Source(methodFqn, TaintEntitiesSet(setOf(ReturnValue)), AllTaintMarks)
@@ -160,9 +174,10 @@ class RuleParserTest {
     }
 
     private object PassData : RuleData<Pass> {
-        override val yamlInput = "{ get-from: this, add-to: return, marks: [] }"
-        override val yamlInputAdvanced = "{ signature: [], conditions: {}, get-from: this, add-to: return, marks: [] }"
-        override val yamlInputInvalid = "{ get-from: this, add-to: return, invalid-key: [] }"
+        override val yamlInput = "{ $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [] }"
+        override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [] }"
+        override val yamlInputInvalid = "{ $k_getFrom: $k_this, $k_addTo: $k_return, invalid-key: [] }"
+        override val yamlInputUnknownKey = "{ $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [], unknown-key: [] }"
 
         override fun yamlInputParsed(methodFqn: MethodFqn) =
             Pass(methodFqn, TaintEntitiesSet(setOf(ThisObject)), TaintEntitiesSet(setOf(ReturnValue)), AllTaintMarks)
@@ -172,9 +187,10 @@ class RuleParserTest {
     }
 
     private object CleanerData : RuleData<Cleaner> {
-        override val yamlInput = "{ remove-from: this, marks: [] }"
-        override val yamlInputAdvanced = "{ signature: [], conditions: {}, remove-from: this, marks: [] }"
-        override val yamlInputInvalid = "{ remove-from: this, invalid-key: [] }"
+        override val yamlInput = "{ $k_removeFrom: $k_this, $k_marks: [] }"
+        override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_removeFrom: $k_this, $k_marks: [] }"
+        override val yamlInputInvalid = "{ $k_removeFrom: $k_this, invalid-key: [] }"
+        override val yamlInputUnknownKey = "{ $k_removeFrom: $k_this, $k_marks: [], unknown-key: [] }"
 
         override fun yamlInputParsed(methodFqn: MethodFqn) =
             Cleaner(methodFqn, TaintEntitiesSet(setOf(ThisObject)), AllTaintMarks)
@@ -184,9 +200,10 @@ class RuleParserTest {
     }
 
     private object SinkData : RuleData<Sink> {
-        override val yamlInput = "{ check: this, marks: [] }"
-        override val yamlInputAdvanced = "{ signature: [], conditions: {}, check: this, marks: [] }"
-        override val yamlInputInvalid = "{ check: this, invalid-key: [] }"
+        override val yamlInput = "{ $k_check: $k_this, $k_marks: [] }"
+        override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_check: $k_this, $k_marks: [] }"
+        override val yamlInputInvalid = "{ $k_check: $k_this, invalid-key: [] }"
+        override val yamlInputUnknownKey = "{ $k_check: $k_this, $k_marks: [], unknown-key: [] }"
 
         override fun yamlInputParsed(methodFqn: MethodFqn) =
             Sink(methodFqn, TaintEntitiesSet(setOf(ThisObject)), AllTaintMarks)

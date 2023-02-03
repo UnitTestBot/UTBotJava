@@ -84,8 +84,7 @@ object ConditionParser {
             }
 
             is YamlMap -> {
-                validate(node.entries.keys.map { it.content } == listOf(Constants.KEY_CONDITION_NOT),
-                    "The condition map should contain only one key: `not`", node)
+                validateYamlMapKeys(node, setOf(Constants.KEY_CONDITION_NOT))
                 val innerNode = node.get<YamlNode>(Constants.KEY_CONDITION_NOT)!!
                 val innerCondition = parseCondition(innerNode)
                 NotCondition(innerCondition)

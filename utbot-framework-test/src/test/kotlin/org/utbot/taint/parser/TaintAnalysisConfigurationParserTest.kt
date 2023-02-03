@@ -4,6 +4,7 @@ import com.charleskorn.kaml.YamlException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
 import org.utbot.taint.parser.yaml.ConfigurationParseError
 
@@ -25,7 +26,7 @@ class TaintAnalysisConfigurationParserTest {
 
     @Test
     fun `parse should throw exception on incorrect yaml`() {
-        val incorrectYamlInput = yamlInput.replace("not", "net")
+        val incorrectYamlInput = yamlInput.replace(k_not, "net")
         assertThrows<ConfigurationParseError> {
             TaintAnalysisConfigurationParser.parse(incorrectYamlInput)
         }
@@ -34,41 +35,41 @@ class TaintAnalysisConfigurationParserTest {
     // test data
 
     private val yamlInput = """
-        sources:
+        $k_sources:
           - java.lang.System.getenv:
-              signature: [ <java.lang.String> ]
-              add-to: return
-              marks: environment
+              $k_signature: [ ${k_lt}java.lang.String${k_gt} ]
+              $k_addTo: $k_return
+              $k_marks: environment
 
-        passes:
+        $k_passes:
           - java.lang.String:
               - concat:
-                  conditions:
-                    this: { not: "" }
-                  get-from: this
-                  add-to: return
-                  marks: sensitive-data
+                  $k_conditions:
+                    $k_this: { $k_not: "" }
+                  $k_getFrom: $k_this
+                  $k_addTo: $k_return
+                  $k_marks: sensitive-data
               - concat:
-                  conditions:
-                    arg1: { not: "" }
-                  get-from: arg1
-                  add-to: return
-                  marks: sensitive-data
+                  $k_conditions:
+                    ${k_arg}1: { $k_not: "" }
+                  $k_getFrom: ${k_arg}1
+                  $k_addTo: $k_return
+                  $k_marks: sensitive-data
         
-        cleaners:
+        $k_cleaners:
           - java.lang.String.isEmpty:
-              conditions:
-                return: true
-              remove-from: this
-              marks: [ sql-injection, xss ]
+              $k_conditions:
+                $k_return: true
+              $k_removeFrom: $k_this
+              $k_marks: [ sql-injection, xss ]
         
-        sinks:
+        $k_sinks:
           - org.example.util.unsafe:
-              signature: [ _, <java.lang.Integer> ]
-              conditions:
-                arg2: 0
-              check: arg2
-              marks: environment
+              $k_signature: [ $k__, ${k_lt}java.lang.Integer${k_gt} ]
+              $k_conditions:
+                ${k_arg}2: 0
+              $k_check: ${k_arg}2
+              $k_marks: environment
     """.trimIndent()
 
     private val expectedConfiguration = Configuration(

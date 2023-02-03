@@ -1,5 +1,6 @@
 package org.utbot.taint.parser.yaml
 
+import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -16,5 +17,13 @@ fun validate(condition: Boolean, reason: String, node: YamlNode? = null) {
     }
     if (!condition) {
         throw ConfigurationParseError(reason, node)
+    }
+}
+
+fun validateYamlMapKeys(node: YamlMap, allowedKeys: Set<String>) {
+    val actualKeys = node.entries.keys.map { it.content }.toSet()
+    val unknownKeys = actualKeys - allowedKeys
+    if (unknownKeys.isNotEmpty()) {
+        throw ConfigurationParseError("Unknown keys was encountered: $unknownKeys", node)
     }
 }

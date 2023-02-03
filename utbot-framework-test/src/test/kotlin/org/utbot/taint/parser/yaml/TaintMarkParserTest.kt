@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
 import org.junit.jupiter.api.assertThrows
 
@@ -43,7 +44,7 @@ class TaintMarkParserTest {
 
         @Test
         fun `should fail on another yaml type`() {
-            val yamlMap = Yaml.default.parseToYamlNode("marks: [ xss ]")
+            val yamlMap = Yaml.default.parseToYamlNode("$k_marks: [ xss ]")
 
             assertThrows<ConfigurationParseError> {
                 TaintMarkParser.parseTaintMarks(yamlMap)

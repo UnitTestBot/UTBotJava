@@ -22,6 +22,7 @@ object ConfigurationParser {
      */
     fun parseConfiguration(node: YamlNode): Configuration {
         validate(node is YamlMap, "The root node should be a map", node)
+        validateYamlMapKeys(node, setOf(Constants.KEY_SOURCES, Constants.KEY_PASSES, Constants.KEY_CLEANERS, Constants.KEY_SINKS))
 
         val sourcesNode = node.get<YamlNode>(Constants.KEY_SOURCES)
         val passesNode = node.get<YamlNode>(Constants.KEY_PASSES)

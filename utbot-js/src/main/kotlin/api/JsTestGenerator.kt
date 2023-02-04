@@ -30,8 +30,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
-import parser.JsClassAstVisitor
-import parser.JsFunctionAstVisitor
+import parser.JsAstScrapper
 import parser.JsFuzzerAstVisitor
 import parser.JsParserUtils
 import parser.JsParserUtils.getAbstractFunctionName
@@ -47,7 +46,6 @@ import service.InstrumentationService
 import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
-import settings.JsTestGenerationSettings.dummyClassName
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.fuzzingTimeout
 import utils.PathResolver
@@ -76,6 +74,8 @@ class JsTestGenerator(
 
     private lateinit var parsedFile: Node
 
+    private lateinit var astScrapper: JsAstScrapper
+
     private val utbotDir = "utbotJs"
 
     init {
@@ -93,6 +93,7 @@ class JsTestGenerator(
      */
     fun run(): String {
         parsedFile = runParser(fileText)
+        astScrapper = JsAstScrapper(parsedFile)
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
@@ -347,12 +348,11 @@ class JsTestGenerator(
     }
 
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {
-        val visitor = JsFunctionAstVisitor(
-            focusedMethodName,
-            if (parentClassName != dummyClassName) parentClassName else null
-        )
-        visitor.accept(parsedFile)
-        return visitor.targetFunctionNode
+        return parentClassName?.let { astScrapper.findMethod(focusedMethodName, parentClassName) }
+            ?: astScrapper.findFunction(focusedMethodName)
+            ?: throw IllegalStateException(
+                "Couldn't locate function \"$focusedMethodName\" with class ${parentClassName ?: ""}"
+            )
     }
 
     private fun getMethodsToTest() =
@@ -363,9 +363,7 @@ class JsTestGenerator(
         }
 
     private fun getClassMethods(className: String): List<Node> {
-        val visitor = JsClassAstVisitor(className)
-        visitor.accept(parsedFile)
-        val classNode = JsParserUtils.searchForClassDecl(className, parsedFile)
+        val classNode = astScrapper.findClass(className)
         return classNode?.getClassMethods() ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

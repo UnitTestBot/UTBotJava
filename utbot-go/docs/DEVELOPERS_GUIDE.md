@@ -2,7 +2,18 @@
 
 # How UTBot Go works in general
 
-![](diagrams/how-it-works.png)
+```mermaid
+flowchart TB
+    A["Targets selection and configuration (IDEA plugin or CLI)"]:::someclass --> B(Go source code analysis)
+    classDef someclass fill:#b810
+
+    B --> C(Fuzzing)
+    C --> D(Fuzzed function execution)
+    D --> E(Getting results)
+    E --> C
+    C ---> F(Test file generation)
+```
+
 
 In the diagram above, you can see _the main stages of the UTBot Go test generation pipeline_. Let's take a look at each
 in more detail!
@@ -28,24 +39,29 @@ representation of the target functions, sufficient for the subsequent generation
 ### Fuzzing
 
 Fuzzing is the first part of the test cases generation process. At this stage, values, that will be used
-to test the target functions, are generated. Namely, to be passed to functions as arguments in the next steps.
+to test the target functions, are generated. Namely, to be passed to functions as arguments in the next steps. 
+Then the result of function execution is analyzed and the generation of new values continues or stops.
 
-### Fuzzed functions execution
+### Fuzzed function execution
 
 In the previous step, UTBot Go generated the values that the functions need to be tested with &mdash; now the task is to
-do this. Namely, execute the functions with the values generated for them and save the result.
+do this. Namely, execute the functions with the values generated for them.
 
 Essentially, the target function, the values generated for it, and the result of its execution form a test case. In
 fact, that is why this stage ends the global process of generating test cases.
 
+### Getting results
+
+Saving results of fuzzed function execution and sending them to fuzzing for analysis.
+
 ### Test code generation
 
-Finally, the last stage: the test cases are ready, UTBot Go needs only to generate code for them. Nothing terrible
-happens here, but one need to carefully consider the features of the Go language (for example, the necessity to cast
-constants to the desired type, oh).
+Finally, the last stage: the test cases are ready, UTBot Go needs only to generate code for them. Need to carefully consider the features of the Go language (for example, the necessity to cast
+constants to the desired type).
 
 _That's how the world (UTBot Go) works!_
 
 ## How to test UTBot Go
 
-_**TODO:**_ Gradle `runIde` task and building CLI application JAR locally.
+_**TODO:**_ Gradle `runIde` task or building CLI application JAR locally. To build CLI version the `build` on `utbot-cli-go` should be called.
+

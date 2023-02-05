@@ -13,9 +13,17 @@ import kotlin.reflect.KClass
 
 data class AnalyzedInterfaceType(
     override val name: String,
-    val implementsError: Boolean
+    val implementsError: Boolean,
+    val packageName: String,
+    val packagePath: String
 ) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId = GoInterfaceTypeId(name = simpleName, implementsError = implementsError)
+    override fun toGoTypeId(): GoTypeId =
+        GoInterfaceTypeId(
+            name = simpleName,
+            implementsError = implementsError,
+            packageName = packageName,
+            packagePath = packagePath
+        )
 
     private val simpleName: String = name.replaceFirst("interface ", "")
 }

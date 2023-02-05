@@ -1,8 +1,8 @@
 package org.utbot.go.api
 
 import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedValue
 import org.utbot.go.framework.api.go.GoTypeId
+import org.utbot.go.framework.api.go.GoUtModel
 import java.io.File
 import java.nio.file.Paths
 
@@ -27,12 +27,12 @@ data class GoUtFunction(
     fun getPackageName(): String = sourceFile.packageName
 }
 
-data class GoUtFuzzedFunction(val function: GoUtFunction, val fuzzedParametersValues: List<FuzzedValue>)
+data class GoUtFuzzedFunction(val function: GoUtFunction, val parametersValues: List<GoUtModel>)
 
 data class GoUtFuzzedFunctionTestCase(
     val fuzzedFunction: GoUtFuzzedFunction,
     val executionResult: GoUtExecutionResult,
 ) {
     val function: GoUtFunction get() = fuzzedFunction.function
-    val fuzzedParametersValues: List<FuzzedValue> get() = fuzzedFunction.fuzzedParametersValues
+    val parametersValues: List<GoUtModel> get() = fuzzedFunction.parametersValues
 }

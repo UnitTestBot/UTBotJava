@@ -96,6 +96,12 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	case *types.Interface:
 		namedType := typ.(*types.Named)
 		name := namedType.Obj().Name()
+		pkg := namedType.Obj().Pkg()
+		packageName, packagePath := "", ""
+		if pkg != nil {
+			packageName = pkg.Name()
+			packagePath = pkg.Path()
+		}
 
 		isError := implementsError(namedType)
 		if !isError {
@@ -104,6 +110,8 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 		result = AnalyzedInterfaceType{
 			Name:            fmt.Sprintf("interface %s", name),
 			ImplementsError: isError,
+			PackageName:     packageName,
+			PackagePath:     packagePath,
 		}
 	}
 	return result, nil

@@ -1,7 +1,5 @@
 package org.utbot.go.fuzzer.providers
 
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.RegexModelProvider.fuzzed
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
@@ -12,31 +10,32 @@ import org.utbot.go.api.GoUtComplexModel
 import org.utbot.go.api.GoUtPrimitiveModel
 import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
+import org.utbot.go.framework.api.go.GoUtModel
 import java.util.*
 import kotlin.properties.Delegates
 
-object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
+object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
     var intSize by Delegates.notNull<Int>()
     private val random = Random(0)
 
     override fun accept(type: GoTypeId): Boolean = type in goPrimitives
 
-    override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, FuzzedValue>> =
+    override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
             type.let { it as GoPrimitiveTypeId }.also { primitiveType ->
-                val primitives: List<Seed<GoTypeId, FuzzedValue>> = when (primitiveType) {
+                val primitives: List<Seed<GoTypeId, GoUtModel>> = when (primitiveType) {
                     goBoolTypeId -> listOf(
                         Seed.Known(Bool.FALSE.invoke()) { obj: BitVectorValue ->
                             GoUtPrimitiveModel(
                                 obj.toBoolean(),
                                 primitiveType
-                            ).fuzzed { "%var% = ${obj.toBoolean()}" }
+                            )
                         },
                         Seed.Known(Bool.TRUE.invoke()) { obj: BitVectorValue ->
                             GoUtPrimitiveModel(
                                 obj.toBoolean(),
                                 primitiveType
-                            ).fuzzed { "%var% = ${obj.toBoolean()}" }
+                            )
                         }
                     )
 
@@ -47,35 +46,35 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                                     GoUtPrimitiveModel(
                                         obj.toByte(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toByte()}" }
+                                    )
                                 }
 
                                 goInt16TypeId -> Seed.Known(it.invoke(16)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toShort(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toShort()}" }
+                                    )
                                 }
 
                                 goInt32TypeId, goRuneTypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toInt(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toInt()}" }
+                                    )
                                 }
 
                                 goIntTypeId -> Seed.Known(it.invoke(intSize)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         if (intSize == 32) obj.toInt() else obj.toLong(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${if (intSize == 32) obj.toInt() else obj.toLong()}" }
+                                    )
                                 }
 
                                 goInt64TypeId -> Seed.Known(it.invoke(64)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toLong(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toLong()}" }
+                                    )
                                 }
 
                                 else -> return@sequence
@@ -89,35 +88,35 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                                     GoUtPrimitiveModel(
                                         obj.toUByte(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toUByte()}" }
+                                    )
                                 }
 
                                 goUint16TypeId -> Seed.Known(it.invoke(16)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toUShort(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toUShort()}" }
+                                    )
                                 }
 
                                 goUint32TypeId -> Seed.Known(it.invoke(32)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toUInt(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toUInt()}" }
+                                    )
                                 }
 
                                 goUintTypeId, goUintPtrTypeId -> Seed.Known(it.invoke(intSize)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         if (intSize == 32) obj.toUInt() else obj.toULong(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${if (intSize == 32) obj.toUInt() else obj.toULong()}" }
+                                    )
                                 }
 
                                 goUint64TypeId -> Seed.Known(it.invoke(64)) { obj: BitVectorValue ->
                                     GoUtPrimitiveModel(
                                         obj.toULong(),
                                         primitiveType
-                                    ).fuzzed { "%var% = ${obj.toULong()}" }
+                                    )
                                 }
 
                                 else -> return@sequence
@@ -137,13 +136,13 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                             GoUtPrimitiveModel(
                                 obj.value,
                                 primitiveType
-                            ).fuzzed { summary = "%var% = ${obj.value}" }
+                            )
                         },
                         Seed.Known(StringValue("hello")) { obj: StringValue ->
                             GoUtPrimitiveModel(
                                 obj.value,
                                 primitiveType
-                            ).fuzzed { summary = "%var% = ${obj.value}" }
+                            )
                         })
 
                     else -> emptyList()
@@ -155,22 +154,18 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
             }
         }
 
-    private fun generateFloat32Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, FuzzedValue>> {
+    private fun generateFloat32Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, GoUtModel>> {
         return listOf(
             Seed.Known(IEEE754Value.fromFloat(random.nextFloat())) { obj: IEEE754Value ->
-                GoUtPrimitiveModel(obj.toFloat(), typeId).fuzzed {
-                    summary = "%var% = ${obj.toFloat()}"
-                }
+                GoUtPrimitiveModel(obj.toFloat(), typeId)
             }
         )
     }
 
-    private fun generateFloat64Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, FuzzedValue>> {
+    private fun generateFloat64Seeds(typeId: GoPrimitiveTypeId): List<Seed<GoTypeId, GoUtModel>> {
         return listOf(
             Seed.Known(IEEE754Value.fromDouble(random.nextDouble())) { obj: IEEE754Value ->
-                GoUtPrimitiveModel(obj.toDouble(), typeId).fuzzed {
-                    summary = "%var% = ${obj.toDouble()}"
-                }
+                GoUtPrimitiveModel(obj.toDouble(), typeId)
             }
         )
     }
@@ -178,22 +173,20 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
     private fun generateComplexSeeds(
         typeId: GoPrimitiveTypeId,
         floatTypeId: GoPrimitiveTypeId
-    ): List<Seed<GoTypeId, FuzzedValue>> {
+    ): List<Seed<GoTypeId, GoUtModel>> {
         return listOf(
             Seed.Recursive(
                 construct = Routine.Create(listOf(floatTypeId, floatTypeId)) { values ->
                     GoUtComplexModel(
-                        realValue = values[0].model as GoUtPrimitiveModel,
-                        imagValue = values[1].model as GoUtPrimitiveModel,
+                        realValue = values[0] as GoUtPrimitiveModel,
+                        imagValue = values[1] as GoUtPrimitiveModel,
                         typeId = typeId
-                    ).fuzzed {
-                        summary = "%var% = $model"
-                    }
+                    )
                 },
                 modify = sequence {
                     yield(Routine.Call(listOf(floatTypeId)) { self, values ->
-                        val model = self.model as GoUtComplexModel
-                        val value = values.first().model as GoUtPrimitiveModel
+                        val model = self as GoUtComplexModel
+                        val value = values.first() as GoUtPrimitiveModel
                         model.realValue = value
                     })
                 },
@@ -202,9 +195,7 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescri
                         realValue = GoUtPrimitiveModel(0.0, floatTypeId),
                         imagValue = GoUtPrimitiveModel(0.0, floatTypeId),
                         typeId = typeId
-                    ).fuzzed {
-                        summary = "%var% = $model"
-                    }
+                    )
                 }
             )
         )

@@ -51,7 +51,7 @@ data class StructValue(
             if (fieldValue.name != fieldId.name) {
                 return false
             }
-            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringClass as GoTypeId)) {
+            if (!fieldValue.value.checkIsEqualTypes(fieldId.declaringType)) {
                 return false
             }
             if (fieldValue.isExported != fieldId.isExported) {
@@ -72,7 +72,7 @@ data class ArrayValue(
         if (type !is GoArrayTypeId) {
             return false
         }
-        if (length != type.length || elementType != type.elementTypeId.canonicalName) {
+        if (length != type.length || elementType != type.elementTypeId!!.canonicalName) {
             return false
         }
         value.forEach { arrayElementValue ->
@@ -91,12 +91,12 @@ abstract class RawValue(open val type: String, open val value: Any) {
 
 class RawResultValueAdapter : TypeAdapter<RawValue> {
     override fun classFor(type: Any): KClass<out RawValue> {
-        val nameOfType = type as String
+        val typeName = type as String
         return when {
-            nameOfType.startsWith("map[") -> error("Map result type not supported")
-            nameOfType.startsWith("[]") -> error("Slice result type not supported")
-            nameOfType.startsWith("[") -> ArrayValue::class
-            goPrimitives.map { it.name }.contains(nameOfType) -> PrimitiveValue::class
+            typeName.startsWith("map[") -> error("Map result type not supported")
+            typeName.startsWith("[]") -> error("Slice result type not supported")
+            typeName.startsWith("[") -> ArrayValue::class
+            goPrimitives.map { it.name }.contains(typeName) -> PrimitiveValue::class
             else -> StructValue::class
         }
     }
@@ -246,7 +246,7 @@ private fun createGoUtStructModelFromRawValue(
         GoUtFieldModel(
             createGoUtModelFromRawValue(
                 value.value,
-                fieldId.declaringClass as GoTypeId,
+                fieldId.declaringType,
                 packageName
             ), fieldId
         )
@@ -258,7 +258,7 @@ private fun createGoUtArrayModelFromRawValue(
     resultValue: ArrayValue, resultTypeId: GoArrayTypeId, packageName: String
 ): GoUtArrayModel {
     val value = (0 until resultTypeId.length).associateWith { index ->
-        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId, packageName)
+        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, packageName)
     }.toMutableMap()
     return GoUtArrayModel(value, resultTypeId, packageName)
 }

@@ -1,45 +1,21 @@
 package org.utbot.go.framework.api.go
 
-import org.utbot.framework.plugin.api.*
-
 /**
  * Parent class for all Go types for compatibility with UTBot framework.
  *
  * To see its children check GoTypesApi.kt at org.utbot.go.api.
  */
 abstract class GoTypeId(
-    name: String, elementClassId: GoTypeId? = null, val implementsError: Boolean = false
-) : ClassId(name, elementClassId) {
-    override val isNullable: Boolean
-        get() = error("not supported")
-    override val canonicalName: String
-        get() = error("not supported")
-    override val simpleName: String
-        get() = name
-    override val packageName: String
-        get() = error("not supported")
-    override val isInDefaultPackage: Boolean
-        get() = error("not supported")
-    override val isAnonymous: Boolean
-        get() = error("not supported")
-    override val isLocal: Boolean
-        get() = error("not supported")
-    override val isInner: Boolean
-        get() = error("not supported")
-    override val isNested: Boolean
-        get() = error("not supported")
-    override val isSynthetic: Boolean
-        get() = error("not supported")
-    override val allMethods: Sequence<MethodId>
-        get() = error("not supported")
-    override val allConstructors: Sequence<ConstructorId>
-        get() = error("not supported")
-    override val typeParameters: TypeParameters
-        get() = error("not supported")
-    override val outerClass: Class<*>?
-        get() = error("not supported")
+    val name: String,
+    val elementTypeId: GoTypeId? = null,
+    val implementsError: Boolean = false
+) {
+    open val packageName: String = ""
+    val simpleName: String = name
+    abstract val canonicalName: String
 
     abstract fun getRelativeName(packageName: String): String
+    override fun toString(): String = canonicalName
 }
 
 /**
@@ -48,11 +24,10 @@ abstract class GoTypeId(
  * To see its children check GoUtModelsApi.kt at org.utbot.go.api.
  */
 abstract class GoUtModel(
-    override val classId: GoTypeId,
-) : UtModel(classId) {
+    open val typeId: GoTypeId,
+) {
     open fun getRequiredImports(): Set<String> = emptySet()
     abstract fun isComparable(): Boolean
-    override fun toString(): String = error("not supported")
 }
 
 /**
@@ -61,13 +36,16 @@ abstract class GoUtModel(
 class GoUtFieldModel(
     val model: GoUtModel,
     val fieldId: GoFieldId,
-) : UtModel(fieldId.declaringClass)
+) : GoUtModel(fieldId.declaringType) {
+    override fun getRequiredImports(): Set<String> = model.getRequiredImports()
+    override fun isComparable(): Boolean = model.isComparable()
+}
 
 /**
  * Class for Go struct field.
  */
 class GoFieldId(
-    declaringClass: GoTypeId, name: String, val isExported: Boolean
-) : FieldId(declaringClass, name) {
-    override fun toString(): String = "$name: $declaringClass"
-}
+    val declaringType: GoTypeId,
+    val name: String,
+    val isExported: Boolean
+)

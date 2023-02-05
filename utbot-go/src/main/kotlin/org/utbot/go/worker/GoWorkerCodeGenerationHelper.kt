@@ -56,10 +56,10 @@ internal object GoWorkerCodeGenerationHelper {
     ): String {
         fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
             is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
-                acc + (field.declaringClass as GoTypeId).getAllStructTypes()
+                acc + (field.declaringType).getAllStructTypes()
             }
 
-            is GoArrayTypeId -> elementTypeId.getAllStructTypes()
+            is GoArrayTypeId -> elementTypeId!!.getAllStructTypes()
             else -> emptySet()
         }
 

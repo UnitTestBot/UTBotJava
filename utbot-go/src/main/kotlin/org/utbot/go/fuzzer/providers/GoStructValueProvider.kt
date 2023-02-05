@@ -1,7 +1,5 @@
 package org.utbot.go.fuzzer.providers
 
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
@@ -12,32 +10,30 @@ import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
 
-object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescription> {
+object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
     override fun accept(type: GoTypeId): Boolean = type is GoStructTypeId
 
-    override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, FuzzedValue>> =
+    override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
             type.let { it as GoStructTypeId }.also { structType ->
                 val packageName = description.methodUnderTest.getPackageName()
                 val fields = structType.fields
                     .filter { structType.packageName == packageName || it.isExported }
                 yield(Seed.Recursive(
-                    construct = Routine.Create(fields.map { it.declaringClass as GoTypeId }) { values ->
+                    construct = Routine.Create(fields.map { it.declaringType }) { values ->
                         GoUtStructModel(
                             value = fields.zip(values).map { (field, value) ->
-                                GoUtFieldModel(value.model as GoUtModel, field)
+                                GoUtFieldModel(value, field)
                             },
                             typeId = structType,
                             packageName = packageName,
-                        ).fuzzed {
-                            summary = "%var% = $model"
-                        }
+                        )
                     },
                     modify = sequence {
                         fields.forEachIndexed { index, field ->
-                            yield(Routine.Call(listOf(field.declaringClass as GoTypeId)) { self, values ->
-                                val model = self.model as GoUtStructModel
-                                val value = values.first().model as GoUtModel
+                            yield(Routine.Call(listOf(field.declaringType)) { self, values ->
+                                val model = self as GoUtStructModel
+                                val value = values.first()
                                 (model.value as MutableList)[index] = GoUtFieldModel(value, field)
                             })
                         }
@@ -47,9 +43,7 @@ object GoStructValueProvider : ValueProvider<GoTypeId, FuzzedValue, GoDescriptio
                             value = emptyList(),
                             typeId = structType,
                             packageName = packageName
-                        ).fuzzed {
-                            summary = "%var% = $model"
-                        }
+                        )
                     }
                 ))
             }

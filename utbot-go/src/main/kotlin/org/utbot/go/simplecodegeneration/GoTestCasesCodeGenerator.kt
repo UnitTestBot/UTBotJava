@@ -6,7 +6,6 @@ import org.utbot.go.api.util.doesNotContainNaNOrInf
 import org.utbot.go.api.util.goFloat64TypeId
 import org.utbot.go.api.util.goStringTypeId
 import org.utbot.go.framework.api.go.GoUtModel
-import org.utbot.go.util.goRequiredImports
 
 object GoTestCasesCodeGenerator {
 
@@ -17,8 +16,8 @@ object GoTestCasesCodeGenerator {
             mutableSetOf()
         }
         testCases.forEach { testCase ->
-            testCase.fuzzedParametersValues.forEach {
-                imports += it.goRequiredImports
+            testCase.parametersValues.forEach {
+                imports += it.getRequiredImports()
             }
             when (val executionResult = testCase.executionResult) {
                 is GoUtExecutionCompleted -> {
@@ -74,7 +73,7 @@ object GoTestCasesCodeGenerator {
 
         if (function.resultTypes.isEmpty()) {
             val actualFunctionCall =
-                generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
+                generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.parametersValues)
             val testFunctionBody = "\tassert.NotPanics(t, func() { $actualFunctionCall })\n"
             return "$testFunctionSignatureDeclaration {\n$testFunctionBody}"
         }
@@ -145,15 +144,15 @@ object GoTestCasesCodeGenerator {
         if (expectedModel is GoUtNilModel) {
             return "Nil($assertionTParameter$actualResultCode)"
         }
-        if (doesReturnTypeImplementError && expectedModel.classId == goStringTypeId) {
+        if (doesReturnTypeImplementError && expectedModel.typeId == goStringTypeId) {
             return "ErrorContains($assertionTParameter$actualResultCode, $expectedModel)"
         }
         if (expectedModel is GoUtFloatNaNModel) {
-            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.classId, actualResultCode)
+            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.typeId, actualResultCode)
             return "True(${assertionTParameter}math.IsNaN($castedActualResultCode))"
         }
         if (expectedModel is GoUtFloatInfModel) {
-            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.classId, actualResultCode)
+            val castedActualResultCode = generateCastIfNeed(goFloat64TypeId, expectedModel.typeId, actualResultCode)
             return "True(${assertionTParameter}math.IsInf($castedActualResultCode, ${expectedModel.sign}))"
         }
         val prefix = if (!expectedModel.isComparable()) "Not" else ""
@@ -177,7 +176,7 @@ object GoTestCasesCodeGenerator {
             "func Test${function.name.capitalize()}PanicsByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
         val actualFunctionCall =
-            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
+            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.parametersValues)
         val actualFunctionCallLambda = "func() { $actualFunctionCall }"
         val (expectedPanicValue, isErrorMessage) = (executionResult as GoUtPanicFailure)
         val isPrimitiveWithOkEquals =
@@ -203,7 +202,7 @@ object GoTestCasesCodeGenerator {
     ): String {
         val (fuzzedFunction, executionResult) = testCase
         val actualFunctionCall =
-            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.fuzzedParametersValues)
+            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.parametersValues)
         val exceededTimeoutMillis = (executionResult as GoUtTimeoutExceeded).timeoutMillis
         return "// $actualFunctionCall exceeded $exceededTimeoutMillis ms timeout"
     }

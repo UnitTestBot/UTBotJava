@@ -55,7 +55,10 @@ class GoEngine(
                     serverSocket.accept()
                 } catch (e: SocketTimeoutException) {
                     val processHasExited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
-                    if (!processHasExited) {
+                    if (processHasExited) {
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        throw TimeoutException("Timeout exceeded: Worker not connected. Process output: $processOutput")
+                    } else {
                         process.destroy()
                     }
                     throw TimeoutException("Timeout exceeded: Worker not connected")
@@ -89,7 +92,7 @@ class GoEngine(
                                 eachExecutionTimeoutsMillisConfig[methodUnderTest],
                             )
                             if (executionResult.trace.isEmpty()) {
-                                logger.error { "Coverage is empty for [${methodUnderTest.name}] with ${values.map { it.model }}" }
+                                logger.error { "Coverage is empty for [${methodUnderTest.name}] with $values}" }
                                 if (executionResult is GoUtPanicFailure) {
                                     logger.error { "Execution completed with panic: ${executionResult.panicValue}" }
                                 }

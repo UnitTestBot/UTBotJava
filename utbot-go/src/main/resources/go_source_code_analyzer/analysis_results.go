@@ -9,6 +9,8 @@ type AnalyzedType interface {
 type AnalyzedInterfaceType struct {
 	Name            string `json:"name"`
 	ImplementsError bool   `json:"implementsError"`
+	PackageName     string `json:"packageName"`
+	PackagePath     string `json:"packagePath"`
 }
 
 func (t AnalyzedInterfaceType) GetName() string {

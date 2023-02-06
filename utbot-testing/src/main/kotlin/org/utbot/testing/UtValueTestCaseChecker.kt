@@ -11,22 +11,11 @@ import org.utbot.engine.prettify
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.daysLimitForTempFiles
-import org.utbot.framework.UtSettings.testDisplayName
-import org.utbot.framework.UtSettings.testName
-import org.utbot.framework.UtSettings.testSummary
 import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
 import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.DocClassLinkStmt
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocCustomTagStatement
-import org.utbot.framework.plugin.api.DocMethodLinkStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularLineStmt
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.FieldMockTarget
@@ -99,16 +88,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> check(
@@ -117,16 +100,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> check(
@@ -135,16 +112,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> check(
@@ -153,16 +124,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> check(
@@ -171,16 +136,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check paramsBefore and Result<R>, suitable to check exceptions
@@ -190,17 +149,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkWithException(
@@ -209,17 +162,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkWithException(
@@ -228,17 +175,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkWithException(
@@ -247,17 +188,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkWithException(
@@ -266,17 +201,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check this, paramsBefore and result value
@@ -286,17 +215,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified R> checkWithThis(
@@ -305,17 +228,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkWithThis(
@@ -324,17 +241,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkWithThis(
@@ -343,17 +254,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkWithThis(
@@ -362,17 +267,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkWithThisAndException(
@@ -381,17 +280,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified R> checkWithThisAndException(
@@ -400,17 +293,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkWithThisAndException(
@@ -419,17 +306,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkWithThisAndException(
@@ -438,17 +319,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkWithThisAndException(
@@ -457,17 +332,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisAndException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks paramsBefore, mocks and result value
@@ -477,17 +346,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkMocksInStaticMethod(
@@ -496,17 +359,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMocksInStaticMethod(
@@ -515,17 +372,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocksInStaticMethod(
@@ -534,17 +385,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocksInStaticMethod(
@@ -553,17 +398,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks paramsBefore, mocks and result value
@@ -573,17 +412,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkMocks(
@@ -592,17 +425,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMocks(
@@ -611,17 +438,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocks(
@@ -630,17 +451,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocks(
@@ -649,17 +464,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Mocks, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocks,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check paramsBefore, mocks and instrumentation and result value
@@ -669,17 +478,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkMocksAndInstrumentation(
@@ -688,17 +491,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMocksAndInstrumentation(
@@ -707,17 +504,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMocksAndInstrumentation(
@@ -726,17 +517,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMocksAndInstrumentation(
@@ -745,17 +530,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocksAndInstrumentation,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check this, paramsBefore, mocks, instrumentation and return value
@@ -765,17 +544,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified R> checkMocksInstrumentationAndThis(
@@ -784,17 +557,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkMocksInstrumentationAndThis(
@@ -803,17 +570,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkMocksInstrumentationAndThis(
@@ -822,17 +583,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkMocksInstrumentationAndThis(
@@ -841,17 +596,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, Mocks, Instrumentation, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMocksInstrumentationAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks paramsBefore and return value for static methods
@@ -861,16 +610,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStaticMethod(
@@ -879,16 +622,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticMethod(
@@ -897,16 +634,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticMethod(
@@ -915,16 +646,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticMethod(
@@ -933,16 +658,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks paramsBefore and Result<R>, suitable for exceptions check
@@ -952,17 +671,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStaticMethodWithException(
@@ -971,17 +684,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticMethodWithException(
@@ -990,17 +697,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticMethodWithException(
@@ -1009,17 +710,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticMethodWithException(
@@ -1028,17 +723,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withException,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check arguments, statics and return value
@@ -1048,17 +737,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStatics(
@@ -1067,17 +750,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStatics(
@@ -1086,17 +763,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStatics(
@@ -1105,17 +776,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStatics(
@@ -1124,17 +789,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check arguments, statics and Result<R> for exceptions check
@@ -1144,17 +803,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStaticsAndException(
@@ -1163,17 +816,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticsAndException(
@@ -1182,17 +829,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticsAndException(
@@ -1201,17 +842,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsAndException(
@@ -1220,17 +855,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBeforeAndExceptions,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified R> checkStaticsAfter(
@@ -1239,17 +868,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStaticsAfter(
@@ -1258,17 +881,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticsAfter(
@@ -1277,17 +894,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticsAfter(
@@ -1296,17 +907,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsAfter(
@@ -1315,17 +920,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkThisAndStaticsAfter(
@@ -1334,17 +933,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified R> checkThisAndStaticsAfter(
@@ -1353,17 +946,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkThisAndStaticsAfter(
@@ -1372,17 +959,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkThisAndStaticsAfter(
@@ -1391,17 +972,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkThisAndStaticsAfter(
@@ -1410,17 +985,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisAndStaticsAfter,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks paramsBefore, staticsBefore and return value for static methods
@@ -1430,17 +999,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStaticsInStaticMethod(
@@ -1449,17 +1012,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticsInStaticMethod(
@@ -1468,17 +1025,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticsInStaticMethod(
@@ -1487,17 +1038,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsInStaticMethod(
@@ -1506,17 +1051,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified T5, reified R> checkStaticsInStaticMethod(
@@ -1525,17 +1064,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, T5, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withStaticsBefore,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // check this, arguments and result value
@@ -1545,17 +1078,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified R> checkStaticsWithThis(
@@ -1564,17 +1091,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkStaticsWithThis(
@@ -1583,17 +1104,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkStaticsWithThis(
@@ -1602,17 +1117,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkStaticsWithThis(
@@ -1621,17 +1130,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withThisStaticsBeforeAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkParamsMutationsAndResult(
@@ -1640,17 +1143,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkParamsMutationsAndResult(
@@ -1659,17 +1156,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkParamsMutationsAndResult(
@@ -1678,17 +1169,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkParamsMutationsAndResult(
@@ -1697,17 +1182,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withParamsMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks mutations in the parameters
@@ -1717,17 +1196,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2> checkParamsMutations(
@@ -1736,17 +1209,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T1, T2) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3> checkParamsMutations(
@@ -1755,17 +1222,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T1, T2, T3) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4> checkParamsMutations(
@@ -1774,17 +1235,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, T1, T2, T3, T4) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withParamsMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks mutations in the parameters and statics for static method
@@ -1794,17 +1249,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T> checkStaticMethodMutation(
@@ -1813,17 +1262,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2> checkStaticMethodMutation(
@@ -1832,17 +1275,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3> checkStaticMethodMutation(
@@ -1851,17 +1288,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4> checkStaticMethodMutation(
@@ -1870,17 +1301,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified R> checkStaticMethodMutationAndResult(
@@ -1889,17 +1314,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkStaticMethodMutationAndResult(
@@ -1908,17 +1327,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkStaticMethodMutationAndResult(
@@ -1927,17 +1340,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkStaticMethodMutationAndResult(
@@ -1946,17 +1353,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkStaticMethodMutationAndResult(
@@ -1965,17 +1366,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
 
@@ -1986,17 +1381,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2> checkMutations(
@@ -2005,17 +1394,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3> checkMutations(
@@ -2024,17 +1407,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4> checkMutations(
@@ -2043,17 +1420,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutations,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks mutations in the parameters and statics
@@ -2063,17 +1434,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkMutationsAndResult(
@@ -2082,17 +1447,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkMutationsAndResult(
@@ -2101,17 +1460,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, T1, T2, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkMutationsAndResult(
@@ -2120,17 +1473,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, T1, T2, T3, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkMutationsAndResult(
@@ -2139,17 +1486,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutationsAndResult,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     // checks mutations in this, parameters and statics
@@ -2159,17 +1500,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, T, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified R> checkAllMutationsWithThis(
@@ -2178,17 +1513,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, StaticsType, T, T1, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified R> checkAllMutationsWithThis(
@@ -2197,17 +1526,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, StaticsType, T, T1, T2, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkAllMutationsWithThis(
@@ -2216,17 +1539,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, StaticsType, T, T1, T2, T3, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkAllMutationsWithThis(
@@ -2235,17 +1552,11 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, T, T1, T2, T3, T4, StaticsType) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withMutationsAndThis,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     //region checks substituting statics with symbolic variable or not
@@ -2255,16 +1566,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T, reified R> checkWithoutStaticsSubstitution(
@@ -2273,16 +1578,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified R> checkWithoutStaticsSubstitution(
@@ -2291,16 +1590,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkWithoutStaticsSubstitution(
@@ -2309,16 +1602,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> checkWithoutStaticsSubstitution(
@@ -2327,16 +1614,10 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, R?) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) = internalCheck(
         method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
-        additionalDependencies = additionalDependencies,
-        summaryTextChecks = summaryTextChecks,
-        summaryNameChecks = summaryNameChecks,
-        summaryDisplayNameChecks = summaryDisplayNameChecks
+        additionalDependencies = additionalDependencies
     )
 
     //endregion
@@ -2432,10 +1713,7 @@ abstract class UtValueTestCaseChecker(
         coverageMatcher: CoverageMatcher,
         vararg classes: KClass<*>,
         noinline arguments: (UtValueExecution<*>) -> List<Any?> = ::withResult,
-        additionalDependencies: Array<Class<*>> = emptyArray(),
-        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
-        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
-        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+        additionalDependencies: Array<Class<*>> = emptyArray()
     ) {
         if (UtSettings.checkAllCombinationsForEveryTestInSamples) {
             checkAllCombinations(method)
@@ -2474,21 +1752,6 @@ abstract class UtValueTestCaseChecker(
             }
 
             valueExecutions.checkTypes(R::class, classes.toList())
-
-            if (testSummary) {
-                valueExecutions.checkSummaryMatchers(summaryTextChecks)
-                // todo: Ask Zarina to take a look (Java 11 transition)
-                // valueExecutions.checkCommentsForBasicErrors()
-            }
-            if (testName) {
-                valueExecutions.checkNameMatchers(summaryNameChecks)
-
-                // Disabled due to strange fails in tests for primitive streams
-//                valueExecutions.checkNamesForBasicErrors()
-            }
-            if (testDisplayName) {
-                valueExecutions.checkDisplayNameMatchers(summaryDisplayNameChecks)
-            }
 
             valueExecutions.checkMatchers(matchers, arguments)
             assertTrue(coverageMatcher(coverage)) {
@@ -2538,59 +1801,6 @@ abstract class UtValueTestCaseChecker(
 //        }
 //        assertTrue(notMatchedValues.isEmpty()) { "Values not match to matchers, ${notMatchedValues.prettify()}" }
     }
-
-    fun List<UtValueExecution<*>>.checkSummaryMatchers(summaryTextChecks: List<(List<DocStatement>?) -> Boolean>) {
-        val notMatched = summaryTextChecks.indices.filter { i ->
-            this.none { ex -> summaryTextChecks[i](ex.summary) }
-        }
-        assertTrue(notMatched.isEmpty()) {
-            "Summary matchers ${notMatched.map { it + 1 }} not match for \n${
-                this.joinToString(separator = "\n\n") {
-                    "Next summary start ".padEnd(50, '-') + "\n" +
-                            prettifyDocStatementList(it.summary ?: emptyList())
-                }
-            }"
-        }
-    }
-
-    private fun prettifyDocStatementList(docStmts: List<DocStatement>): String {
-        val flattenStmts = flattenDocStatements(docStmts)
-        return flattenStmts.joinToString(separator = "\n") { "${it.javaClass.simpleName.padEnd(20)} content:$it;" }
-    }
-
-    fun List<UtValueExecution<*>>.checkNameMatchers(nameTextChecks: List<(String?) -> Boolean>) {
-        val notMatched = nameTextChecks.indices.filter { i ->
-            this.none { execution -> nameTextChecks[i](execution.testMethodName) }
-        }
-        assertTrue(notMatched.isEmpty()) {
-            "Test method name matchers ${notMatched.map { it + 1 }} not match for ${map { it.testMethodName }.prettify()}"
-        }
-    }
-
-    fun List<UtValueExecution<*>>.checkDisplayNameMatchers(displayNameTextChecks: List<(String?) -> Boolean>) {
-        val notMatched = displayNameTextChecks.indices.filter { i ->
-            this.none { ex -> displayNameTextChecks[i](ex.displayName) }
-        }
-        assertTrue(notMatched.isEmpty()) {
-            "Test display name matchers ${notMatched.map { it + 1 }} not match for ${map { it.displayName }.prettify()}"
-        }
-    }
-
-//    fun List<UtValueExecution<*>>.checkCommentsForBasicErrors() {
-//        val emptyLines = this.filter {
-//            it.summary?.contains("\n\n") ?: false
-//        }
-//        assertTrue(emptyLines.isEmpty()) { "Empty lines in the comments: ${emptyLines.map { it.summary }.prettify()}" }
-//    }
-
-//    fun List<UtValueExecution<*>>.checkNamesForBasicErrors() {
-//        val wrongASTNodeConversion = this.filter {
-//            it.testMethodName?.contains("null") ?: false
-//        }
-//        assertTrue(wrongASTNodeConversion.isEmpty()) {
-//            "Null in AST node conversion in the names: ${wrongASTNodeConversion.map { it.testMethodName }.prettify()}"
-//        }
-//    }
 
     fun walk(
         method: ExecutableId,
@@ -2676,7 +1886,7 @@ abstract class UtValueTestCaseChecker(
 
 @Suppress("UNCHECKED_CAST")
 // TODO please use matcher.reflect().call(...) when it will be ready, currently call isn't supported in kotlin reflect
-public fun invokeMatcher(matcher: Function<Boolean>, params: List<Any?>) = when (matcher) {
+fun invokeMatcher(matcher: Function<Boolean>, params: List<Any?>) = when (matcher) {
     is Function1<*, *> -> (matcher as Function1<Any?, Boolean>).invoke(params[0])
     is Function2<*, *, *> -> (matcher as Function2<Any?, Any?, Boolean>).invoke(params[0], params[1])
     is Function3<*, *, *, *> -> (matcher as Function3<Any?, Any?, Any?, Boolean>).invoke(
@@ -2808,49 +2018,12 @@ private val UtValueExecution<*>.staticsAfter get() = stateAfter.statics
 
 private val UtValueExecution<*>.evaluatedResult get() = returnValue.getOrNull()
 
-fun keyContain(vararg keys: String) = { summary: String? ->
-    if (summary != null) {
-        keys.all { it in summary }
-    } else false
-}
-
-fun keyMatch(keyText: String) = { summary: String? ->
-    keyText == summary
-}
-
-
-private fun flattenDocStatements(summary: List<DocStatement>): List<DocStatement> {
-    val flatten = mutableListOf<DocStatement>()
-    for (s in summary) {
-        when (s) {
-            is DocPreTagStatement -> flatten.addAll(flattenDocStatements(s.content))
-            is DocClassLinkStmt -> flatten.add(s)
-            is DocMethodLinkStmt -> flatten.add(s)
-            is DocCodeStmt -> flatten.add(s)
-            is DocRegularStmt -> flatten.add(s)
-            is DocRegularLineStmt -> flatten.add(s)
-            is DocCustomTagStatement -> flatten.add(s)
-        }
-    }
-    return flatten
-}
-
-fun keyContain(vararg keys: DocStatement) = { summary: List<DocStatement>? ->
-    summary?.let { keys.all { key -> key in flattenDocStatements(it) } } ?: false
-}
-
-fun keyMatch(keyStmt: List<DocStatement>) = { summary: List<DocStatement>? ->
-    summary?.let { keyStmt == summary } ?: false
-}
-
-
 fun Map<FieldId, UtConcreteValue<*>>.findByName(name: String) = entries.single { name == it.key.name }.value.value
 fun Map<FieldId, UtConcreteValue<*>>.singleValue() = values.single().value
 
 typealias StaticsType = Map<FieldId, UtConcreteValue<*>>
 private typealias Mocks = List<MockInfo>
 private typealias Instrumentation = List<UtInstrumentation>
-
 
 inline fun <reified T> withSettingsFromTestFrameworkConfiguration(
     config: TestFrameworkConfiguration,

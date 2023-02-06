@@ -33,6 +33,7 @@ import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRend
 import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.toPythonRawString
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -128,9 +129,9 @@ class PythonCodeGenerator(
             arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
         )
 
-        val fullpath = CgLiteral(pythonStrClassId, "'${method.moduleFilename.replace("\\", "\\\\")}'")
-        val outputPath = CgLiteral(pythonStrClassId, "'$fileForOutputName'")
-        val databasePath = CgLiteral(pythonStrClassId, "'$coverageDatabasePath'")
+        val fullpath = CgLiteral(pythonStrClassId, method.moduleFilename.toPythonRawString())
+        val outputPath = CgLiteral(pythonStrClassId, fileForOutputName.toPythonRawString())
+        val databasePath = CgLiteral(pythonStrClassId, coverageDatabasePath.toPythonRawString())
 
         val executorCall = CgPythonFunctionCall(
             pythonNoneClassId,

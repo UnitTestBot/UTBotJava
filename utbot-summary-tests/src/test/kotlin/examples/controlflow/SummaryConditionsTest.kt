@@ -51,4 +51,49 @@ class SummaryConditionsTest : SummaryTestCaseGeneratorTest(
 
         summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
+
+    @Test
+    fun testReturnCastFromTernaryOperator() {
+        val summary1 = "@utbot.classUnderTest {@link Conditions}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#returnCastFromTernaryOperator(long,int)}\n" +
+                "@utbot.returnsFrom {@code return (int) (a < 0 ? a + b : a);}\n"
+        val summary2 = "@utbot.classUnderTest {@link Conditions}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#returnCastFromTernaryOperator(long,int)}\n" +
+                "@utbot.returnsFrom {@code return (int) (a < 0 ? a + b : a);}\n"
+        val summary3 = "@utbot.classUnderTest {@link Conditions}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Conditions#returnCastFromTernaryOperator(long,int)}\n" +
+                "@utbot.throwsException {@link java.lang.ArithmeticException} in: a = a % b;\n"
+
+        val methodName1 = "testReturnCastFromTernaryOperator_A0aba"
+        val methodName2 = "testReturnCastFromTernaryOperator_A0aba_1"
+        val methodName3 = "testReturnCastFromTernaryOperator_ThrowArithmeticException"
+
+        val displayName1 = "return (int) (a < 0 ? a + b : a) : False -> return (int) (a < 0 ? a + b : a)"
+        val displayName2 = "return (int) (a < 0 ? a + b : a) : True -> return (int) (a < 0 ? a + b : a)"
+        val displayName3 = "a = a % b -> ThrowArithmeticException"
+
+        val summaryKeys = listOf(
+            summary1,
+            summary2,
+            summary3
+        )
+
+        val displayNames = listOf(
+            displayName1,
+            displayName2,
+            displayName3
+        )
+
+        val methodNames = listOf(
+            methodName1,
+            methodName2,
+            methodName3
+        )
+
+        val method = Conditions::returnCastFromTernaryOperator
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+    }
 }

@@ -188,9 +188,9 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
         val stmts = stmtToASTNode.keys.toTypedArray()
         for (nonAlignedReturn in nonAlignedReturns) {
             val index = stmts.indexOf(nonAlignedReturn)
-            if (index - 1 >= 0 && stmts[index - 1] is JIfStmt) {
-                stmtToASTNode[nonAlignedReturn] = stmtToASTNode[stmts[index - 1]]
-            }
+            val ternaryIfStmtIndex = stmts.indexOfLast { it is JIfStmt && stmts.indexOf(it) <= index }
+
+            stmtToASTNode[nonAlignedReturn] = stmtToASTNode[stmts[ternaryIfStmtIndex]]
         }
     }
 

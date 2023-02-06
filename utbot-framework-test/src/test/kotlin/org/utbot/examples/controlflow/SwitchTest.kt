@@ -1,9 +1,5 @@
 package org.utbot.examples.controlflow
 
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
 import java.math.RoundingMode.CEILING
 import java.math.RoundingMode.DOWN
 import java.math.RoundingMode.HALF_DOWN
@@ -14,25 +10,10 @@ import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withoutMinimization
 import org.utbot.testing.UtValueTestCaseChecker
-import org.utbot.testing.keyContain
-import org.utbot.testing.keyMatch
 
 internal class SwitchTest : UtValueTestCaseChecker(testClass = Switch::class) {
     @Test
     fun testSimpleSwitch() {
-        val switchCaseSummary = listOf<DocStatement>(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("activates switch case: "),
-                    DocCodeStmt("default"),
-                    DocRegularStmt(", "),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return -1;"),
-                    DocRegularStmt("\n"),
-                )
-            )
-        )
         check(
             Switch::simpleSwitch,
             ge(4),
@@ -40,23 +21,6 @@ internal class SwitchTest : UtValueTestCaseChecker(testClass = Switch::class) {
             { x, r -> (x == 11 || x == 12) && r == 12 }, // fall-through has it's own branch
             { x, r -> x == 13 && r == 13 },
             { x, r -> x !in 10..13 && r == -1 }, // one for default is enough
-            summaryTextChecks = listOf(
-                keyContain(DocCodeStmt("return 10;")),
-                keyContain(DocCodeStmt("return 12;")),
-                keyContain(DocCodeStmt("return 12;")),
-                keyContain(DocCodeStmt("return 13;")),
-                keyMatch(switchCaseSummary)
-            ),
-            summaryNameChecks = listOf(
-                keyMatch("testSimpleSwitch_Return10"),
-                keyMatch("testSimpleSwitch_Return13"),
-                keyMatch("testSimpleSwitch_ReturnNegative1"),
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyMatch("switch(x) case: 10 -> return 10"),
-                keyMatch("switch(x) case: 13 -> return 13"),
-                keyMatch("switch(x) case: Default -> return -1"),
-            )
         )
     }
 

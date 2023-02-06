@@ -54,7 +54,7 @@ object GoSourceCodeAnalyzer {
         try {
             writeJsonToFileOrFail(analysisTargets, analysisTargetsFile)
             val environment = System.getenv().toMutableMap().apply {
-                this["Path"] = (this["Path"] ?: "") + ";" + Paths.get(goExecutableAbsolutePath).parent
+                this["Path"] = (this["Path"] ?: "") + File.pathSeparator + Paths.get(goExecutableAbsolutePath).parent
             }
             executeCommandByNewProcessOrFail(
                 goCodeAnalyzerRunCommand,

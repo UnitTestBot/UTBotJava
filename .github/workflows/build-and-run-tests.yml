@@ -30,12 +30,15 @@ jobs:
           - image_name: utbot_java_cli
             directory: utbot-cli
             dockerfile_path: docker/Dockerfile_java_cli
+            extra_options: ""
           - image_name: utbot_js_cli
             directory: utbot-cli-js
             dockerfile_path: docker/Dockerfile_javascript
+            extra_options: "-PbuildType=ALL"
           - image_name: utbot_python_cli
             directory: utbot-cli-python
             dockerfile_path: docker/Dockerfile_Python
+            extra_options: ""
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
@@ -53,7 +56,7 @@ jobs:
     - name: Build UTBot CLI
       run: |
         cd ${{ matrix.configuration.directory }}
-        gradle build --no-daemon --build-cache  --no-parallel -PbuildType=ALL -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}
+        gradle build --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -x test -PsemVer=${{ env.VERSION }}
     - name: Set docker tag
       run:
         SHA=$(echo ${{ github.sha }} | cut -c 1-7)

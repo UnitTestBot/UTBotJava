@@ -7,15 +7,12 @@ fun executeCommandByNewProcessOrFail(
     command: List<String>,
     workingDirectory: File,
     executionTargetName: String,
+    environment: Map<String, String> = System.getenv(),
     helpMessage: String? = null
 ) {
     val helpMessageLine = if (helpMessage == null) "" else "\n\nHELP: $helpMessage"
     val executedProcess = runCatching {
-        val process = ProcessBuilder(command)
-            .redirectOutput(ProcessBuilder.Redirect.PIPE)
-            .redirectErrorStream(true)
-            .directory(workingDirectory)
-            .start()
+        val process = executeCommandByNewProcessOrFailWithoutWaiting(command, workingDirectory, environment)
         process.waitFor()
         process
     }.getOrElse {
@@ -40,9 +37,14 @@ fun executeCommandByNewProcessOrFail(
 
 fun executeCommandByNewProcessOrFailWithoutWaiting(
     command: List<String>,
-    workingDirectory: File
-): Process = ProcessBuilder(command)
-    .redirectOutput(ProcessBuilder.Redirect.PIPE)
-    .redirectErrorStream(true)
-    .directory(workingDirectory)
-    .start()
+    workingDirectory: File,
+    environment: Map<String, String> = System.getenv()
+): Process {
+    val processBuilder = ProcessBuilder(command)
+        .redirectOutput(ProcessBuilder.Redirect.PIPE)
+        .redirectErrorStream(true)
+        .directory(workingDirectory)
+    processBuilder.environment().clear()
+    processBuilder.environment().putAll(environment)
+    return processBuilder.start()
+}

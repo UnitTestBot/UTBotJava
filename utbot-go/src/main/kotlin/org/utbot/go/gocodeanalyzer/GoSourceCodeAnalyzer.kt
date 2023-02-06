@@ -10,6 +10,7 @@ import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import org.utbot.go.util.writeJsonToFileOrFail
 import java.io.File
+import java.nio.file.Paths
 
 object GoSourceCodeAnalyzer {
 
@@ -52,10 +53,14 @@ object GoSourceCodeAnalyzer {
 
         try {
             writeJsonToFileOrFail(analysisTargets, analysisTargetsFile)
+            val environment = System.getenv().toMutableMap().apply {
+                this["Path"] = (this["Path"] ?: "") + ";" + Paths.get(goExecutableAbsolutePath).parent
+            }
             executeCommandByNewProcessOrFail(
                 goCodeAnalyzerRunCommand,
                 goCodeAnalyzerSourceDir,
-                "GoSourceCodeAnalyzer for $analysisTargets"
+                "GoSourceCodeAnalyzer for $analysisTargets",
+                environment
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
             GoPrimitivesValueProvider.intSize = analysisResults.intSize

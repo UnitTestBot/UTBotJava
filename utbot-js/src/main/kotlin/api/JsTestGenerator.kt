@@ -11,6 +11,8 @@ import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
+import fuzzer.defaultFuzzingIdGenerator
+import fuzzer.providers.ObjectValueProvider
 import fuzzer.runFuzzing
 import java.io.File
 import java.util.concurrent.CancellationException
@@ -22,15 +24,20 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
-import parser.JsAstScrapper
+import parser.JsClassAstVisitor
+import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
 import parser.JsParserUtils
 import parser.JsParserUtils.getAbstractFunctionName
@@ -46,6 +53,7 @@ import service.InstrumentationService
 import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
+import settings.JsTestGenerationSettings.dummyClassName
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import utils.PathResolver
 import utils.ResultData
@@ -70,8 +78,6 @@ class JsTestGenerator(
 
     private lateinit var parsedFile: Node
 
-    private lateinit var astScrapper: JsAstScrapper
-
     private val utbotDir = "utbotJs"
 
     init {
@@ -89,7 +95,6 @@ class JsTestGenerator(
      */
     fun run(): String {
         parsedFile = runParser(fileText)
-        astScrapper = JsAstScrapper(parsedFile)
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
@@ -174,6 +179,33 @@ class JsTestGenerator(
                 File(sourceFilePath).parent,
             )
         } ?: ""
+    }
+
+    private fun makeThisInstance(
+        execId: JsMethodId,
+        description: JsMethodDescription
+    ): UtModel? {
+        val thisInstance = when {
+            execId.isStatic -> null
+            execId.classId.allConstructors.first().parameters.isEmpty() -> {
+                val id = defaultFuzzingIdGenerator.createId()
+                val constructor = execId.classId.allConstructors.first()
+                val instantiationCall = UtExecutableCallModel(
+                    instance = null,
+                    executable = constructor,
+                    params = emptyList(),
+                )
+                UtAssembleModel(
+                    id = id,
+                    classId = constructor.classId,
+                    modelName = "${constructor.classId.name}${constructor.parameters}#" + id.toString(16),
+                    instantiationCall = instantiationCall,
+                )
+            }
+
+            else -> ObjectValueProvider().generate(description, execId.classId).first().empty.builder.invoke().model
+        }
+        return thisInstance
     }
 
     private fun getUtModelResult(
@@ -333,11 +365,12 @@ class JsTestGenerator(
     }
 
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {
-        return parentClassName?.let { astScrapper.findMethod(focusedMethodName, parentClassName) }
-            ?: astScrapper.findFunction(focusedMethodName)
-            ?: throw IllegalStateException(
-                "Couldn't locate function \"$focusedMethodName\" with class ${parentClassName ?: ""}"
-            )
+        val visitor = JsFunctionAstVisitor(
+            focusedMethodName,
+            if (parentClassName != dummyClassName) parentClassName else null
+        )
+        visitor.accept(parsedFile)
+        return visitor.targetFunctionNode
     }
 
     private fun getMethodsToTest() =
@@ -348,7 +381,9 @@ class JsTestGenerator(
         }
 
     private fun getClassMethods(className: String): List<Node> {
-        val classNode = astScrapper.findClass(className)
+        val visitor = JsClassAstVisitor(className)
+        visitor.accept(parsedFile)
+        val classNode = JsParserUtils.searchForClassDecl(className, parsedFile)
         return classNode?.getClassMethods() ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

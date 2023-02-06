@@ -144,9 +144,4 @@ object JsParserUtils {
      * Called upon node with Method token.
      */
     fun Node.isStatic(): Boolean = this.isStaticMember
-
-    /**
-     * Checks if node is "required" JavaScript import.
-     */
-    fun Node.isRequireImport(): Boolean = this.isCall && this.firstChild?.string == "require"
 }

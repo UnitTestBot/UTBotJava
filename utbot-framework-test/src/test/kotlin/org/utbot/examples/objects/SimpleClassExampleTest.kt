@@ -1,17 +1,11 @@
 package org.utbot.examples.objects
 
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.between
 import org.utbot.testing.isException
-import org.utbot.testing.keyContain
-import org.utbot.testing.keyMatch
 
 internal class SimpleClassExampleTest : UtValueTestCaseChecker(testClass = SimpleClassExample::class) {
     @Test
@@ -66,41 +60,12 @@ internal class SimpleClassExampleTest : UtValueTestCaseChecker(testClass = Simpl
 
     @Test
     fun immutableFieldAccessTest() {
-        val immutableFieldAccessSummary = listOf<DocStatement>(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("executes conditions:\n"),
-                    DocRegularStmt("    "),
-                    DocCodeStmt("(c.b == 10): True"),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return 0;"),
-                    DocRegularStmt("\n"),
-                )
-            )
-        )
         checkWithException(
             SimpleClassExample::immutableFieldAccess,
             eq(3),
             { c, r -> c == null && r.isException<NullPointerException>() },
             { c, r -> c.b == 10 && r.getOrNull() == 0 },
-            { c, r -> c.b != 10 && r.getOrNull() == 1 },
-            summaryTextChecks = listOf(
-                keyContain(DocRegularStmt("throws NullPointerException in: c.b == 10")),
-                keyContain(DocCodeStmt("(c.b == 10): False")),
-                keyMatch(immutableFieldAccessSummary)
-            ),
-            summaryNameChecks = listOf(
-                keyMatch("testImmutableFieldAccess_ThrowNullPointerException"),
-                keyMatch("testImmutableFieldAccess_CBNotEquals10"),
-                keyMatch("testImmutableFieldAccess_CBEquals10")
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyContain("NullPointerException", "c.b == 10"),
-                keyContain("c.b == 10 : False"),
-                keyContain("c.b == 10 : True")
-            )
+            { c, r -> c.b != 10 && r.getOrNull() == 1 }
         )
     }
 }

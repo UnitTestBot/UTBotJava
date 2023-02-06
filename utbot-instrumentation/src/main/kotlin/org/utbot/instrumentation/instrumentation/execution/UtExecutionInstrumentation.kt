@@ -98,11 +98,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 // invariants:
                 // 1. phase must always complete if started as static reset relies on it
                 // 2. phase must be fast as there are no incremental changes
-                postprocessingPhase.savedStatics = preparationPhase.start {
+                postprocessingPhase.setStaticFields(preparationPhase.start {
                     val result = setStaticFields(statics)
                     resetTrace()
                     result
-                }
+                })
 
                 // invocation
                 val concreteResult = executePhaseInTimeout(invocationPhase) {

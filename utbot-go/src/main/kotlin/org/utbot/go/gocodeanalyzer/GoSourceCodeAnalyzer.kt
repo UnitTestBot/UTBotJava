@@ -75,7 +75,6 @@ object GoSourceCodeAnalyzer {
                         analyzedFunction.modifiedName,
                         parameters,
                         resultTypes,
-                        emptyList(), // TODO: extract concrete values from function's body
                         analyzedFunction.modifiedFunctionForCollectingTraces,
                         analyzedFunction.numberOfAllStatements,
                         sourceFile

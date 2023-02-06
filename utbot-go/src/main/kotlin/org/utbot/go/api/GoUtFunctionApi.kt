@@ -19,7 +19,6 @@ data class GoUtFunction(
     val modifiedName: String,
     val parameters: List<GoUtFunctionParameter>,
     val resultTypes: List<GoTypeId>,
-    val concreteValues: Collection<FuzzedConcreteValue>,
     val modifiedFunctionForCollectingTraces: String,
     val numberOfAllStatements: Int,
     val sourceFile: GoUtFile

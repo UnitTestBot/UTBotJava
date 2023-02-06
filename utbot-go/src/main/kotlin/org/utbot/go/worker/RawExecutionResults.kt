@@ -17,9 +17,11 @@ data class PrimitiveValue(
         if (!type.isPrimitiveGoType && type !is GoInterfaceTypeId && !type.implementsError) {
             return false
         }
+        // byte is an alias for uint8 and rune is an alias for int32
         if (this.type == "uint8" && type == goByteTypeId || this.type == "int32" && type == goRuneTypeId) {
             return true
         }
+        // for error support
         if (this.type == "string" && type is GoInterfaceTypeId && type.implementsError) {
             return true
         }
@@ -75,12 +77,7 @@ data class ArrayValue(
         if (length != type.length || elementType != type.elementTypeId!!.canonicalName) {
             return false
         }
-        value.forEach { arrayElementValue ->
-            if (!arrayElementValue.checkIsEqualTypes(type.elementTypeId)) {
-                return false
-            }
-        }
-        return true
+        return value.all { it.checkIsEqualTypes(type.elementTypeId) }
     }
 }
 
@@ -243,13 +240,7 @@ private fun createGoUtStructModelFromRawValue(
     resultValue: StructValue, resultTypeId: GoStructTypeId, packageName: String
 ): GoUtStructModel {
     val value = resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
-        GoUtFieldModel(
-            createGoUtModelFromRawValue(
-                value.value,
-                fieldId.declaringType,
-                packageName
-            ), fieldId
-        )
+        GoUtFieldModel(createGoUtModelFromRawValue(value.value, fieldId.declaringType, packageName), fieldId)
     }
     return GoUtStructModel(value, resultTypeId, packageName)
 }

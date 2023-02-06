@@ -44,7 +44,12 @@ class GoStructTypeId(
         return packagePath == other.packagePath && packageName == other.packageName && name == other.name
     }
 
-    override fun hashCode(): Int = 31 * name.hashCode() + packagePath.hashCode()
+    override fun hashCode(): Int {
+        var result = packagePath.hashCode()
+        result = 31 * result + packageName.hashCode()
+        result = 31 * result + name.hashCode()
+        return result
+    }
 }
 
 class GoArrayTypeId(
@@ -87,10 +92,15 @@ class GoInterfaceTypeId(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is GoStructTypeId) return false
+        if (other !is GoInterfaceTypeId) return false
 
         return packagePath == other.packagePath && packageName == other.packageName && name == other.name
     }
 
-    override fun hashCode(): Int = 31 * name.hashCode() + packagePath.hashCode()
+    override fun hashCode(): Int {
+        var result = packagePath.hashCode()
+        result = 31 * result + packageName.hashCode()
+        result = 31 * result + name.hashCode()
+        return result
+    }
 }

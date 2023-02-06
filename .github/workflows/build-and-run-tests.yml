@@ -33,11 +33,11 @@ jobs:
             extra_options: ""
           - image_name: utbot_js_cli
             directory: utbot-cli-js
-            dockerfile_path: docker/Dockerfile_javascript
+            dockerfile_path: docker/Dockerfile_js_cli
             extra_options: "-PbuildType=ALL"
           - image_name: utbot_python_cli
             directory: utbot-cli-python
-            dockerfile_path: docker/Dockerfile_Python
+            dockerfile_path: docker/Dockerfile_python_cli
             extra_options: ""
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0

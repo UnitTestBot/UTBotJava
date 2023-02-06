@@ -105,12 +105,12 @@ class BasicCoverageService(
                 val (_, errorText) =
                     JsCmdExec.runCommand(
                         cmd = arrayOf(
-                            settings.pathToNYC,
-                            "--report-dir=$utbotDirPath/coverage$index",
+                            "\"${settings.pathToNYC}\"",
+                            "--report-dir=\"$utbotDir/coverage$index\"",
                             "--reporter=json",
-                            "--temp-dir=$utbotDirPath/cache$index",
-                            "node",
-                            filePath
+                            "--temp-dir=\"$utbotDir/cache$index\"",
+                            "\"${settings.pathToNode}\"",
+                            "\"$filePath\""
                         ),
                         shouldWait = true,
                         dir = context.projectPath,

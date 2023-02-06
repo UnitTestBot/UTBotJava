@@ -81,7 +81,7 @@ test("${context.filePathToInference}")
         JsCmdExec.runCommand(
             dir = path,
             shouldWait = true,
-            cmd = arrayOf(context.settings.pathToNPM, "i", "tern", "-l")
+            cmd = arrayOf("\"${context.settings.pathToNPM}\"", "i", "tern", "-l")
         )
     }
 
@@ -97,7 +97,7 @@ test("${context.filePathToInference}")
                 dir = "$projectPath/$utbotDir/",
                 shouldWait = true,
                 timeout = 20,
-                cmd = arrayOf(settings.pathToNode, "${projectPath}/$utbotDir/ternScript.js"),
+                cmd = arrayOf("\"${settings.pathToNode}\"", "\"${projectPath}/$utbotDir/ternScript.js\""),
             )
             json = try {
                 JSONObject(inputText.replaceAfterLast("}", ""))

@@ -3,6 +3,8 @@ package org.utbot.intellij.plugin.language.python
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.readAction
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -50,8 +52,16 @@ object PythonDialogProcessor {
         functionsToShow: Set<PyFunction>,
         containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        file: PyFile
+        file: PyFile,
+        editor: Editor? = null,
     ) {
+        editor?.let{
+            runWriteAction {
+                with(FileDocumentManager.getInstance()) {
+                    saveDocument(it.document)
+                }
+            }
+        }
         val pythonPath = getPythonPath(functionsToShow)
         if (pythonPath == null) {
             showErrorDialogLater(
@@ -155,7 +165,6 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
-
                     val methods = findSelectedPythonMethods(model)
 
                     processTestGeneration(
@@ -290,7 +299,6 @@ fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 /*
  * Returns set of sys paths and tested file import path
  */
-
 fun getDirectoriesForSysPath(
     srcModule: Module,
     file: PyFile

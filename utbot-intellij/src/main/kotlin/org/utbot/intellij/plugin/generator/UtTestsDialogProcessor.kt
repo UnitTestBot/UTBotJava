@@ -156,7 +156,7 @@ object UtTestsDialogProcessor {
                             .command(
                                 "java",
                                 "-jar",
-                                ".\\build\\libs\\utbot-spring-analyzer-2023.02-SNAPSHOT.jar",
+                                "C:\\UtBot\\UTBotJava\\utbot-spring-analyzer\\build\\libs\\utbot-spring-analyzer-2023.02-SNAPSHOT.jar",
                                 "D:\\Projects\\spring-starter-lesson-28\\build\\classes\\java\\main",
                                 "com.dmdev.spring.config.ApplicationConfiguration"
                             ).start()

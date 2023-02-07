@@ -28,12 +28,12 @@ jobs:
       matrix:
         configuration:
           # image_name has to be the same as ARG in Dockerfile but in lowercase
-          - image_name: utbot_java_cli
-            directory: utbot-cli
-            extra_options: ""
-          - image_name: utbot_js_cli
-            directory: utbot-cli-js
-            extra_options: "-PbuildType=ALL"
+#          - image_name: utbot_java_cli
+#            directory: utbot-cli
+#            extra_options: ""
+#          - image_name: utbot_js_cli
+#            directory: utbot-cli-js
+#            extra_options: "-PbuildType=ALL"
           - image_name: utbot_python_cli
             directory: utbot-cli-python
             extra_options: ""

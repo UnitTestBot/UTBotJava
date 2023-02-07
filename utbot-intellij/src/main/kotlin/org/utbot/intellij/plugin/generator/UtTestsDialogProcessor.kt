@@ -47,7 +47,9 @@ import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.assertIsNonDispatchThread
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.rd.terminateOnException
+import org.utbot.spring.beans.SpringBeansAnalyzer
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
@@ -146,6 +148,24 @@ object UtTestsDialogProcessor {
                     fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 
                     try {
+                        val tempDirectory = Files.createTempDirectory(
+                                Paths.get("D:\\Projects\\spring-starter-lesson-28\\build"),
+                            "utbot-spring-analyzer-"
+                            ).toFile()
+                        val springAnalysisProcess = ProcessBuilder().directory(tempDirectory)
+                            .command(
+                                "java",
+                                "-jar",
+                                ".\\build\\libs\\utbot-spring-analyzer-2023.02-SNAPSHOT.jar",
+                                "D:\\Projects\\spring-starter-lesson-28\\build\\classes\\java\\main",
+                                "com.dmdev.spring.config.ApplicationConfiguration"
+                            ).start()
+                        springAnalysisProcess.waitFor()
+
+                        val beansFile = tempDirectory.resolve("SpringBeans.txt")
+                        println("Beans have been written to file ${beansFile.toPath()}")
+
+
                         logger.info { "Collecting information phase started at ${now()}" }
                         val secondsTimeout = TimeUnit.MILLISECONDS.toSeconds(model.timeout)
 

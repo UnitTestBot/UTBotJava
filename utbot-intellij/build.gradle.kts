@@ -156,6 +156,7 @@ dependencies {
     }
 
     implementation(project(":utbot-android-studio"))
+    implementation(project(":utbot-spring-analyzer"))
 
     testImplementation("com.intellij.remoterobot:remote-robot:$remoteRobotVersion")
     testImplementation("com.intellij.remoterobot:remote-fixtures:$remoteRobotVersion")

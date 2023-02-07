@@ -1,6 +1,5 @@
 FROM azul/zulu-openjdk:11.0.15-11.56.19
 
-ARG UTBOT_JAVASCRIPT_CLI
 ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /usr/src/
@@ -16,7 +15,8 @@ RUN apt-get update \
 
 # Install UTBot Javascript CLI
 
-COPY ${UTBOT_JAVASCRIPT_CLI} .
+ARG UTBOT_JS_CLI
+COPY ${UTBOT_JS_CLI} .
 
-RUN UTBOT_JAVASCRIPT_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
-    && ln -s "${UTBOT_JAVASCRIPT_CLI_PATH}" /usr/src/utbot-cli.jar \
+RUN UTBOT_JS_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
+    && ln -s "${UTBOT_JS_CLI_PATH}" /usr/src/utbot-cli.jar \

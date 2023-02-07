@@ -1,6 +1,5 @@
 FROM azul/zulu-openjdk:11.0.15-11.56.19
 
-ARG UTBOT_JAVA_CLI
 ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /usr/src/
@@ -22,6 +21,7 @@ RUN wget --no-verbose https://github.com/JetBrains/kotlin/releases/download/v${K
 
 # Install UTBot Java CLI
 
+ARG UTBOT_JAVA_CLI
 COPY ${UTBOT_JAVA_CLI} .
 
 RUN UTBOT_JAVA_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \

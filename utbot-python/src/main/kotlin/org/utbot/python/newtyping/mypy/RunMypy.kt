@@ -3,7 +3,6 @@ package org.utbot.python.newtyping.mypy
 import mu.KotlinLogging
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
-import org.utbot.python.newtyping.*
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
 import java.io.File
@@ -28,7 +27,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--config",
             configFile.absolutePath,
             "--sources",
-            sourcePath,
+            sourcePath.modifyWindowsPath(),
             "--modules",
             module,
             "--annotations_out",
@@ -75,7 +74,7 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
     val file = TemporaryFileManager.assignTemporaryFile(configFilename)
     val configContent = """
             [mypy]
-            mypy_path = ${directoriesForSysPath.joinToString(separator = ":")}
+            mypy_path = ${directoriesForSysPath.joinToString(separator = ":") { it.modifyWindowsPath() } }
             namespace_packages = True
             explicit_package_bases = True
             show_absolute_path = True

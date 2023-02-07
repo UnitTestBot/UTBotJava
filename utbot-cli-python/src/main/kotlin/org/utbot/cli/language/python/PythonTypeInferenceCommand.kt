@@ -7,10 +7,11 @@ import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
-import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.inference.TypeInferenceProcessor
-import org.utbot.python.utils.*
+import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.utils.Fail
 import org.utbot.python.utils.RequirementsUtils.requirements
+import org.utbot.python.utils.Success
 
 private val logger = KotlinLogging.logger {}
 
@@ -33,7 +34,7 @@ class PythonTypeInferenceCommand : CliktCommand(
 
     private val pythonPath by option(
         "-p", "--python-path",
-        help = "(required) Path to Python interpreter."
+        help = "(required) Path to Python interpreter. Use only UNC format on Windows."
     ).required()
 
     private val timeout by option(
@@ -43,7 +44,7 @@ class PythonTypeInferenceCommand : CliktCommand(
 
     private val directoriesForSysPath by option(
         "-s", "--sys-path",
-        help = "(required) Directories to add to sys.path. " +
+        help = "(required) Directories to add to sys.path. Use only UNC format on Windows. " +
                 "One of directories must contain the file with the methods under test."
     ).split(",").required()
 

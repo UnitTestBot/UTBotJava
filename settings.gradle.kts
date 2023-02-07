@@ -5,6 +5,7 @@ val pythonIde: String by settings
 val jsIde: String by settings
 val jsBuild: String by settings
 val includeRiderInBuild: String by settings
+val goIde: String by settings
 
 pluginManagement {
     resolutionStrategy {
@@ -63,4 +64,10 @@ if (jsBuild == buildType) {
 
 if (jsIde.split(",").contains(ideType)) {
     include("utbot-intellij-js")
+}
+
+if (goIde.split(",").contains(ideType)) {
+    include("utbot-go")
+    include("utbot-cli-go")
+    include("utbot-intellij-go")
 }

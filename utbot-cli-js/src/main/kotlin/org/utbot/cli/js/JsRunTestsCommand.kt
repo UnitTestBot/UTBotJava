@@ -42,7 +42,7 @@ class JsRunTestsCommand : CliktCommand(name = "run_js", help = "Runs tests for t
                 val (inputText, errorText) = JsCmdExec.runCommand(
                     dir = dir,
                     shouldWait = true,
-                    cmd = arrayOf("mocha", fileWithTestsAbsolutePath)
+                    cmd = arrayOf("mocha", "\"$fileWithTestsAbsolutePath\"")
                 )
                 if (errorText.isNotEmpty()) {
                     logger.error { "An error has occurred while running tests for $fileWithTests: $errorText" }

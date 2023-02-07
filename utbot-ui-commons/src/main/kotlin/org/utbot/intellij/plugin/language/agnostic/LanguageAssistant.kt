@@ -37,7 +37,7 @@ abstract class LanguageAssistant {
                 // The action is being called from 'Project' tool window
                 val language = when (val element = e.getData(CommonDataKeys.PSI_ELEMENT)) {
                     is PsiFileSystemItem -> {
-                         e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
+                        e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
                             findLanguageRecursively(project, it)
                         }
                     }
@@ -99,6 +99,7 @@ private fun loadWithException(language: Language): Class<*>? {
         return when (language.id) {
             "Python" -> Class.forName("org.utbot.intellij.plugin.language.python.PythonLanguageAssistant")
             "ECMAScript 6" -> Class.forName("org.utbot.intellij.plugin.language.js.JsLanguageAssistant")
+            "go" -> Class.forName("org.utbot.intellij.plugin.language.go.GoLanguageAssistant")
             "JAVA", "kotlin" -> Class.forName("org.utbot.intellij.plugin.language.JvmLanguageAssistant")
             else -> error("Unknown language id: ${language.id}")
         }

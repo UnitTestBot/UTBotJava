@@ -9,9 +9,11 @@ val kotlinPluginVersion: String? by rootProject
 
 val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
+val goPluginVersion: String? by rootProject
 
 val pythonIde: String? by rootProject
 val jsIde: String? by rootProject
+val goIde: String? by rootProject
 
 val sootVersion: String? by rootProject
 val kryoVersion: String? by rootProject
@@ -49,6 +51,10 @@ intellij {
         "JavaScript"
     )
 
+    val goPlugins = listOf(
+        "org.jetbrains.plugins.go:${goPluginVersion}"
+    )
+
     val mavenUtilsPlugins = listOf(
         "org.jetbrains.idea.maven"
     )
@@ -56,7 +62,7 @@ intellij {
     plugins.set(
         when (ideType) {
             "IC" -> jvmPlugins + pythonCommunityPlugins + androidPlugins + mavenUtilsPlugins
-            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + androidPlugins + mavenUtilsPlugins
+            "IU" -> jvmPlugins + pythonUltimatePlugins + jsPlugins + goPlugins + androidPlugins + mavenUtilsPlugins
             "PC" -> pythonCommunityPlugins
             "PY" -> pythonUltimatePlugins // something else, JS?
             else -> jvmPlugins
@@ -153,6 +159,11 @@ dependencies {
     if (jsIde?.split(',')?.contains(ideType) == true) {
         implementation(project(":utbot-js"))
         implementation(project(":utbot-intellij-js"))
+    }
+
+    if (goIde?.split(',')?.contains(ideType) == true) {
+        implementation(project(":utbot-go"))
+        implementation(project(":utbot-intellij-go"))
     }
 
     implementation(project(":utbot-android-studio"))

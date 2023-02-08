@@ -3,12 +3,14 @@ package org.utbot.rd
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.impl.RdCall
 import com.jetbrains.rd.framework.util.launch
+import com.jetbrains.rd.util.LogLevel
 import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.info
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.plusAssign
+import com.jetbrains.rd.util.reactive.adviseEternal
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import com.jetbrains.rd.util.trace
 import kotlinx.coroutines.CancellationException
@@ -17,6 +19,7 @@ import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.common.*
 import org.utbot.rd.generated.synchronizationModel
+import org.utbot.rd.loggers.withLevel
 import java.io.File
 import kotlin.time.Duration
 
@@ -98,6 +101,21 @@ class IdleWatchdog(private val ldef: LifetimeDefinition, val timeout: Duration) 
         }
     }
 
+    /**
+     * Adds callback to RdCall with indicating that during this activity process should not die.
+     * After block ended - idle timer restarts.
+     * Also additonally logs
+     */
+    fun <T, R> measureTimeForActiveCall(call: RdCall<T, R>, requestName: String, level: LogLevel = LogLevel.Debug, block: (T) -> R) {
+        call.set { it ->
+            logger.withLevel(level).measureTime({ requestName }) {
+                wrapActive {
+                    block(it)
+                }
+            }
+        }
+    }
+
     suspend fun setupTimeout() {
         ldef.launch {
             var lastState = State.ENDED
@@ -162,6 +180,7 @@ class ClientProtocolBuilder {
                 clientProtocol.synchronizationModel.suspendTimeoutTimer.set { param ->
                     watchdog.suspendTimeout = param
                 }
+                clientProtocol.synchronizationModel.stopProcess.adviseEternal { _ -> watchdog.stopProtocol() }
                 clientProtocol.block(watchdog)
             }
 

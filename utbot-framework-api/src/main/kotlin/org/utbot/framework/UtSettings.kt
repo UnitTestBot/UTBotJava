@@ -1,6 +1,5 @@
 package org.utbot.framework
 
-import com.jetbrains.rd.util.LogLevel
 import java.io.File
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
@@ -324,11 +323,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
      */
     var runInstrumentedProcessWithDebug by getBooleanProperty(false)
-
-    /**
-     * Log level for instrumented process.
-     */
-    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
 // endregion
 
     /**

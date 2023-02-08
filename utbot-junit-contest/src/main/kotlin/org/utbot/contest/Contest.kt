@@ -3,7 +3,7 @@ package org.utbot.contest
 import mu.KotlinLogging
 import org.objectweb.asm.Type
 import org.utbot.common.FileUtil
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.filterWhen
 import org.utbot.common.info
 import org.utbot.common.isAbstract
@@ -57,7 +57,7 @@ import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isSynthetic
 import org.utbot.framework.util.jimpleBody
-import org.utbot.summary.summarize
+import org.utbot.summary.summarizeAll
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -118,7 +118,7 @@ fun main(args: Array<String>) {
         // This saves the time budget for real work instead of soot initialization.
         TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
 
-        logger.info().bracket("warmup: kotlin reflection :: init") {
+        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
         }
@@ -198,10 +198,10 @@ fun runGeneration(
     if (runFromEstimator) {
         setOptions()
         //will not be executed in real contest
-        logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
+        logger.info().measureTime({ "warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)" }) {
             TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
         }
-        logger.info().bracket("warmup (first): kotlin reflection :: init") {
+        logger.info().measureTime({ "warmup (first): kotlin reflection :: init" }) {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
         }
@@ -228,9 +228,9 @@ fun runGeneration(
             cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
         )
 
-    logger.info().bracket("class ${cut.fqn}", { statsForClass }) {
+    logger.info().measureTime({ "class ${cut.fqn}" }, { statsForClass }) {
 
-        val filteredMethods = logger.info().bracket("preparation class ${cut.clazz}: kotlin reflection :: run") {
+        val filteredMethods = logger.info().measureTime({ "preparation class ${cut.clazz}: kotlin reflection :: run" }) {
             prepareClass(cut.clazz, methodNameFilter)
         }
 
@@ -240,7 +240,7 @@ fun runGeneration(
         if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
         val testCaseGenerator =
-            logger.info().bracket("2nd optional soot initialization") {
+            logger.info().measureTime({ "2nd optional soot initialization" }) {
                 TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
             }
 
@@ -313,7 +313,7 @@ fun runGeneration(
 
 
                     var testsCounter = 0
-                    logger.info().bracket("method $method", { statsForMethod }) {
+                    logger.info().measureTime({ "method $method" }, { statsForMethod }) {
                         logger.info {
                             " -- Remaining time budget: $remainingBudget ms, " +
                                     "#remaining_methods: $remainingMethodsCount, " +
@@ -403,10 +403,9 @@ fun runGeneration(
 
         val testSets = testsByMethod.map { (method, executions) ->
             UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody(method))
-                .summarize(cut.classfileDir.toPath(), sourceFile = null)
-        }
+        }.summarizeAll(cut.classfileDir.toPath(), sourceFile = null)
 
-        logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
+        logger.info().measureTime({ "Flushing tests for [${cut.simpleName}] on disk" }) {
             writeTestClass(cut, codeGenerator.generateAsString(testSets))
         }
         //write classes

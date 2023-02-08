@@ -1,10 +1,11 @@
 package org.utbot.instrumentation.instrumentation.execution.phases
 
 import com.jetbrains.rd.util.getLogger
+import org.utbot.common.measureTime
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
-import org.utbot.rd.logMeasure
+import org.utbot.rd.loggers.debug
 
-private val logger = getLogger("ExecutionPhase")
+private val logger = getLogger<ExecutionPhase>()
 
 abstract class ExecutionPhaseException(override val message: String) : Exception()
 
@@ -20,7 +21,7 @@ interface ExecutionPhase {
 
 fun <T : ExecutionPhase, R> T.start(block: T.() -> R): R =
     try {
-        logger.logMeasure(this.javaClass.simpleName) {
+        logger.debug().measureTime({ this.javaClass.simpleName } ) {
             this.block()
         }
     } catch (e: ExecutionPhaseStop) {

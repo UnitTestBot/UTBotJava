@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -14,6 +15,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
+import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.code.MemoryDump
 import org.utbot.python.code.toPythonTree
 import org.utbot.python.evaluation.PythonCodeExecutor
@@ -178,10 +180,10 @@ class PythonEngine(
             parameters,
             fuzzedConcreteValues,
             pythonTypeStorage,
+            Trie(Instruction::id)
         )
 
         val coveredLines = initialCoveredLines.toMutableSet()
-        var sourceLinesCount = Long.MAX_VALUE
 
         PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
             if (isCancelled()) {
@@ -194,8 +196,6 @@ class PythonEngine(
             }
 
             val codeExecutor = constructEvaluationInput(arguments, additionalModules)
-            //            val jobResult = evaluationInput.evaluate()
-
             when (val evaluationResult = codeExecutor.run()) {
                 is PythonEvaluationError -> {
                     val utError = UtError(
@@ -214,35 +214,28 @@ class PythonEngine(
                 }
 
                 is PythonEvaluationSuccess -> {
-                    evaluationResult.coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
-                    val instructionsCount = evaluationResult.coverage.instructionsCount
-                    if (instructionsCount != null) {
-                        sourceLinesCount = instructionsCount
-                    }
+                    val coveredInstructions = evaluationResult.coverage.coveredInstructions
+                    coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
 
                     val summary = arguments
                         .zip(methodUnderTest.arguments)
                         .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
                     val hasThisObject = codeExecutor.methodArguments.thisObject != null
-                    val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)
-                    emit(result)
 
-                    if (coveredLines.size.toLong() == sourceLinesCount) {
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                    }
-
-                    when (result) {
+                    when (val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)) {
                         is ValidExecution -> {
-                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                            logger.debug { arguments }
+                            val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
+                            emit(result)
+                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE, result = trieNode)
                         }
-                        is ArgumentsTypeErrorFeedback -> {
-                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
-                        }
-                        is TypeErrorFeedback -> {
+                        is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
+                            emit(result)
                             return@PythonFuzzing PythonFeedback(control = Control.PASS)
                         }
                         is InvalidExecution -> {
+                            emit(result)
                             return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                         }
                     }

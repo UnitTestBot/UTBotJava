@@ -1,6 +1,7 @@
 package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzing.Configuration
@@ -10,6 +11,7 @@ import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.Statistic
+import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.provider.BoolValueProvider
 import org.utbot.python.fuzzing.provider.BytearrayValueProvider
@@ -47,20 +49,13 @@ class PythonMethodDescription(
     parameters: List<Type>,
     val concreteValues: Collection<PythonFuzzedConcreteValue> = emptyList(),
     val pythonTypeStorage: PythonTypeStorage,
+    val tracer: Trie<Instruction, *>,
 ) : Description<Type>(parameters)
 
-class PythonFeedback(
-    override val control: Control = Control.CONTINUE
-) : Feedback<Type, PythonFuzzedValue> {
-    override fun equals(other: Any?): Boolean {
-        val castOther = other as? PythonFeedback
-        return control == castOther?.control
-    }
-
-    override fun hashCode(): Int {
-        return control.hashCode()
-    }
-}
+data class PythonFeedback(
+    override val control: Control = Control.CONTINUE,
+    val result: Trie.Node<Instruction> = Trie.emptyNode(),
+) : Feedback<Type, PythonFuzzedValue>
 
 class PythonFuzzedValue(
     val tree: PythonTree.PythonTreeNode,

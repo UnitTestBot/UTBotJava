@@ -11,7 +11,7 @@ import org.utbot.framework.process.generated.GenerateParams
 /**
  * Constructs [TestFlow] for customization and creates flow producer.
  */
-fun testFlow(block: TestFlow.() -> Unit): UtBotSymbolicEngine.() -> Flow<UtResult> =  { TestFlow(block).build(this) }
+fun testFlow(block: TestFlow.() -> Unit): UtBotSymbolicEngine.() -> Flow<UtResult> =  { TestFlow(block, this).build(this) }
 
 /**
  * Creates default flow that uses [UtSettings] for customization.
@@ -45,7 +45,7 @@ fun defaultTestFlow(engine: UtBotSymbolicEngine, timeout: Long) = defaultTestFlo
  *
  * Use [testFlow] to set a custom test flow or [defaultTestFlow] to create flow based on [UtSettings].
  */
-class TestFlow internal constructor(block: TestFlow.() -> Unit) {
+class TestFlow internal constructor(block: TestFlow.() -> Unit, val engine: UtBotSymbolicEngine) {
     var generationTimeout = 0L
         set(value) {
             field = maxOf(0, value)

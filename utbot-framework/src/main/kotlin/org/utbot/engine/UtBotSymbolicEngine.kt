@@ -112,6 +112,12 @@ class UtBotSymbolicEngine(
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
 
+    val stateListeners:MutableList<StateListener> = mutableListOf();
+
+    fun addListener(listener: StateListener):Unit {
+        stateListeners.add(listener)
+    }
+
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
@@ -323,6 +329,8 @@ class UtBotSymbolicEngine(
 
                     // TODO: think about concise modifying globalGraph in Traverser and UtBotSymbolicEngine
                     globalGraph.visitNode(state)
+
+                    stateListeners.forEach{l -> l.visit(state)};
                 }
             }
         }

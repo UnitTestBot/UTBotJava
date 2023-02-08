@@ -22,52 +22,52 @@ rootProject.name = "utbot"
 include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
-include("utbot-intellij")
+//include("utbot-intellij")
 include("utbot-sample")
 include("utbot-java-fuzzing")
 include("utbot-fuzzing")
-include("utbot-junit-contest")
-include("utbot-analytics")
-include("utbot-analytics-torch")
+//include("utbot-junit-contest")
+//include("utbot-analytics")
+//include("utbot-analytics-torch")
 
-include("utbot-cli")
+//include("utbot-cli")
 
 include("utbot-api")
 include("utbot-instrumentation")
 include("utbot-instrumentation-tests")
 
 include("utbot-summary")
-include("utbot-gradle")
-include("utbot-maven")
-include("utbot-summary-tests")
+//include("utbot-gradle")
+//include("utbot-maven")
+//include("utbot-summary-tests")
 include("utbot-framework-test")
 include("utbot-testing")
 include("utbot-rd")
-include("utbot-android-studio")
+//include("utbot-android-studio")
 
 if (includeRiderInBuild.toBoolean()) {
     include("utbot-rider")
 }
 
-include("utbot-ui-commons")
+//include("utbot-ui-commons")
 
-if (pythonIde.split(",").contains(ideType)) {
-    include("utbot-python")
-    include("utbot-cli-python")
-    include("utbot-intellij-python")
-    include("utbot-python-parser")
-}
+//if (pythonIde.split(",").contains(ideType)) {
+//    include("utbot-python")
+//    include("utbot-cli-python")
+//    include("utbot-intellij-python")
+//    include("utbot-python-parser")
+//}
 
-if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
-    include("utbot-js")
-    include("utbot-cli-js")
-    include("utbot-intellij-js")
-}
+//if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
+//    include("utbot-js")
+//    include("utbot-cli-js")
+//    include("utbot-intellij-js")
+//}
 
-if (goIde.split(",").contains(ideType)) {
-    include("utbot-go")
-    include("utbot-cli-go")
-    include("utbot-intellij-go")
-}
+//if (goIde.split(",").contains(ideType)) {
+//    include("utbot-go")
+//    include("utbot-cli-go")
+//    include("utbot-intellij-go")
+//}
 
-include("utbot-spring-analyzer")
+//include("utbot-spring-analyzer")

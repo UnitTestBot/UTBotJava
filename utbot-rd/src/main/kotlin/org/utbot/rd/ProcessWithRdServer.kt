@@ -11,6 +11,7 @@ import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import com.jetbrains.rd.util.trace
 import kotlinx.coroutines.delay
 import org.utbot.common.getPid
+import org.utbot.common.silent
 import org.utbot.rd.generated.synchronizationModel
 import java.io.File
 import java.nio.file.Files
@@ -89,6 +90,13 @@ class ProcessWithRdServerImpl private constructor(
     serverFactory: (Lifetime) -> Protocol
 ) : ProcessWithRdServer, LifetimedProcess by child {
     override val protocol = serverFactory(lifetime)
+
+    override fun terminate() {
+        silent {
+            protocol.synchronizationModel.stopProcess.fire(Unit)
+        }
+        child.terminate()
+    }
 
     companion object {
         suspend operator fun invoke(

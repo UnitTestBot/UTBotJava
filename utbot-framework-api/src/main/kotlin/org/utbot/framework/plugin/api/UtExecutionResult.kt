@@ -1,8 +1,6 @@
 package org.utbot.framework.plugin.api
 
 import org.utbot.framework.plugin.api.visible.UtStreamConsumingException
-import java.io.File
-import java.util.LinkedList
 
 sealed class UtExecutionResult
 
@@ -38,8 +36,11 @@ data class UtStreamConsumingFailure(
 
 /**
  * unexpectedFail (when exceptions such as NPE, IOBE, etc. appear, but not thrown by a user, applies both for function under test and nested calls )
+ *
  * expectedCheckedThrow (when function under test or nested call explicitly says that checked exception could be thrown and throws it)
+ *
  * expectedUncheckedThrow (when there is a throw statement for unchecked exception inside of function under test)
+ *
  * unexpectedUncheckedThrow (in case when there is unchecked exception thrown from nested call)
  */
 data class UtExplicitlyThrownException(
@@ -60,25 +61,13 @@ data class UtTimeoutException(override val exception: TimeoutException) : UtExec
  * Indicates failure in concrete execution.
  * For now it is explicitly throwing by ConcreteExecutor in case instrumented process death.
  */
-class InstrumentedProcessDeathException(cause: Throwable, errorFile: File, val processStdout: List<String>) :
+class InstrumentedProcessDeathException(cause: Throwable) :
     Exception(
         buildString {
             appendLine()
             appendLine("----------------------------------------")
             appendLine("The instrumented process is dead")
             appendLine("Cause:\n${cause.message}")
-            appendLine("Last 1000 lines of the error log ${errorFile.absolutePath}:")
-            appendLine("----------------------------------------")
-            errorFile.useLines { lines ->
-                val lastLines = LinkedList<String>()
-                for (line in lines) {
-                    lastLines.add(line)
-                    if (lastLines.size > 1000) {
-                        lastLines.removeFirst()
-                    }
-                }
-                lastLines.forEach { appendLine(it) }
-            }
             appendLine("----------------------------------------")
         },
         cause

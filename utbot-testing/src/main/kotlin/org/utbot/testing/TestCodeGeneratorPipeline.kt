@@ -3,7 +3,7 @@ package org.utbot.testing
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.FileUtil
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.info
 import org.utbot.framework.codegen.CodeGenerator
 import org.utbot.framework.codegen.CodeGeneratorResult
@@ -49,7 +49,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
 
         logger
             .info()
-            .bracket("Executing code generation tests for [$classesPipelinesNames]") {
+            .measureTime({ "Executing code generation tests for [$classesPipelinesNames]" }) {
                 CodeGeneration.filterPipelines(classesPipelines).forEach {
                     withUtContext(UtContext(it.stageContext.classUnderTest.java.classLoader)) {
                         processCodeGenerationStage(it)

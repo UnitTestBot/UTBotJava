@@ -64,11 +64,6 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
                     "which declaring class's name is [className].\n" +
                     "@property parameters are the parameters needed for an execution, e.g. static environment"
         }
-        call("StopProcess", PredefinedType.void, PredefinedType.void).apply {
-            async
-            documentation =
-                "This command tells the instrumented process to stop"
-        }
         call("CollectCoverage", CollectCoverageParams, CollectCoverageResult).apply {
             async
             documentation =

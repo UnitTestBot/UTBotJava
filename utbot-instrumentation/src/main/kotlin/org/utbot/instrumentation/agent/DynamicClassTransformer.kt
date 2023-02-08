@@ -11,7 +11,7 @@ import java.security.ProtectionDomain
 import kotlin.io.path.absolutePathString
 
 
-private val logger = getLogger("DynamicClassTransformer")
+private val logger = getLogger<DynamicClassTransformer>()
 
 /**
  * Transformer, which will transform only classes with certain names.

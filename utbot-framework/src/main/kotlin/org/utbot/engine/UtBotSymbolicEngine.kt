@@ -8,7 +8,7 @@ import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
 import org.utbot.api.exception.UtMockAssumptionViolatedException
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.debug
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
@@ -230,7 +230,7 @@ class UtBotSymbolicEngine(
                     logger.trace { "executing $state concretely..." }
 
 
-                    logger.debug().bracket("concolicStrategy<$methodUnderTest>: execute concretely") {
+                    logger.debug().measureTime({ "concolicStrategy<$methodUnderTest>: execute concretely"} ) {
                         val resolver = Resolver(
                             hierarchy,
                             state.memory,
@@ -252,7 +252,7 @@ class UtBotSymbolicEngine(
 
                             if (concreteExecutionResult.violatesUtMockAssumption()) {
                                 logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
-                                return@bracket
+                                return@measureTime
                             }
 
                             val concreteUtExecution = UtSymbolicExecution(
@@ -511,7 +511,7 @@ class UtBotSymbolicEngine(
         //It's possible that symbolic and concrete stateAfter/results are diverged.
         //So we trust concrete results more.
         try {
-            logger.debug().bracket("processResult<$methodUnderTest>: concrete execution") {
+            logger.debug().measureTime({ "processResult<$methodUnderTest>: concrete execution" } ) {
 
                 //this can throw CancellationException
                 val concreteExecutionResult = concreteExecutor.executeConcretely(

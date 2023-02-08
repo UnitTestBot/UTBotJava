@@ -1,5 +1,5 @@
 @file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")
-package org.utbot.framework.process.generated
+package org.utbot.rd.generated
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.base.*
@@ -15,30 +15,28 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:6]
+ * #### Generated from [LoggerModel.kt:7]
  */
-class EngineProcessRoot private constructor(
+class LoggerRoot private constructor(
 ) : RdExtBase() {
     //companion
     
     companion object : ISerializersOwner {
         
         override fun registerSerializersCore(serializers: ISerializers)  {
-            EngineProcessRoot.register(serializers)
-            EngineProcessModel.register(serializers)
-            RdInstrumenterAdapter.register(serializers)
-            RdSourceFindingStrategy.register(serializers)
+            LoggerRoot.register(serializers)
+            LoggerModel.register(serializers)
         }
         
         
         
         
         
-        const val serializationHash = 2863869932420445069L
+        const val serializationHash = -3743703762234585836L
         
     }
-    override val serializersOwner: ISerializersOwner get() = EngineProcessRoot
-    override val serializationHash: Long get() = EngineProcessRoot.serializationHash
+    override val serializersOwner: ISerializersOwner get() = LoggerRoot
+    override val serializationHash: Long get() = LoggerRoot.serializationHash
     
     //fields
     //methods
@@ -48,12 +46,12 @@ class EngineProcessRoot private constructor(
     //hash code trait
     //pretty print
     override fun print(printer: PrettyPrinter)  {
-        printer.println("EngineProcessRoot (")
+        printer.println("LoggerRoot (")
         printer.print(")")
     }
     //deepClone
-    override fun deepClone(): EngineProcessRoot   {
-        return EngineProcessRoot(
+    override fun deepClone(): LoggerRoot   {
+        return LoggerRoot(
         )
     }
     //contexts

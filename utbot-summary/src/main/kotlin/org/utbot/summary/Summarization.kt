@@ -16,6 +16,8 @@ import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
 import java.nio.file.Path
 import mu.KotlinLogging
+import org.utbot.common.measureTime
+import org.utbot.common.info
 import org.utbot.framework.SummariesGenerationType.*
 import org.utbot.framework.UtSettings.enableClusterCommentsGeneration
 import org.utbot.framework.UtSettings.enableJavaDocGeneration
@@ -36,7 +38,17 @@ import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
 
-fun UtMethodTestSet.summarize(searchDirectory: Path, sourceFile: File?): UtMethodTestSet {
+fun Collection<UtMethodTestSet>.summarizeAll(searchDirectory: Path, sourceFile: File?): List<UtMethodTestSet> = logger.info().measureTime({
+    "----------------------------------------------------------------------------------------\n" +
+    "-------------------Summarization started for ${this.size} test cases--------------------\n" +
+    "----------------------------------------------------------------------------------------"
+    }) {
+    this.map {
+        it.summarizeOne(searchDirectory, sourceFile)
+    }
+}
+
+private fun UtMethodTestSet.summarizeOne(searchDirectory: Path, sourceFile: File?): UtMethodTestSet = logger.info().measureTime({ "Summarization for ${this.method}"} ){
     if (summaryGenerationType == NONE) return this
 
     val sourceFileToAnalyze = sourceFile
@@ -46,34 +58,29 @@ fun UtMethodTestSet.summarize(searchDirectory: Path, sourceFile: File?): UtMetho
             NONE -> null
         }
 
-    return try {
-        makeDiverseExecutions(this)
+    makeDiverseExecutions(this)
 
-        // HACK: we avoid calling [invokeDescriptions] method to save time, it is useless in Contest
-        val invokeDescriptions = when (summaryGenerationType) {
-            FULL -> invokeDescriptions(this, searchDirectory)
-            LIGHT,
-            NONE -> emptyList()
-        }
+    // HACK: we avoid calling [invokeDescriptions] method to save time, it is useless in Contest
+    val invokeDescriptions = when (summaryGenerationType) {
+        FULL -> invokeDescriptions(this, searchDirectory)
+        LIGHT,
+        NONE -> emptyList()
+    }
 
-        // every cluster has summary and list of executions
-        val executionClusters = Summarization(sourceFileToAnalyze, invokeDescriptions).fillSummaries(this)
-        val updatedExecutions = executionClusters.flatMap { it.executions }
-        var pos = 0
-        val clustersInfo = executionClusters.map {
-            val clusterSize = it.executions.size
-            val indices = pos until (pos + clusterSize)
-            pos += clusterSize
-            it.clusterInfo to indices
-        }
-        this.copy(
+    // every cluster has summary and list of executions
+    val executionClusters = Summarization(sourceFileToAnalyze, invokeDescriptions).fillSummaries(this)
+    val updatedExecutions = executionClusters.flatMap { it.executions }
+    var pos = 0
+    val clustersInfo = executionClusters.map {
+        val clusterSize = it.executions.size
+        val indices = pos until (pos + clusterSize)
+        pos += clusterSize
+        it.clusterInfo to indices
+    }
+    return this.copy(
             executions = updatedExecutions,
             clustersInfo = clustersInfo
         ) // TODO: looks weird and don't create the real copy
-    } catch (e: Throwable) {
-        logger.info(e) { "Summary generation error: ${e.message}" }
-        this
-    }
 }
 
 class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {

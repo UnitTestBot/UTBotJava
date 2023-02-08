@@ -32,7 +32,7 @@ import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
-import org.utbot.summary.summarize
+import org.utbot.summary.summarizeAll
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Files
@@ -161,8 +161,8 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
             mockStrategy,
             chosenClassesToMockAlways,
             generationTimeout
-        ).map {
-            if (sourceCodeFile != null) it.summarize(searchDirectory, sourceCodeFile.toFile()) else it
+        ).let {
+            if (sourceCodeFile != null) it.summarizeAll(searchDirectory, sourceCodeFile.toFile()) else it
         }
 
 

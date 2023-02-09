@@ -25,17 +25,19 @@ object NumberValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
     override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, FuzzedValue>> =
         sequence {
             description.concreteValues.forEach { (_, v, c) ->
-                val balance = when (c) {
-                    EQ, LE, GT -> 1
-                    LT, GE -> -1
-                    else -> 0
-                }
-
-                yield(Seed.Known(IEEE754Value.fromValue(v)) { known ->
-                    JsPrimitiveModel(known.toDouble() + balance).fuzzed {
-                        summary = "%var% = ${known.toDouble() + balance}"
+                if (v is Double) {
+                    val balance = when (c) {
+                        EQ, LE, GT -> 1
+                        LT, GE -> -1
+                        else -> 0
                     }
-                })
+
+                    yield(Seed.Known(IEEE754Value.fromValue(v)) { known ->
+                        JsPrimitiveModel(known.toDouble() + balance).fuzzed {
+                            summary = "%var% = ${known.toDouble() + balance}"
+                        }
+                    })
+                }
             }
             DefaultFloatBound.values().forEach { bound ->
                 // All numbers in JavaScript are like Double in Java/Kotlin

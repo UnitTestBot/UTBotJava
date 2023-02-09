@@ -6,13 +6,12 @@ import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
+import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsFeedback
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
-import fuzzer.defaultFuzzingIdGenerator
-import fuzzer.providers.ObjectValueProvider
 import fuzzer.runFuzzing
 import java.io.File
 import java.util.concurrent.CancellationException
@@ -24,15 +23,11 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
@@ -181,33 +176,6 @@ class JsTestGenerator(
         } ?: ""
     }
 
-    private fun makeThisInstance(
-        execId: JsMethodId,
-        description: JsMethodDescription
-    ): UtModel? {
-        val thisInstance = when {
-            execId.isStatic -> null
-            execId.classId.allConstructors.first().parameters.isEmpty() -> {
-                val id = defaultFuzzingIdGenerator.createId()
-                val constructor = execId.classId.allConstructors.first()
-                val instantiationCall = UtExecutableCallModel(
-                    instance = null,
-                    executable = constructor,
-                    params = emptyList(),
-                )
-                UtAssembleModel(
-                    id = id,
-                    classId = constructor.classId,
-                    modelName = "${constructor.classId.name}${constructor.parameters}#" + id.toString(16),
-                    instantiationCall = instantiationCall,
-                )
-            }
-
-            else -> ObjectValueProvider().generate(description, execId.classId).first().empty.builder.invoke().model
-        }
-        return thisInstance
-    }
-
     private fun getUtModelResult(
         execId: JsMethodId,
         resultData: ResultData,
@@ -279,7 +247,7 @@ class JsTestGenerator(
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
-                            val (thisObject, modelList) = if (funcNode.isClassMembers) {
+                            val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
                                 null to params.map { it.model }
                             } else params[0].model to params.drop(1).map { it.model }
                             val initEnv =
@@ -341,7 +309,7 @@ class JsTestGenerator(
     ): JsClassId {
         return classNode?.let {
             JsClassId(parentClassName!!).constructClass(ternService, classNode)
-        } ?: JsClassId("undefined").constructClass(
+        } ?: jsUndefinedClassId.constructClass(
             ternService = ternService,
             functions = extractToplevelFunctions()
         )

@@ -31,7 +31,7 @@ class JsMethodDescription(
         name,
         if (classId.isClass) listOf(classId) + parameters else parameters,
         concreteValues,
-        classId
+        classId.takeIf { it.isClass }
     )
 }
 

@@ -13,7 +13,7 @@ class SummarySwitchTest : SummaryTestCaseGeneratorTest(
     Switch::class
 ) {
     @Test
-    fun testDifferentExceptions() {
+    fun testSimpleSwitch() {
         val summary1 = "@utbot.classUnderTest {@link Switch}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)}\n" +
                 "@utbot.activatesSwitch {@code case 10}\n" +
@@ -63,6 +63,103 @@ class SummarySwitchTest : SummaryTestCaseGeneratorTest(
         )
 
         val method = Switch::simpleSwitch
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+    }
+
+    @Test
+    fun testCharToIntSwitch() {
+        val summary1 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'C'}\n" +
+                "@utbot.returnsFrom {@code return 100;}\n"
+        val summary2 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'V'}\n" +
+                "@utbot.returnsFrom {@code return 5;}\n"
+        val summary3 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'I'}\n" +
+                "@utbot.returnsFrom {@code return 1;}\n"
+        val summary4 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'X'}\n" +
+                "@utbot.returnsFrom {@code return 10;}\n"
+        val summary5 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'M'}\n" +
+                "@utbot.returnsFrom {@code return 1000;}\n"
+        val summary6 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'D'}\n" +
+                "@utbot.returnsFrom {@code return 500;}\n"
+        val summary7 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.activatesSwitch {@code case 'L'}\n" +
+                "@utbot.returnsFrom {@code return 50;}\n"
+        val summary8 = "@utbot.classUnderTest {@link Switch}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.controlflow.Switch#charToIntSwitch(char)}\n" +
+                "@utbot.invokes {@link java.lang.StringBuilder#append(java.lang.String)}\n" +
+                "@utbot.invokes {@link java.lang.StringBuilder#append(char)}\n" +
+                "@utbot.invokes {@link java.lang.StringBuilder#toString()}\n" +
+                "@utbot.activatesSwitch {@code case default}\n" +
+                "@utbot.throwsException {@link java.lang.IllegalArgumentException} in: default:\n" +
+                "    throw new IllegalArgumentException(\"Unrecognized symbol: \" + c);\n"
+
+        val methodName1 = "testCharToIntSwitch_Return100"
+        val methodName2 = "testCharToIntSwitch_Return5"
+        val methodName3 = "testCharToIntSwitch_Return1"
+        val methodName4 = "testCharToIntSwitch_Return10"
+        val methodName5 = "testCharToIntSwitch_Return1000"
+        val methodName6 = "testCharToIntSwitch_Return500"
+        val methodName7 = "testCharToIntSwitch_Return50"
+        val methodName8 = "testCharToIntSwitch_StringBuilderToString"
+
+        val displayName1 = "switch(c) case: 'C' -> return 100"
+        val displayName2 = "switch(c) case: 'V' -> return 5"
+        val displayName3 = "switch(c) case: 'I' -> return 1"
+        val displayName4 = "switch(c) case: 'X' -> return 10"
+        val displayName5 = "switch(c) case: 'M' -> return 1000"
+        val displayName6 = "switch(c) case: 'D' -> return 500"
+        val displayName7 = "switch(c) case: 'L' -> return 50"
+        val displayName8 = """default: throw new IllegalArgumentException("Unrecognized symbol: " + c)  -> ThrowIllegalArgumentException"""
+
+        val summaryKeys = listOf(
+            summary1,
+            summary2,
+            summary3,
+            summary4,
+            summary5,
+            summary6,
+            summary7,
+            summary8,
+        )
+
+        val displayNames = listOf(
+            displayName1,
+            displayName2,
+            displayName3,
+            displayName4,
+            displayName5,
+            displayName6,
+            displayName7,
+            displayName8,
+        )
+
+        val methodNames = listOf(
+            methodName1,
+            methodName2,
+            methodName3,
+            methodName4,
+            methodName5,
+            methodName6,
+            methodName7,
+            methodName8,
+        )
+
+        val method = Switch::charToIntSwitch
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 

@@ -463,7 +463,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
         return allModificatorsOfClass
             .mapNotNull { (fieldId, possibleModificators) ->
-                chooseModificator(fieldId, possibleModificators)?.let { fieldId to it }
+                chooseModificator(classId, fieldId, possibleModificators)?.let { fieldId to it }
             }
             .toMap()
     }
@@ -474,12 +474,13 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Note: direct accessor is more preferred than setter.
      */
     private fun chooseModificator(
+        callerClassId: ClassId,
         fieldId: FieldId,
         settersAndDirectAccessors: Set<StatementId>,
     ): StatementId? {
         val directAccessors = settersAndDirectAccessors
             .filterIsInstance<DirectFieldAccessId>()
-            .filter {it.fieldId.isAccessibleFrom(basePackageName) }
+            .filter {it.fieldId.isAccessibleFrom(basePackageName, callerClassId) }
 
         if (directAccessors.any()) {
             return directAccessors.singleOrNull()

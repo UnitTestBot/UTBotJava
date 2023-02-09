@@ -30,8 +30,12 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
+import settings.JsPackagesSettings.mochaData
 import settings.JsTestGenerationSettings.dummyClassName
+import settings.PackageData
 import utils.JsCmdExec
+import utils.OsProvider
+import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
 
@@ -46,16 +50,19 @@ object JsDialogProcessor {
         editor: Editor,
         file: JSFile
     ) {
-        val model = createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file) ?: return
+        val model =
+            createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file) ?: return
         (object : Task.Backgroundable(
             project,
             "Check the requirements"
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    getFrameworkLibraryPath(Mocha.displayName.lowercase(), model)
-                    createDialog(model)?.let { dialogWindow ->
-                        if (!dialogWindow.showAndGet()) return@invokeLater
+                    if (!mochaData.findPackageByNpm(model.project.basePath!!, model.pathToNPM)) {
+                        installMissingRequirement(model.project, model.pathToNPM, mochaData)
+                    }
+                    createDialog(model)?.let { dialogProcessor ->
+                        if (!dialogProcessor.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
                         runWriteAction {
                             with(FileDocumentManager.getInstance()) {
@@ -73,12 +80,13 @@ object JsDialogProcessor {
         try {
             val pathToNode = NodeJsLocalInterpreterManager.getInstance()
                 .interpreters.first().interpreterSystemIndependentPath
-            val (_, error) = JsCmdExec.runCommand(
+            val (_, errorText) = JsCmdExec.runCommand(
                 shouldWait = true,
                 cmd = arrayOf("\"${pathToNode}\"", "-v")
             )
-            if (error.readText().isNotEmpty()) throw NoSuchElementException()
-            val pathToNPM = pathToNode.substringBeforeLast("/") + "/" + "npm.cmd"
+            if (errorText.isNotEmpty()) throw NoSuchElementException()
+            val pathToNPM =
+                pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
             pathToNode to pathToNPM
         } catch (e: NoSuchElementException) {
             Messages.showErrorDialog(
@@ -130,6 +138,7 @@ object JsDialogProcessor {
             this.pathToNode = pathToNode
             this.pathToNPM = pathToNPM
         }
+
     }
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
@@ -259,10 +268,10 @@ object JsDialogProcessor {
 }
 
 // TODO(MINOR): Add indicator.text for each installation
-fun installMissingRequirement(project: Project, pathToNPM: String, requirement: String) {
+fun installMissingRequirement(project: Project, pathToNPM: String, requirement: PackageData) {
     val message = """
             Requirement is not installed:
-            $requirement
+            ${requirement.packageName}
             Install it?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
@@ -277,9 +286,8 @@ fun installMissingRequirement(project: Project, pathToNPM: String, requirement: 
     if (result == Messages.CANCEL)
         return
 
-    val (_, errorStream) = installRequirement(pathToNPM, requirement, project.basePath)
+    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
 
-    val errorText = errorStream.readText()
     if (errorText.isNotEmpty()) {
         showErrorDialogLater(
             project,

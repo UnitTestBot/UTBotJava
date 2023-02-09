@@ -1,11 +1,14 @@
 package org.utbot.sarif
 
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 import java.nio.file.Path
 import kotlin.io.path.nameWithoutExtension
+
+internal val logger = KotlinLogging.logger {}
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -328,7 +331,7 @@ class SarifReport(
                 message = Message("$classFqn.$methodName($sourceFileName:$lineNumber)"),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(uri = sourceFilePath),
-                    SarifRegion(startLine = lineNumber)
+                    SarifRegion(startLine = lineNumber) // lineNumber is one-based
                 )
             ))
         }
@@ -440,7 +443,7 @@ class SarifReport(
         val lastCoveredInstruction = coveredInstructions?.lastOrNull()
         if (lastCoveredInstruction != null)
             return Pair(
-                lastCoveredInstruction.lineNumber,
+                lastCoveredInstruction.lineNumber, // .lineNumber is one-based
                 lastCoveredInstruction.className.replace('/', '.')
             )
 
@@ -448,7 +451,7 @@ class SarifReport(
         val lastPathElementLineNumber = try {
             // path/fullPath might be empty when engine executes in another process -
             // soot entities cannot be passed to the main process because kryo cannot deserialize them
-            (utExecution as? UtSymbolicExecution)?.path?.lastOrNull()?.stmt?.javaSourceStartLineNumber
+            (utExecution as? UtSymbolicExecution)?.path?.lastOrNull()?.stmt?.javaSourceStartLineNumber // one-based
         } catch (t: Throwable) {
             null
         }

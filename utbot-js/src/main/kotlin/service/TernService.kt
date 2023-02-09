@@ -4,8 +4,6 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
-import java.io.File
-import java.util.Locale
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
@@ -16,6 +14,8 @@ import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
 import utils.MethodTypes
 import utils.constructClass
+import java.io.File
+import java.util.Locale
 
 /*
     NOTE: this approach is quite bad, but we failed to implement alternatives.
@@ -80,7 +80,8 @@ test("$filePathToInference")
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
-            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l")
+            shouldWait = true,
+            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l"),
         )
     }
 

@@ -1,6 +1,5 @@
 package org.utbot.framework
 
-import com.jetbrains.rd.util.LogLevel
 import java.io.File
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
@@ -115,21 +114,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">UtBot Expression Optimizations</a>
      */
     var useExpressionSimplification by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on comments
-    */
-    var testSummary by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on names
-    */
-    var testName by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on displayNames
-    */
-    var testDisplayName by getBooleanProperty(true)
 
     /**
      * Enable the Summarization module to generate summaries for methods under test.
@@ -277,7 +261,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInInstrumentedProcess: Long by getLongProperty(
+    var concreteExecutionDefaultTimeoutInInstrumentedProcessMillis: Long by getLongProperty(
         DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
@@ -339,11 +323,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
      */
     var runInstrumentedProcessWithDebug by getBooleanProperty(false)
-
-    /**
-     * Log level for instrumented process.
-     */
-    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
 // endregion
 
     /**

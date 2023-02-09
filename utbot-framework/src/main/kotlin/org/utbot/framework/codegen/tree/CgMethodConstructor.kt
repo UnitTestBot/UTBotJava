@@ -5,7 +5,6 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
 import org.utbot.engine.ArtificialError
-import org.utbot.engine.OverflowDetectionError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -68,7 +67,7 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -126,7 +125,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
-import org.utbot.framework.util.isInaccessibleViaReflection
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
@@ -236,7 +235,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeReadFrom(context)
+            val fieldAccessible = field.canBeReadFrom(context, declaringClass)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
             val prevValue = newVar(
@@ -261,7 +260,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeSetFrom(context)
+            val fieldAccessible = field.canBeSetFrom(context, declaringClass)
 
             val fieldValue = if (isParametrized) {
                 currentMethodParameters[CgParameterKind.Statics(model)]
@@ -282,7 +281,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
     protected fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
-            if (field.canBeSetFrom(context)) {
+            if (field.canBeSetFrom(context, field.declaringClass)) {
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
@@ -343,7 +342,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 }
             }
             CRASH -> when (expectedException) {
-                is ConcreteExecutionFailureException -> {
+                is InstrumentedProcessDeathException -> {
                     writeWarningAboutCrash()
                     methodInvocationBlock()
                 }
@@ -425,7 +424,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     protected fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
-        if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
+        if (exception is TimeoutException || exception is InstrumentedProcessDeathException) return false
         if (exception is ArtificialError) return false
         if (UtSettings.treatAssertAsErrorSuite && exception is AssertionError) return false
 
@@ -552,6 +551,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val beforeVariable = cache.before[path]?.variable
         val (afterVariable, afterModel) = cache.after[path]!!
 
+        // TODO: remove the following after the issue fix
+        // We do not generate some assertions for Enums due to [https://github.com/UnitTestBot/UTBotJava/issues/1704].
+        val beforeModel = cache.before[path]?.model
+        if (beforeModel !is UtEnumConstantModel && afterModel is UtEnumConstantModel) {
+            return
+        }
+
         if (afterModel !is UtReferenceModel) {
             val expectedAfter =
                 variableConstructor.getOrCreateVariable(afterModel, "expected" + afterVariable.name.capitalize())
@@ -568,9 +574,11 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable?,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>,
+        visitedModels: MutableSet<ModelWithField>,
+        expectedModelField: FieldId? = null,
     ) {
-        if (expectedModel in visitedModels) return
+        val modelWithField = ModelWithField(expectedModel, expectedModelField)
+        if (modelWithField in visitedModels) return
 
         var expected = expected
         if (expected == null) {
@@ -578,7 +586,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             expected = actual
         }
 
-        visitedModels += expectedModel
+        visitedModels += modelWithField
 
         with(testFrameworkManager) {
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
@@ -897,7 +905,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         // if field is static, it is represents itself in "before" and
         // "after" state: no need to assert its equality to itself.
@@ -906,7 +914,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         }
 
         // if model is already processed, so we don't want to add new statements
-        if (fieldModel in visitedModels) {
+        val modelWithField = ModelWithField(fieldModel, fieldId)
+        if (modelWithField in visitedModels) {
             currentBlock += testFrameworkManager.getDeepEqualsAssertion(expected, actual).toStatement()
             return
         }
@@ -928,7 +937,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         // fieldModel is not visited and will be marked in assertDeepEquals call
         val fieldName = fieldId.name
@@ -950,6 +959,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             actualFieldDeclaration.variable,
             depth + 1,
             visitedModels,
+            fieldId,
         )
         emptyLineIfNeeded()
     }
@@ -960,7 +970,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         expected: CgVariable,
         actual: CgVariable,
         depth: Int,
-        visitedModels: MutableSet<UtModel>
+        visitedModels: MutableSet<ModelWithField>
     ) {
         val fieldResultModels = fieldsOfExecutionResults[fieldId to depth]
         val nullResultModelInExecutions = fieldResultModels?.find { it.isNull() }
@@ -999,6 +1009,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         actualFieldDeclaration.variable,
                         depth + 1,
                         visitedModels,
+                        fieldId,
                     )
                 }
             )
@@ -1009,6 +1020,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 actualFieldDeclaration.variable,
                 depth + 1,
                 visitedModels,
+                fieldId,
             )
         }
         emptyLineIfNeeded()
@@ -1112,7 +1124,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(this) && canBeReadFrom(context)) {
+        if (variable.type.hasField(this) && canBeReadFrom(context, variable.type)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
@@ -1265,6 +1277,14 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             }
             .onFailure { exception -> processExecutionFailure(exception, executionResult) }
     }
+
+    // Class is required to verify, if current model has already been analyzed in deepEquals.
+    // Using model without related field (if it is present) in comparison is incorrect,
+    // for example, for [UtNullModel] as they are equal to each other..
+    private data class ModelWithField(
+        val fieldModel: UtModel,
+        val relatedField: FieldId?,
+    )
 
     /**
      * We can't use standard deepEquals method in parametrized tests
@@ -1819,7 +1839,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     shouldTestPassWithTimeoutException(currentExecution, exception) -> TIMEOUT
                     else -> when (exception) {
                         is ArtificialError -> ARTIFICIAL
-                        is ConcreteExecutionFailureException -> CRASH
+                        is InstrumentedProcessDeathException -> CRASH
                         is AccessControlException -> CRASH // exception from sandbox
                         else -> FAILING
                     }
@@ -1879,22 +1899,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             methodType = this@CgMethodConstructor.methodType
             val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
 
-            // add JVM crash report path if exists
-            if (result is UtConcreteExecutionFailure) {
-                result.extractJvmReportPathOrNull()?.let {
-                    val jvmReportDocumentation = CgDocRegularStmt(getJvmReportDocumentation(it))
-                    val lastTag = docComment.lastOrNull()
-                    // if the last statement is a <pre> tag, put the path inside it
-                    if (lastTag == null || lastTag !is CgDocPreTagStatement) {
-                        docComment += jvmReportDocumentation
-                    } else {
-                        val tagContent = lastTag.content
-                        docComment.removeLast()
-                        docComment += CgDocPreTagStatement(tagContent + jvmReportDocumentation)
-                    }
-                }
-            }
-
             documentation = CgDocumentationComment(docComment)
             documentation = if (parameterized) {
                 CgDocumentationComment(text = null)
@@ -1949,18 +1953,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val errorTestMethod = CgErrorTestMethod(name, body)
         return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
     }
-
-    private fun getJvmReportDocumentation(jvmReportPath: String): String {
-        val pureJvmReportPath = jvmReportPath.substringAfter("# ")
-
-        // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
-    }
-
-    private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =
-        exception.processStdout.singleOrNull {
-            "hs_err_pid" in it
-        }
 
     private fun CgExecutableCall.wrapReflectiveCall() {
         +tryBlock {

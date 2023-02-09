@@ -7,7 +7,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase
 import org.apache.maven.plugins.annotations.Mojo
 import org.apache.maven.plugins.annotations.Parameter
 import org.apache.maven.project.MavenProject
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.debug
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.util.UtContext
@@ -173,7 +173,7 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
      * Generates tests and a SARIF report for classes in the [mavenProjectWrapper] and in all its child projects.
      */
     private fun generateForProjectRecursively(mavenProjectWrapper: MavenProjectWrapper) {
-        logger.debug().bracket("Generating tests for the '${mavenProjectWrapper.mavenProject.name}' source set") {
+        logger.debug().measureTime({ "Generating tests for the '${mavenProjectWrapper.mavenProject.name}' source set" }) {
             withUtContext(UtContext(mavenProjectWrapper.classLoader)) {
                 val testCaseGenerator =
                     TestCaseGenerator(
@@ -200,7 +200,7 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
         targetClass: TargetClassWrapper,
         testCaseGenerator: TestCaseGenerator,
     ) {
-        logger.debug().bracket("Generating tests for the $targetClass") {
+        logger.debug().measureTime({ "Generating tests for the $targetClass" }) {
             val sourceFindingStrategy =
                 SourceFindingStrategyMaven(mavenProjectWrapper, targetClass.testsCodeFile.path)
             val generateTestsAndSarifReportFacade =

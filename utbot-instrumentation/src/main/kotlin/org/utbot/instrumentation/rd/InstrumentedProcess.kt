@@ -12,13 +12,20 @@ import org.utbot.instrumentation.process.generated.instrumentedProcessModel
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.exceptions.InstantProcessDeathException
+import org.utbot.rd.generated.LoggerModel
+import org.utbot.rd.generated.loggerModel
+import org.utbot.rd.generated.synchronizationModel
+import org.utbot.rd.loggers.UtRdKLogger
+import org.utbot.rd.loggers.UtRdRemoteLogger
 import org.utbot.rd.onSchedulerBlocking
 import org.utbot.rd.startUtProcessWithRdServer
 import org.utbot.rd.terminateOnException
 
-private val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger { }
+private val rdLogger = UtRdKLogger(logger, "")
 
-class InstrumentedProcessInstantDeathException: InstantProcessDeathException(UtSettings.instrumentedProcessDebugPort, UtSettings.runInstrumentedProcessWithDebug)
+class InstrumentedProcessInstantDeathException :
+    InstantProcessDeathException(UtSettings.instrumentedProcessDebugPort, UtSettings.runInstrumentedProcessWithDebug)
 
 /**
  * Main goals of this class:
@@ -33,6 +40,7 @@ class InstrumentedProcess private constructor(
         classLoader?.let { setKryoClassLoader(it) }
     }
     val instrumentedProcessModel: InstrumentedProcessModel = onSchedulerBlocking { protocol.instrumentedProcessModel }
+    val loggerModel: LoggerModel = onSchedulerBlocking { protocol.loggerModel }
 
     companion object {
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
@@ -40,7 +48,6 @@ class InstrumentedProcess private constructor(
             instrumentedProcessRunner: InstrumentedProcessRunner,
             instrumentation: TInstrumentation,
             pathsToUserClasses: String,
-            pathsToDependencyClasses: String,
             classLoader: ClassLoader?
         ): InstrumentedProcess = parent.createNested().terminateOnException { lifetime ->
             val rdProcess: ProcessWithRdServer = startUtProcessWithRdServer(
@@ -55,10 +62,22 @@ class InstrumentedProcess private constructor(
 
             logger.trace("rd process started")
 
-            val proc = InstrumentedProcess(
-                classLoader,
-                rdProcess
-            )
+            val proc = InstrumentedProcess(classLoader, rdProcess)
+
+            // currently we do not specify log level for different categories in instrumented process
+            // though it is possible with some additional map on categories -> consider performance
+            proc.loggerModel.getCategoryMinimalLogLevel.set { _ ->
+                // this logLevel is obtained from KotlinLogger
+                rdLogger.logLevel.ordinal
+            }
+
+            proc.loggerModel.log.advise(proc.lifetime) {
+                val logLevel = UtRdRemoteLogger.logLevelValues[it.logLevelOrdinal]
+                // assume throwable already in message
+                rdLogger.log(logLevel, it.message, null)
+            }
+
+            rdProcess.protocol.synchronizationModel.initRemoteLogging.fire(Unit)
 
             proc.lifetime.onTermination {
                 logger.trace { "process is terminating" }
@@ -68,7 +87,6 @@ class InstrumentedProcess private constructor(
             proc.instrumentedProcessModel.addPaths.startSuspending(
                 proc.lifetime, AddPathsParams(
                     pathsToUserClasses,
-                    pathsToDependencyClasses
                 )
             )
 

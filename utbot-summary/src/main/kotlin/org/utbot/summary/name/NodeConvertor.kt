@@ -274,7 +274,7 @@ class NodeConvertor {
                 res += JimpleToASTMap.getSwitchCaseLabel(switchNode, case).capitalize()
             }
             if (stmt is JTableSwitchStmt) {
-                val switchCase = JimpleToASTMap.mapSwitchCase(switchNode, step.decision)
+                val switchCase = JimpleToASTMap.mapSwitchCase(switchNode, step)
                 if (switchCase is SwitchEntry) {
                     val case = switchCase.labels.first
                     res += if (case.isPresent) {

@@ -14,7 +14,7 @@ import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
 import org.utbot.common.FileUtil
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.getPid
 import org.utbot.common.info
 import org.utbot.contest.Paths.classesLists
@@ -137,7 +137,8 @@ enum class Tool {
             methodNameFilter: String?,
             statsForProject: StatsForProject,
             compiledTestDir: File,
-            classFqn: String
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
         ) = withUtContext(ContextManager.createNewContext(project.classloader)) {
             val classStats: StatsForClass = try {
                 runGeneration(
@@ -147,6 +148,7 @@ enum class Tool {
                     fuzzingRatio,
                     project.sootClasspathString,
                     runFromEstimator = true,
+                    expectedExceptions,
                     methodNameFilter
                 )
             } catch (e: CancellationException) {
@@ -164,7 +166,7 @@ enum class Tool {
                 val testClass = cut.generatedTestFile
                 classStats.testClassFile = testClass
 
-                logger.info().bracket("Compiling class ${testClass.absolutePath}") {
+                logger.info().measureTime({ "Compiling class ${testClass.absolutePath}" }) {
                     val exitCode = compileClass(
                         compiledTestDir.absolutePath,
                         project.compileClasspathString,
@@ -206,7 +208,8 @@ enum class Tool {
             methodNameFilter: String?,
             statsForProject: StatsForProject,
             compiledTestDir: File,
-            classFqn: String
+            classFqn: String,
+            expectedExceptions: ExpectedExceptionsForClass
         ) {
             // EvoSuite has several phases, the variable below is responsible for assert generation
             // timeout. We want to give 10s for a big time budgets and timeLimit / 5 for small budgets.
@@ -277,7 +280,8 @@ enum class Tool {
         methodNameFilter: String?,
         statsForProject: StatsForProject,
         compiledTestDir: File,
-        classFqn: String
+        classFqn: String,
+        expectedExceptions: ExpectedExceptionsForClass
     )
 
     abstract fun moveProducedFilesIfNeeded()
@@ -391,7 +395,13 @@ fun runEstimator(
     if (updatedMethodFilter != null)
         logger.info { "Filtering: class='$classFqnFilter', method ='$methodNameFilter'" }
 
-    val projectToClassFQNs = classesLists.listFiles()!!.associate { it.name to File(it, "list").readLines() }
+    val projectDirs = classesLists.listFiles()!!
+    val projectToClassFQNs = projectDirs.associate {
+        it.name to File(it, "list").readLines()
+    }
+    val projectToExpectedExceptions = projectDirs.associate {
+        it.name to parseExceptionsFile(File(it, "exceptions"))
+    }
 
     val projects = mutableListOf<ProjectToEstimate>()
 
@@ -400,6 +410,7 @@ fun runEstimator(
         val project = ProjectToEstimate(
             name,
             classesFQN,
+            projectToExpectedExceptions.getValue(name),
             File(classpathDir, name).listFiles()!!.filter { it.toString().endsWith("jar") },
             testCandidatesDir,
             unzippedJars
@@ -414,7 +425,7 @@ fun runEstimator(
             try {
                 project.classloader.loadClass(fqn).kotlin
             } catch (e: Throwable) {
-                logger.info { "Smoke test failed for class: $fqn" }
+                logger.warn(e) { "Smoke test failed for class: $fqn" }
             }
         }
 
@@ -445,16 +456,31 @@ fun runEstimator(
                         break@outer
                     }
 
-                    val cut =
-                        ClassUnderTest(
-                            project.classloader.loadClass(classFqn).id,
-                            project.outputTestSrcFolder,
-                            project.unzippedDir
+                    try {
+                        val cut =
+                            ClassUnderTest(
+                                project.classloader.loadClass(classFqn).id,
+                                project.outputTestSrcFolder,
+                                project.unzippedDir
+                            )
+
+                        logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
+
+                        tool.run(
+                            project,
+                            cut,
+                            timeLimit,
+                            fuzzingRatio,
+                            methodNameFilter,
+                            statsForProject,
+                            compiledTestDir,
+                            classFqn,
+                            project.expectedExceptions.getForClass(classFqn)
                         )
-
-                    logger.info { "------------- [${project.name}] ---->--- [$classIndex:$classFqn] ---------------------" }
-
-                    tool.run(project, cut, timeLimit, fuzzingRatio, methodNameFilter, statsForProject, compiledTestDir, classFqn)
+                    }
+                    catch (e: Throwable) {
+                        logger.warn(e) { "===================== ERROR IN [${project.name}] FOR [$classIndex:$classFqn] ============" }
+                    }
                 }
             }
         }
@@ -512,6 +538,7 @@ private fun classNamesByJar(jar: File): List<String> {
 class ProjectToEstimate(
     val name: String,
     val classFQNs: List<String>,
+    val expectedExceptions:  ExpectedExceptionsForProject,
     private val jars: List<File>,
     testCandidatesDir: File,
     unzippedJars: File

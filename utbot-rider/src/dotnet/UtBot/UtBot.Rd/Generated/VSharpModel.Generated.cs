@@ -44,31 +44,39 @@ namespace UtBot.Rd.Generated
     //public fields
     [NotNull] public RdCall<GenerateArguments, GenerateResults> Generate => _Generate;
     [NotNull] public ISignal<string> Ping => _Ping;
+    [NotNull] public ISignal<string> Log => _Log;
     
     //private fields
     [NotNull] private readonly RdCall<GenerateArguments, GenerateResults> _Generate;
     [NotNull] private readonly RdSignal<string> _Ping;
+    [NotNull] private readonly RdSignal<string> _Log;
     
     //primary constructor
     private VSharpModel(
       [NotNull] RdCall<GenerateArguments, GenerateResults> generate,
-      [NotNull] RdSignal<string> ping
+      [NotNull] RdSignal<string> ping,
+      [NotNull] RdSignal<string> log
     )
     {
       if (generate == null) throw new ArgumentNullException("generate");
       if (ping == null) throw new ArgumentNullException("ping");
+      if (log == null) throw new ArgumentNullException("log");
       
       _Generate = generate;
       _Ping = ping;
+      _Log = log;
       _Generate.Async = true;
       _Ping.Async = true;
+      _Log.Async = true;
       BindableChildren.Add(new KeyValuePair<string, object>("generate", _Generate));
       BindableChildren.Add(new KeyValuePair<string, object>("ping", _Ping));
+      BindableChildren.Add(new KeyValuePair<string, object>("log", _Log));
     }
     //secondary constructor
     private VSharpModel (
     ) : this (
       new RdCall<GenerateArguments, GenerateResults>(GenerateArguments.Read, GenerateArguments.Write, GenerateResults.Read, GenerateResults.Write),
+      new RdSignal<string>(JetBrains.Rd.Impl.Serializers.ReadString, JetBrains.Rd.Impl.Serializers.WriteString),
       new RdSignal<string>(JetBrains.Rd.Impl.Serializers.ReadString, JetBrains.Rd.Impl.Serializers.WriteString)
     ) {}
     //deconstruct trait
@@ -76,7 +84,7 @@ namespace UtBot.Rd.Generated
     
     
     
-    protected override long SerializationHash => -2362293640438957269L;
+    protected override long SerializationHash => -5982678710127900748L;
     
     protected override Action<ISerializers> Register => RegisterDeclaredTypesSerializers;
     public static void RegisterDeclaredTypesSerializers(ISerializers serializers)
@@ -104,6 +112,7 @@ namespace UtBot.Rd.Generated
       using (printer.IndentCookie()) {
         printer.Print("generate = "); _Generate.PrintEx(printer); printer.Println();
         printer.Print("ping = "); _Ping.PrintEx(printer); printer.Println();
+        printer.Print("log = "); _Log.PrintEx(printer); printer.Println();
       }
       printer.Print(")");
     }

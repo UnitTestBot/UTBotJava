@@ -228,7 +228,7 @@ Sometimes the _Instrumented process_ may unexpectedly die due to concrete execut
 	- **Important**: do not add [`Rdgen`](https://mvnrepository.com/artifact/com.jetbrains.rd/rd-gen) as 
 	  an implementation dependency — it breaks some JAR files as it contains `kotlin-compiler-embeddable`.
 5. Logging & debugging:
-	- [Interprocess logging](./contributing/InterProcessLogging.md)
+	- [Interprocess logging](./InterProcessLogging.md)
     - [Interprocess debugging](./contributing/InterProcessDebugging.md)
 6. Custom protocol marshaling types: do not spend time on it until `UtModels` get simpler, e.g. compatible with 
    `kotlinx.serialization`.

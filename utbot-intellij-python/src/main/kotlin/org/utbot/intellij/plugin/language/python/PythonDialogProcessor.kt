@@ -12,6 +12,7 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
 import com.jetbrains.python.psi.PyClass
@@ -30,11 +31,12 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.code.PythonCode
+import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.camelToSnakeCase
-import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.Path
@@ -49,12 +51,31 @@ object PythonDialogProcessor {
         focusedMethod: PyFunction?,
         file: PyFile
     ) {
-        val dialog = createDialog(project, functionsToShow, containingClass, focusedMethod, file)
-        if (!dialog.showAndGet()) {
-            return
+        val pythonPath = getPythonPath(functionsToShow)
+        if (pythonPath == null) {
+            showErrorDialogLater(
+                project,
+                message = "Couldn't find Python interpreter",
+                title = "Python test generation error"
+            )
+        } else {
+            val dialog = createDialog(
+                project,
+                functionsToShow,
+                containingClass,
+                focusedMethod,
+                file,
+                pythonPath,
+            )
+            if (!dialog.showAndGet()) {
+                return
+            }
+            createTests(project, dialog.model)
         }
+    }
 
-        createTests(project, dialog.model)
+    private fun getPythonPath(functionsToShow: Set<PyFunction>): String? {
+        return findSrcModule(functionsToShow).sdk?.homePath
     }
 
     private fun createDialog(
@@ -62,7 +83,8 @@ object PythonDialogProcessor {
         functionsToShow: Set<PyFunction>,
         containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        file: PyFile
+        file: PyFile,
+        pythonPath: String,
     ): PythonDialogWindow {
         val srcModule = findSrcModule(functionsToShow)
         val testModules = srcModule.testModules(project)
@@ -83,19 +105,22 @@ object PythonDialogProcessor {
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 visitOnlySpecifiedSource = false,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
+                pythonPath = pythonPath,
             )
         )
     }
 
     private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
+        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule) ?: return null
+
         val shownFunctions: Set<PythonMethod> =
             if (model.containingClass == null) {
-                model.file.topLevelFunctions.mapNotNull { it.toPythonMethod() }.toSet()
+                code.getToplevelFunctions().toSet()
             } else {
-                val classes = model.file.topLevelClasses
+                val classes = code.getToplevelClasses()
                 val myClass = classes.find { it.name == model.containingClass.name }
                     ?: error("Didn't find containing class")
-                myClass.methods.mapNotNull { it.toPythonMethod() }.toSet()
+                myClass.methods.toSet()
             }
 
         return model.selectedFunctions.map { pyFunction ->
@@ -115,15 +140,7 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
-                    val pythonPath = model.srcModule.sdk?.homePath
-                    if (pythonPath == null) {
-                        showErrorDialogLater(
-                            project,
-                            message = "Couldn't find Python interpreter",
-                            title = "Python test generation error"
-                        )
-                        return
-                    }
+
                     val methods = findSelectedPythonMethods(model)
                     if (methods == null) {
                         showErrorDialogLater(
@@ -134,7 +151,7 @@ object PythonDialogProcessor {
                         return
                     }
                     processTestGeneration(
-                        pythonPath = pythonPath,
+                        pythonPath = model.pythonPath,
                         pythonFilePath = model.file.virtualFile.path,
                         pythonFileContent = getContentFromPyFile(model.file),
                         directoriesForSysPath = model.directoriesForSysPath,
@@ -144,14 +161,13 @@ object PythonDialogProcessor {
                         timeout = model.timeout,
                         testFramework = model.testFramework,
                         timeoutForRun = model.timeoutForRun,
-                        writeTestTextToFile = { generatedCode ->
-                            writeGeneratedCodeToPsiDocument(generatedCode, model)
-                        },
-                        pythonRunRoot = Path(model.testSourceRootPath),
+                        visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
+                        installingRequirementsAction = { indicator.text = "Installing requirements..." },
+                        testFrameworkInstallationAction = { indicator.text = "Test framework installation" },
                         requirementsAreNotInstalledAction = {
-                            askAndInstallRequirementsLater(model.project, pythonPath)
+                            askAndInstallRequirementsLater(model.project, model.pythonPath)
                             PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                         },
                         startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
@@ -163,11 +179,15 @@ object PythonDialogProcessor {
                                 title = "Python test generation error"
                             )
                         },
+                        writeTestTextToFile = { generatedCode ->
+                            writeGeneratedCodeToPsiDocument(generatedCode, model)
+                        },
                         processMypyWarnings = {
                             val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                             WarningTestsReportNotifier.notify(message.toString())
                         },
-                        startedCleaningAction = { indicator.text = "Cleaning up..." }
+                        startedCleaningAction = { indicator.text = "Cleaning up..." },
+                        pythonRunRoot = Path(model.testSourceRootPath)
                     )
                 } finally {
                     LockFile.unlock()
@@ -260,43 +280,71 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
+fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode? {
+    val content = getContentFromPyFile(file)
+    return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)
+}
+
+/*
+ * Returns set of sys paths and tested file import path
+ */
 fun getDirectoriesForSysPath(
     srcModule: Module,
     file: PyFile
 ): Pair<Set<String>, String> {
     val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
     val ancestor = ProjectFileIndex.getInstance(file.project).getContentRootForFile(file.virtualFile)
-    if (ancestor != null && !sources.contains(ancestor))
+    if (ancestor != null)
         sources.add(ancestor)
 
     // Collect sys.path directories with imported modules
+    val importedPaths = emptyList<VirtualFile>().toMutableList()
+
+    // 1. import <module>
     file.importTargets.forEach { importTarget ->
         importTarget.multiResolve().forEach {
             val element = it.element
             if (element != null) {
                 val directory = element.parent
                 if (directory is PsiDirectory) {
-                    if (sources.any { source ->
-                            val sourcePath = source.canonicalPath
-                            if (source.isDirectory && sourcePath != null) {
-                                directory.virtualFile.canonicalPath?.startsWith(sourcePath) ?: false
-                            } else {
-                                false
-                            }
-                        }) {
-                        sources.add(directory.virtualFile)
-                    }
+                    importedPaths.add(directory.virtualFile)
                 }
             }
         }
     }
 
-    var importPath = ancestor?.let { VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(file.virtualFile, it)) } ?: ""
-    if (importPath != "")
-        importPath += "."
+    // 2. from <module> import ...
+    file.fromImports.forEach { importTarget ->
+        importTarget.resolveImportSourceCandidates().forEach {
+            val directory = it.parent
+            if (directory is PsiDirectory ) {
+                importedPaths.add(directory.virtualFile)
+            }
+        }
+    }
+
+    // Select modules only from this project
+    importedPaths.forEach {
+        if (it.isProjectSubmodule(ancestor)) {
+            sources.add(it)
+        }
+    }
+
+    val fileName = file.name.removeSuffix(".py")
+    val importPath = ancestor?.let {
+        VfsUtil.getParentDir(
+            VfsUtilCore.getRelativeLocation(file.virtualFile, it)
+        )
+    } ?: ""
+    val importStringPath = listOf(
+        importPath.toPath().joinToString("."),
+        fileName
+    )
+        .filterNot { it.isEmpty() }
+        .joinToString(".")
 
     return Pair(
-        sources.map { it.path.replace("\\", "\\\\") }.toSet(),
-        "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".").replace("/", File.separator)
+        sources.map { it.path }.toSet(),
+        importStringPath
     )
 }

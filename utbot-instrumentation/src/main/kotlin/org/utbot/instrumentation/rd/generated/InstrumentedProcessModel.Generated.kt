@@ -15,14 +15,13 @@ import kotlin.jvm.JvmStatic
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:7]
+ * #### Generated from [InstrumentedProcessModel.kt:8]
  */
 class InstrumentedProcessModel private constructor(
     private val _addPaths: RdCall<AddPathsParams, Unit>,
     private val _warmup: RdCall<Unit, Unit>,
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
     private val _invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>,
-    private val _stopProcess: RdCall<Unit, Unit>,
     private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>,
     private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>
 ) : RdExtBase() {
@@ -62,7 +61,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = -3546055831649640704L
+        const val serializationHash = 2443784041000581664L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -93,11 +92,6 @@ class InstrumentedProcessModel private constructor(
     val invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult> get() = _invokeMethodCommand
     
     /**
-     * This command tells the instrumented process to stop
-     */
-    val stopProcess: RdCall<Unit, Unit> get() = _stopProcess
-    
-    /**
      * This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to collect coverage for the
     [clazz]
      */
@@ -115,7 +109,6 @@ class InstrumentedProcessModel private constructor(
         _warmup.async = true
         _setInstrumentation.async = true
         _invokeMethodCommand.async = true
-        _stopProcess.async = true
         _collectCoverage.async = true
         _computeStaticField.async = true
     }
@@ -125,7 +118,6 @@ class InstrumentedProcessModel private constructor(
         bindableChildren.add("warmup" to _warmup)
         bindableChildren.add("setInstrumentation" to _setInstrumentation)
         bindableChildren.add("invokeMethodCommand" to _invokeMethodCommand)
-        bindableChildren.add("stopProcess" to _stopProcess)
         bindableChildren.add("collectCoverage" to _collectCoverage)
         bindableChildren.add("computeStaticField" to _computeStaticField)
     }
@@ -137,7 +129,6 @@ class InstrumentedProcessModel private constructor(
         RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
         RdCall<SetInstrumentationParams, Unit>(SetInstrumentationParams, FrameworkMarshallers.Void),
         RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>(InvokeMethodCommandParams, InvokeMethodCommandResult),
-        RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
         RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult),
         RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult)
     )
@@ -152,7 +143,6 @@ class InstrumentedProcessModel private constructor(
             print("warmup = "); _warmup.print(printer); println()
             print("setInstrumentation = "); _setInstrumentation.print(printer); println()
             print("invokeMethodCommand = "); _invokeMethodCommand.print(printer); println()
-            print("stopProcess = "); _stopProcess.print(printer); println()
             print("collectCoverage = "); _collectCoverage.print(printer); println()
             print("computeStaticField = "); _computeStaticField.print(printer); println()
         }
@@ -165,7 +155,6 @@ class InstrumentedProcessModel private constructor(
             _warmup.deepClonePolymorphic(),
             _setInstrumentation.deepClonePolymorphic(),
             _invokeMethodCommand.deepClonePolymorphic(),
-            _stopProcess.deepClonePolymorphic(),
             _collectCoverage.deepClonePolymorphic(),
             _computeStaticField.deepClonePolymorphic()
         )
@@ -177,11 +166,10 @@ val IProtocol.instrumentedProcessModel get() = getOrCreateExtension(Instrumented
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:8]
+ * #### Generated from [InstrumentedProcessModel.kt:9]
  */
 data class AddPathsParams (
-    val pathsToUserClasses: String,
-    val pathsToDependencyClasses: String
+    val pathsToUserClasses: String
 ) : IPrintable {
     //companion
     
@@ -191,13 +179,11 @@ data class AddPathsParams (
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): AddPathsParams  {
             val pathsToUserClasses = buffer.readString()
-            val pathsToDependencyClasses = buffer.readString()
-            return AddPathsParams(pathsToUserClasses, pathsToDependencyClasses)
+            return AddPathsParams(pathsToUserClasses)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: AddPathsParams)  {
             buffer.writeString(value.pathsToUserClasses)
-            buffer.writeString(value.pathsToDependencyClasses)
         }
         
         
@@ -214,7 +200,6 @@ data class AddPathsParams (
         other as AddPathsParams
         
         if (pathsToUserClasses != other.pathsToUserClasses) return false
-        if (pathsToDependencyClasses != other.pathsToDependencyClasses) return false
         
         return true
     }
@@ -222,7 +207,6 @@ data class AddPathsParams (
     override fun hashCode(): Int  {
         var __r = 0
         __r = __r*31 + pathsToUserClasses.hashCode()
-        __r = __r*31 + pathsToDependencyClasses.hashCode()
         return __r
     }
     //pretty print
@@ -230,7 +214,6 @@ data class AddPathsParams (
         printer.println("AddPathsParams (")
         printer.indent {
             print("pathsToUserClasses = "); pathsToUserClasses.print(printer); println()
-            print("pathsToDependencyClasses = "); pathsToDependencyClasses.print(printer); println()
         }
         printer.print(")")
     }

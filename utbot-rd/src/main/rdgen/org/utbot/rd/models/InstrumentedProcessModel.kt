@@ -8,7 +8,6 @@ object InstrumentedProcessRoot : Root()
 object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
     val AddPathsParams = structdef {
         field("pathsToUserClasses", PredefinedType.string)
-        field("pathsToDependencyClasses", PredefinedType.string)
     }
 
     val SetInstrumentationParams = structdef {
@@ -64,11 +63,6 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             "The main process requests the instrumented process to execute a method with the given [signature],\n" +
                     "which declaring class's name is [className].\n" +
                     "@property parameters are the parameters needed for an execution, e.g. static environment"
-        }
-        call("StopProcess", PredefinedType.void, PredefinedType.void).apply {
-            async
-            documentation =
-                "This command tells the instrumented process to stop"
         }
         call("CollectCoverage", CollectCoverageParams, CollectCoverageResult).apply {
             async

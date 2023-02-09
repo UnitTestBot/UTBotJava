@@ -11,7 +11,7 @@ import java.security.ProtectionDomain
 import kotlin.io.path.absolutePathString
 
 
-private val logger = getLogger("DynamicClassTransformer")
+private val logger = getLogger<DynamicClassTransformer>()
 
 /**
  * Transformer, which will transform only classes with certain names.
@@ -52,12 +52,9 @@ class DynamicClassTransformer : ClassFileTransformer {
     }
 
     companion object {
-
         private val packsToAlwaysTransform = listOf(
             "org/slf4j",
             "org/utbot/instrumentation/warmup"
         )
-
     }
-
 }

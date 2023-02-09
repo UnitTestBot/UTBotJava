@@ -7,11 +7,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
@@ -27,15 +26,9 @@ import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.plugin.api.utils.checkFrameworkDependencies
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.constructors.UtModelConstructor
 import org.utbot.framework.minimization.minimizeTestCase
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
@@ -43,14 +36,12 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
-import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.nio.file.Path
-import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
-import kotlin.reflect.KCallable
 
 /**
  * Generates test cases: one by one or a whole set for the method under test.
@@ -88,25 +79,17 @@ open class TestCaseGenerator(
                 System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
             }
 
-            timeoutLogger.trace().bracket("Soot initialization") {
+            timeoutLogger.trace().measureTime({ "Soot initialization"} ) {
                 SootUtils.runSoot(buildDirs, classpath, forceSootReload, jdkInfo)
             }
 
             //warmup
             if (warmupConcreteExecution) {
+                // force pool to create an appropriate executor
                 ConcreteExecutor(
                     UtExecutionInstrumentation,
                     classpathForEngine,
-                    dependencyPaths
                 ).apply {
-                    classLoader = utContext.classLoader
-                    withUtContext(UtContext(Warmup::class.java.classLoader)) {
-                        runBlocking {
-                            constructExecutionsForWarmup().forEach { (method, data) ->
-                                executeAsync(method, emptyArray(), data)
-                            }
-                        }
-                    }
                     warmup()
                 }
             }
@@ -197,7 +180,10 @@ open class TestCaseGenerator(
                                             }
                                             method2executions.getValue(method) += it
                                         }
-                                        is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                        is UtError -> {
+                                            method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                            logger.error(it.error) { "UtError occurred" }
+                                        }
                                     }
                                 }
                         } catch (e: Exception) {
@@ -256,33 +242,6 @@ open class TestCaseGenerator(
             )
         }
     }
-
-    private fun constructExecutionsForWarmup(): Sequence<Pair<KCallable<*>, UtConcreteExecutionData>> =
-        UtModelConstructor(IdentityHashMap()).run {
-            sequenceOf(
-                Warmup::doWarmup1 to UtConcreteExecutionData(
-                    EnvironmentModels(
-                        construct(Warmup(5), Warmup::class.java.id),
-                        listOf(construct(Warmup(1), Warmup::class.java.id)),
-                        emptyMap()
-                    ), emptyList()
-                ),
-                Warmup::doWarmup2 to UtConcreteExecutionData(
-                    EnvironmentModels(
-                        construct(Warmup(1), Warmup::class.java.id),
-                        listOf(construct(intArrayOf(1, 2, 3), intArrayClassId)),
-                        emptyMap()
-                    ), emptyList()
-                ),
-                Warmup::doWarmup2 to UtConcreteExecutionData(
-                    EnvironmentModels(
-                        construct(Warmup(1), Warmup::class.java.id),
-                        listOf(construct(intArrayOf(1, 2, 3, 4, 5, 6), intArrayClassId)),
-                        emptyMap()
-                    ), emptyList()
-                ),
-            )
-        }
 
     private fun createSymbolicEngine(
         controller: EngineController,

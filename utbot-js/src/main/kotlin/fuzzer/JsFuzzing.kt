@@ -6,7 +6,6 @@ import fuzzer.providers.NumberValueProvider
 import fuzzer.providers.ObjectValueProvider
 import fuzzer.providers.StringValueProvider
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzing.Fuzzing
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.fuzz
@@ -36,8 +35,6 @@ class JsFuzzing(
         return exec(description, values)
     }
 }
-
-internal val defaultFuzzingIdGenerator = ReferencePreservingIntIdGenerator()
 
 suspend fun runFuzzing(
     description: JsMethodDescription,

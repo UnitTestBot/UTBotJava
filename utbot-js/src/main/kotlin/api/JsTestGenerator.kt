@@ -6,6 +6,7 @@ import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
+import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsFeedback
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
@@ -247,7 +248,7 @@ class JsTestGenerator(
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
-                            val (thisObject, modelList) = if (funcNode.isClassMembers) {
+                            val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
                                 null to params.map { it.model }
                             } else params[0].model to params.drop(1).map { it.model }
                             val initEnv =
@@ -309,7 +310,7 @@ class JsTestGenerator(
     ): JsClassId {
         return classNode?.let {
             JsClassId(parentClassName!!).constructClass(ternService, classNode)
-        } ?: JsClassId("undefined").constructClass(
+        } ?: jsUndefinedClassId.constructClass(
             ternService = ternService,
             functions = extractToplevelFunctions()
         )

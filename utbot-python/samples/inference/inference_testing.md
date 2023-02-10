@@ -17,7 +17,7 @@ Used time limit: 25 seconds.
 
 Command:
 
-    java -jar utbot-cli-python-2023.01-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py" <function>
+    java -jar utbot-cli-python-2023.02-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py" <function>
 
 
 ### <span style="color:green">OK:</span> `def motion(x, u, dt)`
@@ -167,7 +167,7 @@ Used time limit: 25 seconds.
 
 Command:
 
-    java -jar utbot-cli-python-2023.01-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DubinsPath/dubins_path_planner.py" <function>
+    java -jar utbot-cli-python-2023.02-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DubinsPath/dubins_path_planner.py" <function>
 
 ### <span style="color:green">OK:</span> `def _calc_trig_funcs(alpha, beta)`
 

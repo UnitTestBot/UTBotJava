@@ -16,7 +16,7 @@ import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.clearContextRelatedStorage
+import org.utbot.framework.codegen.tree.CgComponents.clearContextRelatedStorage
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework

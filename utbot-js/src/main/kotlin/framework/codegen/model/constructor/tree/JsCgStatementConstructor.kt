@@ -30,7 +30,6 @@ import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgForEachLoopBuilder
 import org.utbot.framework.codegen.tree.CgForLoopBuilder
 import org.utbot.framework.codegen.tree.CgStatementConstructor
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.tree.ExpressionWithType
 import org.utbot.framework.codegen.tree.buildAssignment
 import org.utbot.framework.codegen.tree.buildDeclaration

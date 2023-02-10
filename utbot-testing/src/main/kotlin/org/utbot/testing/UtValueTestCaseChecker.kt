@@ -42,7 +42,7 @@ import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.toValueTestCase
-import org.utbot.summary.summarize
+import org.utbot.summary.summarizeAll
 import org.utbot.testcheckers.ExecutionsNumberMatcher
 import java.io.File
 import java.nio.file.Path
@@ -1730,7 +1730,7 @@ abstract class UtValueTestCaseChecker(
             } else {
                 walk(executableId, mockStrategy, additionalDependenciesClassPath)
             }
-            testSet.summarize(searchDirectory, sourceFile = null)
+            listOf(testSet).summarizeAll(searchDirectory, sourceFile = null)
             val valueTestCase = testSet.toValueTestCase()
 
             assertTrue(testSet.errors.isEmpty()) {

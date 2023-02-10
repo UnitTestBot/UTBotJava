@@ -57,6 +57,7 @@ allprojects {
             // this is useful if you debug in docker
             // testLogging.showStandardStreams = true
             // testLogging.showStackTraces = true
+
             // set heap size for the test JVM(s)
             minHeapSize = "128m"
             maxHeapSize = "3072m"

@@ -22,7 +22,6 @@ class InstrumentedProcessModel private constructor(
     private val _warmup: RdCall<Unit, Unit>,
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
     private val _invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>,
-    private val _stopProcess: RdCall<Unit, Unit>,
     private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>,
     private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>
 ) : RdExtBase() {
@@ -62,7 +61,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 7371522075001495459L
+        const val serializationHash = 2443784041000581664L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -93,11 +92,6 @@ class InstrumentedProcessModel private constructor(
     val invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult> get() = _invokeMethodCommand
     
     /**
-     * This command tells the instrumented process to stop
-     */
-    val stopProcess: RdCall<Unit, Unit> get() = _stopProcess
-    
-    /**
      * This command is sent to the instrumented process from the [ConcreteExecutor] if user wants to collect coverage for the
     [clazz]
      */
@@ -115,7 +109,6 @@ class InstrumentedProcessModel private constructor(
         _warmup.async = true
         _setInstrumentation.async = true
         _invokeMethodCommand.async = true
-        _stopProcess.async = true
         _collectCoverage.async = true
         _computeStaticField.async = true
     }
@@ -125,7 +118,6 @@ class InstrumentedProcessModel private constructor(
         bindableChildren.add("warmup" to _warmup)
         bindableChildren.add("setInstrumentation" to _setInstrumentation)
         bindableChildren.add("invokeMethodCommand" to _invokeMethodCommand)
-        bindableChildren.add("stopProcess" to _stopProcess)
         bindableChildren.add("collectCoverage" to _collectCoverage)
         bindableChildren.add("computeStaticField" to _computeStaticField)
     }
@@ -137,7 +129,6 @@ class InstrumentedProcessModel private constructor(
         RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
         RdCall<SetInstrumentationParams, Unit>(SetInstrumentationParams, FrameworkMarshallers.Void),
         RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>(InvokeMethodCommandParams, InvokeMethodCommandResult),
-        RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
         RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult),
         RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult)
     )
@@ -152,7 +143,6 @@ class InstrumentedProcessModel private constructor(
             print("warmup = "); _warmup.print(printer); println()
             print("setInstrumentation = "); _setInstrumentation.print(printer); println()
             print("invokeMethodCommand = "); _invokeMethodCommand.print(printer); println()
-            print("stopProcess = "); _stopProcess.print(printer); println()
             print("collectCoverage = "); _collectCoverage.print(printer); println()
             print("computeStaticField = "); _computeStaticField.print(printer); println()
         }
@@ -165,7 +155,6 @@ class InstrumentedProcessModel private constructor(
             _warmup.deepClonePolymorphic(),
             _setInstrumentation.deepClonePolymorphic(),
             _invokeMethodCommand.deepClonePolymorphic(),
-            _stopProcess.deepClonePolymorphic(),
             _collectCoverage.deepClonePolymorphic(),
             _computeStaticField.deepClonePolymorphic()
         )

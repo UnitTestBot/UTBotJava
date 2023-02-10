@@ -1899,22 +1899,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             methodType = this@CgMethodConstructor.methodType
             val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
 
-            // add JVM crash report path if exists
-            if (result is UtConcreteExecutionFailure) {
-                result.extractJvmReportPathOrNull()?.let {
-                    val jvmReportDocumentation = CgDocRegularStmt(getJvmReportDocumentation(it))
-                    val lastTag = docComment.lastOrNull()
-                    // if the last statement is a <pre> tag, put the path inside it
-                    if (lastTag == null || lastTag !is CgDocPreTagStatement) {
-                        docComment += jvmReportDocumentation
-                    } else {
-                        val tagContent = lastTag.content
-                        docComment.removeLast()
-                        docComment += CgDocPreTagStatement(tagContent + jvmReportDocumentation)
-                    }
-                }
-            }
-
             documentation = CgDocumentationComment(docComment)
             documentation = if (parameterized) {
                 CgDocumentationComment(text = null)
@@ -1969,18 +1953,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val errorTestMethod = CgErrorTestMethod(name, body)
         return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
     }
-
-    private fun getJvmReportDocumentation(jvmReportPath: String): String {
-        val pureJvmReportPath = jvmReportPath.substringAfter("# ")
-
-        // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
-    }
-
-    private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =
-        exception.processStdout.singleOrNull {
-            "hs_err_pid" in it
-        }
 
     private fun CgExecutableCall.wrapReflectiveCall() {
         +tryBlock {

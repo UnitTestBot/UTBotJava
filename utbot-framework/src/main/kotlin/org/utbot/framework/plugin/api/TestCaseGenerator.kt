@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
@@ -79,7 +79,7 @@ open class TestCaseGenerator(
                 System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
             }
 
-            timeoutLogger.trace().bracket("Soot initialization") {
+            timeoutLogger.trace().measureTime({ "Soot initialization"} ) {
                 SootUtils.runSoot(buildDirs, classpath, forceSootReload, jdkInfo)
             }
 

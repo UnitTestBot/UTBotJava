@@ -7,7 +7,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.utbot.common.ThreadBasedExecutor
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.info
 import org.utbot.contest.ContestEstimatorJdkInfoProvider
 import org.utbot.contest.ContextManager
@@ -50,7 +50,7 @@ fun main(args: Array<String>) {
             Paths.moduleTestDir
         )
 
-        logger.info().bracket("Run UTBot generation [fuzzing ratio = $fuzzingRatio]") {
+        logger.info().measureTime({ "Run UTBot generation [fuzzing ratio = $fuzzingRatio]" }) {
             val start = System.nanoTime()
 
             executor.invokeWithTimeout(runTimeout) {

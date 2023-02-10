@@ -14,7 +14,7 @@ import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
 import org.utbot.common.FileUtil
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.getPid
 import org.utbot.common.info
 import org.utbot.contest.Paths.classesLists
@@ -166,7 +166,7 @@ enum class Tool {
                 val testClass = cut.generatedTestFile
                 classStats.testClassFile = testClass
 
-                logger.info().bracket("Compiling class ${testClass.absolutePath}") {
+                logger.info().measureTime({ "Compiling class ${testClass.absolutePath}" }) {
                     val exitCode = compileClass(
                         compiledTestDir.absolutePath,
                         project.compileClasspathString,

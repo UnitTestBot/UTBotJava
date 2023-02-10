@@ -6,11 +6,11 @@ import java.time.format.DateTimeFormatter
 val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
 val dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
 
-class LoggerWithLogMethod(val logger: KLogger, val logMethod: (() -> Any?) -> Unit)
+class LoggerWithLogMethod(val logMethod: (() -> Any?) -> Unit)
 
-fun KLogger.info(): LoggerWithLogMethod = LoggerWithLogMethod(this, this::info)
-fun KLogger.debug(): LoggerWithLogMethod = LoggerWithLogMethod(this, this::debug)
-fun KLogger.trace(): LoggerWithLogMethod = LoggerWithLogMethod(this, this::trace)
+fun KLogger.info(): LoggerWithLogMethod = LoggerWithLogMethod(this::info)
+fun KLogger.debug(): LoggerWithLogMethod = LoggerWithLogMethod(this::debug)
+fun KLogger.trace(): LoggerWithLogMethod = LoggerWithLogMethod(this::trace)
 
 fun elapsedSecFrom(startNano: Long): String {
     val elapsedNano = System.nanoTime() - startNano
@@ -35,16 +35,22 @@ fun elapsedSecFrom(startNano: Long): String {
  * You can use [closingComment] to add some result-depending comment to "Finished:" message. Special "<Nothing>" comment
  * is added if non local return happened in [block]
  */
-inline fun <T> LoggerWithLogMethod.bracket(
-    msg: String,
+inline fun <T> LoggerWithLogMethod.measureTime(
+    crossinline msgBlock: () -> String,
     crossinline closingComment: (Result<T>) -> Any? = { "" },
     block: () -> T
 ): T {
-    logMethod { "Started: $msg" }
+    var msg = ""
+
+    logMethod {
+        msg = msgBlock()
+        "Started: $msg"
+    }
+
     val startNano = System.nanoTime()
     var alreadyLogged = false
 
-    var res : Maybe<T> = Maybe.empty()
+    var res: Maybe<T> = Maybe.empty()
     try {
         // Note: don't replace this one with runCatching, otherwise return from lambda breaks "finished" logging.
         res = Maybe(block())
@@ -63,20 +69,28 @@ inline fun <T> LoggerWithLogMethod.bracket(
     }
 }
 
-inline fun <T> KLogger.catchException(block: () -> T): T? {
+inline fun <T> KLogger.catchException(message: String = "Isolated", block: () -> T): T? {
     return try {
         block()
     } catch (e: Throwable) {
-        this.error(e) { "Isolated" }
+        this.error(message, e)
         null
     }
 }
 
-inline fun <T> KLogger.logException(block: () -> T): T {
+inline fun <T> KLogger.logException(message: String = "Exception occurred", block: () -> T): T {
     return try {
         block()
     } catch (e: Throwable) {
-        this.error("Exception occurred", e)
+        this.error(message, e)
         throw e
+    }
+}
+
+inline fun <T> silent(block: () -> T): T? {
+    return try {
+        block()
+    } catch (_: Throwable) {
+        null
     }
 }

@@ -6,9 +6,7 @@ import utils.OsProvider
 object JsPackagesSettings {
     val mochaData: PackageData = PackageData("mocha", "-l")
     val nycData: PackageData = PackageData("nyc", "-g")
-
-    // TODO(MINOR): Add tern auto installation
-    val ternData: PackageData? = null
+    val ternData: PackageData = PackageData("tern", "-l")
 }
 
 data class PackageData(

@@ -24,7 +24,6 @@ class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton(
         addBrowseFolderListener(
             TextBrowseFolderListener(descriptor, model.project)
         )
-        nycData.findPackagePath() ?: installMissingRequirement(model.project, model.pathToNPM, nycData)
         text = (replaceSeparator(nycData.findPackagePath() ?: "Nyc was not found")
                 + OsProvider.getProviderByOs().npmPackagePostfix)
     }

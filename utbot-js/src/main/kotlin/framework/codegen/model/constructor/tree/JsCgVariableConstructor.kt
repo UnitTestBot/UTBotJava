@@ -9,8 +9,7 @@ import framework.api.js.JsPrimitiveModel
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgValue
-import org.utbot.framework.codegen.tree.Cgcomponents
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.util.nullLiteral
 

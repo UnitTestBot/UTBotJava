@@ -43,7 +43,7 @@ class StatementTreeBuilder(private val splitSteps: SplitSteps, private val trace
      * @see ExecutionStructureAnalysis
      * as they require initial tree tag structure. Otherwise it would be unreadable code here.
      */
-    private fun buildStatementTree(startIndex: Int = 0, statementTag: StatementTag? = null, depth: Int = 0): Int {
+    private fun buildStatementTree(startIndex: Int = 0, statementTag: StatementTag? = null, depth: Int = 0, isInvokedRecursively: Boolean = false): Int {
         var currentIndex = startIndex
         var previousStatementTag = statementTag
         while (currentIndex < traceSteps.size) {
@@ -54,14 +54,28 @@ class StatementTreeBuilder(private val splitSteps: SplitSteps, private val trace
                 nextStatementTag?.let {
                     when {
                         it.step.depth < depth -> {
-                            return currentIndex--
+                            // When analyzing a steps' path, we can accidentally return before we process the whole path,
+                            // this leads to missing info in summaries.
+                            // In order to solve it, we track whether we called the method from [StatementTreeBuilder.build()]
+                            // or called it here recursively.
+                            // In the first case we do not return,
+                            // in the second case we return an index.
+                            currentIndex--
+                            if (isInvokedRecursively) return currentIndex
+                            else return@let
                         }
                         it.step.depth > depth -> {
                             currentStatement.invoke = nextStatementTag
+
+                            // We save the nextStatementTag in .next as well at the end of the step path
+                            // in order to recover info from it
+                            if (currentIndex == traceSteps.lastIndex) currentStatement.next = nextStatementTag
+
                             currentIndex = buildStatementTree(
                                 currentIndex + 1,
                                 nextStatementTag,
-                                nextStatementTag.step.depth
+                                nextStatementTag.step.depth,
+                                isInvokedRecursively = true
                             )
                             currentIndex--
                         }

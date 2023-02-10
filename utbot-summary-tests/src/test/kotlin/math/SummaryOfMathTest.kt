@@ -232,7 +232,9 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
                             "        {@code (count == 0): True}\n" +
                             "    invoke:\n" +
                             "        {@link guava.examples.math.StatsAccumulator#isFinite(double)} twice\n" +
-                            "Tests next execute conditions:\n" +
+                            "Tests later invoke:\n" +
+                            "    {@link guava.examples.math.StatsAccumulator#add(double)} once\n" +
+                            "execute conditions:\n" +
                             "    {@code (null): False}\n" +
                             "call {@link guava.examples.math.StatsAccumulator#isFinite(double)},\n" +
                             "    there it invoke:\n" +

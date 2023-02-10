@@ -26,6 +26,8 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
         val summary3 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#fib(int)}\n" +
                 "@utbot.executesCondition {@code (n == 1): False}\n" +
+                "@utbot.invokes {@link org.utbot.examples.recursion.Recursion#fib(int)}\n" +
+                "@utbot.invokes {@link org.utbot.examples.recursion.Recursion#fib(int)}\n" +
                 "@utbot.triggersRecursion fib, where the test execute conditions:\n" +
                 "    {@code (n == 1): True}\n" +
                 "return from: {@code return 1;}" +
@@ -84,6 +86,7 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
         val summary2 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#factorial(int)}\n" +
                 "@utbot.executesCondition {@code (n == 0): False}\n" +
+                "@utbot.invokes {@link org.utbot.examples.recursion.Recursion#factorial(int)}\n" +
                 "@utbot.triggersRecursion factorial, where the test return from: {@code return 1;}" +
                 "@utbot.returnsFrom {@code return n * factorial(n - 1);}"
         val summary3 = "@utbot.classUnderTest {@link Recursion}\n" +

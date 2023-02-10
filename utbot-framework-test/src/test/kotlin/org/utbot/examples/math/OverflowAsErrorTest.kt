@@ -2,7 +2,7 @@ package org.utbot.examples.math
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.engine.OverflowDetectionError
+import org.utbot.framework.plugin.api.OverflowDetectionError
 import org.utbot.examples.algorithms.Sort
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq

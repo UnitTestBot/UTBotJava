@@ -7,10 +7,7 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
-import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAuxiliaryClass
-import org.utbot.framework.codegen.domain.models.CgClass
-import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethod
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgMethodsCluster
@@ -26,16 +23,8 @@ import org.utbot.framework.codegen.domain.models.CgUtilMethod
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.importUtilMethodDependencies
 import org.utbot.framework.codegen.reports.TestsGenerationReport
-import org.utbot.framework.codegen.services.CgNameGenerator
-import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.services.framework.MockFrameworkManager
-import org.utbot.framework.codegen.services.framework.TestFrameworkManager
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.clearContextRelatedStorage
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getMethodConstructorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
-
+import org.utbot.framework.codegen.tree.CgComponents.clearContextRelatedStorage
+import org.utbot.framework.codegen.tree.CgComponents.getMethodConstructorBy
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -45,103 +34,71 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.fuzzer.UtFuzzedExecution
 
-open class CgTestClassConstructor(val context: CgContext) :
-    CgContextOwner by context,
-    CgStatementConstructor by getStatementConstructorBy(context) {
+/**
+ * This test class constructor is used for pure Java/Kotlin applications.
+ */
+open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstructorBase(context) {
 
     init {
         clearContextRelatedStorage()
     }
 
-    private val methodConstructor = getMethodConstructorBy(context)
-    private val nameGenerator = getNameGeneratorBy(context)
-    private val testFrameworkManager = getTestFrameworkManagerBy(context)
+    override val methodConstructor = getMethodConstructorBy(context)
 
     val testsGenerationReport = TestsGenerationReport()
 
-    /**
-     * Given a testClass model  constructs CgTestClass
-     */
-    open fun construct(testClassModel: TestClassModel): CgClassFile {
-        return buildClassFile {
-            this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
-            imports += context.collectedImports
-        }
-    }
+    override fun constructTestClassBody(testClassModel: TestClassModel) = buildClassBody(currentTestClass) {
+        val notYetConstructedTestSets = testClassModel.methodTestSets.toMutableList()
 
-    open fun constructTestClass(testClassModel: TestClassModel): CgClass {
-        return buildClass {
-            id = currentTestClass
-
-            if (currentTestClass != outerMostTestClass) {
-                isNested = true
-                isStatic = testFramework.nestedClassesShouldBeStatic
-                testFrameworkManager.annotationForNestedClasses?.let {
-                    currentTestClassContext.collectedTestClassAnnotations += it
+        for (nestedClass in testClassModel.nestedClasses) {
+            // It is not possible to run tests for both outer and inner class in JUnit4 at once,
+            // so we locate all test methods in outer test class for JUnit4.
+            // see https://stackoverflow.com/questions/69770700/how-to-run-tests-from-outer-class-and-nested-inner-classes-simultaneously-in-jun
+            // or https://stackoverflow.com/questions/28230277/test-cases-in-inner-class-and-outer-class-with-junit4
+            when (testFramework) {
+                Junit4 -> {
+                    notYetConstructedTestSets += collectTestSetsFromInnerClasses(nestedClass)
                 }
-            }
-
-            body = buildClassBody(currentTestClass) {
-                val notYetConstructedTestSets = testClassModel.methodTestSets.toMutableList()
-
-                for (nestedClass in testClassModel.nestedClasses) {
-                    // It is not possible to run tests for both outer and inner class in JUnit4 at once,
-                    // so we locate all test methods in outer test class for JUnit4.
-                    // see https://stackoverflow.com/questions/69770700/how-to-run-tests-from-outer-class-and-nested-inner-classes-simultaneously-in-jun
-                    // or https://stackoverflow.com/questions/28230277/test-cases-in-inner-class-and-outer-class-with-junit4
-                    when (testFramework) {
-                        Junit4 -> {
-                            notYetConstructedTestSets += collectTestSetsFromInnerClasses(nestedClass)
-                        }
-                        Junit5,
-                        TestNg -> {
-                            nestedClassRegions += CgRealNestedClassesRegion(
-                                "Tests for ${nestedClass.classUnderTest.simpleName}",
-                                listOf(withNestedClassScope(nestedClass) { constructTestClass(nestedClass) })
-                            )
-                        }
-                    }
-                }
-
-                for (testSet in notYetConstructedTestSets) {
-                    updateCurrentExecutable(testSet.executableId)
-                    val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
-                    val executableUnderTestCluster = CgMethodsCluster(
-                        "Test suites for executable $currentExecutable",
-                        currentMethodUnderTestRegions
+                Junit5,
+                TestNg -> {
+                    nestedClassRegions += CgRealNestedClassesRegion(
+                        "Tests for ${nestedClass.classUnderTest.simpleName}",
+                        listOf(withNestedClassScope(nestedClass) { constructTestClass(nestedClass) })
                     )
-                    methodRegions += executableUnderTestCluster
-                }
-
-                val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
-                if (currentTestClassDataProviderMethods.isNotEmpty()) {
-                    staticDeclarationRegions +=
-                        CgStaticsRegion(
-                            "Data provider methods for parametrized tests",
-                            currentTestClassDataProviderMethods,
-                        )
-                }
-
-                if (currentTestClass == outerMostTestClass) {
-                    val utilEntities = collectUtilEntities()
-                    // If utilMethodProvider is TestClassUtilMethodProvider, then util entities should be declared
-                    // in the test class. Otherwise, util entities will be located elsewhere (e.g. another class).
-                    if (utilMethodProvider is TestClassUtilMethodProvider && utilEntities.isNotEmpty()) {
-                        staticDeclarationRegions += CgStaticsRegion("Util methods", utilEntities)
-                    }
                 }
             }
-            // It is important that annotations, superclass and interfaces assignment is run after
-            // all methods are generated so that all necessary info is already present in the context
-            with (currentTestClassContext) {
-                annotations += collectedTestClassAnnotations
-                superclass = testClassSuperclass
-                interfaces += collectedTestClassInterfaces
+        }
+
+        for (testSet in notYetConstructedTestSets) {
+            updateCurrentExecutable(testSet.executableId)
+            val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
+            val executableUnderTestCluster = CgMethodsCluster(
+                "Test suites for executable $currentExecutable",
+                currentMethodUnderTestRegions
+            )
+            methodRegions += executableUnderTestCluster
+        }
+
+        val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
+        if (currentTestClassDataProviderMethods.isNotEmpty()) {
+            staticDeclarationRegions +=
+                CgStaticsRegion(
+                    "Data provider methods for parametrized tests",
+                    currentTestClassDataProviderMethods,
+                )
+        }
+
+        if (currentTestClass == outerMostTestClass) {
+            val utilEntities = collectUtilEntities()
+            // If utilMethodProvider is TestClassUtilMethodProvider, then util entities should be declared
+            // in the test class. Otherwise, util entities will be located elsewhere (e.g. another class).
+            if (utilMethodProvider is TestClassUtilMethodProvider && utilEntities.isNotEmpty()) {
+                staticDeclarationRegions += CgStaticsRegion("Util methods", utilEntities)
             }
         }
     }
 
-    fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         val regions = mutableListOf<CgRegion<CgMethod>>()
 
         if (testSet.executions.any()) {
@@ -360,51 +317,5 @@ open class CgTestClassConstructor(val context: CgContext) :
     protected val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 
-    object CgComponents {
-        /**
-         * Clears all stored data for current [CgContext].
-         * As far as context is created per class under test,
-         * no related data is required after it's processing.
-         */
-        fun clearContextRelatedStorage() {
-            nameGenerators.clear()
-            statementConstructors.clear()
-            callableAccessManagers.clear()
-            testFrameworkManagers.clear()
-            mockFrameworkManagers.clear()
-            variableConstructors.clear()
-            methodConstructors.clear()
-        }
-
-        private val nameGenerators: MutableMap<CgContext, CgNameGenerator> = mutableMapOf()
-        private val statementConstructors: MutableMap<CgContext, CgStatementConstructor> = mutableMapOf()
-        private val callableAccessManagers: MutableMap<CgContext, CgCallableAccessManager> = mutableMapOf()
-        private val testFrameworkManagers: MutableMap<CgContext, TestFrameworkManager> = mutableMapOf()
-        private val mockFrameworkManagers: MutableMap<CgContext, MockFrameworkManager> = mutableMapOf()
-
-        private val variableConstructors: MutableMap<CgContext, CgVariableConstructor> = mutableMapOf()
-        private val methodConstructors: MutableMap<CgContext, CgMethodConstructor> = mutableMapOf()
-
-        fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) {
-            context.cgLanguageAssistant.getNameGeneratorBy(context)
-        }
-        fun getCallableAccessManagerBy(context: CgContext) = callableAccessManagers.getOrPut(context) {
-            context.cgLanguageAssistant.getCallableAccessManagerBy(context)
-        }
-        fun getStatementConstructorBy(context: CgContext) = statementConstructors.getOrPut(context) {
-            context.cgLanguageAssistant.getStatementConstructorBy(context)
-        }
-
-        fun getTestFrameworkManagerBy(context: CgContext) =
-            testFrameworkManagers.getOrDefault(context, context.cgLanguageAssistant.getLanguageTestFrameworkManager().managerByFramework(context))
-
-        fun getMockFrameworkManagerBy(context: CgContext) = mockFrameworkManagers.getOrPut(context) { MockFrameworkManager(context) }
-        fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) {
-            context.cgLanguageAssistant.getVariableConstructorBy(context)
-        }
-        fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
-            context.cgLanguageAssistant.getMethodConstructorBy(context)
-        }
-    }
 }
 

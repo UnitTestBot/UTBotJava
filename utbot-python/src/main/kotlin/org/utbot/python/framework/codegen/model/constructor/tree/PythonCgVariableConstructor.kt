@@ -5,7 +5,7 @@ import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtModel
@@ -13,7 +13,7 @@ import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(context_) {
-    private val nameGenerator = CgTestClassConstructor.CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val baseName = name ?: nameGenerator.nameFrom(model.classId)

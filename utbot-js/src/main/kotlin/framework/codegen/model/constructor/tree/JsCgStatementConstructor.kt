@@ -26,6 +26,7 @@ import org.utbot.framework.codegen.domain.models.CgThrowStatement
 import org.utbot.framework.codegen.domain.models.CgTryCatch
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
+import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgForEachLoopBuilder
 import org.utbot.framework.codegen.tree.CgForLoopBuilder
 import org.utbot.framework.codegen.tree.CgStatementConstructor
@@ -47,9 +48,9 @@ import org.utbot.framework.plugin.api.UtModel
 class JsCgStatementConstructor(context: CgContext) :
     CgStatementConstructor,
     CgContextOwner by context,
-    CgCallableAccessManager by CgTestClassConstructor.CgComponents.getCallableAccessManagerBy(context) {
+    CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context) {
 
-    private val nameGenerator = CgTestClassConstructor.CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
 
     override fun newVar(
         baseType: ClassId,

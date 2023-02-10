@@ -6,3 +6,4 @@ def g(x):
 
     if f(x) > 10:
         return x ** 2
+

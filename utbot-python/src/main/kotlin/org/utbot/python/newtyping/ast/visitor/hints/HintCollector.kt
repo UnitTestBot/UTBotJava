@@ -303,7 +303,8 @@ class HintCollector(
                 curNode,
                 it.left,
                 it.right,
-                getOperationOfOperator(it.op.toString()) ?: return
+                getOperationOfOperator(it.op.toString()) ?: return,
+                source = EdgeSource.Multiplication
             )
         }
     }
@@ -518,7 +519,13 @@ class HintCollector(
         node.upperBounds.add(protocol)
     }
 
-    private fun processBinaryExpression(curNode: HintCollectorNode, left: Node, right: Node, op: Operation) {
+    private fun processBinaryExpression(
+        curNode: HintCollectorNode,
+        left: Node,
+        right: Node,
+        op: Operation,
+        source: EdgeSource = EdgeSource.Operation
+    ) {
         val leftNode = astNodeToHintCollectorNode[left]!!
         val rightNode = astNodeToHintCollectorNode[right]!!
         val methodName = op.method
@@ -526,7 +533,7 @@ class HintCollector(
         val edgeFromLeftToCur = HintEdgeWithBound(
             from = leftNode,
             to = curNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { leftType ->
             listOf(
@@ -537,7 +544,7 @@ class HintCollector(
         val edgeFromRightToCur = HintEdgeWithBound(
             from = rightNode,
             to = curNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { rightType ->
             listOf(
@@ -551,13 +558,13 @@ class HintCollector(
         val edgeFromLeftToRight = HintEdgeWithBound(
             from = leftNode,
             to = rightNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Upper
         ) { leftType -> listOf(createBinaryProtocol(methodName, leftType, pythonAnyType)) }
         val edgeFromRightToLeft = HintEdgeWithBound(
             from = rightNode,
             to = leftNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Upper
         ) { rightType -> listOf(createBinaryProtocol(methodName, rightType, pythonAnyType)) }
         addEdge(edgeFromLeftToRight)
@@ -567,7 +574,7 @@ class HintCollector(
             val edgeFromCurToUp = HintEdgeWithBound(
                 from = curNode,
                 to = it,
-                source = EdgeSource.Operation,
+                source = source,
                 boundType = TypeInferenceEdgeWithBound.BoundType.Upper
             ) { curType -> listOf(createBinaryProtocol(methodName, pythonAnyType, curType)) }
             addEdge(edgeFromCurToUp)

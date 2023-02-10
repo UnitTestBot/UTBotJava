@@ -60,9 +60,9 @@ class PythonTypeInferenceCommand : CliktCommand(
         }
         val module = (moduleOpt as Success).value
 
-        TypeInferenceProcessor(
+        val result = TypeInferenceProcessor(
             pythonPath,
-            directoriesForSysPath.toSet(),
+            directoriesForSysPath.map{ it.toAbsolutePath() }.toSet(),
             sourceFile,
             module,
             function,
@@ -72,7 +72,7 @@ class PythonTypeInferenceCommand : CliktCommand(
                 startTime = System.currentTimeMillis()
                 logger.info("Starting type inference...")
             },
-            processSignature = { println(it.pythonTypeRepresentation()) },
+            processSignature = { logger.info("Found signature: " + it.pythonTypeRepresentation()) },
             cancel = { System.currentTimeMillis() - startTime > timeout },
             checkRequirementsAction = { logger.info("Checking Python requirements...") },
             missingRequirementsAction = {
@@ -83,5 +83,7 @@ class PythonTypeInferenceCommand : CliktCommand(
             analyzingCodeAction = { logger.info("Analyzing code...") },
             pythonMethodExtractionFailAction = { logger.error(it) }
         )
+
+        result.forEach { println(it.pythonTypeRepresentation()) }
     }
 }

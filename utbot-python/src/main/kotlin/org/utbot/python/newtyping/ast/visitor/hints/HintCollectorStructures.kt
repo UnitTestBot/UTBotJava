@@ -43,6 +43,7 @@ enum class EdgeSource {
     ForStatement,
     Identification,
     Operation,
+    Multiplication,
     CollectionElement,
     Assign,
     OpAssign,

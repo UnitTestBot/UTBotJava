@@ -17,8 +17,8 @@ RUN apt-get update \
 
 # Install UTBot Python CLI
 
-ARG UTBOT_PYTHON_CLI
-COPY ${UTBOT_PYTHON_CLI} .
+ARG ARTIFACT_PATH
+COPY ${ARTIFACT_PATH} .
 
 RUN UTBOT_PYTHON_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
     && ln -s "${UTBOT_PYTHON_CLI_PATH}" /usr/src/utbot-cli.jar

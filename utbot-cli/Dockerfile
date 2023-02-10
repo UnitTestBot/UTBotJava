@@ -21,8 +21,8 @@ RUN wget --no-verbose https://github.com/JetBrains/kotlin/releases/download/v${K
 
 # Install UTBot Java CLI
 
-ARG UTBOT_JAVA_CLI
-COPY ${UTBOT_JAVA_CLI} .
+ARG ARTIFACT_PATH
+COPY ${ARTIFACT_PATH} .
 
 RUN UTBOT_JAVA_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
     && ln -s "${UTBOT_JAVA_CLI_PATH}" /usr/src/utbot-cli.jar

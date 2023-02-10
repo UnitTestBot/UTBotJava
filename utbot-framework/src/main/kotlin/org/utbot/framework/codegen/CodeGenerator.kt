@@ -12,7 +12,7 @@ import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.reports.TestsGenerationReport
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.ClassId
@@ -73,7 +73,7 @@ open class CodeGenerator(
         val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
         return withCustomContext(testClassCustomName) {
             context.withTestClassFileScope {
-                val astConstructor = CgTestClassConstructor(context)
+                val astConstructor = CgSimpleTestClassConstructor(context)
                 val renderer = CgAbstractRenderer.makeRenderer(context)
                 val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
 

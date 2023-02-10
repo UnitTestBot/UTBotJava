@@ -5,10 +5,12 @@ import org.utbot.framework.codegen.domain.Import
 sealed class PythonImport(order: Int) : Import(order) {
     var importName: String = ""
     var moduleName: String? = null
+    var alias: String? = null
 
-    constructor(order: Int, importName: String, moduleName: String? = null) : this(order) {
+    constructor(order: Int, importName: String, moduleName: String? = null, alias: String? = null) : this(order) {
         this.importName = importName
         this.moduleName = moduleName
+        this.alias = alias
     }
 
     override val qualifiedName: String
@@ -49,8 +51,8 @@ data class PythonSysPathImport(val sysPath: String) : PythonImport(2) {
     }
 }
 
-data class PythonUserImport(val importName_: String, val moduleName_: String? = null) :
-    PythonImport(3, importName_, moduleName_) {
+data class PythonUserImport(val importName_: String, val moduleName_: String? = null, val alias_: String? = null) :
+    PythonImport(3, importName_, moduleName_, alias_) {
     override val qualifiedName: String
         get() = if (moduleName != null) "${moduleName}.${importName}" else importName
 
@@ -69,8 +71,8 @@ data class PythonUserImport(val importName_: String, val moduleName_: String? = 
     }
 }
 
-data class PythonSystemImport(val importName_: String, val moduleName_: String? = null) :
-    PythonImport(1, importName_, moduleName_) {
+data class PythonSystemImport(val importName_: String, val moduleName_: String? = null, val alias_: String? = null) :
+    PythonImport(1, importName_, moduleName_, alias_) {
     override val qualifiedName: String
         get() = if (moduleName != null) "${moduleName}.${importName}" else importName
 

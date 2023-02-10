@@ -28,8 +28,6 @@ import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.tree.CgForEachLoopBuilder
 import org.utbot.framework.codegen.tree.CgForLoopBuilder
 import org.utbot.framework.codegen.tree.CgStatementConstructor
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
 import org.utbot.framework.codegen.tree.ExpressionWithType
 import org.utbot.framework.codegen.tree.buildAssignment
 import org.utbot.framework.codegen.tree.buildCgForEachLoop
@@ -46,6 +44,8 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.python.framework.codegen.PythonCgLanguageAssistant.getCallableAccessManagerBy
+import org.utbot.python.framework.codegen.PythonCgLanguageAssistant.getNameGeneratorBy
 import org.utbot.python.framework.codegen.model.constructor.util.plus
 import java.util.*
 

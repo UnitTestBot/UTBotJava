@@ -8,10 +8,10 @@ import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgFieldState
 import org.utbot.framework.codegen.tree.CgStatementConstructor
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.FieldStateCache
 import org.utbot.framework.codegen.tree.classCgClassId
 import org.utbot.framework.codegen.tree.getFieldVariableName

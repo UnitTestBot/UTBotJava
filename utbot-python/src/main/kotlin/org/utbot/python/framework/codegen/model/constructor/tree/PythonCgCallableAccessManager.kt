@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgExecutableCall
 import org.utbot.framework.codegen.domain.models.CgExpression
+import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
 import org.utbot.framework.codegen.domain.models.CgThisInstance
@@ -20,6 +21,7 @@ import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.python.framework.codegen.model.tree.CgPythonTree
 
 class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
     CgContextOwner by context {
@@ -31,7 +33,7 @@ class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAcce
         CgIncompleteMethodCall(staticMethodId, CgThisInstance(pythonAnyClassId))
 
     override fun CgExpression.get(fieldId: FieldId): CgExpression {
-        TODO("Not yet implemented")
+        return CgFieldAccess(this, fieldId)
     }
 
     override fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
@@ -46,7 +48,28 @@ class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAcce
     }
 
     override fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
-        val resolvedArgs = args.resolve()
+        val resolvedArgs = emptyList<CgExpression>().toMutableList()
+        args.forEach { arg ->
+            if (arg is CgPythonTree) {
+                resolvedArgs.add(arg.value)
+//                arg.children.forEach { +it }
+            } else {
+                resolvedArgs.add(arg as CgExpression)
+            }
+        }
+//        resolvedArgs.forEach {
+//            if (it is CgPythonTree) {
+//                it.children.forEach { child ->
+//                    if (child is CgAssignment) {
+//                        if (!existingVariableNames.contains(child.lValue.toString())) {
+//                            +child
+//                        }
+//                    } else {
+//                        +child
+//                    }
+//                }
+//            }
+//        }
         val methodCall = CgMethodCall(caller, method, resolvedArgs)
         if (method is PythonMethodId)
             newMethodCall(method)

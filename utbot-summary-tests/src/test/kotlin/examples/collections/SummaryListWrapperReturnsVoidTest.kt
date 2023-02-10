@@ -16,15 +16,17 @@ class SummaryListWrapperReturnsVoidTest : SummaryTestCaseGeneratorTest(
 ) {
     @Test
     fun testRunForEach() {
-        val summary1 = "Test throws NullPointerException in: list.forEach(o -> {\n" +
+        val summary1 = "Test invokes:\n" +
+                "    {@link java.util.List#forEach(java.util.function.Consumer)} once\n" +
+                "throws NullPointerException in: list.forEach(o -> {\n" +
                 "    if (o == null)\n" +
                 "        i[0]++;\n" +
-                "});"
+                "});\n"
         val summary2 = "Test returns from: return i[0];"
         val summary3 = "Test returns from: return i[0];"
         val summary4 = "Test returns from: return i[0];"
 
-        val methodName1 = "testRunForEach_ThrowNullPointerException"
+        val methodName1 = "testRunForEach_ListForEach"
         val methodName2 = "testRunForEach_Return0OfI"
         val methodName3 = "testRunForEach_Return0OfI_1"
         val methodName4 = "testRunForEach_Return0OfI_2"

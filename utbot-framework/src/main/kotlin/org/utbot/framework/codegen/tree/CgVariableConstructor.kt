@@ -20,10 +20,10 @@ import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getMockFrameworkManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getMockFrameworkManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.util.at
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.fieldThatIsGotWith

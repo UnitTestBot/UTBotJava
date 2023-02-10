@@ -19,7 +19,7 @@ import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 class JsCodeGenerator(
@@ -61,7 +61,7 @@ class JsCodeGenerator(
         testClassCustomName: String? = null,
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         val testClassModel = TestClassModel(classUnderTest, cgTestSets)
-        val astConstructor = CgTestClassConstructor(context)
+        val astConstructor = CgSimpleTestClassConstructor(context)
         val testClassFile = astConstructor.construct(testClassModel)
         CodeGeneratorResult(renderClassFile(testClassFile), astConstructor.testsGenerationReport)
     }

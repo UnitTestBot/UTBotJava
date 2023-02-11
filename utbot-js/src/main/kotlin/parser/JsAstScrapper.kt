@@ -5,11 +5,16 @@ import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import java.io.File
+import java.nio.file.Paths
 import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getClassMethods
 import parser.JsParserUtils.isRequireImport
+import kotlin.io.path.pathString
 
-class JsAstScrapper(private val parsedFile: Node) {
+class JsAstScrapper(
+    private val parsedFile: Node,
+    private val basePath: String,
+) {
 
     // Used not to parse the same file multiple times.
     private val _parsedFilesCache = mutableMapOf<String, Node>()
@@ -48,27 +53,32 @@ class JsAstScrapper(private val parsedFile: Node) {
     private fun Node.importedNodes(): Map<String, Node> {
         return when {
             this.isRequireImport() -> mapOf(
-                this.parent!!.string to this.firstChild!!.next!!
+                this.parent!!.string to (makePathFromImport(this.firstChild!!.next!!)?.let {
+                    File(it).findEntityInFile()
+                    // Workaround for std imports.
+                } ?: this.firstChild!!.next!!)
             )
             else -> emptyMap()
         }
     }
 
-    private fun makePathFromImport() {
-//        val relPath = node.importText + if (node.importText.endsWith(".ts")) "" else ".ts"
-//        // If import text doesn't contain "/", then it is NodeJS stdlib import.
-//        if (!relPath.contains("/")) return true
-//        val finalPath = Paths.get(File(basePath).parent).resolve(Paths.get(relPath))
+    private fun makePathFromImport(importNode: Node): String? {
+        val relPath = importNode.string + if (importNode.string.endsWith(".js")) "" else ".js"
+        // If import text doesn't contain "/", then it is NodeJS stdlib import.
+        if (!relPath.contains("/")) return null
+        val finalPath = Paths.get(File(basePath).parent).resolve(Paths.get(relPath)).pathString
+        return finalPath
     }
 
-    private fun File.findEntityInFile(key: String): Node? {
+    private fun File.findEntityInFile(): Node {
         val parsedFile = _parsedFilesCache.putIfAbsent(
             path,
             Compiler().parse(SourceFile.fromCode("jsFile", readText()))
         )!!
-        val localScrapper = JsAstScrapper(parsedFile)
-        return localScrapper.findClass(key)
-            ?: localScrapper.findFunction(key)
+//        val localScrapper = JsAstScrapper(parsedFile, basePath)
+//        return localScrapper.findClass(key)
+//            ?: localScrapper.findFunction(key)
+        return parsedFile
 
     }
 

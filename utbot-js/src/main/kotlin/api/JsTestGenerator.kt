@@ -93,7 +93,7 @@ class JsTestGenerator(
      */
     fun run(): String {
         parsedFile = runParser(fileText)
-        astScrapper = JsAstScrapper(parsedFile)
+        astScrapper = JsAstScrapper(parsedFile, sourceFilePath)
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,

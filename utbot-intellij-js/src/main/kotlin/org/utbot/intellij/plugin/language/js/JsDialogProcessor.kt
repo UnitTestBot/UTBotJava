@@ -203,14 +203,11 @@ object JsDialogProcessor {
         return { d: D, e: E -> f(a, b, c, d, e) }
     }
 
-    private fun manageExports(editor: Editor, project: Project, fileText: String, exports: List<String>, swappedText: (String) -> String) {
+    private fun manageExports(editor: Editor, project: Project, fileText: String, exports: List<String>, swappedText: (String?) -> String) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
-                val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
                 when {
-                    fileText.contains(exportSection) -> {}
-
-                    fileText.contains(startComment) && !fileText.contains(exportSection) -> {
+                    fileText.contains(startComment) -> {
                         val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                         regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
                             val newText = swappedText(existingSection)
@@ -229,9 +226,9 @@ object JsDialogProcessor {
 
                     else -> {
                         val line = buildString {
-                            append("\n$startComment\n")
-                            append(exportSection)
-                            append("\n$endComment")
+                            append("\n$startComment")
+                            append(swappedText(null))
+                            append(endComment)
                         }
                         runWriteAction {
                             with(editor.document) {

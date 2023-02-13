@@ -50,6 +50,10 @@ import service.coverage.CoverageMode
 import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.fuzzingThreshold
+import utils.ExportsProvider.getExportsDelimiter
+import utils.ExportsProvider.getExportsFrame
+import utils.ExportsProvider.getExportsPostfix
+import utils.ExportsProvider.getExportsPrefix
 import utils.ExportsProvider.getExportsRegex
 import utils.PathResolver
 import utils.constructClass
@@ -65,7 +69,7 @@ class JsTestGenerator(
     private val selectedMethods: List<String>? = null,
     private var parentClassName: String? = null,
     private var outputFilePath: String?,
-    private val exportsManager: (List<String>, (String) -> String) -> Unit,
+    private val exportsManager: (List<String>, (String?) -> String) -> Unit,
     private val settings: JsDynamicSettings,
     private val isCancelled: () -> Boolean = { false }
 ) {
@@ -297,15 +301,23 @@ class JsTestGenerator(
         val collectedExports = collectExports(execId)
         exports += (collectedExports + obligatoryExport)
         exportsManager(exports.toList()) { existingSection ->
-            val exportRegex = getExportsRegex(packageJson)
-            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
-            val existingExportsSet = existingExports.map { rawLine ->
-                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
-            }.toSet()
+            val existingExportsSet = existingSection?.let { section ->
+                val trimmedSection = section.substringAfter(getExportsPrefix(packageJson)).substringBeforeLast(getExportsPostfix(packageJson))
+                val exportRegex = getExportsRegex(packageJson)
+                val existingExports = trimmedSection.split(getExportsDelimiter(packageJson)).filter { it.contains(exportRegex) && it.isNotBlank() }
+                existingExports.map { rawLine ->
+                    exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                }.toSet()
+            } ?: emptySet()
             val resultSet = existingExportsSet + exports.toSet()
-            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-            swappedText
+            val resSection = resultSet.joinToString(
+                separator = getExportsDelimiter(packageJson),
+                prefix = getExportsPrefix(packageJson),
+                postfix = getExportsPostfix(packageJson),
+            ) {
+                getExportsFrame(it, packageJson)
+            }
+            existingSection?.let { fileText.replace(existingSection, resSection) } ?: resSection
         }
     }
 

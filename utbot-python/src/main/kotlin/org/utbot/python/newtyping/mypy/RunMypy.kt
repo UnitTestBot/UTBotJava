@@ -1,18 +1,19 @@
 package org.utbot.python.newtyping.mypy
 
+import mu.KotlinLogging
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
-import org.utbot.python.newtyping.*
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
 import java.io.File
+
+private val logger = KotlinLogging.logger {}
 
 fun readMypyAnnotationStorageAndInitialErrors(
     pythonPath: String,
     sourcePath: String,
     module: String,
-    configFile: File,
-    fileForTypeImport: String? = null
+    configFile: File
 ): Pair<MypyAnnotationStorage, List<MypyReportLine>> {
     val fileForAnnotationStorage = TemporaryFileManager.assignTemporaryFile(tag = "annotations.json")
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
@@ -26,7 +27,7 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--config",
             configFile.absolutePath,
             "--sources",
-            sourcePath,
+            sourcePath.modifyWindowsPath(),
             "--modules",
             module,
             "--annotations_out",
@@ -36,8 +37,10 @@ fun readMypyAnnotationStorageAndInitialErrors(
             "--mypy_stderr",
             fileForMypyStderr.absolutePath,
             "--mypy_exit_status",
-            fileForMypyExitStatus.absolutePath
-        ) + if (fileForTypeImport != null) listOf("--file_for_types", fileForTypeImport) else emptyList()
+            fileForMypyExitStatus.absolutePath,
+            "--module_for_types",
+            module
+        )
     )
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
     val mypyExitStatus = if (fileForMypyExitStatus.exists()) fileForMypyExitStatus.readText() else null
@@ -71,7 +74,7 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
     val file = TemporaryFileManager.assignTemporaryFile(configFilename)
     val configContent = """
             [mypy]
-            mypy_path = ${directoriesForSysPath.joinToString(separator = ":")}
+            mypy_path = ${directoriesForSysPath.joinToString(separator = ":") { it.modifyWindowsPath() } }
             namespace_packages = True
             explicit_package_bases = True
             show_absolute_path = True
@@ -95,16 +98,18 @@ fun checkSuggestedSignatureWithDMypy(
     configFile: File,
     initialErrorNumber: Int
 ): Boolean {
-    val description = method.type.pythonDescription() as PythonCallableTypeDescription
     val annotationMap =
-        (description.argumentNames zip method.type.arguments).associate {
+        (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
             Pair(it.first, it.second)
         }
     val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
+    // logger.debug(mypyCode)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)
     val report = getErrorsAndNotes(mypyOutput)
     val errorNumber = getErrorNumber(report, fileForMypyCode.canonicalPath, 0, mypyCode.length)
+    if (errorNumber > initialErrorNumber)
+        logger.debug(mypyOutput)
     return errorNumber <= initialErrorNumber
 }
 
@@ -121,6 +126,7 @@ fun getErrorNumber(mypyReport: List<MypyReportLine>, filename: String, startLine
     mypyReport.count { it.type == "error" && it.file == filename && it.line >= startLine && it.line <= endLine }
 
 private fun getErrorsAndNotes(mypyOutput: String): List<MypyReportLine> {
+    // logger.debug(mypyOutput)
     val regex = Regex("(?m)^([^\n]*):([0-9]*): (error|note): ([^\n]*)\n")
     return regex.findAll(mypyOutput).toList().map { match ->
         val file = match.groupValues[1]

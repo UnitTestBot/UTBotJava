@@ -8,23 +8,22 @@ import org.utbot.python.newtyping.ast.*
 import org.utbot.python.newtyping.ast.visitor.Collector
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.FunctionType
+import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.addEdge
-import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithmEdge
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import java.util.*
 
 class HintCollector(
-    private val signature: FunctionType,
+    private val function: PythonFunctionDefinition,
     private val storage: PythonTypeStorage,
     private val mypyTypes: Map<Pair<Int, Int>, Type>,
     private val globalNamesStorage: GlobalNamesStorage,
     private val moduleOfSources: String
 ) : Collector() {
-    private val signatureDescription = signature.pythonDescription() as PythonCallableTypeDescription
     private val parameterToNode: Map<String, HintCollectorNode> =
-        (signatureDescription.argumentNames zip signature.arguments).associate {
+        (function.meta.args.map { it.name } zip function.type.arguments).associate {
             it.first to HintCollectorNode(it.second)
         }
     private val astNodeToHintCollectorNode: MutableMap<Node, HintCollectorNode> = mutableMapOf()
@@ -32,7 +31,7 @@ class HintCollector(
     private val blockStack = Stack<Block>()
 
     init {
-        val argNames = signatureDescription.argumentNames
+        val argNames = function.meta.args.map { it.name }
         assert(argNames.all { it != "" })
         identificationToNode[null] = mutableMapOf()
         argNames.forEach {
@@ -47,7 +46,7 @@ class HintCollector(
             if (!allNodes.contains(it.value))
                 collectAllNodes(it.value, allNodes)
         }
-        result = HintCollectorResult(parameterToNode, signature, allNodes)
+        result = HintCollectorResult(parameterToNode, function.type, allNodes)
     }
 
     private fun collectAllNodes(cur: HintCollectorNode, visited: MutableSet<HintCollectorNode>) {
@@ -108,6 +107,13 @@ class HintCollector(
             storage,
             "__call__"
         )?.type?.pythonDescription()
+        val callType = createPythonCallableType(
+            parsed.args.size,
+            List(parsed.args.size) { PythonCallableTypeDescription.ArgKind.ARG_POS },
+            List(parsed.args.size) { "" }
+        ) {
+            FunctionTypeCreator.InitializationData(List(parsed.args.size) { pythonAnyType }, pythonAnyType)
+        }
         when (typeDescription) {
             is PythonCallableTypeDescription -> {
                 astNodeToHintCollectorNode[node] =
@@ -123,17 +129,20 @@ class HintCollector(
                 astNodeToHintCollectorNode[node] = hintNode
                 typeDescription.getAnnotationParameters(type).forEach { typeCandidate ->
                     val descr = typeCandidate.pythonDescription() as? PythonCallableTypeDescription ?: return@forEach
-                    hintNode.upperBounds.add(descr.castToCompatibleTypeApi(typeCandidate).returnValue)
-                    // TODO
+                    val typeCandidateFunctionType = descr.castToCompatibleTypeApi(typeCandidate)
+                    if (!signaturesAreCompatible(typeCandidateFunctionType, callType, storage))
+                        return@forEach
+                    (parsed.args zip typeCandidateFunctionType.arguments).forEach { (argNode, argType) ->
+                        astNodeToHintCollectorNode[argNode]!!.upperBounds.add(argType)
+                    }
+                    hintNode.upperBounds.add(typeCandidateFunctionType.returnValue)
                 }
             }
             else -> {
                 astNodeToHintCollectorNode[node] = HintCollectorNode(pythonAnyType)
-                astNodeToHintCollectorNode[node]!!.upperBounds.add(
-                    createCallableProtocol(
-                        List(parsed.args.size) { pythonAnyType },
-                        pythonAnyType
-                    )
+                val funcNode = parsed.function
+                astNodeToHintCollectorNode[funcNode]!!.upperBounds.add(
+                    createCallableProtocol(List(parsed.args.size) { pythonAnyType }, pythonAnyType)
                 )
             }
         }
@@ -294,7 +303,8 @@ class HintCollector(
                 curNode,
                 it.left,
                 it.right,
-                getOperationOfOperator(it.op.toString()) ?: return
+                getOperationOfOperator(it.op.toString()) ?: return,
+                source = EdgeSource.Multiplication
             )
         }
     }
@@ -435,16 +445,16 @@ class HintCollector(
         when (parsed.slices) {
             is SimpleSlice -> {
                 val indexNode = astNodeToHintCollectorNode[parsed.slices.indexValue]!!
-                val edgeFromIndex = HintEdgeWithBound(
+                val edgeFromIndexToHead = HintEdgeWithBound(
                     from = indexNode,
-                    to = curNode,
+                    to = headNode,
                     source = EdgeSource.Slice,
                     boundType = TypeInferenceEdgeWithBound.BoundType.Upper
                 ) { indexType ->
                     listOf(createBinaryProtocol("__getitem__", indexType, pythonAnyType))
                 }
-                val edgeFromHead = HintEdgeWithBound(
-                    from = curNode,
+                val edgeFromHeadToIndex = HintEdgeWithBound(
+                    from = headNode,
                     to = indexNode,
                     source = EdgeSource.Slice,
                     boundType = TypeInferenceEdgeWithBound.BoundType.Upper
@@ -458,8 +468,8 @@ class HintCollector(
                         return@HintEdgeWithBound emptyList()
                     listOf(attr.type.parameters[1])
                 }
-                addEdge(edgeFromIndex)
-                addEdge(edgeFromHead)
+                addEdge(edgeFromIndexToHead)
+                addEdge(edgeFromHeadToIndex)
             }
             is SlicedSlice -> {
                 addProtocol(headNode, createBinaryProtocol("__getitem__", storage.pythonSlice, pythonAnyType))
@@ -472,9 +482,32 @@ class HintCollector(
                 }
             }
             is TupleSlice -> {
-                addProtocol(headNode, createBinaryProtocol("__getitem__", storage.pythonTuple, pythonAnyType))
+                addProtocol(headNode, createBinaryProtocol("__getitem__", storage.tupleOfAny, pythonAnyType))
             }
         }
+        val edgeFromCurToHead = HintEdgeWithBound(
+            from = curNode,
+            to = headNode,
+            source = EdgeSource.Slice,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Upper
+        ) { curType ->
+            listOf(createBinaryProtocol("__getitem__", pythonAnyType, curType))
+        }
+        val edgeFromHeadToCur = HintEdgeWithBound(
+            from = headNode,
+            to = curNode,
+            source = EdgeSource.Slice,
+            boundType = TypeInferenceEdgeWithBound.BoundType.Lower
+        ) { headType ->
+            val attr = headType.getPythonAttributeByName(storage, "__getitem__")
+                ?: return@HintEdgeWithBound emptyList()
+            // TODO: case of Overload
+            val descr = attr.type.pythonDescription() as? PythonCallableTypeDescription
+                ?: return@HintEdgeWithBound emptyList()
+            listOf(descr.castToCompatibleTypeApi(attr.type).returnValue)
+        }
+        addEdge(edgeFromCurToHead)
+        addEdge(edgeFromHeadToCur)
     }
 
     private fun processBoolExpression(node: Node) {
@@ -486,7 +519,13 @@ class HintCollector(
         node.upperBounds.add(protocol)
     }
 
-    private fun processBinaryExpression(curNode: HintCollectorNode, left: Node, right: Node, op: Operation) {
+    private fun processBinaryExpression(
+        curNode: HintCollectorNode,
+        left: Node,
+        right: Node,
+        op: Operation,
+        source: EdgeSource = EdgeSource.Operation
+    ) {
         val leftNode = astNodeToHintCollectorNode[left]!!
         val rightNode = astNodeToHintCollectorNode[right]!!
         val methodName = op.method
@@ -494,7 +533,7 @@ class HintCollector(
         val edgeFromLeftToCur = HintEdgeWithBound(
             from = leftNode,
             to = curNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { leftType ->
             listOf(
@@ -505,7 +544,7 @@ class HintCollector(
         val edgeFromRightToCur = HintEdgeWithBound(
             from = rightNode,
             to = curNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Lower
         ) { rightType ->
             listOf(
@@ -519,13 +558,13 @@ class HintCollector(
         val edgeFromLeftToRight = HintEdgeWithBound(
             from = leftNode,
             to = rightNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Upper
         ) { leftType -> listOf(createBinaryProtocol(methodName, leftType, pythonAnyType)) }
         val edgeFromRightToLeft = HintEdgeWithBound(
             from = rightNode,
             to = leftNode,
-            source = EdgeSource.Operation,
+            source = source,
             boundType = TypeInferenceEdgeWithBound.BoundType.Upper
         ) { rightType -> listOf(createBinaryProtocol(methodName, rightType, pythonAnyType)) }
         addEdge(edgeFromLeftToRight)
@@ -535,7 +574,7 @@ class HintCollector(
             val edgeFromCurToUp = HintEdgeWithBound(
                 from = curNode,
                 to = it,
-                source = EdgeSource.Operation,
+                source = source,
                 boundType = TypeInferenceEdgeWithBound.BoundType.Upper
             ) { curType -> listOf(createBinaryProtocol(methodName, pythonAnyType, curType)) }
             addEdge(edgeFromCurToUp)

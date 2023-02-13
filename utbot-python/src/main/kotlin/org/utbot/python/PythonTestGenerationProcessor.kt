@@ -16,7 +16,6 @@ import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
 import org.utbot.python.framework.api.python.RawPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.mypy.setConfigFile
@@ -36,7 +35,7 @@ object PythonTestGenerationProcessor {
         pythonFileContent: String,
         directoriesForSysPath: Set<String>,
         currentPythonModule: String,
-        pythonMethods: List<PythonMethod>,
+        pythonMethods: List<PythonMethodHeader>,
         containingClassName: String?,
         timeout: Long,
         testFramework: TestFramework,
@@ -112,9 +111,6 @@ object PythonTestGenerationProcessor {
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
 
-            if (isCanceled())
-                return
-
             if (emptyTestSets.isNotEmpty()) {
                 notGeneratedTestsAction(emptyTestSets.map { it.method.name })
             }
@@ -132,7 +128,7 @@ object PythonTestGenerationProcessor {
                 it.method to PythonMethodId(
                     classId,
                     it.method.name,
-                    RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
+                    RawPythonAnnotation(pythonAnyClassId.name),
                     it.method.arguments.map { argument ->
                         argument.annotation?.let { annotation ->
                             RawPythonAnnotation(annotation)
@@ -142,16 +138,22 @@ object PythonTestGenerationProcessor {
             }
 
             val paramNames = notEmptyTests.associate { testSet ->
-                methodIds[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
+                var params = testSet.method.arguments.map { it.name }
+                if (testSet.method.hasThisArgument) {
+                    params = params.drop(1)
+                }
+                methodIds[testSet.method] as ExecutableId to params
             }.toMutableMap()
-
 
             val importParamModules = notEmptyTests.flatMap { testSet ->
                 testSet.executions.flatMap { execution ->
-                    execution.stateBefore.parameters.flatMap { utModel ->
+                    (execution.stateBefore.parameters + execution.stateAfter.parameters +
+                            listOf(execution.stateBefore.thisInstance, execution.stateAfter.thisInstance))
+                        .filterNotNull()
+                        .flatMap { utModel ->
                         (utModel as PythonModel).let {
                             it.allContainingClassIds.map { classId ->
-                                PythonUserImport(classId.moduleName)
+                                PythonUserImport(importName_ = classId.moduleName)
                             }
                         }
                     }
@@ -163,7 +165,7 @@ object PythonTestGenerationProcessor {
                         (execution.result as UtExecutionSuccess).let { result ->
                             (result.model as PythonModel).let {
                                 it.allContainingClassIds.map { classId ->
-                                    PythonUserImport(classId.moduleName)
+                                    PythonUserImport(importName_ = classId.moduleName)
                                 }
                             }
                         }
@@ -171,20 +173,20 @@ object PythonTestGenerationProcessor {
                 }.flatten()
             }
             val testRootModules = notEmptyTests.mapNotNull { testSet ->
-                methodIds[testSet.method]?.rootModuleName?.let { PythonUserImport(it) }
+                methodIds[testSet.method]?.rootModuleName?.let { PythonUserImport(importName_ = it) }
             }
             val sysImport = PythonSystemImport("sys")
             val sysPathImports = relativizePaths(pythonRunRoot, directoriesForSysPath).map { PythonSysPathImport(it) }
 
             val testFrameworkModule =
-                testFramework.testSuperClass?.let { PythonUserImport((it as PythonClassId).rootModuleName) }
+                testFramework.testSuperClass?.let { PythonUserImport(importName_ = (it as PythonClassId).rootModuleName) }
 
             val allImports = (
                     importParamModules + importResultModules + testRootModules + sysPathImports + listOf(
                         testFrameworkModule,
                         sysImport
                     )
-                    ).filterNotNull().toSet()
+                ).filterNotNull().toSet()
 
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {

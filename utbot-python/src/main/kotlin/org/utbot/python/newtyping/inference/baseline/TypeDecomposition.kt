@@ -13,7 +13,8 @@ fun decompose(
     partialType: Type,
     lowerBounds: List<Type>,
     upperBounds: List<Type>,
-    level: Int
+    level: Int,
+    storage: PythonTypeStorage
 ): DecompositionResult {
     if (typesAreEqual(partialType, pythonAnyType)) {
         val root = AnyTypeNode(
@@ -30,11 +31,11 @@ fun decompose(
     val constraints: Map<Int, MutableList<TypeConstraint>> =
         List(children.size) { it }.associateWith { mutableListOf() }
     lowerBounds.forEach { boundType ->
-        val cur = propagateConstraint(partialType, TypeConstraint(boundType, ConstraintKind.LowerBound))
+        val cur = propagateConstraint(partialType, TypeConstraint(boundType, ConstraintKind.LowerBound), storage)
         cur.forEach { constraints[it.key]!!.add(it.value) }
     }
     upperBounds.forEach { boundType ->
-        val cur = propagateConstraint(partialType, TypeConstraint(boundType, ConstraintKind.UpperBound))
+        val cur = propagateConstraint(partialType, TypeConstraint(boundType, ConstraintKind.UpperBound), storage)
         cur.forEach { constraints[it.key]!!.add(it.value) }
     }
     constraints.forEach { (index, constraintList) ->
@@ -54,7 +55,8 @@ fun decompose(
             children[index],
             childLowerBounds,
             childUpperBounds,
-            level + 1
+            level + 1,
+            storage
         )
         newNodes.addAll(nodes)
         val edge = BaselineAlgorithmEdge(

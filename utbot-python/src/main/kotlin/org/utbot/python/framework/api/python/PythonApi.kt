@@ -57,11 +57,31 @@ class PythonTreeModel(
     val tree: PythonTree.PythonTreeNode,
     classId: PythonClassId,
 ): PythonModel(classId) {
+    constructor(tree: PythonTree.PythonTreeNode) : this(tree, tree.type)
+
     override val allContainingClassIds: Set<PythonClassId>
-        get() {
-            val children = tree.children.map { PythonTreeModel(it, it.type) }
-            return setOf(classId as PythonClassId) + super.allContainingClassIds + children.filter {it.tree != tree}.flatMap { it.allContainingClassIds }
+        get() { return findAllContainingClassIds(setOf(this.tree)) }
+
+    private fun findAllContainingClassIds(visited: Set<PythonTree.PythonTreeNode>): Set<PythonClassId> {
+        val children = tree.children.map { PythonTreeModel(it, it.type) }
+        val newVisited = (visited + setOf(this.tree)).toMutableSet()
+        val childrenClassIds = children.filterNot { newVisited.contains(it.tree) }.flatMap {
+            newVisited.add(it.tree)
+            it.findAllContainingClassIds(newVisited)
         }
+        return super.allContainingClassIds + childrenClassIds
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is PythonTreeModel) {
+            return tree == other.tree
+        }
+        return false
+    }
+
+    override fun hashCode(): Int {
+        return tree.hashCode()
+    }
 }
 
 class PythonDefaultModel(

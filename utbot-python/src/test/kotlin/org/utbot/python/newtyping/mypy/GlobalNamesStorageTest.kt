@@ -13,7 +13,7 @@ internal class GlobalNamesStorageTest {
     lateinit var namesStorage: GlobalNamesStorage
     @BeforeAll
     fun setup() {
-        val sample = AnnotationFromMypyKtTest::class.java.getResource("/imports_sample.json")!!.readText()
+        val sample = MypyStorageKtTest::class.java.getResource("/imports_sample.json")!!.readText()
         namesStorage = GlobalNamesStorage(readMypyAnnotationStorage(sample))
     }
 

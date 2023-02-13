@@ -25,7 +25,8 @@ private fun expandNodes(
     val (newAnyNodeMap, allNewNodes) = substitution.entries.fold(
         Pair(emptyMap<AnyTypeNode, BaselineAlgorithmNode>(), emptySet<BaselineAlgorithmNode>())
     ) { (map, allNodeSet), (node, newType) ->
-        val (newNodeForAny, additionalNodes) = decompose(newType, node.lowerBounds, node.upperBounds, node.nestedLevel)
+        val (newNodeForAny, additionalNodes) =
+            decompose(newType, node.lowerBounds, node.upperBounds, node.nestedLevel, storage)
         Pair(map + (node to newNodeForAny), allNodeSet + additionalNodes)
     }
     val newNodeMap = expansionBFS(substitution, newAnyNodeMap).toMutableMap()

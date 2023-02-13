@@ -7,7 +7,7 @@ import org.utbot.framework.codegen.domain.models.CgMethodCall
 import org.utbot.framework.codegen.domain.models.CgStatement
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgComponents
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -18,7 +18,7 @@ import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(context_) {
-    private val nameGenerator = CgTestClassConstructor.CgComponents.getNameGeneratorBy(context)
+    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
@@ -46,6 +46,8 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
             }
         }
     }
+
+    private fun declareOrGet(model: UtModel): CgValue = valueByModel[model] ?: getOrCreateVariable(model)
 
     private fun constructInitObjectModel(model: PythonInitObjectModel, baseName: String): CgVariable {
         return newVar(model.classId, baseName) {
@@ -92,9 +94,13 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
 
             is PythonTree.ReduceNode -> {
                 val id = objectNode.id
-                if ((context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.containsKey(id)) {
-                    val savedObj = (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id]!!
-                    return Pair(savedObj, emptyList())
+                val assistant = (context.cgLanguageAssistant as PythonCgLanguageAssistant)
+                if (assistant.memoryObjects.containsKey(id)) {
+                    val tree = assistant.memoryObjectsModels[id]
+                    val savedObj = assistant.memoryObjects[id]
+                    if (tree == objectNode && savedObj != null) {
+                        return Pair(savedObj, emptyList())
+                    }
                 }
 
                 val initArgs = objectNode.args.map {
@@ -111,6 +117,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
 //                obj `=` constructorCall
 
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
+                (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjectsModels[id] = objectNode
 
                 val state = objectNode.state.map { (key, value) ->
                     key to getOrCreateVariable(PythonTreeModel(value, value.type))

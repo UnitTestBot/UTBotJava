@@ -8,31 +8,39 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.codegen.domain.models.CgAssignment
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.CgAssignment
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
-import org.utbot.python.PythonMethod
-import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
-import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.framework.api.python.util.pythonNoneClassId
-import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.framework.codegen.tree.CgComponents.clearContextRelatedStorage
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.PythonMethod
+import org.utbot.python.framework.api.python.PythonClassId
+import org.utbot.python.framework.api.python.PythonTreeModel
+import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonStrClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgStatementConstructorImpl
 import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
+import org.utbot.python.framework.codegen.model.constructor.tree.PythonCgVariableConstructor
 import org.utbot.python.framework.codegen.model.constructor.visitor.CgPythonRenderer
 import org.utbot.python.framework.codegen.model.tree.CgPythonDict
 import org.utbot.python.framework.codegen.model.tree.CgPythonFunctionCall
 import org.utbot.python.framework.codegen.model.tree.CgPythonList
+import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
+import org.utbot.python.framework.codegen.model.tree.CgPythonTree
+import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonAnyType
+import org.utbot.python.newtyping.pythonModules
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.framework.codegen.toPythonRawString
 
 class PythonCodeGenerator(
@@ -49,19 +57,19 @@ class PythonCodeGenerator(
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName
 ) : CodeGenerator(
-    classUnderTest=classUnderTest,
-    paramNames=paramNames,
+    classUnderTest = classUnderTest,
+    paramNames = paramNames,
     generateUtilClassFile = true,
-    testFramework=testFramework,
-    mockFramework=mockFramework,
-    staticsMocking=staticsMocking,
-    forceStaticMocking=forceStaticMocking,
-    generateWarningsForStaticMocking=generateWarningsForStaticMocking,
-    parameterizedTestSource=parameterizedTestSource,
-    runtimeExceptionTestsBehaviour=runtimeExceptionTestsBehaviour,
-    hangingTestsTimeout=hangingTestsTimeout,
-    enableTestsTimeout=enableTestsTimeout,
-    testClassPackageName=testClassPackageName,
+    testFramework = testFramework,
+    mockFramework = mockFramework,
+    staticsMocking = staticsMocking,
+    forceStaticMocking = forceStaticMocking,
+    generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+    parameterizedTestSource = parameterizedTestSource,
+    runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+    hangingTestsTimeout = hangingTestsTimeout,
+    enableTestsTimeout = enableTestsTimeout,
+    testClassPackageName = testClassPackageName,
     cgLanguageAssistant = PythonCgLanguageAssistant,
 ) {
     fun pythonGenerateAsStringWithTestReport(
@@ -70,6 +78,7 @@ class PythonCodeGenerator(
         testClassCustomName: String? = null,
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
+            (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
             val testClassModel = TestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
 
@@ -87,78 +96,119 @@ class PythonCodeGenerator(
         method: PythonMethod,
         methodArguments: List<UtModel>,
         directoriesForSysPath: Set<String>,
-        moduleToImport: String,
+        functionModule: String,
         additionalModules: Set<String> = emptySet(),
         fileForOutputName: String,
         coverageDatabasePath: String,
-    ): String {
-        val cgRendererContext = CgRendererContext.fromCgContext(context)
-        val printer = CgPrinterImpl()
-        val renderer = CgPythonRenderer(cgRendererContext, printer)
+    ): String = withCustomContext(testClassCustomName = null) {
+        context.withTestClassFileScope {
+            val cgStatementConstructor =
+                context.cgLanguageAssistant.getStatementConstructorBy(context) as PythonCgStatementConstructorImpl
+            with(cgStatementConstructor) {
+                clearContextRelatedStorage()
+                (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
 
-        val executorFunctionName = "run_calculate_function_value"
-        val executorModuleName = "utbot_executor.executor"
+                val renderer = CgAbstractRenderer.makeRenderer(context) as CgPythonRenderer
 
-        val importExecutor = PythonUserImport(executorFunctionName, executorModuleName)
-        val importSys = PythonSystemImport("sys")
-        val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
-        val importFunction = PythonUserImport("*", moduleToImport)
-        val imports =
-            listOf(importSys) + importSysPaths + listOf(importExecutor, importFunction) + additionalModules.map { PythonUserImport(it) }
+                val executorModuleName = "utbot_executor.executor"
+                val executorModuleNameAlias = "__utbot_executor"
+                val executorFunctionName = "$executorModuleNameAlias.run_calculate_function_value"
+                val failArgumentsFunctionName = "$executorModuleNameAlias.fail_arguments_initialization"
 
-        val containingClass = method.containingPythonClassId
-        val functionName =
-            if (containingClass == null)
-                CgLiteral(pythonAnyClassId, method.name)
-            else
-                CgLiteral(pythonAnyClassId, "${containingClass.name}.${method.name}")
+                val importExecutor = PythonUserImport(executorModuleName, alias_ = executorModuleNameAlias)
+                val importSys = PythonSystemImport("sys")
+                val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
+                val importFunction = PythonUserImport(functionModule)
+                val imports =
+                    listOf(importSys) + importSysPaths + listOf(
+                        importExecutor,
+                        importFunction
+                    ) + additionalModules.map { PythonUserImport(it) }
+                imports.toSet().forEach {
+                    context.cgLanguageAssistant.getNameGeneratorBy(context).variableName(it.moduleName ?: it.importName)
+                    renderer.renderPythonImport(it)
+                }
 
-        val arguments = method.arguments.map { argument ->
-            CgVariable(argument.name, argument.annotation?.let { PythonClassId(it) } ?: pythonAnyClassId)
+                val fullpath = CgLiteral(pythonStrClassId, method.moduleFilename.toPythonRawString())
+                val outputPath = CgLiteral(pythonStrClassId, fileForOutputName.toPythonRawString())
+                val databasePath = CgLiteral(pythonStrClassId, coverageDatabasePath.toPythonRawString())
+
+                val containingClass = method.containingPythonClassId
+                var functionTextName =
+                    if (containingClass == null)
+                        method.name
+                    else
+                        "${containingClass.simpleName}.${method.name}"
+                if (functionModule.isNotEmpty()) {
+                    functionTextName = "$functionModule.$functionTextName"
+                }
+
+                val functionName = CgLiteral(pythonStrClassId, functionTextName)
+
+                val arguments = method.arguments.map { argument ->
+                    CgVariable(argument.name, argument.annotation?.let { PythonClassId(it) } ?: pythonAnyClassId)
+                }
+
+                var argumentsTryCatch = tryBlock {
+                    methodArguments.zip(arguments).map { (model, argument) ->
+                        if (model is PythonTreeModel) {
+                            val obj =
+                                (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor)
+                                    .getOrCreateVariable(model)
+                            +CgAssignment(
+                                argument,
+                                (obj as CgPythonTree).value
+                            )
+                        } else {
+                            +CgAssignment(argument, CgLiteral(model.classId, model.toString()))
+                        }
+                    }
+                }
+                argumentsTryCatch = argumentsTryCatch.catch(PythonClassId("builtins.Exception")) { exception ->
+                    +CgPythonFunctionCall(
+                        pythonNoneClassId,
+                        failArgumentsFunctionName,
+                        listOf(
+                            outputPath,
+                            exception,
+                        )
+                    )
+                    emptyLine()
+                    +CgPythonRepr(pythonAnyClassId, "sys.exit()")
+                }
+
+                val args = CgPythonList(emptyList())
+                val kwargs = CgPythonDict(
+                    arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
+                )
+
+                val executorCall = CgPythonFunctionCall(
+                    pythonNoneClassId,
+                    executorFunctionName,
+                    listOf(
+                        databasePath,
+                        functionName,
+                        args,
+                        kwargs,
+                        fullpath,
+                        outputPath,
+                    )
+                )
+
+                argumentsTryCatch.accept(renderer)
+                executorCall.accept(renderer)
+
+                renderer.toString()
+            }
         }
-
-        val parameters = methodArguments.zip(arguments).map { (model, argument) ->
-            CgAssignment(
-                argument,
-                CgLiteral(model.classId, model.toString())
-            )
-        }
-
-        val args = CgPythonList(emptyList())
-        val kwargs = CgPythonDict(
-            arguments.associateBy { argument -> CgLiteral(pythonStrClassId, "'${argument.name}'") }
-        )
-
-        val fullpath = CgLiteral(pythonStrClassId, method.moduleFilename.toPythonRawString())
-        val outputPath = CgLiteral(pythonStrClassId, fileForOutputName.toPythonRawString())
-        val databasePath = CgLiteral(pythonStrClassId, coverageDatabasePath.toPythonRawString())
-
-        val executorCall = CgPythonFunctionCall(
-            pythonNoneClassId,
-            executorFunctionName,
-            listOf(
-                databasePath,
-                functionName,
-                args,
-                kwargs,
-                fullpath,
-                outputPath,
-            )
-        )
-
-        imports.forEach {
-            renderer.renderPythonImport(it)
-        }
-        parameters.forEach { it.accept(renderer) }
-        executorCall.accept(renderer)
-        return renderer.toString()
     }
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, NormalizedPythonAnnotation>,
+        methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        namesInModule: Collection<String>
     ): String {
         val cgRendererContext = CgRendererContext.fromCgContext(context)
         val printer = CgPrinterImpl()
@@ -167,26 +217,31 @@ class PythonCodeGenerator(
         val importSys = PythonSystemImport("sys")
         val importTyping = PythonSystemImport("typing")
         val importSysPaths = directoriesForSysPath.map { PythonSysPathImport(it) }
-        val importFunction = PythonUserImport("*", moduleToImport)
-        val additionalModules = methodAnnotations.values.flatMap { annotation ->
-                getModulesFromAnnotation(annotation).map { PythonUserImport(it) }
+        val importsFromModule = namesInModule.map { name ->
+            PythonUserImport(name, moduleToImport)
         }
-        val imports = listOf(importSys, importTyping) + importSysPaths + (listOf(importFunction) + additionalModules).toSet().toList()
+
+        val additionalModules = methodAnnotations.values.flatMap { it.pythonModules() }.map { PythonUserImport(it) }
+        val imports =
+            (listOf(importSys, importTyping) + importSysPaths + (importsFromModule + additionalModules)).toSet()
+                .toList()
 
         imports.forEach { renderer.renderPythonImport(it) }
 
-        val parameters = method.arguments.map { argument ->
-            "${argument.name}: ${methodAnnotations[argument.name] ?: pythonAnyClassId.name}"
+        val paramNames = method.definition.meta.args.map { it.name }
+        val parameters = paramNames.map { argument ->
+            "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
 
         val functionPrefix = "__mypy_check"
-        val functionName = "def ${functionPrefix}_${method.name}(${parameters.joinToString(", ")}):"  // TODO: in future can be "async def"
+        val functionName =
+            "def ${functionPrefix}_${method.name}(${parameters.joinToString(", ")}):"  // TODO: in future can be "async def"
 
         val mypyCheckCode = listOf(
             renderer.toString(),
             "",
             functionName,
-        ) + method.codeLines().map { "    $it" }
+        ) + method.codeAsString.split("\n").map { "    $it" }
         return mypyCheckCode.joinToString("\n")
     }
 }

@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.testing.DoNotCalculate
 
 @ExtendWith(CustomJavaDocTagsEnabler::class)
-class ComplexEnumExampleTest : SummaryTestCaseGeneratorTest(
+class SummaryComplexEnumExampleTest : SummaryTestCaseGeneratorTest(
     ComplexEnumExamples::class
 ) {
     @Test
@@ -80,6 +80,55 @@ class ComplexEnumExampleTest : SummaryTestCaseGeneratorTest(
 
 
         val method = ComplexEnumExamples::countEqualColors
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+    }
+
+    @Test
+    fun testFindState() {
+        val summary1 = "@utbot.classUnderTest {@link ComplexEnumExamples}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.enums.ComplexEnumExamples#findState(int)}\n" +
+                "@utbot.invokes {@link org.utbot.examples.enums.State#findStateByCode(int)}\n" +
+                "@utbot.returnsFrom {@code return State.findStateByCode(code);}\n"
+        val summary2 = "@utbot.classUnderTest {@link ComplexEnumExamples}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.enums.ComplexEnumExamples#findState(int)}\n" +
+                "@utbot.invokes {@link org.utbot.examples.enums.State#findStateByCode(int)}\n" +
+                "@utbot.returnsFrom {@code return State.findStateByCode(code);}\n"
+        val summary3 = "@utbot.classUnderTest {@link ComplexEnumExamples}\n" +
+                "@utbot.methodUnderTest {@link org.utbot.examples.enums.ComplexEnumExamples#findState(int)}\n" +
+                "@utbot.invokes {@link org.utbot.examples.enums.State#findStateByCode(int)}\n" +
+                "@utbot.returnsFrom {@code return State.findStateByCode(code);}\n"
+
+        val methodName1 = "testFindState_ReturnStateFindStateByCode"
+        val methodName2 = "testFindState_ReturnStateFindStateByCode_1"
+        val methodName3 = "testFindState_ReturnStateFindStateByCode_2"
+
+        val displayName1 = "-> return State.findStateByCode(code)"
+        val displayName2 = "-> return State.findStateByCode(code)"
+        val displayName3 = "-> return State.findStateByCode(code)"
+
+        val summaryKeys = listOf(
+            summary1,
+            summary2,
+            summary3
+        )
+
+        val displayNames = listOf(
+            displayName1,
+            displayName2,
+            displayName3
+        )
+
+        val methodNames = listOf(
+            methodName1,
+            methodName2,
+            methodName3
+        )
+
+
+        val method = ComplexEnumExamples::findState
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 

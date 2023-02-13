@@ -24,19 +24,21 @@ object PythonLanguageAssistant : LanguageAssistant() {
         val functions: Set<PyFunction>,
         val containingClass: PyClass?,
         val focusedFunction: PyFunction?,
-        val file: PyFile
+        val file: PyFile,
+        val editor: Editor?,
     )
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (functions, containingClass, focusedFunction, file) = getPsiTargets(e) ?: return
+        val (functions, containingClass, focusedFunction, file, editor) = getPsiTargets(e) ?: return
 
         PythonDialogProcessor.createDialogAndGenerateTests(
             project,
             functions,
             containingClass,
             focusedFunction,
-            file
+            file,
+            editor,
         )
     }
 
@@ -66,7 +68,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
                 return null
 
             val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
-            return Targets(functions.toSet(), null, focusedFunction, file)
+            return Targets(functions.toSet(), null, focusedFunction, file, editor)
         }
 
         val functions = containingClass.methods
@@ -75,7 +77,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
 
         val focusedFunction =
             if (functions.any { it.name == containingFunction?.name }) containingFunction else null
-        return Targets(functions.toSet(), containingClass, focusedFunction, file)
+        return Targets(functions.toSet(), containingClass, focusedFunction, file, editor)
     }
 
     // this method is copy-paste from GenerateTestsActions.kt

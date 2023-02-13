@@ -2,6 +2,9 @@ package org.utbot.intellij.plugin.language.python
 
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.readAction
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -18,6 +21,7 @@ import com.intellij.psi.PsiFileFactory
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
@@ -28,11 +32,10 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.python.PythonMethod
+import org.utbot.python.PythonMethodHeader
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
-import org.utbot.python.code.PythonCode
-import org.utbot.python.code.PythonCode.Companion.getFromString
+import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
@@ -49,8 +52,16 @@ object PythonDialogProcessor {
         functionsToShow: Set<PyFunction>,
         containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        file: PyFile
+        file: PyFile,
+        editor: Editor? = null,
     ) {
+        editor?.let{
+            runWriteAction {
+                with(FileDocumentManager.getInstance()) {
+                    saveDocument(it.document)
+                }
+            }
+        }
         val pythonPath = getPythonPath(functionsToShow)
         if (pythonPath == null) {
             showErrorDialogLater(
@@ -110,23 +121,37 @@ object PythonDialogProcessor {
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
-        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule) ?: return null
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader> {
+        return runBlocking {
+            readAction {
+                val allFunctions: List<PyFunction> =
+                    if (model.containingClass == null) {
+                        model.file.topLevelFunctions
+                    } else {
+                        val classes = model.file.topLevelClasses
+                        val myClass = classes.find { it.name == model.containingClass.name }
+                            ?: error("Didn't find containing class")
+                        myClass.methods.filterNotNull()
+                    }
+                val shownFunctions: Set<PythonMethodHeader> = allFunctions
+                    .mapNotNull {
+                        val functionName = it.name ?: return@mapNotNull null
+                        val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
+                        val containingClassId = it.containingClass?.name?.let{ PythonClassId(it) }
+                        return@mapNotNull PythonMethodHeader(
+                                functionName,
+                                moduleFilename,
+                                containingClassId,
+                            )
+                    }
+                    .toSet()
 
-        val shownFunctions: Set<PythonMethod> =
-            if (model.containingClass == null) {
-                code.getToplevelFunctions().toSet()
-            } else {
-                val classes = code.getToplevelClasses()
-                val myClass = classes.find { it.name == model.containingClass.name }
-                    ?: error("Didn't find containing class")
-                myClass.methods.toSet()
+                model.selectedFunctions.map { pyFunction ->
+                    shownFunctions.find { pythonMethod ->
+                        pythonMethod.name == pyFunction.name
+                    } ?: error("Didn't find PythonMethod ${pyFunction.name}")
+                }
             }
-
-        return model.selectedFunctions.map { pyFunction ->
-            shownFunctions.find { pythonMethod ->
-                pythonMethod.name == pyFunction.name
-            } ?: error("Didn't find PythonMethod ${pyFunction.name}")
         }
     }
 
@@ -140,16 +165,8 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
-
                     val methods = findSelectedPythonMethods(model)
-                    if (methods == null) {
-                        showErrorDialogLater(
-                            project,
-                            message = "Couldn't parse file. Maybe it contains syntax error?",
-                            title = "Python test generation error"
-                        )
-                        return
-                    }
+
                     processTestGeneration(
                         pythonPath = model.pythonPath,
                         pythonFilePath = model.file.virtualFile.path,
@@ -161,7 +178,10 @@ object PythonDialogProcessor {
                         timeout = model.timeout,
                         testFramework = model.testFramework,
                         timeoutForRun = model.timeoutForRun,
-                        visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
+                        writeTestTextToFile = { generatedCode ->
+                            writeGeneratedCodeToPsiDocument(generatedCode, model)
+                        },
+                        pythonRunRoot = Path(model.testSourceRootPath),
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
                         installingRequirementsAction = { indicator.text = "Installing requirements..." },
@@ -179,15 +199,11 @@ object PythonDialogProcessor {
                                 title = "Python test generation error"
                             )
                         },
-                        writeTestTextToFile = { generatedCode ->
-                            writeGeneratedCodeToPsiDocument(generatedCode, model)
-                        },
                         processMypyWarnings = {
                             val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                             WarningTestsReportNotifier.notify(message.toString())
                         },
-                        startedCleaningAction = { indicator.text = "Cleaning up..." },
-                        pythonRunRoot = Path(model.testSourceRootPath)
+                        startedCleaningAction = { indicator.text = "Cleaning up..." }
                     )
                 } finally {
                     LockFile.unlock()
@@ -279,11 +295,6 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 }
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
-
-fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode? {
-    val content = getContentFromPyFile(file)
-    return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)
-}
 
 /*
  * Returns set of sys paths and tested file import path

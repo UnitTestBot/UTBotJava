@@ -8,16 +8,16 @@ Top-level functions (with only positional arguments):
 - [x] `def motion(x, u, dt)`
 - [x] `def calc_dynamic_window(x, config)`
 - [x] `def predict_trajectory(x_init, v, y, config)`
-- [ ] `def calc_control_and_trajectory(x, dw, config, goal, ob)`
-- [ ] `def calc_obstacle_cost(trajectory, ob, config)`
-- [ ] `def calc_to_goal_cost(trajectory, goal)`
+- [x] `def calc_control_and_trajectory(x, dw, config, goal, ob)`
+- [x] `def calc_obstacle_cost(trajectory, ob, config)`
+- [x] `def calc_to_goal_cost(trajectory, goal)`
 - [x] `def plot_robot(x, y, yaw, config)`
 
 Used time limit: 25 seconds.
 
 Command:
 
-    java -jar utbot-cli-python-2023.01-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py" <function>
+    java -jar utbot-cli-python-2023.02-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py" <function>
 
 
 ### <span style="color:green">OK:</span> `def motion(x, u, dt)`
@@ -71,6 +71,49 @@ typing.Callable[[builtins.int, builtins.int, builtins.list[builtins.list[typing.
 ...
 ```
 
+### <span style="color:green">OK:</srpan> `def calc_control_and_trajectory(x, dw, config, goal, ob)`
+```
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.list[builtins.list[typing.Any]], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[builtins.list[typing.Any]], builtins.list[builtins.list[typing.Any]]], typing.Any]
+typing.Callable[[builtins.list[builtins.list[typing.Any]], builtins.list[builtins.int], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[builtins.list[typing.Any]], builtins.list[builtins.list[typing.Any]]], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.list[builtins.list[builtins.list[typing.Any]]], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[builtins.list[builtins.list[typing.Any]]], builtins.list[builtins.list[builtins.list[typing.Any]]]], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.str, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.str, PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[builtins.list[typing.Any]], builtins.list[builtins.list[typing.Any]]], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.int, builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config, builtins.list[typing.Any], builtins.int], typing.Any]
+...
+```
+
+### <span style="color:green">OK:</span> `def calc_obstacle_cost(trajectory, ob, config)`
+
+```
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], numpy.lib.arrayterator.Arrayterator[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+typing.Callable[[numpy.ndarray[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
+```
+
+### <span style="color:green">OK:</span> `def calc_to_goal_cost(trajectory, goal)`
+
+```
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[typing.Any, ...], builtins.float], builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[builtins.float, ...], builtins.float], builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[builtins.int, ...], builtins.float], builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[typing.Any, ...], builtins.int], builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[builtins.float, ...], builtins.int], builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[builtins.int, ...], builtins.int], builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[typing.Any, ...], builtins.float], builtins.dict[builtins.int, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[typing.Any, ...], builtins.float], builtins.dict[builtins.float, builtins.int]], typing.Any]
+typing.Callable[[numpy.ma.core.MaskedConstant, builtins.dict[typing.Any, typing.Any]], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.str], typing.Any]
+typing.Callable[[numpy.ma.core.MaskedConstant, builtins.dict[builtins.float, builtins.float]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[builtins.float, ...], builtins.float], builtins.dict[builtins.float, builtins.int]], typing.Any]
+typing.Callable[[builtins.dict[builtins.tuple[builtins.int, ...], builtins.float], builtins.dict[builtins.float, builtins.int]], typing.Any]
+...
+```
+
 ### <span style="color:green">OK:</span> `def plot_robot(x, y, yaw, config)`
 
 `list` is strange here, but without stubs for matplotlib mypy doesn't consider this a mistake.
@@ -103,32 +146,6 @@ typing.Callable[[builtins.object, builtins.object, builtins.object, numpy.str_],
 ...
 ```
 
-### <span style="color:yellow">FAIL:</span> `def calc_control_and_trajectory(x, dw, config, goal, ob)`
-
-### <span style="color:yellow">OK, but can be better (TODO):</span> `def calc_obstacle_cost(trajectory, ob, config)`
-
-```
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any], PathPlanning.DynamicWindowApproach.dynamic_window_approach.Config], typing.Any]
-```
-
-Desirable type: numpy array.
-
-Reason: no analysis of tuple slices.
-
-### <span style="color:yellow">OK, but can be better (TODO):</span> `def calc_to_goal_cost(trajectory, goal)`
-
-```
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.str], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.dict[typing.Any, typing.Any]], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytes], typing.Any]
-typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.bytearray], typing.Any]
-```
-
-Desirable type: numpy array.
-
-Reason: no analysis of tuple slices.
-
 ## File 2
 
 Source: https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathPlanning/DubinsPath/dubins_path_planner.py
@@ -144,13 +161,13 @@ Top-level functions (with only positional arguments):
 - [ ] `def _LRL(alpha, beta, d)`
 - [x] `def _dubins_path_planning_from_origin(end_x, end_y, end_yaw, curvature, step_size, planning_funcs)`
 - [x] `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
-- [ ] `def _generate_local_course(lengths, modes, max_curvature, step_size)`
+- [x] `def _generate_local_course(lengths, modes, max_curvature, step_size)`
 
 Used time limit: 25 seconds.
 
 Command:
 
-    java -jar utbot-cli-python-2023.01-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DubinsPath/dubins_path_planner.py" <function>
+    java -jar utbot-cli-python-2023.02-SNAPSHOT.jar infer_types -p python3 -s /home/tochilinak/Documents/projects/utbot/PythonRobotics -t 25000 "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DubinsPath/dubins_path_planner.py" <function>
 
 ### <span style="color:green">OK:</span> `def _calc_trig_funcs(alpha, beta)`
 
@@ -257,22 +274,29 @@ typing.Callable[[builtins.int, builtins.int, builtins.int, builtins.float, built
 ```
 
 
-### <span style="color:green">OK (but can be improved):</span> `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
+### <span style="color:green">OK:</span> `def _interpolate(length, mode, max_curvature, origin_x, origin_y, origin_yaw, path_x, path_y, path_yaw)`
 
 ```
 typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[builtins.float], builtins.list[builtins.float], builtins.list[builtins.float]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[builtins.object], builtins.list[builtins.float], builtins.list[builtins.float]], typing.Any]
 typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], array.array[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any], array.array[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.UserList[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[typing.Any], array.array[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[typing.Any], builtins.list[typing.Any], array.array[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], collections.UserList[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], array.array[typing.Any], array.array[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, builtins.list[typing.Any], builtins.list[typing.Any], collections.UserList[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.deque[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.UserList[typing.Any], array.array[typing.Any], builtins.list[typing.Any]], typing.Any]
-typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, collections.UserList[typing.Any], builtins.list[typing.Any], array.array[typing.Any]], typing.Any]
+typing.Callable[[builtins.float, builtins.str, builtins.float, builtins.float, builtins.float, builtins.float, array.array[builtins.float], builtins.list[builtins.float], builtins.list[builtins.float]], typing.Any]
+```
+
+### <span style="color:green">OK:</span> `def _generate_local_course(lengths, modes, max_curvature, step_size)`
+
+```
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], builtins.int, builtins.int], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.list[builtins.int], builtins.int, builtins.int], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], builtins.list[typing.Any], builtins.int], typing.Any]
+typing.Callable[[builtins.list[typing.Any], builtins.list[typing.Any], builtins.int, builtins.bool], typing.Any]
+typing.Callable[[builtins.dict[typing.Any, typing.Any], builtins.list[typing.Any], builtins.int, builtins.int], typing.Any]
+typing.Callable[[builtins.dict[builtins.int, builtins.int], builtins.list[builtins.int], builtins.int, builtins.int], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.list[builtins.int], builtins.int, builtins.bool], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.list[builtins.list[typing.Any]], builtins.int, builtins.int], typing.Any]
+typing.Callable[[builtins.list[builtins.int], builtins.list[builtins.list[builtins.int]], builtins.int, builtins.int], typing.Any]
+...
 ```
 
 
@@ -331,9 +355,6 @@ typing.Callable[[builtins.staticmethod[typing.Any]], typing.Any]
 ...
 ```
 
-### <span style="color:yellow">FAIL (TODO):</span> `def _generate_local_course(lengths, modes, max_curvature, step_size)`
-
-Probable reason: not getting hints from overloaded functions.
 
 ## File 3
 

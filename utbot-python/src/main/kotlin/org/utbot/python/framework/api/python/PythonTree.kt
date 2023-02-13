@@ -4,6 +4,10 @@ import org.utbot.python.framework.api.python.util.pythonBoolClassId
 import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
+import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.pythonTypeName
+import java.math.BigDecimal
 import java.math.BigInteger
 
 object PythonTree {
@@ -24,7 +28,14 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return type == other.type
+        }
+
+        override fun hashCode(): Int {
+            var result = type.hashCode()
+            result = 31 * result + comparable.hashCode()
+            result = 31 * result + children.hashCode()
+            return result
         }
     }
 
@@ -37,6 +48,12 @@ object PythonTree {
                 return false
             }
             return repr == other.repr && type == other.type
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + repr.hashCode()
+            return result
         }
     }
 
@@ -58,7 +75,13 @@ object PythonTree {
             if (other !is ListNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return children == other.children
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
         }
     }
 
@@ -81,8 +104,15 @@ object PythonTree {
             if (other !is DictNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return children == other.children
         }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
+        }
+
     }
 
     class SetNode(
@@ -108,8 +138,15 @@ object PythonTree {
             if (other !is SetNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return items == other.items
         }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
+        }
+
     }
 
     class TupleNode(
@@ -132,7 +169,13 @@ object PythonTree {
             if (other !is TupleNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return items == other.items
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + items.hashCode()
+            return result
         }
     }
 
@@ -171,7 +214,24 @@ object PythonTree {
             if (other !is ReduceNode) {
                 return false
             }
-            return type == other.type && children == other.children
+            return type == other.type &&
+                    id == other.id &&
+                    constructor == other.constructor &&
+                    args == other.args &&
+                    state == other.state &&
+                    listitems == other.listitems &&
+                    dictitems == other.dictitems
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + id.hashCode()
+            result = 31 * result + constructor.hashCode()
+            result = 31 * result + args.hashCode()
+            result = 31 * result + state.hashCode()
+            result = 31 * result + listitems.hashCode()
+            result = 31 * result + dictitems.hashCode()
+            return result
         }
     }
 
@@ -208,9 +268,12 @@ object PythonTree {
     }
 
     fun fromString(value: String): PrimitiveNode {
+        val repr = value
+            .replace("\"", "\\\"")
+            .replace("\\\\\"", "\\\"")
         return PrimitiveNode(
-            pythonIntClassId,
-            "\"$value\""
+            pythonStrClassId,
+            "\"$repr\""
         )
     }
 
@@ -226,5 +289,25 @@ object PythonTree {
             pythonFloatClassId,
             value.toString()
         )
+    }
+
+    fun fromParsedConstant(value: Pair<Type, Any>): PythonTreeNode? {
+        return when (value.first.pythonTypeName()) {
+            "builtins.int" -> fromInt(value.second as? BigInteger ?: return null)
+            "builtins.float" -> fromFloat((value.second as? BigDecimal)?.toDouble() ?: return null)
+            "typing.Tuple", "builtins.tuple" -> {
+                val elemsUntyped = (value.second as? List<*>) ?: return null
+                val elems = elemsUntyped.map {
+                    val pair = it as? Pair<*,*> ?: return null
+                    Pair(pair.first as? Type ?: return null, pair.second ?: return null)
+                }
+                TupleNode(
+                    elems.mapIndexed { index, pair ->
+                        Pair(index, fromParsedConstant(pair) ?: return null)
+                    }.associate { it }.toMutableMap()
+                )
+            }
+            else -> null
+        }
     }
 }

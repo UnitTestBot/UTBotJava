@@ -45,31 +45,24 @@ object ConditionParser {
         return if (node.entries.isEmpty()) {
             NoConditions
         } else {
-            val entityToCondition = node.entries
-                .mapKeys { (taintEntityNameScalar, _) ->
-                    taintEntityByName(taintEntityNameScalar.content)
-                }.mapValues { (_, conditionNode) ->
-                    parseCondition(conditionNode)
-                }
+            val entityToCondition = node.entries.map { (taintEntityNameScalar, conditionNode) ->
+                taintEntityByName(taintEntityNameScalar.content) to parseCondition(conditionNode)
+            }.toMap()
             ConditionsMap(entityToCondition)
         }
     }
 
     /**
      * Expects a [YamlNode] that describes one condition.
-     *
-     * __Input example:__
-     *
-     * ```yaml
-     * [ "", { not: <java.lang.String> } ]
-     * ```
      */
     fun parseCondition(node: YamlNode): Condition =
         when (node) {
+            // example: `null`
             is YamlNull -> {
                 ValueCondition(parseArgumentValue(node))
             }
 
+            // examples: `227`, `"some string"`, `<java.lang.String>`
             is YamlScalar -> {
                 when {
                     isArgumentType(node) -> TypeCondition(parseArgumentType(node))
@@ -78,11 +71,13 @@ object ConditionParser {
                 }
             }
 
+            // examples: `[ true, 1, "yes" ]`, `[ "", { not: <java.lang.String> } ]`
             is YamlList -> {
                 val innerConditions = node.items.map(ConditionParser::parseCondition)
                 OrCondition(innerConditions)
             }
 
+            // examples: `{ not: null }`, `{ not: [1, 2, 3] }`
             is YamlMap -> {
                 validateYamlMapKeys(node, setOf(Constants.KEY_CONDITION_NOT))
                 val innerNode = node.get<YamlNode>(Constants.KEY_CONDITION_NOT)!!

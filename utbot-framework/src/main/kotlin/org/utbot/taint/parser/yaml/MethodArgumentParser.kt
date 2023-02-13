@@ -5,6 +5,9 @@ import com.charleskorn.kaml.YamlNull
 import com.charleskorn.kaml.YamlScalar
 import com.charleskorn.kaml.YamlScalarFormatException
 import org.utbot.taint.parser.model.*
+import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_PREFIX
+import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_SUFFIX
+import org.utbot.taint.parser.yaml.Constants.ARGUMENT_TYPE_UNDERSCORE
 import kotlin.contracts.ExperimentalContracts
 
 @OptIn(ExperimentalContracts::class)
@@ -16,9 +19,9 @@ object MethodArgumentParser {
     fun parseArgumentType(node: YamlNode): ArgumentType {
         validate(node is YamlScalar, "The argument type node should be a scalar", node)
         return when (val typeDescription = node.content) {
-            Constants.ARGUMENT_TYPE_UNDERSCORE -> ArgumentTypeAny
+            ARGUMENT_TYPE_UNDERSCORE -> ArgumentTypeAny
             else -> {
-                val typeFqn = typeDescription.removeSurrounding(Constants.ARGUMENT_TYPE_PREFIX, Constants.ARGUMENT_TYPE_SUFFIX)
+                val typeFqn = typeDescription.removeSurrounding(ARGUMENT_TYPE_PREFIX, ARGUMENT_TYPE_SUFFIX)
                 ArgumentTypeString(typeFqn)
             }
         }
@@ -56,15 +59,17 @@ object MethodArgumentParser {
     /**
      * Checks that the [node] can be parsed to [ArgumentType].
      */
-    fun isArgumentType(node: YamlNode): Boolean =
-        (node as? YamlScalar)?.content?.run {
-            val isUnderscore = equals(Constants.ARGUMENT_TYPE_UNDERSCORE)
-            val isInBrackets = startsWith(Constants.ARGUMENT_TYPE_PREFIX) && endsWith(Constants.ARGUMENT_TYPE_SUFFIX)
-            isUnderscore || isInBrackets
-        } == true
+    fun isArgumentType(node: YamlNode): Boolean {
+        val content = (node as? YamlScalar)?.content ?: return false
+
+        val isUnderscore = content == ARGUMENT_TYPE_UNDERSCORE
+        val isInBrackets = content.startsWith(ARGUMENT_TYPE_PREFIX) && content.endsWith(ARGUMENT_TYPE_SUFFIX)
+
+        return isUnderscore || isInBrackets
+    }
 
     /**
-     * Checks that the [node] can be parsed to [isArgumentValue].
+     * Checks that the [node] can be parsed to [ArgumentValue].
      */
     fun isArgumentValue(node: YamlNode): Boolean =
         (node is YamlNull) || (node is YamlScalar) && !isArgumentType(node)

@@ -227,7 +227,7 @@ class JsTestGenerator(
         val currentlyCoveredStmts = mutableSetOf<Int>()
         val startTime = System.currentTimeMillis()
         runFuzzing(jsDescription) { _, values ->
-            if (isCancelled() || System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
+            if (isCancelled() || System.currentTimeMillis() - startTime > 30_000) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
             if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {

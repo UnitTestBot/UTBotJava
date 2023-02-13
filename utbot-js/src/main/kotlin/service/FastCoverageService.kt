@@ -18,7 +18,7 @@ class FastCoverageService(
 ) : CoverageService(context, scriptTexts, baseCoverage) {
 
     override fun generateCoverageReport() {
-            val (_, error) = JsCmdExec.runCommand(
+            val (_, errorText) = JsCmdExec.runCommand(
                 cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName" + "0.js\""),
                 dir = projectPath,
                 shouldWait = true,
@@ -42,9 +42,8 @@ class FastCoverageService(
                 )
                 _resultList.add(resultData)
             }
-            val errText = error.readText()
-            if (errText.isNotEmpty()) {
-                logger.error { errText }
+            if (errorText.isNotEmpty()) {
+                logger.error { errorText }
             }
     }
 }

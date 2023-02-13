@@ -7,8 +7,6 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.JsUndefinedModel
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
-import org.utbot.framework.concrete.constructors.UtModelConstructorInterface
-import fuzzer.providers.JsObjectModelProvider
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel

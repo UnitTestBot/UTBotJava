@@ -19,7 +19,7 @@ class BasicCoverageService(
     override fun generateCoverageReport() {
         scriptTexts.indices.forEach { index ->
             try {
-                val (_, error) = JsCmdExec.runCommand(
+                val (_, errorText) = JsCmdExec.runCommand(
                     cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$index.js\""),
                     dir = projectPath,
                     shouldWait = true,
@@ -39,9 +39,8 @@ class BasicCoverageService(
                     specSign = json.getInt("spec_sign").toByte()
                 )
                 _resultList.add(resultData)
-                val errText = error.readText()
-                if (errText.isNotEmpty()) {
-                    logger.error { errText }
+                if (errorText.isNotEmpty()) {
+                    logger.error { errorText }
                 }
             } catch (e: TimeoutException) {
                 val resultData = ResultData(

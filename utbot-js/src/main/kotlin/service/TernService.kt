@@ -92,15 +92,14 @@ test("$filePathToInference")
     }
 
     private fun runTypeInferencer() {
-        val (reader, _) = JsCmdExec.runCommand(
+        val (inputText, _) = JsCmdExec.runCommand(
             dir = "$projectPath/$utbotDir/",
             shouldWait = true,
             timeout = 20,
             cmd = arrayOf("\"${settings.pathToNode}\"", "\"${projectPath}/$utbotDir/ternScript.js\""),
         )
-        val text = reader.readText().replaceAfterLast("}", "")
         json = try {
-            JSONObject(text)
+            JSONObject(inputText.replaceAfterLast("}", ""))
         } catch (_: Throwable) {
             JSONObject()
         }

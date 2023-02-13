@@ -18,8 +18,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
-import framework.codegen.Mocha
-import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
@@ -63,8 +61,8 @@ object JsDialogProcessor {
                     checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
                     checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
                     checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
-                    createDialog(model)?.let { dialogProcessor ->
-                        if (!dialogProcessor.showAndGet()) return@invokeLater
+                    createDialog(model)?.let { dialogWindow ->
+                        if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
                         runWriteAction {
                             with(FileDocumentManager.getInstance()) {

@@ -8,6 +8,7 @@ import java.io.File
 import java.nio.file.Paths
 import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getClassMethods
+import parser.JsParserUtils.getRequireImportText
 import parser.JsParserUtils.isRequireImport
 import kotlin.io.path.pathString
 
@@ -53,7 +54,7 @@ class JsAstScrapper(
     private fun Node.importedNodes(): Map<String, Node> {
         return when {
             this.isRequireImport() -> mapOf(
-                this.parent!!.string to (makePathFromImport(this.firstChild!!.next!!)?.let {
+                this.parent!!.string to (makePathFromImport(this.getRequireImportText())?.let {
                     File(it).findEntityInFile()
                     // Workaround for std imports.
                 } ?: this.firstChild!!.next!!)
@@ -62,27 +63,16 @@ class JsAstScrapper(
         }
     }
 
-    private fun makePathFromImport(importNode: Node): String? {
-        val relPath = importNode.string + if (importNode.string.endsWith(".js")) "" else ".js"
+    private fun makePathFromImport(importText: String): String? {
+        val relPath = importText + if (importText.endsWith(".js")) "" else ".js"
         // If import text doesn't contain "/", then it is NodeJS stdlib import.
         if (!relPath.contains("/")) return null
-        val finalPath = Paths.get(File(basePath).parent).resolve(Paths.get(relPath)).pathString
-        return finalPath
+        return Paths.get(File(basePath).parent).resolve(Paths.get(relPath)).pathString
     }
 
     private fun File.findEntityInFile(): Node {
-        val parsedFile = _parsedFilesCache.putIfAbsent(
-            path,
-            Compiler().parse(SourceFile.fromCode("jsFile", readText()))
-        )!!
-//        val localScrapper = JsAstScrapper(parsedFile, basePath)
-//        return localScrapper.findClass(key)
-//            ?: localScrapper.findFunction(key)
-        return parsedFile
-
+        return Compiler().parse(SourceFile.fromCode("jsFile", readText()))
     }
-
-
 
     private class Visitor: IAstVisitor {
 

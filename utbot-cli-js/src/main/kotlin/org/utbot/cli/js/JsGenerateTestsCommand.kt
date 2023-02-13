@@ -118,13 +118,11 @@ class JsGenerateTestsCommand :
         }
     }
 
-    private fun manageExports(fileText: String, exports: List<String>, swappedText: (String) -> String) {
-        val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
+    private fun manageExports(fileText: String, exports: List<String>, swappedText: (String?) -> String) {
         val file = File(sourceCodeFile)
         when {
-            fileText.contains(exportSection) -> {}
 
-            fileText.contains(startComment) && !fileText.contains(exportSection) -> {
+            fileText.contains(startComment) -> {
                 val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                 regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
                     val newText = swappedText(existingSection)
@@ -134,9 +132,9 @@ class JsGenerateTestsCommand :
 
             else -> {
                 val line = buildString {
-                    append("\n$startComment\n")
-                    append(exportSection)
-                    append("\n$endComment")
+                    append("\n$startComment")
+                    append(swappedText(null))
+                    append(endComment)
                 }
                 file.appendText(line)
             }

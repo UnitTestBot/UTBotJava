@@ -9,6 +9,7 @@ class ServiceContext(
     override val filePathToInference: String,
     override val parsedFile: Node,
     override val settings: JsDynamicSettings,
+    override var packageJson: PackageJson = PackageJson.defaultConfig
 ): ContextOwner
 
 interface ContextOwner {
@@ -17,4 +18,5 @@ interface ContextOwner {
     val filePathToInference: String
     val parsedFile: Node
     val settings: JsDynamicSettings
+    var packageJson: PackageJson
 }

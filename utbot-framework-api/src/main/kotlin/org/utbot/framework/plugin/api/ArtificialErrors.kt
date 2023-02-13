@@ -1,4 +1,4 @@
-package org.utbot.engine
+package org.utbot.framework.plugin.api
 
 /**
  * Represents an error that may be detected or not
@@ -16,3 +16,8 @@ sealed class ArtificialError(message: String): Error(message)
  * See [TraversalContext.intOverflowCheck] for more details.
  */
 class OverflowDetectionError(message: String): ArtificialError(message)
+
+fun ArtificialError.getPrettyName(): String =
+    when (this) {
+        is OverflowDetectionError -> "Overflow"
+    }

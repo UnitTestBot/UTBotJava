@@ -7,6 +7,7 @@ import com.github.javaparser.ast.stmt.IfStmt
 import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.ThrowStmt
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -67,7 +68,11 @@ open class SimpleCommentBuilder(
         traceTag.result.exceptionOrNull()?.let {
             val exceptionName = it.javaClass.simpleName
             val reason = findExceptionReason(currentMethod, it)
-            root.exceptionThrow = "$exceptionName $reason"
+
+            when (it) {
+                is ArtificialError -> root.detectedError = reason
+                else -> root.exceptionThrow = "$exceptionName $reason"
+            }
         }
     }
 

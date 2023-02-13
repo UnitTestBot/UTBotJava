@@ -44,6 +44,7 @@ import parser.JsToplevelFunctionAstVisitor
 import service.CoverageMode
 import service.CoverageServiceProvider
 import service.InstrumentationService
+import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
@@ -98,7 +99,7 @@ class JsTestGenerator(
             parsedFile = parsedFile,
             settings = settings,
         )
-        val ternService = TernService(context)
+        context.packageJson = PackageJsonService(context).findClosestConfig()
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()
         val classNode =
@@ -108,7 +109,7 @@ class JsTestGenerator(
                 strict = selectedMethods?.isNotEmpty() ?: false
             )
         parentClassName = classNode?.getClassName()
-        val classId = makeJsClassId(classNode, ternService)
+        val classId = makeJsClassId(classNode, TernService(context))
         val methods = makeMethodsToTest()
         if (methods.isEmpty()) throw IllegalArgumentException("No methods to test were found!")
         methods.forEach { funcNode ->

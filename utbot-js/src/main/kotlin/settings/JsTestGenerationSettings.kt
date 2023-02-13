@@ -6,7 +6,7 @@ object JsTestGenerationSettings {
     const val dummyClassName = "toplevelHack"
 
     // Default timeout for Node.js to try run a single testcase.
-    const val defaultTimeout = 15L
+    const val defaultTimeout = 10L
 
     // Name of file under test when importing it.
     const val fileUnderTestAliases = "fileUnderTest"

@@ -246,6 +246,7 @@ class JsTestGenerator(
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
+                            return@runFuzzing JsFeedback(Control.PASS)
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
                                 null to params.map { it.model }

@@ -167,7 +167,7 @@ object JsDialogProcessor {
                         if (name == dummyClassName) null else name
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace(File.separator, "/"),
-                    exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project),
+                    exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project, editor.document.text),
                     settings = JsDynamicSettings(
                         pathToNode = model.pathToNode,
                         pathToNYC = model.pathToNYC,
@@ -199,33 +199,25 @@ object JsDialogProcessor {
         }).queue()
     }
 
-    private fun <A, B, C> partialApplication(f: (A, B, C) -> Unit, a: A, b: B): (C) -> Unit {
-        return { c: C -> f(a, b, c) }
+    private fun <A, B, C, D, E> partialApplication(f: (A, B, C, D, E) -> Unit, a: A, b: B, c: C): (D, E) -> Unit {
+        return { d: D, e: E -> f(a, b, c, d, e) }
     }
 
-    private fun manageExports(editor: Editor, project: Project, exports: List<String>) {
+    private fun manageExports(editor: Editor, project: Project, fileText: String, exports: List<String>, swappedText: (String) -> String) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
                 val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
-                val fileText = editor.document.text
                 when {
                     fileText.contains(exportSection) -> {}
 
                     fileText.contains(startComment) && !fileText.contains(exportSection) -> {
                         val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                         regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                            val exportRegex = Regex("exports[.](.*) =")
-                            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
-                            val existingExportsSet = existingExports.map { rawLine ->
-                                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
-                            }.toSet()
-                            val resultSet = existingExportsSet + exports.toSet()
-                            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
+                            val newText = swappedText(existingSection)
                             runWriteAction {
                                 with(editor.document) {
                                     unblockDocument(project, this)
-                                    setText(swappedText)
+                                    setText(newText)
                                     unblockDocument(project, this)
                                 }
                                 with(FileDocumentManager.getInstance()) {

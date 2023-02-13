@@ -1,15 +1,15 @@
-package service
+package service.coverage
 
 import java.io.File
 import mu.KotlinLogging
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
-import settings.JsTestGenerationSettings.tempFileName
+import service.ServiceContext
+import settings.JsTestGenerationSettings
 import utils.JsCmdExec
-import utils.ResultData
+import utils.data.ResultData
 
 private val logger = KotlinLogging.logger {}
-
 class BasicCoverageService(
     context: ServiceContext,
     private val scriptTexts: List<String>,
@@ -20,12 +20,15 @@ class BasicCoverageService(
         scriptTexts.indices.forEach { index ->
             try {
                 val (_, error) = JsCmdExec.runCommand(
-                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$index.js\""),
+                    cmd = arrayOf(
+                        "\"${settings.pathToNode}\"",
+                        "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}$index.js\""
+                    ),
                     dir = projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,
                 )
-                val resFile = File("$utbotDirPath/$tempFileName$index.json")
+                val resFile = File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}$index.json")
                 val rawResult = resFile.readText()
                 resFile.delete()
                 val json = JSONObject(rawResult)

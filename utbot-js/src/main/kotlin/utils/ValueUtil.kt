@@ -9,6 +9,7 @@ import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import utils.data.ResultData
 
 fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, JsClassId> {
     this.buildUniqueValue()?.let { return it }

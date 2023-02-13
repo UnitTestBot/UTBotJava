@@ -1,15 +1,14 @@
-package service
+package service.coverage
 
 import java.io.File
 import mu.KotlinLogging
 import org.json.JSONObject
-import settings.JsTestGenerationSettings.fuzzingThreshold
-import settings.JsTestGenerationSettings.tempFileName
+import service.ServiceContext
+import settings.JsTestGenerationSettings
 import utils.JsCmdExec
-import utils.ResultData
+import utils.data.ResultData
 
 private val logger = KotlinLogging.logger {}
-
 class FastCoverageService(
     context: ServiceContext,
     scriptTexts: List<String>,
@@ -19,13 +18,16 @@ class FastCoverageService(
 
     override fun generateCoverageReport() {
             val (_, error) = JsCmdExec.runCommand(
-                cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName" + "0.js\""),
+                cmd = arrayOf(
+                    "\"${settings.pathToNode}\"",
+                    "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}" + "0.js\""
+                ),
                 dir = projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
             )
-            for (i in 0..minOf(fuzzingThreshold - 1, testCaseIndices.last)) {
-                val resFile = File("$utbotDirPath/$tempFileName$i.json")
+            for (i in 0..minOf(JsTestGenerationSettings.fuzzingThreshold - 1, testCaseIndices.last)) {
+                val resFile = File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}$i.json")
                 val rawResult = resFile.readText()
                 resFile.delete()
                 val json = JSONObject(rawResult)

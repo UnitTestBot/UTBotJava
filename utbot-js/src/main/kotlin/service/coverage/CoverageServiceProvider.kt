@@ -1,4 +1,4 @@
-package service
+package service.coverage
 
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
@@ -9,10 +9,12 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
+import service.ContextOwner
+import service.InstrumentationService
+import service.ServiceContext
 import settings.JsTestGenerationSettings
-import settings.JsTestGenerationSettings.tempFileName
-import utils.CoverageData
-import utils.ResultData
+import utils.data.CoverageData
+import utils.data.ResultData
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
 class CoverageServiceProvider(
@@ -49,7 +51,7 @@ function check_value(value, json) {
     init {
         val temp = makeScriptForBaseCoverage(
             instrumentationService.covFunName,
-            "${projectPath}/${utbotDir}/${tempFileName}Base.json"
+            "${projectPath}/${utbotDir}/${JsTestGenerationSettings.tempFileName}Base.json"
         )
         baseCoverage = CoverageService.getBaseCoverage(
             context,
@@ -86,7 +88,7 @@ function check_value(value, json) {
                 containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
-                resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
+                resFilePath = "${projectPath}/${utbotDir}/${JsTestGenerationSettings.tempFileName}",
             )
         }
         val coverageService = BasicCoverageService(
@@ -110,7 +112,7 @@ function check_value(value, json) {
                 containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
-                resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
+                resFilePath = "${projectPath}/${utbotDir}/${JsTestGenerationSettings.tempFileName}",
             )
         }
         val coverageService = FastCoverageService(

@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import mu.KotlinLogging
 import org.utbot.cli.js.JsUtils.makeAbsolutePath
-import service.CoverageMode
+import service.coverage.CoverageMode
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
@@ -88,7 +88,7 @@ class JsGenerateTestsCommand :
                 sourceFilePath = sourceFileAbsolutePath,
                 parentClassName = targetClass,
                 outputFilePath = outputAbsolutePath,
-                exportsManager = ::manageExports,
+                exportsManager = partialApplication(::manageExports, fileText),
                 settings = JsDynamicSettings(
                     pathToNode = pathToNode,
                     pathToNYC = pathToNYC,
@@ -118,25 +118,17 @@ class JsGenerateTestsCommand :
         }
     }
 
-    private fun manageExports(exports: List<String>) {
+    private fun manageExports(fileText: String, exports: List<String>, swappedText: (String) -> String) {
         val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
         val file = File(sourceCodeFile)
-        val fileText = file.readText()
         when {
             fileText.contains(exportSection) -> {}
 
             fileText.contains(startComment) && !fileText.contains(exportSection) -> {
                 val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                 regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                    val exportRegex = Regex("exports[.](.*) =")
-                    val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
-                    val existingExportsSet = existingExports.map { rawLine ->
-                        exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
-                    }.toSet()
-                    val resultSet = existingExportsSet + exports.toSet()
-                    val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                    val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-                    file.writeText(swappedText)
+                    val newText = swappedText(existingSection)
+                    file.writeText(newText)
                 }
             }
 
@@ -149,5 +141,9 @@ class JsGenerateTestsCommand :
                 file.appendText(line)
             }
         }
+    }
+
+    private fun <A, B, C> partialApplication(f: (A, B, C) -> Unit, a: A): (B, C) -> Unit {
+        return { b: B, c: C -> f(a, b, c) }
     }
 }

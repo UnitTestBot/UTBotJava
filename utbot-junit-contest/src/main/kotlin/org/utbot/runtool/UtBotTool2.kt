@@ -11,7 +11,7 @@ import sbst.runtool.ITestingTool
 class UtBotTool2 : ITestingTool {
 
     override fun getExtraClassPath(): List<File> {
-        return mutableListOf()
+        return mutableListOf(File("lib", "mockito-core-4.2.0.jar"))
     }
 
     lateinit var sootClasspathString: String

@@ -146,7 +146,18 @@ object JsParserUtils {
     fun Node.isStatic(): Boolean = this.isStaticMember
 
     /**
-     * Checks if node is "required" JavaScript import.
+     * Checks if node is "require" JavaScript import.
      */
-    fun Node.isRequireImport(): Boolean = this.isCall && this.firstChild?.string == "require"
+    fun Node.isRequireImport(): Boolean = try {
+        this.isCall && this.firstChild?.string == "require"
+    } catch (e: ClassCastException) {
+        false
+    }
+
+    /**
+     * Called upon "require" JavaScript import.
+     *
+     * Returns path to imported file as [String].
+     */
+    fun Node.getRequireImportText(): String = this.firstChild!!.next!!.string
 }

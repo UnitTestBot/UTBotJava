@@ -1,19 +1,26 @@
 package service
 
+import com.google.javascript.jscomp.CodePrinter
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
+import java.io.File
+import java.nio.file.Paths
 import org.apache.commons.io.FileUtils
 import parser.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
+import parser.JsParserUtils.getRequireImportText
+import parser.JsParserUtils.isRequireImport
 import parser.JsParserUtils.runParser
 import utils.JsCmdExec
-import java.io.File
+import utils.PathResolver.getRelativePath
+import kotlin.io.path.pathString
 import kotlin.math.roundToInt
 
 class InstrumentationService(context: ServiceContext, private val funcDeclOffset: Pair<Int, Int>): ContextOwner by context {
 
     private val destinationFolderPath = "${projectPath}/${utbotDir}/instr"
     private val instrumentedFilePath = "$destinationFolderPath/${filePathToInference.substringAfterLast("/")}"
+    private lateinit var parsedInstrFile: Node
     lateinit var covFunName: String
 
     val allStatements: Set<Int>
@@ -92,10 +99,8 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
     }
 
     private fun getStatementMapKeys() = buildSet {
-        val fileText = File(instrumentedFilePath).readText()
-        val rootNode = runParser(fileText)
         val funcVisitor = JsFunctionAstVisitor(covFunName, null)
-        funcVisitor.accept(rootNode)
+        funcVisitor.accept(parsedInstrFile)
         val funcNode = funcVisitor.targetFunctionNode
         val funcLocation = getFuncLocation(funcNode)
         funcNode.findAndIterateOver("statementMap") { currKey ->
@@ -134,13 +139,34 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
             timeout = settings.timeout,
         )
         val instrumentedFileText = File(instrumentedFilePath).readText()
+        parsedInstrFile = runParser(instrumentedFileText)
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
         val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
             ?: throw IllegalStateException("")
-        val fixedFileText = "$instrumentedFileText\nexports.$funName = $funName"
-        File(instrumentedFilePath).writeText(fixedFileText)
+        val fixedFileText = fixImportsInInstrumentedFile() + "\nexports.$funName = $funName"
+        File(instrumentedFilePath).writeTextAndUpdate(fixedFileText)
 
         covFunName = funName
+    }
+
+    private fun File.writeTextAndUpdate(newText: String) {
+        this.writeText(newText)
+        parsedInstrFile = runParser(File(instrumentedFilePath).readText())
+    }
+
+    private fun fixImportsInInstrumentedFile(): String {
+        // nyc poorly handles imports paths in file to instrument. Manual fix required.
+        NodeUtil.visitPreOrder(parsedInstrFile) { node ->
+            if (node.isRequireImport()) {
+                val currString = node.getRequireImportText()
+                val relPath = Paths.get(getRelativePath(
+                    "${projectPath}/${utbotDir}/instr",
+                    File(filePathToInference).parent
+                )).resolve(currString).pathString.replace("\\", "/")
+                node.firstChild!!.next!!.string = relPath
+            }
+        }
+        return CodePrinter.Builder(parsedInstrFile).build()
     }
 
     fun removeTempFiles() {

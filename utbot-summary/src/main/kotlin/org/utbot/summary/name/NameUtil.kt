@@ -1,6 +1,8 @@
 package org.utbot.summary.name
 
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.plugin.api.Step
+import org.utbot.framework.plugin.api.getPrettyName
 import org.utbot.summary.tag.UniquenessTag
 import soot.SootMethod
 
@@ -49,7 +51,7 @@ data class TestNameDescription(
 }
 
 enum class NameType {
-    Condition, Return, Invoke, SwitchCase, CaughtException, NoIteration, ThrowsException, StartIteration
+    Condition, Return, Invoke, SwitchCase, CaughtException, NoIteration, ThrowsException, StartIteration, ArtificialError
 }
 
 data class DisplayNameCandidate(val name: String, val uniquenessTag: UniquenessTag, val index: Int)
@@ -60,5 +62,22 @@ fun List<TestNameDescription>.returnsToUnique() = this.map {
         it.copy(uniquenessTag = UniquenessTag.Unique)
     } else {
         it
+    }
+}
+
+fun buildNameFromThrowable(exception: Throwable): String? {
+    val exceptionName = exception::class.simpleName
+
+    if (exceptionName.isNullOrEmpty()) return null
+    return when (exception) {
+        is ArtificialError -> "Detect${exception.getPrettyName()}"
+        else -> "Throw$exceptionName"
+    }
+}
+
+fun getThrowableNameType(exception: Throwable): NameType {
+    return when (exception) {
+        is ArtificialError -> NameType.ArtificialError
+        else -> NameType.ThrowsException
     }
 }

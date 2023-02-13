@@ -24,6 +24,7 @@ class CustomJavaDocTagProvider {
             CustomJavaDocTag.ReturnsFrom,
             CustomJavaDocTag.CaughtException,
             CustomJavaDocTag.ThrowsException,
+            CustomJavaDocTag.DetectsSuspiciousBehavior,
         )
 }
 
@@ -72,6 +73,9 @@ sealed class CustomJavaDocTag(
 
     object ThrowsException :
         CustomJavaDocTag("utbot.throwsException", "Throws exception", CustomJavaDocComment::throwsException, null)
+
+    object DetectsSuspiciousBehavior :
+        CustomJavaDocTag("utbot.detectsSuspiciousBehavior", "Detects suspicious behavior", CustomJavaDocComment::detectsSuspiciousBehavior, null)
 
     fun generateDocStatement(comment: CustomJavaDocComment): DocRegularStmt? =
         when (val value = valueRetriever.invoke(comment)) {

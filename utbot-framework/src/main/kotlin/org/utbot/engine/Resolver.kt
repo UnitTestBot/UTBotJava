@@ -90,6 +90,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.plugin.api.OverflowDetectionError
 import org.utbot.engine.types.CLASS_REF_CLASSNAME
 import org.utbot.engine.types.CLASS_REF_CLASS_ID
 import org.utbot.engine.types.CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR

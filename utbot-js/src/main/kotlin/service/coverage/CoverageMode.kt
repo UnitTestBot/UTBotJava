@@ -1,4 +1,4 @@
-package service
+package service.coverage
 
 enum class CoverageMode {
     FAST,

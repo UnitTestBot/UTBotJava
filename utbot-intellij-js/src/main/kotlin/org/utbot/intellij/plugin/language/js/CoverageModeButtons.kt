@@ -1,6 +1,6 @@
 package org.utbot.intellij.plugin.language.js
 
-import service.CoverageMode
+import service.coverage.CoverageMode
 import javax.swing.JToggleButton
 
 object CoverageModeButtons {

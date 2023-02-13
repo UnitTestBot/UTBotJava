@@ -1,18 +1,22 @@
-package service
+package service.coverage
 
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
+import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
+import service.ContextOwner
+import service.InstrumentationService
+import service.ServiceContext
 import settings.JsTestGenerationSettings
-import settings.JsTestGenerationSettings.tempFileName
-import utils.CoverageData
-import utils.ResultData
+import utils.data.CoverageData
+import utils.data.ResultData
 import java.util.regex.Pattern
+
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
 class CoverageServiceProvider(

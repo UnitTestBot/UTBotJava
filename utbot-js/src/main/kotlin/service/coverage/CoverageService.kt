@@ -1,13 +1,15 @@
-package service
+package service.coverage
 
 import java.io.File
 import java.util.Collections
 import org.json.JSONException
 import org.json.JSONObject
+import service.ContextOwner
+import service.ServiceContext
 import settings.JsTestGenerationSettings
-import utils.CoverageData
 import utils.JsCmdExec
-import utils.ResultData
+import utils.data.CoverageData
+import utils.data.ResultData
 
 abstract class CoverageService(
     context: ServiceContext,
@@ -39,7 +41,10 @@ abstract class CoverageService(
                     scriptText = baseCoverageScriptText
                 )
                 JsCmdExec.runCommand(
-                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js\""),
+                    cmd = arrayOf(
+                        "\"${settings.pathToNode}\"",
+                        "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js\""
+                    ),
                     dir = projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,

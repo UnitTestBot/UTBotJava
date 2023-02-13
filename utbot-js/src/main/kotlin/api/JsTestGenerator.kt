@@ -14,6 +14,8 @@ import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
+import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -43,19 +45,19 @@ import parser.JsToplevelFunctionAstVisitor
 import service.CoverageMode
 import service.CoverageServiceProvider
 import service.InstrumentationService
+import service.PackageJson
 import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
+import service.coverage.CoverageMode
+import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.fuzzingThreshold
-import settings.JsTestGenerationSettings.fuzzingTimeout
+import utils.ExportsProvider.getExportsRegex
 import utils.PathResolver
-import utils.ResultData
 import utils.constructClass
+import utils.data.ResultData
 import utils.toJsAny
-import java.io.File
-import java.util.concurrent.CancellationException
-import org.utbot.fuzzing.utils.Trie
 
 private val logger = KotlinLogging.logger {}
 
@@ -66,7 +68,7 @@ class JsTestGenerator(
     private val selectedMethods: List<String>? = null,
     private var parentClassName: String? = null,
     private var outputFilePath: String?,
-    private val exportsManager: (List<String>) -> Unit,
+    private val exportsManager: (List<String>, (String) -> String) -> Unit,
     private val settings: JsDynamicSettings,
     private val isCancelled: () -> Boolean = { false }
 ) {
@@ -138,7 +140,7 @@ class JsTestGenerator(
         val execId = classId.allMethods.find {
             it.name == funcNode.getAbstractFunctionName()
         } ?: throw IllegalStateException()
-        manageExports(classNode, funcNode, execId)
+        manageExports(classNode, funcNode, execId, context.packageJson)
         val executionResults = mutableListOf<JsFuzzingExecutionFeedback>()
         try {
             runBlockingWithCancellationPredicate(isCancelled) {
@@ -302,12 +304,23 @@ class JsTestGenerator(
     private fun manageExports(
         classNode: Node?,
         funcNode: Node,
-        execId: JsMethodId
+        execId: JsMethodId,
+        packageJson: PackageJson
     ) {
         val obligatoryExport = (classNode?.getClassName() ?: funcNode.getAbstractFunctionName()).toString()
         val collectedExports = collectExports(execId)
         exports += (collectedExports + obligatoryExport)
-        exportsManager(exports.toList())
+        exportsManager(exports.toList()) { existingSection ->
+            val exportRegex = getExportsRegex(packageJson)
+            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
+            val existingExportsSet = existingExports.map { rawLine ->
+                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+            }.toSet()
+            val resultSet = existingExportsSet + exports.toSet()
+            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
+            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
+            swappedText
+        }
     }
 
     private fun makeMethodsToTest(): List<Node> {

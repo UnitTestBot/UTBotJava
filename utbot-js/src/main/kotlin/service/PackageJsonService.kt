@@ -2,6 +2,7 @@ package service
 
 import java.io.File
 import java.io.FilenameFilter
+import org.json.JSONException
 import org.json.JSONObject
 
 data class PackageJson(
@@ -32,7 +33,9 @@ class PackageJsonService(context: ServiceContext) : ContextOwner by context {
     private fun parseConfig(configFile: File): PackageJson {
         val configAsJson = JSONObject(configFile.readText())
         return PackageJson(
-            isModule = (configAsJson.getString("type") == "module"),
+            isModule = try {
+                (configAsJson.getString("type") == "module")
+            } catch (e: JSONException) { false },
         )
     }
 }

@@ -12,7 +12,7 @@ import parser.JsParserUtils.getAbstractFunctionParams
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
-import utils.MethodTypes
+import utils.data.MethodTypes
 import utils.constructClass
 import java.io.File
 import java.util.Locale

@@ -1,12 +1,14 @@
-package service
+package service.coverage
 
+import java.io.File
 import mu.KotlinLogging
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
-import settings.JsTestGenerationSettings.tempFileName
+import service.ServiceContext
+import settings.JsTestGenerationSettings
 import utils.JsCmdExec
-import utils.ResultData
 import java.io.File
+import utils.data.ResultData
 
 private val logger = KotlinLogging.logger {}
 

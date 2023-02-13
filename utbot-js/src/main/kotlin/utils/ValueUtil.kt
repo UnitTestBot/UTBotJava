@@ -1,5 +1,7 @@
 package utils
 
+import org.json.JSONException
+import org.json.JSONObject
 import framework.api.js.JsClassId
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
@@ -7,8 +9,7 @@ import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
-import org.json.JSONException
-import org.json.JSONObject
+import utils.data.ResultData
 
 fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, JsClassId> {
     this.buildUniqueValue()?.let { return it }

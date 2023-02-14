@@ -1,10 +1,11 @@
 package org.utbot.go.worker
 
 import org.utbot.go.api.GoStructTypeId
+import org.utbot.go.framework.api.go.GoPackage
 
 object GoCodeTemplates {
 
-    private val traces = """
+    val traces = """
         var __traces__ []int
     """.trimIndent()
 
@@ -207,7 +208,11 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private fun convertStringToReflectType(structTypes: Set<GoStructTypeId>, packageName: String) = """
+    private fun convertStringToReflectType(
+        structTypes: Set<GoStructTypeId>,
+        sourcePackage: GoPackage,
+        aliases: Map<GoPackage, String>
+    ) = """
         func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
         	var result reflect.Type
 
@@ -274,7 +279,27 @@ object GoCodeTemplates {
         			result = reflect.TypeOf("")
         		case "uintptr":
         			result = reflect.TypeOf(uintptr(0))
-                ${structTypes.joinToString(separator = "\n") { "case \"${it.canonicalName}\": result = reflect.TypeOf(${it.getRelativeName(packageName)}{})" }}
+                ${
+        structTypes.joinToString(separator = "\n") {
+            "case \"${
+                if (it.sourcePackage == sourcePackage || aliases[it.sourcePackage] == ".") {
+                    it.simpleName
+                } else if ((aliases[it.sourcePackage] ?: "") == "") {
+                    "${it.packageName}.${it.simpleName}"
+                } else {
+                    "${aliases[it.sourcePackage]}.${it.simpleName}"
+                }
+            }\": result = reflect.TypeOf(${
+                if (it.sourcePackage == sourcePackage || aliases[it.sourcePackage] == ".") {
+                    it.simpleName
+                } else if ((aliases[it.sourcePackage] ?: "") == "") {
+                    "${it.packageName}.${it.simpleName}"
+                } else {
+                    "${aliases[it.sourcePackage]}.${it.simpleName}"
+                }
+            }{})"
+        }
+    }
         		default:
         			return nil, fmt.Errorf("type '%s' not supported", typeName)
         		}
@@ -661,8 +686,11 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    fun getTopLevelHelperStructsAndFunctionsForWorker(structTypes: Set<GoStructTypeId>, packageName: String) = listOf(
-        traces,
+    fun getTopLevelHelperStructsAndFunctionsForWorker(
+        structTypes: Set<GoStructTypeId>,
+        goPackage: GoPackage,
+        aliases: Map<GoPackage, String>
+    ) = listOf(
         rawValueInterface,
         primitiveValueStruct,
         primitiveValueToReflectValueMethod,
@@ -671,7 +699,7 @@ object GoCodeTemplates {
         structValueToReflectValueMethod,
         arrayValueStruct,
         arrayValueToReflectValueMethod,
-        convertStringToReflectType(structTypes, packageName),
+        convertStringToReflectType(structTypes, goPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,
         checkErrorFunction,

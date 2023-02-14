@@ -1,21 +1,24 @@
 package org.utbot.go.simplecodegeneration
 
+import org.utbot.go.framework.api.go.GoImport
+import org.utbot.go.framework.api.go.GoPackage
+
 class GoFileCodeBuilder(
-    packageName: String,
-    importNames: Set<String>,
+    sourcePackage: GoPackage,
+    imports: Set<GoImport>,
 ) {
-    private val packageLine: String = "package $packageName"
-    private val importLines: String = importLines(importNames)
+    private val packageLine: String = "package ${sourcePackage.packageName}"
+    private val importLines: String = importLines(imports)
     private val topLevelElements: MutableList<String> = mutableListOf()
 
-    private fun importLines(importNames: Set<String>): String {
-        val sortedImportNames = importNames.toList().sorted()
-        if (sortedImportNames.isEmpty()) return ""
-        if (sortedImportNames.size == 1) {
-            return "import ${sortedImportNames.first()}"
+    private fun importLines(imports: Set<GoImport>): String {
+        if (imports.isEmpty()) return ""
+        if (imports.size == 1) {
+            return "import ${imports.first()}"
         }
-        return sortedImportNames.joinToString(separator = "", prefix = "import (\n", postfix = ")") {
-            "\t\"$it\"\n"
+
+        return imports.sortedBy { it.toString() }.joinToString(separator = "", prefix = "import (\n", postfix = ")") {
+            "\t$it\n"
         }
     }
 

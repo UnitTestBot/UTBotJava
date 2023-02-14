@@ -16,7 +16,8 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
             type.let { it as GoStructTypeId }.also { structType ->
-                val packageName = description.methodUnderTest.getPackageName()
+                val function = description.methodUnderTest
+                val packageName = function.getPackageName()
                 val fields = structType.fields
                     .filter { structType.packageName == packageName || it.isExported }
                 yield(Seed.Recursive(
@@ -26,7 +27,8 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
                                 GoUtFieldModel(value, field)
                             },
                             typeId = structType,
-                            packageName = packageName,
+                            destinationPackage = function.sourcePackage,
+                            alias = function.requiredImports.first { it.goPackage == structType.sourcePackage }.alias
                         )
                     },
                     modify = sequence {
@@ -42,7 +44,8 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
                         GoUtStructModel(
                             value = emptyList(),
                             typeId = structType,
-                            packageName = packageName
+                            destinationPackage = function.sourcePackage,
+                            alias = function.requiredImports.first { it.goPackage == structType.sourcePackage }.alias
                         )
                     }
                 ))

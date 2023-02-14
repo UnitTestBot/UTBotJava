@@ -8,6 +8,8 @@ import org.utbot.fuzzing.BaseFeedback
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.go.api.*
+import org.utbot.go.framework.api.go.GoPackage
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
 import org.utbot.go.worker.GoWorker
@@ -19,6 +21,7 @@ import java.net.ServerSocket
 import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 val logger = KotlinLogging.logger {}
 
@@ -36,18 +39,58 @@ class GoEngine(
         val attemptsLimit = Int.MAX_VALUE
         ServerSocket(0).use { serverSocket ->
             var fileToExecute: File? = null
+            var fileWithModifiedFunction: File? = null
             try {
+                val random = Random(0)
+                val aliases = mutableMapOf<GoPackage, String>()
+                val busyAliases =
+                    GoWorkerCodeGenerationHelper.alwaysRequiredImports.map { it.goPackage.packageName }.toMutableSet()
+
+                fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
+                    is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
+                        acc + (field.declaringType).getAllStructTypes()
+                    }
+
+                    is GoArrayTypeId -> elementTypeId!!.getAllStructTypes()
+                    else -> emptySet()
+                }
+
+                val structTypes =
+                    methodUnderTest.parameters.fold(emptySet()) { acc: Set<GoStructTypeId>, functionParameter: GoUtFunctionParameter ->
+                        acc + functionParameter.type.getAllStructTypes()
+                    }
+
+                structTypes.map { it.sourcePackage }.toSet().filter { it != methodUnderTest.sourcePackage }
+                    .forEach { goPackage ->
+                        if (goPackage.packageName !in busyAliases) {
+                            busyAliases += goPackage.packageName
+                        } else {
+                            var suffix = ""
+                            while (goPackage.packageName + suffix in busyAliases) {
+                                suffix = random.nextInt().toString()
+                            }
+                            aliases[goPackage] = goPackage.packageName + suffix
+                        }
+                    }
+
+                println(busyAliases)
                 fileToExecute = GoWorkerCodeGenerationHelper.createFileToExecute(
                     sourceFile,
                     methodUnderTest,
                     eachExecutionTimeoutsMillisConfig,
-                    serverSocket.localPort
+                    serverSocket.localPort,
+                    aliases
                 )
                 val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
                 val command = listOf(
                     goExecutableAbsolutePath, "test", "-run", testFunctionName
                 )
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
+
+                fileWithModifiedFunction = GoWorkerCodeGenerationHelper.createFileWithModifiedFunction(
+                    methodUnderTest, sourceFileDir
+                )
+
                 val processStartTime = System.currentTimeMillis()
                 val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir)
                 val workerSocket = try {
@@ -65,12 +108,12 @@ class GoEngine(
                 }
                 logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
                 try {
-                    val worker = GoWorker(workerSocket)
+                    val worker = GoWorker(workerSocket, methodUnderTest)
                     if (methodUnderTest.parameters.isEmpty()) {
-                        worker.sendFuzzedParametersValues(listOf())
+                        worker.sendFuzzedParametersValues(listOf(), aliases)
                         val rawExecutionResult = worker.receiveRawExecutionResult()
                         val executionResult = convertRawExecutionResultToExecutionResult(
-                            methodUnderTest.getPackageName(),
+                            methodUnderTest.sourcePackage,
                             rawExecutionResult,
                             methodUnderTest.resultTypes,
                             eachExecutionTimeoutsMillisConfig[methodUnderTest],
@@ -83,14 +126,15 @@ class GoEngine(
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                             }
                             val fuzzedFunction = GoUtFuzzedFunction(methodUnderTest, values)
-                            worker.sendFuzzedParametersValues(values)
+                            worker.sendFuzzedParametersValues(values, aliases)
                             val rawExecutionResult = worker.receiveRawExecutionResult()
                             val executionResult = convertRawExecutionResultToExecutionResult(
-                                methodUnderTest.getPackageName(),
+                                methodUnderTest.sourcePackage,
                                 rawExecutionResult,
                                 methodUnderTest.resultTypes,
                                 eachExecutionTimeoutsMillisConfig[methodUnderTest],
                             )
+                            println(executionResult)
                             if (executionResult.trace.isEmpty()) {
                                 logger.error { "Coverage is empty for [${methodUnderTest.name}] with $values}" }
                                 if (executionResult is GoUtPanicFailure) {
@@ -147,6 +191,7 @@ class GoEngine(
                 }
             } finally {
                 fileToExecute?.delete()
+                fileWithModifiedFunction?.delete()
             }
         }
     }

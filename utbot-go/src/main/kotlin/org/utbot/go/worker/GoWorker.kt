@@ -1,10 +1,8 @@
 package org.utbot.go.worker
 
 import com.beust.klaxon.Klaxon
-import org.utbot.go.api.GoUtArrayModel
-import org.utbot.go.api.GoUtComplexModel
-import org.utbot.go.api.GoUtPrimitiveModel
-import org.utbot.go.api.GoUtStructModel
+import org.utbot.go.api.*
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.util.convertObjectToJsonString
 import java.io.BufferedReader
@@ -15,11 +13,12 @@ import java.net.Socket
 
 class GoWorker(
     socket: Socket,
+    val function: GoUtFunction
 ) {
     private val reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
     private val writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
 
-    private fun GoUtModel.convertToRawValue(): RawValue = when (val model = this) {
+    private fun GoUtModel.convertToRawValue(sourcePackage: GoPackage, aliases: Map<GoPackage, String>): RawValue = when (val model = this) {
         is GoUtComplexModel -> PrimitiveValue(
             model.typeId.name,
             "${model.realValue.toValueGoCode()}@${model.imagValue.toValueGoCode()}"
@@ -29,15 +28,15 @@ class GoWorker(
             model.typeId.name,
             model.typeId.elementTypeId!!.canonicalName,
             model.length,
-            model.getElements(model.typeId.elementTypeId!!).map { it.convertToRawValue() }
+            model.getElements(model.typeId.elementTypeId!!).map { it.convertToRawValue(sourcePackage, aliases) }
         )
 
         is GoUtStructModel -> StructValue(
-            model.typeId.canonicalName,
+            model.typeId.getRelativeName(sourcePackage, aliases[model.typeId.sourcePackage] ?: ""),
             model.value.map {
                 StructValue.FieldValue(
                     it.fieldId.name,
-                    it.model.convertToRawValue(),
+                    it.model.convertToRawValue(sourcePackage, aliases),
                     it.fieldId.isExported
                 )
             }
@@ -48,9 +47,10 @@ class GoWorker(
         else -> error("Converting ${model.javaClass} to RawValue is not supported")
     }
 
-    fun sendFuzzedParametersValues(parameters: List<GoUtModel>) {
-        val rawValues = parameters.map { it.convertToRawValue() }
+    fun sendFuzzedParametersValues(parameters: List<GoUtModel>, aliases: Map<GoPackage, String>) {
+        val rawValues = parameters.map { it.convertToRawValue(function.sourcePackage, aliases) }
         val json = convertObjectToJsonString(rawValues)
+        println(json)
         writer.write(json)
         writer.flush()
     }

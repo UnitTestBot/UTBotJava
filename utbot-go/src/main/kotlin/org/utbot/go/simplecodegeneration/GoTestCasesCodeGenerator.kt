@@ -5,34 +5,41 @@ import org.utbot.go.api.util.containsNaNOrInf
 import org.utbot.go.api.util.doesNotContainNaNOrInf
 import org.utbot.go.api.util.goFloat64TypeId
 import org.utbot.go.api.util.goStringTypeId
+import org.utbot.go.framework.api.go.GoImport
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoUtModel
 
 object GoTestCasesCodeGenerator {
 
-    fun generateTestCasesFileCode(sourceFile: GoUtFile, testCases: List<GoUtFuzzedFunctionTestCase>): String {
+    fun generateTestCasesFileCode(
+        sourceFile: GoUtFile,
+        testCases: List<GoUtFuzzedFunctionTestCase>,
+        aliases: Map<GoPackage, String>
+    ): String {
         val imports = if (testCases.isNotEmpty()) {
-            mutableSetOf("github.com/stretchr/testify/assert", "testing")
+            mutableSetOf(
+                GoImport(GoPackage("assert", "github.com/stretchr/testify/assert"), ""),
+                GoImport(GoPackage("testing", "testing"), "")
+            )
         } else {
             mutableSetOf()
         }
         testCases.forEach { testCase ->
-            testCase.parametersValues.forEach {
-                imports += it.getRequiredImports()
-            }
             when (val executionResult = testCase.executionResult) {
                 is GoUtExecutionCompleted -> {
                     executionResult.models.forEach {
-                        imports += it.getRequiredImports()
+                        imports += it.getRequiredPackages().map { pkg -> GoImport(pkg, aliases[pkg] ?: "") }
                     }
                 }
 
                 is GoUtPanicFailure -> {
-                    imports += executionResult.panicValue.getRequiredImports()
+                    imports += executionResult.panicValue.getRequiredPackages()
+                        .map { pkg -> GoImport(pkg, aliases[pkg] ?: "") }
                 }
             }
         }
 
-        val fileBuilder = GoFileCodeBuilder(sourceFile.packageName, imports)
+        val fileBuilder = GoFileCodeBuilder(sourceFile.sourcePackage, imports)
 
         fun List<GoUtFuzzedFunctionTestCase>.generateTestFunctions(
             generateTestFunctionForTestCase: (GoUtFuzzedFunctionTestCase, Int?) -> String

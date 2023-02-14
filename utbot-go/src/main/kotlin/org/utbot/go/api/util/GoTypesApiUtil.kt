@@ -1,6 +1,7 @@
 package org.utbot.go.api.util
 
 import org.utbot.go.api.*
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import kotlin.reflect.KClass
@@ -92,7 +93,7 @@ val GoPrimitiveTypeId.correspondingKClass: KClass<out Any>
         else -> String::class // default way to hold GoUtPrimitiveModel's value is to use String
     }
 
-fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
+fun GoTypeId.goDefaultValueModel(destinationPackage: GoPackage): GoUtModel = when (this) {
     is GoPrimitiveTypeId -> when (this) {
         goBoolTypeId -> GoUtPrimitiveModel(false, this)
         goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(
@@ -107,8 +108,8 @@ fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
 
         goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
         goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
-            goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
-            goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel(destinationPackage) as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel(destinationPackage) as GoUtPrimitiveModel,
             this
         )
 
@@ -118,7 +119,7 @@ fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
         else -> error("Go primitive ${this.javaClass} is not supported")
     }
 
-    is GoStructTypeId -> GoUtStructModel(listOf(), this, packageName)
-    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, packageName)
+    is GoStructTypeId -> GoUtStructModel(listOf(), this, destinationPackage, "")
+    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, destinationPackage)
     else -> GoUtNilModel(this)
 }

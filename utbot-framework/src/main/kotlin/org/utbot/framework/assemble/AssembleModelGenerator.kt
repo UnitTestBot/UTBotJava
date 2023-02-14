@@ -230,10 +230,13 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
             instantiatedModels[this] = assembleModel
 
-            assembleModel.constModel = assembleModel(constModel)
             assembleModel.stores += stores
                 .mapValues { assembleModel(it.value) }
                 .toMutableMap()
+
+            if (arrayModel.stores.count() < arrayModel.length) {
+                assembleModel.constModel = assembleModel(constModel)
+            }
 
             assembleModel
         }

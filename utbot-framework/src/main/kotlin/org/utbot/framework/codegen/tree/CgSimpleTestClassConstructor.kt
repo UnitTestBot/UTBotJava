@@ -8,6 +8,7 @@ import org.utbot.framework.codegen.domain.TestNg
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgAuxiliaryClass
+import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgMethod
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgMethodsCluster
@@ -20,6 +21,7 @@ import org.utbot.framework.codegen.domain.models.CgTestMethodCluster
 import org.utbot.framework.codegen.domain.models.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.domain.models.CgUtilEntity
 import org.utbot.framework.codegen.domain.models.CgUtilMethod
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.importUtilMethodDependencies
 import org.utbot.framework.codegen.reports.TestsGenerationReport
@@ -37,7 +39,7 @@ import org.utbot.fuzzer.UtFuzzedExecution
 /**
  * This test class constructor is used for pure Java/Kotlin applications.
  */
-open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstructorBase(context) {
+open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstructorBase<SimpleTestClassModel>(context) {
 
     init {
         clearContextRelatedStorage()
@@ -47,53 +49,59 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstruc
 
     val testsGenerationReport = TestsGenerationReport()
 
-    override fun constructTestClassBody(testClassModel: TestClassModel) = buildClassBody(currentTestClass) {
-        val notYetConstructedTestSets = testClassModel.methodTestSets.toMutableList()
+    override fun constructTestClassBody(testClassModel: SimpleTestClassModel): CgClassBody {
+        if (testClassModel !is SimpleTestClassModel) {
+            error("Test class model $testClassModel can't be constructed with ${this::class.simpleName}")
+        }
 
-        for (nestedClass in testClassModel.nestedClasses) {
-            // It is not possible to run tests for both outer and inner class in JUnit4 at once,
-            // so we locate all test methods in outer test class for JUnit4.
-            // see https://stackoverflow.com/questions/69770700/how-to-run-tests-from-outer-class-and-nested-inner-classes-simultaneously-in-jun
-            // or https://stackoverflow.com/questions/28230277/test-cases-in-inner-class-and-outer-class-with-junit4
-            when (testFramework) {
-                Junit4 -> {
-                    notYetConstructedTestSets += collectTestSetsFromInnerClasses(nestedClass)
-                }
-                Junit5,
-                TestNg -> {
-                    nestedClassRegions += CgRealNestedClassesRegion(
-                        "Tests for ${nestedClass.classUnderTest.simpleName}",
-                        listOf(withNestedClassScope(nestedClass) { constructTestClass(nestedClass) })
-                    )
+        return buildClassBody(currentTestClass) {
+            val notYetConstructedTestSets = testClassModel.methodTestSets.toMutableList()
+
+            for (nestedClass in testClassModel.nestedClasses) {
+                // It is not possible to run tests for both outer and inner class in JUnit4 at once,
+                // so we locate all test methods in outer test class for JUnit4.
+                // see https://stackoverflow.com/questions/69770700/how-to-run-tests-from-outer-class-and-nested-inner-classes-simultaneously-in-jun
+                // or https://stackoverflow.com/questions/28230277/test-cases-in-inner-class-and-outer-class-with-junit4
+                when (testFramework) {
+                    Junit4 -> {
+                        notYetConstructedTestSets += collectTestSetsFromInnerClasses(nestedClass)
+                    }
+                    Junit5,
+                    TestNg -> {
+                        nestedClassRegions += CgRealNestedClassesRegion(
+                            "Tests for ${nestedClass.classUnderTest.simpleName}",
+                            listOf(withNestedClassScope(nestedClass) { constructTestClass(nestedClass) })
+                        )
+                    }
                 }
             }
-        }
 
-        for (testSet in notYetConstructedTestSets) {
-            updateCurrentExecutable(testSet.executableId)
-            val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
-            val executableUnderTestCluster = CgMethodsCluster(
-                "Test suites for executable $currentExecutable",
-                currentMethodUnderTestRegions
-            )
-            methodRegions += executableUnderTestCluster
-        }
-
-        val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
-        if (currentTestClassDataProviderMethods.isNotEmpty()) {
-            staticDeclarationRegions +=
-                CgStaticsRegion(
-                    "Data provider methods for parametrized tests",
-                    currentTestClassDataProviderMethods,
+            for (testSet in notYetConstructedTestSets) {
+                updateCurrentExecutable(testSet.executableId)
+                val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
+                val executableUnderTestCluster = CgMethodsCluster(
+                    "Test suites for executable $currentExecutable",
+                    currentMethodUnderTestRegions
                 )
-        }
+                methodRegions += executableUnderTestCluster
+            }
 
-        if (currentTestClass == outerMostTestClass) {
-            val utilEntities = collectUtilEntities()
-            // If utilMethodProvider is TestClassUtilMethodProvider, then util entities should be declared
-            // in the test class. Otherwise, util entities will be located elsewhere (e.g. another class).
-            if (utilMethodProvider is TestClassUtilMethodProvider && utilEntities.isNotEmpty()) {
-                staticDeclarationRegions += CgStaticsRegion("Util methods", utilEntities)
+            val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
+            if (currentTestClassDataProviderMethods.isNotEmpty()) {
+                staticDeclarationRegions +=
+                    CgStaticsRegion(
+                        "Data provider methods for parametrized tests",
+                        currentTestClassDataProviderMethods,
+                    )
+            }
+
+            if (currentTestClass == outerMostTestClass) {
+                val utilEntities = collectUtilEntities()
+                // If utilMethodProvider is TestClassUtilMethodProvider, then util entities should be declared
+                // in the test class. Otherwise, util entities will be located elsewhere (e.g. another class).
+                if (utilMethodProvider is TestClassUtilMethodProvider && utilEntities.isNotEmpty()) {
+                    staticDeclarationRegions += CgStaticsRegion("Util methods", utilEntities)
+                }
             }
         }
     }
@@ -128,7 +136,7 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstruc
         return if (regions.any()) regions else null
     }
 
-    private fun collectTestSetsFromInnerClasses(model: TestClassModel): List<CgMethodTestSet> {
+    private fun collectTestSetsFromInnerClasses(model: SimpleTestClassModel): List<CgMethodTestSet> {
         val testSets = model.methodTestSets.toMutableList()
         for (nestedClass in model.nestedClasses) {
             testSets += collectTestSetsFromInnerClasses(nestedClass)

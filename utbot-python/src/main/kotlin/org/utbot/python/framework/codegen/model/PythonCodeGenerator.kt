@@ -12,7 +12,7 @@ import org.utbot.framework.codegen.domain.models.CgAssignment
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
@@ -79,7 +79,7 @@ class PythonCodeGenerator(
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
-            val testClassModel = TestClassModel(classUnderTest, cgTestSets)
+            val testClassModel = SimpleTestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
 
             val astConstructor = PythonCgTestClassConstructor(context)

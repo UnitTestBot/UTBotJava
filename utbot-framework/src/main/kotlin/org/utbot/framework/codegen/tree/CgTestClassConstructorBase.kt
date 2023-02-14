@@ -5,11 +5,12 @@ import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgClassFile
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.codegen.services.framework.TestFrameworkManager
 
-abstract class CgTestClassConstructorBase(val context: CgContext):
+abstract class CgTestClassConstructorBase<T : TestClassModel>(val context: CgContext):
     CgContextOwner by context,
     CgStatementConstructor by CgComponents.getStatementConstructorBy(context){
 
@@ -18,9 +19,9 @@ abstract class CgTestClassConstructorBase(val context: CgContext):
     protected open val testFrameworkManager: TestFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
 
     /**
-     * Constructs a file with the test class corresponding to [TestClassModel].
+     * Constructs a file with the test class corresponding to [SimpleTestClassModel].
      */
-    open fun construct(testClassModel: TestClassModel): CgClassFile {
+    open fun construct(testClassModel: T): CgClassFile {
         return buildClassFile {
             this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
@@ -28,9 +29,9 @@ abstract class CgTestClassConstructorBase(val context: CgContext):
     }
 
     /**
-     * Constructs [CgClass] corresponding to [TestClassModel].
+     * Constructs [CgClass] corresponding to [SimpleTestClassModel].
      */
-    open fun constructTestClass(testClassModel: TestClassModel): CgClass {
+    open fun constructTestClass(testClassModel: T): CgClass {
         return buildClass {
             id = currentTestClass
 
@@ -54,5 +55,5 @@ abstract class CgTestClassConstructorBase(val context: CgContext):
         }
     }
 
-    abstract fun constructTestClassBody(testClassModel: TestClassModel): CgClassBody
+    abstract fun constructTestClassBody(testClassModel: T): CgClassBody
 }

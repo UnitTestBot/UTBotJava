@@ -26,7 +26,7 @@ import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
-import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.CgParameterKind
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
@@ -295,7 +295,7 @@ interface CgContextOwner {
      * This method does almost all the same as [withTestClassScope], but for nested test classes.
      * The difference is that instead of working with [outerMostTestClassContext] it works with [currentTestClassContext].
      */
-    fun <R> withNestedClassScope(testClassModel: TestClassModel, block: () -> R): R
+    fun <R> withNestedClassScope(testClassModel: SimpleTestClassModel, block: () -> R): R
 
     /**
      * Set [mockFrameworkUsed] flag to true if the block is successfully executed
@@ -434,7 +434,7 @@ interface CgContextOwner {
  */
 data class CgContext(
     override val classUnderTest: ClassId,
-    override val isSpringClass: Boolean = false,
+    override val isSpringClass: Boolean = true,
     val generateUtilClassFile: Boolean = false,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
@@ -542,7 +542,7 @@ data class CgContext(
         }
     }
 
-    override fun <R> withNestedClassScope(testClassModel: TestClassModel, block: () -> R): R {
+    override fun <R> withNestedClassScope(testClassModel: SimpleTestClassModel, block: () -> R): R {
         val previousCurrentTestClassInfo = currentTestClassContext
         val previousCurrentTestClass = currentTestClass
         currentTestClass = createClassIdForNestedClass(testClassModel)
@@ -555,7 +555,7 @@ data class CgContext(
         }
     }
 
-    private fun createClassIdForNestedClass(testClassModel: TestClassModel): ClassId {
+    private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
             canonicalName = currentTestClass.canonicalName + "." + simpleName,

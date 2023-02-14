@@ -343,23 +343,23 @@ class AssembleModelGenerator(private val basePackageName: String) {
     private fun assembleMockCompositeModel(compositeModel: UtCompositeModel): UtCompositeModel {
         // We have to create a model before the construction of the fields to avoid
         // infinite recursion when some mock contains itself as a field.
-        val assembledModel = UtCompositeModel(
+        val assembledCompositeModel = UtCompositeModel(
             compositeModel.id,
             compositeModel.classId,
             isMock = true,
         )
 
-        instantiatedModels[compositeModel] = assembledModel
+        instantiatedModels[compositeModel] = assembledCompositeModel
 
         val fields = compositeModel.fields.mapValues { assembleModel(it.value) }.toMutableMap()
         val mockBehaviour = compositeModel.mocks
             .mapValues { models -> models.value.map { assembleModel(it) } }
             .toMutableMap()
 
-        assembledModel.fields += fields
-        assembledModel.mocks += mockBehaviour
+        assembledCompositeModel.fields += fields
+        assembledCompositeModel.mocks += mockBehaviour
 
-        return assembledModel
+        return assembledCompositeModel
     }
 
     /**

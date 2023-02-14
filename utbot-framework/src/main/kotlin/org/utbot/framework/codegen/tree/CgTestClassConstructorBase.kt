@@ -19,7 +19,7 @@ abstract class CgTestClassConstructorBase<T : TestClassModel>(val context: CgCon
     protected open val testFrameworkManager: TestFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
 
     /**
-     * Constructs a file with the test class corresponding to [SimpleTestClassModel].
+     * Constructs a file with the test class corresponding to [TestClassModel].
      */
     open fun construct(testClassModel: T): CgClassFile {
         return buildClassFile {
@@ -29,7 +29,7 @@ abstract class CgTestClassConstructorBase<T : TestClassModel>(val context: CgCon
     }
 
     /**
-     * Constructs [CgClass] corresponding to [SimpleTestClassModel].
+     * Constructs [CgClass] corresponding to [TestClassModel].
      */
     open fun constructTestClass(testClassModel: T): CgClass {
         return buildClass {

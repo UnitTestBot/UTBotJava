@@ -49,12 +49,8 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstruc
 
     val testsGenerationReport = TestsGenerationReport()
 
-    override fun constructTestClassBody(testClassModel: SimpleTestClassModel): CgClassBody {
-        if (testClassModel !is SimpleTestClassModel) {
-            error("Test class model $testClassModel can't be constructed with ${this::class.simpleName}")
-        }
-
-        return buildClassBody(currentTestClass) {
+    override fun constructTestClassBody(testClassModel: SimpleTestClassModel): CgClassBody =
+        buildClassBody(currentTestClass) {
             val notYetConstructedTestSets = testClassModel.methodTestSets.toMutableList()
 
             for (nestedClass in testClassModel.nestedClasses) {
@@ -104,7 +100,6 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgTestClassConstruc
                 }
             }
         }
-    }
 
     private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         val regions = mutableListOf<CgRegion<CgMethod>>()

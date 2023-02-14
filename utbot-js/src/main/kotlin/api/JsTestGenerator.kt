@@ -50,6 +50,7 @@ import service.TernService
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.dummyClassName
 import settings.JsTestGenerationSettings.fuzzingThreshold
+import settings.JsTestGenerationSettings.fuzzingTimeout
 import utils.PathResolver
 import utils.ResultData
 import utils.constructClass
@@ -227,7 +228,7 @@ class JsTestGenerator(
         val currentlyCoveredStmts = mutableSetOf<Int>()
         val startTime = System.currentTimeMillis()
         runFuzzing(jsDescription) { _, values ->
-            if (isCancelled() || System.currentTimeMillis() - startTime > 30_000) return@runFuzzing JsFeedback(Control.STOP)
+            if (isCancelled() || System.currentTimeMillis() - startTime > fuzzingTimeout) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
             if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {

@@ -8,6 +8,8 @@ object JsTestGenerationSettings {
     // Default timeout for Node.js to try run a single testcase.
     const val defaultTimeout = 10L
 
+    const val fuzzingTimeout = 30_000L
+
     // Name of file under test when importing it.
     const val fileUnderTestAliases = "fileUnderTest"
 

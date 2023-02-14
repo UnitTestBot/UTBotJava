@@ -19,6 +19,7 @@ class SimpleSentenceBlock(val stringTemplates: StringsTemplatesInterface) {
     var notExecutedIterations: List<IterationDescription>? = null
     var recursion: Pair<String, SimpleSentenceBlock>? = null
     var exceptionThrow: String? = null
+    var detectedError: String? = null
     var nextBlock: SimpleSentenceBlock? = null
 
     val stmtTexts = mutableListOf<StmtDescription>()
@@ -119,6 +120,15 @@ class SimpleSentenceBlock(val stringTemplates: StringsTemplatesInterface) {
                 restartSentence = false
             }
             result += stringTemplates.throwSentence.format(it)
+            result += NEW_LINE
+        }
+
+        detectedError?.let {
+            if (restartSentence) {
+                result += stringTemplates.sentenceBeginning + " "
+                restartSentence = false
+            }
+            result += stringTemplates.suspiciousBehaviorDetectedSentence.format(it)
             result += NEW_LINE
         }
 
@@ -238,6 +248,16 @@ class SimpleSentenceBlock(val stringTemplates: StringsTemplatesInterface) {
             docStmts += DocRegularStmt(NEW_LINE)
         }
 
+        detectedError?.let {
+            docStmts += DocRegularStmt(NEW_LINE)
+            if (restartSentence) {
+                docStmts += DocRegularStmt(stringTemplates.sentenceBeginning + " ")
+                restartSentence = false
+            }
+            docStmts += DocRegularStmt(stringTemplates.suspiciousBehaviorDetectedSentence.format(it))
+            docStmts += DocRegularStmt(NEW_LINE)
+        }
+
         return docStmts
     }
 
@@ -323,6 +343,7 @@ class SimpleSentenceBlock(val stringTemplates: StringsTemplatesInterface) {
         if (nextBlock?.isEmpty() == false) return false
         if (notExecutedIterations.isNullOrEmpty().not()) return false
         exceptionThrow?.let { return false }
+        detectedError?.let { return false }
         if (invokeSentenceBlock != null) return false
         return true
     }
@@ -478,6 +499,7 @@ interface StringsTemplatesInterface {
     val noIteration: String
     val codeSentence: String
     val throwSentence: String
+    val suspiciousBehaviorDetectedSentence: String
 
     val conditionLine: String
     val returnLine: String
@@ -498,6 +520,7 @@ open class StringsTemplatesSingular : StringsTemplatesInterface {
     override val noIteration: String = "does not iterate"
     override val codeSentence: String = "$OPEN_BRACKET$AT_CODE %s$CLOSE_BRACKET"
     override val throwSentence: String = "throws %s"
+    override val suspiciousBehaviorDetectedSentence: String = "detects suspicious behavior %s"
 
     //used in Squashing
     override val conditionLine: String = "executes conditions:$NEW_LINE"
@@ -519,6 +542,7 @@ class StringsTemplatesPlural : StringsTemplatesSingular() {
     override val noIteration: String = "does not iterate"
     override val codeSentence: String = "$OPEN_BRACKET$AT_CODE %s$CLOSE_BRACKET"
     override val throwSentence: String = "throw %s"
+    override val suspiciousBehaviorDetectedSentence: String = "detect suspicious behavior %s"
 
     //used in Squashing
     override val conditionLine: String = "execute conditions:$NEW_LINE"

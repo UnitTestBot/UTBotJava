@@ -66,6 +66,9 @@ interface CgContextOwner {
     // current class under test
     val classUnderTest: ClassId
 
+    // If test class is configured with Spring, we should do some extra analysis
+    val isSpringClass: Boolean
+
     // test class currently being generated (if series of nested classes is generated, it is the outermost one)
     val outerMostTestClass: ClassId
 
@@ -431,6 +434,7 @@ interface CgContextOwner {
  */
 data class CgContext(
     override val classUnderTest: ClassId,
+    override val isSpringClass: Boolean = true,
     val generateUtilClassFile: Boolean = false,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),

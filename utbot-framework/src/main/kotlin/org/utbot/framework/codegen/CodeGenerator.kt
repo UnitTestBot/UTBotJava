@@ -8,8 +8,8 @@ import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
-import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.TestClassModelBuilder
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
@@ -75,7 +75,9 @@ open class CodeGenerator(
             context.withTestClassFileScope {
                 val astConstructor = CgSimpleTestClassConstructor(context)
                 val renderer = CgAbstractRenderer.makeRenderer(context)
-                val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
+                val testClassModelBuilder = TestClassModelBuilder(context.isSpringClass)
+
+                val testClassModel = testClassModelBuilder.createClassModel(classUnderTest, cgTestSets)
 
                 fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 

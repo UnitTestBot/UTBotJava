@@ -236,8 +236,7 @@ class JsTestGenerator(
                         collectedValues,
                         execId
                     )
-                    coveredStmts.forEachIndexed { paramIndex, covData ->
-                        val resultData = executionResults[paramIndex]
+                    coveredStmts.zip(executionResults).forEach { (covData, resultData) ->
                         val params = collectedValues[resultData.index]
                         val result =
                             getUtModelResult(

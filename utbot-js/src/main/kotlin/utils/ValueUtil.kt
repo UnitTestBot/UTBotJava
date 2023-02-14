@@ -1,7 +1,5 @@
 package utils
 
-import org.json.JSONException
-import org.json.JSONObject
 import framework.api.js.JsClassId
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
@@ -9,6 +7,8 @@ import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsNumberClassId
 import framework.api.js.util.jsStringClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.json.JSONException
+import org.json.JSONObject
 
 fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, JsClassId> {
     this.buildUniqueValue()?.let { return it }
@@ -16,7 +16,7 @@ fun ResultData.toJsAny(returnType: JsClassId = jsUndefinedClassId): Pair<Any?, J
         return when {
             this == "true" || this == "false" -> toBoolean() to jsBooleanClassId
             this == "null" || this == "undefined" -> null to jsUndefinedClassId
-            Regex("^.*Error:.*").matches(this) -> this.replace("Error:", "") to jsErrorClassId
+            this@toJsAny.isError -> this to jsErrorClassId
             returnType == jsStringClassId -> this.replace("\"", "") to jsStringClassId
             else -> {
                 if (contains('.')) {

@@ -434,7 +434,7 @@ interface CgContextOwner {
  */
 data class CgContext(
     override val classUnderTest: ClassId,
-    override val isSpringClass: Boolean = true,
+    override val isSpringClass: Boolean = false,
     val generateUtilClassFile: Boolean = false,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),

@@ -39,19 +39,20 @@ class JsRunTestsCommand : CliktCommand(name = "run_js", help = "Runs tests for t
         val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
         when (testFramework) {
             "mocha" -> {
-                val (inputText, errorText) = JsCmdExec.runCommand(
+                val (textReader, error) = JsCmdExec.runCommand(
                     dir = dir,
-                    shouldWait = true,
                     cmd = arrayOf("mocha", "\"$fileWithTestsAbsolutePath\"")
                 )
+                val errorText = error.readText()
                 if (errorText.isNotEmpty()) {
-                    logger.error { "An error has occurred while running tests for $fileWithTests: $errorText" }
+                    logger.error { "An error has occurred while running tests for $fileWithTests : $errorText" }
                 } else {
+                    val text = textReader.readText()
                     outputAbsolutePath?.let {
                         val file = File(it)
                         file.createNewFile()
-                        file.writeText(inputText)
-                    } ?: logger.info { "Output absolute path is null with text: $inputText" }
+                        file.writeText(text)
+                    } ?: logger.info { "\n$text" }
                 }
             }
         }

@@ -1,15 +1,14 @@
-package service
+package service.coverage
 
+import java.io.File
 import mu.KotlinLogging
 import org.json.JSONObject
-import settings.JsTestGenerationSettings.fuzzingThreshold
-import settings.JsTestGenerationSettings.tempFileName
+import service.ServiceContext
+import settings.JsTestGenerationSettings
 import utils.JsCmdExec
-import utils.ResultData
-import java.io.File
+import utils.data.ResultData
 
 private val logger = KotlinLogging.logger {}
-
 class FastCoverageService(
     context: ServiceContext,
     scriptTexts: List<String>,
@@ -18,14 +17,17 @@ class FastCoverageService(
 ) : CoverageService(context, scriptTexts, baseCoverage) {
 
     override fun generateCoverageReport() {
-            val (_, errorText) = JsCmdExec.runCommand(
-                cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName" + "0.js\""),
+            val (_, error) = JsCmdExec.runCommand(
+                cmd = arrayOf(
+                    "\"${settings.pathToNode}\"",
+                    "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}" + "0.js\""
+                ),
                 dir = projectPath,
                 shouldWait = true,
                 timeout = settings.timeout,
             )
-            for (i in 0..minOf(fuzzingThreshold - 1, testCaseIndices.last)) {
-                val resFile = File("$utbotDirPath/$tempFileName$i.json")
+            for (i in 0..minOf(JsTestGenerationSettings.fuzzingThreshold - 1, testCaseIndices.last)) {
+                val resFile = File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}$i.json")
                 val rawResult = resFile.readText()
                 resFile.delete()
                 val json = JSONObject(rawResult)
@@ -38,13 +40,13 @@ class FastCoverageService(
                     index = index,
                     isNan = json.getBoolean("is_nan"),
                     isInf = json.getBoolean("is_inf"),
-                    isError = json.getBoolean("is_error"),
                     specSign = json.getInt("spec_sign").toByte()
                 )
                 _resultList.add(resultData)
             }
-            if (errorText.isNotEmpty()) {
-                logger.error { errorText }
+            val errText = error.readText()
+            if (errText.isNotEmpty()) {
+                logger.error { errText }
             }
     }
 }

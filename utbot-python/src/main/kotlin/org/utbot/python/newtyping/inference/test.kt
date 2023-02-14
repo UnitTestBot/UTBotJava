@@ -5,10 +5,10 @@ import org.utbot.python.newtyping.pythonTypeRepresentation
 fun main() {
     TypeInferenceProcessor(
         "python3",
-        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/samples"),
-        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/samples/type_inference.py",
-        moduleOfSourceFile = "type_inference",
-        "type_inference"
+        directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/PythonRobotics"),
+        "/home/tochilinak/Documents/projects/utbot/PythonRobotics/PathPlanning/DynamicWindowApproach/dynamic_window_approach.py",
+        moduleOfSourceFile = "PathPlanning.DynamicWindowApproach.dynamic_window_approach",
+        "calc_obstacle_cost"
     ).inferTypes(cancel = { false }).forEach {
         println(it.pythonTypeRepresentation())
     }

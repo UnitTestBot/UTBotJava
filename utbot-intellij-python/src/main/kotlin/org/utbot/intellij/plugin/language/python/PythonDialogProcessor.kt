@@ -2,9 +2,6 @@ package org.utbot.intellij.plugin.language.python
 
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.application.readAction
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -15,13 +12,11 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFileFactory
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
@@ -32,14 +27,14 @@ import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.python.PythonMethodHeader
+import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
-import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.camelToSnakeCase
+import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.Path
@@ -52,41 +47,14 @@ object PythonDialogProcessor {
         functionsToShow: Set<PyFunction>,
         containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        file: PyFile,
-        editor: Editor? = null,
+        file: PyFile
     ) {
-        editor?.let{
-            runWriteAction {
-                with(FileDocumentManager.getInstance()) {
-                    saveDocument(it.document)
-                }
-            }
+        val dialog = createDialog(project, functionsToShow, containingClass, focusedMethod, file)
+        if (!dialog.showAndGet()) {
+            return
         }
-        val pythonPath = getPythonPath(functionsToShow)
-        if (pythonPath == null) {
-            showErrorDialogLater(
-                project,
-                message = "Couldn't find Python interpreter",
-                title = "Python test generation error"
-            )
-        } else {
-            val dialog = createDialog(
-                project,
-                functionsToShow,
-                containingClass,
-                focusedMethod,
-                file,
-                pythonPath,
-            )
-            if (!dialog.showAndGet()) {
-                return
-            }
-            createTests(project, dialog.model)
-        }
-    }
 
-    private fun getPythonPath(functionsToShow: Set<PyFunction>): String? {
-        return findSrcModule(functionsToShow).sdk?.homePath
+        createTests(project, dialog.model)
     }
 
     private fun createDialog(
@@ -94,8 +62,7 @@ object PythonDialogProcessor {
         functionsToShow: Set<PyFunction>,
         containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        file: PyFile,
-        pythonPath: String,
+        file: PyFile
     ): PythonDialogWindow {
         val srcModule = findSrcModule(functionsToShow)
         val testModules = srcModule.testModules(project)
@@ -116,42 +83,25 @@ object PythonDialogProcessor {
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
                 visitOnlySpecifiedSource = false,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
-                pythonPath = pythonPath,
             )
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethodHeader> {
-        return runBlocking {
-            readAction {
-                val allFunctions: List<PyFunction> =
-                    if (model.containingClass == null) {
-                        model.file.topLevelFunctions
-                    } else {
-                        val classes = model.file.topLevelClasses
-                        val myClass = classes.find { it.name == model.containingClass.name }
-                            ?: error("Didn't find containing class")
-                        myClass.methods.filterNotNull()
-                    }
-                val shownFunctions: Set<PythonMethodHeader> = allFunctions
-                    .mapNotNull {
-                        val functionName = it.name ?: return@mapNotNull null
-                        val moduleFilename = it.containingFile.virtualFile?.canonicalPath ?: ""
-                        val containingClassId = it.containingClass?.name?.let{ PythonClassId(it) }
-                        return@mapNotNull PythonMethodHeader(
-                                functionName,
-                                moduleFilename,
-                                containingClassId,
-                            )
-                    }
-                    .toSet()
-
-                model.selectedFunctions.map { pyFunction ->
-                    shownFunctions.find { pythonMethod ->
-                        pythonMethod.name == pyFunction.name
-                    } ?: error("Didn't find PythonMethod ${pyFunction.name}")
-                }
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
+        val shownFunctions: Set<PythonMethod> =
+            if (model.containingClass == null) {
+                model.file.topLevelFunctions.mapNotNull { it.toPythonMethod() }.toSet()
+            } else {
+                val classes = model.file.topLevelClasses
+                val myClass = classes.find { it.name == model.containingClass.name }
+                    ?: error("Didn't find containing class")
+                myClass.methods.mapNotNull { it.toPythonMethod() }.toSet()
             }
+
+        return model.selectedFunctions.map { pyFunction ->
+            shownFunctions.find { pythonMethod ->
+                pythonMethod.name == pyFunction.name
+            } ?: error("Didn't find PythonMethod ${pyFunction.name}")
         }
     }
 
@@ -165,10 +115,26 @@ object PythonDialogProcessor {
                     return
                 }
                 try {
+                    val pythonPath = model.srcModule.sdk?.homePath
+                    if (pythonPath == null) {
+                        showErrorDialogLater(
+                            project,
+                            message = "Couldn't find Python interpreter",
+                            title = "Python test generation error"
+                        )
+                        return
+                    }
                     val methods = findSelectedPythonMethods(model)
-
+                    if (methods == null) {
+                        showErrorDialogLater(
+                            project,
+                            message = "Couldn't parse file. Maybe it contains syntax error?",
+                            title = "Python test generation error"
+                        )
+                        return
+                    }
                     processTestGeneration(
-                        pythonPath = model.pythonPath,
+                        pythonPath = pythonPath,
                         pythonFilePath = model.file.virtualFile.path,
                         pythonFileContent = getContentFromPyFile(model.file),
                         directoriesForSysPath = model.directoriesForSysPath,
@@ -184,10 +150,8 @@ object PythonDialogProcessor {
                         pythonRunRoot = Path(model.testSourceRootPath),
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
-                        installingRequirementsAction = { indicator.text = "Installing requirements..." },
-                        testFrameworkInstallationAction = { indicator.text = "Test framework installation" },
                         requirementsAreNotInstalledAction = {
-                            askAndInstallRequirementsLater(model.project, model.pythonPath)
+                            askAndInstallRequirementsLater(model.project, pythonPath)
                             PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                         },
                         startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
@@ -296,66 +260,43 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
-/*
- * Returns set of sys paths and tested file import path
- */
 fun getDirectoriesForSysPath(
     srcModule: Module,
     file: PyFile
 ): Pair<Set<String>, String> {
     val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
     val ancestor = ProjectFileIndex.getInstance(file.project).getContentRootForFile(file.virtualFile)
-    if (ancestor != null)
+    if (ancestor != null && !sources.contains(ancestor))
         sources.add(ancestor)
 
     // Collect sys.path directories with imported modules
-    val importedPaths = emptyList<VirtualFile>().toMutableList()
-
-    // 1. import <module>
     file.importTargets.forEach { importTarget ->
         importTarget.multiResolve().forEach {
             val element = it.element
             if (element != null) {
                 val directory = element.parent
                 if (directory is PsiDirectory) {
-                    importedPaths.add(directory.virtualFile)
+                    if (sources.any { source ->
+                            val sourcePath = source.canonicalPath
+                            if (source.isDirectory && sourcePath != null) {
+                                directory.virtualFile.canonicalPath?.startsWith(sourcePath) ?: false
+                            } else {
+                                false
+                            }
+                        }) {
+                        sources.add(directory.virtualFile)
+                    }
                 }
             }
         }
     }
 
-    // 2. from <module> import ...
-    file.fromImports.forEach { importTarget ->
-        importTarget.resolveImportSourceCandidates().forEach {
-            val directory = it.parent
-            if (directory is PsiDirectory ) {
-                importedPaths.add(directory.virtualFile)
-            }
-        }
-    }
-
-    // Select modules only from this project
-    importedPaths.forEach {
-        if (it.isProjectSubmodule(ancestor)) {
-            sources.add(it)
-        }
-    }
-
-    val fileName = file.name.removeSuffix(".py")
-    val importPath = ancestor?.let {
-        VfsUtil.getParentDir(
-            VfsUtilCore.getRelativeLocation(file.virtualFile, it)
-        )
-    } ?: ""
-    val importStringPath = listOf(
-        importPath.toPath().joinToString("."),
-        fileName
-    )
-        .filterNot { it.isEmpty() }
-        .joinToString(".")
+    var importPath = ancestor?.let { VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(file.virtualFile, it)) } ?: ""
+    if (importPath != "")
+        importPath += "."
 
     return Pair(
-        sources.map { it.path }.toSet(),
-        importStringPath
+        sources.map { it.path.replace("\\", "\\\\") }.toSet(),
+        "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".").replace("/", File.separator)
     )
 }

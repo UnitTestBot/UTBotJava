@@ -64,8 +64,6 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
-import java.lang.StringBuilder
-import org.utbot.python.framework.codegen.toPythonRawString
 
 internal class CgPythonRenderer(
     context: CgRendererContext,
@@ -186,12 +184,13 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgTryCatch) {
-        print("try")
+        println("try")
         // TODO introduce CgBlock
         visit(element.statements)
         for ((exception, statements) in element.handlers) {
-            print("except ")
+            print("except")
             renderExceptionCatchVariable(exception)
+            println("")
             // TODO introduce CgBlock
             visit(statements, printNextLine = element.finally == null)
         }
@@ -298,18 +297,13 @@ internal class CgPythonRenderer(
     }
 
     fun renderPythonImport(pythonImport: PythonImport) {
-        val importBuilder = StringBuilder()
         if (pythonImport is PythonSysPathImport) {
-            importBuilder.append("sys.path.append(${pythonImport.sysPath.toPythonRawString()})")
+            println("sys.path.append('${pythonImport.sysPath}')")
         } else if (pythonImport.moduleName == null) {
-            importBuilder.append("import ${pythonImport.importName}")
+            println("import ${pythonImport.importName}")
         } else {
-            importBuilder.append("from ${pythonImport.moduleName} import ${pythonImport.importName}")
+            println("from ${pythonImport.moduleName} import ${pythonImport.importName}")
         }
-        if (pythonImport.alias != null) {
-            importBuilder.append(" as ${pythonImport.alias}")
-        }
-        println(importBuilder.toString())
     }
 
     override fun renderMethodSignature(element: CgTestMethod) {
@@ -409,8 +403,6 @@ internal class CgPythonRenderer(
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
-        print(exception.type.canonicalName)
-        print(" as ")
         print(exception.name.escapeNamePossibleKeyword())
     }
 
@@ -449,15 +441,7 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgMethod) {
-        visit(listOf(element.documentation) + element.statements, printNextLine = false)
-    }
-
-    override fun visit(element: CgTestMethod) {
-        for (annotation in element.annotations) {
-            annotation.accept(this)
-        }
-        renderMethodSignature(element)
-        visit(element as CgMethod)
+        visit(element.statements, printNextLine = false)
     }
 
     override fun visit(element: CgMethodCall) {
@@ -533,8 +517,45 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgPythonTree) {
+//        element.children.forEach { it.accept(this) }
         element.value.accept(this)
     }
+
+//    override fun visit(element: CgPythonTree) {
+//        when(val tree = element.tree) {
+//            is PythonTree.PrimitiveNode -> {
+//                print(tree.repr)
+//            }
+//            is PythonTree.ListNode -> {
+//                print("[")
+//                element.getChildren().renderSeparated()
+//                print("]")
+//            }
+//            is PythonTree.TupleNode -> {
+//                print("tuple([")
+//                element.getChildren().renderSeparated()
+//                print("])")
+//            }
+//            is PythonTree.SetNode -> {
+//                print("{")
+//                element.getChildren().renderSeparated()
+//                print("}")
+//            }
+//            is PythonTree.DictNode -> {
+//                print("{")
+//                element.getDictChildren().map {
+//                    it.key.accept(this)
+//                    print(": ")
+//                    it.value.accept(this)
+//                    print(", ")
+//                }
+//                print("}")
+//            }
+//            is PythonTree.ReduceNode -> {
+//                TODO()
+//            }
+//        }
+//    }
 
     override fun visit(element: CgPythonDict) {
         print("{")
@@ -561,28 +582,13 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgFormattedString) {
-        print("f\"")
-        element.array.forEachIndexed { index, cgElement ->
-            if (cgElement is CgLiteral) {
-                print("{")
-                print(cgElement.toStringConstant(asRawString = true))
-                print("}")
-            } else {
-                print("{")
-                cgElement.accept(this)
-                print("}")
-            }
-
-            if (index < element.array.lastIndex) print(" ")
-        }
-        print("\"")
+        throw NotImplementedError("String interpolation is not supported in Python renderer")
     }
 
     override fun String.escapeCharacters(): String =
         StringEscapeUtils
             .escapeJava(this)
-            .replace("\"", "\\\"")
+            .replace("'", "\\'")
             .replace("\\f", "\\u000C")
             .replace("\\xxx", "\\\u0058\u0058\u0058")
 }
-

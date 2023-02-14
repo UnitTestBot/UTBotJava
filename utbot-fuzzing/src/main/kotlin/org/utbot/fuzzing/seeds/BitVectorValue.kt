@@ -101,7 +101,12 @@ class BitVectorValue : KnownValue {
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun toString(radix: Int, isUnsigned: Boolean = false): String {
-        return toBigInteger(isUnsigned).toString(radix)
+        val size = if (isUnsigned) size + 1 else size
+        val array = ByteArray(size / 8 + if (size % 8 != 0) 1 else 0) { index ->
+            toLong(bits = 8, shift = index * 8).toByte()
+        }
+        array.reverse()
+        return BigInteger(array).toString(radix)
     }
 
     override fun toString() = toString(10)
@@ -121,16 +126,16 @@ class BitVectorValue : KnownValue {
         return result
     }
 
-    private fun toBigInteger(isUnsigned: Boolean): BigInteger {
-        val size = if (isUnsigned) size + 1 else size
-        val array = ByteArray(size / 8 + if (size % 8 != 0) 1 else 0) { index ->
-            toLong(bits = 8, shift = index * 8).toByte()
+    private fun toBigInteger(bits: Int, shift: Int = 0): BigInteger {
+        assert(bits <= 128) { "Cannot convert to long vector with more than 128 bits, but $bits is requested" }
+        var result = BigInteger("0")
+        for (i in shift until minOf(bits + shift, size)) {
+            result = result or ((if (vector[i]) BigInteger("1") else BigInteger("0") shl (i - shift)))
         }
-        array.reverse()
-        return BigInteger(array)
+        return result
     }
 
-    fun toBigInteger() = toBigInteger(false)
+    fun toBigInteger() = toBigInteger(128)
 
     fun toBoolean() = vector[0]
 

@@ -108,7 +108,6 @@ private fun changeScores(
     storage: PythonTypeStorage,
     bounds: List<Type>,
     hintScores: MutableMap<PythonTypeWrapperForEqualityCheck, Double>,
-    withPenalty: Boolean,
     isUpper: Boolean
 ) {
     bounds.forEach { constraint ->
@@ -122,11 +121,10 @@ private fun changeScores(
             else
                 PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, constraint, storage)
         }
-        if (withPenalty)
-            notFitting.forEach {
-                val wrapper = PythonTypeWrapperForEqualityCheck(it)
-                hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) - 1
-            }
+        notFitting.forEach {
+            val wrapper = PythonTypeWrapperForEqualityCheck(it)
+            hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) - 1
+        }
         fitting.forEach {
             val wrapper = PythonTypeWrapperForEqualityCheck(it)
             hintScores[wrapper] = (hintScores[wrapper] ?: 0.0) + 1.0 / fitting.size
@@ -139,12 +137,11 @@ fun createTypeRating(
     lowerBounds: List<Type>,
     upperBounds: List<Type>,
     storage: PythonTypeStorage,
-    level: Int,
-    withPenalty: Boolean = true
+    level: Int
 ): TypeRating {
     val hintScores = mutableMapOf<PythonTypeWrapperForEqualityCheck, Double>()
-    changeScores(initialRating, storage, lowerBounds, hintScores, withPenalty, isUpper = false)
-    changeScores(initialRating, storage, upperBounds, hintScores, withPenalty, isUpper = true)
+    changeScores(initialRating, storage, lowerBounds, hintScores, isUpper = false)
+    changeScores(initialRating, storage, upperBounds, hintScores, isUpper = true)
     val scores: List<Pair<Type, Double>> = initialRating.mapNotNull { typeFromList ->
         if (level == MAX_NESTING && typeFromList.getBoundedParameters().isNotEmpty())
             return@mapNotNull null
@@ -189,9 +186,7 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
         allLowerBounds,
         allUpperBounds,
         storage,
-        1,
-        withPenalty = false
+        1
     )
-    val prefixRating = createTypeRating(prefix, allLowerBounds, allUpperBounds, storage, 1, withPenalty = false)
-    return prefixRating.types + rating.types
+    return prefix + rating.types
 }

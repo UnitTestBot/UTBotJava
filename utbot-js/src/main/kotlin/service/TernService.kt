@@ -12,8 +12,8 @@ import parser.JsParserUtils.getAbstractFunctionParams
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
-import utils.data.MethodTypes
 import utils.constructClass
+import utils.data.MethodTypes
 import java.io.File
 import java.util.Locale
 
@@ -80,8 +80,7 @@ test("$filePathToInference")
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
-            shouldWait = true,
-            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l"),
+            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l")
         )
     }
 
@@ -92,14 +91,15 @@ test("$filePathToInference")
     }
 
     private fun runTypeInferencer() {
-        val (inputText, _) = JsCmdExec.runCommand(
+        val (reader, _) = JsCmdExec.runCommand(
             dir = "$projectPath/$utbotDir/",
             shouldWait = true,
             timeout = 20,
             cmd = arrayOf("\"${settings.pathToNode}\"", "\"${projectPath}/$utbotDir/ternScript.js\""),
         )
+        val text = reader.readText().replaceAfterLast("}", "")
         json = try {
-            JSONObject(inputText.replaceAfterLast("}", ""))
+            JSONObject(text)
         } catch (_: Throwable) {
             JSONObject()
         }
@@ -160,7 +160,7 @@ test("$filePathToInference")
             }
             val methodJson = scope.getJSONObject(funcNode.getAbstractFunctionName())
             val typesString = methodJson.getString("!type")
-                .filterNot { setOf(' ', '+', '!').contains(it) }
+                .filterNot { setOf(' ', '+').contains(it) }
             val parametersList = lazy { extractParameters(typesString) }
             val returnType = lazy { extractReturnType(typesString) }
 
@@ -173,11 +173,9 @@ test("$filePathToInference")
         }
     }
 
-    //TODO MINOR: move to appropriate place (JsIdUtil or JsClassId constructor)
     private fun makeClassId(name: String): JsClassId {
         val classId = when {
-            // TODO SEVERE: I don't know why Tern sometimes says that type is "0"
-            name == "?" || name.toIntOrNull() != null -> jsUndefinedClassId
+            name == "?" || name.toIntOrNull() != null || name.contains('!') -> jsUndefinedClassId
             Regex("\\[(.*)]").matches(name) -> {
                 val arrType = Regex("\\[(.*)]").find(name)?.groups?.get(1)?.value ?: throw IllegalStateException()
                 JsClassId(

@@ -9,7 +9,6 @@ import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
-import org.utbot.fuzzing.utils.Trie
 
 sealed interface JsFuzzingExecutionFeedback
 class JsValidExecution(val utFuzzedExecution: UtFuzzedExecution) : JsFuzzingExecutionFeedback
@@ -20,28 +19,24 @@ class JsMethodDescription(
     val name: String,
     parameters: List<JsClassId>,
     val concreteValues: Collection<FuzzedConcreteValue>,
-    val thisInstance: JsClassId? = null,
-    val tracer: Trie<JsStatement, *>
+    val thisInstance: JsClassId? = null
 ) : Description<JsClassId>(parameters) {
 
     constructor(
         name: String,
         parameters: List<JsClassId>,
         classId: JsClassId,
-        concreteValues: Collection<FuzzedConcreteValue>,
-        tracer: Trie<JsStatement, *>
+        concreteValues: Collection<FuzzedConcreteValue>
     ) : this(
         name,
         if (classId.isClass) listOf(classId) + parameters else parameters,
         concreteValues,
-        classId.takeIf { it.isClass },
-        tracer
+        classId.takeIf { it.isClass }
     )
 }
 
 class JsFeedback(
     override val control: Control = Control.CONTINUE,
-    val result: Trie.Node<JsStatement> = Trie.emptyNode()
 ) : Feedback<JsClassId, FuzzedValue> {
 
     override fun equals(other: Any?): Boolean {
@@ -53,7 +48,3 @@ class JsFeedback(
         return control.hashCode()
     }
 }
-
-data class JsStatement(
-    val number: Int
-)

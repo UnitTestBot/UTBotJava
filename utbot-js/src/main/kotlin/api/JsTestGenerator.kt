@@ -10,10 +10,11 @@ import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsFeedback
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
-import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
+import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -40,22 +41,24 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
-import service.CoverageMode
-import service.CoverageServiceProvider
 import service.InstrumentationService
+import service.PackageJson
 import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
+import service.coverage.CoverageMode
+import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.fuzzingThreshold
-import settings.JsTestGenerationSettings.fuzzingTimeout
+import utils.ExportsProvider.getExportsDelimiter
+import utils.ExportsProvider.getExportsFrame
+import utils.ExportsProvider.getExportsPostfix
+import utils.ExportsProvider.getExportsPrefix
+import utils.ExportsProvider.getExportsRegex
 import utils.PathResolver
-import utils.ResultData
 import utils.constructClass
+import utils.data.ResultData
 import utils.toJsAny
-import java.io.File
-import java.util.concurrent.CancellationException
-import org.utbot.fuzzing.utils.Trie
 
 private val logger = KotlinLogging.logger {}
 
@@ -66,7 +69,7 @@ class JsTestGenerator(
     private val selectedMethods: List<String>? = null,
     private var parentClassName: String? = null,
     private var outputFilePath: String?,
-    private val exportsManager: (List<String>) -> Unit,
+    private val exportsManager: (List<String>, (String?) -> String) -> Unit,
     private val settings: JsDynamicSettings,
     private val isCancelled: () -> Boolean = { false }
 ) {
@@ -138,7 +141,7 @@ class JsTestGenerator(
         val execId = classId.allMethods.find {
             it.name == funcNode.getAbstractFunctionName()
         } ?: throw IllegalStateException()
-        manageExports(classNode, funcNode, execId)
+        manageExports(classNode, funcNode, execId, context.packageJson)
         val executionResults = mutableListOf<JsFuzzingExecutionFeedback>()
         try {
             runBlockingWithCancellationPredicate(isCancelled) {
@@ -186,16 +189,10 @@ class JsTestGenerator(
         resultData: ResultData,
         fuzzedValues: List<FuzzedValue>
     ): UtExecutionResult {
-        if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
-            TimeoutException("  Timeout in generating test for ${
-                execId.parameters
-                    .zip(fuzzedValues)
-                    .joinToString(
-                        prefix = "${execId.name}(",
-                        separator = ", ",
-                        postfix = ")"
-                    ) { (_, value) -> value.model.toString() }
-            }")
+        if (resultData.rawString == "Error:Timeout") return UtTimeoutException(
+            TimeoutException("\"Timeout in generating test for ${
+                fuzzedValues.joinToString { f -> f.model.toString() }
+            } parameters\"")
         )
         val (returnValue, valueClassId) = resultData.toJsAny(
             if (execId.returnType.isJsBasic) JsClassId(resultData.type) else execId.returnType
@@ -219,13 +216,11 @@ class JsTestGenerator(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
             execId.classId,
-            concreteValues = fuzzerVisitor.fuzzedConcreteValues,
-            tracer = Trie(JsStatement::number)
+            concreteValues = fuzzerVisitor.fuzzedConcreteValues
         )
         val collectedValues = mutableListOf<List<FuzzedValue>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
-        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
-            .split(":").map { it.toInt() }
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:").split(":").map { it.toInt() }
         logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
         val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
         instrService.instrument()
@@ -239,9 +234,8 @@ class JsTestGenerator(
         logger.info { "Statements to cover: (${allStmts.joinToString { toString() }})" }
         val currentlyCoveredStmts = mutableSetOf<Int>()
         val startTime = System.currentTimeMillis()
-        runFuzzing(jsDescription) { description, values ->
-            if (isCancelled() || System.currentTimeMillis() - startTime > fuzzingTimeout)
-                return@runFuzzing JsFeedback(Control.STOP)
+        runFuzzing(jsDescription) { _, values ->
+            if (isCancelled() || System.currentTimeMillis() - startTime > 20_000) return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
             if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {
@@ -249,7 +243,8 @@ class JsTestGenerator(
                         collectedValues,
                         execId
                     )
-                    coveredStmts.zip(executionResults).forEach { (covData, resultData) ->
+                    coveredStmts.forEachIndexed { paramIndex, covData ->
+                        val resultData = executionResults[paramIndex]
                         val params = collectedValues[resultData.index]
                         val result =
                             getUtModelResult(
@@ -259,7 +254,6 @@ class JsTestGenerator(
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
-                            return@runFuzzing JsFeedback(Control.PASS)
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
                                 null to params.map { it.model }
@@ -276,8 +270,6 @@ class JsTestGenerator(
                                 )
                             )
                             currentlyCoveredStmts += covData.additionalCoverage
-                            val trieNode = description.tracer.add(covData.additionalCoverage.map { JsStatement(it) })
-                            return@runFuzzing JsFeedback(control = Control.CONTINUE, result = trieNode)
                         }
                         if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                     }
@@ -294,7 +286,7 @@ class JsTestGenerator(
                     collectedValues.clear()
                 }
             }
-            return@runFuzzing JsFeedback(Control.PASS)
+            return@runFuzzing JsFeedback(Control.CONTINUE)
         }
         instrService.removeTempFiles()
     }
@@ -302,12 +294,31 @@ class JsTestGenerator(
     private fun manageExports(
         classNode: Node?,
         funcNode: Node,
-        execId: JsMethodId
+        execId: JsMethodId,
+        packageJson: PackageJson
     ) {
         val obligatoryExport = (classNode?.getClassName() ?: funcNode.getAbstractFunctionName()).toString()
         val collectedExports = collectExports(execId)
         exports += (collectedExports + obligatoryExport)
-        exportsManager(exports.toList())
+        exportsManager(exports.toList()) { existingSection ->
+            val existingExportsSet = existingSection?.let { section ->
+                val trimmedSection = section.substringAfter(getExportsPrefix(packageJson)).substringBeforeLast(getExportsPostfix(packageJson))
+                val exportRegex = getExportsRegex(packageJson)
+                val existingExports = trimmedSection.split(getExportsDelimiter(packageJson)).filter { it.contains(exportRegex) && it.isNotBlank() }
+                existingExports.map { rawLine ->
+                    exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                }.toSet()
+            } ?: emptySet()
+            val resultSet = existingExportsSet + exports.toSet()
+            val resSection = resultSet.joinToString(
+                separator = getExportsDelimiter(packageJson),
+                prefix = getExportsPrefix(packageJson),
+                postfix = getExportsPostfix(packageJson),
+            ) {
+                getExportsFrame(it, packageJson)
+            }
+            existingSection?.let { fileText.replace(existingSection, resSection) } ?: resSection
+        }
     }
 
     private fun makeMethodsToTest(): List<Node> {

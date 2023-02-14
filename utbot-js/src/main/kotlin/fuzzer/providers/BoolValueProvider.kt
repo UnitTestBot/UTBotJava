@@ -3,6 +3,7 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
+import framework.api.js.util.jsBooleanClassId
 import fuzzer.JsMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
@@ -13,7 +14,7 @@ import org.utbot.fuzzing.seeds.Bool
 object BoolValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean {
-        return type.isJsBasic
+        return type.isJsBasic || type == jsBooleanClassId
     }
 
     override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, FuzzedValue>> =

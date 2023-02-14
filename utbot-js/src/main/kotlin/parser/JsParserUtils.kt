@@ -3,7 +3,9 @@ package parser
 import com.google.javascript.jscomp.Compiler
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
+import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedContext
+import parser.JsParserUtils.getMethodName
 
 // Used for .children() calls.
 @Suppress("DEPRECATION")
@@ -142,4 +144,20 @@ object JsParserUtils {
      * Called upon node with Method token.
      */
     fun Node.isStatic(): Boolean = this.isStaticMember
+
+    /**
+     * Checks if node is "require" JavaScript import.
+     */
+    fun Node.isRequireImport(): Boolean = try {
+        this.isCall && this.firstChild?.string == "require"
+    } catch (e: ClassCastException) {
+        false
+    }
+
+    /**
+     * Called upon "require" JavaScript import.
+     *
+     * Returns path to imported file as [String].
+     */
+    fun Node.getRequireImportText(): String = this.firstChild!!.next!!.string
 }

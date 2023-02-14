@@ -76,9 +76,9 @@ fun supportsBoolProtocol(storage: PythonTypeStorage): Type =
 
 fun createProtocolWithAttribute(attributeName: String, attributeType: Type): Type =
     createPythonProtocol(
-        Name(emptyList(), "Supports_$attributeName"),
+        Name(emptyList(), ""),  // TODO: name?
         0,
-        listOf(PythonVariableDescription(attributeName)),
+        listOf(attributeName),
         listOf(attributeName)
     ) {
         CompositeTypeCreator.InitializationData(
@@ -89,17 +89,19 @@ fun createProtocolWithAttribute(attributeName: String, attributeType: Type): Typ
 
 fun createBinaryProtocol(methodName: String, argType: Type, returnType: Type): Type =
     createPythonProtocol(
-        Name(emptyList(), "Supports_$methodName"),
+        Name(emptyList(), ""),  // TODO: name?
         0,
-        listOf(PythonVariableDescription(methodName)),
+        listOf(methodName),
         listOf(methodName)
     ) { self ->
         CompositeTypeCreator.InitializationData(
             members = listOf(
                 createPythonCallableType(
                     0,
-                    listOf(PythonCallableTypeDescription.ArgKind.ARG_POS, PythonCallableTypeDescription.ArgKind.ARG_POS),
-                    listOf("self", "")
+                    listOf(PythonCallableTypeDescription.ArgKind.Positional, PythonCallableTypeDescription.ArgKind.Positional),
+                    listOf("self", ""),
+                    isClassMethod = false,
+                    isStaticMethod = false
                 ) {
                     FunctionTypeCreator.InitializationData(
                         arguments = listOf(self, argType),
@@ -113,17 +115,19 @@ fun createBinaryProtocol(methodName: String, argType: Type, returnType: Type): T
 
 fun createUnaryProtocolWithCustomReturn(methodName: String, returnType: Type): Type =
     createPythonProtocol(
-        Name(emptyList(), "Supports_$methodName"),
+        Name(emptyList(), ""),  // TODO: normal names?
         0,
-        listOf(PythonVariableDescription(methodName)),
+        listOf(methodName),
         listOf(methodName)
     ) { self ->
         CompositeTypeCreator.InitializationData(
             members = listOf(
                 createPythonCallableType(
                     0,
-                    listOf(PythonCallableTypeDescription.ArgKind.ARG_POS),
-                    listOf("self")
+                    listOf(PythonCallableTypeDescription.ArgKind.Positional),
+                    listOf("self"),
+                    isClassMethod = false,
+                    isStaticMethod = false
                 ) {
                     FunctionTypeCreator.InitializationData(
                         arguments = listOf(self),
@@ -137,17 +141,19 @@ fun createUnaryProtocolWithCustomReturn(methodName: String, returnType: Type): T
 
 fun createCallableProtocol(argBounds: List<Type>, returnBound: Type): Type =
     createPythonProtocol(
-        Name(emptyList(), "SupportsCall"),
+        Name(emptyList(), ""),  // TODO: normal names?
         0,
-        listOf(PythonVariableDescription("__call__")),
+        listOf("__call__"),
         listOf("__call__")
     ) {
         CompositeTypeCreator.InitializationData(
             members = listOf(
                 createPythonCallableType(
                     0,
-                    List(argBounds.size) { PythonCallableTypeDescription.ArgKind.ARG_POS },
-                    List(argBounds.size) { "" }
+                    List(argBounds.size) { PythonCallableTypeDescription.ArgKind.Positional },
+                    List(argBounds.size) { "" },
+                    isStaticMethod = false,
+                    isClassMethod = false
                 ) {
                     FunctionTypeCreator.InitializationData(argBounds, returnBound)
                 }

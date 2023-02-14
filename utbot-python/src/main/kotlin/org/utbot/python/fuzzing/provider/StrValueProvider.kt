@@ -9,7 +9,6 @@ import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.fuzzing.provider.utils.generateSummary
-import org.utbot.python.fuzzing.provider.utils.transformQuotationMarks
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
 
@@ -21,15 +20,14 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
     private fun getStrConstants(concreteValues: Collection<PythonFuzzedConcreteValue>): List<StringValue> {
         return concreteValues
             .filter { accept(it.type) }
-            .map {
-                StringValue((it.value as String).transformQuotationMarks())
-            }
+            .map { StringValue(it.value as String) }
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
         val strConstants = getStrConstants(description.concreteValues) + listOf(
             StringValue("test"),
             StringValue("abc"),
+            StringValue(""),
         )
         strConstants.forEach { yieldStrings(it) { value } }
     }

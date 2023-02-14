@@ -9,11 +9,11 @@ import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.tree.CgMethodConstructor
+import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.framework.api.python.*
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
-import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
 class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(context) {
@@ -39,17 +39,15 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
     override fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
-            if (execution.testMethodName == null) {
-                execution.testMethodName = testMethodName
-            }
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
 
+                val modificationInfo = StateModificationInfo()
+                val fieldStateManager = context.cgLanguageAssistant.getCgFieldStateManager(context)
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
                     substituteStaticFields(statics)
@@ -58,61 +56,26 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     thisInstance = execution.stateBefore.thisInstance?.let {
                         variableConstructor.getOrCreateVariable(it)
                     }
-                    val beforeThisInstance = execution.stateBefore.thisInstance
-                    val afterThisInstance = execution.stateAfter.thisInstance
-                    val assertThisObject = emptyList<Pair<CgVariable, UtModel>>().toMutableList()
-                    if (beforeThisInstance is PythonTreeModel && afterThisInstance is PythonTreeModel) {
-                        if (beforeThisInstance != afterThisInstance) {
-                            thisInstance = thisInstance?.let {
-                                val newValue =
-                                    if (it is CgPythonTree) {
-                                        if (it.value is CgVariable) {
-                                            it.value
-                                        } else {
-                                            newVar(it.type) {it.value}
-                                        }
-                                    } else {
-                                        newVar(it.type) {it}
-                                    }
-                                assertThisObject.add(Pair(newValue, afterThisInstance))
-                                newValue
-                            }
-                        }
-                    }
                     if (thisInstance is CgPythonTree) {
                         context.currentBlock.addAll((thisInstance as CgPythonTree).arguments)
                     }
-
                     // build arguments
-                    val stateAssertions = emptyMap<Int, Pair<CgVariable, UtModel>>().toMutableMap()
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
-                        var argument = variableConstructor.getOrCreateVariable(param, name)
-
-                        val afterValue = execution.stateAfter.parameters[index]
-                        if (afterValue is PythonTreeModel && param is PythonTreeModel) {
-                            if (afterValue != param) {
-                                if (argument !is CgVariable) {
-                                    argument = newVar(argument.type, name) {argument}
-                                }
-                                stateAssertions[index] = Pair(argument, afterValue)
-                            }
-                        }
-
-                        methodArguments += argument
+                        methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     methodArguments.forEach {
                         if (it is CgPythonTree) {
                             context.currentBlock.addAll(it.arguments)
                         }
                     }
-
+                    fieldStateManager.rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()
                     generateResultAssertions()
-
-                    generateFieldStateAssertions(stateAssertions, assertThisObject, executableId)
-
-                    generatePythonTestComments(execution)
+                    fieldStateManager.rememberFinalEnvironmentState(modificationInfo)
+                    generateFieldStateAssertions()
+                    if (executableId is PythonMethodId)
+                        generatePythonTestComments(execution)
                 }
 
                 if (statics.isNotEmpty()) {
@@ -127,30 +90,11 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
             }
         }
 
-    private fun generateFieldStateAssertions(
-        stateAssertions: MutableMap<Int, Pair<CgVariable, UtModel>>,
-        assertThisObject: MutableList<Pair<CgVariable, UtModel>>,
-        executableId: ExecutableId,
-    ) {
-        if (stateAssertions.size + assertThisObject.size > 0) {
-            emptyLineIfNeeded()
-        }
-        stateAssertions.forEach { (index, it) ->
-            val name = paramNames[executableId]?.get(index) + "_modified"
-            val modifiedArgument = variableConstructor.getOrCreateVariable(it.second, name)
-            assertEquality(modifiedArgument, it.first)
-        }
-        assertThisObject.forEach {
-            val name = it.first.name + "_modified"
-            val modifiedThisObject = variableConstructor.getOrCreateVariable(it.second, name)
-            assertEquality(modifiedThisObject, it.first)
-        }
-    }
-
     private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {
         require(expected is CgPythonTree) {
             "Expected value have to be CgPythonTree but `${expected::class}` found"
         }
+//        (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects.clear()
         pythonDeepTreeEquals(expected.tree, expected, actual)
     }
 

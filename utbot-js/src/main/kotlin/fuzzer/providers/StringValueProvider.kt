@@ -14,7 +14,7 @@ import org.utbot.fuzzing.seeds.StringValue
 object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean {
-        return type.isJsBasic
+        return type.isJsBasic || type == jsStringClassId
     }
 
     override fun generate(

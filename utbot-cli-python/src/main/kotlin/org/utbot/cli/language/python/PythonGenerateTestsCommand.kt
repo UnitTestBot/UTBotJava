@@ -8,7 +8,7 @@ import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
 import org.parsers.python.PythonParser
 import org.utbot.framework.codegen.domain.TestFramework
-import org.utbot.python.PythonMethodHeader
+import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.code.PythonCode
@@ -83,6 +83,11 @@ class PythonGenerateTestsCommand : CliktCommand(
         help = "Turn off Python requirements check (to speed up)."
     ).flag(default = false)
 
+    private val visitOnlySpecifiedSource by option(
+        "--visit-only-specified-source",
+        help = "Do not search for classes and imported modules in other Python files from sys.path."
+    ).flag(default = false)
+
     private val timeout by option(
         "-t", "--timeout",
         help = "Specify the maximum time in milliseconds to spend on generating tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)."
@@ -107,7 +112,7 @@ class PythonGenerateTestsCommand : CliktCommand(
 
     private val forbiddenMethods = listOf("__init__", "__new__")
 
-    private fun getPythonMethods(): Optional<List<PythonMethodHeader>> {
+    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
         val parsedModule = PythonParser(sourceFileContent).Module()
 
         val topLevelFunctions = PythonCode.getTopLevelFunctions(parsedModule)
@@ -119,7 +124,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                 Success(
                     topLevelFunctions
                         .mapNotNull { parseFunctionDefinition(it) }
-                        .map { PythonMethodHeader(it.name.toString(), sourceFile, null) }
+                        .map { PythonMethod(it.name.toString(), null, emptyList(), currentModule, null, sourceCodeContent) }
                 )
             else {
                 val topLevelClassMethods = topLevelClasses
@@ -129,7 +134,7 @@ class PythonGenerateTestsCommand : CliktCommand(
                             .mapNotNull { parseFunctionDefinition(it) }
                             .map { function ->
                                 val parsedClassName = PythonClassId(cls.name.toString())
-                                PythonMethodHeader(function.name.toString(), sourceFile, parsedClassName)
+                                PythonMethod(function.name.toString(), null, emptyList(), currentModule, parsedClassName, sourceCodeContent)
                             }
                     }
                 if (topLevelClassMethods.isNotEmpty()) {
@@ -141,7 +146,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val pythonMethodsOpt = selectedMethods.map { functionName ->
                 topLevelFunctions
                     .mapNotNull { parseFunctionDefinition(it) }
-                    .map { PythonMethodHeader(it.name.toString(), sourceFile, null) }
+                    .map { PythonMethod(it.name.toString(), null, emptyList(), currentModule, null, sourceCodeContent) }
                     .find { it.name == functionName }
                     ?.let { Success(it) }
                     ?: Fail("Couldn't find top-level function $functionName in the source file.")
@@ -161,7 +166,7 @@ class PythonGenerateTestsCommand : CliktCommand(
             val fineMethods = methods
                 .filter { !forbiddenMethods.contains(it.name.toString()) }
                 .map {
-                    PythonMethodHeader(it.name.toString(), sourceFile, parsedClassId)
+                    PythonMethod(it.name.toString(), null, emptyList(), currentModule, parsedClassId, sourceCodeContent)
                 }
             if (fineMethods.isNotEmpty())
                 Success(fineMethods)
@@ -183,18 +188,18 @@ class PythonGenerateTestsCommand : CliktCommand(
     }
 
     private lateinit var currentPythonModule: String
-    private lateinit var pythonMethods: List<PythonMethodHeader>
+    private lateinit var pythonMethods: List<PythonMethod>
     private lateinit var sourceFileContent: String
 
     @Suppress("UNCHECKED_CAST")
     private fun calculateValues(): Optional<Unit> {
         val currentPythonModuleOpt = findCurrentPythonModule(directoriesForSysPath, sourceFile)
         sourceFileContent = File(sourceFile).readText()
-        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods() }
+        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, it) }
 
         return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
             currentPythonModule = it[0] as String
-            pythonMethods = it[1] as List<PythonMethodHeader>
+            pythonMethods = it[1] as List<PythonMethod>
             Success(Unit)
         }
     }
@@ -248,12 +253,6 @@ class PythonGenerateTestsCommand : CliktCommand(
             withMinimization = !doNotMinimize,
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
-            },
-            installingRequirementsAction = {
-                logger.info("Installing requirements...")
-            },
-            testFrameworkInstallationAction = {
-                logger.info("Test framework installation...")
             },
             requirementsAreNotInstalledAction = ::processMissingRequirements,
             startedLoadingPythonTypesAction = {

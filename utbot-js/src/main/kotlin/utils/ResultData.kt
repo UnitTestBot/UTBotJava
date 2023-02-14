@@ -15,5 +15,6 @@ data class ResultData(
     val index: Int,
     val isNan: Boolean = false,
     val isInf: Boolean = false,
+    val isError: Boolean = false,
     val specSign: Byte = 1
 )

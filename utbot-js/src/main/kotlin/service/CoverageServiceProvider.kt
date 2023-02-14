@@ -4,7 +4,6 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
-import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
@@ -13,6 +12,7 @@ import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
 import utils.ResultData
+import java.util.regex.Pattern
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
 class CoverageServiceProvider(
@@ -146,13 +146,15 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
 let json$index = {}
 json$index.is_inf = false
 json$index.is_nan = false
+json$index.is_error = false
 json$index.spec_sign = 1
 let res$index
 try {
     res$index = $callString
     check_value(res$index, json$index)
 } catch(e) {
-    res$index = "Error:" + e.message
+    res$index = e.message
+    json$index.is_error = true
 }
 json$index.result = res$index
 json$index.type = typeof res$index

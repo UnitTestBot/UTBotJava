@@ -1,12 +1,12 @@
 package service
 
-import java.io.File
 import mu.KotlinLogging
 import org.json.JSONObject
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
 import utils.ResultData
+import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,6 +38,7 @@ class FastCoverageService(
                     index = index,
                     isNan = json.getBoolean("is_nan"),
                     isInf = json.getBoolean("is_inf"),
+                    isError = json.getBoolean("is_error"),
                     specSign = json.getInt("spec_sign").toByte()
                 )
                 _resultList.add(resultData)

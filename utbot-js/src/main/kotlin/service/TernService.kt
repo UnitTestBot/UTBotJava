@@ -4,8 +4,6 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
-import java.io.File
-import java.util.Locale
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
@@ -14,8 +12,10 @@ import parser.JsParserUtils.getAbstractFunctionParams
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
-import utils.data.MethodTypes
 import utils.constructClass
+import utils.data.MethodTypes
+import java.io.File
+import java.util.Locale
 
 /*
     NOTE: this approach is quite bad, but we failed to implement alternatives.
@@ -160,7 +160,7 @@ test("$filePathToInference")
             }
             val methodJson = scope.getJSONObject(funcNode.getAbstractFunctionName())
             val typesString = methodJson.getString("!type")
-                .filterNot { setOf(' ', '+', '!').contains(it) }
+                .filterNot { setOf(' ', '+').contains(it) }
             val parametersList = lazy { extractParameters(typesString) }
             val returnType = lazy { extractReturnType(typesString) }
 
@@ -173,11 +173,9 @@ test("$filePathToInference")
         }
     }
 
-    //TODO MINOR: move to appropriate place (JsIdUtil or JsClassId constructor)
     private fun makeClassId(name: String): JsClassId {
         val classId = when {
-            // TODO SEVERE: I don't know why Tern sometimes says that type is "0"
-            name == "?" || name.toIntOrNull() != null -> jsUndefinedClassId
+            name == "?" || name.toIntOrNull() != null || name.contains('!') -> jsUndefinedClassId
             Regex("\\[(.*)]").matches(name) -> {
                 val arrType = Regex("\\[(.*)]").find(name)?.groups?.get(1)?.value ?: throw IllegalStateException()
                 JsClassId(

@@ -187,8 +187,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
                     is UtPrimitiveModel,
                     is UtClassRefModel,
                     is UtVoidModel,
-                    is UtEnumConstantModel,
-                    is UtLambdaModel -> utModel
+                    is UtEnumConstantModel -> utModel
+                    is UtLambdaModel -> assembleLambdaModel(utModel)
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)
@@ -202,6 +202,18 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
         callChain = collectedCallChain
         return assembledModel
+    }
+
+    private fun assembleLambdaModel(lambdaModel: UtLambdaModel): UtModel {
+        instantiatedModels[lambdaModel]?.let { return it }
+
+        return UtLambdaModel(
+            lambdaModel.id,
+            lambdaModel.samType,
+            lambdaModel.declaringClass,
+            lambdaModel.lambdaName,
+            capturedValues = lambdaModel.capturedValues.map { assembleModel(it) }.toMutableList(),
+        )
     }
 
     /**

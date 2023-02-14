@@ -1,144 +1,57 @@
 package service
 
-import org.apache.commons.io.FileUtils
-import org.json.JSONException
+import mu.KotlinLogging
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
+import utils.ResultData
 import java.io.File
-import java.util.Collections
 
-// TODO: 1. Make searching for file coverage in coverage report more specific, not just by file name.
+private val logger = KotlinLogging.logger {}
+
 class BasicCoverageService(
-    private val context: ServiceContext,
+    context: ServiceContext,
     private val scriptTexts: List<String>,
-    private val testCaseIndices: IntRange,
-) : ICoverageService {
+    baseCoverage: List<Int>,
+) : CoverageService(context, scriptTexts, baseCoverage) {
 
-    private val errors = mutableListOf<Int>()
-    private var baseCoverage = emptyList<Int>()
-    private val utbotDirPath = "${context.projectPath}/${context.utbotDir}"
-    private val _resultList = mutableListOf<Pair<Int, String>>()
-    val resultList: List<String>
-        get() = _resultList
-            .sortedBy { (index, _) -> index }
-            .map { (_, obj) -> obj }
-
-    init {
-        generateTempFiles()
-        baseCoverage = getBaseCoverage()
-        generateCoverageReportForAllFiles()
-    }
-
-    override fun getCoveredLines(): List<Set<Int>> {
-        try {
-            val res = testCaseIndices.map { index ->
-                if (index in errors) emptySet() else {
-                    val fileCoverage =
-                        getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), index).toSet()
-                    val resFile = File("$utbotDirPath/$tempFileName$index.json")
-                    val rawResult = resFile.readText()
-                    resFile.delete()
-                    val json = JSONObject(rawResult)
-                    _resultList.add(index to json.get("result").toString())
-                    fileCoverage
-                }
-            }
-            return res
-        } catch (e: Exception) {
-            throw Exception("Could not get coverage of test cases!")
-        } finally {
-            removeTempFiles()
-        }
-    }
-
-    private fun getCoveragePerFile(fileName: String, index: Int): List<Int> {
-        if (index in errors) return emptyList()
-        val jsonText = with(context) {
-            val file =
-                File("$utbotDirPath/coverage$index/coverage-final.json")
-            file.readText()
-        }
-        val json = JSONObject(jsonText)
-        try {
-            val neededKey = json.keySet().find { it.contains(fileName) }
-            json.getJSONObject(neededKey)
-            val coveredStatements = json
-                .getJSONObject(neededKey)
-                .getJSONObject("s")
-            val result = coveredStatements.keySet().flatMap {
-                val count = coveredStatements.getInt(it)
-                Collections.nCopies(count, it.toInt())
-            }.toMutableList()
-            baseCoverage.forEach {
-                result.remove(it)
-            }
-            return result
-        } catch (e: JSONException) {
-            return emptyList()
-        }
-    }
-
-    private fun getBaseCoverage(): List<Int> {
-        generateCoverageReport(context.filePathToInference, 0)
-        return getCoveragePerFile(context.filePathToInference.substringAfterLast("/"), 0)
-    }
-
-    private fun removeTempFiles() {
-        for (index in testCaseIndices) {
-            File("$utbotDirPath/$tempFileName$index.js").delete()
-            FileUtils.deleteDirectory(File("$utbotDirPath/coverage$index"))
-            FileUtils.deleteDirectory(File("$utbotDirPath/cache$index"))
-        }
-    }
-
-    private fun generateCoverageReportForAllFiles() {
-        testCaseIndices.toList().parallelStream().forEach { parallelIndex ->
-            generateCoverageReport("$utbotDirPath/$tempFileName$parallelIndex.js", parallelIndex)
-        }
-    }
-
-    private fun generateCoverageReport(filePath: String, index: Int) {
-        try {
-            with(context) {
-                val (_, errorText) =
-                    JsCmdExec.runCommand(
-                        cmd = arrayOf(
-                            "\"${settings.pathToNYC}\"",
-                            "--report-dir=\"$utbotDir/coverage$index\"",
-                            "--reporter=json",
-                            "--temp-dir=\"$utbotDir/cache$index\"",
-                            "\"${settings.pathToNode}\"",
-                            "\"$filePath\""
-                        ),
-                        shouldWait = true,
-                        dir = context.projectPath,
-                        timeout = settings.timeout,
-                    )
+    override fun generateCoverageReport() {
+        scriptTexts.indices.forEach { index ->
+            try {
+                val (_, errorText) = JsCmdExec.runCommand(
+                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/$tempFileName$index.js\""),
+                    dir = projectPath,
+                    shouldWait = true,
+                    timeout = settings.timeout,
+                )
+                val resFile = File("$utbotDirPath/$tempFileName$index.json")
+                val rawResult = resFile.readText()
+                resFile.delete()
+                val json = JSONObject(rawResult)
+                coverageList.add(index to json.getJSONObject("s"))
+                val resultData = ResultData(
+                    rawString = json.get("result").toString(),
+                    type = json.get("type").toString(),
+                    index = index,
+                    isNan = json.getBoolean("is_nan"),
+                    isInf = json.getBoolean("is_inf"),
+                    isError = json.getBoolean("is_error"),
+                    specSign = json.getInt("spec_sign").toByte()
+                )
+                _resultList.add(resultData)
                 if (errorText.isNotEmpty()) {
-                    println(errorText)
+                    logger.error { errorText }
                 }
+            } catch (e: TimeoutException) {
+                val resultData = ResultData(
+                    rawString = "Timeout",
+                    index = index,
+                    isError = true,
+                )
+                coverageList.add(index to JSONObject())
+                _resultList.add(resultData)
             }
-        } catch (e: TimeoutException) {
-            errors += index
-            _resultList.add(index to "Error:Timeout")
         }
-    }
-
-    private fun generateTempFiles() {
-        scriptTexts.forEachIndexed { index, scriptText ->
-            val tempScriptPath = "$utbotDirPath/$tempFileName$index.js"
-            createTempScript(
-                path = tempScriptPath,
-                scriptText = scriptText
-            )
-        }
-    }
-
-    private fun createTempScript(path: String, scriptText: String) {
-        val file = File(path)
-        file.writeText(scriptText)
-        file.createNewFile()
     }
 }

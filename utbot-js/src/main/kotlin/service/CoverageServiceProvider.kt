@@ -1,118 +1,126 @@
 package service
 
-import com.google.javascript.rhino.Node
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtModel
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
+import framework.api.js.util.isUndefined
+import fuzzer.JsMethodDescription
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.fuzzer.FuzzedValue
-import parser.JsParserUtils.getClassName
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
-import utils.PathResolver
+import utils.CoverageData
+import utils.ResultData
+import java.util.regex.Pattern
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
-class CoverageServiceProvider(private val context: ServiceContext) {
+class CoverageServiceProvider(
+    private val context: ServiceContext,
+    private val instrumentationService: InstrumentationService,
+    private val mode: CoverageMode,
+    private val description: JsMethodDescription
+) : ContextOwner by context {
 
-    private val importFileUnderTest = "instr/${context.filePathToInference.substringAfterLast("/")}"
+    private val importFileUnderTest = "instr/${filePathToInference.substringAfterLast("/")}"
 
-    private val imports = "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
-            "const fs = require(\"fs\")\n\n"
+    private val imports =
+        "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
+                "const fs = require(\"fs\")\n\n"
+
+    private val filePredicate = """
+function check_value(value, json) {
+    if (value === Infinity) {
+        json.is_inf = true
+        json.spec_sign = 1
+    }
+    if (value === -Infinity) {
+        json.is_inf = true
+        json.spec_sign = -1
+    }
+    if (Number.isNaN(value)) {
+        json.is_nan = true
+    }
+}
+    """
+
+    private val baseCoverage: List<Int>
+
+    init {
+        val temp = makeScriptForBaseCoverage(
+            instrumentationService.covFunName,
+            "${projectPath}/${utbotDir}/${tempFileName}Base.json"
+        )
+        baseCoverage = CoverageService.getBaseCoverage(
+            context,
+            temp
+        )
+    }
 
     fun get(
-        mode: CoverageMode,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: Node?
-    ): Pair<List<Set<Int>>, List<String>> {
+    ): Pair<List<CoverageData>, List<ResultData>> {
         return when (mode) {
             CoverageMode.FAST -> runFastCoverageAnalysis(
-                context,
                 fuzzedValues,
-                execId,
-                classNode
+                execId
             )
 
             CoverageMode.BASIC -> runBasicCoverageAnalysis(
-                context,
                 fuzzedValues,
-                execId,
-                classNode
+                execId
             )
         }
     }
 
     private fun runBasicCoverageAnalysis(
-        context: ServiceContext,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: Node?,
-    ): Pair<List<Set<Int>>, List<String>> {
+    ): Pair<List<CoverageData>, List<ResultData>> {
+        val covFunName = instrumentationService.covFunName
         val tempScriptTexts = fuzzedValues.indices.map {
-            "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./${PathResolver.getRelativePath("${context.projectPath}/${context.utbotDir}", context.filePathToInference)}\")\n" + "const fs = require(\"fs\")\n\n" + makeStringForRunJs(
+            imports + "$filePredicate\n\n" + makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = classNode?.getClassName(),
+                containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
+                covFunName = covFunName,
                 index = it,
-                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
-                mode = CoverageMode.BASIC
+                resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
             )
         }
         val coverageService = BasicCoverageService(
             context = context,
             scriptTexts = tempScriptTexts,
-            testCaseIndices = fuzzedValues.indices,
+            baseCoverage = baseCoverage
         )
+        coverageService.generateCoverageReport()
         return coverageService.getCoveredLines() to coverageService.resultList
     }
 
     private fun runFastCoverageAnalysis(
-        context: ServiceContext,
         fuzzedValues: List<List<FuzzedValue>>,
         execId: JsMethodId,
-        classNode: Node?,
-    ): Pair<List<Set<Int>>, List<String>> {
-        val covFunName = FastCoverageService.instrument(context)
-        val tempScriptTexts = fuzzedValues.indices.map {
+    ): Pair<List<CoverageData>, List<ResultData>> {
+        val covFunName = instrumentationService.covFunName
+        val tempScriptTexts = imports + "$filePredicate\n\n" + fuzzedValues.indices.joinToString("\n\n") {
             makeStringForRunJs(
                 fuzzedValue = fuzzedValues[it],
                 method = execId,
-                containingClass = classNode?.getClassName(),
+                containingClass = if (!execId.classId.isUndefined) execId.classId.name else null,
                 covFunName = covFunName,
                 index = it,
-                resFilePath = "${context.projectPath}/${context.utbotDir}/$tempFileName",
-                mode = CoverageMode.FAST
+                resFilePath = "${projectPath}/${utbotDir}/$tempFileName",
             )
         }
-        val baseCoverageScriptText = makeScriptForBaseCoverage(covFunName,"${context.projectPath}/${context.utbotDir}/${tempFileName}Base.json")
         val coverageService = FastCoverageService(
             context = context,
-            scriptTexts = splitTempScriptsIfNeeded(tempScriptTexts),
+            scriptTexts = listOf(tempScriptTexts),
             testCaseIndices = fuzzedValues.indices,
-            baseCoverageScriptText = baseCoverageScriptText,
+            baseCoverage = baseCoverage,
         )
+        coverageService.generateCoverageReport()
         return coverageService.getCoveredLines() to coverageService.resultList
-    }
-
-    // TODO: do not hardcode 1000 constant - move to settings object.
-    private fun splitTempScriptsIfNeeded(tempScripts: List<String>): List<String> {
-        when {
-            // No need to run parallel execution, so only 1 element in the list
-            tempScripts.size < 1000 -> {
-                return listOf(
-                    imports + tempScripts.joinToString("\n\n")
-                )
-            }
-            else -> {
-                return tempScripts
-                    .withIndex()
-                    .groupBy { it.index / 1000 }
-                    .map { entry ->
-                        imports + entry.value.joinToString("\n\n") { it.value }
-                    }
-            }
-        }
     }
 
     private fun makeScriptForBaseCoverage(covFunName: String, resFilePath: String): String {
@@ -129,26 +137,30 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
         fuzzedValue: List<FuzzedValue>,
         method: JsMethodId,
         containingClass: String?,
-        covFunName: String = "",
+        covFunName: String,
         index: Int,
         resFilePath: String,
-        mode: CoverageMode,
     ): String {
         val callString = makeCallFunctionString(fuzzedValue, method, containingClass)
         return """
 let json$index = {}
-
+json$index.is_inf = false
+json$index.is_nan = false
+json$index.is_error = false
+json$index.spec_sign = 1
 let res$index
 try {
     res$index = $callString
+    check_value(res$index, json$index)
 } catch(e) {
-    res$index = "Error:" + e.message
+    res$index = e.message
+    json$index.is_error = true
 }
-${
-"json$index.result = res$index\n" +
-if (mode == CoverageMode.FAST ) "json$index.index = $index\n" +
-"json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s\n" else ""
-}            
+json$index.result = res$index
+json$index.type = typeof res$index
+json$index.index = $index
+json$index.s = ${JsTestGenerationSettings.fileUnderTestAliases}.$covFunName().s   
+    
 fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
             """
     }
@@ -158,13 +170,15 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         method: JsMethodId,
         containingClass: String?
     ): String {
+        val actualParams = description.thisInstance?.let{ fuzzedValue.drop(1) } ?: fuzzedValue
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()."
-            } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it."
-        } ?: "${JsTestGenerationSettings.fileUnderTestAliases}."
-        var callString = "$initClass${method.name}"
-        callString += fuzzedValue.joinToString(
+                description.thisInstance?.let { fuzzedValue[0].model.toCallString() } ?:
+                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
+            } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it"
+        } ?: JsTestGenerationSettings.fileUnderTestAliases
+        var callString = "$initClass.${method.name}"
+        callString += actualParams.joinToString(
             prefix = "(",
             postfix = ")",
         ) { value -> value.model.toCallString() }
@@ -173,27 +187,35 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
 
     private fun Any.quoteWrapIfNecessary(): String =
         when (this) {
-            is String -> "\"$this\""
+            is String -> "`$this`"
             else -> "$this"
         }
 
-    private fun UtAssembleModel.toParamString(): String =
-        with(this) {
-            val callConstructorString = "new ${JsTestGenerationSettings.fileUnderTestAliases}.${classId.name}"
-            val paramsString = instantiationCall.params.joinToString(
-                prefix = "(",
-                postfix = ")",
-            ) {
-                (it as JsPrimitiveModel).value.quoteWrapIfNecessary()
-            }
-            return callConstructorString + paramsString
+    private val symbolsToEscape = setOf("`", Pattern.quote("\\"))
+
+    private fun Any.escapeSymbolsIfNecessary(): Any =
+        when (this) {
+            is String -> this.replace(Regex(symbolsToEscape.joinToString(separator = "|")), "")
+            else -> this
         }
+
+    private fun UtAssembleModel.toParamString(): String {
+        val callConstructorString = "new ${JsTestGenerationSettings.fileUnderTestAliases}.${classId.name}"
+        val paramsString = instantiationCall.params.joinToString(
+            prefix = "(",
+            postfix = ")",
+        ) {
+            it.toCallString()
+        }
+        return callConstructorString + paramsString
+    }
+
 
     private fun UtModel.toCallString(): String =
         when (this) {
             is UtAssembleModel -> this.toParamString()
             else -> {
-                (this as JsPrimitiveModel).value.quoteWrapIfNecessary()
+                (this as JsPrimitiveModel).value.escapeSymbolsIfNecessary().quoteWrapIfNecessary()
             }
         }
 }

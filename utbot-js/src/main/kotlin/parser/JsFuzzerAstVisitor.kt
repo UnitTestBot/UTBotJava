@@ -3,9 +3,8 @@ package parser
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
 import framework.api.js.util.jsBooleanClassId
-import framework.api.js.util.jsNumberClassId
+import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsStringClassId
-import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedContext
 import parser.JsParserUtils.getAnyValue
@@ -22,10 +21,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
         NodeUtil.visitPreOrder(rootNode) { node ->
             val currentFuzzedOp = node.toFuzzedContextComparisonOrNull()
             when {
-                node.isCase -> validateNode(
-                    node.firstChild?.getAnyValue() ?:
-                    throw IllegalStateException("Case AST node has no children")
-                )
+                node.isCase -> validateNode(node.firstChild?.getAnyValue())
                 currentFuzzedOp != null -> {
                     lastFuzzedOpGlobal = currentFuzzedOp
                     validateNode(node.getBinaryExprLeftOperand().getAnyValue())
@@ -61,7 +57,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
             }
 
             is Double -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsNumberClassId, value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(jsDoubleClassId, value, lastFuzzedOpGlobal))
             }
         }
     }

@@ -13,8 +13,6 @@ import fuzzer.JsMethodDescription
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
-import java.io.File
-import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -55,6 +53,8 @@ import utils.PathResolver
 import utils.ResultData
 import utils.constructClass
 import utils.toJsAny
+import java.io.File
+import java.util.concurrent.CancellationException
 
 private val logger = KotlinLogging.logger {}
 
@@ -182,10 +182,16 @@ class JsTestGenerator(
         resultData: ResultData,
         fuzzedValues: List<FuzzedValue>
     ): UtExecutionResult {
-        if (resultData.rawString == "Error:Timeout") return UtTimeoutException(
-            TimeoutException("\"Timeout in generating test for ${
-                fuzzedValues.joinToString { f -> f.model.toString() }
-            } parameters\"")
+        if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
+            TimeoutException("  Timeout in generating test for ${
+                execId.parameters
+                    .zip(fuzzedValues)
+                    .joinToString(
+                        prefix = "${execId.name}(",
+                        separator = ", ",
+                        postfix = ")"
+                    ) { (_, value) -> value.model.toString() }
+            }")
         )
         val (returnValue, valueClassId) = resultData.toJsAny(
             if (execId.returnType.isJsBasic) JsClassId(resultData.type) else execId.returnType

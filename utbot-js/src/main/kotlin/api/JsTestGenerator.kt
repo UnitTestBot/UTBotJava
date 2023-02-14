@@ -10,6 +10,7 @@ import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsFeedback
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
+import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
@@ -55,6 +56,7 @@ import utils.constructClass
 import utils.toJsAny
 import java.io.File
 import java.util.concurrent.CancellationException
+import org.utbot.fuzzing.utils.Trie
 
 private val logger = KotlinLogging.logger {}
 
@@ -215,11 +217,13 @@ class JsTestGenerator(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
             execId.classId,
-            concreteValues = fuzzerVisitor.fuzzedConcreteValues
+            concreteValues = fuzzerVisitor.fuzzedConcreteValues,
+            tracer = Trie(JsStatement::number)
         )
         val collectedValues = mutableListOf<List<FuzzedValue>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
-        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:").split(":").map { it.toInt() }
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
+            .split(":").map { it.toInt() }
         logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
         val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
         instrService.instrument()
@@ -233,8 +237,9 @@ class JsTestGenerator(
         logger.info { "Statements to cover: (${allStmts.joinToString { toString() }})" }
         val currentlyCoveredStmts = mutableSetOf<Int>()
         val startTime = System.currentTimeMillis()
-        runFuzzing(jsDescription) { _, values ->
-            if (isCancelled() || System.currentTimeMillis() - startTime > fuzzingTimeout) return@runFuzzing JsFeedback(Control.STOP)
+        runFuzzing(jsDescription) { description, values ->
+            if (isCancelled() || System.currentTimeMillis() - startTime > fuzzingTimeout)
+                return@runFuzzing JsFeedback(Control.STOP)
             collectedValues += values
             if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
                 try {
@@ -269,6 +274,8 @@ class JsTestGenerator(
                                 )
                             )
                             currentlyCoveredStmts += covData.additionalCoverage
+                            val trieNode = description.tracer.add(covData.additionalCoverage.map { JsStatement(it) })
+                            return@runFuzzing JsFeedback(control = Control.CONTINUE, result = trieNode)
                         }
                         if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
                     }
@@ -285,7 +292,7 @@ class JsTestGenerator(
                     collectedValues.clear()
                 }
             }
-            return@runFuzzing JsFeedback(Control.CONTINUE)
+            return@runFuzzing JsFeedback(Control.PASS)
         }
         instrService.removeTempFiles()
     }

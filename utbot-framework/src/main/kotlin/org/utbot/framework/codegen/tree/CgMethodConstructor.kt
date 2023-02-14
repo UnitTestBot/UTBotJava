@@ -3,8 +3,8 @@ package org.utbot.framework.codegen.tree
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
-import org.utbot.engine.ArtificialError
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource

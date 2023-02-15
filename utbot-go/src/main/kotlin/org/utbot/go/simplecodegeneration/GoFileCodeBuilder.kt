@@ -17,9 +17,10 @@ class GoFileCodeBuilder(
             return "import ${imports.first()}"
         }
 
-        return imports.sortedBy { it.toString() }.joinToString(separator = "", prefix = "import (\n", postfix = ")") {
-            "\t$it\n"
-        }
+        return imports.sortedWith(compareBy<GoImport> { it.goPackage.packagePath }.thenBy { it.alias })
+            .joinToString(separator = "", prefix = "import (\n", postfix = ")") {
+                "\t$it\n"
+            }
     }
 
     fun buildCodeString(): String {

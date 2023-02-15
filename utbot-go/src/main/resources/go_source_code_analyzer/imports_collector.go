@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"go/ast"
 	"go/types"
-	"log"
 )
 
 type Package struct {
@@ -43,11 +41,9 @@ func (i *ImportsCollector) Visit(node ast.Node) ast.Visitor {
 						},
 						Alias: ".",
 					}
-					fmt.Println(obj.Name())
+
 					if _, ok := i.allImportsInFile[nextImport]; ok {
 						i.requiredImports[nextImport] = true
-					} else if i.sourcePackage != nextImport.Package {
-						log.Fatal(fmt.Sprintf("not found import for %s", obj.Name()))
 					}
 				}
 				i.prevPkg = nil

@@ -54,7 +54,12 @@ func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
 			}
 			index := 0
 			for ; index < len(pkg.CompiledGoFiles); index++ {
-				if pkg.CompiledGoFiles[index] == target.AbsoluteFilePath {
+				p1, err := filepath.Abs(pkg.CompiledGoFiles[index])
+				checkError(err)
+				p2, err := filepath.Abs(target.AbsoluteFilePath)
+				checkError(err)
+
+				if p1 == p2 {
 					break
 				}
 			}
@@ -71,7 +76,7 @@ func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
 					PackagePath: packagePath,
 				}
 
-				alias := ""
+				var alias string
 				if i.Name.String() != "<nil>" {
 					alias = i.Name.String()
 				}

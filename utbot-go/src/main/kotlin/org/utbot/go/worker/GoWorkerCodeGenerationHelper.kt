@@ -1,9 +1,10 @@
 package org.utbot.go.worker
 
-import org.utbot.go.api.*
+import org.utbot.go.api.GoUtFile
+import org.utbot.go.api.GoUtFunction
+import org.utbot.go.api.util.getAllStructTypes
 import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
-import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
 import java.io.File
@@ -27,30 +28,31 @@ internal object GoWorkerCodeGenerationHelper {
         GoPackage("testing", "testing"),
         GoPackage("time", "time"),
         GoPackage("unsafe", "unsafe")
-    ).map { GoImport(it, "") }.toSet()
+    ).map { GoImport(it) }.toSet()
 
     fun createFileToExecute(
         sourceFile: GoUtFile,
         function: GoUtFunction,
         eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
         port: Int,
-        aliases: Map<GoPackage, String>
+        imports: Set<GoImport>
     ): File {
         val fileToExecuteName = createFileToExecuteName(sourceFile)
         val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
         val fileToExecute = sourceFileDir.resolve(fileToExecuteName)
 
         val fileToExecuteGoCode =
-            generateWorkerTestFileGoCode(function, eachExecutionTimeoutsMillisConfig, port, aliases)
+            generateWorkerTestFileGoCode(function, eachExecutionTimeoutsMillisConfig, port, imports)
         fileToExecute.writeText(fileToExecuteGoCode)
         return fileToExecute
     }
 
     fun createFileWithModifiedFunction(
-        function: GoUtFunction,
-        sourceFileDir: File
+        sourceFile: GoUtFile,
+        function: GoUtFunction
     ): File {
         val fileWithModifiedFunctionName = createFileWithModifiedFunctionName()
+        val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
         val fileWithModifiedFunction = sourceFileDir.resolve(fileWithModifiedFunctionName)
 
         val fileWithModifiedFunctionGoCode = generateFileWithModifiedFunctionGoCode(function)
@@ -70,32 +72,22 @@ internal object GoWorkerCodeGenerationHelper {
         function: GoUtFunction,
         eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
         port: Int,
-        aliases: Map<GoPackage, String>
+        imports: Set<GoImport>
     ): String {
-        fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
-            is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
-                acc + (field.declaringType).getAllStructTypes()
-            }
-
-            is GoArrayTypeId -> elementTypeId!!.getAllStructTypes()
-            else -> emptySet()
-        }
-
-        val structTypes =
-            function.parameters.fold(emptySet()) { acc: Set<GoStructTypeId>, functionParameter: GoUtFunctionParameter ->
-                acc + functionParameter.type.getAllStructTypes()
-            }
-
-        val fileCodeBuilder = GoFileCodeBuilder(
-            function.sourceFile.sourcePackage, alwaysRequiredImports + structTypes.map {
-                GoImport(it.sourcePackage, aliases[it.sourcePackage] ?: "")
-            }
-        )
+        val destinationPackage = function.sourcePackage
+        val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
 
         val workerTestFunctionCode = generateWorkerTestFunctionCode(function, eachExecutionTimeoutsMillisConfig, port)
+
+        val types = function.parameters.map { it.type }
+        val structTypes = types.getAllStructTypes()
+        val aliases = imports.associate { it.goPackage to it.alias }
+
         fileCodeBuilder.addTopLevelElements(
             GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(
-                structTypes, function.sourceFile.sourcePackage, aliases
+                structTypes,
+                destinationPackage,
+                aliases
             ) + workerTestFunctionCode
         )
 
@@ -103,8 +95,12 @@ internal object GoWorkerCodeGenerationHelper {
     }
 
     private fun generateFileWithModifiedFunctionGoCode(function: GoUtFunction): String {
-        val fileCodeBuilder = GoFileCodeBuilder(function.sourcePackage, function.requiredImports.toSet())
-        fileCodeBuilder.addTopLevelElements(listOf(GoCodeTemplates.traces) + function.modifiedFunctionForCollectingTraces)
+        val destinationPackage = function.sourcePackage
+        val imports = function.requiredImports.toSet()
+        val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
+        fileCodeBuilder.addTopLevelElements(
+            listOf(GoCodeTemplates.traces) + function.modifiedFunctionForCollectingTraces
+        )
         return fileCodeBuilder.buildCodeString()
     }
 

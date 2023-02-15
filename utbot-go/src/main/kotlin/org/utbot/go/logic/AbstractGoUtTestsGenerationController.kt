@@ -42,8 +42,7 @@ abstract class AbstractGoUtTestsGenerationController {
 
         testCasesBySourceFiles.forEach { (sourceFile, testCases) ->
             if (!onTestCasesFileCodeGenerationStart(sourceFile, testCases)) return
-            val generatedTestsFileCode =
-                GoTestCasesCodeGenerator.generateTestCasesFileCode(sourceFile, testCases, mapOf())
+            val generatedTestsFileCode = GoTestCasesCodeGenerator.generateTestCasesFileCode(sourceFile, testCases)
             if (!onTestCasesFileCodeGenerationFinished(sourceFile, generatedTestsFileCode)) return
         }
     }

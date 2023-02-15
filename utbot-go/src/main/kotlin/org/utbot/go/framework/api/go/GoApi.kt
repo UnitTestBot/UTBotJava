@@ -14,7 +14,7 @@ abstract class GoTypeId(
     val simpleName: String = name
     abstract val canonicalName: String
 
-    abstract fun getRelativeName(goPackage: GoPackage, alias: String = ""): String
+    abstract fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String
     override fun toString(): String = canonicalName
 }
 
@@ -26,7 +26,7 @@ abstract class GoTypeId(
 abstract class GoUtModel(
     open val typeId: GoTypeId,
 ) {
-    open fun getRequiredPackages(): Set<GoPackage> = emptySet()
+    open fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> = emptySet()
     abstract fun isComparable(): Boolean
 }
 
@@ -37,7 +37,9 @@ class GoUtFieldModel(
     val model: GoUtModel,
     val fieldId: GoFieldId,
 ) : GoUtModel(fieldId.declaringType) {
-    override fun getRequiredPackages(): Set<GoPackage> = model.getRequiredPackages()
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> =
+        model.getRequiredPackages(destinationPackage)
+
     override fun isComparable(): Boolean = model.isComparable()
 }
 
@@ -63,10 +65,10 @@ data class GoPackage(
  */
 data class GoImport(
     val goPackage: GoPackage,
-    val alias: String
+    val alias: String? = null
 ) {
     override fun toString(): String {
-        if (alias == "") {
+        if (alias == null) {
             return "\"${goPackage.packagePath}\""
         }
         return "$alias \"${goPackage.packagePath}\""

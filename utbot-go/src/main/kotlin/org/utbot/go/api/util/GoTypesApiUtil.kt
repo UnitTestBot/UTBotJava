@@ -1,7 +1,6 @@
 package org.utbot.go.api.util
 
 import org.utbot.go.api.*
-import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import kotlin.reflect.KClass
@@ -93,7 +92,7 @@ val GoPrimitiveTypeId.correspondingKClass: KClass<out Any>
         else -> String::class // default way to hold GoUtPrimitiveModel's value is to use String
     }
 
-fun GoTypeId.goDefaultValueModel(destinationPackage: GoPackage): GoUtModel = when (this) {
+fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoPrimitiveTypeId -> when (this) {
         goBoolTypeId -> GoUtPrimitiveModel(false, this)
         goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(
@@ -108,8 +107,8 @@ fun GoTypeId.goDefaultValueModel(destinationPackage: GoPackage): GoUtModel = whe
 
         goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
         goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
-            goFloat64TypeId.goDefaultValueModel(destinationPackage) as GoUtPrimitiveModel,
-            goFloat64TypeId.goDefaultValueModel(destinationPackage) as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
             this
         )
 
@@ -119,7 +118,20 @@ fun GoTypeId.goDefaultValueModel(destinationPackage: GoPackage): GoUtModel = whe
         else -> error("Go primitive ${this.javaClass} is not supported")
     }
 
-    is GoStructTypeId -> GoUtStructModel(listOf(), this, destinationPackage, "")
-    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, destinationPackage)
+    is GoStructTypeId -> GoUtStructModel(listOf(), this)
+    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
     else -> GoUtNilModel(this)
+}
+
+fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
+    is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
+        acc + (field.declaringType).getAllStructTypes()
+    }
+
+    is GoArrayTypeId -> elementTypeId!!.getAllStructTypes()
+    else -> emptySet()
+}
+
+fun List<GoTypeId>.getAllStructTypes(): Set<GoStructTypeId> = this.fold(emptySet()) { acc, type ->
+    acc + type.getAllStructTypes()
 }

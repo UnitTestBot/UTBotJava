@@ -17,9 +17,9 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
         sequence {
             type.let { it as GoStructTypeId }.also { structType ->
                 val function = description.methodUnderTest
-                val packageName = function.getPackageName()
+                val destinationPackage = function.sourcePackage
                 val fields = structType.fields
-                    .filter { structType.packageName == packageName || it.isExported }
+                    .filter { structType.sourcePackage == destinationPackage || it.isExported }
                 yield(Seed.Recursive(
                     construct = Routine.Create(fields.map { it.declaringType }) { values ->
                         GoUtStructModel(
@@ -27,8 +27,6 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
                                 GoUtFieldModel(value, field)
                             },
                             typeId = structType,
-                            destinationPackage = function.sourcePackage,
-                            alias = function.requiredImports.first { it.goPackage == structType.sourcePackage }.alias
                         )
                     },
                     modify = sequence {
@@ -44,8 +42,6 @@ object GoStructValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription>
                         GoUtStructModel(
                             value = emptyList(),
                             typeId = structType,
-                            destinationPackage = function.sourcePackage,
-                            alias = function.requiredImports.first { it.goPackage == structType.sourcePackage }.alias
                         )
                     }
                 ))

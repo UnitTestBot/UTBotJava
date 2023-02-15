@@ -282,8 +282,6 @@ func collectTargetAnalyzedFunctions(
 			analyzedFunction.NumberOfAllStatements = functionModifier.lineCounter
 
 			analyzedFunctions = append(analyzedFunctions, analyzedFunction)
-
-			fmt.Println(analyzedFunction.RequiredImports)
 		}
 	}
 

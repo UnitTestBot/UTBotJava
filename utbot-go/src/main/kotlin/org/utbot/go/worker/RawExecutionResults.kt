@@ -4,7 +4,6 @@ import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
 import org.utbot.go.api.*
 import org.utbot.go.api.util.*
-import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtFieldModel
 import org.utbot.go.framework.api.go.GoUtModel
@@ -120,7 +119,6 @@ private object RawValuesCodes {
 }
 
 fun convertRawExecutionResultToExecutionResult(
-    destinationPackage: GoPackage,
     rawExecutionResult: RawExecutionResult,
     functionResultTypes: List<GoTypeId>,
     timeoutMillis: Long
@@ -160,7 +158,7 @@ fun convertRawExecutionResultToExecutionResult(
             if (resultType.implementsError && rawResultValue != null) {
                 executedWithNonNilErrorString = true
             }
-            createGoUtModelFromRawValue(rawResultValue, resultType, destinationPackage)
+            createGoUtModelFromRawValue(rawResultValue, resultType)
         }
     return if (executedWithNonNilErrorString) {
         GoUtExecutionWithNonNilError(resultValues, rawExecutionResult.trace)
@@ -170,7 +168,7 @@ fun convertRawExecutionResultToExecutionResult(
 }
 
 private fun createGoUtModelFromRawValue(
-    rawValue: RawValue?, typeId: GoTypeId, destinationPackage: GoPackage
+    rawValue: RawValue?, typeId: GoTypeId
 ): GoUtModel = when (typeId) {
     // Only for error interface
     is GoInterfaceTypeId -> if (rawValue == null) {
@@ -179,9 +177,9 @@ private fun createGoUtModelFromRawValue(
         GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
     }
 
-    is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, destinationPackage)
+    is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId)
 
-    is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, destinationPackage)
+    is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId)
 
     is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId)
 
@@ -238,19 +236,19 @@ private fun convertRawFloatValueToGoUtPrimitiveModel(
 }
 
 private fun createGoUtStructModelFromRawValue(
-    resultValue: StructValue, resultTypeId: GoStructTypeId, destinationPackage: GoPackage
+    resultValue: StructValue, resultTypeId: GoStructTypeId
 ): GoUtStructModel {
     val value = resultValue.value.zip(resultTypeId.fields).map { (value, fieldId) ->
-        GoUtFieldModel(createGoUtModelFromRawValue(value.value, fieldId.declaringType, destinationPackage), fieldId)
+        GoUtFieldModel(createGoUtModelFromRawValue(value.value, fieldId.declaringType), fieldId)
     }
-    return GoUtStructModel(value, resultTypeId, destinationPackage, "")
+    return GoUtStructModel(value, resultTypeId)
 }
 
 private fun createGoUtArrayModelFromRawValue(
-    resultValue: ArrayValue, resultTypeId: GoArrayTypeId, destinationPackage: GoPackage
+    resultValue: ArrayValue, resultTypeId: GoArrayTypeId
 ): GoUtArrayModel {
     val value = (0 until resultTypeId.length).associateWith { index ->
-        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, destinationPackage)
+        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!)
     }.toMutableMap()
-    return GoUtArrayModel(value, resultTypeId, destinationPackage)
+    return GoUtArrayModel(value, resultTypeId)
 }

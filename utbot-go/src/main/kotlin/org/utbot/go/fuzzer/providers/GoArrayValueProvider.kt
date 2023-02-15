@@ -21,7 +21,6 @@ object GoArrayValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
                             GoUtArrayModel(
                                 value = hashMapOf(),
                                 typeId = arrayType,
-                                destinationPackage = description.methodUnderTest.sourcePackage
                             )
                         },
                         modify = Routine.ForEach(listOf(arrayType.elementTypeId!!)) { self, i, values ->

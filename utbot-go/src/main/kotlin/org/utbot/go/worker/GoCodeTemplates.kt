@@ -210,8 +210,8 @@ object GoCodeTemplates {
 
     private fun convertStringToReflectType(
         structTypes: Set<GoStructTypeId>,
-        sourcePackage: GoPackage,
-        aliases: Map<GoPackage, String>
+        destinationPackage: GoPackage,
+        aliases: Map<GoPackage, String?>
     ) = """
         func __convertStringToReflectType__(typeName string) (reflect.Type, error) {
         	var result reflect.Type
@@ -282,17 +282,17 @@ object GoCodeTemplates {
                 ${
         structTypes.joinToString(separator = "\n") {
             "case \"${
-                if (it.sourcePackage == sourcePackage || aliases[it.sourcePackage] == ".") {
+                if (it.sourcePackage == destinationPackage || aliases[it.sourcePackage] == ".") {
                     it.simpleName
-                } else if ((aliases[it.sourcePackage] ?: "") == "") {
+                } else if (aliases[it.sourcePackage] == null) {
                     "${it.packageName}.${it.simpleName}"
                 } else {
                     "${aliases[it.sourcePackage]}.${it.simpleName}"
                 }
             }\": result = reflect.TypeOf(${
-                if (it.sourcePackage == sourcePackage || aliases[it.sourcePackage] == ".") {
+                if (it.sourcePackage == destinationPackage || aliases[it.sourcePackage] == ".") {
                     it.simpleName
-                } else if ((aliases[it.sourcePackage] ?: "") == "") {
+                } else if (aliases[it.sourcePackage] == null) {
                     "${it.packageName}.${it.simpleName}"
                 } else {
                     "${aliases[it.sourcePackage]}.${it.simpleName}"
@@ -688,8 +688,8 @@ object GoCodeTemplates {
 
     fun getTopLevelHelperStructsAndFunctionsForWorker(
         structTypes: Set<GoStructTypeId>,
-        goPackage: GoPackage,
-        aliases: Map<GoPackage, String>
+        destinationPackage: GoPackage,
+        aliases: Map<GoPackage, String?>
     ) = listOf(
         rawValueInterface,
         primitiveValueStruct,
@@ -699,7 +699,7 @@ object GoCodeTemplates {
         structValueToReflectValueMethod,
         arrayValueStruct,
         arrayValueToReflectValueMethod,
-        convertStringToReflectType(structTypes, goPackage, aliases),
+        convertStringToReflectType(structTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,
         checkErrorFunction,

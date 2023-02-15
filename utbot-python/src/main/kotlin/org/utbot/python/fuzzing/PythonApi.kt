@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.IdGenerator
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzing.Configuration
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
@@ -35,6 +36,8 @@ import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeRepresentation
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
 
 private val logger = KotlinLogging.logger {}
 
@@ -77,7 +80,7 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     UnionValueProvider,
     BytesValueProvider,
     BytearrayValueProvider,
-    ReduceValueProvider(idGenerator),
+    ReduceValueProvider,
     ConstantValueProvider,
 )
 
@@ -85,6 +88,7 @@ class PythonFuzzing(
     private val pythonTypeStorage: PythonTypeStorage,
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<Type, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
+
     private fun generateDefault(description: PythonMethodDescription, type: Type, idGenerator: IdGenerator<Long>): Sequence<Seed<Type, PythonFuzzedValue>> {
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
         pythonDefaultValueProviders(idGenerator).asSequence().forEach { provider ->
@@ -136,12 +140,19 @@ class PythonFuzzing(
     }
 }
 
-class PythonIdGenerator : IdGenerator<Long> {
-    private var _id: Long = 0
+class PythonIdGenerator(lowerBound: Long = DEFAULT_LOWER_BOUND) : IdentityPreservingIdGenerator<Long> {
+    private val lastId: AtomicLong = AtomicLong(lowerBound)
+    private val cache: IdentityHashMap<Any?, Long> = IdentityHashMap()
 
-    override fun createId(): Long {
-        _id += 1
-        return _id
+    override fun getOrCreateIdForValue(value: Any): Long {
+        return cache.getOrPut(value) { createId() }
     }
 
+    override fun createId(): Long {
+        return lastId.incrementAndGet()
+    }
+
+    companion object {
+        const val DEFAULT_LOWER_BOUND: Long = 1500_000_000
+    }
 }

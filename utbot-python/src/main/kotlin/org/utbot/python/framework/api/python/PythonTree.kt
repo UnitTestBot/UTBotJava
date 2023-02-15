@@ -9,12 +9,18 @@ import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
+
 
 object PythonTree {
     open class PythonTreeNode(
+        val id: Long,
         val type: PythonClassId,
-        var comparable: Boolean = true
+        var comparable: Boolean = true,
     ) {
+        constructor(type: PythonClassId, comparable: Boolean = true) : this(PythonIdGenerator.createId(), type, comparable)
+
         open val children: List<PythonTreeNode> = emptyList()
 
         open fun typeEquals(other: Any?): Boolean {
@@ -40,9 +46,11 @@ object PythonTree {
     }
 
     class PrimitiveNode(
+        id: Long,
         type: PythonClassId,
         val repr: String,
-    ) : PythonTreeNode(type) {
+    ) : PythonTreeNode(id, type) {
+        constructor(type: PythonClassId, repr: String) : this(PythonIdGenerator.getOrCreateIdForValue(repr), type, repr)
         override fun equals(other: Any?): Boolean {
             if (other !is PrimitiveNode) {
                 return false
@@ -58,8 +66,11 @@ object PythonTree {
     }
 
     class ListNode(
+        id: Long,
         val items: MutableMap<Int, PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.list")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.list")) {
+        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.values.toList()
 
@@ -86,8 +97,11 @@ object PythonTree {
     }
 
     class DictNode(
+        id: Long,
         val items: MutableMap<PythonTreeNode, PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.dict")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.dict")) {
+        constructor(items: MutableMap<PythonTreeNode, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.values + items.keys
 
@@ -116,8 +130,11 @@ object PythonTree {
     }
 
     class SetNode(
+        id: Long,
         val items: MutableSet<PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.set")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.set")) {
+        constructor(items: MutableSet<PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.toList()
 
@@ -150,8 +167,11 @@ object PythonTree {
     }
 
     class TupleNode(
+        id: Long,
         val items: MutableMap<Int, PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.tuple")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.tuple")) {
+        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.values.toList()
 
@@ -180,20 +200,19 @@ object PythonTree {
     }
 
     class ReduceNode(
-        val id: Long,
+        id: Long,
         type: PythonClassId,
         val constructor: PythonClassId,
         val args: List<PythonTreeNode>,
         var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
-    ) : PythonTreeNode(type) {
+    ) : PythonTreeNode(id, type) {
         constructor(
-            id: Long,
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ) : this(id, type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
+        ) : this(PythonIdGenerator.createId(), type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)
@@ -310,4 +329,20 @@ object PythonTree {
             else -> null
         }
     }
+}
+
+object PythonIdGenerator {
+    private const val lower_bound: Long = 1500_000_000
+
+    private val lastId: AtomicLong = AtomicLong(lower_bound)
+    private val cache: IdentityHashMap<Any?, Long> = IdentityHashMap()
+
+    fun getOrCreateIdForValue(value: Any): Long {
+        return cache.getOrPut(value) { createId() }
+    }
+
+    fun createId(): Long {
+        return lastId.incrementAndGet()
+    }
+
 }

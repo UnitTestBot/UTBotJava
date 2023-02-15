@@ -6,6 +6,9 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator
+import org.utbot.python.evaluation.serialiation.ExecutionResultDeserializer
+import org.utbot.python.evaluation.serialiation.FailExecution
+import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
@@ -20,19 +23,23 @@ data class EvaluationFiles(
 class PythonCodeExecutorImpl(
     override val method: PythonMethod,
     override val methodArguments: FunctionArguments,
-    override val fuzzedValues: List<FuzzedValue>,
     override val moduleToImport: String,
-    override val additionalModulesToImport: Set<String>,
     override val pythonPath: String,
     override val syspathDirectories: Set<String>,
     override val executionTimeout: Long,
 ) : PythonCodeExecutor {
-    override fun run(): PythonEvaluationResult {
-        val evaluationFiles = generateExecutionCode()
+
+    override fun run(
+        fuzzedValues: List<FuzzedValue>,
+        additionalModulesToImport: Set<String>,
+    ): PythonEvaluationResult {
+        val evaluationFiles = generateExecutionCode(additionalModulesToImport)
         return getEvaluationResult(evaluationFiles)
     }
 
-    private fun generateExecutionCode(): EvaluationFiles {
+    private fun generateExecutionCode(
+        additionalModulesToImport: Set<String>,
+    ): EvaluationFiles {
         val fileForOutput = TemporaryFileManager.assignTemporaryFile(
             tag = "out_" + method.name + ".py",
             addToCleaner = false

@@ -16,13 +16,13 @@ import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
-import org.utbot.python.code.MemoryDump
-import org.utbot.python.code.toPythonTree
 import org.utbot.python.evaluation.PythonCodeExecutor
 import org.utbot.python.evaluation.PythonCodeExecutorImpl
 import org.utbot.python.evaluation.PythonEvaluationError
 import org.utbot.python.evaluation.PythonEvaluationSuccess
 import org.utbot.python.evaluation.PythonEvaluationTimeout
+import org.utbot.python.evaluation.serialiation.MemoryDump
+import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue

@@ -41,7 +41,7 @@ sealed class PythonTypeDescription(name: Name) : TypeMetaDataWithName(name) {
 
 sealed class PythonCompositeTypeDescription(
     name: Name,
-    private val memberDescriptions: List<PythonDefinitionDescription>
+    val memberDescriptions: List<PythonDefinitionDescription>
 ): PythonTypeDescription(name) {
     override fun castToCompatibleTypeApi(type: Type): CompositeType {
         return type as? CompositeType
@@ -133,7 +133,8 @@ class PythonTypeVarDescription(
 class PythonConcreteCompositeTypeDescription(
     name: Name,
     memberDescriptions: List<PythonDefinitionDescription>,
-    val isAbstract: Boolean
+    val isAbstract: Boolean,
+    val isFakeClass: Boolean = false
 ) : PythonCompositeTypeDescription(name, memberDescriptions)
 
 class PythonProtocolDescription(

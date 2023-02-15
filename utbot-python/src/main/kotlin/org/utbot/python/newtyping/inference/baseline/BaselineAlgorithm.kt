@@ -7,7 +7,9 @@ import org.utbot.python.newtyping.ast.visitor.hints.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
 import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
+import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 
@@ -37,40 +39,50 @@ class BaselineAlgorithm(
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
     ) {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
-        val initialState = getInitialState(hintCollectorResult, generalRating)
-        val states: MutableSet<BaselineAlgorithmState> = mutableSetOf(initialState)
+        val initialStates = getInitialStates(hintCollectorResult, generalRating)
+        val states: MutableSet<BaselineAlgorithmState> = initialStates.toMutableSet()
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
+        val checkedSignatures = mutableSetOf(PythonTypeWrapperForEqualityCheck(hintCollectorResult.initialSignature))
 
-        run breaking@ {
+        run breaking@{
             while (states.isNotEmpty()) {
                 if (isCancelled())
                     return@breaking
                 logger.debug("State number: ${states.size}")
-                val state = chooseState(states)
-                val newState = expandState(state, storage)
-                if (newState != null) {
-                    logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
-                    if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
-                        logger.debug("Found new state!")
-                        annotationHandler(newState.signature)
-                        states.add(newState)
-                        /*
-                        when (annotationHandler(newState.signature)) {
-                            SuccessFeedback -> {
-                                states.add(newState)
-                            }
-                            InvalidTypeFeedback -> {}
-                        }
-                        */
-                    }
-                } else {
+                val state = chooseState(states.toList())
+                val expanded = expandState(state, storage)
+                if (expanded == null) {
                     states.remove(state)
+                    continue
+                }
+                val (newStates, newType, fakeClassStorage) = expanded
+                logger.info("Checking ${newType.pythonTypeRepresentation()}")
+                checkedSignatures.add(PythonTypeWrapperForEqualityCheck(newType))
+                if (checkSignature(newType, fileForMypyRuns, configFile, fakeClassStorage)) {
+                    annotationHandler(newType)
+                    /*
+                    when (annotationHandler(newState.signature)) {
+                        SuccessFeedback -> {
+                            states.add(newState)
+                        }
+                        InvalidTypeFeedback -> {}
+                    }
+                    */
+                    state.children += 1
+                    newStates.forEach { newState ->
+                        states.add(newState)
+                    }
                 }
             }
         }
     }
 
-    private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
+    private fun checkSignature(
+        signature: FunctionType,
+        fileForMypyRuns: File,
+        configFile: File,
+        fakeClassStorage: FakeClassStorage
+    ): Boolean {
         pythonMethodCopy.definition = PythonFunctionDefinition(
             pythonMethodCopy.definition.meta,
             signature
@@ -83,22 +95,23 @@ class BaselineAlgorithm(
             fileForMypyRuns,
             pythonPath,
             configFile,
-            initialErrorNumber
+            initialErrorNumber,
+            fakeClassStorage
         )
     }
 
-    // TODO: something smarter?
-    private fun chooseState(states: Set<BaselineAlgorithmState>): BaselineAlgorithmState {
-        return states.random()
+    private fun chooseState(states: List<BaselineAlgorithmState>): BaselineAlgorithmState {
+        val weights = states.map { 1.0 / (it.children * it.children + 1) }
+        return weightedRandom(states, weights)
     }
 
-    private fun getInitialState(
+    private fun getInitialStates(
         hintCollectorResult: HintCollectorResult,
         generalRating: List<Type>
-    ): BaselineAlgorithmState {
+    ): List<BaselineAlgorithmState> {
         val paramNames = pythonMethodCopy.arguments.map { it.name }
         val root = PartialTypeNode(hintCollectorResult.initialSignature, true)
-        val allNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf(root)
+        val allNodes: MutableList<BaselineAlgorithmNode> = mutableListOf(root)
         val argumentRootNodes = paramNames.map { hintCollectorResult.parameterToNode[it]!! }
         argumentRootNodes.forEachIndexed { index, node ->
             val visited: MutableSet<HintCollectorNode> = mutableSetOf()
@@ -113,6 +126,13 @@ class BaselineAlgorithm(
             )
             addEdge(edge)
         }
-        return BaselineAlgorithmState(allNodes, generalRating, storage)
+        return listOf(
+            BaselineAlgorithmState(
+                allNodes,
+                generalRating,
+                storage,
+                FakeClassStorage(),
+                allNodes.mapNotNull { it as? AnyTypeNode })
+        )
     }
 }

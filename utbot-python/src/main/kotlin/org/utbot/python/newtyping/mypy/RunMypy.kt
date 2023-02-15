@@ -3,6 +3,7 @@ package org.utbot.python.newtyping.mypy
 import mu.KotlinLogging
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.runCommand
 import java.io.File
@@ -45,9 +46,11 @@ fun readMypyAnnotationStorageAndInitialErrors(
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
     val mypyExitStatus = if (fileForMypyExitStatus.exists()) fileForMypyExitStatus.readText() else null
     if (result.exitValue != 0 || mypyExitStatus != "0")
-        error("Something went wrong in initial mypy run. " +
-                "\nPython stderr ${result.stderr}" +
-                "\nMypy stderr: $stderr")
+        error(
+            "Something went wrong in initial mypy run. " +
+                    "\nPython stderr ${result.stderr}" +
+                    "\nMypy stderr: $stderr"
+        )
     return Pair(
         readMypyAnnotationStorage(fileForAnnotationStorage.readText()),
         getErrorsAndNotes(fileForMypyStdout.readText())
@@ -74,7 +77,7 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
     val file = TemporaryFileManager.assignTemporaryFile(configFilename)
     val configContent = """
             [mypy]
-            mypy_path = ${directoriesForSysPath.joinToString(separator = ":") { it.modifyWindowsPath() } }
+            mypy_path = ${directoriesForSysPath.joinToString(separator = ":") { it.modifyWindowsPath() }}
             namespace_packages = True
             explicit_package_bases = True
             show_absolute_path = True
@@ -96,13 +99,21 @@ fun checkSuggestedSignatureWithDMypy(
     fileForMypyCode: File,
     pythonPath: String,
     configFile: File,
-    initialErrorNumber: Int
+    initialErrorNumber: Int,
+    fakeClassStorage: FakeClassStorage
 ): Boolean {
     val annotationMap =
         (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
             Pair(it.first, it.second)
         }
-    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
+    val mypyCode = generateMypyCheckCode(
+        method,
+        annotationMap,
+        directoriesForSysPath,
+        moduleToImport,
+        namesInModule,
+        fakeClassStorage
+    )
     // logger.debug(mypyCode)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)

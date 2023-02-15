@@ -65,11 +65,12 @@ fun createPythonConcreteCompositeType(
     numberOfParameters: Int,
     memberDescriptions: List<PythonDefinitionDescription>,
     isAbstract: Boolean,
+    isFakeClass: Boolean = false,
     initialization: (CompositeTypeCreator.Original) -> CompositeTypeCreator.InitializationData
 ): CompositeType =
     CompositeTypeCreator.create(
         numberOfParameters,
-        PythonConcreteCompositeTypeDescription(name, memberDescriptions, isAbstract),
+        PythonConcreteCompositeTypeDescription(name, memberDescriptions, isAbstract, isFakeClass),
         initialization
     )
 

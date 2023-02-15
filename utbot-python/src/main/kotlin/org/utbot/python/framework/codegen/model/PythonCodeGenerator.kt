@@ -38,10 +38,10 @@ import org.utbot.python.framework.codegen.model.tree.CgPythonList
 import org.utbot.python.framework.codegen.model.tree.CgPythonRepr
 import org.utbot.python.framework.codegen.model.tree.CgPythonTree
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonModules
-import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.framework.codegen.toPythonRawString
+import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.getOrigin
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -208,7 +208,8 @@ class PythonCodeGenerator(
         methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
-        namesInModule: Collection<String>
+        namesInModule: Collection<String>,
+        fakeClassStorage: FakeClassStorage
     ): String {
         val cgRendererContext = CgRendererContext.fromCgContext(context)
         val printer = CgPrinterImpl()
@@ -233,13 +234,29 @@ class PythonCodeGenerator(
             "${argument}: ${methodAnnotations[argument]?.pythonTypeRepresentation() ?: pythonAnyType.pythonTypeRepresentation()}"
         }
 
+        val typeVarsGeneration = fakeClassStorage.typeVars.map {
+            val name = (it.meta as PythonTypeVarDescription).name.name
+            "$name = typing.TypeVar(\"$name\")"
+        }
+
+        val renderedFakeClasses = fakeClassStorage.fakeClasses.flatMap {
+            val meta = it.pythonDescription() as PythonConcreteCompositeTypeDescription
+            val typeVarNames = it.parameters.map { it.pythonTypeName() }
+            listOf("class ${meta.name.name}(typing.Generic[${typeVarNames.joinToString(", ")}]):") +
+                    meta.getNamedMembers(it).map { member ->
+                        "    ${member.meta.name}: ${member.type.pythonTypeRepresentation()}"
+                    } + listOf("")
+        }
+
         val functionPrefix = "__mypy_check"
         val functionName =
             "def ${functionPrefix}_${method.name}(${parameters.joinToString(", ")}):"  // TODO: in future can be "async def"
 
         val mypyCheckCode = listOf(
             renderer.toString(),
+            typeVarsGeneration.joinToString("\n"),
             "",
+            renderedFakeClasses.joinToString("\n"),
             functionName,
         ) + method.codeAsString.split("\n").map { "    $it" }
         return mypyCheckCode.joinToString("\n")

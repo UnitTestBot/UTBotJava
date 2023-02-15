@@ -8,6 +8,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
 
 
 object PythonCodeGenerator {
@@ -45,7 +46,8 @@ object PythonCodeGenerator {
         methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
-        namesInModule: Collection<String>
+        namesInModule: Collection<String>,
+        fakeClassStorage: FakeClassStorage
     ): String {
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {
@@ -60,7 +62,8 @@ object PythonCodeGenerator {
                 methodAnnotations,
                 directoriesForSysPath,
                 moduleToImport,
-                namesInModule
+                namesInModule,
+                fakeClassStorage
             )
         }
     }

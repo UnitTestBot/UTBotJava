@@ -18,7 +18,8 @@ sealed class PythonDefinitionDescription(val name: String)
 class PythonVariableDescription(
     name: String,
     val isProperty: Boolean = false,
-    val isSelf: Boolean = false
+    val isSelf: Boolean = false,
+    val isInitializedInClass: Boolean = false
 ): PythonDefinitionDescription(name)
 
 sealed class PythonFunctionDescription(name: String): PythonDefinitionDescription(name)

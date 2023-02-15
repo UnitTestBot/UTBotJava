@@ -6,7 +6,7 @@ import org.utbot.python.newtyping.inference.addEdge
 
 data class DecompositionResult(
     val root: BaselineAlgorithmNode,
-    val nodes: Set<BaselineAlgorithmNode>
+    val nodes: List<BaselineAlgorithmNode>
 )
 
 fun decompose(
@@ -22,9 +22,9 @@ fun decompose(
             upperBounds.filter { !typesAreEqual(it, pythonAnyType) },
             level
         )
-        return DecompositionResult(root, setOf(root))
+        return DecompositionResult(root, listOf(root))
     }
-    val newNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf()
+    val newNodes: MutableList<BaselineAlgorithmNode> = mutableListOf()
     val root = PartialTypeNode(partialType, false)
     newNodes.add(root)
     val children = partialType.pythonAnnotationParameters()

@@ -5,6 +5,7 @@ import org.utbot.python.newtyping.ast.visitor.hints.HintEdge
 import org.utbot.python.newtyping.ast.visitor.hints.HintEdgeWithBound
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonAnyType
+import org.utbot.python.newtyping.typesAreEqual
 
 fun visitNodesByReverseEdges(
     node: HintCollectorNode,
@@ -24,7 +25,7 @@ fun collectBoundsFromEdges(node: HintCollectorNode): Pair<List<Type>, List<Type>
     node.ingoingEdges.forEach { edge ->
         if (edge !is HintEdgeWithBound)
             return@forEach
-        val hints = edge.dependency(pythonAnyType)
+        val hints = edge.dependency(edge.from.partialType)
         when (edge.boundType) {
             TypeInferenceEdgeWithBound.BoundType.Lower -> lowerBounds.addAll(hints)
             TypeInferenceEdgeWithBound.BoundType.Upper -> upperBounds.addAll(hints)

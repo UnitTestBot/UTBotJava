@@ -1,33 +1,62 @@
 package org.utbot.python.newtyping.inference.baseline
 
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.CompositeType
+import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
+import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.addEdge
-import org.utbot.python.newtyping.pythonAnnotationParameters
-import org.utbot.python.newtyping.pythonDescription
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
+import org.utbot.python.newtyping.inference.constructors.constructFakeClass
+import org.utbot.python.newtyping.inference.constructors.fakeClassCanBeConstructed
 import java.util.LinkedList
 import java.util.Queue
 
-fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): BaselineAlgorithmState? {
+data class ExpansionResult(
+    val newStates: List<BaselineAlgorithmState>,
+    val newType: FunctionType,
+    val fakeClassStorage: FakeClassStorage
+)
+
+fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): ExpansionResult? {
     if (state.anyNodes.isEmpty())
         return null
     val types = state.candidateGraph.getNext() ?: return null
-    val substitution = (state.anyNodes zip types).associate { it }
-    return expandNodes(state, substitution, state.generalRating, typeStorage)
+    val fakeClassStorage = state.fakeClassStorage.copy()
+    val modifiedTypes = types.map {
+        val description = it.pythonDescription()
+        if (fakeClassCanBeConstructed(
+                it,
+                typeStorage
+            ) && it is CompositeType && description is PythonConcreteCompositeTypeDescription
+        ) {
+            val newClass = constructFakeClass(it, description, fakeClassStorage)
+            DefaultSubstitutionProvider.substituteAll(newClass, newClass.parameters.map { pythonAnyType })
+        } else
+            it
+    }
+    val substitution = (state.anyNodes zip modifiedTypes).associate { it }
+    return expandNodes(state, substitution, state.generalRating, typeStorage, fakeClassStorage)
 }
 
 private fun expandNodes(
     state: BaselineAlgorithmState,
     substitution: Map<AnyTypeNode, Type>,
     generalRating: List<Type>,
-    storage: PythonTypeStorage
-): BaselineAlgorithmState {
-    val (newAnyNodeMap, allNewNodes) = substitution.entries.fold(
-        Pair(emptyMap<AnyTypeNode, BaselineAlgorithmNode>(), emptySet<BaselineAlgorithmNode>())
-    ) { (map, allNodeSet), (node, newType) ->
+    storage: PythonTypeStorage,
+    fakeClassStorage: FakeClassStorage
+): ExpansionResult {
+    val newAnyNodeMap: MutableMap<AnyTypeNode, BaselineAlgorithmNode> = mutableMapOf()
+    val allNewNodes: MutableSet<BaselineAlgorithmNode> = mutableSetOf()
+    val anyNodeChunks: MutableList<List<AnyTypeNode>> = mutableListOf()
+    substitution.entries.forEach { (node, newType) ->
         val (newNodeForAny, additionalNodes) =
             decompose(newType, node.lowerBounds, node.upperBounds, node.nestedLevel, storage)
-        Pair(map + (node to newNodeForAny), allNodeSet + additionalNodes)
+        newAnyNodeMap[node] = newNodeForAny
+        allNewNodes.addAll(additionalNodes)
+        anyNodeChunks.add(
+            additionalNodes.mapNotNull { it as? AnyTypeNode }
+        )
     }
     val newNodeMap = expansionBFS(substitution, newAnyNodeMap).toMutableMap()
     state.nodes.forEach { cur -> newNodeMap[cur] = newNodeMap[cur] ?: cur.copy() }
@@ -42,7 +71,12 @@ private fun expandNodes(
             addEdge(newEdge)
         }
     }
-    return BaselineAlgorithmState(newNodeMap.values.toSet() + allNewNodes, generalRating, storage)
+    val allNodes = newNodeMap.values + allNewNodes
+    val chunks = anyNodeChunks.map {
+        BaselineAlgorithmState(allNodes, generalRating, storage, fakeClassStorage, it)
+    }
+    val type = chunks.first().signature
+    return ExpansionResult(chunks, type as FunctionType, fakeClassStorage)
 }
 
 private fun expansionBFS(

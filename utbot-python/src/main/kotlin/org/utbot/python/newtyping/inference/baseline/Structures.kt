@@ -4,6 +4,7 @@ import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithValue
 import org.utbot.python.newtyping.inference.TypeInferenceNode
+import org.utbot.python.newtyping.inference.constructors.FakeClassStorage
 import org.utbot.python.newtyping.pythonAnyType
 
 sealed class BaselineAlgorithmNode(val isRoot: Boolean) : TypeInferenceNode {
@@ -29,12 +30,14 @@ class BaselineAlgorithmEdge(
 ) : TypeInferenceEdgeWithValue
 
 class BaselineAlgorithmState(
-    val nodes: Set<BaselineAlgorithmNode>,
+    val nodes: List<BaselineAlgorithmNode>,
     val generalRating: List<Type>,
-    typeStorage: PythonTypeStorage
+    typeStorage: PythonTypeStorage,
+    val fakeClassStorage: FakeClassStorage,
+    val anyNodes: List<AnyTypeNode>
 ) {
     val signature: Type
         get() = nodes.find { it.isRoot }!!.partialType
-    val anyNodes: List<AnyTypeNode> = nodes.mapNotNull { it as? AnyTypeNode }
     val candidateGraph = CandidateGraph(anyNodes, generalRating, typeStorage)
+    var children: Int = 0
 }

@@ -1,55 +1,97 @@
-# Result & Error Handling API of the Instrumented Process
+# Instrumented process API: handling errors and results
 
-## Terminology
+In UnitTestBot Java, there are three processes:
+* IDE process
+* Engine process
+* Instrumented process
 
-- The _instrumented process_ is an external process used for the isolated invocation.
-- The `ConcreteExecutor` is a class which provides smooth and concise interaction with the _instrumented process_. It works in the _main process_.
-- A client is an object which directly uses the `ConcreteExecutor`, so it works in the _main process_ as well.
-- An _Instrumentation_ is an object which has to be passed to the `ConcreteExecutor`. It defines the logic of invocation and bytecode instrumentation in the _instrumented process_.
+The IDE process launches the plugin so a user can request test generation.
+Upon the user request, the Engine process is initiated — it is responsible for the input values generation.
 
-## Common
+Here, in the Engine process, there is a `ConcreteExecutor` class,
+conveying the generated input values to the `InstrumentedProcess` class.
+The `InstrumentedProcess` class creates the third physical process —
+the Instrumented process that runs the user functions concretely with the provided input values
+and returns the execution result.
 
-Basically, if any exception happens inside the _instrumented process_, it is rethrown to the client process via RD.
-- Errors which do not cause the termination of the _instrumented process_ are wrapped in `InstrumentedProcessError`. Process won't be restarted, so client's requests will be handled by the same process. We believe, that the state of the _instrumented process_ is consistent, but in some tricky situations it **may be not**. Such situations should be reported as bugs.
-- Some of the errors lead to the instant death of the _instrumented process_. Such errors are wrapped in `InstrumentedProcessDeathException`. Before processing the next request, the _instrumented process_ will be restarted automatically, but it can take some time.
+A _client_ is an object that uses the `ConcreteExecutor` directly — it works in the Engine process as well.
 
-The extra logic of error and result handling depends on the provided instrumentation.
+`ConcreteExecutor` expects an `Instrumentation` object, which is responsible for, say, mocking static methods. In UnitTestBot Java, `UtExecutionInstrumentation` is one of the possible `Instrumentation` interface implementations.
 
-## UtExecutionInstrumentation
+Basically, if an exception occurs in the Instrumented process,
+it is rethrown to the client object in the Engine process via Rd.
 
-The next sections are related only to the `UtExecutionInstrumentation` passed to the _instrumented process_.
+The logic of handling errors and results depends on the provided instrumentation,
+e.g., `UtExecutionInstrumentation` in our case.
 
-The calling of `ConcreteExecutor::executeAsync` instantiated by the `UtExecutionInstrumentation`  can lead to the three possible situations:
-- `InstrumentedProcessDeathException` occurs. Usually, this situation means there is an internal issue in the _instrumented process_, but, nevertheless, this exception should be handled by the client. 
-- `InstrumentedProcessError`  occurs. It also means an internal issue and should be handled by the client. Sometimes it happens because the client provided the wrong configuration or parameters, but the _instrumented process_ **can't determine exactly** what's wrong with the client's data. The cause contains the description of the phase which threw the exception.
-- No exception occurs, so the `UtConcreteExecutionResult` is returned. It means that everything went well during the invocation or something broke down because of the wrong input, and the _instrumented process_ **knows exactly** what's wrong with the client's input. The _instrumented process_ guarantees that the state **is consistent**. The exact reason of failure is a `UtConcreteExecutionResult::result` field. It includes:
-	- `UtSandboxFailure` --- violation of permissions.
-	- `UtTimeoutException` --- the test execution time exceeds the provided time limit (`UtConcreteExecutionData::timeout`).
-	- `UtExecutionSuccess` --- the test executed successfully.
-	- `UtExplicitlyThrownException` --- the target method threw exception explicitly (via `throw` instruction).
-	- `UtImplicitlyThrownException` --- the target method threw exception implicitly (`NPE`, `OOB`, etc. or it was thrown inside the system library)
-	- etc.
+## Concrete execution outcomes
 
-### How the error handling works
+When `ConcreteExecutor` is parameterized with `UtExecutionInstrumentation`
+and the `ConcreteExecutor::executeAsync` is called, it leads to one of the three possible outcomes:
 
-The pipeline of the `UtExecutionInstrumentation::invoke` consists of 6 phases:
--  `ValueConstructionPhase` --- constructs values from the models.
-- `PreparationPhase` --- prepares statics, etc.
-- `InvocationPhase` --- invokes the target method.
-- `StatisticsCollectionPhase` --- collects the coverage and execution-related data.
-- `ModelConstructionPhase` --- constructs the result models from the heap objects (`Any?`).
-- `PostprocessingPhase` --- restores statics, clear mocks, etc.
+* `InstrumentedProcessDeathException`
+
+Some errors lead to the instant termination of the Instrumented process.
+  Such errors are wrapped in `InstrumentedProcessDeathException`.
+  Prior to processing the next request, the Instrumented process is restarted automatically, though it can take time.
+`InstrumentedProcessDeathException` means that there is an Instrumented process internal issue.
+Nonetheless, this exception is handled in the Engine process.
+
+* `InstrumentedProcessError`
+
+Errors that do not cause the Instrumented process termination are wrapped in `InstrumentedProcessError`.
+  The process is not restarted, so client's requests will be handled by the same process.
+  We believe that the Instrumented process state is consistent but in some tricky situations it _may be not_.
+  These situations should be reported as bugs.
+`InstrumentedProcessError` also means
+that there is an Instrumented process internal issue that should be handled by the client object
+(in the Engine process).
+The issue may occur because the client provides the wrong configuration or parameters,
+but the Instrumented process cannot exactly determine what's wrong with the client's data:
+one can find a description of the phase the exception has been thrown from.
+
+* `UtConcreteExecutionResult`
+
+If the Instrumented process performs well or fails because of the known wrong input,
+the `UtConcreteExecutionResult` becomes relevant.
+The Instrumented process guarantees that the state is _consistent_.
+A `UtConcreteExecutionResult::result` field helps to find the exact reason for a failure:
+* `UtSandboxFailure` — permission violation;
+* `UtTimeoutException` — test execution time exceeds the provided time limit (`UtConcreteExecutionData::timeout`);
+* `UtExecutionSuccess` — successful test execution;
+* `UtExplicitlyThrownException` — explicitly thrown exception for a target method (via `throw` instruction);
+* `UtImplicitlyThrownException` — implicitly thrown exception for a target method (`NPE`, `OOB`, etc., or an exception thrown inside the system library).
+
+## Error handling implementation
+
+The pipeline of `UtExecutionInstrumentation::invoke` includes 6 phases:
+1. `ValueConstructionPhase` — constructs values from the models;
+2. `PreparationPhase` — prepares statics, etc.;
+3. `InvocationPhase` — invokes the target method;
+4. `StatisticsCollectionPhase` — collects coverage and execution-related data;
+5. `ModelConstructionPhase` — constructs the result models from the heap objects (`Any?`);
+6. `PostprocessingPhase` — restores statics, clears mocks, etc.
 
 Each phase can throw two kinds of exceptions:
-- `ExecutionPhaseStop` --- indicates that the phase want to stop the invocation of the pipeline completely, because it's already has a result. The returned result is the `ExecutionPhaseStop::result` field.
-- `ExecutionPhaseError` --- indicates that an unexpected error happened inside the phase execution, so it's rethrown to the main process.
+- `ExecutionPhaseStop` — indicates that the phase tries to stop the invocation pipeline completely because it already has a result. The returned result is the `ExecutionPhaseStop::result` field.
+- `ExecutionPhaseError` — indicates that an unexpected error has occurred during the phase execution, and this error is rethrown to the Engine process.
 
-The `PhasesController::computeConcreteExecutionResult` then matches on the exception type and rethrows the exception if it's an `ExecutionPhaseError`, and returns the result if it's an `ExecutionPhaseStop`.
+`PhasesController::computeConcreteExecutionResult` then matches on the exception type:
+* it rethrows the exception if the type is `ExecutionPhaseError`,
+* it returns the result if type is `ExecutionPhaseStop`.
 
-###   Timeout
+## Timeout
 
-There is a time limit on the concrete execution, so the  `UtExecutionInstrumentation::invoke` method must respect it. We wrap phases which can take a long time with the `executePhaseInTimeout` block, which internally keeps and updates the elapsed time. If any wrapped phase exceeds the timeout, we return the `TimeoutException` as the result of that phase.
+Concrete execution is limited in time: the  `UtExecutionInstrumentation::invoke` method is subject to timeout as well. 
 
-The clients cannot depend that cancellation request immediately breaks the invocation inside the _instrumented process_. The invocation is guaranteed to finish in the time of passed timeout. It may or **may not** finish earlier. Already started query in instrumented process is **uncancellable** - this is by design.
+We wrap the phases that can take a long time with the `executePhaseInTimeout` block.
+This block tracks the elapsed time.
+If a phase wrapped with this block exceeds the timeout, it returns `TimeoutException`.
 
-Even if the `TimeoutException` occurs, the _instrumented process_ is ready to process new requests.  
+One cannot be sure
+that the cancellation request immediately breaks the invocation pipeline inside the Instrumented process.
+Invocation is guaranteed to finish within timeout.
+It may or _may not_ finish earlier.
+The request that has been sent to the Instrumented process is _uncancellable_ by design.
+
+Even if the `TimeoutException` occurs, the Instrumented process is ready to process the new requests.

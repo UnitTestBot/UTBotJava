@@ -519,6 +519,7 @@ open class CgVariableConstructor(val context: CgContext) :
      * Both cases are considered here.
      * If the variable is [Object], we use reflection method to set an element.
      * Otherwise, we set an element directly.
+     *
      */
     private fun CgVariable.setArrayElement(index: Any, value: CgValue) {
         val i = index.resolve()
@@ -538,5 +539,4 @@ open class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun String.toVarName(): String = nameGenerator.variableName(this)
-
 }

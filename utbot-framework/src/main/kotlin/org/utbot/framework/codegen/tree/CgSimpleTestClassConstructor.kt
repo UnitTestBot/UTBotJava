@@ -22,7 +22,6 @@ import org.utbot.framework.codegen.domain.models.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.domain.models.CgUtilEntity
 import org.utbot.framework.codegen.domain.models.CgUtilMethod
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
-import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.renderer.importUtilMethodDependencies
 import org.utbot.framework.codegen.reports.TestsGenerationReport
 import org.utbot.framework.codegen.tree.CgComponents.clearContextRelatedStorage

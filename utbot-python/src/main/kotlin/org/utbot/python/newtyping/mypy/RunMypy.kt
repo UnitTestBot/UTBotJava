@@ -19,29 +19,30 @@ fun readMypyAnnotationStorageAndInitialErrors(
     val fileForMypyStdout = TemporaryFileManager.assignTemporaryFile(tag = "mypy.out")
     val fileForMypyStderr = TemporaryFileManager.assignTemporaryFile(tag = "mypy.err")
     val fileForMypyExitStatus = TemporaryFileManager.assignTemporaryFile(tag = "mypy.exit")
-    val result = runCommand(
-        listOf(
-            pythonPath,
-            "-m",
-            "utbot_mypy_runner",
-            "--config",
-            configFile.absolutePath,
-            "--sources",
-            sourcePath.modifyWindowsPath(),
-            "--modules",
-            module,
-            "--annotations_out",
-            fileForAnnotationStorage.absolutePath,
-            "--mypy_stdout",
-            fileForMypyStdout.absolutePath,
-            "--mypy_stderr",
-            fileForMypyStderr.absolutePath,
-            "--mypy_exit_status",
-            fileForMypyExitStatus.absolutePath,
-            "--module_for_types",
-            module
-        )
+    val cmd = listOf(
+        pythonPath,
+        "-m",
+        "utbot_mypy_runner",
+        "--config",
+        configFile.absolutePath,
+        "--sources",
+        sourcePath.modifyWindowsPath(),
+        "--modules",
+        module,
+        "--annotations_out",
+        fileForAnnotationStorage.absolutePath,
+        "--mypy_stdout",
+        fileForMypyStdout.absolutePath,
+        "--mypy_stderr",
+        fileForMypyStderr.absolutePath,
+        "--mypy_exit_status",
+        fileForMypyExitStatus.absolutePath,
+        "--module_for_types",
+        module
     )
+    logger.info("Config file content: ${configFile.readText()}")
+    logger.info("Mypy cmd: ${cmd.joinToString(" ")}")
+    val result = runCommand(cmd)
     val stderr = if (fileForMypyStderr.exists()) fileForMypyStderr.readText() else null
     val mypyExitStatus = if (fileForMypyExitStatus.exists()) fileForMypyExitStatus.readText() else null
     if (result.exitValue != 0 || mypyExitStatus != "0")

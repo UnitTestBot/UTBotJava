@@ -1,14 +1,8 @@
-package org.utbot.python.evaluation
+package org.utbot.python.evaluation.serialiation
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.python.code.DictMemoryObject
-import org.utbot.python.code.ListMemoryObject
-import org.utbot.python.code.MemoryDump
-import org.utbot.python.code.MemoryObject
-import org.utbot.python.code.ReduceMemoryObject
-import org.utbot.python.code.ReprMemoryObject
 
 object ExecutionResultDeserializer {
     private val moshi = Moshi.Builder()

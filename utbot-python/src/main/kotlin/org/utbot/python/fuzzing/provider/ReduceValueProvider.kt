@@ -1,6 +1,5 @@
 package org.utbot.python.fuzzing.provider
 
-import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
@@ -12,9 +11,7 @@ import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 
-class ReduceValueProvider(
-    private val idGenerator: IdGenerator<Long>
-) : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
+object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDescription> {
     private val unsupportedTypes = listOf(
         "builtins.list",
         "builtins.set",
@@ -72,7 +69,6 @@ class ReduceValueProvider(
             construct = Routine.Create(nonSelfArgs) { v ->
                 PythonFuzzedValue(
                     PythonTree.ReduceNode(
-                        idGenerator.createId(),
                         PythonClassId(type.pythonTypeName()),
                         PythonClassId(type.pythonTypeName()),
                         v.map { it.tree },

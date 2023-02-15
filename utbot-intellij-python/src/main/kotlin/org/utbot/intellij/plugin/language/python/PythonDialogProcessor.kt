@@ -318,7 +318,11 @@ fun getDirectoriesForSysPath(
             if (element != null) {
                 val directory = element.parent
                 if (directory is PsiDirectory) {
-                    importedPaths.add(directory.virtualFile)
+                    // If we have `import a.b.c` we need to add syspath to module `a` only
+                    val additionalLevel = importTarget.importedQName?.componentCount?.dec()?.dec() ?: 0
+                    directory.topParent(additionalLevel)?.let { dir ->
+                        importedPaths.add(dir.virtualFile)
+                    }
                 }
             }
         }
@@ -329,7 +333,11 @@ fun getDirectoriesForSysPath(
         importTarget.resolveImportSourceCandidates().forEach {
             val directory = it.parent
             if (directory is PsiDirectory ) {
-                importedPaths.add(directory.virtualFile)
+                // If we have `from a.b.c import d` we need to add syspath to module `a` only
+                val additionalLevel = importTarget.importSourceQName?.componentCount?.dec()?.dec() ?: 0
+                directory.topParent(additionalLevel)?.let { dir ->
+                    importedPaths.add(dir.virtualFile)
+                }
             }
         }
     }

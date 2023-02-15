@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import org.utbot.python.utils.RequirementsUtils
 import kotlin.random.Random
@@ -37,4 +38,12 @@ fun VirtualFile.isProjectSubmodule(ancestor: VirtualFile?): Boolean {
 
 fun checkModuleIsInstalled(pythonPath: String, moduleName: String): Boolean {
     return RequirementsUtils.requirementsAreInstalled(pythonPath, listOf(moduleName))
+}
+
+fun PsiDirectory.topParent(level: Int): PsiDirectory? {
+    var directory: PsiDirectory? = this
+    repeat(level) {
+        directory = directory?.parent
+    }
+    return directory
 }

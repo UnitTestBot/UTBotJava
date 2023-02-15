@@ -68,7 +68,6 @@ import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 /**
  * Constructs CgValue or CgVariable given a UtModel
  */
-@Suppress("unused")
 open class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
@@ -204,7 +203,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
         val instantiationCall = model.instantiationCall
         processInstantiationStatement(model, instantiationCall, baseName)
 
@@ -391,11 +390,13 @@ open class CgVariableConstructor(val context: CgContext) :
         return array
     }
 
-    // TODO: cannot be used now but will be useful in case of storing stores in generated code
     /**
      * Splits sorted by indices pairs of index and value from stores to continuous by index chunks
      * [indexedValuesFromStores] have to be sorted by key
+     *
+     * Сan not be used now but will be useful in case of storing stores in generated code
      */
+    @Suppress("unused")
     private fun splitSettingFromStoresToForLoops(
         array: CgVariable,
         indexedValuesFromStores: List<MutableMap.MutableEntry<Int, UtModel>>
@@ -499,7 +500,6 @@ open class CgVariableConstructor(val context: CgContext) :
     /**
      * Create loop initializer expression
      */
-    @Suppress("SameParameterValue")
     internal fun loopInitialization(
         variableType: ClassId,
         baseVariableName: String,
@@ -536,9 +536,6 @@ open class CgVariableConstructor(val context: CgContext) :
             this.at(i) `=` arrayElement
         }
     }
-
-    internal fun constructVarName(baseName: String, isMock: Boolean = false): String =
-        nameGenerator.variableName(baseName, isMock)
 
     private fun String.toVarName(): String = nameGenerator.variableName(this)
 

@@ -66,8 +66,9 @@ class CgClassBodyBuilder(val classId: ClassId) : CgBuilder<CgClassBody> {
     val methodRegions: MutableList<CgMethodsCluster> = mutableListOf()
     val staticDeclarationRegions: MutableList<CgStaticsRegion> = mutableListOf()
     val nestedClassRegions: MutableList<CgNestedClassesRegion<*>> = mutableListOf()
+    val fields: MutableList<CgDeclaration> = mutableListOf()
 
-    override fun build() = CgClassBody(classId, methodRegions, staticDeclarationRegions, nestedClassRegions)
+    override fun build() = CgClassBody(classId, methodRegions, staticDeclarationRegions, nestedClassRegions, fields)
 }
 
 fun buildClassBody(classId: ClassId, init: CgClassBodyBuilder.() -> Unit) = CgClassBodyBuilder(classId).apply(init).build()

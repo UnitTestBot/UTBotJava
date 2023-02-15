@@ -154,7 +154,9 @@ class CgClassBody(
     val classId: ClassId,
     val methodRegions: List<CgMethodsCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
-    val nestedClassRegions: List<CgNestedClassesRegion<*>>
+    val nestedClassRegions: List<CgNestedClassesRegion<*>>,
+    //TODO: use [CgFieldDeclaration] after PR-1788 merge
+    val fields: List<CgDeclaration> = emptyList(),
 ) : CgElement
 
 /**

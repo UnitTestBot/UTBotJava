@@ -1,16 +1,16 @@
 package org.utbot.go.api
 
 import org.utbot.go.framework.api.go.GoFieldId
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 
 /**
  * Represents real Go primitive type.
  */
 class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
-    override val packageName: String = ""
     override val canonicalName: String = simpleName
 
-    override fun getRelativeName(packageName: String): String = simpleName
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = simpleName
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -25,16 +25,22 @@ class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
 class GoStructTypeId(
     name: String,
     implementsError: Boolean,
-    override val packageName: String,
-    val packagePath: String,
+    override val sourcePackage: GoPackage,
     val fields: List<GoFieldId>,
 ) : GoTypeId(name, implementsError = implementsError) {
-    override val canonicalName: String = "$packageName.$name"
+    val packageName: String = sourcePackage.packageName
+    val packagePath: String = sourcePackage.packagePath
+    override val canonicalName: String = "${sourcePackage.packageName}.$name"
 
-    override fun getRelativeName(packageName: String): String = if (this.packageName != packageName) {
-        canonicalName
-    } else {
-        simpleName
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
+        val alias = aliases[sourcePackage]
+        return if (sourcePackage == destinationPackage || alias == ".") {
+            simpleName
+        } else if (alias == null) {
+            "${packageName}.${simpleName}"
+        } else {
+            "${alias}.${simpleName}"
+        }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -53,14 +59,12 @@ class GoStructTypeId(
 }
 
 class GoArrayTypeId(
-    name: String,
-    elementTypeId: GoTypeId,
-    val length: Int
+    name: String, elementTypeId: GoTypeId, val length: Int
 ) : GoTypeId(name, elementTypeId = elementTypeId) {
     override val canonicalName: String = "[$length]${elementTypeId.canonicalName}"
 
-    override fun getRelativeName(packageName: String): String =
-        "[$length]${elementTypeId!!.getRelativeName(packageName)}"
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String =
+        "[$length]${elementTypeId!!.getRelativeName(destinationPackage, aliases)}"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -75,19 +79,25 @@ class GoArrayTypeId(
 class GoInterfaceTypeId(
     name: String,
     implementsError: Boolean,
-    override val packageName: String,
-    val packagePath: String,
+    override val sourcePackage: GoPackage,
 ) : GoTypeId(name, implementsError = implementsError) {
+    val packageName: String = sourcePackage.packageName
+    val packagePath: String = sourcePackage.packagePath
     override val canonicalName: String = if (packageName != "") {
         "$packageName.$name"
     } else {
         simpleName
     }
 
-    override fun getRelativeName(packageName: String): String = if (this.packageName != packageName) {
-        canonicalName
-    } else {
-        simpleName
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String {
+        val alias = aliases[sourcePackage]
+        return if (sourcePackage == destinationPackage || alias == ".") {
+            simpleName
+        } else if (alias == null) {
+            "${packageName}.${simpleName}"
+        } else {
+            "${alias}.${simpleName}"
+        }
     }
 
     override fun equals(other: Any?): Boolean {

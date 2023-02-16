@@ -6,12 +6,11 @@ import (
 	"strconv"
 )
 
-type Visitor struct {
-	counter         int
-	newFunctionName string
+type FunctionModifier struct {
+	lineCounter int
 }
 
-func (v *Visitor) Visit(node ast.Node) ast.Visitor {
+func (v *FunctionModifier) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
 	case *ast.BlockStmt:
 		if n == nil {
@@ -103,7 +102,7 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
 
-func (v *Visitor) addLinesWithLoggingInTraceBeforeFirstReturnStatement(stmts []ast.Stmt) []ast.Stmt {
+func (v *FunctionModifier) addLinesWithLoggingInTraceBeforeFirstReturnStatement(stmts []ast.Stmt) []ast.Stmt {
 	if len(stmts) == 0 {
 		return []ast.Stmt{v.newLineWithLoggingInTrace()}
 	}
@@ -120,8 +119,8 @@ func (v *Visitor) addLinesWithLoggingInTraceBeforeFirstReturnStatement(stmts []a
 	return newList
 }
 
-func (v *Visitor) newLineWithLoggingInTrace() ast.Stmt {
-	v.counter++
+func (v *FunctionModifier) newLineWithLoggingInTrace() ast.Stmt {
+	v.lineCounter++
 
 	traces := ast.NewIdent("__traces__")
 	return &ast.AssignStmt{
@@ -130,12 +129,8 @@ func (v *Visitor) newLineWithLoggingInTrace() ast.Stmt {
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
 				Fun:  ast.NewIdent("append"),
-				Args: []ast.Expr{traces, ast.NewIdent(strconv.Itoa(v.counter))},
+				Args: []ast.Expr{traces, ast.NewIdent(strconv.Itoa(v.lineCounter))},
 			},
 		},
 	}
-}
-
-func createNewFunctionName(funcName string) string {
-	return "__" + funcName + "__"
 }

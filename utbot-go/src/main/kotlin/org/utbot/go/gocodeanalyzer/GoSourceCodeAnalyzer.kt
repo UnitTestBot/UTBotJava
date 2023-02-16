@@ -65,7 +65,7 @@ object GoSourceCodeAnalyzer {
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
             GoPrimitivesValueProvider.intSize = analysisResults.intSize
             return analysisResults.results.map { analysisResult ->
-                GoUtFile(analysisResult.absoluteFilePath, analysisResult.packageName) to analysisResult
+                GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
                     val parameters = analyzedFunction.parameters.map { analyzedFunctionParameter ->
@@ -80,6 +80,7 @@ object GoSourceCodeAnalyzer {
                         analyzedFunction.modifiedName,
                         parameters,
                         resultTypes,
+                        analyzedFunction.requiredImports,
                         analyzedFunction.modifiedFunctionForCollectingTraces,
                         analyzedFunction.numberOfAllStatements,
                         sourceFile
@@ -115,7 +116,14 @@ object GoSourceCodeAnalyzer {
     }
 
     private fun getGoCodeAnalyzerSourceFilesNames(): List<String> {
-        return listOf("main.go", "analyzer_core.go", "analysis_targets.go", "analysis_results.go", "cover.go")
+        return listOf(
+            "main.go",
+            "analyzer_core.go",
+            "analysis_targets.go",
+            "analysis_results.go",
+            "function_modifier.go",
+            "imports_collector.go"
+        )
     }
 
     private fun createAnalysisTargetsFileName(): String {

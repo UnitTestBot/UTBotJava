@@ -92,7 +92,7 @@ val GoPrimitiveTypeId.correspondingKClass: KClass<out Any>
         else -> String::class // default way to hold GoUtPrimitiveModel's value is to use String
     }
 
-fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
+fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     is GoPrimitiveTypeId -> when (this) {
         goBoolTypeId -> GoUtPrimitiveModel(false, this)
         goRuneTypeId, goIntTypeId, goInt8TypeId, goInt16TypeId, goInt32TypeId, goInt64TypeId -> GoUtPrimitiveModel(
@@ -107,8 +107,8 @@ fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
 
         goFloat32TypeId, goFloat64TypeId -> GoUtPrimitiveModel(0.0, this)
         goComplex64TypeId, goComplex128TypeId -> GoUtComplexModel(
-            goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
-            goFloat64TypeId.goDefaultValueModel(packageName) as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
+            goFloat64TypeId.goDefaultValueModel() as GoUtPrimitiveModel,
             this
         )
 
@@ -118,7 +118,20 @@ fun GoTypeId.goDefaultValueModel(packageName: String): GoUtModel = when (this) {
         else -> error("Go primitive ${this.javaClass} is not supported")
     }
 
-    is GoStructTypeId -> GoUtStructModel(listOf(), this, packageName)
-    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this, packageName)
+    is GoStructTypeId -> GoUtStructModel(listOf(), this)
+    is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
     else -> GoUtNilModel(this)
+}
+
+fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
+    is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
+        acc + (field.declaringType).getAllStructTypes()
+    }
+
+    is GoArrayTypeId -> elementTypeId!!.getAllStructTypes()
+    else -> emptySet()
+}
+
+fun List<GoTypeId>.getAllStructTypes(): Set<GoStructTypeId> = this.fold(emptySet()) { acc, type ->
+    acc + type.getAllStructTypes()
 }

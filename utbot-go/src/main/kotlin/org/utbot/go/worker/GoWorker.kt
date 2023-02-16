@@ -1,7 +1,7 @@
 package org.utbot.go.worker
 
 import com.beust.klaxon.Klaxon
-import org.utbot.go.api.*
+import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.util.convertToRawValue
 import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoUtModel

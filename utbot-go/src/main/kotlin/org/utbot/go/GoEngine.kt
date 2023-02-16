@@ -17,7 +17,6 @@ import org.utbot.go.worker.convertRawExecutionResultToExecutionResult
 import java.io.File
 import java.io.InputStreamReader
 import java.net.ServerSocket
-import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
@@ -146,7 +145,7 @@ class GoEngine(
                             )
                         }
                     }
-                } catch (e: SocketException) {
+                } catch (e: Exception) {
                     val processHasExited = process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
                     if (!processHasExited) {
                         process.destroy()

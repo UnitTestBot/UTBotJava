@@ -132,7 +132,7 @@ internal object GoWorkerCodeGenerationHelper {
             		function := reflect.ValueOf(${function.modifiedName})
 
             		executionResult := __executeFunction__($timeoutMillis*time.Millisecond, func() []__RawValue__ {
-            			__traces__ = []int{}
+            			__traces__ = make([]int, 0, 1000)
             			return __wrapResultValuesForUtBotGoWorker__(function.Call(parameters))
             		})
 

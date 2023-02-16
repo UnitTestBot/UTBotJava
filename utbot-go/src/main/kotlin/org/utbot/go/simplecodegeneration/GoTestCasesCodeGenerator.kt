@@ -18,21 +18,22 @@ object GoTestCasesCodeGenerator {
 
     fun generateTestCasesFileCode(sourceFile: GoUtFile, testCases: List<GoUtFuzzedFunctionTestCase>): String {
         val destinationPackage = sourceFile.sourcePackage
+        if (testCases.isEmpty()) {
+            return GoFileCodeBuilder(destinationPackage, emptySet()).buildCodeString()
+        }
         val requiredPackages = mutableSetOf<GoPackage>()
-        if (testCases.isNotEmpty()) {
-            testCases.forEach { testCase ->
-                testCase.parametersValues.forEach {
+        testCases.forEach { testCase ->
+            testCase.parametersValues.forEach {
+                requiredPackages += it.getRequiredPackages(destinationPackage)
+            }
+            when (val executionResult = testCase.executionResult) {
+                is GoUtExecutionCompleted -> executionResult.models.forEach {
                     requiredPackages += it.getRequiredPackages(destinationPackage)
                 }
-                when (val executionResult = testCase.executionResult) {
-                    is GoUtExecutionCompleted -> executionResult.models.forEach {
-                        requiredPackages += it.getRequiredPackages(destinationPackage)
-                    }
 
-                    is GoUtPanicFailure -> requiredPackages += executionResult.panicValue.getRequiredPackages(
-                        destinationPackage
-                    )
-                }
+                is GoUtPanicFailure -> requiredPackages += executionResult.panicValue.getRequiredPackages(
+                    destinationPackage
+                )
             }
         }
 

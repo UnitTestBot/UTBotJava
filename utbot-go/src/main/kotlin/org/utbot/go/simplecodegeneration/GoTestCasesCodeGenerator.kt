@@ -18,7 +18,7 @@ object GoTestCasesCodeGenerator {
 
     fun generateTestCasesFileCode(sourceFile: GoUtFile, testCases: List<GoUtFuzzedFunctionTestCase>): String {
         val destinationPackage = sourceFile.sourcePackage
-        if (testCases.isEmpty()) {
+        if (testCases.isEmpty() || testCases.all { it.executionResult is GoUtTimeoutExceeded }) {
             return GoFileCodeBuilder(destinationPackage, emptySet()).buildCodeString()
         }
         val requiredPackages = mutableSetOf<GoPackage>()

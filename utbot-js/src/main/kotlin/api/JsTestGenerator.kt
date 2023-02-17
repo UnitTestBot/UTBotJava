@@ -104,7 +104,7 @@ class JsTestGenerator(
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
-            filePathToInference = sourceFilePath,
+            filePathToInference = listOf(sourceFilePath),
             parsedFile = parsedFile,
             settings = settings,
         )

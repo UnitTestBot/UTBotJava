@@ -30,7 +30,7 @@ fun JsClassId.constructClass(
         methods = methods,
         constructor = constructor,
         classPackagePath = ternService.projectPath,
-        classFilePath = ternService.filePathToInference,
+        classFilePath = ternService.filePathToInference.first(),
     )
     methods.forEach {
         it.classId = newClassId

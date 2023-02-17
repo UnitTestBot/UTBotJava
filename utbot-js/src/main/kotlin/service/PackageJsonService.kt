@@ -1,9 +1,9 @@
 package service
 
-import java.io.File
-import java.io.FilenameFilter
 import org.json.JSONException
 import org.json.JSONObject
+import java.io.File
+import java.io.FilenameFilter
 
 data class PackageJson(
     val isModule: Boolean
@@ -17,7 +17,7 @@ data class PackageJson(
 class PackageJsonService(context: ServiceContext) : ContextOwner by context {
 
     fun findClosestConfig(): PackageJson {
-        var currDir = File(filePathToInference.substringBeforeLast("/"))
+        var currDir = File(filePathToInference.first().substringBeforeLast("/"))
         do {
             val matchingFiles: Array<File> = currDir.listFiles(
                 FilenameFilter { _, name ->
@@ -35,7 +35,9 @@ class PackageJsonService(context: ServiceContext) : ContextOwner by context {
         return PackageJson(
             isModule = try {
                 (configAsJson.getString("type") == "module")
-            } catch (e: JSONException) { false },
+            } catch (e: JSONException) {
+                false
+            },
         )
     }
 }

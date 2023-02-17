@@ -26,7 +26,7 @@ class CoverageServiceProvider(
     private val description: JsMethodDescription
 ) : ContextOwner by context {
 
-    private val importFileUnderTest = "instr/${filePathToInference.substringAfterLast("/")}"
+    private val importFileUnderTest = "instr/${filePathToInference.first().substringAfterLast("/")}"
 
     private val imports =
         "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +

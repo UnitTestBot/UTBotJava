@@ -64,7 +64,7 @@ function test(options) {
     runTest(options);
 }
 
-test("$filePathToInference")
+test("${filePathToInference.joinToString(separator = " ")}")
     """
 
     init {
@@ -80,6 +80,7 @@ test("$filePathToInference")
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
+            shouldWait = true,
             cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l"),
         )
     }

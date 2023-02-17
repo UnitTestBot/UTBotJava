@@ -108,16 +108,25 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             if (!staticsMockingConfigured) {
                 ForceStaticMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
             }
-            val result = testGenerator.generate(methods,
-                MockStrategyApi.valueOf(params.mockStrategy),
-                kryoHelper.readObject(params.chosenClassesToMockAlways),
-                params.timeout,
-                generate = testFlow {
+
+            val generateFlow = if (testGenerator.springApplicationData != null) {
+              defaultSpringFlow(params.generationTimeout)
+            } else {
+                testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled
                     fuzzingValue = params.fuzzingValue
-                })
+                }
+            }
+
+            val result = testGenerator.generate(
+                methods,
+                MockStrategyApi.valueOf(params.mockStrategy),
+                kryoHelper.readObject(params.chosenClassesToMockAlways),
+                params.timeout,
+                generate = generateFlow,
+            )
                 .summarizeAll(Paths.get(params.searchDirectory), null)
                 .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 

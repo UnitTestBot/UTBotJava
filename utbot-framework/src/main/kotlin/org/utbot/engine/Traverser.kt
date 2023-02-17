@@ -276,14 +276,7 @@ class Traverser(
 
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
 
-    private val springInjectedClasses: List<ClassId> by lazy {
-        when (applicationContext) {
-            is SpringApplicationContext -> {
-                applicationContext.beanQualifiedNames.map { fqn -> classLoader.loadClass(fqn).id }
-            }
-            else -> emptyList()
-        }
-    }
+
 
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.createNewAddr()

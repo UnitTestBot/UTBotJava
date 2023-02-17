@@ -55,6 +55,7 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.framework.plugin.api.util.utContext
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -1160,7 +1161,11 @@ interface ApplicationContext
  */
 data class SpringApplicationContext(
     val beanQualifiedNames: List<String> = emptyList(),
-): ApplicationContext
+): ApplicationContext {
+    private val springInjectedClasses: List<ClassId> by lazy {
+        beanQualifiedNames.map { fqn -> utContext.classLoader.loadClass(fqn).id }
+    }
+}
 
 interface CodeGenerationSettingItem {
     val id: String

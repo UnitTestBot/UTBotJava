@@ -61,7 +61,7 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
-    val springApplicationData: SpringApplicationData? = null,
+    val applicationContext: ApplicationContext? = null,
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -118,7 +118,7 @@ open class TestCaseGenerator(
                 method,
                 mockStrategy,
                 chosenClassesToMockAlways,
-                springApplicationData = null,
+                applicationContext = null,
                 executionTimeEstimator,
             )
             engineActions.map { engine.apply(it) }
@@ -167,7 +167,7 @@ open class TestCaseGenerator(
                                 method,
                                 mockStrategy,
                                 chosenClassesToMockAlways,
-                                springApplicationData,
+                                applicationContext,
                                 executionTimeEstimator
                             )
 
@@ -257,7 +257,7 @@ open class TestCaseGenerator(
         method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
-        springApplicationData: SpringApplicationData?,
+        applicationContext: ApplicationContext?,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
@@ -268,7 +268,7 @@ open class TestCaseGenerator(
             dependencyPaths = dependencyPaths,
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
-            springApplicationData = springApplicationData,
+            applicationContext = applicationContext,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
     }

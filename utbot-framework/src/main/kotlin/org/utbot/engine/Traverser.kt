@@ -116,11 +116,12 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.SpringApplicationData
+import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
@@ -238,7 +239,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
-    private val springApplicationData: SpringApplicationData?,
+    private val applicationContext: ApplicationContext?,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -276,9 +277,12 @@ class Traverser(
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
 
     private val springInjectedClasses: List<ClassId> by lazy {
-        springApplicationData
-            ?.let { it.beanQualifiedNames.map { fqn -> classLoader.loadClass(fqn).id } }
-            ?: emptyList()
+        when (applicationContext) {
+            is SpringApplicationContext -> {
+                applicationContext.beanQualifiedNames.map { fqn -> classLoader.loadClass(fqn).id }
+            }
+            else -> emptyList()
+        }
     }
 
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {

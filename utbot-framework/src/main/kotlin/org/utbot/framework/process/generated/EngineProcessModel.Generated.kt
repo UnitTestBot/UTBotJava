@@ -72,7 +72,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 3473047730945121616L
+        const val serializationHash = -4839464828913070560L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -1161,7 +1161,7 @@ data class TestGeneratorParams (
     val classpath: String?,
     val dependencyPaths: String,
     val jdkInfo: JdkInfo,
-    val springApplicationData: ByteArray
+    val applicationContext: ByteArray
 ) : IPrintable {
     //companion
     
@@ -1174,8 +1174,8 @@ data class TestGeneratorParams (
             val classpath = buffer.readNullable { buffer.readString() }
             val dependencyPaths = buffer.readString()
             val jdkInfo = JdkInfo.read(ctx, buffer)
-            val springApplicationData = buffer.readByteArray()
-            return TestGeneratorParams(buildDir, classpath, dependencyPaths, jdkInfo, springApplicationData)
+            val applicationContext = buffer.readByteArray()
+            return TestGeneratorParams(buildDir, classpath, dependencyPaths, jdkInfo, applicationContext)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: TestGeneratorParams)  {
@@ -1183,7 +1183,7 @@ data class TestGeneratorParams (
             buffer.writeNullable(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.dependencyPaths)
             JdkInfo.write(ctx, buffer, value.jdkInfo)
-            buffer.writeByteArray(value.springApplicationData)
+            buffer.writeByteArray(value.applicationContext)
         }
         
         
@@ -1203,7 +1203,7 @@ data class TestGeneratorParams (
         if (classpath != other.classpath) return false
         if (dependencyPaths != other.dependencyPaths) return false
         if (jdkInfo != other.jdkInfo) return false
-        if (!(springApplicationData contentEquals other.springApplicationData)) return false
+        if (!(applicationContext contentEquals other.applicationContext)) return false
         
         return true
     }
@@ -1214,7 +1214,7 @@ data class TestGeneratorParams (
         __r = __r*31 + if (classpath != null) classpath.hashCode() else 0
         __r = __r*31 + dependencyPaths.hashCode()
         __r = __r*31 + jdkInfo.hashCode()
-        __r = __r*31 + springApplicationData.contentHashCode()
+        __r = __r*31 + applicationContext.contentHashCode()
         return __r
     }
     //pretty print
@@ -1225,7 +1225,7 @@ data class TestGeneratorParams (
             print("classpath = "); classpath.print(printer); println()
             print("dependencyPaths = "); dependencyPaths.print(printer); println()
             print("jdkInfo = "); jdkInfo.print(printer); println()
-            print("springApplicationData = "); springApplicationData.print(printer); println()
+            print("applicationContext = "); applicationContext.print(printer); println()
         }
         printer.print(")")
     }

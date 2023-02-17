@@ -3,8 +3,6 @@ package service
 import com.google.javascript.jscomp.CodePrinter
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
-import java.io.File
-import java.nio.file.Paths
 import org.apache.commons.io.FileUtils
 import parser.JsFunctionAstVisitor
 import parser.JsParserUtils.getAnyValue
@@ -13,13 +11,16 @@ import parser.JsParserUtils.isRequireImport
 import parser.JsParserUtils.runParser
 import utils.JsCmdExec
 import utils.PathResolver.getRelativePath
+import java.io.File
+import java.nio.file.Paths
 import kotlin.io.path.pathString
 import kotlin.math.roundToInt
 
-class InstrumentationService(context: ServiceContext, private val funcDeclOffset: Pair<Int, Int>): ContextOwner by context {
+class InstrumentationService(context: ServiceContext, private val funcDeclOffset: Pair<Int, Int>) :
+    ContextOwner by context {
 
     private val destinationFolderPath = "${projectPath}/${utbotDir}/instr"
-    private val instrumentedFilePath = "$destinationFolderPath/${filePathToInference.substringAfterLast("/")}"
+    private val instrumentedFilePath = "$destinationFolderPath/${filePathToInference.first().substringAfterLast("/")}"
     private lateinit var parsedInstrFile: Node
     lateinit var covFunName: String
 
@@ -122,7 +123,7 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
         covFuncNode.findAndIterateOver("fnMap") { currKey ->
             val declLocation = currKey!!.getObjectLocation("decl")
             if (funcDeclOffset == declLocation.start) {
-                result =  currKey.getObjectLocation("loc")
+                result = currKey.getObjectLocation("loc")
                 return@findAndIterateOver
             }
         }
@@ -130,11 +131,11 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
     }
 
     fun instrument() {
-        val fileName = filePathToInference.substringAfterLast("/")
+        val fileName = filePathToInference.first().substringAfterLast("/")
 
         JsCmdExec.runCommand(
             cmd = arrayOf(settings.pathToNYC, "instrument", fileName, destinationFolderPath),
-            dir = filePathToInference.substringBeforeLast("/"),
+            dir = filePathToInference.first().substringBeforeLast("/"),
             shouldWait = true,
             timeout = settings.timeout,
         )
@@ -159,10 +160,12 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
         NodeUtil.visitPreOrder(parsedInstrFile) { node ->
             if (node.isRequireImport()) {
                 val currString = node.getRequireImportText()
-                val relPath = Paths.get(getRelativePath(
-                    "${projectPath}/${utbotDir}/instr",
-                    File(filePathToInference).parent
-                )).resolve(currString).pathString.replace("\\", "/")
+                val relPath = Paths.get(
+                    getRelativePath(
+                        "${projectPath}/${utbotDir}/instr",
+                        File(filePathToInference.first()).parent
+                    )
+                ).resolve(currString).pathString.replace("\\", "/")
                 node.firstChild!!.next!!.string = relPath
             }
         }

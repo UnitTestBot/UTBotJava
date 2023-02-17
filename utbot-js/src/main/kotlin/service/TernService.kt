@@ -109,7 +109,7 @@ test("$filePathToInference")
         return try {
             val classJson = json.getJSONObject(classNode.getClassName())
             val constructorFunc = classJson.getString("!type")
-                .filterNot { setOf(' ', '+', '!').contains(it) }
+                .filterNot { setOf(' ', '+').contains(it) }
             extractParameters(constructorFunc)
         } catch (e: JSONException) {
             classNode.getConstructor()?.getAbstractFunctionParams()?.map { jsUndefinedClassId } ?: emptyList()

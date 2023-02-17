@@ -4,7 +4,6 @@ import java.io.File
 import mu.KotlinLogging
 import org.json.JSONObject
 import service.ServiceContext
-import settings.JsTestGenerationSettings
 import utils.JsCmdExec
 import utils.data.ResultData
 

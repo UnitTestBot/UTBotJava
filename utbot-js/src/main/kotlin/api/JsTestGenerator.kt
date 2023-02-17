@@ -5,7 +5,8 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.JsUtFuzzedExecution
-import framework.api.js.util.isExportable
+import framework.api.js.util.isClass
+import framework.api.js.util.isJsArray
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
@@ -19,6 +20,8 @@ import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
+import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -53,15 +56,13 @@ import service.TernService
 import service.coverage.CoverageMode
 import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
+import settings.JsTestGenerationSettings.fileUnderTestAliases
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.fuzzingTimeout
 import utils.PathResolver
 import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
-import java.io.File
-import java.util.concurrent.CancellationException
-import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 private val logger = KotlinLogging.logger {}
 
@@ -72,7 +73,7 @@ class JsTestGenerator(
     private val selectedMethods: List<String>? = null,
     private var parentClassName: String? = null,
     private var outputFilePath: String?,
-    private val exportsManager: (List<String>, (String?) -> String) -> Unit,
+    private val exportsManager: ((String?, String) -> String) -> Unit,
     private val settings: JsDynamicSettings,
     private val isCancelled: () -> Boolean = { false }
 ) {
@@ -333,7 +334,7 @@ class JsTestGenerator(
         val collectedExports = collectExports(execId)
         val exportsProvider = IExportsProvider.providerByPackageJson(packageJson)
         exports += (collectedExports + obligatoryExport)
-        exportsManager(exports.toList()) { existingSection ->
+        exportsManager { existingSection, currentFileText ->
             val existingExportsSet = existingSection?.let { section ->
                 val trimmedSection = section.substringAfter(exportsProvider.exportsPrefix)
                     .substringBeforeLast(exportsProvider.exportsPostfix)
@@ -352,7 +353,7 @@ class JsTestGenerator(
             ) {
                 exportsProvider.getExportsFrame(it)
             }
-            existingSection?.let { fileText.replace(existingSection, resSection) } ?: resSection
+            existingSection?.let { currentFileText.replace(existingSection, resSection) } ?: resSection
         }
     }
 
@@ -384,15 +385,16 @@ class JsTestGenerator(
     }
 
     private fun collectExports(methodId: JsMethodId): List<String> {
-        val res = mutableListOf<String>()
-        methodId.parameters.forEach {
-            if (it.isExportable && !astScrapper.importsMap.contains(it.name)) {
-                res += it.name
-            }
+        return (listOf(methodId.returnType) + methodId.parameters).flatMap { it.collectExportsRecursively() }
+    }
+
+    private fun JsClassId.collectExportsRecursively(): List<String> {
+        return when {
+            this.isClass -> listOf(this.name) + (this.constructor?.parameters ?: emptyList())
+                .flatMap { it.collectExportsRecursively() }
+            this.isJsArray -> (this.elementClassId as? JsClassId)?.collectExportsRecursively() ?: emptyList()
+            else -> emptyList()
         }
-        if (methodId.returnType.isExportable && !astScrapper.importsMap.contains(methodId.returnType.name))
-            res += methodId.returnType.name
-        return res
     }
 
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {

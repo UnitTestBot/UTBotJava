@@ -82,13 +82,14 @@ class JsGenerateTestsCommand :
             val sourceFileAbsolutePath = makeAbsolutePath(sourceCodeFile)
             logger.info { "Generating tests for [$sourceFileAbsolutePath] - started" }
             val fileText = File(sourceCodeFile).readText()
+            currentFileText = fileText
             val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
             val testGenerator = JsTestGenerator(
                 fileText = fileText,
                 sourceFilePath = sourceFileAbsolutePath,
                 parentClassName = targetClass,
                 outputFilePath = outputAbsolutePath,
-                exportsManager = partialApplication(::manageExports, fileText),
+                exportsManager = ::manageExports,
                 settings = JsDynamicSettings(
                     pathToNode = pathToNode,
                     pathToNYC = pathToNYC,
@@ -118,30 +119,31 @@ class JsGenerateTestsCommand :
         }
     }
 
-    private fun manageExports(fileText: String, exports: List<String>, swappedText: (String?) -> String) {
+    // Needed for continuous exports managing
+    private var currentFileText = ""
+
+    private fun manageExports(swappedText: (String?, String) -> String) {
         val file = File(sourceCodeFile)
         when {
 
-            fileText.contains(startComment) -> {
+            currentFileText.contains(startComment) -> {
                 val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
-                regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                    val newText = swappedText(existingSection)
+                regex.find(currentFileText)?.groups?.get(1)?.value?.let { existingSection ->
+                    val newText = swappedText(existingSection, currentFileText)
                     file.writeText(newText)
+                    currentFileText = newText
                 }
             }
 
             else -> {
                 val line = buildString {
                     append("\n$startComment")
-                    append(swappedText(null))
+                    append(swappedText(null, currentFileText))
                     append(endComment)
                 }
                 file.appendText(line)
+                currentFileText = file.readText()
             }
         }
-    }
-
-    private fun <A, B, C> partialApplication(f: (A, B, C) -> Unit, a: A): (B, C) -> Unit {
-        return { b: B, c: C -> f(a, b, c) }
     }
 }

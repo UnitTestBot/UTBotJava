@@ -161,6 +161,7 @@ object JsDialogProcessor {
                     model.testSourceRoot!!
                 )
                 val testFileName = normalizedContainingFilePath.substringAfterLast("/").replace(Regex(".js"), "Test.js")
+                currentFileText = model.file.getContent()
                 val testGenerator = JsTestGenerator(
                     fileText = contents,
                     sourceFilePath = normalizedContainingFilePath,
@@ -194,36 +195,44 @@ object JsDialogProcessor {
                 val generatedCode = testGenerator.run()
                 invokeLater {
                     runWriteAction {
-                        val testPsiFile = testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
-                            .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                        val testPsiFile = testDir.findFile(testFileName) ?: run {
+                            val temp = PsiFileFactory.getInstance(project)
+                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                            testDir.add(temp)
+                            testDir.findFile(testFileName)!!
+                        }
                         val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
                         unblockDocument(project, testFileEditor.document)
                         testFileEditor.document.setText(generatedCode)
                         unblockDocument(project, testFileEditor.document)
-                        testDir.findFile(testFileName) ?: testDir.add(testPsiFile)
                     }
                 }
             }
         }).queue()
     }
 
-    private fun <A, B, C, D, E> partialApplication(f: (A, B, C, D, E) -> Unit, a: A, b: B, c: C): (D, E) -> Unit {
-        return { d: D, e: E -> f(a, b, c, d, e) }
+    private fun <A, B, C, D> partialApplication(f: (A, B, C, D) -> Unit, a: A, b: B, c: C): (D) -> Unit {
+        return { d: D -> f(a, b, c, d) }
     }
 
     private fun JSFile.getContent(): String = this.viewProvider.contents.toString()
 
+    // Needed for continuous exports managing
+    private var currentFileText = ""
+
     private fun manageExports(
-        editor: Editor?, project: Project, model: JsTestsModel, exports: List<String>, swappedText: (String?) -> String
+        editor: Editor?,
+        project: Project,
+        model: JsTestsModel,
+        swappedText: (String?, String) -> String
     ) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
-                val fileText = model.file.getContent()
                 when {
-                    fileText.contains(startComment) -> {
+                    currentFileText.contains(startComment) -> {
                         val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
-                        regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                            val newText = swappedText(existingSection)
+                        regex.find(currentFileText)?.groups?.get(1)?.value?.let { existingSection ->
+                            val newText = swappedText(existingSection, currentFileText)
                             editor?.let {
                                 runWriteAction {
                                     with(editor.document) {
@@ -238,20 +247,21 @@ object JsDialogProcessor {
                             } ?: run {
                                 File(model.containingFilePath).writeText(newText)
                             }
+                            currentFileText = newText
                         }
                     }
 
                     else -> {
                         val line = buildString {
                             append("\n$startComment")
-                            append(swappedText(null))
+                            append(swappedText(null, currentFileText))
                             append(endComment)
                         }
                         editor?.let {
                             runWriteAction {
                                 with(editor.document) {
                                     unblockDocument(project, this)
-                                    setText(fileText + line)
+                                    setText(currentFileText + line)
                                     unblockDocument(project, this)
                                 }
                                 with(FileDocumentManager.getInstance()) {
@@ -259,8 +269,9 @@ object JsDialogProcessor {
                                 }
                             }
                         } ?: run {
-                            File(model.containingFilePath).writeText(fileText + line)
+                            File(model.containingFilePath).writeText(currentFileText + line)
                         }
+                        currentFileText += line
                     }
                 }
             }

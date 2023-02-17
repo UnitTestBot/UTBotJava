@@ -14,8 +14,6 @@ import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
-import java.io.File
-import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -62,6 +60,8 @@ import utils.PathResolver
 import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
+import java.io.File
+import java.util.concurrent.CancellationException
 
 private val logger = KotlinLogging.logger {}
 
@@ -261,7 +261,7 @@ class JsTestGenerator(
                             getUtModelResult(
                                 execId = execId,
                                 resultData = resultData,
-                                params
+                                jsDescription.thisInstance?.let { params.drop(1) } ?: params
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
@@ -316,9 +316,11 @@ class JsTestGenerator(
         exports += (collectedExports + obligatoryExport)
         exportsManager(exports.toList()) { existingSection ->
             val existingExportsSet = existingSection?.let { section ->
-                val trimmedSection = section.substringAfter(getExportsPrefix(packageJson)).substringBeforeLast(getExportsPostfix(packageJson))
+                val trimmedSection = section.substringAfter(getExportsPrefix(packageJson))
+                    .substringBeforeLast(getExportsPostfix(packageJson))
                 val exportRegex = getExportsRegex(packageJson)
-                val existingExports = trimmedSection.split(getExportsDelimiter(packageJson)).filter { it.contains(exportRegex) && it.isNotBlank() }
+                val existingExports = trimmedSection.split(getExportsDelimiter(packageJson))
+                    .filter { it.contains(exportRegex) && it.isNotBlank() }
                 existingExports.map { rawLine ->
                     exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
                 }.toSet()

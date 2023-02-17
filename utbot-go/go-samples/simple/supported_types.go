@@ -3,6 +3,7 @@ package simple
 import (
 	"errors"
 	"github.com/pmezard/go-difflib/difflib"
+	dif "github.com/pmezard/go-difflib/difflib"
 	"math"
 )
 
@@ -171,4 +172,8 @@ func returnErrorOrNil(n int) error {
 
 func ExternalStruct(match difflib.Match, structure Structure) Structure {
 	return structure
+}
+
+func ExternalStructWithAlias(match dif.Match) difflib.Match {
+	return match
 }

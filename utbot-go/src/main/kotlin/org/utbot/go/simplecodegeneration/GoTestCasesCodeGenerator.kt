@@ -5,41 +5,52 @@ import org.utbot.go.api.util.containsNaNOrInf
 import org.utbot.go.api.util.doesNotContainNaNOrInf
 import org.utbot.go.api.util.goFloat64TypeId
 import org.utbot.go.api.util.goStringTypeId
+import org.utbot.go.framework.api.go.GoImport
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoUtModel
+import org.utbot.go.imports.GoImportsResolver
 
 object GoTestCasesCodeGenerator {
 
+    private val alwaysRequiredImports = setOf(
+        GoImport(GoPackage("assert", "github.com/stretchr/testify/assert")), GoImport(GoPackage("testing", "testing"))
+    )
+
     fun generateTestCasesFileCode(sourceFile: GoUtFile, testCases: List<GoUtFuzzedFunctionTestCase>): String {
-        val imports = if (testCases.isNotEmpty()) {
-            mutableSetOf("github.com/stretchr/testify/assert", "testing")
-        } else {
-            mutableSetOf()
+        val destinationPackage = sourceFile.sourcePackage
+        if (testCases.isEmpty() || testCases.all { it.executionResult is GoUtTimeoutExceeded }) {
+            return GoFileCodeBuilder(destinationPackage, emptySet()).buildCodeString()
         }
+        val requiredPackages = mutableSetOf<GoPackage>()
         testCases.forEach { testCase ->
             testCase.parametersValues.forEach {
-                imports += it.getRequiredImports()
+                requiredPackages += it.getRequiredPackages(destinationPackage)
             }
             when (val executionResult = testCase.executionResult) {
-                is GoUtExecutionCompleted -> {
-                    executionResult.models.forEach {
-                        imports += it.getRequiredImports()
-                    }
+                is GoUtExecutionCompleted -> executionResult.models.forEach {
+                    requiredPackages += it.getRequiredPackages(destinationPackage)
                 }
 
-                is GoUtPanicFailure -> {
-                    imports += executionResult.panicValue.getRequiredImports()
-                }
+                is GoUtPanicFailure -> requiredPackages += executionResult.panicValue.getRequiredPackages(
+                    destinationPackage
+                )
             }
         }
 
-        val fileBuilder = GoFileCodeBuilder(sourceFile.packageName, imports)
+        val imports = GoImportsResolver.resolveImportsBasedOnRequiredPackages(
+            requiredPackages, destinationPackage, alwaysRequiredImports
+        )
+        val fileBuilder = GoFileCodeBuilder(destinationPackage, imports)
+        val aliases = imports.associate { (goPackage, alias) -> goPackage to alias }
+        val goUtModelToCodeConverter = GoUtModelToCodeConverter(destinationPackage, aliases)
 
         fun List<GoUtFuzzedFunctionTestCase>.generateTestFunctions(
-            generateTestFunctionForTestCase: (GoUtFuzzedFunctionTestCase, Int?) -> String
+            generateTestFunctionForTestCase: (GoUtFuzzedFunctionTestCase, Int?, GoUtModelToCodeConverter) -> String,
         ) {
             this.forEachIndexed { testIndex, testCase ->
                 val testIndexToShow = if (this.size == 1) null else testIndex + 1
-                val testFunctionCode = generateTestFunctionForTestCase(testCase, testIndexToShow)
+                val testFunctionCode =
+                    generateTestFunctionForTestCase(testCase, testIndexToShow, goUtModelToCodeConverter)
                 fileBuilder.addTopLevelElements(testFunctionCode)
             }
         }
@@ -57,7 +68,7 @@ object GoTestCasesCodeGenerator {
     }
 
     private fun generateTestFunctionForCompletedExecutionTestCase(
-        testCase: GoUtFuzzedFunctionTestCase, testIndexToShow: Int?
+        testCase: GoUtFuzzedFunctionTestCase, testIndexToShow: Int?, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         val (fuzzedFunction, executionResult) = testCase
         val function = fuzzedFunction.function
@@ -72,13 +83,12 @@ object GoTestCasesCodeGenerator {
             "func Test${function.name.replaceFirstChar(Char::titlecaseChar)}${testFunctionNamePostfix}ByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
         if (function.resultTypes.isEmpty()) {
-            val actualFunctionCall =
-                generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.parametersValues)
+            val actualFunctionCall = generateFuzzedFunctionCall(
+                fuzzedFunction.function.name, fuzzedFunction.parametersValues, goUtModelToCodeConverter
+            )
             val testFunctionBody = "\tassert.NotPanics(t, func() { $actualFunctionCall })\n"
             return "$testFunctionSignatureDeclaration {\n$testFunctionBody}"
         }
-
-        val testFunctionBodySb = StringBuilder()
 
         val resultTypes = function.resultTypes
         val doResultTypesImplementError = resultTypes.map { it.implementsError }
@@ -96,9 +106,11 @@ object GoTestCasesCodeGenerator {
                 }
             }
         }
-        val actualFunctionCall = generateFuzzedFunctionCallSavedToVariables(actualResultVariablesNames, fuzzedFunction)
-        testFunctionBodySb.append("\t$actualFunctionCall\n\n")
+        val actualFunctionCall = generateFuzzedFunctionCallSavedToVariables(
+            actualResultVariablesNames, fuzzedFunction, goUtModelToCodeConverter
+        )
 
+        val testFunctionBodySb = StringBuilder("\t$actualFunctionCall\n\n")
         val expectedModels = (executionResult as GoUtExecutionCompleted).models
         val (assertionName, assertionTParameter) = if (expectedModels.size > 1 || expectedModels.any { it.isComplexModelAndNeedsSeparateAssertions() }) {
             testFunctionBodySb.append("\tassertMultiple := assert.New(t)\n")
@@ -113,7 +125,11 @@ object GoTestCasesCodeGenerator {
                 val assertionCalls = mutableListOf<String>()
                 fun generateAssertionCallHelper(refinedExpectedModel: GoUtModel, actualResultCode: String) {
                     val code = generateCompletedExecutionAssertionCall(
-                        refinedExpectedModel, actualResultCode, doesResultTypeImplementError, assertionTParameter
+                        refinedExpectedModel,
+                        actualResultCode,
+                        doesResultTypeImplementError,
+                        assertionTParameter,
+                        goUtModelToCodeConverter
                     )
                     assertionCalls.add(code)
                 }
@@ -139,7 +155,8 @@ object GoTestCasesCodeGenerator {
         expectedModel: GoUtModel,
         actualResultCode: String,
         doesReturnTypeImplementError: Boolean,
-        assertionTParameter: String
+        assertionTParameter: String,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         if (expectedModel is GoUtNilModel) {
             return "Nil($assertionTParameter$actualResultCode)"
@@ -156,27 +173,28 @@ object GoTestCasesCodeGenerator {
             return "True(${assertionTParameter}math.IsInf($castedActualResultCode, ${expectedModel.sign}))"
         }
         val prefix = if (!expectedModel.isComparable()) "Not" else ""
-        val castedExpectedResultCode =
-            if (expectedModel is GoUtPrimitiveModel) {
-                generateCastedValueIfPossible(expectedModel)
-            } else {
-                expectedModel.toString()
-            }
+        val castedExpectedResultCode = if (expectedModel is GoUtPrimitiveModel) {
+            generateCastedValueIfPossible(expectedModel, goUtModelToCodeConverter)
+        } else {
+            goUtModelToCodeConverter.toGoCode(expectedModel)
+        }
+
         return "${prefix}Equal($assertionTParameter$castedExpectedResultCode, $actualResultCode)"
     }
 
     private fun generateTestFunctionForPanicFailureTestCase(
-        testCase: GoUtFuzzedFunctionTestCase, testIndexToShow: Int?
+        testCase: GoUtFuzzedFunctionTestCase, testIndexToShow: Int?, goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         val (fuzzedFunction, executionResult) = testCase
         val function = fuzzedFunction.function
 
         val testIndexToShowString = testIndexToShow ?: ""
         val testFunctionSignatureDeclaration =
-            "func Test${function.name.capitalize()}PanicsByUtGoFuzzer$testIndexToShowString(t *testing.T)"
+            "func Test${function.name.replaceFirstChar(Char::titlecaseChar)}PanicsByUtGoFuzzer$testIndexToShowString(t *testing.T)"
 
-        val actualFunctionCall =
-            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.parametersValues)
+        val actualFunctionCall = generateFuzzedFunctionCall(
+            fuzzedFunction.function.name, fuzzedFunction.parametersValues, goUtModelToCodeConverter
+        )
         val actualFunctionCallLambda = "func() { $actualFunctionCall }"
         val (expectedPanicValue, isErrorMessage) = (executionResult as GoUtPanicFailure)
         val isPrimitiveWithOkEquals =
@@ -185,9 +203,9 @@ object GoTestCasesCodeGenerator {
             "\tassert.PanicsWithError(t, $expectedPanicValue, $actualFunctionCallLambda)"
         } else if (isPrimitiveWithOkEquals || expectedPanicValue is GoUtNilModel) {
             val expectedPanicValueCode = if (expectedPanicValue is GoUtNilModel) {
-                "$expectedPanicValue"
+                goUtModelToCodeConverter.toGoCode(expectedPanicValue)
             } else {
-                generateCastedValueIfPossible(expectedPanicValue as GoUtPrimitiveModel)
+                generateCastedValueIfPossible(expectedPanicValue as GoUtPrimitiveModel, goUtModelToCodeConverter)
             }
             "\tassert.PanicsWithValue(t, $expectedPanicValueCode, $actualFunctionCallLambda)"
         } else {
@@ -198,12 +216,61 @@ object GoTestCasesCodeGenerator {
     }
 
     private fun generateTestFunctionForTimeoutExceededTestCase(
-        testCase: GoUtFuzzedFunctionTestCase, @Suppress("UNUSED_PARAMETER") testIndexToShow: Int?
+        testCase: GoUtFuzzedFunctionTestCase,
+        @Suppress("UNUSED_PARAMETER") testIndexToShow: Int?,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
     ): String {
         val (fuzzedFunction, executionResult) = testCase
-        val actualFunctionCall =
-            generateFuzzedFunctionCall(fuzzedFunction.function.name, fuzzedFunction.parametersValues)
+        val actualFunctionCall = generateFuzzedFunctionCall(
+            fuzzedFunction.function.name, fuzzedFunction.parametersValues, goUtModelToCodeConverter
+        )
         val exceededTimeoutMillis = (executionResult as GoUtTimeoutExceeded).timeoutMillis
         return "// $actualFunctionCall exceeded $exceededTimeoutMillis ms timeout"
+    }
+
+    private fun generateFuzzedFunctionCall(
+        functionName: String, parameters: List<GoUtModel>, goUtModelToCodeConverter: GoUtModelToCodeConverter
+    ): String {
+        val fuzzedParametersToString = parameters.joinToString(prefix = "(", postfix = ")") {
+            goUtModelToCodeConverter.toGoCode(it)
+        }
+        return "$functionName$fuzzedParametersToString"
+    }
+
+    private fun generateVariablesDeclarationTo(variablesNames: List<String>, expression: String): String {
+        val variables = variablesNames.joinToString()
+        return "$variables := $expression"
+    }
+
+    private fun generateFuzzedFunctionCallSavedToVariables(
+        variablesNames: List<String>,
+        fuzzedFunction: GoUtFuzzedFunction,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
+    ): String = generateVariablesDeclarationTo(
+        variablesNames,
+        generateFuzzedFunctionCall(
+            fuzzedFunction.function.name, fuzzedFunction.parametersValues, goUtModelToCodeConverter
+        )
+    )
+
+    private fun generateCastIfNeed(
+        toTypeId: GoPrimitiveTypeId, expressionType: GoPrimitiveTypeId, expression: String
+    ): String {
+        return if (expressionType != toTypeId) {
+            "${toTypeId.name}($expression)"
+        } else {
+            expression
+        }
+    }
+
+    fun generateCastedValueIfPossible(
+        model: GoUtPrimitiveModel,
+        goUtModelToCodeConverter: GoUtModelToCodeConverter
+    ): String {
+        return if (model.explicitCastMode == ExplicitCastMode.NEVER) {
+            goUtModelToCodeConverter.primitiveModelToValueGoCode(model)
+        } else {
+            goUtModelToCodeConverter.primitiveModelToCastedValueGoCode(model)
+        }
     }
 }

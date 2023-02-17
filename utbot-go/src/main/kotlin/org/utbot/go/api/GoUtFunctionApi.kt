@@ -1,12 +1,13 @@
 package org.utbot.go.api
 
-import org.utbot.fuzzer.FuzzedConcreteValue
+import org.utbot.go.framework.api.go.GoImport
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import java.io.File
 import java.nio.file.Paths
 
-data class GoUtFile(val absolutePath: String, val packageName: String) {
+data class GoUtFile(val absolutePath: String, val sourcePackage: GoPackage) {
     val fileName: String get() = File(absolutePath).name
     val fileNameWithoutExtension: String get() = File(absolutePath).nameWithoutExtension
     val absoluteDirectoryPath: String get() = Paths.get(absolutePath).parent.toString()
@@ -19,11 +20,14 @@ data class GoUtFunction(
     val modifiedName: String,
     val parameters: List<GoUtFunctionParameter>,
     val resultTypes: List<GoTypeId>,
+    val requiredImports: List<GoImport>,
     val modifiedFunctionForCollectingTraces: String,
     val numberOfAllStatements: Int,
     val sourceFile: GoUtFile
 ) {
-    fun getPackageName(): String = sourceFile.packageName
+    val sourcePackage: GoPackage = sourceFile.sourcePackage
+
+    fun getPackageName(): String = sourceFile.sourcePackage.packageName
 }
 
 data class GoUtFuzzedFunction(val function: GoUtFunction, val parametersValues: List<GoUtModel>)

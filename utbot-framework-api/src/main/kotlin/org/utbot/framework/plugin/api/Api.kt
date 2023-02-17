@@ -1147,6 +1147,16 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
 class WildcardTypeParameter : TypeParameters(emptyList())
 
+/**
+ * Data we get from Spring application context
+ * to manage engine and code generator behaviour.
+ *
+ * @param beanQualifiedNames describes fqn of injected classes
+ */
+data class SpringApplicationData(
+    val beanQualifiedNames: List<String> = emptyList(),
+)
+
 interface CodeGenerationSettingItem {
     val id: String
     val displayName: String

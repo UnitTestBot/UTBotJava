@@ -39,6 +39,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("classpath", PredefinedType.string.nullable)
         field("dependencyPaths", PredefinedType.string)
         field("jdkInfo", jdkInfo)
+        field("springApplicationData", array(PredefinedType.byte))
     }
     val generateParams = structdef {
         // mocks

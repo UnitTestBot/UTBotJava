@@ -72,7 +72,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = 5025678608993948804L
+        const val serializationHash = 3473047730945121616L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -173,7 +173,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:101]
+ * #### Generated from [EngineProcessModel.kt:102]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -236,7 +236,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:105]
+ * #### Generated from [EngineProcessModel.kt:106]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -293,7 +293,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:94]
+ * #### Generated from [EngineProcessModel.kt:95]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -356,7 +356,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:98]
+ * #### Generated from [EngineProcessModel.kt:99]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -413,7 +413,7 @@ data class FindMethodsInClassMatchingSelectedResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:43]
+ * #### Generated from [EngineProcessModel.kt:44]
  */
 data class GenerateParams (
     val mockInstalled: Boolean,
@@ -536,7 +536,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:61]
+ * #### Generated from [EngineProcessModel.kt:62]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -599,7 +599,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:113]
+ * #### Generated from [EngineProcessModel.kt:114]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -692,7 +692,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:122]
+ * #### Generated from [EngineProcessModel.kt:123]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -824,7 +824,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:89]
+ * #### Generated from [EngineProcessModel.kt:90]
  */
 data class MethodDescription (
     val name: String,
@@ -893,7 +893,7 @@ data class MethodDescription (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:65]
+ * #### Generated from [EngineProcessModel.kt:66]
  */
 data class RenderParams (
     val testSetsId: Long,
@@ -1034,7 +1034,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:82]
+ * #### Generated from [EngineProcessModel.kt:83]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1097,7 +1097,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:86]
+ * #### Generated from [EngineProcessModel.kt:87]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1160,7 +1160,8 @@ data class TestGeneratorParams (
     val buildDir: Array<String>,
     val classpath: String?,
     val dependencyPaths: String,
-    val jdkInfo: JdkInfo
+    val jdkInfo: JdkInfo,
+    val springApplicationData: ByteArray
 ) : IPrintable {
     //companion
     
@@ -1173,7 +1174,8 @@ data class TestGeneratorParams (
             val classpath = buffer.readNullable { buffer.readString() }
             val dependencyPaths = buffer.readString()
             val jdkInfo = JdkInfo.read(ctx, buffer)
-            return TestGeneratorParams(buildDir, classpath, dependencyPaths, jdkInfo)
+            val springApplicationData = buffer.readByteArray()
+            return TestGeneratorParams(buildDir, classpath, dependencyPaths, jdkInfo, springApplicationData)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: TestGeneratorParams)  {
@@ -1181,6 +1183,7 @@ data class TestGeneratorParams (
             buffer.writeNullable(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.dependencyPaths)
             JdkInfo.write(ctx, buffer, value.jdkInfo)
+            buffer.writeByteArray(value.springApplicationData)
         }
         
         
@@ -1200,6 +1203,7 @@ data class TestGeneratorParams (
         if (classpath != other.classpath) return false
         if (dependencyPaths != other.dependencyPaths) return false
         if (jdkInfo != other.jdkInfo) return false
+        if (!(springApplicationData contentEquals other.springApplicationData)) return false
         
         return true
     }
@@ -1210,6 +1214,7 @@ data class TestGeneratorParams (
         __r = __r*31 + if (classpath != null) classpath.hashCode() else 0
         __r = __r*31 + dependencyPaths.hashCode()
         __r = __r*31 + jdkInfo.hashCode()
+        __r = __r*31 + springApplicationData.contentHashCode()
         return __r
     }
     //pretty print
@@ -1220,6 +1225,7 @@ data class TestGeneratorParams (
             print("classpath = "); classpath.print(printer); println()
             print("dependencyPaths = "); dependencyPaths.print(printer); println()
             print("jdkInfo = "); jdkInfo.print(printer); println()
+            print("springApplicationData = "); springApplicationData.print(printer); println()
         }
         printer.print(")")
     }
@@ -1229,7 +1235,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:108]
+ * #### Generated from [EngineProcessModel.kt:109]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

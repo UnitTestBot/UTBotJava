@@ -120,6 +120,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.SpringApplicationData
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
@@ -237,6 +238,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
+    private val springApplicationData: SpringApplicationData?,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -272,6 +274,12 @@ class Traverser(
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
+
+    private val springInjectedClasses: List<ClassId> by lazy {
+        springApplicationData
+            ?.let { it.beanQualifiedNames.map { fqn -> classLoader.loadClass(fqn).id } }
+            ?: emptyList()
+    }
 
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.createNewAddr()

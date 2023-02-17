@@ -134,6 +134,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
+import org.utbot.summary.ast.declaredClassName
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -2953,9 +2954,25 @@ class Traverser(
             declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
             isUtMockForbidClassCastException -> isUtMockDisableClassCastExceptionCheckInvoke(parameters)
             else -> {
-                val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
-                pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
-                emptyList()
+                // Try to extract a body from substitution of our method or from the method itself.
+                // For the substitution, if it exists, we have a corresponding body and graph,
+                // but for the method itself its body might not be present in the memory.
+                // This may happen because of classloading issues (e.g. absence of required library JAR file)
+                val graph = (substitutedMethod ?: this).takeIf { it.canRetrieveBody() }?.jimpleBody()?.graph()
+
+                if (graph != null) {
+                    // If we have a graph to analyze, do it
+                    pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
+                    emptyList()
+                } else {
+                    // Otherwise, depending on [treatAbsentMethodsAsUnboundedValue] either throw an exception
+                    // or continue analysis with an unbounded variable as a result of the [this] method
+                    if (UtSettings.treatAbsentMethodsAsUnboundedValue) {
+                        listOf(unboundedVariable("methodWithoutBodyResult", method = this))
+                    } else {
+                        error("Cannot retrieve body for a $declaredClassName.$name method")
+                    }
+                }
             }
         }
     }

@@ -4,7 +4,6 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
-import java.util.regex.Pattern
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
@@ -13,8 +12,10 @@ import service.ContextOwner
 import service.InstrumentationService
 import service.ServiceContext
 import settings.JsTestGenerationSettings
+import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
+import java.util.regex.Pattern
 
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.
@@ -173,11 +174,11 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         method: JsMethodId,
         containingClass: String?
     ): String {
-        val actualParams = description.thisInstance?.let{ fuzzedValue.drop(1) } ?: fuzzedValue
+        val actualParams = description.thisInstance?.let { fuzzedValue.drop(1) } ?: fuzzedValue
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                description.thisInstance?.let { fuzzedValue[0].model.toCallString() } ?:
-                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
+                description.thisInstance?.let { fuzzedValue[0].model.toCallString() }
+                    ?: "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
             } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it"
         } ?: JsTestGenerationSettings.fileUnderTestAliases
         var callString = "$initClass.${method.name}"

@@ -15,7 +15,6 @@ import service.ServiceContext
 import settings.JsTestGenerationSettings
 import utils.data.CoverageData
 import utils.data.ResultData
-import java.util.regex.Pattern
 
 
 // TODO: Add "error" field in result json to not collide with "result" field upon error.

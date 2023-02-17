@@ -32,6 +32,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.utils.Trie
 import parser.JsAstScrapper
 import parser.JsFuzzerAstVisitor
 import parser.JsParserUtils
@@ -42,8 +43,6 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
-import service.CoverageMode
-import service.CoverageServiceProvider
 import service.InstrumentationService
 import service.PackageJson
 import service.PackageJsonService
@@ -53,6 +52,7 @@ import service.coverage.CoverageMode
 import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.fuzzingThreshold
+import settings.JsTestGenerationSettings.fuzzingTimeout
 import utils.ExportsProvider.getExportsDelimiter
 import utils.ExportsProvider.getExportsFrame
 import utils.ExportsProvider.getExportsPostfix

@@ -72,7 +72,7 @@ Go projects automatically.
 
 #### Installation
 
-To install the UnitTestBot Go plugin in IntelliJ IDEA, refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/actions/runs/3012565900). 
+To install the UnitTestBot Go plugin in IntelliJ IDEA, refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin). 
 
 #### Usage
 

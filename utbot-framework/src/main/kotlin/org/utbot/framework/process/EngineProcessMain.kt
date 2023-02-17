@@ -83,10 +83,13 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
         Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
+        val applicationContext: ApplicationContext = kryoHelper.readObject(params.applicationContext)
+
         testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
             dependencyPaths = params.dependencyPaths,
             jdkInfo = JdkInfo(Paths.get(params.jdkInfo.path), params.jdkInfo.version),
+            applicationContext = applicationContext,
             isCanceled = {
                 runBlocking {
                     model.isCancelled.startSuspending(Unit)
@@ -105,16 +108,24 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             if (!staticsMockingConfigured) {
                 ForceStaticMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
             }
-            val result = testGenerator.generate(methods,
-                MockStrategyApi.valueOf(params.mockStrategy),
-                kryoHelper.readObject(params.chosenClassesToMockAlways),
-                params.timeout,
-                generate = testFlow {
+
+            val generateFlow = when (testGenerator.applicationContext) {
+                is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
+                else -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled
                     fuzzingValue = params.fuzzingValue
-                })
+                }
+            }
+
+            val result = testGenerator.generate(
+                methods,
+                MockStrategyApi.valueOf(params.mockStrategy),
+                kryoHelper.readObject(params.chosenClassesToMockAlways),
+                params.timeout,
+                generate = generateFlow,
+            )
                 .summarizeAll(Paths.get(params.searchDirectory), null)
                 .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 

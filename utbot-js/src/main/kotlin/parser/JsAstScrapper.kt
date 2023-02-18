@@ -26,6 +26,9 @@ class JsAstScrapper(
 
     // Used not to parse the same file multiple times.
     private val _parsedFilesCache = mutableMapOf<String, Node>()
+    private val _filesToInfer: MutableList<String> = mutableListOf(basePath)
+    val filesToInfer: List<String>
+        get() = _filesToInfer.toList()
 
     fun findFunction(key: String, file: Node): Node? {
         if (importsMap[key]?.isFunction == true) return importsMap[key]
@@ -60,6 +63,7 @@ class JsAstScrapper(
 
     private fun File.parseIfNecessary(): Node =
         _parsedFilesCache.getOrPut(this.path) {
+            _filesToInfer += this.path.replace("\\", "/")
             Compiler().parse(SourceFile.fromCode(this.path, readText()))
         }
 

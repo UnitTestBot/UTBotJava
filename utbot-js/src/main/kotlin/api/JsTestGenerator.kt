@@ -14,6 +14,8 @@ import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
+import java.io.File
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -41,6 +43,7 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
+import providers.exports.IExportsProvider
 import service.InstrumentationService
 import service.PackageJson
 import service.PackageJsonService
@@ -51,17 +54,10 @@ import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.fuzzingTimeout
-import utils.ExportsProvider.getExportsDelimiter
-import utils.ExportsProvider.getExportsFrame
-import utils.ExportsProvider.getExportsPostfix
-import utils.ExportsProvider.getExportsPrefix
-import utils.ExportsProvider.getExportsRegex
 import utils.PathResolver
 import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
-import java.io.File
-import java.util.concurrent.CancellationException
 
 private val logger = KotlinLogging.logger {}
 
@@ -104,7 +100,7 @@ class JsTestGenerator(
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
-            filePathToInference = listOf(sourceFilePath),
+            filePathToInference = astScrapper.filesToInfer,
             parsedFile = parsedFile,
             settings = settings,
         )
@@ -313,13 +309,14 @@ class JsTestGenerator(
     ) {
         val obligatoryExport = (classNode?.getClassName() ?: funcNode.getAbstractFunctionName()).toString()
         val collectedExports = collectExports(execId)
+        val exportsProvider = IExportsProvider.providerByPackageJson(packageJson)
         exports += (collectedExports + obligatoryExport)
         exportsManager(exports.toList()) { existingSection ->
             val existingExportsSet = existingSection?.let { section ->
-                val trimmedSection = section.substringAfter(getExportsPrefix(packageJson))
-                    .substringBeforeLast(getExportsPostfix(packageJson))
-                val exportRegex = getExportsRegex(packageJson)
-                val existingExports = trimmedSection.split(getExportsDelimiter(packageJson))
+                val trimmedSection = section.substringAfter(exportsProvider.exportsPrefix)
+                    .substringBeforeLast(exportsProvider.exportsPostfix)
+                val exportRegex = exportsProvider.exportsRegex
+                val existingExports = trimmedSection.split(exportsProvider.exportsDelimiter)
                     .filter { it.contains(exportRegex) && it.isNotBlank() }
                 existingExports.map { rawLine ->
                     exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
@@ -327,11 +324,11 @@ class JsTestGenerator(
             } ?: emptySet()
             val resultSet = existingExportsSet + exports.toSet()
             val resSection = resultSet.joinToString(
-                separator = getExportsDelimiter(packageJson),
-                prefix = getExportsPrefix(packageJson),
-                postfix = getExportsPostfix(packageJson),
+                separator = exportsProvider.exportsDelimiter,
+                prefix = exportsProvider.exportsPrefix,
+                postfix = exportsProvider.exportsPostfix,
             ) {
-                getExportsFrame(it, packageJson)
+                exportsProvider.getExportsFrame(it)
             }
             existingSection?.let { fileText.replace(existingSection, resSection) } ?: resSection
         }

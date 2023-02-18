@@ -16,9 +16,8 @@ import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
 import java.util.regex.Pattern
+import providers.imports.IImportsProvider
 
-
-// TODO: Add "error" field in result json to not collide with "result" field upon error.
 class CoverageServiceProvider(
     private val context: ServiceContext,
     private val instrumentationService: InstrumentationService,
@@ -26,11 +25,7 @@ class CoverageServiceProvider(
     private val description: JsMethodDescription
 ) : ContextOwner by context {
 
-    private val importFileUnderTest = "instr/${filePathToInference.first().substringAfterLast("/")}"
-
-    private val imports =
-        "const ${JsTestGenerationSettings.fileUnderTestAliases} = require(\"./$importFileUnderTest\")\n" +
-                "const fs = require(\"fs\")\n\n"
+    private val imports = IImportsProvider.providerByPackageJson(packageJson, context).tempFileImports
 
     private val filePredicate = """
 function check_value(value, json) {

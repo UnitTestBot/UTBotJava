@@ -16,25 +16,17 @@ import utils.constructClass
 import utils.data.MethodTypes
 import java.io.File
 import java.util.Locale
-
-/*
-    NOTE: this approach is quite bad, but we failed to implement alternatives.
-    TODO: 1. MINOR: Find a better solution after the first stable version.
-          2. SEVERE: Load all necessary .js files in Tern.js since functions can be exported and used in other files.
- */
+import providers.imports.IImportsProvider
 
 /**
  * Installs and sets up scripts for running Tern.js type guesser.
  */
 class TernService(context: ServiceContext) : ContextOwner by context {
 
+    private val importProvider = IImportsProvider.providerByPackageJson(packageJson, context)
 
     private fun ternScriptCode() = """
-const tern = require("tern/lib/tern")
-const condense = require("tern/lib/condense.js")
-const util = require("tern/test/util.js")
-const fs = require("fs")
-const path = require("path")
+${generateImportsSection()}
 
 var condenseDir = "";
 
@@ -60,11 +52,11 @@ function runTest(options) {
 }
 
 function test(options) {
-    if (typeof options == "string") options = {load: [options]};
+    options = {load: options};
     runTest(options);
 }
 
-test("${filePathToInference.joinToString(separator = " ")}")
+test(["${filePathToInference.joinToString(separator = "\", \"")}"])
     """
 
     init {
@@ -76,6 +68,8 @@ test("${filePathToInference.joinToString(separator = " ")}")
     }
 
     private lateinit var json: JSONObject
+
+    private fun generateImportsSection(): String = importProvider.ternScriptImports
 
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(

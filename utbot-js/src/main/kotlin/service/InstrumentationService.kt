@@ -13,6 +13,8 @@ import utils.JsCmdExec
 import utils.PathResolver.getRelativePath
 import java.io.File
 import java.nio.file.Paths
+import parser.JsParserUtils.getModuleImportText
+import providers.exports.IExportsProvider
 import kotlin.io.path.pathString
 import kotlin.math.roundToInt
 
@@ -144,7 +146,8 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
         val covFunRegex = Regex("function (cov_.*)\\(\\).*")
         val funName = covFunRegex.find(instrumentedFileText.takeWhile { it != '{' })?.groups?.get(1)?.value
             ?: throw IllegalStateException("")
-        val fixedFileText = fixImportsInInstrumentedFile() + "\nexports.$funName = $funName"
+        val fixedFileText = fixImportsInInstrumentedFile() +
+                IExportsProvider.providerByPackageJson(packageJson).instrumentationFunExport(funName)
         File(instrumentedFilePath).writeTextAndUpdate(fixedFileText)
 
         covFunName = funName
@@ -158,15 +161,27 @@ class InstrumentationService(context: ServiceContext, private val funcDeclOffset
     private fun fixImportsInInstrumentedFile(): String {
         // nyc poorly handles imports paths in file to instrument. Manual fix required.
         NodeUtil.visitPreOrder(parsedInstrFile) { node ->
-            if (node.isRequireImport()) {
-                val currString = node.getRequireImportText()
-                val relPath = Paths.get(
-                    getRelativePath(
-                        "${projectPath}/${utbotDir}/instr",
-                        File(filePathToInference.first()).parent
-                    )
-                ).resolve(currString).pathString.replace("\\", "/")
-                node.firstChild!!.next!!.string = relPath
+            when {
+                node.isRequireImport() -> {
+                    val currString = node.getRequireImportText()
+                    val relPath = Paths.get(
+                        getRelativePath(
+                            "${projectPath}/${utbotDir}/instr",
+                            File(filePathToInference.first()).parent
+                        )
+                    ).resolve(currString).pathString.replace("\\", "/")
+                    node.firstChild!!.next!!.string = relPath
+                }
+                node.isImport -> {
+                    val currString = node.getModuleImportText()
+                    val relPath = Paths.get(
+                        getRelativePath(
+                            "${projectPath}/${utbotDir}/instr",
+                            File(filePathToInference.first()).parent
+                        )
+                    ).resolve(currString).pathString.replace("\\", "/")
+                    node.firstChild!!.next!!.next!!.string = relPath
+                }
             }
         }
         return CodePrinter.Builder(parsedInstrFile).build()

@@ -376,8 +376,8 @@ class JsTestGenerator(
     }
 
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {
-        return parentClassName?.let { astScrapper.findMethod(parentClassName, focusedMethodName) }
-            ?: astScrapper.findFunction(focusedMethodName)
+        return parentClassName?.let { astScrapper.findMethod(parentClassName, focusedMethodName, parsedFile) }
+            ?: astScrapper.findFunction(focusedMethodName, parsedFile)
             ?: throw IllegalStateException(
                 "Couldn't locate function \"$focusedMethodName\" with class ${parentClassName ?: ""}"
             )
@@ -391,7 +391,7 @@ class JsTestGenerator(
         }
 
     private fun getClassMethods(className: String): List<Node> {
-        val classNode = astScrapper.findClass(className)
+        val classNode = astScrapper.findClass(className, parsedFile)
         return classNode?.getClassMethods() ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

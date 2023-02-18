@@ -1,12 +1,14 @@
 package parser
 
 import com.google.javascript.jscomp.Compiler
+import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedContext
 import parser.JsParserUtils.getMethodName
 
+// TODO: make methods more safe by checking the Node method is called on.
 // Used for .children() calls.
 @Suppress("DEPRECATION")
 object JsParserUtils {
@@ -160,4 +162,43 @@ object JsParserUtils {
      * Returns path to imported file as [String].
      */
     fun Node.getRequireImportText(): String = this.firstChild!!.next!!.string
+
+    /**
+     * Called upon "import" JavaScript import.
+     *
+     * Returns path to imported file as [String].
+     */
+    fun Node.getModuleImportText(): String = this.firstChild!!.next!!.next!!.string
+
+    /**
+     * Called upon "import" JavaScript import.
+     *
+     * Returns imported objects as [List].
+     */
+    fun Node.getModuleImportSpecsAsList(): List<Node> {
+        val importSpecsNode = NodeUtil.findPreorder(this, {it.isImportSpecs}, {true})
+            ?: throw UnsupportedOperationException("Module import doesn't contain \"import_specs\" token as an AST child")
+        var currNode: Node? = importSpecsNode.firstChild!!
+        val importSpecsList = mutableListOf<Node>()
+        do {
+            importSpecsList += currNode!!
+            currNode = currNode?.next
+        } while (currNode?.isImportSpec == true)
+        return importSpecsList
+    }
+
+    /**
+     * Called upon IMPORT_SPEC Node.
+     *
+     * Returns name of imported object as [String].
+     */
+    fun Node.getImportSpecName(): String = this.firstChild!!.string
+
+    /**
+     * Called upon IMPORT_SPEC Node.
+     *
+     * Returns import alias as [String].
+     */
+    fun Node.getImportSpecAliases(): String = this.firstChild!!.next!!.string
+
 }

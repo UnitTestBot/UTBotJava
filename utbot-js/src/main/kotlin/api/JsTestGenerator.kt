@@ -364,11 +364,12 @@ class JsTestGenerator(
     private fun collectExports(methodId: JsMethodId): List<String> {
         val res = mutableListOf<String>()
         methodId.parameters.forEach {
-            if (!it.isJsBasic) {
+            if (!(it.isJsBasic || astScrapper.importsMap.contains(it.name))) {
                 res += it.name
             }
         }
-        if (!methodId.returnType.isJsBasic) res += methodId.returnType.name
+        if (!methodId.returnType.isJsBasic && !astScrapper.importsMap.contains(methodId.returnType.name))
+            res += methodId.returnType.name
         return res
     }
 

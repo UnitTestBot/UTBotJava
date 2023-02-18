@@ -4,6 +4,7 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
+import java.io.File
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
@@ -11,12 +12,10 @@ import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getAbstractFunctionParams
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getConstructor
+import providers.imports.IImportsProvider
 import utils.JsCmdExec
 import utils.constructClass
 import utils.data.MethodTypes
-import java.io.File
-import java.util.Locale
-import providers.imports.IImportsProvider
 
 /**
  * Installs and sets up scripts for running Tern.js type guesser.
@@ -178,8 +177,8 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
                 )
             }
 
-            name.contains('|') -> JsMultipleClassId(name.lowercase(Locale.getDefault()))
-            else -> JsClassId(name.lowercase(Locale.getDefault()))
+            name.contains('|') -> JsMultipleClassId(name)
+            else -> JsClassId(name)
         }
 
         return try {

@@ -29,9 +29,26 @@ class JsAstScrapper(
     private val _filesToInfer: MutableList<String> = mutableListOf(basePath)
     val filesToInfer: List<String>
         get() = _filesToInfer.toList()
+    private val _importsMap = mutableMapOf<String, Node>()
+    val importsMap: Map<String, Node>
+        get() = _importsMap.toMap()
+
+    init {
+        _importsMap.apply {
+            val visitor = Visitor()
+            visitor.accept(parsedFile)
+            val res = visitor.importNodes.fold(emptyMap<String, Node>()) { acc, node ->
+                val currAcc = acc.toList().toTypedArray()
+                val more = node.importedNodes().toList().toTypedArray()
+                mapOf(*currAcc, *more)
+            }
+            this.putAll(res)
+            this.toMap()
+        }
+    }
 
     fun findFunction(key: String, file: Node): Node? {
-        if (importsMap[key]?.isFunction == true) return importsMap[key]
+        if (_importsMap[key]?.isFunction == true) return _importsMap[key]
         val functionVisitor = JsFunctionAstVisitor(key, null)
         functionVisitor.accept(file)
         return try {
@@ -40,7 +57,7 @@ class JsAstScrapper(
     }
 
     fun findClass(key: String, file: Node): Node? {
-        if (importsMap[key]?.isClass == true) return importsMap[key]
+        if (_importsMap[key]?.isClass == true) return _importsMap[key]
         val classVisitor = JsClassAstVisitor(key)
         classVisitor.accept(file)
         return try {
@@ -51,14 +68,6 @@ class JsAstScrapper(
     fun findMethod(classKey: String, methodKey: String, file: Node): Node? {
         val classNode = findClass(classKey, file)
         return classNode?.getClassMethods()?.find { it.getAbstractFunctionName() == methodKey }
-    }
-
-    private val importsMap = run {
-        val visitor = Visitor()
-        visitor.accept(parsedFile)
-        visitor.importNodes.fold(emptyMap<String, Node>()) { acc, node ->
-            mapOf(*acc.toList().toTypedArray(), *node.importedNodes().toList().toTypedArray())
-        }
     }
 
     private fun File.parseIfNecessary(): Node =

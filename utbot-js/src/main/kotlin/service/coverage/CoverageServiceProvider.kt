@@ -16,6 +16,8 @@ import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
 import java.util.regex.Pattern
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtNullModel
 import providers.imports.IImportsProvider
 
 class CoverageServiceProvider(
@@ -209,10 +211,22 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         return callConstructorString + paramsString
     }
 
+    private fun UtArrayModel.toParamString(): String {
+        val paramsString = stores.values.joinToString(
+            prefix = "[",
+            postfix = "]",
+        ) {
+            it.toCallString()
+        }
+        return paramsString
+    }
+
 
     private fun UtModel.toCallString(): String =
         when (this) {
             is UtAssembleModel -> this.toParamString()
+            is UtArrayModel -> this.toParamString()
+            is UtNullModel -> "null"
             else -> {
                 (this as JsPrimitiveModel).value.escapeSymbolsIfNecessary().quoteWrapIfNecessary()
             }

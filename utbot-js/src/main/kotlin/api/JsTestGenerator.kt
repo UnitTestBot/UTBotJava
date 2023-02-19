@@ -4,6 +4,7 @@ import codegen.JsCodeGenerator
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
+import framework.api.js.util.isExportable
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
@@ -364,11 +365,11 @@ class JsTestGenerator(
     private fun collectExports(methodId: JsMethodId): List<String> {
         val res = mutableListOf<String>()
         methodId.parameters.forEach {
-            if (!(it.isJsBasic || astScrapper.importsMap.contains(it.name))) {
+            if (it.isExportable && !astScrapper.importsMap.contains(it.name)) {
                 res += it.name
             }
         }
-        if (!methodId.returnType.isJsBasic && !astScrapper.importsMap.contains(methodId.returnType.name))
+        if (methodId.returnType.isExportable && !astScrapper.importsMap.contains(methodId.returnType.name))
             res += methodId.returnType.name
         return res
     }

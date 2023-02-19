@@ -196,8 +196,9 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     override fun visit(element: CgArrayInitializer) {
         val elementType = element.elementType
         val elementsInLine = arrayElementsInLine(elementType)
-
+        print("[")
         element.values.renderElements(elementsInLine)
+        print("]")
     }
 
     override fun visit(element: CgClassFile) {

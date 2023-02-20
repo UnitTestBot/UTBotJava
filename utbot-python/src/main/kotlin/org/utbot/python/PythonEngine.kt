@@ -11,13 +11,12 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.PythonCodeExecutor
-import org.utbot.python.evaluation.PythonCodeExecutorImpl
+import org.utbot.python.evaluation.PythonCodeSocketExecutor
 import org.utbot.python.evaluation.PythonEvaluationError
 import org.utbot.python.evaluation.PythonEvaluationSuccess
 import org.utbot.python.evaluation.PythonEvaluationTimeout
@@ -26,7 +25,6 @@ import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.fuzzing.PythonFeedback
 import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
-import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonFuzzing
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonTypeStorage
@@ -146,26 +144,10 @@ class PythonEngine(
         return ValidExecution(utFuzzedExecution)
     }
 
-    private fun constructEvaluationInput(arguments: List<PythonFuzzedValue>, additionalModules: List<String>): PythonCodeExecutor {
-        val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
-
-        val (thisObject, modelList) =
-            if (methodUnderTest.hasThisArgument)
-                Pair(argumentValues[0], argumentValues.drop(1))
-            else
-                Pair(null, argumentValues)
-
-        val argumentModules = argumentValues
-            .flatMap { it.allContainingClassIds }
-            .map { it.moduleName }
-        val localAdditionalModules = (additionalModules + argumentModules).toSet()
-
-        return PythonCodeExecutorImpl(
+    private fun constructEvaluationInput(): PythonCodeExecutor {
+        return PythonCodeSocketExecutor(
             methodUnderTest,
-            FunctionArguments(thisObject, methodUnderTest.thisObjectName, modelList, methodUnderTest.argumentsNames),
-            argumentValues.map { FuzzedValue(it) },
             moduleToImport,
-            localAdditionalModules,
             pythonPath,
             directoriesForSysPath,
             timeoutForRun,
@@ -185,6 +167,7 @@ class PythonEngine(
 
         val coveredLines = initialCoveredLines.toMutableSet()
 
+        val codeExecutor = constructEvaluationInput()
         PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
             if (isCancelled()) {
                 logger.info { "Fuzzing process was interrupted" }
@@ -195,8 +178,20 @@ class PythonEngine(
                 return@PythonFuzzing PythonFeedback(control = Control.STOP)
             }
 
-            val codeExecutor = constructEvaluationInput(arguments, additionalModules)
-            when (val evaluationResult = codeExecutor.run()) {
+            val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
+            val argumentModules = argumentValues
+                .flatMap { it.allContainingClassIds }
+                .map { it.moduleName }
+            val localAdditionalModules = (additionalModules + argumentModules).toSet()
+
+            val (thisObject, modelList) =
+                if (methodUnderTest.hasThisArgument)
+                    Pair(argumentValues[0], argumentValues.drop(1))
+                else
+                    Pair(null, argumentValues)
+            val functionArguments = FunctionArguments(thisObject, methodUnderTest.thisObjectName, modelList, methodUnderTest.argumentsNames)
+
+            when (val evaluationResult = codeExecutor.run(functionArguments, localAdditionalModules)) {
                 is PythonEvaluationError -> {
                     val utError = UtError(
                         "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
@@ -221,7 +216,7 @@ class PythonEngine(
                         .zip(methodUnderTest.arguments)
                         .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
-                    val hasThisObject = codeExecutor.methodArguments.thisObject != null
+                    val hasThisObject = codeExecutor.method.hasThisArgument
 
                     when (val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)) {
                         is ValidExecution -> {
@@ -242,5 +237,8 @@ class PythonEngine(
                 }
             }
         }.fuzz(pmd)
+        if (codeExecutor is PythonCodeSocketExecutor) {
+            codeExecutor.stop()
+        }
     }
 }

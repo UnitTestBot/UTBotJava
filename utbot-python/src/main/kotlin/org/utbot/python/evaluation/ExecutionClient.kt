@@ -1,27 +1,36 @@
 package org.utbot.python.evaluation
 
+import org.utbot.python.utils.startProcess
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
-import java.io.PrintWriter
 import java.net.Socket
-import java.nio.CharBuffer
 
 class ExecutionClient(
-    hostname: String,
-    port: Int
+    private val hostname: String,
+    private val port: Int,
+    val pythonPath: String
 ) {
     private val clientSocket: Socket = Socket(hostname, port)
     private val outStream = BufferedWriter(OutputStreamWriter(clientSocket.getOutputStream()))
     private val inStream = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
+    private val process = runServer()
 
-    init {
-        runServer()
-    }
+    private fun runServer() =
+        startProcess(
+            listOf(
+                pythonPath,
+                "-m",
+                "utbot_executor",
+                hostname,
+                port.toString()
+            )
+        )
 
-    private fun runServer() {
-        TODO()
+    fun stopServer() {
+        stopConnection()
+        process.destroy() // ?
     }
 
     fun sendMessage(msg: String) {
@@ -43,7 +52,7 @@ class ExecutionClient(
 }
 
 fun main() {
-    val client = ExecutionClient("localhost", 12011)
+    val client = ExecutionClient("localhost", 12011, "python")
     client.sendMessage("Firstfjlskdjf")
     client.sendMessage("Second")
     client.sendMessage("{123: 123}")

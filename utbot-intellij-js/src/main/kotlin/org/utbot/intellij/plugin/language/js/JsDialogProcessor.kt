@@ -29,6 +29,8 @@ import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
 import settings.JsPackagesSettings.mochaData
+import settings.JsPackagesSettings.nycData
+import settings.JsPackagesSettings.ternData
 import settings.JsTestGenerationSettings.dummyClassName
 import settings.PackageData
 import utils.JsCmdExec
@@ -56,18 +58,18 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    if (!mochaData.findPackageByNpm(model.project.basePath!!, model.pathToNPM)) {
-                        installMissingRequirement(model.project, model.pathToNPM, mochaData)
-                    }
-                    createDialog(model)?.let { dialogProcessor ->
-                        if (!dialogProcessor.showAndGet()) return@invokeLater
+                    checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
+                    checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
+                    checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
+                    createDialog(model)?.let { dialogWindow ->
+                        if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
                         runWriteAction {
                             with(FileDocumentManager.getInstance()) {
                                 saveDocument(editor.document)
                             }
                         }
-                        createTests(dialogProcessor.model, containingFilePath, editor)
+                        createTests(dialogWindow.model, containingFilePath, editor)
                     }
                 }
             }
@@ -136,6 +138,7 @@ object JsDialogProcessor {
             this.pathToNode = pathToNode
             this.pathToNPM = pathToNPM
         }
+
     }
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
@@ -180,7 +183,8 @@ object JsDialogProcessor {
                         pathToNPM = model.pathToNPM,
                         timeout = model.timeout,
                         coverageMode = model.coverageMode
-                    )
+                    ),
+                    isCancelled = { indicator.isCanceled }
                 )
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
@@ -263,8 +267,21 @@ object JsDialogProcessor {
     }
 }
 
-// TODO(MINOR): Add indicator.text for each installation
-fun installMissingRequirement(project: Project, pathToNPM: String, requirement: PackageData) {
+fun checkAndInstallRequirement(
+    project: Project,
+    pathToNPM: String,
+    requirement: PackageData,
+) {
+    if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
+        installMissingRequirement(project, pathToNPM, requirement)
+    }
+}
+
+private fun installMissingRequirement(
+    project: Project,
+    pathToNPM: String,
+    requirement: PackageData,
+) {
     val message = """
             Requirement is not installed:
             ${requirement.packageName}

@@ -3,8 +3,8 @@ package org.utbot.framework.codegen.tree
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
-import org.utbot.engine.ArtificialError
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
@@ -640,7 +640,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     val actualObject: CgVariable = when (codegenLanguage) {
                         CodegenLanguage.KOTLIN -> newVar(
                             baseType = objectClassId,
-                            baseName = variableConstructor.constructVarName("actualObject"),
+                            baseName = nameGenerator.variableName("actualObject"),
                             init = { CgTypeCast(objectClassId, actual) }
                         )
                         else -> actual
@@ -793,7 +793,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     ): CgDeclaration {
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
-            variableConstructor.constructVarName("${expected.name}Size"),
+            nameGenerator.variableName("${expected.name}Size"),
             expected.length(this@CgMethodConstructor)
         )
         currentBlock += cgGetLengthDeclaration
@@ -847,13 +847,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 statements = block {
                     val expectedNestedElement = newVar(
                         baseType = expected.type.elementClassId!!,
-                        baseName = variableConstructor.constructVarName("${expected.name}NestedElement"),
+                        baseName = nameGenerator.variableName("${expected.name}NestedElement"),
                         init = { CgArrayElementAccess(expected, i) }
                     )
 
                     val actualNestedElement = newVar(
                         baseType = actual.type.elementClassId!!,
-                        baseName = variableConstructor.constructVarName("${actual.name}NestedElement"),
+                        baseName = nameGenerator.variableName("${actual.name}NestedElement"),
                         init = { CgArrayElementAccess(actual, i) }
                     )
 

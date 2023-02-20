@@ -8,6 +8,8 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.ArtificialError
+import org.utbot.framework.plugin.api.OverflowDetectionError
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
@@ -114,10 +116,12 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
@@ -235,6 +239,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
+    private val applicationContext: ApplicationContext?,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -270,6 +275,8 @@ class Traverser(
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
+
+
 
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.createNewAddr()

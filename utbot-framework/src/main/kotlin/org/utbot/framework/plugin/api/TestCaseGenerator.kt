@@ -61,6 +61,7 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
+    val applicationContext: ApplicationContext? = null,
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -112,7 +113,14 @@ open class TestCaseGenerator(
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
         try {
-            val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
+            val engine = createSymbolicEngine(
+                controller,
+                method,
+                mockStrategy,
+                chosenClassesToMockAlways,
+                applicationContext = null,
+                executionTimeEstimator,
+            )
             engineActions.map { engine.apply(it) }
             engineActions.clear()
             return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
@@ -159,6 +167,7 @@ open class TestCaseGenerator(
                                 method,
                                 mockStrategy,
                                 chosenClassesToMockAlways,
+                                applicationContext,
                                 executionTimeEstimator
                             )
 
@@ -248,6 +257,7 @@ open class TestCaseGenerator(
         method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
+        applicationContext: ApplicationContext?,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
@@ -258,6 +268,7 @@ open class TestCaseGenerator(
             dependencyPaths = dependencyPaths,
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
+            applicationContext = applicationContext,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
     }

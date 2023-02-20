@@ -122,7 +122,8 @@ object GoSourceCodeAnalyzer {
             "analysis_targets.go",
             "analysis_results.go",
             "function_modifier.go",
-            "imports_collector.go"
+            "imports_collector.go",
+            "constant_extractor.go"
         )
     }
 

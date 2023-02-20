@@ -252,6 +252,10 @@ func collectTargetAnalyzedFunctions(
 			funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
 			funcDecl.Name = ast.NewIdent(analyzedFunction.ModifiedName)
 
+			constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
+			ast.Walk(&constantExtractor, funcDecl)
+			analyzedFunction.Constants = constantExtractor.constants
+
 			functionModifier := FunctionModifier{lineCounter: 0}
 			ast.Walk(&functionModifier, funcDecl)
 

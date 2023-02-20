@@ -2,19 +2,21 @@ package org.utbot.intellij.plugin.language.js
 
 import service.CoverageMode
 import javax.swing.ButtonGroup
-import javax.swing.JRadioButton
+import javax.swing.JToggleButton
 
 object CoverageModeButtons {
 
     var mode = CoverageMode.FAST
 
-    val fastButton = JRadioButton("Fast")
-    val baseButton = JRadioButton("Basic")
-
+    val fastButton = JToggleButton("Fast").apply { this.isSelected = true }
+    val baseButton = JToggleButton("Basic")
+    val buttonGroup = ButtonGroup().apply {
+        this.add(fastButton)
+        this.add(baseButton)
+        this.setSelected(fastButton.model, true)
+    }
 
     init {
-        val buttonGroup = ButtonGroup()
-        fastButton.isSelected = true
         val baseButtonModel = baseButton.model
         baseButtonModel.addChangeListener {
             if (baseButtonModel.isPressed) {
@@ -27,7 +29,5 @@ object CoverageModeButtons {
                 mode = CoverageMode.FAST
             }
         }
-        buttonGroup.add(fastButton)
-        buttonGroup.add(baseButton)
     }
 }

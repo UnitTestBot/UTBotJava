@@ -29,7 +29,7 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
-private const val COVERAGE_LIMIT = 100
+private const val COVERAGE_LIMIT = 10_000
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,

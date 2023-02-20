@@ -90,7 +90,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-#        push: true
+        push: true
         tags: |
           ${{ steps.meta.outputs.tags }}
 #          ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.configuration.image_name }}:${{ env.DOCKER_TAG }}

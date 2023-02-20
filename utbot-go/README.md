@@ -68,7 +68,7 @@ Go projects automatically.
 * Go SDK 1.18 or later
 * Compatible [Go plugin](https://plugins.jetbrains.com/plugin/9568-go) for IntelliJ IDEA
 * Properly configured `go.mod` file for the code under test
-* `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0` Go modules installed (IntelliJ IDEA automatically offers to install them as soon as the tests are generated)
+* `github.com/stretchr/testify/assert` Go module installed (IntelliJ IDEA automatically offers to install it as soon as the tests are generated)
 
 #### Installation
 

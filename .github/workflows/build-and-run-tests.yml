@@ -32,6 +32,8 @@ jobs:
           - image_name: utbot_js_cli
             directory: utbot-cli-js
             extra_options: "-PbuildType=ALL"
+          # we can't use utbot_python_cli image name because of the bug while pushing image
+          #   ERROR: unexpected status: 403 Forbidden
           - image_name: utbot_py_cli
             directory: utbot-cli-python
             extra_options: ""

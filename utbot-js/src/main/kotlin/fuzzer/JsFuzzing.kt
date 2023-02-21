@@ -3,6 +3,7 @@ package fuzzer
 import framework.api.js.JsClassId
 import fuzzer.providers.ArrayValueProvider
 import fuzzer.providers.BoolValueProvider
+import fuzzer.providers.MapValueProvider
 import fuzzer.providers.NumberValueProvider
 import fuzzer.providers.ObjectValueProvider
 import fuzzer.providers.StringValueProvider
@@ -15,6 +16,7 @@ fun defaultValueProviders() = listOf(
     BoolValueProvider,
     NumberValueProvider,
     StringValueProvider,
+    MapValueProvider,
     ObjectValueProvider(),
     ArrayValueProvider()
 )

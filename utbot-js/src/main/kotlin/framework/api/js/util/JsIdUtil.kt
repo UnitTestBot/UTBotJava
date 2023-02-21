@@ -57,3 +57,6 @@ val JsClassId.isUndefined: Boolean
 
 val JsClassId.isJsArray: Boolean
     get() = this.name == "array" && this.elementClassId is JsClassId
+
+val JsClassId.isJsMap: Boolean
+    get() = this.name == "Map"

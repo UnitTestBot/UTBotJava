@@ -82,7 +82,7 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         val mockitoCloseableVarType = java.lang.AutoCloseable::class.id
 
         val mockitoCloseableModel = UtCompositeModel(
-            id = 239017,
+            id = null,
             classId = mockitoCloseableVarType,
             isMock = false,
         )

@@ -33,6 +33,7 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
@@ -251,6 +252,15 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         val returnType =
             if (element.returnType.simpleName == "Object[][]") "java.lang.Object[][]" else "${element.returnType}"
         print("public static $returnType ${element.name}()")
+        renderExceptions(element)
+    }
+
+    override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
+        // framework util methods always have void return type
+        print("public void ")
+        print(element.name)
+        print("()")
+
         renderExceptions(element)
     }
 

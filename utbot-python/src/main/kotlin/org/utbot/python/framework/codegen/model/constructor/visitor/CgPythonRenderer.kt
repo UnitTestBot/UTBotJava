@@ -30,6 +30,7 @@ import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgForEachLoop
 import org.utbot.framework.codegen.domain.models.CgForLoop
 import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgGetKotlinClass
 import org.utbot.framework.codegen.domain.models.CgGetLength
@@ -344,6 +345,10 @@ internal class CgPythonRenderer(
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
         val returnType = element.returnType.canonicalName
         println("def ${element.name}() -> $returnType: pass")
+    }
+
+    override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
+        throw UnsupportedOperationException()
     }
 
     override fun visit(element: CgInnerBlock) {

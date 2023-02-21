@@ -24,6 +24,14 @@ object Pytest : TestFramework(displayName = "pytest", id = "pytest") {
     )
     override val testAnnotationFqn: String = ""
 
+    override val beforeMethod: String = ""
+    override val beforeMethodId: ClassId = pythonAnyClassId
+    override val beforeMethodFqn: String = ""
+
+    override val afterMethod: String = ""
+    override val afterMethodId: ClassId = pythonAnyClassId
+    override val afterMethodFqn: String = ""
+
     override val parameterizedTestAnnotation: String = ""
     override val parameterizedTestAnnotationId: ClassId = pythonAnyClassId
     override val parameterizedTestAnnotationFqn: String = ""
@@ -63,6 +71,14 @@ object Unittest : TestFramework(displayName = "Unittest", id = "Unittest") {
         simpleName = "Tests"
     )
     override val testAnnotationFqn: String = "unittest"
+
+    override val beforeMethod: String = ""
+    override val beforeMethodId: ClassId = pythonAnyClassId
+    override val beforeMethodFqn: String = ""
+
+    override val afterMethod: String = ""
+    override val afterMethodId: ClassId = pythonAnyClassId
+    override val afterMethodFqn: String = ""
 
     override val parameterizedTestAnnotation: String = ""
     override val parameterizedTestAnnotationId: ClassId = pythonAnyClassId

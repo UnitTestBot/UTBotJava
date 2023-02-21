@@ -2,10 +2,13 @@ package org.utbot.go.gocodeanalyzer
 
 import org.utbot.common.FileUtil.extractDirectoryFromArchive
 import org.utbot.common.scanForResourcesContaining
+import org.utbot.go.api.GoPrimitiveTypeId
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFunctionParameter
-import org.utbot.go.fuzzer.providers.GoPrimitivesValueProvider
+import org.utbot.go.api.util.goConstantTypes
+import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import org.utbot.go.util.writeJsonToFileOrFail
@@ -28,7 +31,7 @@ object GoSourceCodeAnalyzer {
     fun analyzeGoSourceFilesForFunctions(
         targetFunctionsNamesBySourceFiles: Map<String, List<String>>,
         goExecutableAbsolutePath: String
-    ): Map<GoUtFile, GoSourceFileAnalysisResult> {
+    ): Pair<Map<GoUtFile, GoSourceFileAnalysisResult>, Int> {
         val analysisTargets = AnalysisTargets(
             targetFunctionsNamesBySourceFiles.map { (absoluteFilePath, targetFunctionsNames) ->
                 AnalysisTarget(absoluteFilePath, targetFunctionsNames)
@@ -63,7 +66,7 @@ object GoSourceCodeAnalyzer {
                 environment
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
-            GoPrimitivesValueProvider.intSize = analysisResults.intSize
+            val intSize = analysisResults.intSize
             return analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
@@ -75,12 +78,24 @@ object GoSourceCodeAnalyzer {
                         )
                     }
                     val resultTypes = analyzedFunction.resultTypes.map { analyzedType -> analyzedType.toGoTypeId() }
+                    val constants = mutableMapOf<GoTypeId, List<Any>>()
+                    analyzedFunction.constants.map { (type, rawValues) ->
+                        val typeId = GoPrimitiveTypeId(type)
+                        if (typeId !in goConstantTypes) {
+                            error("Constants extraction: $type is a unsupported constant type")
+                        }
+                        val values = rawValues.map { rawValue ->
+                            rawValueOfGoPrimitiveTypeToValue(typeId, rawValue, intSize)
+                        }
+                        constants.compute(typeId) { _, v -> if (v == null) values else v + values }
+                    }
                     GoUtFunction(
                         analyzedFunction.name,
                         analyzedFunction.modifiedName,
                         parameters,
                         resultTypes,
                         analyzedFunction.requiredImports,
+                        constants,
                         analyzedFunction.modifiedFunctionForCollectingTraces,
                         analyzedFunction.numberOfAllStatements,
                         sourceFile
@@ -91,7 +106,7 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notSupportedFunctionsNames,
                     analysisResult.notFoundFunctionsNames
                 )
-            }
+            } to intSize
         } finally {
             // TODO correctly?
             analysisTargetsFile.delete()

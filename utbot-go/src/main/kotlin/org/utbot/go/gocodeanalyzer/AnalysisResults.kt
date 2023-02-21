@@ -95,7 +95,7 @@ internal data class AnalyzedFunction(
     val parameters: List<AnalyzedFunctionParameter>,
     val resultTypes: List<AnalyzedType>,
     val requiredImports: List<GoImport>,
-    val constants: Map<String, String>,
+    val constants: Map<String, List<String>>,
     val modifiedFunctionForCollectingTraces: String,
     val numberOfAllStatements: Int
 )

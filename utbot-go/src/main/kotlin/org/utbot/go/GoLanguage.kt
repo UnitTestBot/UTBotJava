@@ -6,12 +6,13 @@ import org.utbot.go.api.GoUtFunction
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import org.utbot.go.fuzzer.providers.GoArrayValueProvider
+import org.utbot.go.fuzzer.providers.GoConstantValueProvider
 import org.utbot.go.fuzzer.providers.GoPrimitivesValueProvider
 import org.utbot.go.fuzzer.providers.GoStructValueProvider
 
 
 fun goDefaultValueProviders() = listOf(
-    GoPrimitivesValueProvider, GoArrayValueProvider, GoStructValueProvider
+    GoPrimitivesValueProvider, GoArrayValueProvider, GoStructValueProvider, GoConstantValueProvider
 )
 
 class GoInstruction(
@@ -20,13 +21,15 @@ class GoInstruction(
 
 class GoDescription(
     val methodUnderTest: GoUtFunction,
-    val tracer: Trie<GoInstruction, *>
+    val tracer: Trie<GoInstruction, *>,
+    val intSize: Int
 ) : Description<GoTypeId>(methodUnderTest.parameters.map { it.type }.toList())
 
 suspend fun runGoFuzzing(
     methodUnderTest: GoUtFunction,
+    intSize: Int,
     providers: List<ValueProvider<GoTypeId, GoUtModel, GoDescription>> = goDefaultValueProviders(),
     exec: suspend (description: GoDescription, values: List<GoUtModel>) -> BaseFeedback<Trie.Node<GoInstruction>, GoTypeId, GoUtModel>
 ) {
-    BaseFuzzing(providers, exec).fuzz(GoDescription(methodUnderTest, Trie(GoInstruction::lineNumber)))
+    BaseFuzzing(providers, exec).fuzz(GoDescription(methodUnderTest, Trie(GoInstruction::lineNumber), intSize))
 }

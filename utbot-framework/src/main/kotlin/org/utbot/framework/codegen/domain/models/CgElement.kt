@@ -287,20 +287,21 @@ class CgTestMethod(
 
 class CgFrameworkUtilMethod(
     override val name: String,
-    override val returnType: ClassId = voidClassId,
-    override val parameters: List<CgParameterDeclaration> = emptyList(),
     override val statements: List<CgStatement>,
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
-    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
-    override val requiredFields: List<CgParameterDeclaration> = emptyList(),
-) : CgMethod(isStatic = false)
+) : CgMethod(isStatic = false) {
+    override val returnType: ClassId = voidClassId
+    override val parameters: List<CgParameterDeclaration> = emptyList()
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override val requiredFields: List<CgParameterDeclaration> = emptyList()
+}
 
 class CgErrorTestMethod(
     override val name: String,
     override val statements: List<CgStatement>,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
-) : CgMethod(false) {
+) : CgMethod(isStatic = false) {
     override val exceptions: Set<ClassId> = emptySet()
     override val returnType: ClassId = voidClassId
     override val parameters: List<CgParameterDeclaration> = emptyList()

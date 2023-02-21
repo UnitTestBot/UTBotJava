@@ -499,6 +499,19 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Note that values processed concretely won't be replaced with unbounded symbolic variables.
      */
     var processAllClinitSectionsConcretely by getBooleanProperty(false)
+
+    /**
+     * In cases where we don't have a body for a method, we can either throw an exception
+     * or treat this a method as a source of an unbounded symbolic variable returned as a result.
+     *
+     * If this option is set in true, instead of analysis we will return an unbounded symbolic
+     * variable with a corresponding type. Otherwise, an exception will be thrown.
+     *
+     * Default value is false since it is not a common situation when you cannot retrieve a body
+     * from a regular method. Setting this option in true might be suitable in situations when
+     * it is more important not to fall at all rather than work precisely.
+     */
+    var treatAbsentMethodsAsUnboundedValue by getBooleanProperty(false)
 }
 
 /**

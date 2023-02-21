@@ -12,9 +12,9 @@ import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 
-private val idGenerator = ReferencePreservingIntIdGenerator()
-
 class ArrayValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+
+    private val idGenerator = ReferencePreservingIntIdGenerator()
 
     override fun accept(type: JsClassId): Boolean = type.isJsArray
 

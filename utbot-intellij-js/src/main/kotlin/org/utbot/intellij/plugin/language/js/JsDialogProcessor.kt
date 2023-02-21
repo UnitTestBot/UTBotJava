@@ -36,6 +36,7 @@ import settings.PackageData
 import utils.JsCmdExec
 import utils.OsProvider
 import java.io.IOException
+import settings.PackageDataService
 
 private val logger = KotlinLogging.logger {}
 
@@ -256,12 +257,12 @@ object JsDialogProcessor {
     }
 }
 
-fun checkAndInstallRequirement(
+fun PackageDataService.checkAndInstallRequirement(
     project: Project,
     pathToNPM: String,
     requirement: PackageData,
 ) {
-    if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
+    if (!this.findPackageByNpm(requirement, project.basePath!!, pathToNPM)) {
         installMissingRequirement(project, pathToNPM, requirement)
     }
 }

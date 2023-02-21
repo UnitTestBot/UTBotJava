@@ -1,23 +1,25 @@
 package service
 
-import org.json.JSONException
-import org.json.JSONObject
 import java.io.File
 import java.io.FilenameFilter
+import org.json.JSONObject
 
 data class PackageJson(
-    val isModule: Boolean
+    val isModule: Boolean,
+    val deps: Set<String>
 ) {
     companion object {
-        val defaultConfig = PackageJson(false)
+        val defaultConfig = PackageJson(false, emptySet())
     }
 }
 
-
-class PackageJsonService(context: ServiceContext) : ContextOwner by context {
+class PackageJsonService(
+    private val filePathToInference: String,
+    private val projectPath: String
+) {
 
     fun findClosestConfig(): PackageJson {
-        var currDir = File(filePathToInference.first().substringBeforeLast("/"))
+        var currDir = File(filePathToInference.substringBeforeLast("/"))
         do {
             val matchingFiles: Array<File> = currDir.listFiles(
                 FilenameFilter { _, name ->
@@ -33,11 +35,8 @@ class PackageJsonService(context: ServiceContext) : ContextOwner by context {
     private fun parseConfig(configFile: File): PackageJson {
         val configAsJson = JSONObject(configFile.readText())
         return PackageJson(
-            isModule = try {
-                (configAsJson.getString("type") == "module")
-            } catch (e: JSONException) {
-                false
-            },
+            isModule = configAsJson.optString("type") == "module",
+            deps = configAsJson.optJSONObject("dependencies").keySet() ?: emptySet()
         )
     }
 }

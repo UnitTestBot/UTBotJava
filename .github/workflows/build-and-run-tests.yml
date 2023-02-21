@@ -27,7 +27,6 @@ jobs:
       fail-fast: false
       matrix:
         configuration:
-          # image_name has to be the same as ARG in Dockerfile but in lowercase
 #          - image_name: utbot_java_cli
 #            directory: utbot-cli
 #            extra_options: ""
@@ -39,6 +38,20 @@ jobs:
             extra_options: ""
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: write
+      discussions: write
+      issues: write
+      metadata: read
+      packages: write
+      pages: write
+      pull-requests: write
+      repository-projects: write
+      security-events: write
+      statuses: write
     steps:
     - uses: actions/checkout@v3
 

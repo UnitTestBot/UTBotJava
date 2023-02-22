@@ -53,6 +53,7 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
     include("utbot-cli-python")
     include("utbot-intellij-python")
+    include("utbot-python-parser")
 }
 
 if (jsIde.split(",").contains(ideType)) {

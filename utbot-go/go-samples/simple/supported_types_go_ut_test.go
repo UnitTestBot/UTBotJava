@@ -226,3 +226,9 @@ func TestExternalStructByUtGoFuzzer(t *testing.T) {
 
 	assert.Equal(t, Structure{int: -1, int8: 1, int16: -32768, int32: 2147483647, int64: 1, uint: 1, uint8: 1, uint16: 1, uint32: 1, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.009224832, float64: 0.9644868606768501, complex64: complex(float32(0.009224832), float32(0.009224832)), complex128: complex(0.9644868606768501, 0.9644868606768501), byte: 1, rune: 0, string: "", bool: false}, actualVal)
 }
+
+func TestExternalStructWithAliasByUtGoFuzzer(t *testing.T) {
+	actualVal := ExternalStructWithAlias(difflib.Match{A: 9223372036854775807, B: -1, Size: -9223372036854775808})
+
+	assert.Equal(t, difflib.Match{A: 9223372036854775807, B: -1, Size: -9223372036854775808}, actualVal)
+}

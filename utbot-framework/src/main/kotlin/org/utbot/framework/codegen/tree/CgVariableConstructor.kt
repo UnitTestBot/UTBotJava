@@ -20,10 +20,10 @@ import org.utbot.framework.codegen.domain.models.CgStaticFieldAccess
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getMockFrameworkManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getMockFrameworkManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.util.at
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.fieldThatIsGotWith
@@ -68,7 +68,6 @@ import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 /**
  * Constructs CgValue or CgVariable given a UtModel
  */
-@Suppress("unused")
 open class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgCallableAccessManager by getCallableAccessManagerBy(context),
@@ -204,7 +203,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
         val instantiationCall = model.instantiationCall
         processInstantiationStatement(model, instantiationCall, baseName)
 
@@ -391,11 +390,13 @@ open class CgVariableConstructor(val context: CgContext) :
         return array
     }
 
-    // TODO: cannot be used now but will be useful in case of storing stores in generated code
     /**
      * Splits sorted by indices pairs of index and value from stores to continuous by index chunks
      * [indexedValuesFromStores] have to be sorted by key
+     *
+     * Сan not be used now but will be useful in case of storing stores in generated code
      */
+    @Suppress("unused")
     private fun splitSettingFromStoresToForLoops(
         array: CgVariable,
         indexedValuesFromStores: List<MutableMap.MutableEntry<Int, UtModel>>
@@ -499,7 +500,6 @@ open class CgVariableConstructor(val context: CgContext) :
     /**
      * Create loop initializer expression
      */
-    @Suppress("SameParameterValue")
     internal fun loopInitialization(
         variableType: ClassId,
         baseVariableName: String,
@@ -519,6 +519,7 @@ open class CgVariableConstructor(val context: CgContext) :
      * Both cases are considered here.
      * If the variable is [Object], we use reflection method to set an element.
      * Otherwise, we set an element directly.
+     *
      */
     private fun CgVariable.setArrayElement(index: Any, value: CgValue) {
         val i = index.resolve()
@@ -537,9 +538,5 @@ open class CgVariableConstructor(val context: CgContext) :
         }
     }
 
-    internal fun constructVarName(baseName: String, isMock: Boolean = false): String =
-        nameGenerator.variableName(baseName, isMock)
-
     private fun String.toVarName(): String = nameGenerator.variableName(this)
-
 }

@@ -62,6 +62,16 @@ class Matrix:
         else:
             raise MatrixException("Wrong Type")
 
+    def is_diagonal(self) -> bool:
+        if self.dim[0] != self.dim[1]:
+            raise MatrixException("Bad matrix")
+
+        for i, row in enumerate(self.elements):
+            for j, elem in enumerate(row):
+                if i != j and elem != 0:
+                    return False
+        return True
+
 
 if __name__ == '__main__':
     a = Matrix([[1., 2.]])

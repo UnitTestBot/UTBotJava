@@ -101,12 +101,7 @@ class BitVectorValue : KnownValue {
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun toString(radix: Int, isUnsigned: Boolean = false): String {
-        val size = if (isUnsigned) size + 1 else size
-        val array = ByteArray(size / 8 + if (size % 8 != 0) 1 else 0) { index ->
-            toLong(bits = 8, shift = index * 8).toByte()
-        }
-        array.reverse()
-        return BigInteger(array).toString(radix)
+        return toBigInteger(isUnsigned).toString(radix)
     }
 
     override fun toString() = toString(10)
@@ -125,6 +120,17 @@ class BitVectorValue : KnownValue {
         }
         return result
     }
+
+    private fun toBigInteger(isUnsigned: Boolean): BigInteger {
+        val size = if (isUnsigned) size + 1 else size
+        val array = ByteArray(size / 8 + if (size % 8 != 0) 1 else 0) { index ->
+            toLong(bits = 8, shift = index * 8).toByte()
+        }
+        array.reverse()
+        return BigInteger(array)
+    }
+
+    fun toBigInteger() = toBigInteger(false)
 
     fun toBoolean() = vector[0]
 
@@ -155,6 +161,7 @@ class BitVectorValue : KnownValue {
                 is Short -> fromShort(value)
                 is Int -> fromInt(value)
                 is Long -> fromLong(value)
+                is BigInteger -> fromBigInteger(value)
                 else -> error("unknown type of value $value (${value::class})")
             }
         }
@@ -187,6 +194,17 @@ class BitVectorValue : KnownValue {
             val vector = BitSet(size)
             for (i in 0 until size) {
                 vector[i] = value and (1L shl i) != 0L
+            }
+            return BitVectorValue(size, vector)
+        }
+
+        fun  fromBigInteger(value: BigInteger): BitVectorValue {
+            val size = 128
+            val bits = value.bitCount()
+            assert(bits <= size) { "This value $value is too big. Max value is 2^$bits." }
+            val vector = BitSet(size)
+            for (i in 0 until size) {
+                vector[i] = value.testBit(i)
             }
             return BitVectorValue(size, vector)
         }

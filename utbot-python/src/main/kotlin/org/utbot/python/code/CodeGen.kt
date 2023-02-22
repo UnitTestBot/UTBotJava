@@ -5,15 +5,12 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.PythonMethod
-import org.utbot.python.framework.api.python.NormalizedPythonAnnotation
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
+import org.utbot.python.newtyping.general.Type
 
 
 object PythonCodeGenerator {
-    const val successStatus = "success"
-    const val failStatus = "fail"
-
     fun generateRunFunctionCode(
         method: PythonMethod,
         methodArguments: List<UtModel>,
@@ -45,9 +42,10 @@ object PythonCodeGenerator {
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, NormalizedPythonAnnotation>,
+        methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        namesInModule: Collection<String>
     ): String {
         val context = UtContext(this::class.java.classLoader)
         withUtContext(context) {
@@ -61,7 +59,8 @@ object PythonCodeGenerator {
                 method,
                 methodAnnotations,
                 directoriesForSysPath,
-                moduleToImport
+                moduleToImport,
+                namesInModule
             )
         }
     }

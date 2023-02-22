@@ -146,6 +146,13 @@ class SimpleNameBuilder(
     }
 
     private fun fromNameDescriptionToCandidateSimpleName(nameDescription: TestNameDescription): DisplayNameCandidate? {
+        if (nameDescription.nameType == NameType.ArtificialError) {
+            return DisplayNameCandidate(
+                nameDescription.name,
+                nameDescription.uniquenessTag,
+                traceTag.path.size + 1
+            )
+        }
         if (nameDescription.nameType == NameType.ThrowsException) {
             return DisplayNameCandidate(
                 nameDescription.name,
@@ -268,14 +275,18 @@ class SimpleNameBuilder(
      * (for example, [InstrumentedProcessDeathException]).
      */
     private fun exceptionThrow(testNames: MutableList<TestNameDescription>) {
-        val throwsException = traceTag.result.exceptionOrNull()?.let { it::class.simpleName }
-        if (!(throwsException.isNullOrEmpty() || traceTag.path.isEmpty())) {
+        val exception = traceTag.result.exceptionOrNull() ?: return
+        val name = buildNameFromThrowable(exception)
+
+        if (name != null && traceTag.path.isNotEmpty()) {
+            val nameType = getThrowableNameType(exception)
+
             testNames.add(TestNameDescription(
-                "Throw$throwsException",
+                name,
                 testNames.maxOfOrNull { it.depth } ?: 0,
                 testNames.maxOfOrNull { it.line } ?: 0,
                 UniquenessTag.Unique,
-                NameType.ThrowsException,
+                nameType,
                 testNames.maxOfOrNull { it.index } ?: 0,
                 traceTag.path.last(),
                 methodUnderTest

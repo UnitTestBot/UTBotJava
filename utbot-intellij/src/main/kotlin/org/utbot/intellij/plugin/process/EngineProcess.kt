@@ -188,6 +188,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         classPath: String?,
         dependencyPaths: String,
         jdkInfo: JdkInfo,
+        applicationContext: ApplicationContext,
         isCancelled: (Unit) -> Boolean
     ) {
         assertReadAccessNotAllowed()
@@ -199,7 +200,8 @@ class EngineProcess private constructor(val project: Project, private val classN
             buildDir.toTypedArray(),
             classPath,
             dependencyPaths,
-            JdkInfo(jdkInfo.path.pathString, jdkInfo.version)
+            JdkInfo(jdkInfo.path.pathString, jdkInfo.version),
+            kryoHelper.writeObject(applicationContext)
         )
         engineModel.createTestGenerator.startBlocking(params)
     }

@@ -19,6 +19,7 @@ import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgCommentedAnnotation
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgDeclaration
+import org.utbot.framework.codegen.domain.models.CgDocRegularStmt
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgElement
 import org.utbot.framework.codegen.domain.models.CgEqualTo
@@ -63,6 +64,7 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.pythonBuiltinsModuleName
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.tree.*
+import java.lang.StringBuilder
 import org.utbot.python.framework.codegen.toPythonRawString
 
 internal class CgPythonRenderer(
@@ -160,6 +162,12 @@ internal class CgPythonRenderer(
         println("\"\"\"")
     }
 
+    override fun visit(element: CgDocRegularStmt){
+        if (element.isEmpty()) return
+
+        println(element.stmt)
+    }
+
     override fun visit(element: CgErrorWrapper) {
         element.expression.accept(this)
     }
@@ -178,13 +186,12 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgTryCatch) {
-        println("try")
+        print("try")
         // TODO introduce CgBlock
         visit(element.statements)
         for ((exception, statements) in element.handlers) {
-            print("except")
+            print("except ")
             renderExceptionCatchVariable(exception)
-            println("")
             // TODO introduce CgBlock
             visit(statements, printNextLine = element.finally == null)
         }
@@ -291,13 +298,18 @@ internal class CgPythonRenderer(
     }
 
     fun renderPythonImport(pythonImport: PythonImport) {
+        val importBuilder = StringBuilder()
         if (pythonImport is PythonSysPathImport) {
-            println("sys.path.append(${pythonImport.sysPath.toPythonRawString()})")
+            importBuilder.append("sys.path.append(${pythonImport.sysPath.toPythonRawString()})")
         } else if (pythonImport.moduleName == null) {
-            println("import ${pythonImport.importName}")
+            importBuilder.append("import ${pythonImport.importName}")
         } else {
-            println("from ${pythonImport.moduleName} import ${pythonImport.importName}")
+            importBuilder.append("from ${pythonImport.moduleName} import ${pythonImport.importName}")
         }
+        if (pythonImport.alias != null) {
+            importBuilder.append(" as ${pythonImport.alias}")
+        }
+        println(importBuilder.toString())
     }
 
     override fun renderMethodSignature(element: CgTestMethod) {
@@ -324,7 +336,9 @@ internal class CgPythonRenderer(
         renderMethodDocumentation(element)
         renderMethodSignature(element)
         visit(element as CgMethod)
-        println("pass")
+        withIndent {
+            println("pass")
+        }
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
@@ -395,6 +409,8 @@ internal class CgPythonRenderer(
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
+        print(exception.type.canonicalName)
+        print(" as ")
         print(exception.name.escapeNamePossibleKeyword())
     }
 
@@ -433,7 +449,15 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgMethod) {
-        visit(element.statements, printNextLine = false)
+        visit(listOf(element.documentation) + element.statements, printNextLine = false)
+    }
+
+    override fun visit(element: CgTestMethod) {
+        for (annotation in element.annotations) {
+            annotation.accept(this)
+        }
+        renderMethodSignature(element)
+        visit(element as CgMethod)
     }
 
     override fun visit(element: CgMethodCall) {
@@ -508,6 +532,10 @@ internal class CgPythonRenderer(
         }
     }
 
+    override fun visit(element: CgPythonTree) {
+        element.value.accept(this)
+    }
+
     override fun visit(element: CgPythonDict) {
         print("{")
         element.elements.map { (key, value) ->
@@ -533,13 +561,27 @@ internal class CgPythonRenderer(
     }
 
     override fun visit(element: CgFormattedString) {
-        throw NotImplementedError("String interpolation is not supported in Python renderer")
+        print("f\"")
+        element.array.forEachIndexed { index, cgElement ->
+            if (cgElement is CgLiteral) {
+                print("{")
+                print(cgElement.toStringConstant(asRawString = true))
+                print("}")
+            } else {
+                print("{")
+                cgElement.accept(this)
+                print("}")
+            }
+
+            if (index < element.array.lastIndex) print(" ")
+        }
+        print("\"")
     }
 
     override fun String.escapeCharacters(): String =
         StringEscapeUtils
             .escapeJava(this)
-            .replace("'", "\\'")
+            .replace("\"", "\\\"")
             .replace("\\f", "\\u000C")
             .replace("\\xxx", "\\\u0058\u0058\u0058")
 }

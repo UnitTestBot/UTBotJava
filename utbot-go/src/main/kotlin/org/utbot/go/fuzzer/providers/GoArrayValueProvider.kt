@@ -15,14 +15,12 @@ object GoArrayValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
             type.let { it as GoArrayTypeId }.also { arrayType ->
-                val packageName = description.methodUnderTest.getPackageName()
                 yield(
                     Seed.Collection(
                         construct = Routine.Collection {
                             GoUtArrayModel(
                                 value = hashMapOf(),
                                 typeId = arrayType,
-                                packageName = packageName
                             )
                         },
                         modify = Routine.ForEach(listOf(arrayType.elementTypeId!!)) { self, i, values ->

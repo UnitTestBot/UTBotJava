@@ -63,6 +63,7 @@ type AnalyzedFunction struct {
 	ModifiedName                        string                      `json:"modifiedName"`
 	Parameters                          []AnalyzedFunctionParameter `json:"parameters"`
 	ResultTypes                         []AnalyzedType              `json:"resultTypes"`
+	RequiredImports                     []Import                    `json:"requiredImports"`
 	ModifiedFunctionForCollectingTraces string                      `json:"modifiedFunctionForCollectingTraces"`
 	NumberOfAllStatements               int                         `json:"numberOfAllStatements"`
 	position                            token.Pos
@@ -70,7 +71,7 @@ type AnalyzedFunction struct {
 
 type AnalysisResult struct {
 	AbsoluteFilePath           string             `json:"absoluteFilePath"`
-	PackageName                string             `json:"packageName"`
+	SourcePackage              Package            `json:"sourcePackage"`
 	AnalyzedFunctions          []AnalyzedFunction `json:"analyzedFunctions"`
 	NotSupportedFunctionsNames []string           `json:"notSupportedFunctionsNames"`
 	NotFoundFunctionsNames     []string           `json:"notFoundFunctionsNames"`

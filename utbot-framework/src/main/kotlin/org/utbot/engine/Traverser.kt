@@ -8,6 +8,8 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.ArtificialError
+import org.utbot.framework.plugin.api.OverflowDetectionError
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
@@ -114,10 +116,12 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
@@ -130,6 +134,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
+import org.utbot.summary.ast.declaredClassName
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -235,6 +240,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
+    private val applicationContext: ApplicationContext?,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -270,6 +276,8 @@ class Traverser(
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
+
+
 
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.createNewAddr()
@@ -2946,9 +2954,25 @@ class Traverser(
             declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
             isUtMockForbidClassCastException -> isUtMockDisableClassCastExceptionCheckInvoke(parameters)
             else -> {
-                val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
-                pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
-                emptyList()
+                // Try to extract a body from substitution of our method or from the method itself.
+                // For the substitution, if it exists, we have a corresponding body and graph,
+                // but for the method itself its body might not be present in the memory.
+                // This may happen because of classloading issues (e.g. absence of required library JAR file)
+                val graph = (substitutedMethod ?: this).takeIf { it.canRetrieveBody() }?.jimpleBody()?.graph()
+
+                if (graph != null) {
+                    // If we have a graph to analyze, do it
+                    pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
+                    emptyList()
+                } else {
+                    // Otherwise, depending on [treatAbsentMethodsAsUnboundedValue] either throw an exception
+                    // or continue analysis with an unbounded variable as a result of the [this] method
+                    if (UtSettings.treatAbsentMethodsAsUnboundedValue) {
+                        listOf(unboundedVariable("methodWithoutBodyResult", method = this))
+                    } else {
+                        error("Cannot retrieve body for a $declaredClassName.$name method")
+                    }
+                }
             }
         }
     }

@@ -26,8 +26,8 @@ import org.utbot.framework.codegen.domain.models.CgThisInstance
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl.FieldAccessorSuitability.*
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.tree.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.tree.importIfNeeded
 import org.utbot.framework.codegen.tree.isUtil

@@ -37,11 +37,13 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl
+import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.hasAmbiguousOverloadsOf
 import org.utbot.framework.codegen.util.isAccessibleFrom
@@ -72,6 +74,7 @@ abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgCallableAccessManager by CgCallableAccessManagerImpl(context),
         CgStatementConstructor by CgStatementConstructorImpl(context) {
 
+    val nameGenerator: CgNameGenerator = getNameGeneratorBy(context)
     val variableConstructor: CgVariableConstructor by lazy { getVariableConstructorBy(context) }
 
     fun mockitoArgumentMatchersFor(executable: ExecutableId): Array<CgMethodCall> =
@@ -220,7 +223,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
 
         val mockClassCounter = CgDeclaration(
             atomicIntegerClassId,
-            variableConstructor.constructVarName(MOCK_CLASS_COUNTER_NAME),
+            nameGenerator.variableName(MOCK_CLASS_COUNTER_NAME),
             CgConstructorCall(ConstructorId(atomicIntegerClassId, emptyList()), emptyList())
         )
         +mockClassCounter
@@ -241,7 +244,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         )
         val mockedConstructionDeclaration = CgDeclaration(
             MockitoStaticMocking.mockedConstructionClassId,
-            variableConstructor.constructVarName(MOCKED_CONSTRUCTION_NAME),
+            nameGenerator.variableName(MOCKED_CONSTRUCTION_NAME),
             mockConstructionInitializer
         )
         resources += mockedConstructionDeclaration
@@ -300,7 +303,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         mockedStaticForMethods.getOrPut(classId) {
             val modelClass = getClassOf(classId)
             val classMockStaticCall = mockStatic(modelClass)
-            val mockedStaticVariableName = variableConstructor.constructVarName(MOCKED_STATIC_NAME)
+            val mockedStaticVariableName = nameGenerator.variableName(MOCKED_STATIC_NAME)
             CgDeclaration(
                 MockitoStaticMocking.mockedStaticClassId,
                 mockedStaticVariableName,
@@ -319,11 +322,11 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
     ): CgMethodCall {
         val mockParameter = variableConstructor.declareParameter(
             classId,
-            variableConstructor.constructVarName(classId.simpleName, isMock = true)
+            nameGenerator.variableName(classId.simpleName, isMock = true)
         )
         val contextParameter = variableConstructor.declareParameter(
             mockedConstructionContextClassId,
-            variableConstructor.constructVarName("context")
+            nameGenerator.variableName("context")
         )
 
         val caseLabels = mutableListOf<CgSwitchCaseLabel>()

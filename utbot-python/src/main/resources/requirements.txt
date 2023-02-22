@@ -1,6 +1,4 @@
-mypy==0.971
-astor
-typeshed-client
+mypy==1.0.0
 coverage
 utbot-executor==0.2.4
-utbot-mypy-runner==0.2.4
+utbot-mypy-runner==0.2.8

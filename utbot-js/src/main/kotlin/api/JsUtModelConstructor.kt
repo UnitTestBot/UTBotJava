@@ -7,14 +7,16 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.JsUndefinedModel
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
-import fuzzer.providers.JsObjectModelProvider
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructorInterface
 
 class JsUtModelConstructor : UtModelConstructorInterface {
+
+    private val idGenerator = ReferencePreservingIntIdGenerator()
 
     // TODO SEVERE: Requires substantial expansion to other types
     @Suppress("NAME_SHADOWING")
@@ -50,7 +52,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
         val values = (value as Map<String, Any>).values.map {
             construct(it, JsEmptyClassId())
         }
-        val id = JsObjectModelProvider.idGenerator.asInt
+        val id = idGenerator.createId()
         val instantiationCall = UtExecutableCallModel(null, constructor, values)
         return UtAssembleModel(
             id = id,

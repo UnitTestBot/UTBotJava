@@ -1,11 +1,16 @@
 package parser
 
+import com.google.javascript.jscomp.Compiler
+import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import org.utbot.fuzzer.FuzzedContext
 
 // Used for .children() calls.
 @Suppress("DEPRECATION")
 object JsParserUtils {
+
+    fun runParser(fileText: String): Node =
+        Compiler().parse(SourceFile.fromCode("jsFile", fileText))
 
     // TODO SEVERE: function only works in the same file scope. Add search in exports.
     fun searchForClassDecl(className: String?, parsedFile: Node, strict: Boolean = false): Node? {
@@ -57,7 +62,7 @@ object JsParserUtils {
      */
     fun Node.getAnyValue(): Any? = when {
         this.isNumber -> this.double
-        this.isString || this.isName -> this.string
+        this.isString -> this.string
         this.isTrue -> true
         this.isFalse -> false
         else -> null

@@ -12,7 +12,7 @@ import org.utbot.framework.codegen.domain.models.CgAssignment
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgVariable
-import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.renderer.CgPrinterImpl
 import org.utbot.framework.codegen.renderer.CgRendererContext
@@ -79,7 +79,7 @@ class PythonCodeGenerator(
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
             (context.cgLanguageAssistant as PythonCgLanguageAssistant).clear()
-            val testClassModel = TestClassModel(classUnderTest, cgTestSets)
+            val testClassModel = SimpleTestClassModel(classUnderTest, cgTestSets)
             context.collectedImports.addAll(importModules)
 
             val astConstructor = PythonCgTestClassConstructor(context)
@@ -149,32 +149,35 @@ class PythonCodeGenerator(
                     CgVariable(argument.name, argument.annotation?.let { PythonClassId(it) } ?: pythonAnyClassId)
                 }
 
-                var argumentsTryCatch = tryBlock {
-                    methodArguments.zip(arguments).map { (model, argument) ->
-                        if (model is PythonTreeModel) {
-                            val obj =
-                                (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor)
-                                    .getOrCreateVariable(model)
-                            +CgAssignment(
-                                argument,
-                                (obj as CgPythonTree).value
-                            )
-                        } else {
-                            +CgAssignment(argument, CgLiteral(model.classId, model.toString()))
+                if (method.arguments.isNotEmpty()) {
+                    var argumentsTryCatch = tryBlock {
+                        methodArguments.zip(arguments).map { (model, argument) ->
+                            if (model is PythonTreeModel) {
+                                val obj =
+                                    (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor)
+                                        .getOrCreateVariable(model)
+                                +CgAssignment(
+                                    argument,
+                                    (obj as CgPythonTree).value
+                                )
+                            } else {
+                                +CgAssignment(argument, CgLiteral(model.classId, model.toString()))
+                            }
                         }
                     }
-                }
-                argumentsTryCatch = argumentsTryCatch.catch(PythonClassId("builtins.Exception")) { exception ->
-                    +CgPythonFunctionCall(
-                        pythonNoneClassId,
-                        failArgumentsFunctionName,
-                        listOf(
-                            outputPath,
-                            exception,
+                    argumentsTryCatch = argumentsTryCatch.catch(PythonClassId("builtins.Exception")) { exception ->
+                        +CgPythonFunctionCall(
+                            pythonNoneClassId,
+                            failArgumentsFunctionName,
+                            listOf(
+                                outputPath,
+                                exception,
+                            )
                         )
-                    )
-                    emptyLine()
-                    +CgPythonRepr(pythonAnyClassId, "sys.exit()")
+                        emptyLine()
+                        +CgPythonRepr(pythonAnyClassId, "sys.exit()")
+                    }
+                    argumentsTryCatch.accept(renderer)
                 }
 
                 val args = CgPythonList(emptyList())
@@ -195,7 +198,6 @@ class PythonCodeGenerator(
                     )
                 )
 
-                argumentsTryCatch.accept(renderer)
                 executorCall.accept(renderer)
 
                 renderer.toString()

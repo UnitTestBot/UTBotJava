@@ -29,8 +29,8 @@ fun JsClassId.constructClass(
         jsName = name,
         methods = methods,
         constructor = constructor,
-        classPackagePath = ternService.context.projectPath,
-        classFilePath = ternService.context.filePathToInference,
+        classPackagePath = ternService.projectPath,
+        classFilePath = ternService.filePathToInference,
     )
     methods.forEach {
         it.classId = newClassId

@@ -33,6 +33,7 @@ fun propagateConstraint(type: Type, constraint: TypeConstraint, storage: PythonT
         is PythonUnionTypeDescription -> emptyMap() // TODO
         is PythonTupleTypeDescription -> emptyMap() // TODO
         is PythonProtocolDescription -> emptyMap() // TODO
+        is PythonTypeAliasDescription -> emptyMap() // TODO
         is PythonConcreteCompositeTypeDescription -> {
             propagateConstraintForCompositeType(type, description, constraint, storage)
         }

@@ -43,11 +43,13 @@ object GoLanguageAssistant : LanguageAssistant() {
     private fun getPsiTargets(e: AnActionEvent): PsiTargets? {
         e.project ?: return null
 
-        // The action is being called from editor or return. TODO: support other cases instead of return.
-        val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
-
+        val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.PSI_FILE) as? GoFile ?: return null
-        val element = findPsiElement(file, editor) ?: return null
+        val element = if (editor != null) {
+            findPsiElement(file, editor) ?: return null
+        } else {
+            e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+        }
 
         val containingFunction = getContainingFunction(element)
         val targetFunctions = extractTargetFunctionsOrMethods(file)

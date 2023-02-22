@@ -47,6 +47,7 @@ val pythonNoneName = Name(emptyList(), "None")
 val pythonTupleName = Name(listOf("typing"), "Tuple")
 val pythonCallableName = Name(listOf("typing"), "Callable")
 val overloadName = Name(emptyList(), "Overload")
+val pythonTypeAliasName = Name(listOf("typing"), "TypeAlias")
 
 val pythonAnyType = createTypeWithMembers(PythonAnyTypeDescription, emptyList())
 val pythonNoneType = createTypeWithMembers(PythonNoneTypeDescription, emptyList())
@@ -59,6 +60,14 @@ fun createOverload(members: List<Type>): Type =
 
 fun createPythonTupleType(members: List<Type>): Type =
     createTypeWithMembers(PythonTupleTypeDescription, members)
+
+fun createPythonTypeAlias(initialization: (Type) -> Type): CompositeType =
+    CompositeTypeCreator.create(0, PythonTypeAliasDescription) { self ->
+        CompositeTypeCreator.InitializationData(
+            members = listOf(initialization(self)),
+            supertypes = emptyList()
+        )
+    }
 
 fun createPythonConcreteCompositeType(
     name: Name,

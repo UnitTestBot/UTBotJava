@@ -48,8 +48,8 @@ on:
           required: false
           default: false
           options:
-            - true
-            - false
+          - true
+          - false
 
 jobs:
     publish_plugin_and_cli:

@@ -16,21 +16,30 @@ env:
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
 
 jobs:
-#  build-and-run-tests:
-#    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
-#    secrets: inherit
+  build-and-run-tests:
+    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+    secrets: inherit
 
   publish_plugin_and_cli:
-#    needs: build-and-run-tests
+    needs: build-and-run-tests
+    if: ${{ github.event_name != 'push' }}
+    uses: ./.github/workflows/publish-plugin-and-cli-from-branch.yml
+    with:
+      minor-release: 'none'
+      upload-artifact: false
+    secrets: inherit
+
+  publish_plugin_and_cli_main:
+    needs: build-and-run-tests
+    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/publish-plugin-and-cli-from-branch.yml
     with:
       minor-release: 'none'
       upload-artifact: true
-#      upload-artifact: false
     secrets: inherit
 
   publish-cli-image:
-#    needs: build-and-run-tests
+    needs: build-and-run-tests
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0

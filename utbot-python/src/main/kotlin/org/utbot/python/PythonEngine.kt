@@ -161,34 +161,29 @@ class PythonEngine(
         )
     }
     
-    private conndectToExecutor(serverSocket: Socket): PythonWorker {
-        logger.info { "Server port: ${serverSocket.localPort}" }
-        val processStartTime = System.currentTimeMillis()
-//                val outputFile = "/home/vyacheslav/utbot_profile"
-//                val process = startProcess(listOf(pythonPath, "-m", "cProfile", "-o", outputFile, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
-        val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
-        val timeout = until - processStartTime
-        val workerSocket = try {
-            serverSocket.soTimeout = timeout.toInt()
-            serverSocket.accept()
-        } catch (e: SocketTimeoutException) {
-            val processHasExited = process.waitFor(timeout, TimeUnit.MILLISECONDS)
-            if (!processHasExited) {
-                process.destroy()
-            }
-            error("Worker not connected")
-        }
-        logger.info { "Worker connected successfully" }
-        return PythonWorker(workerSocket)
-    }
-
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
         val coveredLines = initialCoveredLines.toMutableSet()
 
-//        withContext(Dispatchers.IO) {
         ServerSocket(0).use { serverSocket ->
-            val pythonWorker = connectToExecutor(serverSocket)
+            logger.info { "Server port: ${serverSocket.localPort}" }
+            val processStartTime = System.currentTimeMillis()
+//                val outputFile = "/home/vyacheslav/utbot_profile"
+//                val process = startProcess(listOf(pythonPath, "-m", "cProfile", "-o", outputFile, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
+            val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
+            val timeout = until - processStartTime
+            val workerSocket = try {
+                serverSocket.soTimeout = timeout.toInt()
+                serverSocket.accept()
+            } catch (e: SocketTimeoutException) {
+                val processHasExited = process.waitFor(timeout, TimeUnit.MILLISECONDS)
+                if (!processHasExited) {
+                    process.destroy()
+                }
+                error("Worker not connected")
+            }
+            logger.info { "Worker connected successfully" }
+            val pythonWorker = PythonWorker(workerSocket)
             val codeExecutor = constructEvaluationInput(pythonWorker)
             logger.info { "Executor was created successfully" }
 

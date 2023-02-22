@@ -42,6 +42,14 @@ on:
           - no-postfix
           - alpha
           - beta
+        upload-artifact:
+          type: choice
+          description: "Upload artifacts or not"
+          required: false
+          default: false
+          options:
+            - true
+            - false
 
 jobs:
     publish_plugin_and_cli:
@@ -87,7 +95,7 @@ jobs:
           rm utbot-intellij-${{ env.VERSION }}.zip
 
       - name: Archive UTBot IntelliJ IDEA plugin
-        if: ${{ github.event.inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-intellij-${{ env.VERSION }}
@@ -99,7 +107,7 @@ jobs:
           gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
 
       - name: Archive UTBot CLI
-        if: ${{ github.event.inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-cli-${{ env.VERSION }}

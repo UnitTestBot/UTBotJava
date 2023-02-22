@@ -160,7 +160,7 @@ class PythonEngine(
             pythonWorker,
         )
     }
-    
+
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
         val coveredLines = initialCoveredLines.toMutableSet()

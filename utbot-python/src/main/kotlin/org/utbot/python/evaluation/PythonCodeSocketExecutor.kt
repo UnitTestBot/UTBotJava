@@ -12,7 +12,6 @@ import org.utbot.python.evaluation.serialiation.PythonExecutionResult
 import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.evaluation.serialiation.serializeObjects
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
-import org.utbot.python.utils.TemporaryFileManager
 
 
 class PythonCodeSocketExecutor(
@@ -22,29 +21,51 @@ class PythonCodeSocketExecutor(
     override val syspathDirectories: Set<String>,
     override val executionTimeout: Long,
 ) : PythonCodeExecutor {
-    private val executionClient = ExecutionClient("localhost", 12011, pythonPath)  // TODO: create port manager
+    private lateinit var pythonWorker: PythonWorker
+
+    constructor(
+        method: PythonMethod,
+        moduleToImport: String,
+        pythonPath: String,
+        syspathDirectories: Set<String>,
+        executionTimeout: Long,
+        pythonWorker: PythonWorker
+    ) : this(
+        method,
+        moduleToImport,
+        pythonPath,
+        syspathDirectories,
+        executionTimeout
+    ) {
+        this.pythonWorker = pythonWorker
+    }
+
     override fun run(
         fuzzedValues: FunctionArguments,
         additionalModulesToImport: Set<String>
     ): PythonEvaluationResult {
         val (arguments, memory) = serializeObjects(fuzzedValues.allArguments.map { it.tree })
-        val coverageDatabasePath = TemporaryFileManager.assignTemporaryFile(
-            tag = "coverage_db_" + method.name,
-            addToCleaner = false,
-        )
+
+        val containingClass = method.containingPythonClassId
+        val functionTextName =
+            if (containingClass == null)
+                method.name
+            else
+                "${containingClass.simpleName}.${method.name}"
+
         val request = ExecutionRequest(
-            method.name,
-            (additionalModulesToImport + moduleToImport).toList(),
+            functionTextName,
+            moduleToImport,
+            additionalModulesToImport.toList(),
             syspathDirectories.toList(),
             arguments,
             memory,
-            coverageDatabasePath.path,
             method.moduleFilename,
         )
         val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
-        executionClient.sendMessage(message)
-        val response = executionClient.receiveMessage() ?: error("Cannot read response from python executor")
-        val executionResult = ExecutionResultDeserializer.parseExecutionResult(response) ?: error("Cannot parse execution result")
+        pythonWorker.sendData(message)
+        val response = pythonWorker.receiveMessage()
+        val executionResult = ExecutionResultDeserializer.parseExecutionResult(response) ?: error("Cannot parse execution result: $response")
         return parseExecutionResult(executionResult)
     }
 
@@ -99,6 +120,6 @@ class PythonCodeSocketExecutor(
     }
 
     fun stop() {
-        executionClient.stopServer()
+        pythonWorker.stopServer()
     }
 }

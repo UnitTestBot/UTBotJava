@@ -29,7 +29,8 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
-private const val COVERAGE_LIMIT = 10_000
+private const val COVERAGE_LIMIT = 150
+private const val ADDITIONAL_LIMIT = 10
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -108,7 +109,8 @@ class PythonTestCaseGenerator(
         var missingLines: Set<Int>? = null
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
-        val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
+        var additionalLimit = ADDITIONAL_LIMIT
+        val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || (missingLines?.size == 0 && additionalLimit == 0) }
 
         inferAnnotations(
             method,
@@ -140,7 +142,7 @@ class PythonTestCaseGenerator(
             var feedback: InferredTypeFeedback = SuccessFeedback
 
             val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 } // || feedback is InvalidTypeFeedback }
-
+            val startTime = System.currentTimeMillis()
             engine.fuzzing(args, fuzzerCancellation, until).collect {
                 generated += 1
                 when (it) {
@@ -160,15 +162,18 @@ class PythonTestCaseGenerator(
                         feedback = InvalidTypeFeedback
                     }
                 }
+                if (missingLines?.size == 0) {
+                    additionalLimit -= 1
+                }
                 val coveredAfter = coveredLines.size
                 if (coveredAfter == coveredBefore) {
                     coverageLimit -= 1
                 }
+                logger.info { "${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
                 coveredBefore = coveredAfter
             }
             feedback
         }
-
 
         val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
 

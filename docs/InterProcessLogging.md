@@ -6,23 +6,24 @@ the IDE process, the Engine process, and the Instrumented process.
 
 ## Architecture
 
-The UnitTestBot Java logging system relies on `log4j2` utility.
+The UnitTestBot Java logging system relies on `log4j2` library.
 
 For UnitTestBot Java used as an IntelliJ IDEA plugin, the configuration file for logging is [`utbot-intellij/log4j2.xml`](../utbot-intellij/src/main/resources/log4j2.xml).
 
-When used as Contest estimator or the Gradle/Maven plugins, via CLI or for testing purposes,
+When used as Contest estimator or the Gradle/Maven plugins, via CLI or during the CI test runs,
 UnitTestBot Java engine searches classpath for the first `log4j2.xml` in the `resources` directory.
 
 ### IDE process
 
-To store log data, the UnitTestBot Java plugin creates a directory:
-`org.utbot.intellij.plugin.process.EngineProcessKt.engineProcessLogDirectory`.
-The IDE process writes logging information to `idea.log` files and puts them into this directory.
+The IDE process writes logging information to standard `idea.log` files and puts them into the default log directory.
 
 To configure logs for the IDE process, use the log configuration file in a straightforward way.
 
 To change the log configuration for the prebuilt plugin,
 go to **Help** > **Diagnostic Tools** > **Debug Log Settings...** and configure `log4j2.xml`.
+
+To store log data for the Engine process started from the IDE process, the UnitTestBot Java plugin creates a directory:
+`org.utbot.intellij.plugin.process.EngineProcessKt.engineProcessLogDirectory`.
 
 ### Engine process
 
@@ -82,7 +83,7 @@ Here, `%configuration_file%` can take one of two values:
 
 #### Engine process started separately
 
-When used as Contest estimator or the Gradle/Maven plugins, via CLI or for testing purposes,
+When used as Contest estimator or the Gradle/Maven plugins, via CLI or during the CI test runs,
 UnitTestBot Java engine searches classpath for the first `log4j2.xml` in the `resources` directory
 to get configuration information.
 

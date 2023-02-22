@@ -110,6 +110,7 @@ class PythonTestCaseGenerator(
         var generated = 0
         val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
+        logger.info("Start test generation for ${method.name}")
         inferAnnotations(
             method,
             mypyStorage,
@@ -169,7 +170,7 @@ class PythonTestCaseGenerator(
             feedback
         }
 
-
+        logger.info("Collect all test executions for ${method.name}")
         val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
 
         return PythonTestSet(

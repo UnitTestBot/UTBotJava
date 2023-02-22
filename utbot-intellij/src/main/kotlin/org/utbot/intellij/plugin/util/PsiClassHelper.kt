@@ -9,8 +9,6 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import org.jetbrains.kotlin.asJava.elements.KtLightMember
 import org.jetbrains.kotlin.asJava.elements.KtLightMethod
-import org.jetbrains.kotlin.asJava.elements.isGetter
-import org.jetbrains.kotlin.asJava.elements.isSetter
 import org.jetbrains.kotlin.psi.KtClass
 import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings

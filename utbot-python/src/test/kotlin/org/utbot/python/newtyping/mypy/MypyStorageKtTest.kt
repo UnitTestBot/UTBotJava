@@ -10,10 +10,13 @@ import org.utbot.python.newtyping.general.*
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class MypyStorageKtTest {
     lateinit var storage: MypyAnnotationStorage
+    lateinit var storageBoruvka: MypyAnnotationStorage
     @BeforeAll
     fun setup() {
         val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
+        val sample1 = MypyStorageKtTest::class.java.getResource("/boruvka.json")!!.readText()
+        storageBoruvka = readMypyAnnotationStorage(sample1)
     }
 
     @Test
@@ -116,5 +119,13 @@ internal class MypyStorageKtTest {
         val A = storage.definitions["annotation_tests"]!!["A"]!!.getUtBotType()
         val attrs = A.getPythonAttributes().map { it.meta.name }
         assertTrue(attrs.containsAll(listOf("y", "x", "self_")))
+    }
+
+    @Test
+    fun testTypeAlias() {
+        val isinstance = storageBoruvka.types["boruvka"]!!.find { it.startOffset == 3731L }!!.type.asUtBotType
+        val func = isinstance as FunctionType
+        val classInfo = func.arguments[1]
+        assertTrue(classInfo.pythonDescription() is PythonTypeAliasDescription)
     }
 }

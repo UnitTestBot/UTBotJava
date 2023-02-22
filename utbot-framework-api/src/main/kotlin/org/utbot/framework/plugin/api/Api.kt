@@ -55,6 +55,7 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.framework.plugin.api.util.utContext
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
@@ -1146,6 +1147,25 @@ class BuiltinConstructorId(
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
 class WildcardTypeParameter : TypeParameters(emptyList())
+
+/**
+ * Additional data describing user project.
+ */
+interface ApplicationContext
+
+/**
+ * Data we get from Spring application context
+ * to manage engine and code generator behaviour.
+ *
+ * @param beanQualifiedNames describes fqn of injected classes
+ */
+data class SpringApplicationContext(
+    val beanQualifiedNames: List<String> = emptyList(),
+): ApplicationContext {
+    private val springInjectedClasses: List<ClassId> by lazy {
+        beanQualifiedNames.map { fqn -> utContext.classLoader.loadClass(fqn).id }
+    }
+}
 
 interface CodeGenerationSettingItem {
     val id: String

@@ -105,6 +105,7 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
+    applicationContext: ApplicationContext?,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
@@ -144,6 +145,7 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
+        applicationContext,
     )
 
     //HACK (long strings)

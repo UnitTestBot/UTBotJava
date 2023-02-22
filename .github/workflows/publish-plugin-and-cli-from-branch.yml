@@ -14,7 +14,7 @@ on:
           required: false
           default: no-postfix
         upload-artifact:
-          type: boolean
+          type: string
           description: "Upload artifacts or not"
           required: false
           default: false

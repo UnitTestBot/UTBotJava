@@ -1156,7 +1156,7 @@ interface ApplicationContext
 /**
  * A context to use when no additional data is required.
  */
-class EmptyApplicationContext: ApplicationContext
+object EmptyApplicationContext: ApplicationContext
 
 /**
  * Data we get from Spring application context

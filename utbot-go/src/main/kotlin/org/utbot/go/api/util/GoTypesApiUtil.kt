@@ -52,7 +52,7 @@ val goPrimitives = setOf(
     goUintPtrTypeId,
 )
 
-val goConstantTypes = setOf(
+val goSupportedConstantTypes = setOf(
     goByteTypeId,
     goFloat32TypeId,
     goFloat64TypeId,

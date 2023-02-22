@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/types"
 )
 
@@ -36,10 +38,16 @@ func (e *ConstantExtractor) Visit(node ast.Node) ast.Visitor {
 		e.constants[basicType.Name()] = append(e.constants[basicType.Name()], typeAndValue.Value.String())
 	case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr:
 		e.constants[basicType.Name()] = append(e.constants[basicType.Name()], typeAndValue.Value.String())
-	case types.Float32, types.Float64:
-		e.constants[basicType.Name()] = append(e.constants[basicType.Name()], typeAndValue.Value.String())
+	case types.Float32:
+		if f32, ok := constant.Float32Val(typeAndValue.Value); ok {
+			e.constants[basicType.Name()] = append(e.constants[basicType.Name()], fmt.Sprintf("%v", f32))
+		}
+	case types.Float64:
+		if f64, ok := constant.Float64Val(typeAndValue.Value); ok {
+			e.constants[basicType.Name()] = append(e.constants[basicType.Name()], fmt.Sprintf("%v", f64))
+		}
 	case types.String:
-		e.constants[basicType.Name()] = append(e.constants[basicType.Name()], typeAndValue.Value.String())
+		e.constants[basicType.Name()] = append(e.constants[basicType.Name()], constant.StringVal(typeAndValue.Value))
 	}
 
 	return e

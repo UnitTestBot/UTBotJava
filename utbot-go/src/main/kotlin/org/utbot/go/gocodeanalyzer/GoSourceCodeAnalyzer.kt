@@ -6,7 +6,7 @@ import org.utbot.go.api.GoPrimitiveTypeId
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFunctionParameter
-import org.utbot.go.api.util.goConstantTypes
+import org.utbot.go.api.util.goSupportedConstantTypes
 import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.util.executeCommandByNewProcessOrFail
@@ -81,7 +81,7 @@ object GoSourceCodeAnalyzer {
                     val constants = mutableMapOf<GoTypeId, List<Any>>()
                     analyzedFunction.constants.map { (type, rawValues) ->
                         val typeId = GoPrimitiveTypeId(type)
-                        if (typeId !in goConstantTypes) {
+                        if (typeId !in goSupportedConstantTypes) {
                             error("Constants extraction: $type is a unsupported constant type")
                         }
                         val values = rawValues.map { rawValue ->

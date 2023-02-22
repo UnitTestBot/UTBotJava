@@ -17,10 +17,10 @@ object ExecutionRequestSerializer {
 
 data class ExecutionRequest(
     val functionName: String,
+    val functionModule: String,
     val imports: List<String>,
     val syspaths: List<String>,
     val argumentsIds: List<String>,
     val serializedMemory: String,
-    val coverageDB: String,
     val filepath: String,
 )

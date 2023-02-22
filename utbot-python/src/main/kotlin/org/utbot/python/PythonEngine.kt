@@ -20,6 +20,7 @@ import org.utbot.python.evaluation.PythonCodeSocketExecutor
 import org.utbot.python.evaluation.PythonEvaluationError
 import org.utbot.python.evaluation.PythonEvaluationSuccess
 import org.utbot.python.evaluation.PythonEvaluationTimeout
+import org.utbot.python.evaluation.PythonWorker
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
@@ -32,7 +33,11 @@ import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.camelToSnakeCase
+import org.utbot.python.utils.startProcess
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
+import java.net.ServerSocket
+import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
 
@@ -144,13 +149,14 @@ class PythonEngine(
         return ValidExecution(utFuzzedExecution)
     }
 
-    private fun constructEvaluationInput(): PythonCodeExecutor {
+    private fun constructEvaluationInput(pythonWorker: PythonWorker): PythonCodeExecutor {
         return PythonCodeSocketExecutor(
             methodUnderTest,
             moduleToImport,
             pythonPath,
             directoriesForSysPath,
             timeoutForRun,
+            pythonWorker,
         )
     }
 
@@ -167,78 +173,107 @@ class PythonEngine(
 
         val coveredLines = initialCoveredLines.toMutableSet()
 
-        val codeExecutor = constructEvaluationInput()
-        PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
-            if (isCancelled()) {
-                logger.info { "Fuzzing process was interrupted" }
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-            }
-            if (System.currentTimeMillis() >= until) {
-                logger.info { "Fuzzing process was interrupted by timeout" }
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-            }
+//        withContext(Dispatchers.IO) {
+            ServerSocket(0).use { serverSocket ->
+                logger.info { "Server port: ${serverSocket.localPort}" }
+                val processStartTime = System.currentTimeMillis()
+//                val outputFile = "/home/vyacheslav/utbot_profile"
+//                val process = startProcess(listOf(pythonPath, "-m", "cProfile", "-o", outputFile, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
+                val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
+                val timeout = until - processStartTime
+                val workerSocket = try {
+                    serverSocket.soTimeout = timeout.toInt()
+                    serverSocket.accept()
+                } catch (e: SocketTimeoutException) {
+                    val processHasExited = process.waitFor(timeout, TimeUnit.MILLISECONDS)
+                    if (!processHasExited) {
+                        process.destroy()
+                    }
+                    error("Worker not connected")
+                }
+                logger.info { "Worker connected successfully" }
+                val pythonWorker = PythonWorker(workerSocket)
+                val codeExecutor = constructEvaluationInput(pythonWorker)
+                logger.info { "Executor was created successfully" }
+                PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+                    if (isCancelled()) {
+                        logger.info { "Fuzzing process was interrupted" }
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                    }
+                    if (System.currentTimeMillis() >= until) {
+                        logger.info { "Fuzzing process was interrupted by timeout" }
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                    }
 
-            val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
-            val argumentModules = argumentValues
-                .flatMap { it.allContainingClassIds }
-                .map { it.moduleName }
-            val localAdditionalModules = (additionalModules + argumentModules).toSet()
+                    val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
+                    val argumentModules = argumentValues
+                        .flatMap { it.allContainingClassIds }
+                        .map { it.moduleName }
+                    val localAdditionalModules = (additionalModules + argumentModules).toSet()
 
-            val (thisObject, modelList) =
-                if (methodUnderTest.hasThisArgument)
-                    Pair(argumentValues[0], argumentValues.drop(1))
-                else
-                    Pair(null, argumentValues)
-            val functionArguments = FunctionArguments(thisObject, methodUnderTest.thisObjectName, modelList, methodUnderTest.argumentsNames)
-
-            when (val evaluationResult = codeExecutor.run(functionArguments, localAdditionalModules)) {
-                is PythonEvaluationError -> {
-                    val utError = UtError(
-                        "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
-                        Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                    val (thisObject, modelList) =
+                        if (methodUnderTest.hasThisArgument)
+                            Pair(argumentValues[0], argumentValues.drop(1))
+                        else
+                            Pair(null, argumentValues)
+                    val functionArguments = FunctionArguments(
+                        thisObject,
+                        methodUnderTest.thisObjectName,
+                        modelList,
+                        methodUnderTest.argumentsNames
                     )
-                    logger.debug(evaluationResult.stackTrace.joinToString("\n"))
-                    emit(InvalidExecution(utError))
-                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
-                }
 
-                is PythonEvaluationTimeout -> {
-                    val utError = UtError(evaluationResult.message, Throwable())
-                    emit(InvalidExecution(utError))
-                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
-                }
-
-                is PythonEvaluationSuccess -> {
-                    val coveredInstructions = evaluationResult.coverage.coveredInstructions
-                    coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
-
-                    val summary = arguments
-                        .zip(methodUnderTest.arguments)
-                        .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
-
-                    val hasThisObject = codeExecutor.method.hasThisArgument
-
-                    when (val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)) {
-                        is ValidExecution -> {
-                            logger.debug { arguments }
-                            val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
-                            emit(result)
-                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE, result = trieNode)
-                        }
-                        is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
-                            emit(result)
+                    when (val evaluationResult = codeExecutor.run(functionArguments, localAdditionalModules)) {
+                        is PythonEvaluationError -> {
+                            val utError = UtError(
+                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                            )
+                            logger.debug(evaluationResult.stackTrace.joinToString("\n"))
+                            emit(InvalidExecution(utError))
                             return@PythonFuzzing PythonFeedback(control = Control.PASS)
                         }
-                        is InvalidExecution -> {
-                            emit(result)
-                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+
+                        is PythonEvaluationTimeout -> {
+                            val utError = UtError(evaluationResult.message, Throwable())
+                            emit(InvalidExecution(utError))
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                        }
+
+                        is PythonEvaluationSuccess -> {
+                            val coveredInstructions = evaluationResult.coverage.coveredInstructions
+                            coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+
+                            val summary = arguments
+                                .zip(methodUnderTest.arguments)
+                                .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+
+                            val hasThisObject = codeExecutor.method.hasThisArgument
+
+                            when (val result = handleSuccessResult(parameters, evaluationResult, description, hasThisObject, summary)) {
+                                is ValidExecution -> {
+                                    logger.debug { arguments }
+                                    val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
+                                    emit(result)
+                                    return@PythonFuzzing PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                                }
+                                is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
+                                    emit(result)
+                                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                                }
+                                is InvalidExecution -> {
+                                    emit(result)
+                                    return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                                }
+                            }
                         }
                     }
+                }.fuzz(pmd)
+                if (codeExecutor is PythonCodeSocketExecutor) {
+                    codeExecutor.stop()
                 }
             }
-        }.fuzz(pmd)
-        if (codeExecutor is PythonCodeSocketExecutor) {
-            codeExecutor.stop()
-        }
+//        }
+
     }
 }

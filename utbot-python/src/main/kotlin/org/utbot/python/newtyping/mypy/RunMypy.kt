@@ -22,6 +22,8 @@ fun readMypyAnnotationStorageAndInitialErrors(
     val result = runCommand(
         listOf(
             pythonPath,
+            "-X",
+            "utf8",
             "-m",
             "utbot_mypy_runner",
             "--config",
@@ -72,17 +74,18 @@ fun checkWithDMypy(pythonPath: String, fileWithCodePath: String, configFile: Fil
 
 fun setConfigFile(directoriesForSysPath: Set<String>): File {
     val file = TemporaryFileManager.assignTemporaryFile(configFilename)
+    val dirForCache = TemporaryFileManager.assignTemporaryFile(tag = "mypy_cache")
     val configContent = """
             [mypy]
             mypy_path = ${directoriesForSysPath.joinToString(separator = ":") { it.modifyWindowsPath() } }
             namespace_packages = True
-            explicit_package_bases = True
+            cache_dir = ${dirForCache.absolutePath}
             show_absolute_path = True
             cache_fine_grained = True
             check_untyped_defs = True
-            implicit_optional = True
             strict_optional = False
             disable_error_code = assignment,union-attr
+            implicit_optional = True
             """.trimIndent()
     TemporaryFileManager.writeToAssignedFile(file, configContent)
     return file

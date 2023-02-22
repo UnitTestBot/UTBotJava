@@ -172,8 +172,17 @@ class PythonSubtypeChecker(
             return false
         }
 
+        if (rightMeta is PythonTypeAliasDescription)
+            return PythonSubtypeChecker(
+                left = left,
+                right = rightMeta.getInterior(right),
+                pythonTypeStorage,
+                typeParameterCorrespondence, assumingSubtypePairs, recursionDepth + 1
+            ).rightIsSubtypeOfLeft()
+
         return when (leftMeta) {
             is PythonAnyTypeDescription -> true
+            is PythonTypeAliasDescription -> caseOfLeftTypeAlias(leftMeta)
             is PythonTypeVarDescription -> caseOfLeftTypeVar(leftMeta)
             is PythonProtocolDescription -> caseOfLeftProtocol(leftMeta)
             is PythonCallableTypeDescription -> caseOfLeftCallable(leftMeta)
@@ -183,6 +192,17 @@ class PythonSubtypeChecker(
             is PythonOverloadTypeDescription -> caseOfLeftOverload(leftMeta)
             is PythonTupleTypeDescription -> caseOfLeftTupleType(leftMeta)
         }
+    }
+
+    private fun caseOfLeftTypeAlias(leftMeta: PythonTypeAliasDescription): Boolean {
+        return PythonSubtypeChecker(
+            left = leftMeta.getInterior(left),
+            right = right,
+            pythonTypeStorage,
+            typeParameterCorrespondence,
+            nextAssumingSubtypePairs,
+            recursionDepth + 1
+        ).rightIsSubtypeOfLeft()
     }
 
     private fun caseOfLeftTupleType(leftMeta: PythonTupleTypeDescription): Boolean {

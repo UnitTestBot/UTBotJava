@@ -1,8 +1,13 @@
 package analyzer;
 
+import org.springframework.context.annotation.PropertySource;
+
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 
 public class ConfigurationManager {
 
@@ -14,18 +19,27 @@ public class ConfigurationManager {
         this.userConfigurationClass = userConfigurationClass;
     }
 
-    public void patchPropertySourceAnnotation() throws IllegalAccessException, NoSuchFieldException, ClassNotFoundException {
+    public void patchPropertySourceAnnotation() throws Exception {
 
         Class<?> proxyClass = classLoader.loadClass("java.lang.reflect.Proxy");
         Field hField = proxyClass.getDeclaredField("h");
         hField.setAccessible(true);
 
-        InvocationHandler o = (InvocationHandler) (hField.get(userConfigurationClass.getAnnotations()[2]));
+        //Annotation annotationProxy = userConfigurationClass.getAnnotations()[2];
+        Optional<Annotation> propertySourceAnnotation =
+                Arrays.stream(userConfigurationClass.getAnnotations())
+                        .filter(el -> el.annotationType() == PropertySource.class)
+                        .findFirst();
+        if (propertySourceAnnotation.isPresent()) {
+            InvocationHandler annotationInvocationHandler = (InvocationHandler) (hField.get(propertySourceAnnotation.get()));
 
-        Class<?> annotationInvocationHandlerClass = classLoader.loadClass("sun.reflect.annotation.AnnotationInvocationHandler");
-        Field memberValuesField = annotationInvocationHandlerClass.getDeclaredField("memberValues");
-        memberValuesField.setAccessible(true);
-        Map<String, Object> memberValues = (Map<String, Object>) (memberValuesField.get(o));
-        memberValues.put("value", "classpath:fakeapplication.properties");
+            Class<?> annotationInvocationHandlerClass =
+                    classLoader.loadClass("sun.reflect.annotation.AnnotationInvocationHandler");
+            Field memberValuesField = annotationInvocationHandlerClass.getDeclaredField("memberValues");
+            memberValuesField.setAccessible(true);
+
+            Map<String, Object> memberValues = (Map<String, Object>) (memberValuesField.get(annotationInvocationHandler));
+            memberValues.put("value", "classpath:fakeapplication.properties");
+        }
     }
 }

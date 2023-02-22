@@ -12,7 +12,7 @@ import java.nio.file.Path;
 @SpringBootApplication
 public class SpringAnalysisRunner {
 
-    public static void main(String[] args) throws ClassNotFoundException, IOException, NoSuchFieldException, IllegalAccessException {
+    public static void main(String[] args) throws Exception {
         //String arg0 = "D:\\Projects\\spring-starter-lesson-28\\build\\classes\\java\\main";
         //String arg1 = "com.dmdev.spring.config.ApplicationConfiguration";
         //String arg2 = "D:\\Projects\\spring-starter-lesson-28\\build\\resources\\main\\application.properties";

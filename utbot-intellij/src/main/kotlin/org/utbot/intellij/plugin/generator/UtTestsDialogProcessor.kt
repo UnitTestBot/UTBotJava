@@ -170,7 +170,7 @@ object UtTestsDialogProcessor {
                             }.toMap()
                         }
 
-                        val applicationContext = EmptyApplicationContext()
+                        val applicationContext = EmptyApplicationContext
                         // TODO: obtain bean definitions and other info from `utbot-spring-analyzer`
                         //SpringApplicationContext(beanQualifiedNames = emptyList())
 

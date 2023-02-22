@@ -16,18 +16,14 @@ and returns the execution result.
 
 A _client_ is an object that uses the `ConcreteExecutor` directly — it works in the Engine process as well.
 
-`ConcreteExecutor` expects an `Instrumentation` object, which is responsible for, say, mocking static methods. In UnitTestBot Java, `UtExecutionInstrumentation` is one of the possible `Instrumentation` interface implementations.
+`ConcreteExecutor` expects an `Instrumentation` object, which is responsible for, say, mocking static methods. In UnitTestBot Java, we use `UtExecutionInstrumentation` that implements the `Instrumentation` interface.
 
 Basically, if an exception occurs in the Instrumented process,
 it is rethrown to the client object in the Engine process via Rd.
 
-The logic of handling errors and results depends on the provided instrumentation,
-e.g., `UtExecutionInstrumentation` in our case.
-
 ## Concrete execution outcomes
 
-When `ConcreteExecutor` is parameterized with `UtExecutionInstrumentation`
-and the `ConcreteExecutor::executeAsync` is called, it leads to one of the three possible outcomes:
+`ConcreteExecutor` is parameterized with `UtExecutionInstrumentation`. When the `ConcreteExecutor::executeAsync` method is called, it leads to one of the three possible outcomes:
 
 * `InstrumentedProcessDeathException`
 
@@ -52,8 +48,8 @@ one can find a description of the phase the exception has been thrown from.
 
 * `UtConcreteExecutionResult`
 
-If the Instrumented process performs well or fails because of the known wrong input,
-the `UtConcreteExecutionResult` becomes relevant.
+If the Instrumented process performs well,
+or something is broken but the Instrumented process knows exactly what is wrong with the input, `UtConcreteExecutionResult` is returned.
 The Instrumented process guarantees that the state is _consistent_.
 A `UtConcreteExecutionResult::result` field helps to find the exact reason for a failure:
 * `UtSandboxFailure` — permission violation;
@@ -84,12 +80,11 @@ Each phase can throw two kinds of exceptions:
 
 Concrete execution is limited in time: the  `UtExecutionInstrumentation::invoke` method is subject to timeout as well. 
 
-We wrap the phases that can take a long time with the `executePhaseInTimeout` block.
+For `UtExecutionInstrumentation` in the Instrumented process, we wrap the phases that can take a long time with the `executePhaseInTimeout` block.
 This block tracks the elapsed time.
 If a phase wrapped with this block exceeds the timeout, it returns `TimeoutException`.
 
-One cannot be sure
-that the cancellation request immediately breaks the invocation pipeline inside the Instrumented process.
+One cannot be sure that the cancellation request immediately breaks the invocation pipeline inside the Instrumented process.
 Invocation is guaranteed to finish within timeout.
 It may or _may not_ finish earlier.
 The request that has been sent to the Instrumented process is _uncancellable_ by design.

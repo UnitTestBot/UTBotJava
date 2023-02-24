@@ -36,9 +36,26 @@ class ReduceValueProvider(
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
-        val initMethods = type.getPythonAttributeByName(description.pythonTypeStorage, "__init__")
-        val newMethods = type.getPythonAttributeByName(description.pythonTypeStorage, "__new__")
-        val constructors = listOfNotNull(initMethods, newMethods)
+        val initMethodName = "__init__"
+        val newMethodName = "__new__"
+        val typeDescr = type.pythonDescription()
+        val constructors =
+            if (typeDescr is PythonCompositeTypeDescription) {
+                val mro = typeDescr.mro(description.pythonTypeStorage, type)
+                val initParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == initMethodName } }
+                val newParent = mro.indexOfFirst { p -> p.getPythonAttributes().any { it.meta.name == newMethodName } }
+                val initMethods = type.getPythonAttributeByName(description.pythonTypeStorage, initMethodName)
+                val newMethods = type.getPythonAttributeByName(description.pythonTypeStorage, newMethodName)
+                if (initParent <= newParent && initMethods != null) {
+                    listOf(initMethods)
+                } else if (newMethods != null) {
+                    listOf(newMethods)
+                } else {
+                    emptyList()  // probably not reachable (because of class object)
+                }
+            } else {
+                emptyList()
+            }
         constructors
             .forEach {
                 // TODO: here we need to use same as .getPythonAttributeByName but without name

@@ -45,8 +45,11 @@ class ReduceValueProvider(
                 // TODO: now we do not have fields from parents
                 val fields = type.getPythonAttributes()
                     .filter { attr ->
-                        !(attr.meta.name.startsWith("__") && attr.meta.name.endsWith("__") && attr.meta.name.length >= 4)
-                        attr.type.getPythonAttributeByName(description.pythonTypeStorage, "__call__") == null
+                        !(attr.meta.name.startsWith("__") && attr.meta.name.endsWith("__") && attr.meta.name.length >= 4) &&
+                                (attr.meta as? PythonVariableDescription)?.isProperty != true && attr.type.getPythonAttributeByName(
+                            description.pythonTypeStorage,
+                            "__call__"
+                        ) == null
                     }
 
                 val modifications = emptyList<Routine.Call<Type, PythonFuzzedValue>>().toMutableList()
@@ -65,7 +68,9 @@ class ReduceValueProvider(
         constructorFunction: FunctionType,
         modifications: Sequence<Routine.Call<Type, PythonFuzzedValue>>
     ): Seed.Recursive<Type, PythonFuzzedValue> {
-        val arguments = constructorFunction.arguments
+        val description = constructorFunction.pythonDescription() as PythonCallableTypeDescription
+        val positionalArgs = description.argumentKinds.count { it == PythonCallableTypeDescription.ArgKind.ARG_POS }
+        val arguments = constructorFunction.arguments.take(positionalArgs)
         val nonSelfArgs = arguments.drop(1)
 
         return Seed.Recursive(

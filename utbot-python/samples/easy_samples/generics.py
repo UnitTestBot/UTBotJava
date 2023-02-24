@@ -1,7 +1,8 @@
 from typing import TypeVar, Generic
 from logging import Logger
 
-T = TypeVar('T', bound=dict)
+T = TypeVar('T', bound=bool)
+U = TypeVar('U', str, object)
 
 
 class LoggedVar(Generic[T]):
@@ -12,5 +13,12 @@ class LoggedVar(Generic[T]):
     def set(self, new: T) -> None:
         self.value = new
 
-    def get(self) -> T:
-        return self.value
+    def get(self, x: U):
+        return self.value, x
+
+
+def func(x: T, y: U):
+    if x:
+        return y
+    else:
+        return 100

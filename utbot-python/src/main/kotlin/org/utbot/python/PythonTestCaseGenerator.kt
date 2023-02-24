@@ -130,8 +130,9 @@ class PythonTestCaseGenerator(
         return newClasses.flatMap { newClass ->
             val funcType = newClass?.getPythonAttributeByName(typeStorage, method.name)?.type as? FunctionType
                 ?: method.definition.type
-            val def = PythonFunctionDefinition(method.definition.meta, funcType)
-            generateTypesAfterSubstitution(funcType, typeStorage).map {
+            val newFuncTypes = generateTypesAfterSubstitution(funcType, typeStorage)
+            newFuncTypes.map { newFuncType ->
+                val def = PythonFunctionDefinition(method.definition.meta, newFuncType as FunctionType)
                 PythonMethod(
                     method.name,
                     method.moduleFilename,

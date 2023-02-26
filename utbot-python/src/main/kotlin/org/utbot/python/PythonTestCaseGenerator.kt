@@ -39,7 +39,6 @@ class PythonTestCaseGenerator(
     private val fileOfMethod: String,
     private val isCancelled: () -> Boolean,
     private val timeoutForRun: Long = 0,
-    private val until: Long = 0,
     private val sourceFileContent: String,
     private val mypyStorage: MypyAnnotationStorage,
     private val mypyReportLine: List<MypyReportLine>,
@@ -145,7 +144,7 @@ class PythonTestCaseGenerator(
         }.take(maxSubstitutions)
     }
 
-    fun generate(methodDescription: PythonMethodHeader): PythonTestSet {
+    fun generate(methodDescription: PythonMethodHeader, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)

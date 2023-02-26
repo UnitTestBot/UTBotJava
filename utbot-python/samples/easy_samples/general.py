@@ -13,6 +13,10 @@ class Dummy:
     def propagate(self):
         return [self, self]
 
+    @staticmethod
+    def abs(x):
+        return abs(x)
+
 
 def dict_f(x, a, b, c):
     y = {1: 2}

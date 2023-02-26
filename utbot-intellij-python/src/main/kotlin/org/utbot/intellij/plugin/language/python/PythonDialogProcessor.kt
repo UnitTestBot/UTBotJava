@@ -115,7 +115,6 @@ object PythonDialogProcessor {
                 moduleToImport,
                 UtSettings.utBotGenerationTimeoutInMillis,
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
-                visitOnlySpecifiedSource = false,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
                 pythonPath = pythonPath,
             )

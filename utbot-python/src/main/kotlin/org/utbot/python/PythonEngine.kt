@@ -158,7 +158,8 @@ class PythonEngine(
         val argumentModules = argumentValues
             .flatMap { it.allContainingClassIds }
             .map { it.moduleName }
-        val localAdditionalModules = (additionalModules + argumentModules).toSet()
+            .filterNot { it.startsWith(moduleToImport) }
+        val localAdditionalModules = (additionalModules + argumentModules + moduleToImport).toSet()
 
         return PythonCodeExecutorImpl(
             methodUnderTest,

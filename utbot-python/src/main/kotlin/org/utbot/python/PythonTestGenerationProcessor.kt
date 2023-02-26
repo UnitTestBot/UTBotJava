@@ -99,15 +99,17 @@ object PythonTestGenerationProcessor {
                 fileOfMethod = pythonFilePath,
                 isCancelled = isCanceled,
                 timeoutForRun = timeoutForRun,
-                until = startTime + timeout,
                 sourceFileContent = pythonFileContent,
                 mypyStorage = mypyStorage,
                 mypyReportLine = report,
                 mypyConfigFile = mypyConfigFile,
             )
 
-            val tests = pythonMethods.map { method ->
-                testCaseGenerator.generate(method)
+            val until = startTime + timeout
+            val tests = pythonMethods.mapIndexed { index, method ->
+                val methodsLeft = pythonMethods.size - index
+                val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
+                testCaseGenerator.generate(method, localUntil)
             }
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }

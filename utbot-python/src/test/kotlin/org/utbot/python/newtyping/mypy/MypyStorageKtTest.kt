@@ -10,11 +10,13 @@ import org.utbot.python.newtyping.general.*
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class MypyStorageKtTest {
     lateinit var storage: MypyAnnotationStorage
+    lateinit var typeStorage: PythonTypeStorage
     lateinit var storageBoruvka: MypyAnnotationStorage
     @BeforeAll
     fun setup() {
         val sample = MypyStorageKtTest::class.java.getResource("/annotation_sample.json")!!.readText()
         storage = readMypyAnnotationStorage(sample)
+        typeStorage = PythonTypeStorage.get(storage)
         val sample1 = MypyStorageKtTest::class.java.getResource("/boruvka.json")!!.readText()
         storageBoruvka = readMypyAnnotationStorage(sample1)
     }
@@ -63,6 +65,17 @@ internal class MypyStorageKtTest {
         ) as CompositeType
         assertTrue(setOfInts.meta is PythonConcreteCompositeTypeDescription)
         assertTrue((setOfInts.getPythonAttributes().find { it.meta.name == "add" }!!.type as FunctionType).arguments[1] == int)
+    }
+
+    @Test
+    fun testSubstitution2() {
+        val counter = storage.definitions["collections"]!!["Counter"]!!.getUtBotType() as CompositeType
+        val int = storage.definitions["builtins"]!!["int"]!!.getUtBotType() as CompositeType
+        val counterOfInt = DefaultSubstitutionProvider.substituteByIndex(counter, 0, int)
+        val subtract = counterOfInt.getPythonAttributeByName(typeStorage, "subtract")!!.type.parameters[2] as FunctionType
+        val iterable = storage.definitions["typing"]!!["Iterable"]!!.getUtBotType()
+        val iterableOfInt = DefaultSubstitutionProvider.substituteByIndex(iterable, 0, int)
+        assertTrue(typesAreEqual(subtract.arguments.last(), iterableOfInt))
     }
 
     @Test

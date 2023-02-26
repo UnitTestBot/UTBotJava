@@ -178,14 +178,7 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
     val dictOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonDict, listOf(pythonAnyType, pythonAnyType))
     val prefix = listOf(int, listOfAny, str, bool, float, dictOfAny)
     val rating = createTypeRating(
-        storage.allTypes.filter {
-            val description = it.pythonDescription()
-            !description.name.name.startsWith("_")
-                    && description is PythonConcreteCompositeTypeDescription
-                    && !description.isAbstract
-                    && !listOf("typing", "typing_extensions").any { mod -> description.name.prefix == listOf(mod) }
-                    && !prefix.any { type -> typesAreEqual(type.getOrigin(), it) }
-        },
+        storage.simpleTypes.filter { !prefix.any { type -> typesAreEqual(type.getOrigin(), it) } },
         allLowerBounds,
         allUpperBounds,
         storage,

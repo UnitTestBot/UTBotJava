@@ -8,6 +8,7 @@ import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -198,9 +199,12 @@ object PythonTestGenerationProcessor {
                 )
                 val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->
+                        val intRange = testSet.executions.indices
+                        val clusterInfo = listOf(Pair(UtClusterInfo("FUZZING"), intRange))
                         CgMethodTestSet(
                             executableId = methodIds[testSet.method] as ExecutableId,
-                            executions = testSet.executions
+                            executions = testSet.executions,
+                            clustersInfo = clusterInfo,
                         )
                     },
                     allImports

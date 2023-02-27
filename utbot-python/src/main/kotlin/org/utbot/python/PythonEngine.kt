@@ -33,6 +33,7 @@ import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
+import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.utils.startProcess
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
@@ -164,13 +165,13 @@ class PythonEngine(
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
         val coveredLines = initialCoveredLines.toMutableSet()
+        val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor", "log", true)
 
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
             val processStartTime = System.currentTimeMillis()
-//                val outputFile = "/home/vyacheslav/utbot_profile"
-//                val process = startProcess(listOf(pythonPath, "-m", "cProfile", "-o", outputFile, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
-            val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
+//            val process = startProcess(listOf(pythonPath, "-m", "cProfile", "-o", outputFile, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
+            val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString(), logfile.absolutePath))
             val timeout = until - processStartTime
             val workerSocket = try {
                 serverSocket.soTimeout = timeout.toInt()

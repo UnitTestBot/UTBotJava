@@ -12,6 +12,7 @@ import org.utbot.python.evaluation.serialiation.PythonExecutionResult
 import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.evaluation.serialiation.serializeObjects
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.newtyping.pythonTypeRepresentation
 
 
 class PythonCodeSocketExecutor(
@@ -46,12 +47,12 @@ class PythonCodeSocketExecutor(
     ): PythonEvaluationResult {
         val (arguments, memory) = serializeObjects(fuzzedValues.allArguments.map { it.tree })
 
-        val containingClass = method.containingPythonClassId
+        val containingClass = method.containingPythonClass
         val functionTextName =
             if (containingClass == null)
                 method.name
             else
-                "${containingClass.simpleName}.${method.name}"
+                "${containingClass.pythonTypeRepresentation()}.${method.name}"
 
         val request = ExecutionRequest(
             functionTextName,
@@ -101,7 +102,7 @@ class PythonCodeSocketExecutor(
         return Coverage(
             coveredInstructions=covered.map {
                 Instruction(
-                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                    method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
                     method.methodSignature(),
                     it,
                     it.toLong()
@@ -110,7 +111,7 @@ class PythonCodeSocketExecutor(
             instructionsCount = statements.size.toLong(),
             missedInstructions = missedStatements.map {
                 Instruction(
-                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                    method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
                     method.methodSignature(),
                     it,
                     it.toLong()

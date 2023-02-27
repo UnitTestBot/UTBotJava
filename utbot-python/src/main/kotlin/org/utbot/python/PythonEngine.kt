@@ -6,6 +6,7 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -170,8 +171,7 @@ class PythonEngine(
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
             val processStartTime = System.currentTimeMillis()
-//            val process = startProcess(listOf(pythonPath, "-m", "cProfile", "-o", outputFile, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString()))
-            val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString(), logfile.absolutePath))
+            val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString(), "--logfile", logfile.absolutePath))
             val timeout = until - processStartTime
             val workerSocket = try {
                 serverSocket.soTimeout = timeout.toInt()
@@ -181,7 +181,7 @@ class PythonEngine(
                 if (!processHasExited) {
                     process.destroy()
                 }
-                error("Worker not connected")
+                throw TimeoutException("Worker not connected")
             }
             logger.info { "Worker connected successfully" }
             val pythonWorker = PythonWorker(workerSocket)

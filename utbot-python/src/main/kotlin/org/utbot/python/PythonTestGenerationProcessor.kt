@@ -2,12 +2,14 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import mu.KotlinLogging
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
 import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -27,6 +29,8 @@ import org.utbot.python.utils.getLineOfFunction
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
+
+private val logger = KotlinLogging.logger {}
 
 object PythonTestGenerationProcessor {
     fun processTestGeneration(
@@ -108,8 +112,13 @@ object PythonTestGenerationProcessor {
             val tests = pythonMethods.mapIndexed { index, method ->
                 val methodsLeft = pythonMethods.size - index
                 val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
-                testCaseGenerator.generate(method, localUntil)
-            }
+                try {
+                    testCaseGenerator.generate(method, localUntil)
+                } catch (_: TimeoutException) {
+                    logger.warn { "Cannot connect to python code executor for method ${method.name}" }
+                    null
+                }
+            }.filterNotNull()
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
 

@@ -182,6 +182,12 @@ abstract class TestFramework(
     abstract val testAnnotation: String
     abstract val testAnnotationId: ClassId
     abstract val testAnnotationFqn: String
+    abstract val beforeMethod: String
+    abstract val beforeMethodId: ClassId
+    abstract val beforeMethodFqn: String
+    abstract val afterMethod: String
+    abstract val afterMethodId: ClassId
+    abstract val afterMethodFqn: String
     abstract val parameterizedTestAnnotation: String
     abstract val parameterizedTestAnnotationId: ClassId
     abstract val parameterizedTestAnnotationFqn: String
@@ -261,8 +267,27 @@ abstract class TestFramework(
 
 object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
     override val mainPackage: String = TEST_NG_PACKAGE
+
     override val testAnnotation: String = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"
+    override val testAnnotationId: ClassId = BuiltinClassId(
+        canonicalName = "$mainPackage.annotations.Test",
+        simpleName = "Test"
+    )
+
+    override val beforeMethod = "@${mainPackage}.BeforeMethod"
+    override val beforeMethodFqn = "${mainPackage}.BeforeMethod"
+    override val beforeMethodId = BuiltinClassId(
+        canonicalName = "${mainPackage}.BeforeMethod",
+        simpleName = "BeforeMethod"
+    )
+
+    override val afterMethod = "@${mainPackage}.AfterMethod"
+    override val afterMethodFqn = "${mainPackage}.AfterMethod"
+    override val afterMethodId = BuiltinClassId(
+        canonicalName = "${mainPackage}.AfterMethod",
+        simpleName = "AfterMethod"
+    )
 
     override val parameterizedTestAnnotation: String = "@$mainPackage.Test"
     override val parameterizedTestAnnotationFqn: String = "@$mainPackage.Test"
@@ -299,11 +324,6 @@ object TestNg : TestFramework(id = "TestNG",displayName = "TestNG") {
             Class::class.id,
             throwingRunnableClassId
         )
-    )
-
-    override val testAnnotationId: ClassId = BuiltinClassId(
-        canonicalName = "$mainPackage.annotations.Test",
-        simpleName = "Test"
     )
 
     override val parameterizedTestAnnotationId: ClassId = BuiltinClassId(
@@ -370,8 +390,27 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
         get() = error("Parametrized tests are not supported for JUnit 4")
 
     override val mainPackage: String = JUNIT4_PACKAGE
+
     override val testAnnotation = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"
+    override val testAnnotationId = BuiltinClassId(
+        canonicalName = "$mainPackage.Test",
+        simpleName = "Test"
+    )
+
+    override val beforeMethod = "@$mainPackage.Before"
+    override val beforeMethodFqn = "$mainPackage.Before"
+    override val beforeMethodId = BuiltinClassId(
+        canonicalName = "$mainPackage.Before",
+        simpleName = "Before"
+    )
+
+    override val afterMethod = "@$mainPackage.After"
+    override val afterMethodFqn = "$mainPackage.After"
+    override val afterMethodId = BuiltinClassId(
+        canonicalName = "$mainPackage.After",
+        simpleName = "After"
+    )
 
     override val parameterizedTestAnnotation
         get() = parametrizedTestsNotSupportedError
@@ -381,11 +420,6 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
         get() = parametrizedTestsNotSupportedError
     override val methodSourceAnnotationFqn
         get() = parametrizedTestsNotSupportedError
-
-    override val testAnnotationId = BuiltinClassId(
-        canonicalName = "$JUNIT4_PACKAGE.Test",
-        simpleName = "Test"
-    )
 
     override val parameterizedTestAnnotationId = voidClassId
     override val methodSourceAnnotationId = voidClassId
@@ -431,8 +465,28 @@ object Junit4 : TestFramework(id = "JUnit4",displayName = "JUnit 4") {
 
 object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
     override val mainPackage: String = JUNIT5_PACKAGE
+
     override val testAnnotation = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"
+    override val testAnnotationId = BuiltinClassId(
+        canonicalName = "$JUNIT5_PACKAGE.Test",
+        simpleName = "Test"
+    )
+
+    override val beforeMethod = "@${mainPackage}.BeforeEach"
+    override val beforeMethodFqn = "${mainPackage}.BeforeEach"
+    override val beforeMethodId = BuiltinClassId(
+        canonicalName = "${mainPackage}.BeforeEach",
+        simpleName = "BeforeEach"
+    )
+
+    override val afterMethod = "@${mainPackage}.AfterEach"
+    override val afterMethodFqn = "${mainPackage}.AfterEach"
+    override val afterMethodId = BuiltinClassId(
+        canonicalName = "${mainPackage}.AfterEach",
+        simpleName = "AfterEach"
+    )
+
     override val parameterizedTestAnnotation = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest"
     override val parameterizedTestAnnotationFqn: String = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest"
     override val methodSourceAnnotation: String = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource"
@@ -468,11 +522,6 @@ object Junit5 : TestFramework(id = "JUnit5", displayName = "JUnit 5") {
     val nestedTestClassAnnotationId = BuiltinClassId(
         canonicalName = "$JUNIT5_PACKAGE.Nested",
         simpleName = "Nested"
-    )
-
-    override val testAnnotationId = BuiltinClassId(
-        canonicalName = "$JUNIT5_PACKAGE.Test",
-        simpleName = "Test"
     )
 
     override val parameterizedTestAnnotationId = BuiltinClassId(

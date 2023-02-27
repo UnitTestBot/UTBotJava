@@ -59,11 +59,19 @@ object PythonLanguageAssistant : LanguageAssistant() {
             e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
         }
 
-        val containingFunction = getContainingElement<PyFunction>(element)
-        val containingClass = getContainingElement<PyClass>(element)
+        val containingClass = getContainingElement<PyClass>(element) { fineClass(it) }
+        val containingFunction: PyFunction? =
+            if (containingClass == null)
+                getContainingElement(element) { it.parent is PsiFile && fineFunction(it) }
+            else
+                getContainingElement(element) { func ->
+                    val ancestors = getAncestors(func)
+                    ancestors.dropLast(1).all { it !is PyFunction } &&
+                            ancestors.count { it is PyClass } == 1 && fineFunction(func)
+                }
 
         if (containingClass == null) {
-            val functions = file.topLevelFunctions
+            val functions = file.topLevelFunctions.filter { fineFunction(it) }
             if (functions.isEmpty())
                 return null
 
@@ -71,7 +79,7 @@ object PythonLanguageAssistant : LanguageAssistant() {
             return Targets(functions.toSet(), null, focusedFunction, file, editor)
         }
 
-        val functions = containingClass.methods
+        val functions = containingClass.methods.filter { fineFunction(it) }
         if (functions.isEmpty())
             return null
 

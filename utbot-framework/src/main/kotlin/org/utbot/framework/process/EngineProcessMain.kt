@@ -111,12 +111,13 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
 
             val generateFlow = when (testGenerator.applicationContext) {
                 is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
-                else -> testFlow {
+                is EmptyApplicationContext -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled
                     fuzzingValue = params.fuzzingValue
                 }
+                else -> error("Unknown application context ${testGenerator.applicationContext}")
             }
 
             val result = testGenerator.generate(

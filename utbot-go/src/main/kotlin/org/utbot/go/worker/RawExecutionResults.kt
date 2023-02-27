@@ -81,6 +81,23 @@ data class ArrayValue(
     }
 }
 
+data class SliceValue(
+    override val type: String,
+    val elementType: String,
+    val length: Int,
+    override val value: List<RawValue>
+) : RawValue(type, value) {
+    override fun checkIsEqualTypes(type: GoTypeId): Boolean {
+        if (type !is GoSliceTypeId) {
+            return false
+        }
+        if (elementType != type.elementTypeId!!.canonicalName) {
+            return false
+        }
+        return value.all { it.checkIsEqualTypes(type.elementTypeId) }
+    }
+}
+
 @TypeFor(field = "type", adapter = RawResultValueAdapter::class)
 abstract class RawValue(open val type: String, open val value: Any) {
     abstract fun checkIsEqualTypes(type: GoTypeId): Boolean
@@ -91,7 +108,7 @@ class RawResultValueAdapter : TypeAdapter<RawValue> {
         val typeName = type as String
         return when {
             typeName.startsWith("map[") -> error("Map result type not supported")
-            typeName.startsWith("[]") -> error("Slice result type not supported")
+            typeName.startsWith("[]") -> SliceValue::class
             typeName.startsWith("[") -> ArrayValue::class
             goPrimitives.map { it.name }.contains(typeName) -> PrimitiveValue::class
             else -> StructValue::class
@@ -183,6 +200,8 @@ private fun createGoUtModelFromRawValue(
 
     is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
 
+    is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
+
     is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
 
     else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
@@ -240,4 +259,13 @@ private fun createGoUtArrayModelFromRawValue(
         createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, intSize)
     }.toMutableMap()
     return GoUtArrayModel(value, resultTypeId)
+}
+
+private fun createGoUtSliceModelFromRawValue(
+    resultValue: SliceValue, resultTypeId: GoSliceTypeId, intSize: Int
+): GoUtSliceModel {
+    val value = (0 until resultValue.length).associateWith { index ->
+        createGoUtModelFromRawValue(resultValue.value[index], resultTypeId.elementTypeId!!, intSize)
+    }.toMutableMap()
+    return GoUtSliceModel(value, resultTypeId, resultValue.length)
 }

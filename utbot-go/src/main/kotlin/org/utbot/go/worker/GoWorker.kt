@@ -22,6 +22,7 @@ class GoWorker(
     fun sendFuzzedParametersValues(parameters: List<GoUtModel>, aliases: Map<GoPackage, String?>) {
         val rawValues = parameters.map { it.convertToRawValue(function.sourcePackage, aliases) }
         val json = convertObjectToJsonString(rawValues)
+        println(json)
         writer.write(json)
         writer.flush()
     }

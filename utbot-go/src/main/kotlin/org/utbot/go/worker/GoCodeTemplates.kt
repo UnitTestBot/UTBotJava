@@ -208,6 +208,38 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
+    private val sliceValueStruct = """
+        type __SliceValue__ struct {
+        	Type        string         `json:"type"`
+        	ElementType string         `json:"elementType"`
+        	Length      int            `json:"length"`
+        	Value       []__RawValue__ `json:"value"`
+        }
+    """.trimIndent()
+
+    private val sliceValueToReflectValueMethod = """
+        func (v __SliceValue__) __toReflectValue__() (reflect.Value, error) {
+        	elementType, err := __convertStringToReflectType__(v.ElementType)
+        	__checkErrorAndExit__(err)
+
+        	sliceType := reflect.SliceOf(elementType)
+        	slice := reflect.MakeSlice(sliceType, v.Length, v.Length)
+        	slicePtr := reflect.New(slice.Type())
+        	slicePtr.Elem().Set(slice)
+
+        	for i := 0; i < len(v.Value); i++ {
+        		element := slicePtr.Elem().Index(i)
+
+        		reflectValue, err := v.Value[i].__toReflectValue__()
+        		__checkErrorAndExit__(err)
+
+        		element.Set(reflectValue)
+        	}
+
+        	return slicePtr.Elem(), nil
+        }
+    """.trimIndent()
+
     private fun convertStringToReflectType(
         structTypes: Set<GoStructTypeId>,
         destinationPackage: GoPackage,
@@ -220,7 +252,17 @@ object GoCodeTemplates {
         	case strings.HasPrefix(typeName, "map["):
         		return nil, fmt.Errorf("map type not supported")
         	case strings.HasPrefix(typeName, "[]"):
-        		return nil, fmt.Errorf("slice type not supported")
+        		index := strings.IndexRune(typeName, ']')
+        		if index == -1 {
+        			return nil, fmt.Errorf("not correct type name '%s'", typeName)
+        		}
+
+        		res, err := __convertStringToReflectType__(typeName[index+1:])
+        		if err != nil {
+        			return nil, err
+        		}
+
+        		result = reflect.SliceOf(res)
         	case strings.HasPrefix(typeName, "["):
         		index := strings.IndexRune(typeName, ']')
         		if index == -1 {
@@ -423,6 +465,23 @@ object GoCodeTemplates {
         			Length:      length,
         			Value:       arrayElementValues,
         		}, nil
+        	case reflect.Slice:
+        		elem := valueOfRes.Type().Elem()
+        		elementType := elem.String()
+        		sliceElementValues := []__RawValue__{}
+        		for i := 0; i < valueOfRes.Len(); i++ {
+        			sliceElementValue, err := __convertReflectValueToRawValue__(valueOfRes.Index(i))
+        			__checkErrorAndExit__(err)
+
+        			sliceElementValues = append(sliceElementValues, sliceElementValue)
+        		}
+        		length := len(sliceElementValues)
+        		return __SliceValue__{
+        			Type:        fmt.Sprintf("[]%s", elementType),
+        			ElementType: elementType,
+        			Length:      length,
+        			Value:       sliceElementValues,
+        		}, nil
         	case reflect.Interface:
         		if valueOfRes.Interface() == nil {
         			return nil, nil
@@ -579,7 +638,42 @@ object GoCodeTemplates {
         	case strings.HasPrefix(typeNameStr, "map["):
         		return nil, fmt.Errorf("map type not supported")
         	case strings.HasPrefix(typeNameStr, "[]"):
-        		return nil, fmt.Errorf("slice type not supported")
+        		elementType, ok := rawValue["elementType"]
+        		if !ok {
+        			return nil, fmt.Errorf("sliceValue must contain field 'elementType")
+        		}
+        		elementTypeStr, ok := elementType.(string)
+        		if !ok {
+        			return nil, fmt.Errorf("sliceValue field 'elementType' must be string")
+        		}
+
+        		if _, ok := rawValue["length"]; !ok {
+        			return nil, fmt.Errorf("sliceValue must contain field 'length'")
+        		}
+        		length, ok := rawValue["length"].(float64)
+        		if !ok {
+        			return nil, fmt.Errorf("sliceValue field 'length' must be float64")
+        		}
+
+        		value, ok := v.([]interface{})
+        		if !ok || len(value) != int(length) {
+        			return nil, fmt.Errorf("sliceValue field 'value' must be array of length %d", int(length))
+        		}
+
+        		values := []__RawValue__{}
+        		for _, v := range value {
+        			nextValue, err := __convertParsedJsonToRawValue__(v.(map[string]interface{}))
+        			__checkErrorAndExit__(err)
+
+        			values = append(values, nextValue)
+        		}
+
+        		return __SliceValue__{
+        			Type:        typeNameStr,
+        			ElementType: elementTypeStr,
+        			Length:      int(length),
+        			Value:       values,
+        		}, nil
         	case strings.HasPrefix(typeNameStr, "["):
         		elementType, ok := rawValue["elementType"]
         		if !ok {
@@ -699,6 +793,8 @@ object GoCodeTemplates {
         structValueToReflectValueMethod,
         arrayValueStruct,
         arrayValueToReflectValueMethod,
+        sliceValueStruct,
+        sliceValueToReflectValueMethod,
         convertStringToReflectType(structTypes, destinationPackage, aliases),
         panicMessageStruct,
         rawExecutionResultStruct,

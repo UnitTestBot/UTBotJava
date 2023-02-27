@@ -3,18 +3,16 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.util.defaultJsValueModel
 import framework.api.js.util.isJsArray
+import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 
 class ArrayValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
-
-    private val idGenerator = ReferencePreservingIntIdGenerator()
 
     override fun accept(type: JsClassId): Boolean = type.isJsArray
 
@@ -26,7 +24,7 @@ class ArrayValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescrip
             Seed.Collection(
                 construct = Routine.Collection {
                     UtArrayModel(
-                        id = idGenerator.createId(),
+                        id = JsIdProvider.get(),
                         classId = type,
                         length = it,
                         constModel = (type.elementClassId!! as JsClassId).defaultJsValueModel(),

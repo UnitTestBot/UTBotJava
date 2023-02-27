@@ -2,6 +2,7 @@ package fuzzer
 
 import framework.api.js.JsClassId
 import framework.api.js.util.isClass
+import java.util.concurrent.atomic.AtomicInteger
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedValue
@@ -57,3 +58,9 @@ class JsFeedback(
 data class JsStatement(
     val number: Int
 )
+
+object JsIdProvider {
+    private var _id = AtomicInteger(0)
+
+    fun get() = _id.incrementAndGet()
+}

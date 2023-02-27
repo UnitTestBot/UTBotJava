@@ -75,12 +75,12 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
                 component(nycSourceFileChooserField)
             }
             row("Coverage mode:") {
-                coverageMode.fastButton()
-                coverageMode.baseButton()
-//                panelWithHelpTooltip("Fast mode can't find timeouts, but works faster") {
-//                    component(coverageMode.fastButton, coverageMode.baseButton)
-//                    component(coverageMode.baseButton)
-//                }
+                cell {
+                    panelWithHelpTooltip("Fast mode can't find timeouts, but works faster") {
+                        coverageMode.fastButton()
+                        coverageMode.baseButton()
+                    }
+                }
             }
             row("Timeout for Node.js (in seconds):") {
                 panelWithHelpTooltip("The execution timeout") {

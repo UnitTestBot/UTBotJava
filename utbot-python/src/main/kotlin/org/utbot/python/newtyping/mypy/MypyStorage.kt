@@ -42,11 +42,15 @@ class MypyAnnotationStorage(
     }
     val nodeToUtBotType: MutableMap<MypyAnnotationNode, Type> = mutableMapOf()
     fun getUtBotTypeOfNode(node: MypyAnnotationNode): Type {
+        //println("entering $node")
         val mem = nodeToUtBotType[node]
-        if (mem != null)
+        if (mem != null) {
+            //println("exiting $node")
             return mem
+        }
         val res = node.initializeType()
         nodeToUtBotType[node] = res
+        //println("exiting $node")
         return res
     }
     init {

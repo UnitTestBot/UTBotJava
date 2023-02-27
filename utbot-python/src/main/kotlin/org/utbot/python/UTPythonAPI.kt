@@ -7,6 +7,7 @@ import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.typing.MypyAnnotations
 
 data class PythonArgument(val name: String, val annotation: String?)
@@ -20,7 +21,7 @@ class PythonMethodHeader(
 class PythonMethod(
     val name: String,
     val moduleFilename: String,
-    val containingPythonClassId: PythonClassId?,
+    val containingPythonClass: CompositeType?,
     val codeAsString: String,
     var definition: PythonFunctionDefinition,
     val ast: Block
@@ -34,7 +35,7 @@ class PythonMethod(
     TODO: Now we think that all class methods has `self` argument! We should support `@property` decorator
      */
     val hasThisArgument: Boolean
-        get() = containingPythonClassId != null
+        get() = containingPythonClass != null
 
     val arguments: List<PythonArgument>
         get() {

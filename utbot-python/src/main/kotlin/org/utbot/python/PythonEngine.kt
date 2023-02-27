@@ -158,7 +158,8 @@ class PythonEngine(
         val argumentModules = argumentValues
             .flatMap { it.allContainingClassIds }
             .map { it.moduleName }
-        val localAdditionalModules = (additionalModules + argumentModules).toSet()
+            .filterNot { it.startsWith(moduleToImport) }
+        val localAdditionalModules = (additionalModules + argumentModules + moduleToImport).toSet()
 
         return PythonCodeExecutorImpl(
             methodUnderTest,
@@ -174,29 +175,11 @@ class PythonEngine(
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
-
-        val pmd = PythonMethodDescription(
-            methodUnderTest.name,
-            parameters,
-            fuzzedConcreteValues,
-            pythonTypeStorage,
-            Trie(Instruction::id)
-        )
-
         val coveredLines = initialCoveredLines.toMutableSet()
 
-        PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
-            if (isCancelled()) {
-                logger.info { "Fuzzing process was interrupted" }
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-            }
-            if (System.currentTimeMillis() >= until) {
-                logger.info { "Fuzzing process was interrupted by timeout" }
-                return@PythonFuzzing PythonFeedback(control = Control.STOP)
-            }
-
+        suspend fun fuzzingResultHandler(description: PythonMethodDescription, arguments: List<PythonFuzzedValue>): PythonFeedback {
             val codeExecutor = constructEvaluationInput(arguments, additionalModules)
-            when (val evaluationResult = codeExecutor.run()) {
+            return when (val evaluationResult = codeExecutor.run()) {
                 is PythonEvaluationError -> {
                     val utError = UtError(
                         "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
@@ -204,13 +187,13 @@ class PythonEngine(
                     )
                     logger.debug(evaluationResult.stackTrace.joinToString("\n"))
                     emit(InvalidExecution(utError))
-                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                    PythonFeedback(control = Control.PASS)
                 }
 
                 is PythonEvaluationTimeout -> {
                     val utError = UtError(evaluationResult.message, Throwable())
                     emit(InvalidExecution(utError))
-                    return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                    PythonFeedback(control = Control.PASS)
                 }
 
                 is PythonEvaluationSuccess -> {
@@ -228,19 +211,44 @@ class PythonEngine(
                             logger.debug { arguments }
                             val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
                             emit(result)
-                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                            PythonFeedback(control = Control.CONTINUE, result = trieNode)
                         }
                         is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
                             emit(result)
-                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                            PythonFeedback(control = Control.PASS)
                         }
                         is InvalidExecution -> {
                             emit(result)
-                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                            PythonFeedback(control = Control.CONTINUE)
                         }
                     }
                 }
             }
-        }.fuzz(pmd)
+        }
+
+        val pmd = PythonMethodDescription(
+            methodUnderTest.name,
+            parameters,
+            fuzzedConcreteValues,
+            pythonTypeStorage,
+            Trie(Instruction::id)
+        )
+
+        if (parameters.isEmpty()) {
+            fuzzingResultHandler(pmd, emptyList())
+        } else {
+            PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+                if (isCancelled()) {
+                    logger.info { "Fuzzing process was interrupted" }
+                    return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                }
+                if (System.currentTimeMillis() >= until) {
+                    logger.info { "Fuzzing process was interrupted by timeout" }
+                    return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                }
+
+                return@PythonFuzzing fuzzingResultHandler(description, arguments)
+            }.fuzz(pmd)
+        }
     }
 }

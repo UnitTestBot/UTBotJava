@@ -1,180 +1,141 @@
-# UTBot Go
+# UnitTestBot Go
 
-## About project
+UnitTestBot Go automatically generates ready-to-use unit tests for Go programs.
 
-UTBot Go _**automatically generates unit tests for Go programs**_. Generated tests:
+With UnitTestBot Go, you can find bugs in your code and fixate the desired program behavior with less effort.
 
-* provide _high code coverage_ and, as a result, its reliability;
-* fixate the current behavior of the code as _regression tests_.
+The project is under development,
+so feel free to [contribute](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-go/docs/DEVELOPERS_GUIDE.md).
 
-The core principles of UTBot Go are _**ease of use**_ and _**maximizing code coverage**_.
+## Features and details
 
-***
+UnitTestBot Go now implements the _basic fuzzing technique_.
+It generates input values with respect to parameter types,
+inserts these values into the user functions, and executes the resulting test cases.
 
-_The project is currently under development._
+### Supported types for function parameters
 
-## Features
+At the moment, UnitTestBot Go is able to generate values for _primitive types_, _arrays_ and _structs_.
 
-At the moment, only the _basic fuzzing technique_ is supported: namely, the execution of functions on predefined values,
-depending on the type of parameter.
+For _floating point types_, UnitTestBot Go supports working with _infinity_ and _NaN_.
 
-At the moment, functions are supported, the parameters of which have _any primitive types_, _arrays_ and _structs_.
+### Supported types for the returned results
 
-For floating point types, _correct work with infinities and NaNs_ is also supported.
+For the returned function results,
+UnitTestBot Go supports the `error` type in addition to all the types supported for the function parameters.
 
-Function result types are supported the same as for parameters, but with _support for types that implement `error`_.
+It also captures `panic` cases correctly.
 
-In addition, UTBot Go correctly captures not only errors returned by functions, but also _`panic` cases_.
+Check the examples of [supported functions](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-go/go-samples/simple/samples.go).
 
-Examples of supported functions can be found [here](go-samples/simple/samples.go).
+### Keeping tests near the source code
 
-## Important notes
+[Testing code typically
+lives in the same package as the code it tests](https://gobyexample.com/testing).
+By default, UnitTestBot Go generates tests into the `[name of source file]_go_ut_test.go` file located in the same
+directory and Go package as the corresponding source file.
 
-### Where are tests generated?
+If you need to change the location for the generated tests,
+use the `generateGo` CLI command and set the generated test output mode to
+`StdOut` (`-p, --print-test` flag).
+Then, with bash primitives, redirect the output to an arbitrary file.
 
-It is true that in the described API it is currently almost impossible to customize the file in which the tests are
-generated. By default, test generation results in the file `[name of source file]_go_ut_test.go` _located in the same
-directory and Go package_ as the source file.
+### Requirements to source code
 
-In other words, tests are generated right next to the source code. But why?
+To simplify handling dependencies and generating tests, UnitTestBot Go requires the code under test _to
+be a part of a Go project_ consisting of a module and packages.
 
-* Go was created for convenient and fast development, therefore it has appropriate guidelines: `Testing code typically
-  lives in the same package as the code it tests` ([source](https://gobyexample.com/testing)). For example, this
-  approach provides a clear file structure and allows you to run tests as simply and quickly as possible.
-* Placing tests in the same package with the source code allows you to test private functions. Yes, this is not good
-  practice in programming in general: but, again, it allows you to develop in Go faster by automatically checking even
-  the internal implementation of the public API of the package via unit testing.
-* This approach avoids problems with dependencies from imported packages etc. It's always nice not to have them, if
-  possible.
+To create a simple project, refer to the [starter tutorial](https://go.dev/doc/tutorial/getting-started) if necessary.
 
-Of course, Go has the ability to store tests away from the source code. In the future, it is planned to support this
-functionality in the UTBot Go.
+For larger projects, try the [Create a Go module](https://go.dev/doc/tutorial/create-module) 
+and [Call your code from another module](https://go.dev/doc/tutorial/call-module-code) tutorials.
 
-However, the word `almost` in the first sentence of this section is not redundant at all, there is _a small hack_. When
-using the `generateGo` CLI command, you can set the generated tests output mode to StdOut (`-p, --print-test` flag).
-Then using, for example, bash primitives, you can redirect the output to an arbitrary file. Such a solution will not
-solve possible problems with dependencies, but will automatically save the result of the generation in the right place.
+To create a new module rooted in the current directory, use the `go mod init` command.
 
-### Is there any specific structure of Go source files required?
+To add missing module requirements necessary to build the current module’s packages and dependencies,
+use the `go mod tidy` command. For editing and formatting `go.mod` files, use the `go mod edit` command.
 
-Yes, unfortunately or fortunately, it is required. Namely, the source code file for which the tests are generated _must
-be in a Go project_ consisting of a module and packages.
+In the future, we plan to make UnitTestBot Go working with arbitrary code as input and generate the simplest
+Go projects automatically.
 
-But do not be afraid! Go is designed for convenient and fast development, so <ins>_it's easy to start a Go
-project_</ins>. For example, the [starter tutorial](https://go.dev/doc/tutorial/getting-started) of the language just
-tells how to create the simplest project in Go. For larger projects, it is recommended to read a couple of sections of
-the tutorial further: [Create a Go module](https://go.dev/doc/tutorial/create-module)
-and [Call your code from another module](https://go.dev/doc/tutorial/call-module-code).
-
-To put it simply and briefly, in the simplest case, it is enough to use one call to the `go mod init` command. For more
-complex ones, `go mod tidy` and `go mod edit` may come in handy. Finally, when developing in IntelliJ IDEA, you almost
-don’t have to think about setting up a project: it will set everything up by itself.
-
-But <ins>_why does UTBot Go need a Go project_</ins> and not enough files in a vacuum? The answer is simple &mdash;
-dependencies. Go modules are designed to conveniently support project dependencies, which are simply listed in
-the `go.mod` file. Thanks to it, modern Go projects are easy to reproduce and, importantly for UTBot Go, to test.
-
-In the future, it is planned to add the ability to accept arbitrary code as input to UTBot Go and generate the simplest
-Go project automatically.
-
-## Install and use easily
+## Installation and usage
 
 ### IntelliJ IDEA plugin
 
-<ins>_Requirements:_</ins>
+#### Requirements
 
-* `IntelliJ IDEA (Ultimate Edition)`, compatible with version `2022.2`;
-* installed `Go SDK` version later than `1.18`;
-* installed in IntelliJ IDEA [Go plugin](https://plugins.jetbrains.com/plugin/9568-go), compatible with the IDE
-  version (it is for this that the `Ultimate` edition of the IDE is needed);
-* properly configured Go module for source code file (i.e. for file to generate tests for): corresponding `go.mod` file
-  must exist;
-* installed Go modules `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0`: fortunately, IDEA will automatically highlight
-  it and offer to install the first time the tests are generated.
+* IntelliJ IDEA (Ultimate Edition) — versions from 2022.2 to 2022.2.4
+* Go SDK 1.18 or later
+* Compatible [Go plugin](https://plugins.jetbrains.com/plugin/9568-go) for IntelliJ IDEA
+* Properly configured `go.mod` file for the code under test
+* `github.com/stretchr/testify/assert` Go module installed (IntelliJ IDEA automatically offers to install it as soon as the tests are generated)
 
-Most likely, if you are already developing Go project in IntelliJ IDEA, then you have already met all the requirements.
+#### Installation
 
-<ins>_To install the UTBot Go plugin in IntelliJ IDEA:_</ins>
+To install the UnitTestBot Go plugin in IntelliJ IDEA, refer to [UnitTestBot user guide](https://github.com/UnitTestBot/UTBotJava/wiki/Install-or-update-plugin). 
 
-* just find the latest version of [UnitTestBot](https://plugins.jetbrains.com/plugin/19445-unittestbot) in the plugin
-  market;
-* or download zip archive with `utbot-intellij JAR`
-  from [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/3012565900) and install it in IntelliJ IDEA as
-  follows from plugins section (yes, you need to select the entire downloaded zip archive, it does not need to be
-  unpacked).
-  ![](docs/images/install-intellij-plugin-from-disk.png)
+#### Usage
 
-Finally, you can <ins>_start using UTBot Go_</ins>: open any `.go` file in the IDE and press `alt + u, alt + t`. After
-that, a window will appear in which you can configure the test generation settings and start running it in a couple
-of clicks.
+1. In your IntelliJ IDEA, go to **File** > **Settings** > **Tools** > **UnitTestBot** and enable **Experimental languages support**.
+2. Open a `.go` file and press **Alt+Shift+U**.
+3. In the **Generate Tests with UnitTestBot** window, you can configure the settings.
 
+### CLI
 
-### CLI application
+#### Requirements
 
-<ins>_Requirements:_</ins>
+* Java SDK 11 or later
+* Go SDK 1.18 or later
+* Properly configured `go.mod` file for the code under test
+* GCC as well as `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0` Go modules installed
 
-* installed `Java SDK` version `11` or higher;
-* installed `Go SDK` version later than `1.18`;
-* properly configured Go module for source code file (i.e. for file to generate tests for): corresponding `go.mod` file
-  must exist;
-* installed `gcc` and Go modules `github.com/stretchr/testify/assert` and `golang.org/x/tools@v0.4.0` to run tests.
+#### Installation
 
-<ins>_To install the UTBot Go CLI application:_</ins> download zip archive containing `utbot-cli JAR`
-from [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/3012565900), then extract its content (JAR file) to a
-convenient location.
+To install the UnitTestBot Go CLI application, go to GitHub, scroll through the release notes and click **Assets**.
+Download the zip-archive named like **utbot-cli-VERSION**.
+Extract the JAR file from the archive.
 
-Finally, you can <ins>_start using UTBot Go_</ins> by running the extracted JAR on the command line. Two actions are
-currently supported: `generateGo` and `runGo` for generating and running tests, respectively.
+#### Usage
 
-For example, to find out about all options for actions, run the commands as follows
-(`utbot-cli-2022.8-beta.jar` here is the path to the extracted JAR):
+Run the extracted JAR file using a command line: `generateGo` and `runGo` actions are supported for now.
+To find info about the options for these actions,
+insert the necessary JAR file name instead of `utbot-cli-2022.8-beta.jar` in the example and run the following commands:
 
 ```bash
 java -jar utbot-cli-2022.8-beta.jar generateGo --help
 ```
-
 or
-
 ```bash
 java -jar utbot-cli-2022.8-beta.jar runGo --help
 ```
 
-respectively.
+`generateGo` options:
 
-<ins>_Action `generateGo` options:_</ins>
+* `-s, --source TEXT`, _required_: specifies a Go source file to generate tests for.
+* `-f, --function TEXT`, _required_: specifies a function name to generate tests for. Can be used multiple times to select multiple
+  functions.
+* `-go, --go-path TEXT`, _required_: specifies a path to a Go executable. For example, `/usr/local/go/bin/go`.
+* `-et, --each-execution-timeout INT`: specifies a timeout in milliseconds for each target function execution.
+  The default timeout is 1,000 ms.
+* `-at, --all-execution-timeout INT`: specifies a timeout in milliseconds for all target function executions.
+  The default timeout is 60,000 ms.
+* `-p, --print-test`: specifies whether a test should be printed out to `StdOut`. Disabled by default.
+* `-w, --overwrite`: specifies whether to overwrite the output test file if it already exists. Disabled by default.
+* `-h, --help`: shows a help message and exits.
 
-* `-s, --source TEXT`, _required_: specifies Go source file to generate tests for.
-* `-f, --function TEXT`, _required_: specifies function name to generate tests for. Can be used multiple times to select multiple
-  functions at the same time.
-* `-go, --go-path TEXT`, _required_: specifies path to Go executable. For example, it could be `/usr/local/go/bin/go`
-  for some systems.
-* `-et, --each-execution-timeout INT`: specifies a timeout in milliseconds for each fuzzed function execution. Default is
-  `1000` ms.
-* `-at, --all-execution-timeout INT`: specifies a timeout in milliseconds for all fuzzed function execution. Default is
-  `60000` ms.
-* `-p, --print-test`: specifies whether a test should be printed out to StdOut. Is disabled by default.
-* `-w, --overwrite`: specifies whether to overwrite the output test file if it already exists. Is disabled by default.
-* `-h, --help`: show help message and exit.
+`runGo` options:
 
-<ins>_Action `runGo` options:_</ins>
-
-* `-p, --package TEXT`, _required_: specifies Go package to run tests for.
-* `-go, --go-path TEXT`, _required_: specifies path to Go executable. For example, it could be `/usr/local/go/bin/go`
-  for some systems.
-* `-v, --verbose`: specifies whether an output should be verbose. Is disabled by default.
-* `-j, --json`: specifies whether an output should be in JSON format. Is disabled by default.
-* `-o, --output TEXT`: specifies output file for tests run report. Prints to StdOut by default.
-* `-cov-mode, --coverage-mode [html|func|json]`: specifies whether a test coverage report should be generated and
-  defines its mode. Coverage report generation is disabled by default. Examples of different coverage reports modes can
-  be found [here](go-samples/simple/reports).
-* `-cov-out, --coverage-output TEXT`: specifies output file for test coverage report. Required if `[--coverage-mode]` is
+* `-p, --package TEXT`, _required_: specifies a Go package to run tests for.
+* `-go, --go-path TEXT`, _required_: specifies a path to a Go executable. For example, `/usr/local/go/bin/go`.
+* `-v, --verbose`: specifies whether an output should be verbose. Disabled by default.
+* `-j, --json`: specifies whether an output should be in JSON format. Disabled by default.
+* `-o, --output TEXT`: specifies an output file for a test run report. Prints to `StdOut` by default.
+* `-cov-mode, --coverage-mode [html|func|json]`: specifies whether a test coverage report should be generated and defines the report format.
+  Coverage report generation is disabled by default.
+* `-cov-out, --coverage-output TEXT`: specifies the output file for a test coverage report. Required if `[--coverage-mode]` is
   set.
 
-## Contribute to UTBot Go
+## Contributing to UnitTestBot Go
 
-If you want to _take part in the development_ of the project or _learn more_ about how it works, check
-out [DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md).
-
-For the current list of tasks, check out [FUTURE_PLANS.md](docs/FUTURE_PLANS.md).
-
-Your help and interest is greatly appreciated!
+To take part in project development or learn more about UnitTestBot Go, check
+out the [Developer guide](docs/DEVELOPER_GUIDE.md) and our [future plans](docs/FUTURE_PLANS.md).

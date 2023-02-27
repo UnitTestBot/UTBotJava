@@ -1,4 +1,4 @@
 mypy==1.0.0
 coverage
-utbot-executor==1.0.21
+utbot-executor==1.0.25
 utbot-mypy-runner==0.2.8

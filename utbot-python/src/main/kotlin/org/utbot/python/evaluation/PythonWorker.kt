@@ -20,7 +20,7 @@ class PythonWorker(
     fun sendData(msg: String) {
         outStream.write("DATA")
 
-        val size = msg.length
+        val size = msg.encodeToByteArray().size
         outStream.write(size.toString().padStart(16))
 
         outStream.write(msg)

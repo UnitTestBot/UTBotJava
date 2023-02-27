@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.services.language
 
+import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.context.TestClassContext
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.renderer.CgPrinter
@@ -15,6 +16,7 @@ import org.utbot.framework.codegen.tree.CgMethodConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
 import org.utbot.framework.codegen.tree.CgVariableConstructor
+import org.utbot.framework.codegen.tree.CgSpringVariableConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 
@@ -44,7 +46,12 @@ abstract class CgLanguageAssistant {
     open fun getCallableAccessManagerBy(context: CgContext): CgCallableAccessManager =
         CgCallableAccessManagerImpl(context)
     open fun getStatementConstructorBy(context: CgContext): CgStatementConstructor = CgStatementConstructorImpl(context)
-    open fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = CgVariableConstructor(context)
+
+    open fun getVariableConstructorBy(context: CgContext): CgVariableConstructor = when (context.projectType) {
+            ProjectType.Spring -> CgSpringVariableConstructor(context)
+            else -> CgVariableConstructor(context)
+        }
+
     open fun getMethodConstructorBy(context: CgContext): CgMethodConstructor = CgMethodConstructor(context)
     open fun getCgFieldStateManager(context: CgContext): CgFieldStateManager = CgFieldStateManagerImpl(context)
 

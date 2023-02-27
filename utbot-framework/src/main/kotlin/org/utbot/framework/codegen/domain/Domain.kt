@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.domain
 import org.utbot.framework.DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
 import org.utbot.framework.codegen.domain.builtin.mockitoClassId
 import org.utbot.framework.codegen.domain.builtin.ongoingStubbingClassId
+import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.tree.argumentsClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -11,6 +12,8 @@ import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -773,3 +776,17 @@ object SpringBoot : DependencyInjectionFramework(
     id = "spring-boot",
     displayName = "Spring Boot"
 )
+
+/**
+ * Extended id of [UtModel], unique for whole test set.
+ *
+ * Allows to distinguish models from different executions,
+ * even if they have the same value of `UtModel.id`.
+ */
+data class ModelId(
+    private val id: Int?,
+    private val executionId: Int,
+)
+
+fun UtModel.withId(executionId: Int = -1) = this to ModelId(this.idOrNull(), executionId)
+

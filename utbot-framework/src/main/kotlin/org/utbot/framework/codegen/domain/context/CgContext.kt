@@ -22,6 +22,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.codegen.domain.ModelId
 import org.utbot.framework.codegen.domain.ProjectType
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
@@ -29,6 +30,7 @@ import org.utbot.framework.codegen.domain.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.domain.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.domain.models.CgParameterKind
+import org.utbot.framework.codegen.domain.withId
 import org.utbot.framework.codegen.services.access.Block
 import org.utbot.framework.codegen.tree.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.tree.importIfNeeded
@@ -197,7 +199,7 @@ interface CgContextOwner {
     var valueByModel: IdentityHashMap<UtModel, CgValue>
 
     // use it to compare stateBefore and result variables - in case of equality do not create new variable
-    var valueByModelId: MutableMap<Int?, CgValue>
+    var valueByModelId: MutableMap<ModelId, CgValue>
 
     // parameters of the method currently being generated
     val currentMethodParameters: MutableMap<CgParameterKind, CgVariable>
@@ -225,6 +227,12 @@ interface CgContextOwner {
      * Result models required to create generic execution in parametrized tests.
      */
     var successfulExecutionsModels: List<UtModel>
+
+    /**
+     * Gives a unique identifier to model in test set.
+     * Determines which execution current model belongs to.
+     */
+    var modelIds: Map<UtModel, ModelId>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -311,7 +319,10 @@ interface CgContextOwner {
         model?.let {
             valueByModel[it] = variable
             (model as UtReferenceModel).let { refModel ->
-                refModel.id.let { id -> valueByModelId[id] = variable }
+                refModel.id.let {
+                    val modelId = getIdByModel(model)
+                    valueByModelId[modelId] = variable
+                }
             }
         }
     }
@@ -428,6 +439,8 @@ interface CgContextOwner {
 
     val getLambdaMethod: MethodId
         get() = utilMethodProvider.getLambdaMethodMethodId
+
+    fun getIdByModel(model: UtModel): ModelId
 }
 
 /**
@@ -478,6 +491,8 @@ data class CgContext(
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
     override lateinit var successfulExecutionsModels: List<UtModel>
+
+    override var modelIds: Map<UtModel, ModelId> = mapOf()
 
     /**
      * This property cannot be accessed outside of test class file scope
@@ -556,6 +571,15 @@ data class CgContext(
         }
     }
 
+    override fun getIdByModel(model: UtModel): ModelId {
+        if (model !in this.modelIds) {
+            this.modelIds += model.withId()
+        }
+
+        return modelIds[model]
+            ?: error("ModelId for $model should have also been created")
+    }
+
     private fun createClassIdForNestedClass(testClassModel: SimpleTestClassModel): ClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
         return BuiltinClassId(
@@ -580,7 +604,7 @@ data class CgContext(
 
     override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
 
-    override var valueByModelId: MutableMap<Int?, CgValue> = mutableMapOf()
+    override var valueByModelId: MutableMap<ModelId, CgValue> = mutableMapOf()
 
     override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 

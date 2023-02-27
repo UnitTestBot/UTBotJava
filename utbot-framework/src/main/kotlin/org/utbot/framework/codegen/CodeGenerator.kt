@@ -90,7 +90,7 @@ open class CodeGenerator(
 
     private fun generateForSimpleClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val astConstructor = CgSimpleTestClassConstructor(context)
-        val testClassModel = SimpleTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SimpleTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val testClassFile = astConstructor.construct(testClassModel)
@@ -107,7 +107,7 @@ open class CodeGenerator(
 
     private fun generateForSpringClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
         val astConstructor = CgSpringTestClassConstructor(context)
-        val testClassModel = SpringTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
+        val testClassModel = SpringTestClassModelBuilder(context).createTestClassModel(classUnderTest, testSets)
 
         logger.info { "Code generation phase started at ${now()}" }
         val testClassFile = astConstructor.construct(testClassModel)

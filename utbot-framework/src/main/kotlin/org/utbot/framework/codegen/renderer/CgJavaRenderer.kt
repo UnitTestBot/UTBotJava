@@ -38,13 +38,11 @@ import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.VisibilityModifier
 import org.utbot.framework.codegen.util.nullLiteral
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.util.isFinal
-import org.utbot.framework.plugin.api.util.isPrivate
-import org.utbot.framework.plugin.api.util.isProtected
-import org.utbot.framework.plugin.api.util.isPublic
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 
 internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) :
@@ -70,7 +68,7 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
             annotation.accept(this)
         }
 
-        renderClassVisibility(element.id)
+        renderVisibility(element.visibility)
         renderClassModality(element)
         if (element.isStatic) {
             print("static ")
@@ -92,6 +90,12 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     }
 
     override fun visit(element: CgClassBody) {
+        // render class fields
+        for (field in element.fields) {
+            field.accept(this)
+            println()
+        }
+
         // render regions for test methods and utils
         val allRegions = element.methodRegions + element.nestedClassRegions + element.staticDeclarationRegions
         for ((i, region) in allRegions.withIndex()) {
@@ -230,8 +234,9 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     }
 
     override fun renderMethodSignature(element: CgTestMethod) {
+        renderVisibility(element.visibility)
         // test methods always have void return type
-        print("public void ")
+        print("void ")
         print(element.name)
 
         print("(")
@@ -243,21 +248,25 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
     }
 
     override fun renderMethodSignature(element: CgErrorTestMethod) {
+        renderVisibility(element.visibility)
         // error test methods always have void return type
-        println("public void ${element.name}()")
+        println("void ${element.name}()")
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
         //we do not have a good string representation for two-dimensional array, so this strange if-else is required
         val returnType =
             if (element.returnType.simpleName == "Object[][]") "java.lang.Object[][]" else "${element.returnType}"
-        print("public static $returnType ${element.name}()")
+
+        renderVisibility(element.visibility)
+        print("static $returnType ${element.name}()")
         renderExceptions(element)
     }
 
     override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
+        renderVisibility(element.visibility)
         // framework util methods always have void return type
-        print("public void ")
+        print("void ")
         print(element.name)
         print("()")
 
@@ -388,11 +397,14 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
 
     override fun escapeNamePossibleKeywordImpl(s: String): String = s
 
-    override fun renderClassVisibility(classId: ClassId) {
-        when {
-            classId.isPublic -> print("public ")
-            classId.isProtected -> print("protected ")
-            classId.isPrivate -> print("private ")
+    override fun renderVisibility(modifier: VisibilityModifier) {
+        when (modifier) {
+            VisibilityModifier.PUBLIC -> print("public ")
+            VisibilityModifier.PRIVATE -> print("private ")
+            VisibilityModifier.PROTECTED -> print("protected ")
+            VisibilityModifier.INTERNAL -> print("internal ")
+            VisibilityModifier.PACKAGEPRIVATE -> Unit
+            else -> error("Java: unexpected visibility modifier -- $modifier")
         }
     }
 

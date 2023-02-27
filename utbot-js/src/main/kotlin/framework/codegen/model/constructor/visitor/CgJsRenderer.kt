@@ -303,6 +303,10 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         throw UnsupportedOperationException()
     }
 
+    override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
+        throw UnsupportedOperationException()
+    }
+
     override fun visit(element: CgNamedAnnotationArgument) {
 
     }

@@ -115,7 +115,7 @@ open class CodeGenerator(
         return CodeGeneratorResult(
             generatedCode = generatedCode,
             utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-            testsGenerationReport = TestsGenerationReport()
+            testsGenerationReport = astConstructor.testsGenerationReport
         )
     }
 

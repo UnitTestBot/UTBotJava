@@ -46,7 +46,7 @@ on:
           type: choice
           description: "Upload artifacts or not"
           required: false
-          default: false
+          default: true
           options:
           - true
           - false

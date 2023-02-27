@@ -160,7 +160,7 @@ class TypeInferenceProcessor(
         val result = PythonMethod(
             functionName,
             path.toString(),
-            PythonClassId("$moduleOfSourceFile.$className"),
+            typeOfClass,
             sourceFileContent.substring(funcDef.body.beginOffset, funcDef.body.endOffset).trimIndent(),
             defOfFunc,
             funcDef.body

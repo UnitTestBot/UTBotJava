@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
+import org.jetbrains.kotlin.konan.file.File
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
@@ -114,7 +115,6 @@ object PythonDialogProcessor {
                 moduleToImport,
                 UtSettings.utBotGenerationTimeoutInMillis,
                 DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
-                visitOnlySpecifiedSource = false,
                 cgLanguageAssistant = PythonCgLanguageAssistant,
                 pythonPath = pythonPath,
             )
@@ -334,9 +334,9 @@ fun getDirectoriesForSysPath(
         }
     }
 
-    // Select modules only from this project
+    // Select modules only from this project but not from installation directory
     importedPaths.forEach {
-        if (it.isProjectSubmodule(ancestor)) {
+        if (it.isProjectSubmodule(ancestor) && !it.path.split(File.separator).contains("site-packages")) {
             sources.add(it)
         }
     }

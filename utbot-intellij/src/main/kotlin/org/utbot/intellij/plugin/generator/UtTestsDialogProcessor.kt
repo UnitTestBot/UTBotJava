@@ -26,8 +26,8 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.EmptyApplicationContext
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
-import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -170,10 +170,9 @@ object UtTestsDialogProcessor {
                             }.toMap()
                         }
 
+                        val applicationContext = EmptyApplicationContext
                         // TODO: obtain bean definitions and other info from `utbot-spring-analyzer`
-                        val springApplicationContext = SpringApplicationContext(
-                            beanQualifiedNames = emptyList(),
-                        )
+                        //SpringApplicationContext(beanQualifiedNames = emptyList())
 
                         val process = EngineProcess.createBlocking(project, classNameToPath)
 
@@ -184,7 +183,7 @@ object UtTestsDialogProcessor {
                                 classpath,
                                 pluginJarsPath.joinToString(separator = File.pathSeparator),
                                 JdkInfoService.provide(),
-                                springApplicationContext,
+                                applicationContext,
                             ) {
                                 ApplicationManager.getApplication().runReadAction(Computable {
                                     indicator.isCanceled

@@ -3,6 +3,7 @@ package org.utbot.python.newtyping
 import org.utbot.python.newtyping.general.CompositeType
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.getOrigin
 import org.utbot.python.newtyping.mypy.ClassDef
 import org.utbot.python.newtyping.mypy.CompositeAnnotationNode
 import org.utbot.python.newtyping.mypy.MypyAnnotation
@@ -23,6 +24,16 @@ class PythonTypeStorage(
     val pythonSlice: Type,
     val allTypes: Set<Type>
 ) {
+
+    val simpleTypes: List<Type>
+        get() = allTypes.filter {
+            val description = it.pythonDescription()
+            !description.name.name.startsWith("_")
+                    && description is PythonConcreteCompositeTypeDescription
+                    && !description.isAbstract
+                    && !listOf("typing", "typing_extensions").any { mod -> description.name.prefix == listOf(mod) }
+        }.sortedBy { type -> if (type.pythonTypeName().startsWith("builtins")) 0 else 1 }
+
     companion object {
         private fun getNestedClasses(cur: MypyAnnotation, result: MutableSet<Type>) {
             val type = cur.asUtBotType

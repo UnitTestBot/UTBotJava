@@ -237,6 +237,16 @@ object PythonOverloadTypeDescription : PythonSpecialAnnotation(overloadName) {
     }
 }
 
+object PythonTypeAliasDescription : PythonSpecialAnnotation(pythonTypeAliasName) {
+    override fun castToCompatibleTypeApi(type: Type): CompositeType {
+        return type as? CompositeType ?: error("Got unexpected type for PythonTypeAliasDescription: $type")
+    }
+    fun getInterior(type: Type): Type {
+        val casted = castToCompatibleTypeApi(type)
+        return casted.members.first()
+    }
+}
+
 object PythonTupleTypeDescription : PythonSpecialAnnotation(pythonTupleName) {
     override fun getAnnotationParameters(type: Type): List<Type> = castToCompatibleTypeApi(type).parameters
     // TODO: getMemberByName and/or getNamedMembers

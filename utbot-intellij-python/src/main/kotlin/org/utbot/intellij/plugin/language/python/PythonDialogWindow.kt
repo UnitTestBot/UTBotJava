@@ -5,10 +5,8 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
@@ -19,7 +17,6 @@ import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.domain.TestFramework
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
@@ -50,8 +47,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         )
     private val testFrameworks =
         ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
-
-    private val visitOnlySpecifiedSource = JCheckBox("Visit only specified source")
 
     private lateinit var panel: DialogPanel
 
@@ -96,12 +91,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             row {
                 scrollPane(functionsTable)
             }
-            row {
-                cell {
-                    component(visitOnlySpecifiedSource)
-                    component(ContextHelpLabel.create("Find argument types only in this file."))
-                }
-            }
         }
 
         updateFunctionsTable()
@@ -140,7 +129,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             return globalPyFunctionsToPyMemberInfo(project, functions)
         }
         return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass)
-            .filter { it.member is PyFunction }
+            .filter { it.member is PyFunction && fineFunction(it.member as PyFunction) }
     }
 
     private fun updateFunctionsTable() {
@@ -182,7 +171,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.timeoutForRun = TimeUnit.SECONDS.toMillis(timeoutSpinnerForOneRun.number.toLong())
-        model.visitOnlySpecifiedSource = visitOnlySpecifiedSource.isSelected
         model.testSourceRootPath = testSourceFolderField.text
 
         super.doOKAction()

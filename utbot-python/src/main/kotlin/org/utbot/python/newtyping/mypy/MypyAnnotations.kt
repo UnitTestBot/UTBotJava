@@ -204,6 +204,17 @@ class OverloadedFunction(
     }
 }
 
+class TypeAliasNode(val target: MypyAnnotation): MypyAnnotationNode() {
+    override val children: List<MypyAnnotation>
+        get() = super.children + target
+    override fun initializeType(): Type {
+        return createPythonTypeAlias { self ->
+            storage.nodeToUtBotType[this] = self
+            target.asUtBotType
+        }
+    }
+}
+
 class UnknownAnnotationNode: MypyAnnotationNode() {
     override fun initializeType(): Type {
         return pythonAnyType
@@ -221,6 +232,7 @@ enum class AnnotationType {
     Union,
     Tuple,
     NoneType,
+    TypeAlias,
     Unknown
 }
 
@@ -236,4 +248,5 @@ val annotationAdapter: PolymorphicJsonAdapterFactory<MypyAnnotationNode> =
         .withSubtype(PythonUnion::class.java, AnnotationType.Union.name)
         .withSubtype(PythonTuple::class.java, AnnotationType.Tuple.name)
         .withSubtype(PythonNoneType::class.java, AnnotationType.NoneType.name)
+        .withSubtype(TypeAliasNode::class.java, AnnotationType.TypeAlias.name)
         .withSubtype(UnknownAnnotationNode::class.java, AnnotationType.Unknown.name)

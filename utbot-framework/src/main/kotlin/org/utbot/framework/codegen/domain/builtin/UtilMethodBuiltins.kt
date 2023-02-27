@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.domain.builtin
 
+import org.mockito.MockitoAnnotations
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.renderer.utilMethodTextById
@@ -303,11 +304,18 @@ internal val utKotlinUtilsClassId: ClassId
 /**
  * [MethodId] for [AutoCloseable.close].
  */
+val openMocksMethodId = MethodId(
+    classId = MockitoAnnotations::class.id,
+    name = "openMocks",
+    returnType = AutoCloseable::class.java.id,
+    parameters = listOf(objectClassId),
+)
+
 val closeMethodId = MethodId(
     classId = AutoCloseable::class.java.id,
     name = "close",
     returnType = voidClassId,
-    parameters = emptyList()
+    parameters = emptyList(),
 )
 
 val mocksAutoCloseable: Set<ClassId> = setOf(

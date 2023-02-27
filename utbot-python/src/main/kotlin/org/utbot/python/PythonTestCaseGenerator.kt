@@ -30,7 +30,8 @@ import java.io.File
 private val logger = KotlinLogging.logger {}
 
 private const val COVERAGE_LIMIT = 150
-private const val ADDITIONAL_LIMIT = 10
+private const val ADDITIONAL_LIMIT = 5
+private const val INVALID_EXECUTION_LIMIT = 10
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -162,7 +163,6 @@ class PythonTestCaseGenerator(
         var missingLines: Set<Int>? = null
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
-        var additionalLimit = ADDITIONAL_LIMIT
         val typeInferenceCancellation =
             { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
@@ -192,13 +192,19 @@ class PythonTestCaseGenerator(
                     PythonTypeStorage.get(mypyStorage)
                 )
 
+                var invalidExecutionLimit = INVALID_EXECUTION_LIMIT
                 var coverageLimit = COVERAGE_LIMIT
+                var additionalLimit = ADDITIONAL_LIMIT
                 var coveredBefore = coveredLines.size
 
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation =
-                    { typeInferenceCancellation() || coverageLimit == 0 } // || feedback is InvalidTypeFeedback }
+                val fuzzerCancellation = {
+                        typeInferenceCancellation()
+                                || coverageLimit == 0
+                                || additionalLimit == 0
+                                || invalidExecutionLimit == 0
+                }
                 val startTime = System.currentTimeMillis()
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
@@ -209,26 +215,25 @@ class PythonTestCaseGenerator(
                             missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
                             feedback = SuccessFeedback
                         }
-
                         is InvalidExecution -> {
                             errors += it.utError
                             feedback = SuccessFeedback
                         }
-
                         is ArgumentsTypeErrorFeedback -> {
+                            invalidExecutionLimit--
                             feedback = InvalidTypeFeedback
                         }
-
                         is TypeErrorFeedback -> {
+                            invalidExecutionLimit--
                             feedback = InvalidTypeFeedback
                         }
                     }
                     if (missingLines?.size == 0) {
-                        additionalLimit -= 1
+                        additionalLimit--
                     }
                     val coveredAfter = coveredLines.size
                     if (coveredAfter == coveredBefore) {
-                        coverageLimit -= 1
+                        coverageLimit--
                     }
                     logger.info { "${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
                     coveredBefore = coveredAfter

@@ -52,16 +52,14 @@ class BaselineAlgorithm(
                     logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
                     if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
                         logger.debug("Found new state!")
-                        annotationHandler(newState.signature)
-                        states.add(newState)
-                        /*
+//                        annotationHandler(newState.signature)
+//                        states.add(newState)
                         when (annotationHandler(newState.signature)) {
                             SuccessFeedback -> {
                                 states.add(newState)
                             }
                             InvalidTypeFeedback -> {}
                         }
-                        */
                     }
                 } else {
                     states.remove(state)

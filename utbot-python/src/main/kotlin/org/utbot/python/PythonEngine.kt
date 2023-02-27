@@ -171,7 +171,14 @@ class PythonEngine(
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
             val processStartTime = System.currentTimeMillis()
-            val process = startProcess(listOf(pythonPath, "-m", "utbot_executor", "localhost", serverSocket.localPort.toString(), "--logfile", logfile.absolutePath))
+            val process = startProcess(listOf(
+                pythonPath,
+                "-m", "utbot_executor",
+                "localhost",
+                serverSocket.localPort.toString(),
+                "--logfile", logfile.absolutePath,
+                "--loglevel", "DEBUG",
+                ))
             val timeout = until - processStartTime
             val workerSocket = try {
                 serverSocket.soTimeout = timeout.toInt()
@@ -246,17 +253,14 @@ class PythonEngine(
                             summary
                         )) {
                             is ValidExecution -> {
-                                logger.debug { arguments }
                                 val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
                                 emit(result)
                                 PythonFeedback(control = Control.CONTINUE, result = trieNode)
                             }
-
                             is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
                                 emit(result)
                                 PythonFeedback(control = Control.PASS)
                             }
-
                             is InvalidExecution -> {
                                 emit(result)
                                 PythonFeedback(control = Control.CONTINUE)

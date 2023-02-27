@@ -166,6 +166,7 @@ class PythonTestCaseGenerator(
         val typeInferenceCancellation =
             { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
+        logger.info("Start test generation for ${method.name}")
         substituteTypeParameters(method, typeStorage).forEach { newMethod ->
             inferAnnotations(
                 newMethod,
@@ -236,6 +237,7 @@ class PythonTestCaseGenerator(
             }
         }
 
+        logger.info("Collect all test executions for ${method.name}")
         val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
 
         return PythonTestSet(

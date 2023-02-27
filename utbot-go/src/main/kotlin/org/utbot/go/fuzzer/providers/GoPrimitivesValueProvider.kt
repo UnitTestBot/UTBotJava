@@ -12,16 +12,15 @@ import org.utbot.go.api.util.*
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import java.util.*
-import kotlin.properties.Delegates
 
 object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescription> {
-    var intSize by Delegates.notNull<Int>()
     private val random = Random(0)
 
     override fun accept(type: GoTypeId): Boolean = type in goPrimitives
 
     override fun generate(description: GoDescription, type: GoTypeId): Sequence<Seed<GoTypeId, GoUtModel>> =
         sequence {
+            val intSize = description.intSize
             type.let { it as GoPrimitiveTypeId }.also { primitiveType ->
                 val primitives: List<Seed<GoTypeId, GoUtModel>> = when (primitiveType) {
                     goBoolTypeId -> listOf(
@@ -148,8 +147,8 @@ object GoPrimitivesValueProvider : ValueProvider<GoTypeId, GoUtModel, GoDescript
                     else -> emptyList()
                 }
 
-                primitives.forEach { fuzzedValue ->
-                    yield(fuzzedValue)
+                primitives.forEach { seed ->
+                    yield(seed)
                 }
             }
         }

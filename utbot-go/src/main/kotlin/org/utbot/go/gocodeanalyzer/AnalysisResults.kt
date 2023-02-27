@@ -13,22 +13,6 @@ import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass
 
-data class AnalyzedInterfaceType(
-    override val name: String,
-    val implementsError: Boolean,
-    val packageName: String,
-    val packagePath: String
-) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId =
-        GoInterfaceTypeId(
-            name = simpleName,
-            implementsError = implementsError,
-            sourcePackage = GoPackage(packageName, packagePath)
-        )
-
-    private val simpleName: String = name.replaceFirst("interface ", "")
-}
-
 data class AnalyzedPrimitiveType(
     override val name: String
 ) : AnalyzedType(name) {
@@ -68,6 +52,22 @@ data class AnalyzedArrayType(
     )
 }
 
+data class AnalyzedInterfaceType(
+    override val name: String,
+    val implementsError: Boolean,
+    val packageName: String,
+    val packagePath: String
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId =
+        GoInterfaceTypeId(
+            name = simpleName,
+            implementsError = implementsError,
+            sourcePackage = GoPackage(packageName, packagePath)
+        )
+
+    private val simpleName: String = name.replaceFirst("interface ", "")
+}
+
 @TypeFor(field = "name", adapter = AnalyzedTypeAdapter::class)
 abstract class AnalyzedType(open val name: String) {
     abstract fun toGoTypeId(): GoTypeId
@@ -95,6 +95,7 @@ internal data class AnalyzedFunction(
     val parameters: List<AnalyzedFunctionParameter>,
     val resultTypes: List<AnalyzedType>,
     val requiredImports: List<GoImport>,
+    val constants: Map<String, List<String>>,
     val modifiedFunctionForCollectingTraces: String,
     val numberOfAllStatements: Int
 )

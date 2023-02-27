@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.language.js
 
 import com.intellij.lang.javascript.refactoring.ui.JSMemberSelectionTable
 import com.intellij.lang.javascript.refactoring.util.JSMemberInfo
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
@@ -10,15 +11,18 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.Cell
+import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import framework.codegen.Mocha
-import org.utbot.framework.codegen.domain.TestFramework
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
 import settings.JsTestGenerationSettings.defaultTimeout
+import java.awt.BorderLayout
 import java.io.File
 import java.nio.file.Paths
+import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
 import javax.swing.JComponent
 
@@ -32,7 +36,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     }
 
     private val testSourceFolderField = TestSourceDirectoryChooser(model, model.file.virtualFile)
-    private val testFrameworks = listOf<TestFramework>(Mocha)
+    private val testFrameworks = ComboBox(DefaultComboBoxModel(arrayOf(Mocha)))
     private val nycSourceFileChooserField = NycSourceFileChooser(model)
     private val coverageMode = CoverageModeButtons
 
@@ -58,28 +62,34 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     override fun createCenterPanel(): JComponent {
         panel = panel {
             row("Test source root:") {
-                cell(testSourceFolderField)
+                component(testSourceFolderField)
             }
             row("Test framework:") {
-                comboBox(testFrameworks, null)
+                component(
+                    Panel().apply {
+                        add(testFrameworks as ComboBox<CodeGenerationSettingItem>, BorderLayout.LINE_START)
+                    }
+                )
             }
             row("Nyc source path:") {
-                cell(nycSourceFileChooserField)
+                component(nycSourceFileChooserField)
             }
             row("Coverage mode:") {
-                cell(coverageMode.fastButton).apply { this.component.isSelected == true }
-                cell(coverageMode.baseButton)
+                coverageMode.fastButton()
+                coverageMode.baseButton()
 //                panelWithHelpTooltip("Fast mode can't find timeouts, but works faster") {
 //                    component(coverageMode.fastButton, coverageMode.baseButton)
 //                    component(coverageMode.baseButton)
 //                }
             }
             row("Timeout for Node.js (in seconds):") {
-                cell(timeoutSpinner)
+                panelWithHelpTooltip("The execution timeout") {
+                    component(timeoutSpinner)
+                }
             }
             row("Generate test methods for:") {}
             row {
-                scrollCell(functionsTable)
+                scrollPane(functionsTable)
             }
         }
         updateMembersTable()
@@ -98,7 +108,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
     override fun doOKAction() {
         val selected = functionsTable.selectedMemberInfos.toSet()
         model.selectedMethods = if (selected.any()) selected else emptySet()
-        model.testFramework = testFrameworks
+        model.testFramework = testFrameworks.item
         model.timeout = timeoutSpinner.number.toLong()
         model.pathToNYC = nycSourceFileChooserField.text
         model.coverageMode = coverageMode.mode

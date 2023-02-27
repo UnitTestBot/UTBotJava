@@ -18,6 +18,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
+import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
@@ -28,15 +29,11 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
-import settings.JsPackagesSettings.mochaData
-import settings.JsPackagesSettings.nycData
-import settings.JsPackagesSettings.ternData
 import settings.JsTestGenerationSettings.dummyClassName
-import settings.PackageData
+import settings.PackageDataService
+import settings.jsPackagesList
 import utils.JsCmdExec
 import utils.OsProvider
-import java.io.IOException
-import settings.PackageDataService
 
 private val logger = KotlinLogging.logger {}
 
@@ -59,9 +56,11 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
+                    PackageDataService(
+                        model.containingFilePath,
+                        model.project.basePath!!,
+                        model.pathToNPM
+                    ).checkAndInstallRequirements(project)
                     createDialog(model)?.let { dialogWindow ->
                         if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
@@ -107,7 +106,6 @@ object JsDialogProcessor {
             null
         }
 
-
     private fun createJsTestModel(
         project: Project,
         srcModule: Module,
@@ -139,7 +137,6 @@ object JsDialogProcessor {
             this.pathToNode = pathToNode
             this.pathToNPM = pathToNPM
         }
-
     }
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
@@ -268,30 +265,19 @@ object JsDialogProcessor {
     }
 }
 
-fun PackageDataService.checkAndInstallRequirement(
-    project: Project,
-    pathToNPM: String,
-    requirement: PackageData,
-) {
-    if (!this.findPackageByNpm(requirement, project.basePath!!, pathToNPM)) {
-        installMissingRequirement(project, pathToNPM, requirement)
-    }
-}
-
-private fun installMissingRequirement(
-    project: Project,
-    pathToNPM: String,
-    requirement: PackageData,
-) {
+private fun PackageDataService.checkAndInstallRequirements(project: Project) {
+    val absentPackages = jsPackagesList
+        .filterNot { this.findPackage(it) }
+    if (absentPackages.isEmpty()) return
     val message = """
-            Requirement is not installed:
-            ${requirement.packageName}
-            Install it?
+            Requirements are not installed:
+            ${absentPackages.joinToString { it.packageName }}
+            Install them?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
         project,
         message,
-        "Requirement Missmatch Error",
+        "Requirements Missmatch Error",
         "Install",
         "Cancel",
         null
@@ -300,8 +286,7 @@ private fun installMissingRequirement(
     if (result == Messages.CANCEL)
         return
 
-    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
-
+    val (_, errorText) = this.installAbsentPackages(absentPackages)
     if (errorText.isNotEmpty()) {
         showErrorDialogLater(
             project,

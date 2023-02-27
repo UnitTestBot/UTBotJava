@@ -100,6 +100,10 @@ class JsTestGenerator(
             parsedFile = parsedFile,
             settings = settings,
         )
+        context.packageJson = PackageJsonService(
+            sourceFilePath,
+            projectPath,
+        ).findClosestConfig()
         val ternService = TernService(context)
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()

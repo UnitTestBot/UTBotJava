@@ -1,6 +1,10 @@
 package settings
 
+import org.utbot.common.PathUtil.replaceSeparator
 import service.PackageJsonService
+import settings.JsPackagesSettings.mochaData
+import settings.JsPackagesSettings.nycData
+import settings.JsPackagesSettings.ternData
 import utils.JsCmdExec
 import utils.OsProvider
 
@@ -9,6 +13,12 @@ object JsPackagesSettings {
     val nycData: PackageData = PackageData("nyc", NpmListFlag.G)
     val ternData: PackageData = PackageData("tern", NpmListFlag.L)
 }
+
+val jsPackagesList = listOf(
+    mochaData,
+    nycData,
+    ternData
+)
 
 enum class NpmListFlag {
     L {
@@ -34,40 +44,68 @@ data class PackageData(
 
         return inputText.split(System.lineSeparator()).first().takeIf { it.contains(packageName) }
     }
-
-    fun installPackage(projectBasePath: String, pathToNpm: String): Pair<String, String> {
-        val (inputText, errorText) = JsCmdExec.runCommand(
-            dir = projectBasePath,
-            shouldWait = true,
-            timeout = 10,
-            cmd = arrayOf("\"$pathToNpm\"", "install", npmListFlag.toString(), packageName)
-        )
-
-        return Pair(inputText, errorText)
-    }
 }
 
 class PackageDataService(
     filePathToInference: String,
-    projectPath: String,
+    private val projectPath: String,
+    private val pathToNpm: String,
 ) {
     private val packageJson = PackageJsonService(filePathToInference, projectPath).findClosestConfig()
 
-    fun findPackageByNpm(packageData: PackageData, projectBasePath: String, pathToNpm: String): Boolean = with(packageData) {
+    companion object {
+        var nycPath: String = ""
+            private set
+    }
+
+    fun findPackage(packageData: PackageData): Boolean = with(packageData) {
         when (npmListFlag) {
             NpmListFlag.G -> {
                 val (inputText, _) = JsCmdExec.runCommand(
-                    dir = projectBasePath,
+                    dir = projectPath,
                     shouldWait = true,
                     timeout = 10,
                     cmd = arrayOf("\"$pathToNpm\"", "list", npmListFlag.toString())
                 )
-
-                inputText.contains(packageName)
+                var result = inputText.contains(packageName)
+                if (!result || this == nycData) {
+                    val packagePath = this.findPackagePath()
+                    nycPath = packagePath?.let {
+                        replaceSeparator(it) + OsProvider.getProviderByOs().npmPackagePostfix
+                    } ?: "Nyc was not found"
+                    if (!result) {
+                        result = this.findPackagePath()?.isNotBlank() ?: false
+                    }
+                }
+                return result
             }
+
             NpmListFlag.L -> {
                 packageJson.deps.contains(packageName)
             }
         }
+    }
+
+    fun installAbsentPackages(packages: List<PackageData>): Pair<String, String> {
+        if (packages.isEmpty()) return "" to ""
+        val localPackageNames = packages.filter { it.npmListFlag == NpmListFlag.L }
+            .map { it.packageName }.toTypedArray()
+        val globalPackageNames = packages.filter { it.npmListFlag == NpmListFlag.G }
+            .map { it.packageName }.toTypedArray()
+        // Local packages installation
+        val (inputTextL, errorTextL) = JsCmdExec.runCommand(
+            dir = projectPath,
+            shouldWait = true,
+            timeout = 10,
+            cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.L.toString(), *localPackageNames)
+        )
+        // Global packages installation
+        val (inputTextG, errorTextG) = JsCmdExec.runCommand(
+            dir = projectPath,
+            shouldWait = true,
+            timeout = 10,
+            cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.G.toString(), *globalPackageNames)
+        )
+        return Pair(inputTextL + inputTextG, errorTextL + errorTextG)
     }
 }

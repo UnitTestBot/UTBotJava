@@ -83,7 +83,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
                 }
             }
             row("Timeout for Node.js (in seconds):") {
-                panelWithHelpTooltip("The execution timeout") {
+                panelWithHelpTooltip("The execution timeout for each generated test") {
                     component(timeoutSpinner)
                 }
             }

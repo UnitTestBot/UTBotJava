@@ -14,22 +14,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.Statistic
 import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
-import org.utbot.python.fuzzing.provider.BoolValueProvider
-import org.utbot.python.fuzzing.provider.BytearrayValueProvider
-import org.utbot.python.fuzzing.provider.BytesValueProvider
-import org.utbot.python.fuzzing.provider.ComplexValueProvider
-import org.utbot.python.fuzzing.provider.ConstantValueProvider
-import org.utbot.python.fuzzing.provider.DictValueProvider
-import org.utbot.python.fuzzing.provider.FloatValueProvider
-import org.utbot.python.fuzzing.provider.IntValueProvider
-import org.utbot.python.fuzzing.provider.ListValueProvider
-import org.utbot.python.fuzzing.provider.NoneValueProvider
-import org.utbot.python.fuzzing.provider.ReduceValueProvider
-import org.utbot.python.fuzzing.provider.SetValueProvider
-import org.utbot.python.fuzzing.provider.StrValueProvider
-import org.utbot.python.fuzzing.provider.TupleFixSizeValueProvider
-import org.utbot.python.fuzzing.provider.TupleValueProvider
-import org.utbot.python.fuzzing.provider.UnionValueProvider
+import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
 import org.utbot.python.newtyping.PythonProtocolDescription
 import org.utbot.python.newtyping.PythonSubtypeChecker
@@ -82,6 +67,7 @@ fun pythonDefaultValueProviders(idGenerator: IdGenerator<Long>) = listOf(
     BytearrayValueProvider,
     ReduceValueProvider,
     ConstantValueProvider,
+    TypeAliasValueProvider
 )
 
 class PythonFuzzing(

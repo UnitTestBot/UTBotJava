@@ -1,23 +1,18 @@
 package org.utbot.python.newtyping.ast
 
 import org.parsers.python.PythonParser
+import org.utbot.python.PythonMethodHeader
+import org.utbot.python.code.PythonCode
 
 fun main() {
     val content = """
-    def calc_to_goal_cost(trajectory, goal):
-        ""${'"'}
-            calc to goal cost with angle difference
-        ""${'"'}
-    
-        dx = goal[0] - trajectory[-1, 0]
-        dy = goal[1] - trajectory[-1, 1]
-        error_angle = math.atan2(dy, dx)
-        cost_angle = error_angle - trajectory[-1, 2]
-        cost = abs(math.atan2(math.sin(cost_angle), math.cos(cost_angle)))
-    
-        return cost
+    class A:
+        @decorator
+        def func(x):
+            return 1
     """.trimIndent()
 
     val root = PythonParser(content).Module()
+    // val y = PythonCode.findFunctionDefinition(root, PythonMethodHeader("func", "", null))
     val x = root
 }

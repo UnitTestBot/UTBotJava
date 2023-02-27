@@ -17,6 +17,14 @@ object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
     override val testAnnotation = ""
     override val testAnnotationFqn = ""
 
+    override val beforeMethod: String = ""
+    override val beforeMethodId: ClassId = jsUndefinedClassId
+    override val beforeMethodFqn: String = ""
+
+    override val afterMethod: String = ""
+    override val afterMethodId: ClassId = jsUndefinedClassId
+    override val afterMethodFqn: String = ""
+
     override val parameterizedTestAnnotation: String
         get() = throw UnsupportedOperationException("Parameterized tests are not supported for Mocha")
     override val parameterizedTestAnnotationFqn: String

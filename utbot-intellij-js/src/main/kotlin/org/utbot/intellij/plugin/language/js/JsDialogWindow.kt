@@ -76,7 +76,7 @@ class JsDialogWindow(val model: JsTestsModel) : DialogWrapper(model.project) {
             }
             row("Coverage mode:") {
                 cell {
-                    panelWithHelpTooltip("Fast mode can't find timeouts, but works faster") {
+                    panelWithHelpTooltip("Fast mode does not guarantee proper handling of user timeouts") {
                         coverageMode.fastButton()
                         coverageMode.baseButton()
                     }

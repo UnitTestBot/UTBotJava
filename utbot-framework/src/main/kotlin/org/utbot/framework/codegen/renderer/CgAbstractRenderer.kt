@@ -43,6 +43,7 @@ import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgForEachLoop
 import org.utbot.framework.codegen.domain.models.CgForLoop
+import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgGreaterThan
 import org.utbot.framework.codegen.domain.models.CgIfStatement
 import org.utbot.framework.codegen.domain.models.CgIncrement
@@ -234,6 +235,14 @@ abstract class CgAbstractRenderer(
         // TODO introduce CgBlock
         print(" ")
         visit(element.statements, printNextLine = true)
+    }
+
+    override fun visit(element: CgFrameworkUtilMethod) {
+        for (annotation in element.annotations) {
+            annotation.accept(this)
+        }
+        renderMethodSignature(element)
+        visit(element as CgMethod)
     }
 
     override fun visit(element: CgTestMethod) {
@@ -751,6 +760,7 @@ abstract class CgAbstractRenderer(
     protected abstract fun renderMethodSignature(element: CgTestMethod)
     protected abstract fun renderMethodSignature(element: CgErrorTestMethod)
     protected abstract fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod)
+    protected abstract fun renderMethodSignature(element: CgFrameworkUtilMethod)
 
     protected abstract fun renderForLoopVarControl(element: CgForLoop)
 

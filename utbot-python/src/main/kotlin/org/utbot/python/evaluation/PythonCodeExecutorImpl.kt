@@ -7,6 +7,7 @@ import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
@@ -63,7 +64,7 @@ class PythonCodeExecutorImpl(
         return Coverage(
             coveredInstructions=covered.map {
                 Instruction(
-                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                    method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
                     method.methodSignature(),
                     it,
                     it.toLong()
@@ -72,7 +73,7 @@ class PythonCodeExecutorImpl(
             instructionsCount = statements.size.toLong(),
             missedInstructions = missedStatements.map {
                 Instruction(
-                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                    method.containingPythonClass?.pythonTypeRepresentation() ?: pythonAnyClassId.name,
                     method.methodSignature(),
                     it,
                     it.toLong()

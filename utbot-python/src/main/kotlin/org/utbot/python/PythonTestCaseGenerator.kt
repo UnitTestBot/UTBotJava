@@ -13,8 +13,7 @@ import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
 import org.utbot.python.newtyping.ast.visitor.hints.HintCollector
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.Type
+import org.utbot.python.newtyping.general.*
 import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
@@ -25,6 +24,7 @@ import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.utils.PriorityCartesianProduct
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
@@ -39,21 +39,23 @@ class PythonTestCaseGenerator(
     private val fileOfMethod: String,
     private val isCancelled: () -> Boolean,
     private val timeoutForRun: Long = 0,
-    private val until: Long = 0,
     private val sourceFileContent: String,
     private val mypyStorage: MypyAnnotationStorage,
     private val mypyReportLine: List<MypyReportLine>,
     private val mypyConfigFile: File,
-){
+) {
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
     private fun findMethodByDescription(mypyStorage: MypyAnnotationStorage, method: PythonMethodHeader): PythonMethod {
-        val containingClass = method.containingPythonClassId
-        val functionDef = if (containingClass == null) {
+        var containingClass: CompositeType? = null
+        val containingClassName = method.containingPythonClassId?.simpleName
+        val functionDef = if (containingClassName == null) {
             mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
         } else {
-            mypyStorage.definitions[curModule]!![containingClass.simpleName]!!.type.asUtBotType.getPythonAttributes().first {
+            containingClass =
+                mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
+            mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
                 it.meta.name == method.name
             }
         } as? PythonFunctionDefinition ?: error("Selected method is not a function definition")
@@ -64,7 +66,7 @@ class PythonTestCaseGenerator(
         return PythonMethod(
             name = method.name,
             moduleFilename = method.moduleFilename,
-            containingPythonClassId = method.containingPythonClassId,
+            containingPythonClass = containingClass,
             codeAsString = funcDef.body.source,
             definition = functionDef,
             ast = funcDef.body
@@ -84,14 +86,65 @@ class PythonTestCaseGenerator(
         } ?: emptyMap()
 
         val namesStorage = GlobalNamesStorage(mypyStorage)
-        val hintCollector = HintCollector(method.definition, typeStorage, mypyExpressionTypes , namesStorage, curModule)
+        val hintCollector = HintCollector(method.definition, typeStorage, mypyExpressionTypes, namesStorage, curModule)
         val constantCollector = ConstantCollector(typeStorage)
         val visitor = Visitor(listOf(hintCollector, constantCollector))
         visitor.visit(method.ast)
         return Pair(hintCollector, constantCollector)
     }
 
-    fun generate(methodDescription: PythonMethodHeader): PythonTestSet {
+    private fun getCandidates(param: TypeParameter, typeStorage: PythonTypeStorage): List<Type> {
+        val meta = param.pythonDescription() as PythonTypeVarDescription
+        return when (meta.parameterKind) {
+            PythonTypeVarDescription.ParameterKind.WithConcreteValues -> {
+                param.constraints.map { it.boundary }
+            }
+            PythonTypeVarDescription.ParameterKind.WithUpperBound -> {
+                typeStorage.simpleTypes.filter {
+                    if (it.hasBoundedParameters())
+                        return@filter false
+                    val bound = param.constraints.first().boundary
+                    PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(bound, it, typeStorage)
+                }
+            }
+        }
+    }
+
+    private val maxSubstitutions = 10
+
+    private fun generateTypesAfterSubstitution(type: Type, typeStorage: PythonTypeStorage): List<Type> {
+        val params = type.getBoundedParameters()
+        return PriorityCartesianProduct(params.map { getCandidates(it, typeStorage) }).getSequence().map { subst ->
+            DefaultSubstitutionProvider.substitute(type, (params zip subst).associate { it })
+        }.take(maxSubstitutions).toList()
+    }
+
+    private fun substituteTypeParameters(method: PythonMethod, typeStorage: PythonTypeStorage): List<PythonMethod> {
+        val newClasses =
+            if (method.containingPythonClass != null) {
+                generateTypesAfterSubstitution(method.containingPythonClass, typeStorage)
+            } else {
+                listOf(null)
+            }
+        return newClasses.flatMap { newClass ->
+            val funcType = newClass?.getPythonAttributeByName(typeStorage, method.name)?.type as? FunctionType
+                ?: method.definition.type
+            val newFuncTypes = generateTypesAfterSubstitution(funcType, typeStorage)
+            newFuncTypes.map { newFuncType ->
+                val def = PythonFunctionDefinition(method.definition.meta, newFuncType as FunctionType)
+                PythonMethod(
+                    method.name,
+                    method.moduleFilename,
+                    newClass as? CompositeType,
+                    method.codeAsString,
+                    def,
+                    method.ast
+                )
+            }
+        }.take(maxSubstitutions)
+    }
+
+    fun generate(methodDescription: PythonMethodHeader, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
@@ -108,66 +161,70 @@ class PythonTestCaseGenerator(
         var missingLines: Set<Int>? = null
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
-        val typeInferenceCancellation = { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
+        val typeInferenceCancellation =
+            { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
 
         logger.info("Start test generation for ${method.name}")
-        inferAnnotations(
-            method,
-            mypyStorage,
-            typeStorage,
-            hintCollector,
-            mypyReportLine,
-            mypyConfigFile,
-            typeInferenceCancellation
-        ) { functionType ->
-            val args = (functionType as FunctionType).arguments
+        substituteTypeParameters(method, typeStorage).forEach { newMethod ->
+            inferAnnotations(
+                newMethod,
+                mypyStorage,
+                typeStorage,
+                hintCollector,
+                mypyReportLine,
+                mypyConfigFile,
+                typeInferenceCancellation
+            ) { functionType ->
+                val args = (functionType as FunctionType).arguments
 
-            logger.info { "Inferred annotations: ${ args.joinToString { it.pythonTypeRepresentation() } }" }
+                logger.info { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
 
-            val engine = PythonEngine(
-                method,
-                directoriesForSysPath,
-                curModule,
-                pythonPath,
-                constants,
-                timeoutForRun,
-                coveredLines,
-                PythonTypeStorage.get(mypyStorage)
-            )
+                val engine = PythonEngine(
+                    newMethod,
+                    directoriesForSysPath,
+                    curModule,
+                    pythonPath,
+                    constants,
+                    timeoutForRun,
+                    coveredLines,
+                    PythonTypeStorage.get(mypyStorage)
+                )
 
-            var coverageLimit = COVERAGE_LIMIT
-            var coveredBefore = coveredLines.size
+                var coverageLimit = COVERAGE_LIMIT
+                var coveredBefore = coveredLines.size
 
-            var feedback: InferredTypeFeedback = SuccessFeedback
+                var feedback: InferredTypeFeedback = SuccessFeedback
 
-            val fuzzerCancellation = { typeInferenceCancellation() || coverageLimit == 0 } // || feedback is InvalidTypeFeedback }
+                val fuzzerCancellation =
+                    { typeInferenceCancellation() || coverageLimit == 0 } // || feedback is InvalidTypeFeedback }
 
-            engine.fuzzing(args, fuzzerCancellation, until).collect {
-                generated += 1
-                when (it) {
-                    is ValidExecution -> {
-                        executions += it.utFuzzedExecution
-                        missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
-                        feedback = SuccessFeedback
+                engine.fuzzing(args, fuzzerCancellation, until).collect {
+                    generated += 1
+                    when (it) {
+                        is ValidExecution -> {
+                            executions += it.utFuzzedExecution
+                            missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
+                            feedback = SuccessFeedback
+                        }
+                        is InvalidExecution -> {
+                            errors += it.utError
+                            feedback = SuccessFeedback
+                        }
+                        is ArgumentsTypeErrorFeedback -> {
+                            feedback = InvalidTypeFeedback
+                        }
+                        is TypeErrorFeedback -> {
+                            feedback = InvalidTypeFeedback
+                        }
                     }
-                    is InvalidExecution -> {
-                        errors += it.utError
-                        feedback = SuccessFeedback
+                    val coveredAfter = coveredLines.size
+                    if (coveredAfter == coveredBefore) {
+                        coverageLimit -= 1
                     }
-                    is ArgumentsTypeErrorFeedback -> {
-                        feedback = InvalidTypeFeedback
-                    }
-                    is TypeErrorFeedback -> {
-                        feedback = InvalidTypeFeedback
-                    }
+                    coveredBefore = coveredAfter
                 }
-                val coveredAfter = coveredLines.size
-                if (coveredAfter == coveredBefore) {
-                    coverageLimit -= 1
-                }
-                coveredBefore = coveredAfter
+                feedback
             }
-            feedback
         }
 
         logger.info("Collect all test executions for ${method.name}")
@@ -232,13 +289,13 @@ class PythonTestCaseGenerator(
             mypyConfigFile
         )
 
-        runBlocking breaking@ {
+        runBlocking breaking@{
             if (isCancelled()) {
                 return@breaking
             }
 
             val existsAnnotation = method.definition.type
-            if (existsAnnotation.arguments.all {it.pythonTypeName() != "typing.Any"}) {
+            if (existsAnnotation.arguments.all { it.pythonTypeName() != "typing.Any" }) {
                 annotationHandler(existsAnnotation)
             }
 

@@ -6,10 +6,10 @@ fun main() {
     TypeInferenceProcessor(
         "python3.9",
         directoriesForSysPath = setOf("/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples"),
-        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/boruvka.py",
-        moduleOfSourceFile = "easy_samples.boruvka",
-        "boruvka",
-        className = "Graph"
+        "/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/easy_samples/generics.py",
+        moduleOfSourceFile = "easy_samples.generics",
+        "set",
+        className = "LoggedVar"
     ).inferTypes(cancel = { false }).forEach {
         println(it.pythonTypeRepresentation())
     }

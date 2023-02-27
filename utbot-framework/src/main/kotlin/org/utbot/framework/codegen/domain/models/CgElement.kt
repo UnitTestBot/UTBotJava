@@ -44,6 +44,7 @@ interface CgElement {
             is CgMethodsCluster -> visit(element)
             is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
+            is CgFrameworkUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
             is CgParameterizedTestDataProviderMethod -> visit(element)
@@ -282,13 +283,25 @@ class CgTestMethod(
     val type: CgTestMethodType,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
     override val requiredFields: List<CgParameterDeclaration> = emptyList(),
-) : CgMethod(false)
+) : CgMethod(isStatic = false)
+
+class CgFrameworkUtilMethod(
+    override val name: String,
+    override val statements: List<CgStatement>,
+    override val exceptions: Set<ClassId>,
+    override val annotations: List<CgAnnotation>,
+) : CgMethod(isStatic = false) {
+    override val returnType: ClassId = voidClassId
+    override val parameters: List<CgParameterDeclaration> = emptyList()
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override val requiredFields: List<CgParameterDeclaration> = emptyList()
+}
 
 class CgErrorTestMethod(
     override val name: String,
     override val statements: List<CgStatement>,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
-) : CgMethod(false) {
+) : CgMethod(isStatic = false) {
     override val exceptions: Set<ClassId> = emptySet()
     override val returnType: ClassId = voidClassId
     override val parameters: List<CgParameterDeclaration> = emptyList()

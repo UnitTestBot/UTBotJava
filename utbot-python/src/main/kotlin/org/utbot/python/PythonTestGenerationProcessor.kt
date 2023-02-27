@@ -202,7 +202,7 @@ object PythonTestGenerationProcessor {
                 val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->
                         val intRange = testSet.executions.indices
-                        val clusterInfo = listOf(Pair(UtClusterInfo("FUZZING"), intRange))
+                        val clusterInfo = listOf(Pair(UtClusterInfo("FUZZER"), intRange))
                         CgMethodTestSet(
                             executableId = methodIds[testSet.method] as ExecutableId,
                             executions = testSet.executions,

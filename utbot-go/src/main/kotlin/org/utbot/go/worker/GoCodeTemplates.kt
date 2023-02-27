@@ -323,23 +323,8 @@ object GoCodeTemplates {
         			result = reflect.TypeOf(uintptr(0))
                 ${
         structTypes.joinToString(separator = "\n") {
-            "case \"${
-                if (it.sourcePackage == destinationPackage || aliases[it.sourcePackage] == ".") {
-                    it.simpleName
-                } else if (aliases[it.sourcePackage] == null) {
-                    "${it.packageName}.${it.simpleName}"
-                } else {
-                    "${aliases[it.sourcePackage]}.${it.simpleName}"
-                }
-            }\": result = reflect.TypeOf(${
-                if (it.sourcePackage == destinationPackage || aliases[it.sourcePackage] == ".") {
-                    it.simpleName
-                } else if (aliases[it.sourcePackage] == null) {
-                    "${it.packageName}.${it.simpleName}"
-                } else {
-                    "${aliases[it.sourcePackage]}.${it.simpleName}"
-                }
-            }{})"
+            val relativeName = it.getRelativeName(destinationPackage, aliases)
+            "case \"${relativeName}\": result = reflect.TypeOf(${relativeName}{})"
         }
     }
         		default:
@@ -466,6 +451,9 @@ object GoCodeTemplates {
         			Value:       arrayElementValues,
         		}, nil
         	case reflect.Slice:
+        		if valueOfRes.IsNil() {
+        			return nil, nil
+        		}
         		elem := valueOfRes.Type().Elem()
         		elementType := elem.String()
         		sliceElementValues := []__RawValue__{}

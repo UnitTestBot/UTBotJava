@@ -17,15 +17,11 @@ data class PrimitiveValue(
         if (!type.isPrimitiveGoType && type !is GoInterfaceTypeId && !type.implementsError) {
             return false
         }
-        // byte is an alias for uint8 and rune is an alias for int32
-        if (this.type == "uint8" && type == goByteTypeId || this.type == "int32" && type == goRuneTypeId) {
-            return true
-        }
         // for error support
         if (this.type == "string" && type is GoInterfaceTypeId && type.implementsError) {
             return true
         }
-        return this.type == type.simpleName
+        return GoPrimitiveTypeId(this.type) == type
     }
 }
 
@@ -161,13 +157,7 @@ fun convertRawExecutionResultToExecutionResult(
         error("Function completed execution must have as many result raw values as result types.")
     }
     rawExecutionResult.rawResultValues.zip(functionResultTypes).forEach { (rawResultValue, resultType) ->
-        if (rawResultValue == null) {
-            if (resultType !is GoInterfaceTypeId) {
-                error("Result of function execution must have same type as function result")
-            }
-            return@forEach
-        }
-        if (!rawResultValue.checkIsEqualTypes(resultType)) {
+        if (rawResultValue != null && !rawResultValue.checkIsEqualTypes(resultType)) {
             error("Result of function execution must have same type as function result")
         }
     }
@@ -188,23 +178,23 @@ fun convertRawExecutionResultToExecutionResult(
 
 private fun createGoUtModelFromRawValue(
     rawValue: RawValue?, typeId: GoTypeId, intSize: Int
-): GoUtModel = when (typeId) {
-    // Only for error interface
-    is GoInterfaceTypeId -> if (rawValue == null) {
-        GoUtNilModel(typeId)
-    } else {
-        GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
+): GoUtModel = if (rawValue == null) {
+    GoUtNilModel(typeId)
+} else {
+    when (typeId) {
+        // Only for error interface
+        is GoInterfaceTypeId -> GoUtPrimitiveModel((rawValue as PrimitiveValue).value, goStringTypeId)
+
+        is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
+
+        is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
+
+        is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
+
+        is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
+
+        else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
     }
-
-    is GoStructTypeId -> createGoUtStructModelFromRawValue(rawValue as StructValue, typeId, intSize)
-
-    is GoArrayTypeId -> createGoUtArrayModelFromRawValue(rawValue as ArrayValue, typeId, intSize)
-
-    is GoSliceTypeId -> createGoUtSliceModelFromRawValue(rawValue as SliceValue, typeId, intSize)
-
-    is GoPrimitiveTypeId -> createGoUtPrimitiveModelFromRawValue(rawValue as PrimitiveValue, typeId, intSize)
-
-    else -> error("Creating a model from raw value of [${typeId.javaClass}] type is not supported")
 }
 
 private fun createGoUtPrimitiveModelFromRawValue(

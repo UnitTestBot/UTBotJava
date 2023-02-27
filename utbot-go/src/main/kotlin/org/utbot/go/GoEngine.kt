@@ -25,6 +25,7 @@ val logger = KotlinLogging.logger {}
 class GoEngine(
     private val functionUnderTest: GoUtFunction,
     private val sourceFile: GoUtFile,
+    private val intSize: Int,
     private val goExecutableAbsolutePath: String,
     private val eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
     private val timeoutExceededOrIsCanceled: () -> Boolean,
@@ -91,13 +92,14 @@ class GoEngine(
                         val executionResult = convertRawExecutionResultToExecutionResult(
                             rawExecutionResult,
                             functionUnderTest.resultTypes,
+                            intSize,
                             eachExecutionTimeoutsMillisConfig[functionUnderTest],
                         )
                         val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, emptyList())
                         emit(fuzzedFunction to executionResult)
                     } else {
                         val aliases = imports.filter { it.alias != null }.associate { it.goPackage to it.alias }
-                        runGoFuzzing(functionUnderTest) { description, values ->
+                        runGoFuzzing(functionUnderTest, intSize) { description, values ->
                             if (timeoutExceededOrIsCanceled()) {
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                             }
@@ -107,6 +109,7 @@ class GoEngine(
                             val executionResult = convertRawExecutionResultToExecutionResult(
                                 rawExecutionResult,
                                 functionUnderTest.resultTypes,
+                                intSize,
                                 eachExecutionTimeoutsMillisConfig[functionUnderTest],
                             )
                             if (executionResult.trace.isEmpty()) {

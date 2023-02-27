@@ -64,6 +64,7 @@ type AnalyzedFunction struct {
 	Parameters                          []AnalyzedFunctionParameter `json:"parameters"`
 	ResultTypes                         []AnalyzedType              `json:"resultTypes"`
 	RequiredImports                     []Import                    `json:"requiredImports"`
+	Constants                           map[string][]string         `json:"constants"`
 	ModifiedFunctionForCollectingTraces string                      `json:"modifiedFunctionForCollectingTraces"`
 	NumberOfAllStatements               int                         `json:"numberOfAllStatements"`
 	position                            token.Pos

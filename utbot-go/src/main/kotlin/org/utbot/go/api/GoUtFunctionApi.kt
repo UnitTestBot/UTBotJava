@@ -21,6 +21,7 @@ data class GoUtFunction(
     val parameters: List<GoUtFunctionParameter>,
     val resultTypes: List<GoTypeId>,
     val requiredImports: List<GoImport>,
+    val constants: Map<GoTypeId, List<Any>>,
     val modifiedFunctionForCollectingTraces: String,
     val numberOfAllStatements: Int,
     val sourceFile: GoUtFile

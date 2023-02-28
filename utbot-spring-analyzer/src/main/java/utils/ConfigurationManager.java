@@ -28,15 +28,16 @@ public class ConfigurationManager {
         patchAnnotation(ImportResource.class, String.format("classpath:%s", ResourceNames.fakeApplicationXmlFileName));
     }
 
-    private void patchAnnotation(Class<?> type, String path) throws Exception {
+    private void patchAnnotation(Class<?> annotationType, String newValue) throws Exception {
         Class<?> proxyClass = classLoader.loadClass("java.lang.reflect.Proxy");
         Field hField = proxyClass.getDeclaredField("h");
         hField.setAccessible(true);
 
         Optional<Annotation> propertySourceAnnotation =
                 Arrays.stream(userConfigurationClass.getAnnotations())
-                        .filter(el -> el.annotationType() == type)
+                        .filter(el -> el.annotationType() == annotationType)
                         .findFirst();
+
         if (propertySourceAnnotation.isPresent()) {
             InvocationHandler annotationInvocationHandler = (InvocationHandler) (hField.get(propertySourceAnnotation.get()));
 
@@ -46,7 +47,7 @@ public class ConfigurationManager {
             memberValuesField.setAccessible(true);
 
             Map<String, Object> memberValues = (Map<String, Object>) (memberValuesField.get(annotationInvocationHandler));
-            memberValues.put("value", path);
+            memberValues.put("value", newValue);
         }
     }
 }

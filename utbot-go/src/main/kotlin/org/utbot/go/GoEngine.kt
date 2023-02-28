@@ -98,9 +98,10 @@ class GoEngine(
                         val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, emptyList())
                         emit(fuzzedFunction to executionResult)
                     } else {
+                        val notCoveredLines = (1..functionUnderTest.numberOfAllStatements).toMutableSet()
                         val aliases = imports.filter { it.alias != null }.associate { it.goPackage to it.alias }
                         runGoFuzzing(functionUnderTest, intSize) { description, values ->
-                            if (timeoutExceededOrIsCanceled()) {
+                            if (timeoutExceededOrIsCanceled() || notCoveredLines.isEmpty()) {
                                 return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                             }
                             val fuzzedFunction = GoUtFuzzedFunction(functionUnderTest, values)
@@ -122,13 +123,13 @@ class GoEngine(
                             val trieNode = description.tracer.add(executionResult.trace.map { GoInstruction(it) })
                             if (trieNode.count > 1) {
                                 if (++attempts >= attemptsLimit) {
-                                    return@runGoFuzzing BaseFeedback(
-                                        result = Trie.emptyNode(), control = Control.STOP
-                                    )
+                                    return@runGoFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
                                 }
                                 return@runGoFuzzing BaseFeedback(result = trieNode, control = Control.CONTINUE)
                             }
-                            emit(fuzzedFunction to executionResult)
+                            if (notCoveredLines.removeAll(executionResult.trace.toSet())) {
+                                emit(fuzzedFunction to executionResult)
+                            }
                             BaseFeedback(result = trieNode, control = Control.CONTINUE)
                         }
                         workerSocket.close()

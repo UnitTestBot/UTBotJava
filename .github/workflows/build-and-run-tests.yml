@@ -18,6 +18,14 @@ jobs:
     uses: ./.github/workflows/build-and-run-tests-from-branch.yml
     secrets: inherit
 
+  publish_plugin_and_cli:
+    needs: build-and-run-tests
+    uses: ./.github/workflows/publish-plugin-and-cli-from-branch.yml
+    with:
+      minor-release: 'none'
+      # upload artifacts on push action to main only
+      upload-artifact: ${{ github.event_name == 'push' }}
+    secrets: inherit
 
   publish-cli-image:
     needs: build-and-run-tests

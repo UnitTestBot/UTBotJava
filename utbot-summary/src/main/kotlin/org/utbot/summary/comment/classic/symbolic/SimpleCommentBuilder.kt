@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.Step
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.AbstractTextBuilder
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
@@ -70,6 +71,7 @@ open class SimpleCommentBuilder(
             val reason = findExceptionReason(currentMethod, it)
 
             when (it) {
+                is TimeoutException,
                 is ArtificialError -> root.detectedError = reason
                 else -> root.exceptionThrow = "$exceptionName $reason"
             }

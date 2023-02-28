@@ -16,8 +16,3 @@ sealed class ArtificialError(message: String): Error(message)
  * See [TraversalContext.intOverflowCheck] for more details.
  */
 class OverflowDetectionError(message: String): ArtificialError(message)
-
-fun ArtificialError.getPrettyName(): String =
-    when (this) {
-        is OverflowDetectionError -> "Overflow"
-    }

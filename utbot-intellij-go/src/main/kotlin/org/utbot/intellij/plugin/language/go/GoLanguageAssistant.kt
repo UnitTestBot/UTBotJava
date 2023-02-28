@@ -1,10 +1,6 @@
 package org.utbot.intellij.plugin.language.go
 
-import com.goide.psi.GoFile
-import com.goide.psi.GoFunctionOrMethodDeclaration
-import com.goide.psi.GoMethodDeclaration
-import com.goide.psi.GoPointerType
-import com.goide.psi.GoStructType
+import com.goide.psi.*
 import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -12,6 +8,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.idea.util.module
 import org.utbot.intellij.plugin.language.agnostic.LanguageAssistant
 import org.utbot.intellij.plugin.language.go.generator.GoUtTestsDialogProcessor
 
@@ -28,9 +25,12 @@ object GoLanguageAssistant : LanguageAssistant() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
+        val file = e.getData(CommonDataKeys.PSI_FILE) as? GoFile ?: return
+        val module = file.module ?: return
         val (targetFunctions, focusedTargetFunctions) = getPsiTargets(e) ?: return
         GoUtTestsDialogProcessor.createDialogAndGenerateTests(
             project,
+            module,
             targetFunctions,
             focusedTargetFunctions
         )
@@ -43,11 +43,13 @@ object GoLanguageAssistant : LanguageAssistant() {
     private fun getPsiTargets(e: AnActionEvent): PsiTargets? {
         e.project ?: return null
 
-        // The action is being called from editor or return. TODO: support other cases instead of return.
-        val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
-
+        val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.PSI_FILE) as? GoFile ?: return null
-        val element = findPsiElement(file, editor) ?: return null
+        val element = if (editor != null) {
+            findPsiElement(file, editor) ?: return null
+        } else {
+            e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+        }
 
         val containingFunction = getContainingFunction(element)
         val targetFunctions = extractTargetFunctionsOrMethods(file)

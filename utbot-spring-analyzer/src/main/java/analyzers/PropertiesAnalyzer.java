@@ -1,4 +1,4 @@
-package analyzer;
+package analyzers;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

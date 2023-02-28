@@ -1,4 +1,4 @@
-package analyzer;
+package utils;
 
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.annotation.PropertySource;
@@ -20,12 +20,19 @@ public class ConfigurationManager {
         this.userConfigurationClass = userConfigurationClass;
     }
 
+    public void patchPropertySourceAnnotation() throws Exception {
+        patchAnnotation(PropertySource.class, String.format("classpath:%s", ResourceNames.fakePropertiesFileName));
+    }
+
+    public void patchImportResourceAnnotation() throws Exception {
+        patchAnnotation(ImportResource.class, String.format("classpath:%s", ResourceNames.fakeApplicationXmlFileName));
+    }
+
     private void patchAnnotation(Class<?> type, String path) throws Exception {
         Class<?> proxyClass = classLoader.loadClass("java.lang.reflect.Proxy");
         Field hField = proxyClass.getDeclaredField("h");
         hField.setAccessible(true);
 
-        //Annotation annotationProxy = userConfigurationClass.getAnnotations()[2];
         Optional<Annotation> propertySourceAnnotation =
                 Arrays.stream(userConfigurationClass.getAnnotations())
                         .filter(el -> el.annotationType() == type)
@@ -41,13 +48,5 @@ public class ConfigurationManager {
             Map<String, Object> memberValues = (Map<String, Object>) (memberValuesField.get(annotationInvocationHandler));
             memberValues.put("value", path);
         }
-    }
-
-    public void patchPropertySourceAnnotation() throws Exception {
-        patchAnnotation(PropertySource.class, "classpath:fakeapplication.properties");
-    }
-
-    public void patchImportResourceAnnotation() throws Exception {
-        patchAnnotation(ImportResource.class, "classpath:fakeapplication.xml");
     }
 }

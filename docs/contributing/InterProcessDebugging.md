@@ -62,7 +62,7 @@ To debug the _Engine process_ and the _Instrumented process_, you need to enable
    "-agentlib:jdwp=transport=dt_socket,server=n,suspend=n,quiet=y,address=12345"
    ```
    See `org.utbot.intellij.plugin.process.EngineProcess.Companion.debugArgument` for switch implementation.
-4. For information about logs, refer to the [Interprocess logging](../InterProcessLogging.md) guide.
+4. For information about logs, refer to the [Interprocess logging](InterProcessLogging.md) guide.
 
 ### Run configurations for debugging the Engine process
 

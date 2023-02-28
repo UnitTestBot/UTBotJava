@@ -2,21 +2,22 @@
 
 **Problem:** fuzzing is a versatile technique for generating values to be used as method arguments. Normally, 
 to generate values, one needs information on a method signature, or rather on the parameter types (if a fuzzer is 
-able to "understand" them). _White-box_ approach also requires AST, and _grey-box_ approach needs coverage 
+able to "understand" them).
+The _white-box_ approach also requires AST, and the _grey-box_ approach needs coverage 
 information. To generate values that may serve as method arguments, the fuzzer uses generators, mutators, and 
 predefined values.
 
 * _Generators_ yield concrete objects created by descriptions. The basic description for creating objects is _type_. 
-  Constants, regular expressions, and other structured object specifications (e.g. in HTML) may be also used as 
+  Constants, regular expressions, and other structured object specifications (e.g. in HTML) may also be used as 
   descriptions.
 
 * _Mutators_ modify the object in accordance with some logic that usually means random changes. To get better 
   results, mutators obtain feedback (information on coverage and the inner state of the 
   program) during method call.
 
-* _Predefined values_ work well for known problems, e.g. incorrect symbol sequences. To discover potential problems one can analyze parameter names as well as the specific constructs or method calls inside the method body.
+* _Predefined values_ work well for known problems, e.g. incorrect symbol sequences. To discover potential problems, one can analyze parameter names as well as the specific constructs or method calls inside the method body.
 
-General API for using fuzzer looks like this:
+The general API for using the fuzzer looks like this:
 
 ```
 fuzz(
@@ -29,9 +30,14 @@ fuzz(
 }
 ```
 
-Fuzzer accepts list of types which can be provided in different formats: string, object or Class<*> in Java. Then seed 
-generator accepts these types and produces seeds which are used as base objects for value generation and mutations. 
-Fuzzing logic about how to choose, combine and mutate values from seed set is only fuzzing responsibility. API should not provide such abilities except general fuzzing configuring.
+The fuzzer gets the list of types,
+which can be provided in different formats: as a string, an object, or a Class<*> in Java.
+The seed generator accepts these types and produces seeds.
+The seeds are base objects for value generation and mutations.
+
+It is the fuzzer, which is responsible for choosing, combining and mutating values from the seed set.
+The fuzzer API should not provide access to the inner fuzzing logic.
+Only general configuration is available.
 
 ## Parameters
 
@@ -42,26 +48,34 @@ The general fuzzing process gets the list of parameter descriptions as input and
 ```
 
 In this particular case, the fuzzing process can generate the set of all the pairs having integer as the first value 
-and `true` or `false` as the second one. If values `-3, 0, 10` are generated to be the `Int` values, the set of all the possible combinations has six items: `(-3, false), (0, false), (10, false), (-3, true), (0, true), (10, true)`. Depending on the programming language, one may use interface descriptions or annotations (type hints) instead of defining the specific type. Fuzzing platform (FP) is not able to create the concrete objects as it does not deal with the specific languages. It still can convert the descriptions to the known constructs it can work with.
+and `true` or `false` as the second one.
+If values `-3, 0, 10` are generated to be the `Int` values, the set of all the possible combinations has six items:
+`(-3, false), (0, false), (10, false), (-3, true), (0, true), (10, true)`.
+Depending on the programming language,
+one may use interface descriptions or annotations (type hints) instead of defining the specific type.
+Fuzzing platform (FP) is not able to create the concrete objects as it does not deal with the specific languages.
+It can still convert the descriptions to the known constructs it can work with.
 
-Say, in most of the programming languages, any integer may be represented as a bit array, and fuzzer can construct and 
-modify bit arrays. So, in general case, the boundary values for the integer are these bit arrays:
+Say, in most of the programming languages, any integer may be represented as a bit array, and the fuzzer can construct and 
+modify bit arrays. So, in the general case, the boundary values for the integer are these bit arrays:
 
-* [0, 0, 0, ..., 0] - null
-* [1, 0, 0, ..., 0] - minimum value
-* [0, 1, 1, ..., 1] - maximum value
-* [0, 0, ..., 0, 1] - plus 1
-* [1, 1, 1, ..., 1] - minus 1
+* [0, 0, 0, ..., 0] — null
+* [1, 0, 0, ..., 0] — minimum value
+* [0, 1, 1, ..., 1] — maximum value
+* [0, 0, ..., 0, 1] — plus 1
+* [1, 1, 1, ..., 1] — minus 1
 
 One can correctly use this representation for unsigned integers as well:
 
-* [0, 0, 0, ..., 0] - null (minimum value)
-* [1, 0, 0, ..., 0] - maximum value / 2
-* [0, 1, 1, ..., 1] - maximum value / 2 + 1
-* [0, 0, ..., 0, 1] - plus 1
-* [1, 1, 1, ..., 1] - maximum value
+* [0, 0, 0, ..., 0] — null (minimum value)
+* [1, 0, 0, ..., 0] — maximum value / 2
+* [0, 1, 1, ..., 1] — maximum value / 2 + 1
+* [0, 0, ..., 0, 1] — plus 1
+* [1, 1, 1, ..., 1] — maximum value
 
-Thus, FP interprets the _Byte_ and _Unsigned Byte_ descriptions in different ways: in the former case, the maximum value is [0, 1, 1, 1, 1, 1, 1, 1], while in the latter case it is [1, 1, 1, 1, 1, 1, 1, 1]. FP types are described in details further.
+Thus, FP interprets the _Byte_ and _Unsigned Byte_ descriptions in different ways: in the former case,
+the maximum value is [0, 1, 1, 1, 1, 1, 1, 1], while in the latter case it is [1, 1, 1, 1, 1, 1, 1, 1].
+FP types are described in detail further.
 
 ## Refined parameter description
 
@@ -79,19 +93,21 @@ public boolean isNaN(Number n) {
 In the above example, let the parameter be `Integer`. Considering the feedback, the fuzzer suggests that nothing but `Double` might increase coverage, so the type may be downcasted to `Double`. This allows for filtering out a priori unfitting values.
 
 ## Statically and dynamically generated values
-Predefined, or _statically_ generated, values help to define the initial range of values, which could be used as method arguments. These values allow us to:
+Predefined, or _statically_ generated, values help to define the initial range of values, which could be used as method arguments.
 
-* check if it is possible to call the given method with at least some set of values as arguments,
-* gather statistics on executing the program,
+These values allow us to:
+* check if it is possible to call the given method with at least some set of values as arguments;
+* gather statistics on executing the program;
 * refine the parameter description.
 
 _Dynamic_ values are generated in two ways:
-
-* internally — via mutating the existing values, successfully performed as method arguments (i.e. seeds);
-* externally — via obtaining feedback that can return not only the statistics on the execution (the paths explored, 
+* internally, via mutating the existing values, successfully performed as method arguments (i.e. seeds);
+* externally, via obtaining feedback that can return not only the statistics on the execution (the paths explored, 
   the time spent, etc.) but also the set of new values to be blended with the values already in use.
 
-Dynamic values should have the higher priority for a sample, that's why they should be chosen either first or at least more likely than the statically generated ones. In general, the algorithm that guides the fuzzing process looks like this:
+Dynamic values should have a higher priority for a sample;
+that is why they should be chosen either first or at least more likely than the statically generated ones.
+In general, the algorithm that guides the fuzzing process looks like this:
 
 ```
 # dynamic values are stored with respect to their return priority
@@ -135,7 +151,6 @@ Sometimes it is reasonable to modify the source code so that it makes applying f
 ## Generators
 
 There are two types of generators:
-
 * yielding values of primitive data types: integers, strings, booleans
 * yielding values of recursive data types: objects, lists
 
@@ -146,8 +161,7 @@ three
 modifications for it using `put(key, value)`. For this purpose, you may request for applying the fuzzer to six 
 parameters `(key, value, key, value, key, value)` and get the necessary modified values.
 
-Primitive type generators allow for yielding
-
+Primitive type generators allow for yielding:
 1. Signed integers of a given size (8, 16, 32, and 64 bits, usually)
 2. Unsigned integers of a given size
 3. Floating-point numbers with a given size of significand and exponent according to IEEE 754
@@ -155,30 +169,25 @@ Primitive type generators allow for yielding
 5. Characters (in UTF-16 format)
 6. Strings (consisting of UTF-16 characters)
 
-Fuzzer should be able to provide out-of-the-box support for these types — be able to create, modify, and process 
-them. To work with multiple languages it is enough to specify the possible type size and to describe and create the 
+The fuzzer should be able to provide out-of-the-box support for these types — be able to create, modify, and process 
+them.
+To work with multiple languages, it is enough to specify the possible type size and to describe and create 
 concrete objects based on the FP-generated values.
 
 The recursive types include two categories:
-
 * Collections (arrays and lists)
 * Objects
 
 Collections may be nested and have _n_ dimensions (one, two, three, or more).
 
 Collections may be:
-
 * of a fixed size (e.g., arrays)
 * of a variable size (e.g., lists and dictionaries)
 
 Objects may have:
-
 1. Constructors with parameters
-
 2. Modifiable inner fields
-
 3. Modifiable global values (the static ones)
-
 4. Calls for modifying methods
 
 FP should be able to create and describe such objects in the form of a tree. The semantics of actual modifications is under the responsibility of a programming language.

@@ -152,6 +152,7 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
 
     is GoStructTypeId -> GoUtStructModel(listOf(), this)
     is GoArrayTypeId -> GoUtArrayModel(hashMapOf(), this)
+    is GoSliceTypeId -> GoUtSliceModel(hashMapOf(), this, 0)
     else -> GoUtNilModel(this)
 }
 
@@ -160,7 +161,7 @@ fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
         acc + (field.declaringType).getAllStructTypes()
     }
 
-    is GoArrayTypeId -> elementTypeId!!.getAllStructTypes()
+    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllStructTypes()
     else -> emptySet()
 }
 

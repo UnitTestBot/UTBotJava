@@ -9,8 +9,8 @@ import java.net.Socket
 class PythonWorker(
     private val clientSocket: Socket
 ) {
-    private val outStream = BufferedWriter(OutputStreamWriter(clientSocket.getOutputStream()))
-    private val inStream = BufferedReader(InputStreamReader(clientSocket.getInputStream()))
+    private val outStream = BufferedWriter(OutputStreamWriter(clientSocket.getOutputStream(), "UTF8"))
+    private val inStream = BufferedReader(InputStreamReader(clientSocket.getInputStream(), "UTF8"))
 
     fun stop() {
         outStream.write("STOP")
@@ -22,6 +22,7 @@ class PythonWorker(
 
         val size = msg.encodeToByteArray().size
         outStream.write(size.toString().padStart(16))
+        outStream.flush()
 
         outStream.write(msg)
         outStream.flush()

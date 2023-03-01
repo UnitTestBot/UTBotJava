@@ -71,3 +71,4 @@ if (includeRiderInBuild.toBoolean()) {
 //}
 
 //include("utbot-spring-analyzer")
+include("utbot-uber-jar")

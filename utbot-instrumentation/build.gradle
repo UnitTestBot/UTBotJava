@@ -36,6 +36,10 @@ dependencies {
     implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
 }
 
+java {
+    withSourcesJar()
+}
+
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 

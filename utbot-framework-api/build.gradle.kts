@@ -6,6 +6,10 @@ val commonsLangVersion: String by rootProject
 val kotlinLoggingVersion: String? by rootProject
 val rdVersion: String? by rootProject
 
+java {
+    withSourcesJar()
+}
+
 plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }

@@ -3,5 +3,5 @@ package org.utbot.engine
 import org.utbot.engine.state.ExecutionState
 
 interface StateListener {
-    fun visit(state: ExecutionState)
+    fun visit(graph: InterProceduralUnitGraph, state: ExecutionState)
 }

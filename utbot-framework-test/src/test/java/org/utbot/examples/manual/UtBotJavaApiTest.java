@@ -1415,7 +1415,7 @@ public class UtBotJavaApiTest {
         );
 
         UnitTestBotLight.run(
-                state -> System.err.println("Got a call"),
+                (graph, state) -> System.err.println("Got a call"),
                 new TestMethodInfo(
                         methodUnderTest,
                         environmentModels

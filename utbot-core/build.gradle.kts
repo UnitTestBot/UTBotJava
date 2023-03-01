@@ -7,6 +7,10 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
+java {
+    withSourcesJar()
+}
+
 dependencies {
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation(group = "net.java.dev.jna", name = "jna-platform", version = "5.5.0")

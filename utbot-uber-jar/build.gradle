@@ -1,0 +1,44 @@
+configurations {
+    fetchInstrumentationJar
+}
+
+dependencies {
+    implementation project(":utbot-framework")
+    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+        exclude group:'com.google.guava', module:'guava'
+    }
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
+    // need for tests
+    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
+    implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
+
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+}
+
+processResources {
+    from(configurations.fetchInstrumentationJar) {
+        into "lib"
+    }
+}
+
+jar {
+    dependsOn classes
+
+    manifest {
+        attributes 'Bundle-SymbolicName': 'org.utbot'
+        attributes 'Bundle-Version': "${project.version}"
+        attributes 'JAR-Type': 'Fat JAR'
+    }
+
+    version '1.3'
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 = true
+
+}

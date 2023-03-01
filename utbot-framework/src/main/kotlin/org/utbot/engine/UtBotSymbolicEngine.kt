@@ -192,6 +192,12 @@ class UtBotSymbolicEngine(
         .onStart { preTraverse() }
         .onCompletion { postTraverse() }
 
+    fun traverseAndConsumeAllStates() {
+        runBlocking {
+            traverse().collect()
+        }
+    }
+
     private fun traverseImpl(): Flow<UtResult> = flow {
 
         require(trackableResources.isEmpty())
@@ -228,7 +234,7 @@ class UtBotSymbolicEngine(
                             "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}"
                 }
 
-                if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
+                if (UtSettings.useConcreteExecution && (controller.executeConcretely || statesForConcreteExecution.isNotEmpty())) {
                     val state = pathSelector.pollUntilFastSAT()
                         ?: statesForConcreteExecution.pollUntilSat(processUnknownStatesDuringConcreteExecution)
                         ?: break
@@ -330,7 +336,7 @@ class UtBotSymbolicEngine(
                     // TODO: think about concise modifying globalGraph in Traverser and UtBotSymbolicEngine
                     globalGraph.visitNode(state)
 
-                    stateListeners.forEach{l -> l.visit(state)};
+                    stateListeners.forEach{l -> l.visit(globalGraph, state)}
                 }
             }
         }

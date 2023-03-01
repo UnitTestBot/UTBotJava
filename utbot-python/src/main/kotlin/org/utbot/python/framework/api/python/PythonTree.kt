@@ -11,6 +11,7 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.Comparator
 
 
 object PythonTree {
@@ -23,6 +24,10 @@ object PythonTree {
 
         open val children: List<PythonTreeNode> = emptyList()
 
+        override fun toString(): String {
+            return type.name + children.toString()
+        }
+
         open fun typeEquals(other: Any?): Boolean {
             return if (other is PythonTreeNode)
                 type == other.type && comparable && other.comparable
@@ -34,7 +39,7 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return type == other.type
+            return type == other.type && children == other.children && comparable == other.comparable
         }
 
         override fun hashCode(): Int {
@@ -42,6 +47,14 @@ object PythonTree {
             result = 31 * result + comparable.hashCode()
             result = 31 * result + children.hashCode()
             return result
+        }
+
+        open fun softEquals(other: PythonTreeNode): Boolean {  // overridden for ReduceNode
+            return this == other
+        }
+
+        open fun softHashCode(): Int {  // overridden for ReduceNode
+            return hashCode()
         }
     }
 
@@ -62,6 +75,10 @@ object PythonTree {
             var result = super.hashCode()
             result = 31 * result + repr.hashCode()
             return result
+        }
+
+        override fun toString(): String {
+            return repr
         }
     }
 
@@ -243,9 +260,20 @@ object PythonTree {
         }
 
         override fun hashCode(): Int {
-            var result = super.hashCode()
+            var result = softHashCode()
             result = 31 * result + id.hashCode()
-            result = 31 * result + constructor.hashCode()
+            return result
+        }
+
+        override fun softEquals(other: PythonTreeNode): Boolean {  // like equals(), but skip id check
+            if (other !is ReduceNode)
+                return false
+            return type == other.type && constructor == other.constructor && args == other.args &&
+                    state == other.state && listitems == other.listitems && dictitems == other.dictitems
+        }
+
+        override fun softHashCode(): Int {
+            var result = constructor.hashCode()
             result = 31 * result + args.hashCode()
             result = 31 * result + state.hashCode()
             result = 31 * result + listitems.hashCode()
@@ -345,4 +373,16 @@ object PythonIdGenerator {
         return lastId.incrementAndGet()
     }
 
+}
+
+class PythonTreeWrapper(val tree: PythonTree.PythonTreeNode) {
+    override fun equals(other: Any?): Boolean {
+        if (other !is PythonTreeWrapper)
+            return false
+        return tree.softEquals(other.tree)
+    }
+
+    override fun hashCode(): Int {
+        return tree.softHashCode()
+    }
 }

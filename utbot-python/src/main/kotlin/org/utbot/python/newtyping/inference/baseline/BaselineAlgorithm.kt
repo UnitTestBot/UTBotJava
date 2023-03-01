@@ -8,6 +8,7 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
 import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
+import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
 
@@ -38,7 +39,7 @@ class BaselineAlgorithm(
     ) {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
-        val states: MutableSet<BaselineAlgorithmState> = mutableSetOf(initialState)
+        val states: MutableList<BaselineAlgorithmState> = mutableListOf(initialState)
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
 
         run breaking@ {
@@ -57,6 +58,7 @@ class BaselineAlgorithm(
                         when (annotationHandler(newState.signature)) {
                             SuccessFeedback -> {
                                 states.add(newState)
+                                state.children += 1
                             }
                             InvalidTypeFeedback -> {}
                         }
@@ -85,9 +87,9 @@ class BaselineAlgorithm(
         )
     }
 
-    // TODO: something smarter?
-    private fun chooseState(states: Set<BaselineAlgorithmState>): BaselineAlgorithmState {
-        return states.random()
+    private fun chooseState(states: List<BaselineAlgorithmState>): BaselineAlgorithmState {
+        val weights = states.map { 1.0 / (it.children * it.children + 1) }
+        return weightedRandom(states, weights)
     }
 
     private fun getInitialState(

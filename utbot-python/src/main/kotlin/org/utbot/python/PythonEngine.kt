@@ -25,11 +25,8 @@ import org.utbot.python.evaluation.PythonWorker
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
-import org.utbot.python.fuzzing.PythonFeedback
-import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
-import org.utbot.python.fuzzing.PythonFuzzedValue
-import org.utbot.python.fuzzing.PythonFuzzing
-import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.framework.api.python.PythonTreeWrapper
+import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonModules
@@ -43,12 +40,6 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
-
-sealed interface FuzzingExecutionFeedback
-class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecutionFeedback
-class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
-class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
-class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -195,11 +186,12 @@ class PythonEngine(
             val codeExecutor = constructEvaluationInput(pythonWorker)
             logger.info { "Executor was created successfully" }
 
-            suspend fun fuzzingResultHandler(
+            fun fuzzingResultHandler(
                 description: PythonMethodDescription,
                 arguments: List<PythonFuzzedValue>
             ): PythonFeedback {
                 val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
+                logger.debug(argumentValues.map { it.tree } .toString())
                 val argumentModules = argumentValues
                     .flatMap { it.allContainingClassIds }
                     .map { it.moduleName }
@@ -225,14 +217,12 @@ class PythonEngine(
                             Throwable(evaluationResult.stackTrace.joinToString("\n"))
                         )
                         logger.debug(evaluationResult.stackTrace.joinToString("\n"))
-                        emit(InvalidExecution(utError))
-                        PythonFeedback(control = Control.PASS)
+                        PythonFeedback(control = Control.PASS, executionFeedback = InvalidExecution(utError))
                     }
 
                     is PythonEvaluationTimeout -> {
                         val utError = UtError(evaluationResult.message, Throwable())
-                        emit(InvalidExecution(utError))
-                        PythonFeedback(control = Control.PASS)
+                        PythonFeedback(control = Control.PASS, executionFeedback = InvalidExecution(utError))
                     }
 
                     is PythonEvaluationSuccess -> {
@@ -254,16 +244,13 @@ class PythonEngine(
                         )) {
                             is ValidExecution -> {
                                 val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
-                                emit(result)
-                                PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                                PythonFeedback(control = Control.CONTINUE, result = trieNode, result)
                             }
                             is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
-                                emit(result)
-                                PythonFeedback(control = Control.PASS)
+                                PythonFeedback(control = Control.PASS, executionFeedback = result)
                             }
                             is InvalidExecution -> {
-                                emit(result)
-                                PythonFeedback(control = Control.CONTINUE)
+                                PythonFeedback(control = Control.CONTINUE, executionFeedback = result)
                             }
                         }
                     }
@@ -278,20 +265,36 @@ class PythonEngine(
                 Trie(Instruction::id)
             )
 
+            val checkedModels = mutableMapOf<Pair<PythonMethodDescription, List<PythonTreeWrapper>>, PythonFeedback>()
             if (parameters.isEmpty()) {
                 fuzzingResultHandler(pmd, emptyList())
             } else {
                 PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
                     if (isCancelled()) {
                         logger.info { "Fuzzing process was interrupted" }
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP, executionFeedback = null)
                     }
                     if (System.currentTimeMillis() >= until) {
                         logger.info { "Fuzzing process was interrupted by timeout" }
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP, executionFeedback = null)
                     }
 
-                    return@PythonFuzzing fuzzingResultHandler(description, arguments)
+                    val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
+                    val mem = checkedModels[pair]
+                    if (mem != null) {
+                        logger.debug("Repeat in fuzzing")
+                        if (mem.executionFeedback != null)
+                            emit(mem.executionFeedback)
+
+                        return@PythonFuzzing mem
+                    }
+                    val result = fuzzingResultHandler(description, arguments)
+                    checkedModels[pair] = result
+
+                    if (result.executionFeedback != null)
+                        emit(result.executionFeedback)
+
+                    return@PythonFuzzing result
                 }.fuzz(pmd)
                 if (codeExecutor is PythonCodeSocketExecutor) {
                     codeExecutor.stop()

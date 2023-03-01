@@ -2,9 +2,11 @@ package org.utbot.python.fuzzing
 
 import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.UtError
 import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Configuration
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
@@ -40,9 +42,16 @@ class PythonMethodDescription(
     val tracer: Trie<Instruction, *>,
 ) : Description<Type>(parameters)
 
+sealed interface FuzzingExecutionFeedback
+class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecutionFeedback
+class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
+class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
+    val executionFeedback: FuzzingExecutionFeedback?
 ) : Feedback<Type, PythonFuzzedValue>
 
 class PythonFuzzedValue(

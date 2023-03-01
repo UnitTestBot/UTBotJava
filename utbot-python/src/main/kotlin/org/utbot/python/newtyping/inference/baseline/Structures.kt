@@ -37,4 +37,5 @@ class BaselineAlgorithmState(
         get() = nodes.find { it.isRoot }!!.partialType
     val anyNodes: List<AnyTypeNode> = nodes.mapNotNull { it as? AnyTypeNode }
     val candidateGraph = CandidateGraph(anyNodes, generalRating, typeStorage)
+    var children: Int = 0
 }

@@ -59,7 +59,7 @@ It can still convert the descriptions to the known constructs it can work with.
 Say, in most of the programming languages, any integer may be represented as a bit array, and the fuzzer can construct and 
 modify bit arrays. So, in the general case, the boundary values for the integer are these bit arrays:
 
-* [0, 0, 0, ..., 0] — null
+* [0, 0, 0, ..., 0] — zero
 * [1, 0, 0, ..., 0] — minimum value
 * [0, 1, 1, ..., 1] — maximum value
 * [0, 0, ..., 0, 1] — plus 1
@@ -67,7 +67,7 @@ modify bit arrays. So, in the general case, the boundary values for the integer 
 
 One can correctly use this representation for unsigned integers as well:
 
-* [0, 0, 0, ..., 0] — null (minimum value)
+* [0, 0, 0, ..., 0] — zero (minimum value)
 * [1, 0, 0, ..., 0] — maximum value / 2
 * [0, 1, 1, ..., 1] — maximum value / 2 + 1
 * [0, 0, ..., 0, 1] — plus 1

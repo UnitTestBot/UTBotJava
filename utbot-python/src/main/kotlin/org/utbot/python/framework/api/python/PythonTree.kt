@@ -5,13 +5,13 @@ import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.framework.api.python.util.toPythonRepr
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.Comparator
 
 
 object PythonTree {
@@ -315,12 +315,9 @@ object PythonTree {
     }
 
     fun fromString(value: String): PrimitiveNode {
-        val repr = value
-            .replace("\"", "\\\"")
-            .replace("\\\\\"", "\\\"")
         return PrimitiveNode(
             pythonStrClassId,
-            "\"$repr\""
+            value.toPythonRepr()
         )
     }
 

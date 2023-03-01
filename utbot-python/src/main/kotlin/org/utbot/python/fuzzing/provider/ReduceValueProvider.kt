@@ -5,6 +5,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonTree
+import org.utbot.python.framework.api.python.util.toPythonRepr
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.*
@@ -70,7 +71,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
                 modifications.addAll(fields.map { field ->
                     Routine.Call(listOf(field.type)) { instance, arguments ->
                         val obj = instance.tree as PythonTree.ReduceNode
-                        obj.state[field.meta.name] = arguments.first().tree
+                        obj.state[field.meta.name.toPythonRepr()] = arguments.first().tree
                     }
                 })
                 yieldAll(callConstructors(type, it, modifications.asSequence()))

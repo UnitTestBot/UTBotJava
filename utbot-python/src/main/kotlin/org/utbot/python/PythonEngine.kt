@@ -157,7 +157,7 @@ class PythonEngine(
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
         val coveredLines = initialCoveredLines.toMutableSet()
-        val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor", "log", true)
+        val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
 
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }

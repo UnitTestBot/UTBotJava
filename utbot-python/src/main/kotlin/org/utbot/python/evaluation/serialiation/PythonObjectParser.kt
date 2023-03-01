@@ -37,10 +37,6 @@ class MemoryDump(
         return objects[id]!!
     }
 
-    fun getByValue(value: MemoryObject): String {
-        return objects.filter { it.value == value }.keys.first()
-    }
-
     fun addObject(value: MemoryObject) {
         objects[value.id] = value
     }
@@ -107,7 +103,9 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump): String {
         }
         is PythonTree.DictNode -> {
             val items = this.items.entries
-                .associate { it.key.toMemoryObject(memoryDump) to it.value.toMemoryObject(memoryDump) }
+                .associate {
+                    it.key.toMemoryObject(memoryDump) to it.value.toMemoryObject(memoryDump)
+                }
             DictMemoryObject(this.id.toString(), this.type.name, this.comparable, items)
         }
         is PythonTree.ReduceNode -> {
@@ -137,11 +135,11 @@ fun PythonTree.PythonTreeNode.toMemoryObject(memoryDump: MemoryDump): String {
 fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode {
     val obj = when(this) {
         is ReprMemoryObject -> {
-           PythonTree.PrimitiveNode(
-               this.id.toLong(),
-               PythonClassId(this.kind),
-               this.value
-           )
+            PythonTree.PrimitiveNode(
+                this.id.toLong(),
+                PythonClassId(this.kind),
+                this.value
+            )
         }
         is DictMemoryObject -> {
             PythonTree.DictNode(

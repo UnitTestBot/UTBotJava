@@ -163,8 +163,10 @@ class PythonTestCaseGenerator(
         var missingLines: Set<Int>? = null
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
+
+        var additionalLimit = ADDITIONAL_LIMIT
         val typeInferenceCancellation =
-            { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
+            { isCancelled() || System.currentTimeMillis() >= until || additionalLimit <= 0 }
 
         logger.info("Start test generation for ${method.name}")
         substituteTypeParameters(method, typeStorage).forEach { newMethod ->
@@ -194,7 +196,6 @@ class PythonTestCaseGenerator(
 
                 var invalidExecutionLimit = INVALID_EXECUTION_LIMIT
                 var coverageLimit = COVERAGE_LIMIT
-                var additionalLimit = ADDITIONAL_LIMIT
                 var coveredBefore = coveredLines.size
 
                 var feedback: InferredTypeFeedback = SuccessFeedback

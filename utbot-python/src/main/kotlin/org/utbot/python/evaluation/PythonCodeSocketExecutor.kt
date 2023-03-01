@@ -12,6 +12,7 @@ import org.utbot.python.evaluation.serialiation.PythonExecutionResult
 import org.utbot.python.evaluation.serialiation.SuccessExecution
 import org.utbot.python.evaluation.serialiation.serializeObjects
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
+import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
 
 
@@ -51,8 +52,10 @@ class PythonCodeSocketExecutor(
         val functionTextName =
             if (containingClass == null)
                 method.name
-            else
-                "${containingClass.pythonTypeRepresentation()}.${method.name}"
+            else {
+                val fullname = "${containingClass.pythonTypeName()}.${method.name}"
+                fullname.drop(moduleToImport.length).removePrefix(".")
+            }
 
         val request = ExecutionRequest(
             functionTextName,
@@ -72,7 +75,7 @@ class PythonCodeSocketExecutor(
 
     private fun parseExecutionResult(executionResult: PythonExecutionResult): PythonEvaluationResult {
         val parsingException = PythonEvaluationError(
-            0,
+            -1,
             "Incorrect format of output",
             emptyList()
         )
@@ -90,9 +93,9 @@ class PythonCodeSocketExecutor(
                 )
             }
             is FailExecution -> PythonEvaluationError(
-                0,
-                executionResult.exception,
-                emptyList(),
+                -2,
+                "Fail Execution",
+                executionResult.exception.split(System.lineSeparator()),
             )
         }
     }

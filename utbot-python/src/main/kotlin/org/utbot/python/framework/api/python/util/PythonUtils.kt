@@ -15,3 +15,10 @@ fun String.toSnakeCase(): String {
         } else c
     }.joinToString("")
 }
+
+fun String.toPythonRepr(): String {
+    val repr = this
+        .replace("\"", "\\\"")
+        .replace("\\\\\"", "\\\"")
+    return "\"$repr\""
+}

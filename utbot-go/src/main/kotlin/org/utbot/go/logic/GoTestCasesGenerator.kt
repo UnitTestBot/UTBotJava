@@ -31,7 +31,7 @@ object GoTestCasesGenerator {
         goExecutableAbsolutePath: String,
         eachExecutionTimeoutMillis: Long,
         connectionTimeoutMillis: Long = 10000,
-        endOfWorkerExecutionTimeout: Long = 1000,
+        endOfWorkerExecutionTimeout: Long = 5000,
         timeoutExceededOrIsCanceled: (index: Int) -> Boolean = { false },
     ): List<GoUtFuzzedFunctionTestCase> = runBlocking {
         ServerSocket(0).use { serverSocket ->

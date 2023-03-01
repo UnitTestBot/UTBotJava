@@ -12,9 +12,9 @@ func TestWithoutParametersAndReturnValuesByUtGoFuzzer(t *testing.T) {
 }
 
 func TestIntByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int(9223372036854775807)
+	actualVal := Int(0)
 
-	assert.Equal(t, 9223372036854775807, actualVal)
+	assert.Equal(t, 0, actualVal)
 }
 
 func TestIntByUtGoFuzzer2(t *testing.T) {
@@ -24,9 +24,9 @@ func TestIntByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestInt8ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int8(127)
+	actualVal := Int8(0)
 
-	assert.Equal(t, int8(127), actualVal)
+	assert.Equal(t, int8(0), actualVal)
 }
 
 func TestInt8ByUtGoFuzzer2(t *testing.T) {
@@ -36,9 +36,9 @@ func TestInt8ByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestInt16ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int16(32767)
+	actualVal := Int16(0)
 
-	assert.Equal(t, int16(32767), actualVal)
+	assert.Equal(t, int16(0), actualVal)
 }
 
 func TestInt16ByUtGoFuzzer2(t *testing.T) {
@@ -48,9 +48,9 @@ func TestInt16ByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestInt32ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int32(2147483647)
+	actualVal := Int32(0)
 
-	assert.Equal(t, int32(2147483647), actualVal)
+	assert.Equal(t, int32(0), actualVal)
 }
 
 func TestInt32ByUtGoFuzzer2(t *testing.T) {
@@ -60,9 +60,9 @@ func TestInt32ByUtGoFuzzer2(t *testing.T) {
 }
 
 func TestInt64ByUtGoFuzzer1(t *testing.T) {
-	actualVal := Int64(9223372036854775807)
+	actualVal := Int64(0)
 
-	assert.Equal(t, int64(9223372036854775807), actualVal)
+	assert.Equal(t, int64(0), actualVal)
 }
 
 func TestInt64ByUtGoFuzzer2(t *testing.T) {
@@ -108,39 +108,39 @@ func TestUintPtrByUtGoFuzzer(t *testing.T) {
 }
 
 func TestFloat32ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float32(0.59754527)
+	actualVal := Float32(0.6063452)
 
-	assert.Equal(t, float32(0.59754527), actualVal)
+	assert.Equal(t, float32(0.6063452), actualVal)
 }
 
 func TestFloat64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Float64(0.7815346320453048)
+	actualVal := Float64(0.6374174253501083)
 
-	assert.Equal(t, 0.7815346320453048, actualVal)
+	assert.Equal(t, 0.6374174253501083, actualVal)
 }
 
 func TestComplex64ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex64(complex(0.25277615, 0.25277615))
+	actualVal := Complex64(complex(0.550437, 0.550437))
 
-	assert.Equal(t, complex(float32(0.25277615), float32(0.25277615)), actualVal)
+	assert.Equal(t, complex(float32(0.550437), float32(0.550437)), actualVal)
 }
 
 func TestComplex128ByUtGoFuzzer(t *testing.T) {
-	actualVal := Complex128(complex(0.3851891847407185, 0.3851891847407185))
+	actualVal := Complex128(complex(0.11700660880722513, 0.11700660880722513))
 
-	assert.Equal(t, complex(0.3851891847407185, 0.3851891847407185), actualVal)
+	assert.Equal(t, complex(0.11700660880722513, 0.11700660880722513), actualVal)
 }
 
 func TestByteByUtGoFuzzer(t *testing.T) {
 	actualVal := Byte(0)
 
-	assert.Equal(t, byte(0), actualVal)
+	assert.Equal(t, uint8(0), actualVal)
 }
 
 func TestRuneByUtGoFuzzer(t *testing.T) {
 	actualVal := Rune(2147483647)
 
-	assert.Equal(t, rune(2147483647), actualVal)
+	assert.Equal(t, int32(2147483647), actualVal)
 }
 
 func TestStringByUtGoFuzzer(t *testing.T) {
@@ -156,15 +156,15 @@ func TestBoolByUtGoFuzzer(t *testing.T) {
 }
 
 func TestStructByUtGoFuzzer(t *testing.T) {
-	actualVal := Struct(Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.9848415, float64: 0.9828195255872982, complex64: complex(0.9848415, 0.9848415), complex128: complex(0.9828195255872982, 0.9828195255872982), byte: 0, rune: -1, string: "", bool: false})
+	actualVal := Struct(Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.7815346, float64: 0.3332183994766498, complex64: complex(0.7815346, 0.7815346), complex128: complex(0.3332183994766498, 0.3332183994766498), byte: 0, rune: -1, string: "", bool: false})
 
-	assert.Equal(t, Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.9848415, float64: 0.9828195255872982, complex64: complex(float32(0.9848415), float32(0.9848415)), complex128: complex(0.9828195255872982, 0.9828195255872982), byte: 0, rune: -1, string: "", bool: false}, actualVal)
+	assert.Equal(t, Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.7815346, float64: 0.3332183994766498, complex64: complex(float32(0.7815346), float32(0.7815346)), complex128: complex(0.3332183994766498, 0.3332183994766498), byte: 0, rune: -1, string: "", bool: false}, actualVal)
 }
 
 func TestStructWithNanByUtGoFuzzer(t *testing.T) {
-	actualVal := StructWithNan(Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.02308184, float64: 0.9412491794821144, complex64: complex(0.02308184, 0.02308184), complex128: complex(0.9412491794821144, 0.9412491794821144), byte: 0, rune: -1, string: "", bool: false})
+	actualVal := StructWithNan(Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.38518918, float64: 0.6130357680446138, complex64: complex(0.38518918, 0.38518918), complex128: complex(0.6130357680446138, 0.6130357680446138), byte: 0, rune: -1, string: "", bool: false})
 
-	assert.NotEqual(t, Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.02308184, float64: math.NaN(), complex64: complex(float32(0.02308184), float32(0.02308184)), complex128: complex(0.9412491794821144, 0.9412491794821144), byte: 0, rune: -1, string: "", bool: false}, actualVal)
+	assert.NotEqual(t, Structure{int: -1, int8: 1, int16: 32767, int32: -1, int64: -1, uint: 18446744073709551615, uint8: 0, uint16: 1, uint32: 0, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.38518918, float64: math.NaN(), complex64: complex(float32(0.38518918), float32(0.38518918)), complex128: complex(0.6130357680446138, 0.6130357680446138), byte: 0, rune: -1, string: "", bool: false}, actualVal)
 }
 
 func TestArrayOfIntByUtGoFuzzer(t *testing.T) {
@@ -186,15 +186,15 @@ func TestArrayOfStringByUtGoFuzzer(t *testing.T) {
 }
 
 func TestArrayOfStructsByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfStructs([10]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.27495396, float64: 0.31293596519376554, complex64: complex(0.27495396, 0.27495396), complex128: complex(0.31293596519376554, 0.31293596519376554), byte: 255, rune: 2147483647, string: "", bool: false}, {}, {}, {}, {}, {}, {}, {}, {}, {}})
+	actualVal := ArrayOfStructs([10]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.9828195, float64: 0.8791825178724801, complex64: complex(0.9828195, 0.9828195), complex128: complex(0.8791825178724801, 0.8791825178724801), byte: 255, rune: 2147483647, string: "", bool: false}, {}, {}, {}, {}, {}, {}, {}, {}, {}})
 
-	assert.Equal(t, [10]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.27495396, float64: 0.31293596519376554, complex64: complex(float32(0.27495396), float32(0.27495396)), complex128: complex(0.31293596519376554, 0.31293596519376554), byte: 255, rune: 2147483647, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, actualVal)
+	assert.Equal(t, [10]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.9828195, float64: 0.8791825178724801, complex64: complex(float32(0.9828195), float32(0.9828195)), complex128: complex(0.8791825178724801, 0.8791825178724801), byte: 255, rune: 2147483647, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, actualVal)
 }
 
 func TestArrayOfStructsWithNanByUtGoFuzzer(t *testing.T) {
-	actualVal := ArrayOfStructsWithNan([10]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.3679757, float64: 0.14660165764651822, complex64: complex(0.3679757, 0.3679757), complex128: complex(0.14660165764651822, 0.14660165764651822), byte: 255, rune: 2147483647, string: "", bool: false}, {}, {}, {}, {}, {}, {}, {}, {}, {}})
+	actualVal := ArrayOfStructsWithNan([10]Structure{{int: 1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.94124913, float64: 0.17597680203548016, complex64: complex(0.94124913, 0.94124913), complex128: complex(0.17597680203548016, 0.17597680203548016), byte: 255, rune: 2147483647, string: "", bool: false}, {}, {}, {}, {}, {}, {}, {}, {}, {}})
 
-	assert.NotEqual(t, [10]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.3679757, float64: math.NaN(), complex64: complex(float32(0.3679757), float32(0.3679757)), complex128: complex(0.14660165764651822, 0.14660165764651822), byte: 255, rune: 2147483647, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, actualVal)
+	assert.NotEqual(t, [10]Structure{{int: 1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.94124913, float64: math.NaN(), complex64: complex(float32(0.94124913), float32(0.94124913)), complex128: complex(0.17597680203548016, 0.17597680203548016), byte: 255, rune: 2147483647, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, actualVal)
 }
 
 func TestArrayOfArrayOfUintByUtGoFuzzer(t *testing.T) {
@@ -209,26 +209,84 @@ func TestArrayOfArrayOfStructsByUtGoFuzzer(t *testing.T) {
 	assert.Equal(t, [5][5]Structure{{{int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, {{int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, {{int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, {{int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}, {{int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}, {int: 0, int8: 0, int16: 0, int32: 0, int64: 0, uint: 0, uint8: 0, uint16: 0, uint32: 0, uint64: 0, uintptr: 0, float32: 0.0, float64: 0.0, complex64: complex(float32(0.0), float32(0.0)), complex128: complex(0.0, 0.0), byte: 0, rune: 0, string: "", bool: false}}}, actualVal)
 }
 
-func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer1(t *testing.T) {
-	actualErr := returnErrorOrNil(9223372036854775807)
+func TestArrayOfSliceOfUintByUtGoFuzzer(t *testing.T) {
+	actualVal := ArrayOfSliceOfUint([5][]uint{{}, {}, {}, {}, {}})
 
-	assert.ErrorContains(t, actualErr, "error")
+	assert.Equal(t, [5][]uint{{}, {}, {}, {}, {}}, actualVal)
 }
 
-func TestReturnErrorOrNilByUtGoFuzzer2(t *testing.T) {
+func TestReturnErrorOrNilByUtGoFuzzer1(t *testing.T) {
 	actualErr := returnErrorOrNil(0)
 
 	assert.Nil(t, actualErr)
 }
 
-func TestExternalStructByUtGoFuzzer(t *testing.T) {
-	actualVal := ExternalStruct(difflib.Match{A: 9223372036854775807, B: -1, Size: -9223372036854775808}, Structure{int: -1, int8: 1, int16: -32768, int32: 2147483647, int64: 1, uint: 1, uint8: 1, uint16: 1, uint32: 1, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.009224832, float64: 0.9644868606768501, complex64: complex(0.009224832, 0.009224832), complex128: complex(0.9644868606768501, 0.9644868606768501), byte: 1, rune: 0, string: "", bool: false})
+func TestReturnErrorOrNilWithNonNilErrorByUtGoFuzzer2(t *testing.T) {
+	actualErr := returnErrorOrNil(8)
 
-	assert.Equal(t, Structure{int: -1, int8: 1, int16: -32768, int32: 2147483647, int64: 1, uint: 1, uint8: 1, uint16: 1, uint32: 1, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.009224832, float64: 0.9644868606768501, complex64: complex(float32(0.009224832), float32(0.009224832)), complex128: complex(0.9644868606768501, 0.9644868606768501), byte: 1, rune: 0, string: "", bool: false}, actualVal)
+	assert.ErrorContains(t, actualErr, "error")
+}
+
+func TestExternalStructByUtGoFuzzer(t *testing.T) {
+	actualVal := ExternalStruct(difflib.Match{A: 9223372036854775807, B: -1, Size: -9223372036854775808}, Structure{int: -1, int8: 1, int16: -32768, int32: 2147483647, int64: 1, uint: 1, uint8: 1, uint16: 1, uint32: 1, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.14660162, float64: 0.7051747444754559, complex64: complex(0.14660162, 0.14660162), complex128: complex(0.7051747444754559, 0.7051747444754559), byte: 1, rune: 0, string: "", bool: false})
+
+	assert.Equal(t, Structure{int: -1, int8: 1, int16: -32768, int32: 2147483647, int64: 1, uint: 1, uint8: 1, uint16: 1, uint32: 1, uint64: 18446744073709551615, uintptr: 18446744073709551615, float32: 0.14660162, float64: 0.7051747444754559, complex64: complex(float32(0.14660162), float32(0.14660162)), complex128: complex(0.7051747444754559, 0.7051747444754559), byte: 1, rune: 0, string: "", bool: false}, actualVal)
 }
 
 func TestExternalStructWithAliasByUtGoFuzzer(t *testing.T) {
 	actualVal := ExternalStructWithAlias(difflib.Match{A: 9223372036854775807, B: -1, Size: -9223372036854775808})
 
 	assert.Equal(t, difflib.Match{A: 9223372036854775807, B: -1, Size: -9223372036854775808}, actualVal)
+}
+
+func TestSliceOfIntByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfInt([]int{-1})
+
+	assert.Equal(t, []int{-1}, actualVal)
+}
+
+func TestSliceOfUintPtrByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfUintPtr([]uintptr{0})
+
+	assert.Equal(t, []uintptr{0}, actualVal)
+}
+
+func TestSliceOfStringByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfString([]string{"hello"})
+
+	assert.Equal(t, []string{"hello"}, actualVal)
+}
+
+func TestSliceOfStructsByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfStructs([]Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.0013866425, float64: 0.5467397571984656, complex64: complex(0.0013866425, 0.0013866425), complex128: complex(0.5467397571984656, 0.5467397571984656), byte: 255, rune: 2147483647, string: "", bool: false}})
+
+	assert.Equal(t, []Structure{{int: -1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.0013866425, float64: 0.5467397571984656, complex64: complex(float32(0.0013866425), float32(0.0013866425)), complex128: complex(0.5467397571984656, 0.5467397571984656), byte: 255, rune: 2147483647, string: "", bool: false}}, actualVal)
+}
+
+func TestSliceOfStructsWithNanByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfStructsWithNan([]Structure{{int: 1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.96448684, float64: 0.5629496738983792, complex64: complex(0.96448684, 0.96448684), complex128: complex(0.5629496738983792, 0.5629496738983792), byte: 255, rune: 2147483647, string: "", bool: false}})
+
+	assert.NotEqual(t, []Structure{{int: 1, int8: 0, int16: -1, int32: -1, int64: -9223372036854775808, uint: 1, uint8: 0, uint16: 65535, uint32: 1, uint64: 18446744073709551615, uintptr: 1, float32: 0.96448684, float64: math.NaN(), complex64: complex(float32(0.96448684), float32(0.96448684)), complex128: complex(0.5629496738983792, 0.5629496738983792), byte: 255, rune: 2147483647, string: "", bool: false}}, actualVal)
+}
+
+func TestSliceOfStructsWithNanPanicsByUtGoFuzzer(t *testing.T) {
+	assert.PanicsWithError(t, "runtime error: index out of range [0] with length 0", func() { SliceOfStructsWithNan([]Structure{}) })
+}
+
+func TestSliceOfSliceOfByteByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfSliceOfByte([][]byte{{}})
+
+	assert.Equal(t, [][]byte{{}}, actualVal)
+}
+
+func TestSliceOfSliceOfStructsByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfSliceOfStructs([][]Structure{{}})
+
+	assert.Equal(t, [][]Structure{{}}, actualVal)
+}
+
+func TestSliceOfArrayOfIntByUtGoFuzzer(t *testing.T) {
+	actualVal := SliceOfArrayOfInt([][5]int{{0, 0, 0, 0, 0}})
+
+	assert.Equal(t, [][5]int{{0, 0, 0, 0, 0}}, actualVal)
 }

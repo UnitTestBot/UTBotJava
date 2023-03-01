@@ -52,7 +52,7 @@ func GetCoordinatesOfMiddleBetweenTwoPoints(a, b Point) (float64, float64) {
 	return (a.x + b.x) / 2, (a.y + b.y) / 2
 }
 
-func GetCoordinateSumOfPoints(points [10]Point) (float64, float64) {
+func GetCoordinateSumOfPoints(points []Point) (float64, float64) {
 	sumX := 0.0
 	sumY := 0.0
 	for _, point := range points {
@@ -91,7 +91,7 @@ var ErrNotFound = errors.New("target not found in array")
 // Binary search for target within a sorted array by repeatedly dividing the array in half and comparing the midpoint with the target.
 // This function uses recursive call to itself.
 // If a target is found, the index of the target is returned. Else the function return -1 and ErrNotFound.
-func Binary(array [10]int, target int, lowIndex int, highIndex int) (int, error) {
+func Binary(array []int, target int, lowIndex int, highIndex int) (int, error) {
 	if highIndex < lowIndex {
 		return -1, ErrNotFound
 	}

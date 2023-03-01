@@ -2,10 +2,7 @@ package org.utbot.go.gocodeanalyzer
 
 import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
-import org.utbot.go.api.GoArrayTypeId
-import org.utbot.go.api.GoInterfaceTypeId
-import org.utbot.go.api.GoPrimitiveTypeId
-import org.utbot.go.api.GoStructTypeId
+import org.utbot.go.api.*
 import org.utbot.go.api.util.goPrimitives
 import org.utbot.go.framework.api.go.GoFieldId
 import org.utbot.go.framework.api.go.GoImport
@@ -52,6 +49,16 @@ data class AnalyzedArrayType(
     )
 }
 
+data class AnalyzedSliceType(
+    override val name: String,
+    val elementType: AnalyzedType,
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoSliceTypeId(
+        name = name,
+        elementTypeId = elementType.toGoTypeId(),
+    )
+}
+
 data class AnalyzedInterfaceType(
     override val name: String,
     val implementsError: Boolean,
@@ -79,7 +86,7 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
         return when {
             typeName.startsWith("interface ") -> AnalyzedInterfaceType::class
             typeName.startsWith("map[") -> error("Map type not yet supported")
-            typeName.startsWith("[]") -> error("Slice type not yet supported")
+            typeName.startsWith("[]") -> AnalyzedSliceType::class
             typeName.startsWith("[") -> AnalyzedArrayType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class
             else -> AnalyzedStructType::class

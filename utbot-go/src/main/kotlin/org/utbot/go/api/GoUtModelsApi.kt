@@ -89,6 +89,36 @@ class GoUtArrayModel(
     }
 }
 
+class GoUtSliceModel(
+    val value: MutableMap<Int, GoUtModel>,
+    typeId: GoSliceTypeId,
+    val length: Int,
+) : GoUtModel(typeId) {
+    override val typeId: GoSliceTypeId
+        get() = super.typeId as GoSliceTypeId
+
+    override fun getRequiredPackages(destinationPackage: GoPackage): Set<GoPackage> {
+        val elementStructTypeId = typeId.elementTypeId as? GoStructTypeId
+        val imports = if (elementStructTypeId != null && elementStructTypeId.sourcePackage != destinationPackage) {
+            mutableSetOf(elementStructTypeId.sourcePackage)
+        } else {
+            mutableSetOf()
+        }
+        value.values.map { it.getRequiredPackages(destinationPackage) }.forEach { imports += it }
+        return imports
+    }
+
+    override fun isComparable(): Boolean = value.values.all { it.isComparable() }
+
+    fun getElements(): List<GoUtModel> = (0 until length).map {
+        value[it] ?: typeId.elementTypeId!!.goDefaultValueModel()
+    }
+
+    override fun toString(): String = getElements().joinToString(prefix = "$typeId{", postfix = "}") {
+        it.toString()
+    }
+}
+
 class GoUtFloatNaNModel(
     typeId: GoPrimitiveTypeId
 ) : GoUtPrimitiveModel(

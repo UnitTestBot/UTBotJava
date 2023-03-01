@@ -53,6 +53,15 @@ func (t AnalyzedArrayType) GetName() string {
 	return t.Name
 }
 
+type AnalyzedSliceType struct {
+	Name        string       `json:"name"`
+	ElementType AnalyzedType `json:"elementType"`
+}
+
+func (t AnalyzedSliceType) GetName() string {
+	return t.Name
+}
+
 type AnalyzedFunctionParameter struct {
 	Name string       `json:"name"`
 	Type AnalyzedType `json:"type"`

@@ -5,14 +5,15 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
-import org.utbot.go.fuzzer.providers.GoArrayValueProvider
-import org.utbot.go.fuzzer.providers.GoConstantValueProvider
-import org.utbot.go.fuzzer.providers.GoPrimitivesValueProvider
-import org.utbot.go.fuzzer.providers.GoStructValueProvider
+import org.utbot.go.fuzzer.providers.*
 
 
 fun goDefaultValueProviders() = listOf(
-    GoPrimitivesValueProvider, GoArrayValueProvider, GoStructValueProvider, GoConstantValueProvider
+    GoPrimitivesValueProvider,
+    GoArrayValueProvider,
+    GoSliceValueProvider,
+    GoStructValueProvider,
+    GoConstantValueProvider
 )
 
 class GoInstruction(

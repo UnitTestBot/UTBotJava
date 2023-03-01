@@ -9,6 +9,13 @@ object GoCodeTemplates {
         var __traces__ []int
     """.trimIndent()
 
+    private val testInputStruct = """
+        type __TestInput__ struct {
+        	FunctionName string                   `json:"functionName"`
+        	Arguments    []map[string]interface{} `json:"arguments"`
+        }
+    """.trimIndent()
+
     private val rawValueInterface = """
         type __RawValue__ interface {
         	__toReflectValue__() (reflect.Value, error)
@@ -525,34 +532,25 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val parseJsonToRawValuesFunction = """
+    private val parseJsonToFunctionNameAndRawValuesFunction = """
         //goland:noinspection GoPreferNilSlice
-        func __parseJsonToRawValues__(decoder *json.Decoder) ([]__RawValue__, error) {
-        	result := []__RawValue__{}
-
-        	// read '['
-        	_, err := decoder.Token()
+        func __parseJsonToFunctionNameAndRawValues__(decoder *json.Decoder) (string, []__RawValue__, error) {
+        	var testInput __TestInput__
+        	err := decoder.Decode(&testInput)
         	if err == io.EOF {
-        		return nil, err
+        		return "", nil, err 
         	}
         	__checkErrorAndExit__(err)
 
-        	for decoder.More() {
-        		var p map[string]interface{}
-        		err = decoder.Decode(&p)
-        		__checkErrorAndExit__(err)
-
-        		rawValue, err := __convertParsedJsonToRawValue__(p)
+        	result := make([]__RawValue__, 0)
+        	for _, arg := range testInput.Arguments {
+        		rawValue, err := __convertParsedJsonToRawValue__(arg)
         		__checkErrorAndExit__(err)
 
         		result = append(result, rawValue)
         	}
 
-        	// read ']'
-        	_, err = decoder.Token()
-        	__checkErrorAndExit__(err)
-
-        	return result, nil
+        	return testInput.FunctionName, result, nil
         }
     """.trimIndent()
 
@@ -691,6 +689,7 @@ object GoCodeTemplates {
         destinationPackage: GoPackage,
         aliases: Map<GoPackage, String?>
     ) = listOf(
+        testInputStruct,
         rawValueInterface,
         primitiveValueStruct,
         primitiveValueToReflectValueMethod,
@@ -708,7 +707,7 @@ object GoCodeTemplates {
         executeFunctionFunction,
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
-        parseJsonToRawValuesFunction,
+        parseJsonToFunctionNameAndRawValuesFunction,
         convertParsedJsonToRawValueFunction,
         convertParsedJsonToFieldValueFunction
     )

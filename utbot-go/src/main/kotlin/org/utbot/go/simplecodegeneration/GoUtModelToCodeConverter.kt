@@ -25,6 +25,8 @@ class GoUtModelToCodeConverter(
 
         is GoUtArrayModel -> arrayModelToGoCode(model)
 
+        is GoUtSliceModel -> sliceModelToGoCode(model)
+
         else -> error("Converting a $javaClass to Go code isn't supported")
     }
 
@@ -64,6 +66,15 @@ class GoUtModelToCodeConverter(
                 arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
             }
 
+            is GoSliceTypeId -> model.getElements().joinToString(
+                prefix = "[${model.length}]${
+                    elementType.getRelativeName(destinationPackage, aliases)
+                }{",
+                postfix = "}"
+            ) {
+                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
+            }
+
             else -> model.getElements().joinToString(
                 prefix = "[${model.length}]${elementType.getRelativeName(destinationPackage, aliases)}{",
                 postfix = "}"
@@ -78,6 +89,62 @@ class GoUtModelToCodeConverter(
 
             is GoArrayTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
                 arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
+            }
+
+            is GoSliceTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
+                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
+            }
+
+            else -> model.getElements().joinToString(prefix = "{", postfix = "}")
+        }
+
+    private fun sliceModelToGoCode(model: GoUtSliceModel): String =
+        when (val elementType = model.typeId.elementTypeId!!) {
+            is GoStructTypeId -> model.getElements().joinToString(
+                prefix = "[]${
+                    elementType.getRelativeName(destinationPackage, aliases)
+                }{",
+                postfix = "}"
+            ) {
+                structModelToGoCodeWithoutStructName(it as GoUtStructModel)
+            }
+
+            is GoArrayTypeId -> model.getElements().joinToString(
+                prefix = "[]${
+                    elementType.getRelativeName(destinationPackage, aliases)
+                }{",
+                postfix = "}"
+            ) {
+                arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
+            }
+
+            is GoSliceTypeId -> model.getElements().joinToString(
+                prefix = "[]${
+                    elementType.getRelativeName(destinationPackage, aliases)
+                }{",
+                postfix = "}"
+            ) {
+                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
+            }
+
+            else -> model.getElements().joinToString(
+                prefix = "[]${elementType.getRelativeName(destinationPackage, aliases)}{",
+                postfix = "}"
+            )
+        }
+
+    private fun sliceModelToGoCodeWithoutTypeName(model: GoUtSliceModel): String =
+        when (model.typeId.elementTypeId!!) {
+            is GoStructTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
+                structModelToGoCodeWithoutStructName(it as GoUtStructModel)
+            }
+
+            is GoArrayTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
+                arrayModelToGoCodeWithoutTypeName(it as GoUtArrayModel)
+            }
+
+            is GoSliceTypeId -> model.getElements().joinToString(prefix = "{", postfix = "}") {
+                sliceModelToGoCodeWithoutTypeName(it as GoUtSliceModel)
             }
 
             else -> model.getElements().joinToString(prefix = "{", postfix = "}")

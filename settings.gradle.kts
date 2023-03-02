@@ -58,12 +58,9 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python-parser")
 }
 
-if (jsBuild == buildType) {
+if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
     include("utbot-js")
     include("utbot-cli-js")
-}
-
-if (jsIde.split(",").contains(ideType)) {
     include("utbot-intellij-js")
 }
 

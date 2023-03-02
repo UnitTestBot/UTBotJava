@@ -1,10 +1,8 @@
 package org.utbot.intellij.plugin.language.python
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.*
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.Panel
@@ -21,11 +19,13 @@ import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
 import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
+import java.awt.event.ActionEvent
 import javax.swing.*
 
 
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
+private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
@@ -64,7 +64,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     override fun createCenterPanel(): JComponent {
 
         panel = panel {
-            row("Test source root:") {
+            row("Test sources root:") {
                 component(testSourceFolderField)
             }
             row("Test framework:") {
@@ -164,6 +164,19 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             add(mainComponent, BorderLayout.LINE_START)
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
+
+    class OKOptionAction(private val okAction: Action) : AbstractAction(ACTION_GENERATE) {
+        init {
+            putValue(DEFAULT_ACTION, java.lang.Boolean.TRUE)
+            putValue(FOCUSED_ACTION, java.lang.Boolean.TRUE)
+        }
+        override fun actionPerformed(e: ActionEvent?) {
+            okAction.actionPerformed(e)
+        }
+    }
+
+    private val okOptionAction: OKOptionAction get() = OKOptionAction(super.getOKAction())
+    override fun getOKAction() = okOptionAction
 
     override fun doOKAction() {
         val selectedMembers = functionsTable.selectedMemberInfos

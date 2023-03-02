@@ -15,6 +15,7 @@ import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
+import org.utbot.intellij.plugin.settings.Settings
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
@@ -34,13 +35,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
-            Int.MAX_VALUE,
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
-        )
-    private val timeoutSpinnerForOneRun =
-        JBIntSpinner(
-            TimeUnit.MILLISECONDS.toSeconds(DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS).toInt(),
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
@@ -78,13 +72,6 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
                     component(timeoutSpinnerForTotalTimeout)
                     label("seconds")
                     component(ContextHelpLabel.create("Set the timeout for all test generation processes."))
-                }
-            }
-            row("Timeout for one function run:") {
-                cell {
-                    component(timeoutSpinnerForOneRun)
-                    label("seconds")
-                    component(ContextHelpLabel.create("Set the timeout for one function execution."))
                 }
             }
             row("Generate test methods for:") {}
@@ -183,8 +170,12 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
-        model.timeoutForRun = TimeUnit.SECONDS.toMillis(timeoutSpinnerForOneRun.number.toLong())
         model.testSourceRootPath = testSourceFolderField.text
+
+        val settings = model.project.service<Settings>()
+        with(settings) {
+            model.timeoutForRun = hangingTestsTimeout.timeoutMs
+        }
 
         super.doOKAction()
     }

@@ -888,7 +888,7 @@ class CgIfStatement(
 
 data class CgSwitchCaseLabel(
     val label: CgLiteral? = null, // have to be compile time constant (null for default label)
-    val statements: MutableList<CgStatement>
+    val statements: List<CgStatement>
 ) : CgStatement
 
 data class CgSwitchCase(

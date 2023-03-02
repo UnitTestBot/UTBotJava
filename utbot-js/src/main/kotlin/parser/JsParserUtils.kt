@@ -69,6 +69,11 @@ object JsParserUtils {
         this.isString -> this.string
         this.isTrue -> true
         this.isFalse -> false
+        this.isCall -> {
+            if (this.firstChild?.isGetProp == true) {
+                this.firstChild?.next?.getAnyValue()
+            } else null
+        }
         else -> null
     }
 

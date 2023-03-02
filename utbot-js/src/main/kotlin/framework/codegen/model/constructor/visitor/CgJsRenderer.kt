@@ -1,5 +1,7 @@
 package framework.codegen.model.constructor.visitor
 
+import framework.api.js.JsClassId
+import framework.api.js.util.isExportable
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
@@ -248,7 +250,10 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgConstructorCall) {
-        print("new $fileUnderTestAliases.${element.executableId.classId.name}")
+        val importPrefix = "$fileUnderTestAliases.".takeIf {
+            (element.executableId.classId as JsClassId).isExportable
+        } ?: ""
+        print("new $importPrefix${element.executableId.classId.name}")
         print("(")
         element.arguments.renderSeparated()
         print(")")

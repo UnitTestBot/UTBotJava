@@ -40,6 +40,7 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
+private const val MAX_CACHE_SIZE = 200
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -51,6 +52,18 @@ class PythonEngine(
     private val initialCoveredLines: Set<Int>,
     private val pythonTypeStorage: PythonTypeStorage,
 ) {
+
+    private val cache = mutableMapOf<Pair<PythonMethodDescription, List<PythonTreeWrapper>>, PythonExecutionResult>()
+
+    private fun addExecutionToCache(key: Pair<PythonMethodDescription, List<PythonTreeWrapper>>, result: PythonExecutionResult) {
+        cache[key] = result
+        if (cache.size > MAX_CACHE_SIZE) {
+            val elemToDelete = cache.keys.minBy { (_, args) ->
+                args.fold(0) { acc, arg -> acc + arg.tree.diversity() }
+            }
+            cache.remove(elemToDelete)
+        }
+    }
 
     private fun suggestExecutionName(
         description: PythonMethodDescription,
@@ -154,6 +167,8 @@ class PythonEngine(
         )
     }
 
+
+
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
         val coveredLines = initialCoveredLines.toMutableSet()
@@ -189,7 +204,7 @@ class PythonEngine(
             fun fuzzingResultHandler(
                 description: PythonMethodDescription,
                 arguments: List<PythonFuzzedValue>
-            ): PythonFeedback {
+            ): PythonExecutionResult {
                 val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
                 logger.debug(argumentValues.map { it.tree } .toString())
                 val argumentModules = argumentValues
@@ -217,12 +232,12 @@ class PythonEngine(
                             Throwable(evaluationResult.stackTrace.joinToString("\n"))
                         )
                         logger.debug(evaluationResult.stackTrace.joinToString("\n"))
-                        PythonFeedback(control = Control.PASS, executionFeedback = InvalidExecution(utError))
+                        PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
                     }
 
                     is PythonEvaluationTimeout -> {
                         val utError = UtError(evaluationResult.message, Throwable())
-                        PythonFeedback(control = Control.PASS, executionFeedback = InvalidExecution(utError))
+                        PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
                     }
 
                     is PythonEvaluationSuccess -> {
@@ -244,13 +259,13 @@ class PythonEngine(
                         )) {
                             is ValidExecution -> {
                                 val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
-                                PythonFeedback(control = Control.CONTINUE, result = trieNode, result)
+                                PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE, result = trieNode))
                             }
                             is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
-                                PythonFeedback(control = Control.PASS, executionFeedback = result)
+                                PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
                             }
                             is InvalidExecution -> {
-                                PythonFeedback(control = Control.CONTINUE, executionFeedback = result)
+                                PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
                             }
                         }
                     }
@@ -265,36 +280,31 @@ class PythonEngine(
                 Trie(Instruction::id)
             )
 
-            val checkedModels = mutableMapOf<Pair<PythonMethodDescription, List<PythonTreeWrapper>>, PythonFeedback>()
             if (parameters.isEmpty()) {
                 fuzzingResultHandler(pmd, emptyList())
             } else {
                 PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
                     if (isCancelled()) {
                         logger.info { "Fuzzing process was interrupted" }
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP, executionFeedback = null)
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
                     }
                     if (System.currentTimeMillis() >= until) {
                         logger.info { "Fuzzing process was interrupted by timeout" }
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP, executionFeedback = null)
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
                     }
 
                     val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
-                    val mem = checkedModels[pair]
+                    val mem = cache[pair]
                     if (mem != null) {
                         logger.debug("Repeat in fuzzing")
-                        if (mem.executionFeedback != null)
-                            emit(mem.executionFeedback)
-
-                        return@PythonFuzzing mem
+                        emit(mem.fuzzingExecutionFeedback)
+                        return@PythonFuzzing mem.fuzzingPlatformFeedback
                     }
                     val result = fuzzingResultHandler(description, arguments)
-                    checkedModels[pair] = result
+                    addExecutionToCache(pair, result)
 
-                    if (result.executionFeedback != null)
-                        emit(result.executionFeedback)
-
-                    return@PythonFuzzing result
+                    emit(result.fuzzingExecutionFeedback)
+                    return@PythonFuzzing result.fuzzingPlatformFeedback
                 }.fuzz(pmd)
                 if (codeExecutor is PythonCodeSocketExecutor) {
                     codeExecutor.stop()

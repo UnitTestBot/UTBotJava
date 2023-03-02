@@ -48,10 +48,14 @@ class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
 class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 
+data class PythonExecutionResult(
+    val fuzzingExecutionFeedback: FuzzingExecutionFeedback,
+    val fuzzingPlatformFeedback: PythonFeedback
+)
+
 data class PythonFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<Instruction> = Trie.emptyNode(),
-    val executionFeedback: FuzzingExecutionFeedback?
 ) : Feedback<Type, PythonFuzzedValue>
 
 class PythonFuzzedValue(

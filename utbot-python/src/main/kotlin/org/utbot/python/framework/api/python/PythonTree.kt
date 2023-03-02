@@ -56,6 +56,8 @@ object PythonTree {
         open fun softHashCode(): Int {  // overridden for ReduceNode
             return hashCode()
         }
+
+        open fun diversity(): Int = 1 + children.fold(0) { acc, child -> acc + child.diversity() }
     }
 
     class PrimitiveNode(
@@ -80,6 +82,8 @@ object PythonTree {
         override fun toString(): String {
             return repr
         }
+
+        override fun diversity(): Int = 2
     }
 
     class ListNode(

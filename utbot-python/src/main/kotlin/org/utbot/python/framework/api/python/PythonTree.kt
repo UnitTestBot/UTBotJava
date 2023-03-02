@@ -15,6 +15,17 @@ import java.util.concurrent.atomic.AtomicLong
 
 
 object PythonTree {
+    fun isRecursiveObject(tree: PythonTreeNode): Boolean {
+        return isRecursiveObjectDFS(tree, mutableSetOf())
+    }
+
+    private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+        if (visited.contains(tree))
+            return true
+        visited.add(tree)
+        return tree.children.any { isRecursiveObjectDFS(it, visited) }
+    }
+
     open class PythonTreeNode(
         val id: Long,
         val type: PythonClassId,
@@ -39,25 +50,23 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return type == other.type && children == other.children && comparable == other.comparable
+            return id == other.id
         }
 
         override fun hashCode(): Int {
-            var result = type.hashCode()
-            result = 31 * result + comparable.hashCode()
-            result = 31 * result + children.hashCode()
-            return result
+            return id.hashCode()
         }
 
-        open fun softEquals(other: PythonTreeNode): Boolean {  // overridden for ReduceNode
-            return this == other
+        open fun softEquals(other: PythonTreeNode): Boolean {  // must be called only from PythonTreeWrapper!
+            return type == other.type && children == other.children
         }
 
-        open fun softHashCode(): Int {  // overridden for ReduceNode
-            return hashCode()
+        open fun softHashCode(): Int {  // must be called only from PythonTreeWrapper!
+            return type.hashCode() * 31 + children.hashCode()
         }
 
-        open fun diversity(): Int = 1 + children.fold(0) { acc, child -> acc + child.diversity() }
+        open fun diversity(): Int = // must be called only from PythonTreeWrapper!
+            1 + children.fold(0) { acc, child -> acc + child.diversity() }
     }
 
     class PrimitiveNode(
@@ -66,21 +75,29 @@ object PythonTree {
         val repr: String,
     ) : PythonTreeNode(id, type) {
         constructor(type: PythonClassId, repr: String) : this(PythonIdGenerator.getOrCreateIdForValue(repr), type, repr)
-        override fun equals(other: Any?): Boolean {
-            if (other !is PrimitiveNode) {
-                return false
-            }
-            return repr == other.repr && type == other.type
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + repr.hashCode()
-            return result
-        }
 
         override fun toString(): String {
             return repr
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is PrimitiveNode)
+                return false
+            return repr == other.repr
+        }
+
+        override fun hashCode(): Int {
+            return repr.hashCode()
+        }
+
+        override fun softEquals(other: PythonTreeNode): Boolean {
+            if (other !is PrimitiveNode)
+                return false
+            return repr == other.repr
+        }
+
+        override fun softHashCode(): Int {
+            return repr.hashCode()
         }
 
         override fun diversity(): Int = 2
@@ -102,19 +119,6 @@ object PythonTree {
                 }
             else false
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is ListNode) {
-                return false
-            }
-            return children == other.children
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
-        }
     }
 
     class DictNode(
@@ -133,19 +137,6 @@ object PythonTree {
                 }
 
             } else false
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is DictNode) {
-                return false
-            }
-            return children == other.children
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
         }
 
     }
@@ -171,20 +162,6 @@ object PythonTree {
                 false
             }
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is SetNode) {
-                return false
-            }
-            return items == other.items
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
-        }
-
     }
 
     class TupleNode(
@@ -204,19 +181,6 @@ object PythonTree {
             } else {
                 false
             }
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is TupleNode) {
-                return false
-            }
-            return items == other.items
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
         }
     }
 
@@ -250,26 +214,7 @@ object PythonTree {
             } else false
         }
 
-        override fun equals(other: Any?): Boolean {
-            if (other !is ReduceNode) {
-                return false
-            }
-            return type == other.type &&
-                    id == other.id &&
-                    constructor == other.constructor &&
-                    args == other.args &&
-                    state == other.state &&
-                    listitems == other.listitems &&
-                    dictitems == other.dictitems
-        }
-
-        override fun hashCode(): Int {
-            var result = softHashCode()
-            result = 31 * result + id.hashCode()
-            return result
-        }
-
-        override fun softEquals(other: PythonTreeNode): Boolean {  // like equals(), but skip id check
+        override fun softEquals(other: PythonTreeNode): Boolean {
             if (other !is ReduceNode)
                 return false
             return type == other.type && constructor == other.constructor && args == other.args &&
@@ -380,10 +325,26 @@ class PythonTreeWrapper(val tree: PythonTree.PythonTreeNode) {
     override fun equals(other: Any?): Boolean {
         if (other !is PythonTreeWrapper)
             return false
+        if (PythonTree.isRecursiveObject(tree) || PythonTree.isRecursiveObject(other.tree))
+            return tree == other.tree
         return tree.softEquals(other.tree)
     }
 
     override fun hashCode(): Int {
+        if (PythonTree.isRecursiveObject(tree))
+            return tree.hashCode()
         return tree.softHashCode()
+    }
+
+    private val INF = 1000_000_000
+
+    private fun diversity(): Int {
+        if (PythonTree.isRecursiveObject(tree))
+            return INF
+        return tree.diversity()
+    }
+
+    fun commonDiversity(other: Int): Int {
+        return listOf(diversity() + other, INF).min()
     }
 }

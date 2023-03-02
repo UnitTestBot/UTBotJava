@@ -58,7 +58,7 @@ class PythonEngine(
     private fun addExecutionToCache(key: Pair<PythonMethodDescription, List<PythonTreeWrapper>>, result: PythonExecutionResult) {
         cache[key] = result
         if (cache.size > MAX_CACHE_SIZE) {
-            val elemToDelete = cache.keys.minBy { (_, args) ->
+            val elemToDelete = cache.keys.maxBy { (_, args) ->
                 args.fold(0) { acc, arg -> acc + arg.tree.diversity() }
             }
             cache.remove(elemToDelete)

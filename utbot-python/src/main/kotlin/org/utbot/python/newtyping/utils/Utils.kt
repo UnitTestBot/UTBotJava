@@ -1,5 +1,6 @@
 package org.utbot.python.newtyping.utils
 
+import org.utbot.fuzzing.utils.chooseOne
 import kotlin.random.Random
 
 fun getOffsetLine(sourceFileContent: String, offset: Int): Int {
@@ -8,9 +9,6 @@ fun getOffsetLine(sourceFileContent: String, offset: Int): Int {
 
 fun <T> weightedRandom(elems: List<T>, weights: List<Double>): T {
     val sum = weights.sum()
-    val borders = weights.fold(emptyList<Double>() to 0.0) { (list, partialSum), cur ->
-        (list + (partialSum + cur) / sum) to partialSum + cur
-    }.first
-    val value = Random.nextDouble()
-    return elems[borders.indexOfFirst { it >= value }]
+    val index = Random.chooseOne(weights.map { it / sum }.toDoubleArray())
+    return elems[index]
 }

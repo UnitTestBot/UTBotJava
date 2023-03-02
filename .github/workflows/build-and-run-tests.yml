@@ -29,7 +29,7 @@ jobs:
 
   publish-cli-image:
     needs: build-and-run-tests
-#    if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' }}
     strategy:
       fail-fast: false  # force to execute all jobs even though some of them have failed
       matrix:
@@ -109,9 +109,9 @@ jobs:
         build-args: |
           ARTIFACT_PATH=${{ matrix.configuration.directory }}/build/libs/${{ matrix.configuration.directory }}-${{ env.VERSION }}.jar
 
-      # Temp fix
-      # https://github.com/docker/build-push-action/issues/252
-      # https://github.com/moby/buildkit/issues/1896
+    # Temp fix
+    # https://github.com/docker/build-push-action/issues/252
+    # https://github.com/moby/buildkit/issues/1896
     - name: Move cache
       run: |
         rm -rf /tmp/.buildx-cache

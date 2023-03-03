@@ -162,6 +162,10 @@ func ArrayOfArrayOfStructs(array [5][5]Structure) [5][5]Structure {
 	return array
 }
 
+func ArrayOfSliceOfUint(array [5][]uint) [5][]uint {
+	return array
+}
+
 func returnErrorOrNil(n int) error {
 	if n > 0 {
 		return errors.New("error")
@@ -176,4 +180,37 @@ func ExternalStruct(match difflib.Match, structure Structure) Structure {
 
 func ExternalStructWithAlias(match dif.Match) difflib.Match {
 	return match
+}
+
+func SliceOfInt(slice []int) []int {
+	return slice
+}
+
+func SliceOfUintPtr(slice []uintptr) []uintptr {
+	return slice
+}
+
+func SliceOfString(slice []string) []string {
+	return slice
+}
+
+func SliceOfStructs(slice []Structure) []Structure {
+	return slice
+}
+
+func SliceOfStructsWithNan(slice []Structure) []Structure {
+	slice[0].float64 = math.NaN()
+	return slice
+}
+
+func SliceOfSliceOfByte(slice [][]byte) [][]byte {
+	return slice
+}
+
+func SliceOfSliceOfStructs(slice [][]Structure) [][]Structure {
+	return slice
+}
+
+func SliceOfArrayOfInt(slice [][5]int) [][5]int {
+	return slice
 }

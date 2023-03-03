@@ -93,6 +93,19 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			ElementType: arrayElemType,
 			Length:      length,
 		}
+	case *types.Slice:
+		sliceType := typ.(*types.Slice)
+
+		sliceElemType, err := toAnalyzedType(sliceType.Elem())
+		checkError(err)
+
+		elemTypeName := sliceElemType.GetName()
+		name := fmt.Sprintf("[]%s", elemTypeName)
+
+		result = AnalyzedSliceType{
+			Name:        name,
+			ElementType: sliceElemType,
+		}
 	case *types.Interface:
 		namedType := typ.(*types.Named)
 		name := namedType.Obj().Name()
@@ -133,6 +146,9 @@ func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
 	}
 	if arrayType, ok := underlyingType.(*types.Array); ok {
 		return checkTypeIsSupported(arrayType.Elem(), isResultType)
+	}
+	if sliceType, ok := underlyingType.(*types.Slice); ok {
+		return checkTypeIsSupported(sliceType.Elem(), isResultType)
 	}
 	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
 		return interfaceType == errorInterface
@@ -251,6 +267,10 @@ func collectTargetAnalyzedFunctions(
 
 			funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
 			funcDecl.Name = ast.NewIdent(analyzedFunction.ModifiedName)
+
+			constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
+			ast.Walk(&constantExtractor, funcDecl)
+			analyzedFunction.Constants = constantExtractor.constants
 
 			functionModifier := FunctionModifier{lineCounter: 0}
 			ast.Walk(&functionModifier, funcDecl)

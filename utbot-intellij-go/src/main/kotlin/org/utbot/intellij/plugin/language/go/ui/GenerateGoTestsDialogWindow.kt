@@ -2,7 +2,6 @@ package org.utbot.intellij.plugin.language.go.ui
 
 import com.goide.psi.GoFunctionOrMethodDeclaration
 import com.goide.refactor.ui.GoDeclarationInfo
-import com.goide.sdk.combobox.GoSdkChooserCombo
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
@@ -13,7 +12,6 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.utbot.go.logic.GoUtTestsGenerationConfig
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
-import org.utbot.intellij.plugin.language.go.ui.utils.resolveGoExecutablePath
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
@@ -33,7 +31,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
         this.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
-    private val projectGoSdkField = GoSdkChooserCombo()
     private val allFunctionExecutionTimeoutSecondsSpinner =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS).toInt(),
@@ -52,7 +49,7 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     private lateinit var panel: DialogPanel
 
     init {
-        title = "Generate Tests with UtBot"
+        title = "Generate Tests with UnitTestBot"
         isResizable = false
         init()
     }
@@ -60,9 +57,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     override fun createCenterPanel(): JComponent {
         panel = panel {
             row("Test source root: near to source files") {}
-            row("Project Go SDK:") {
-                component(projectGoSdkField)
-            }
             row("Generate test methods for:") {}
             row {
                 scrollPane(targetFunctionsTable)
@@ -82,7 +76,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
 
     override fun doOKAction() {
         model.selectedFunctions = targetFunctionsTable.selectedMemberInfos.fromInfos()
-        model.goExecutableAbsolutePath = projectGoSdkField.sdk.resolveGoExecutablePath()!!
         try {
             eachFunctionExecutionTimeoutMillisSpinner.commitEdit()
             allFunctionExecutionTimeoutSecondsSpinner.commitEdit()
@@ -119,12 +112,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
 
     @Suppress("DuplicatedCode") // This method is highly inspired by GenerateTestsDialogWindow.doValidate().
     override fun doValidate(): ValidationInfo? {
-        projectGoSdkField.sdk.resolveGoExecutablePath()
-            ?: return ValidationInfo(
-                "Go SDK is not configured",
-                projectGoSdkField.childComponent
-            )
-
         targetFunctionsTable.tableHeader?.background = UIUtil.getTableBackground()
         targetFunctionsTable.background = UIUtil.getTableBackground()
         if (targetFunctionsTable.selectedMemberInfos.isEmpty()) {

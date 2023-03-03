@@ -146,14 +146,10 @@ class SimpleNameBuilder(
     }
 
     private fun fromNameDescriptionToCandidateSimpleName(nameDescription: TestNameDescription): DisplayNameCandidate? {
-        if (nameDescription.nameType == NameType.ArtificialError) {
-            return DisplayNameCandidate(
-                nameDescription.name,
-                nameDescription.uniquenessTag,
-                traceTag.path.size + 1
-            )
-        }
-        if (nameDescription.nameType == NameType.ThrowsException) {
+        if (nameDescription.nameType == NameType.ArtificialError ||
+            nameDescription.nameType == NameType.TimeoutError ||
+            nameDescription.nameType == NameType.ThrowsException
+        ) {
             return DisplayNameCandidate(
                 nameDescription.name,
                 nameDescription.uniquenessTag,

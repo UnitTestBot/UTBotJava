@@ -15,11 +15,11 @@ import org.utbot.go.logic.GoUtTestsGenerationConfig
  */
 data class GenerateGoTestsModel(
     val project: Project,
+    val goExecutableAbsolutePath: String,
     val targetFunctions: Set<GoFunctionOrMethodDeclaration>,
     val focusedTargetFunctions: Set<GoFunctionOrMethodDeclaration>,
 ) {
     lateinit var selectedFunctions: Set<GoFunctionOrMethodDeclaration>
-    lateinit var goExecutableAbsolutePath: String
     var eachFunctionExecutionTimeoutMillis: Long = GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS
     var allFunctionExecutionTimeoutMillis: Long = GoUtTestsGenerationConfig.DEFAULT_ALL_EXECUTION_TIMEOUT_MILLIS
 }

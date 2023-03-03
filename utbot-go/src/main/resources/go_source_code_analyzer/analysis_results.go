@@ -53,6 +53,15 @@ func (t AnalyzedArrayType) GetName() string {
 	return t.Name
 }
 
+type AnalyzedSliceType struct {
+	Name        string       `json:"name"`
+	ElementType AnalyzedType `json:"elementType"`
+}
+
+func (t AnalyzedSliceType) GetName() string {
+	return t.Name
+}
+
 type AnalyzedFunctionParameter struct {
 	Name string       `json:"name"`
 	Type AnalyzedType `json:"type"`
@@ -64,6 +73,7 @@ type AnalyzedFunction struct {
 	Parameters                          []AnalyzedFunctionParameter `json:"parameters"`
 	ResultTypes                         []AnalyzedType              `json:"resultTypes"`
 	RequiredImports                     []Import                    `json:"requiredImports"`
+	Constants                           map[string][]string         `json:"constants"`
 	ModifiedFunctionForCollectingTraces string                      `json:"modifiedFunctionForCollectingTraces"`
 	NumberOfAllStatements               int                         `json:"numberOfAllStatements"`
 	position                            token.Pos

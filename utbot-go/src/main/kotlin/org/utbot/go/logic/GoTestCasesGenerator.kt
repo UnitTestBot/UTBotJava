@@ -16,6 +16,7 @@ object GoTestCasesGenerator {
     fun generateTestCasesForGoSourceFileFunctions(
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>,
+        intSize: Int,
         goExecutableAbsolutePath: String,
         eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
         timeoutExceededOrIsCanceled: (index: Int) -> Boolean
@@ -26,6 +27,7 @@ object GoTestCasesGenerator {
             val engine = GoEngine(
                 function,
                 sourceFile,
+                intSize,
                 goExecutableAbsolutePath,
                 eachExecutionTimeoutsMillisConfig,
                 { timeoutExceededOrIsCanceled(index) }

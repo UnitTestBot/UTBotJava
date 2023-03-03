@@ -15,7 +15,7 @@ inserts these values into the user functions, and executes the resulting test ca
 
 ### Supported types for function parameters
 
-At the moment, UnitTestBot Go is able to generate values for _primitive types_, _arrays_ and _structs_.
+At the moment, UnitTestBot Go is able to generate values for _primitive types_, _arrays_, _slices_ and _structs_.
 
 For _floating point types_, UnitTestBot Go supports working with _infinity_ and _NaN_.
 

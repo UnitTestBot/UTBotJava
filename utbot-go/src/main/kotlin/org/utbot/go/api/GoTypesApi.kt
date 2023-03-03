@@ -8,7 +8,11 @@ import org.utbot.go.framework.api.go.GoTypeId
  * Represents real Go primitive type.
  */
 class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
-    override val canonicalName: String = simpleName
+    override val canonicalName: String = when (name) {
+        "byte" -> "uint8"
+        "rune" -> "int32"
+        else -> simpleName
+    }
 
     override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String = simpleName
 
@@ -16,7 +20,7 @@ class GoPrimitiveTypeId(name: String) : GoTypeId(name) {
         if (this === other) return true
         if (other !is GoPrimitiveTypeId) return false
 
-        return name == other.name
+        return canonicalName == other.canonicalName
     }
 
     override fun hashCode(): Int = name.hashCode()
@@ -74,6 +78,24 @@ class GoArrayTypeId(
     }
 
     override fun hashCode(): Int = 31 * elementTypeId.hashCode() + length
+}
+
+class GoSliceTypeId(
+    name: String, elementTypeId: GoTypeId,
+) : GoTypeId(name, elementTypeId = elementTypeId) {
+    override val canonicalName: String = "[]${elementTypeId.canonicalName}"
+
+    override fun getRelativeName(destinationPackage: GoPackage, aliases: Map<GoPackage, String?>): String =
+        "[]${elementTypeId!!.getRelativeName(destinationPackage, aliases)}"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GoArrayTypeId) return false
+
+        return elementTypeId == other.elementTypeId
+    }
+
+    override fun hashCode(): Int = elementTypeId.hashCode()
 }
 
 class GoInterfaceTypeId(

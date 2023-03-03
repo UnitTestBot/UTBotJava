@@ -3,14 +3,7 @@ package org.utbot.python
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
@@ -180,7 +173,7 @@ class PythonEngine(
             fun fuzzingResultHandler(
                 description: PythonMethodDescription,
                 arguments: List<PythonFuzzedValue>
-            ): PythonExecutionResult {
+            ): PythonExecutionResult? {
                 val argumentValues = arguments.map { PythonTreeModel(it.tree, it.tree.type) }
                 logger.debug(argumentValues.map { it.tree } .toString())
                 val argumentModules = argumentValues
@@ -200,56 +193,59 @@ class PythonEngine(
                     modelList,
                     methodUnderTest.argumentsNames
                 )
-                val evaluationResult = manager.run(functionArguments, localAdditionalModules)
-                return when (evaluationResult) {
-                    is PythonEvaluationError -> {
-                        val utError = UtError(
-                            "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
-                            Throwable(evaluationResult.stackTrace.joinToString("\n"))
-                        )
-                        logger.debug(evaluationResult.stackTrace.joinToString("\n"))
-                        PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
-                    }
+                try {
+                    return when (val evaluationResult = manager.run(functionArguments, localAdditionalModules)) {
+                        is PythonEvaluationError -> {
+                            val utError = UtError(
+                                "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
+                                Throwable(evaluationResult.stackTrace.joinToString("\n"))
+                            )
+                            logger.debug(evaluationResult.stackTrace.joinToString("\n"))
+                            PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
+                        }
 
-                    is PythonEvaluationTimeout -> {
-                        val utError = UtError(evaluationResult.message, Throwable())
-                        PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
-                    }
+                        is PythonEvaluationTimeout -> {
+                            val utError = UtError(evaluationResult.message, Throwable())
+                            PythonExecutionResult(InvalidExecution(utError), PythonFeedback(control = Control.PASS))
+                        }
 
-                    is PythonEvaluationSuccess -> {
-                        val coveredInstructions = evaluationResult.coverage.coveredInstructions
-                        coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
+                        is PythonEvaluationSuccess -> {
+                            val coveredInstructions = evaluationResult.coverage.coveredInstructions
+                            coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
 
-                        val summary = arguments
-                            .zip(methodUnderTest.arguments)
-                            .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+                            val summary = arguments
+                                .zip(methodUnderTest.arguments)
+                                .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
-                        val hasThisObject = methodUnderTest.hasThisArgument
+                            val hasThisObject = methodUnderTest.hasThisArgument
 
-                        when (val result = handleSuccessResult(
-                            parameters,
-                            evaluationResult,
-                            description,
-                            hasThisObject,
-                            summary
-                        )) {
-                            is ValidExecution -> {
-                                val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
-                                PythonExecutionResult(
-                                    result,
-                                    PythonFeedback(control = Control.CONTINUE, result = trieNode)
-                                )
-                            }
+                            when (val result = handleSuccessResult(
+                                parameters,
+                                evaluationResult,
+                                description,
+                                hasThisObject,
+                                summary
+                            )) {
+                                is ValidExecution -> {
+                                    val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
+                                    PythonExecutionResult(
+                                        result,
+                                        PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                                    )
+                                }
 
-                            is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
-                                PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
-                            }
+                                is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
+                                    PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
+                                }
 
-                            is InvalidExecution -> {
-                                PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
+                                is InvalidExecution -> {
+                                    PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
+                                }
                             }
                         }
                     }
+                } catch (_: TimeoutException) {
+                    return null
                 }
             }
 
@@ -285,6 +281,12 @@ class PythonEngine(
                         return@PythonFuzzing mem.fuzzingPlatformFeedback
                     }
                     val result = fuzzingResultHandler(description, arguments)
+                    if (result == null) {  // timeout
+                        logger.info { "Fuzzing process was interrupted by timeout" }
+                        manager.disconnect()
+                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                    }
+
                     addExecutionToCache(pair, result)
                     emit(result.fuzzingExecutionFeedback)
                     return@PythonFuzzing result.fuzzingPlatformFeedback

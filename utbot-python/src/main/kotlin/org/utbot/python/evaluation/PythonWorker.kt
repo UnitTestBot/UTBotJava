@@ -29,13 +29,12 @@ class PythonWorker(
     }
 
     fun receiveMessage(): String? {
-        val lengthLine = inStream.readLine()
-        if (lengthLine == null) {
-            return null
-        }
+        val lengthLine = inStream.readLine() ?: return null
         val length = lengthLine.toInt()
         val buffer = CharArray(length)
-        inStream.read(buffer)
+        val bytesRead = inStream.read(buffer)
+        if (bytesRead < length)  // TODO: maybe we should add more time for reading?
+            return null
         return String(buffer)
     }
 

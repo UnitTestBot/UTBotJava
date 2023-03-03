@@ -120,12 +120,7 @@ object PythonTestGenerationProcessor {
                 val methodsLeft = pythonMethods.size - index
                 val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
                 val method = findMethodByHeader(mypyStorage, methodHeader, currentPythonModule, pythonFileContent)
-                try {
-                    testCaseGenerator.generate(method, localUntil)
-                } catch (_: TimeoutException) {
-                    logger.warn { "Cannot connect to python code executor for method ${method.name}" }
-                    PythonTestSet(method, emptyList(), emptyList(), emptyList())
-                }
+                testCaseGenerator.generate(method, localUntil)
             }
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }

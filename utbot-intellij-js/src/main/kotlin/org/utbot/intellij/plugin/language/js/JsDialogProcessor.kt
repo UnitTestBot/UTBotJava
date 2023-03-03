@@ -18,12 +18,12 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
-import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
@@ -34,6 +34,7 @@ import settings.PackageDataService
 import settings.jsPackagesList
 import utils.JsCmdExec
 import utils.OsProvider
+import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
 
@@ -56,11 +57,10 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    PackageDataService(
-                        model.containingFilePath,
-                        model.project.basePath!!,
-                        model.pathToNPM
-                    ).checkAndInstallRequirements(project)
+                    if (!PackageDataService(
+                            model.containingFilePath, model.project.basePath!!, model.pathToNPM
+                        ).checkAndInstallRequirements(project)
+                    ) return@invokeLater
                     createDialog(model)?.let { dialogWindow ->
                         if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
@@ -76,35 +76,31 @@ object JsDialogProcessor {
         }).queue()
     }
 
-    private fun findNodeAndNPM(): Pair<String, String>? =
-        try {
-            val pathToNode = NodeJsLocalInterpreterManager.getInstance()
-                .interpreters.first().interpreterSystemIndependentPath
-            val (_, errorText) = JsCmdExec.runCommand(
-                shouldWait = true,
-                cmd = arrayOf("\"${pathToNode}\"", "-v")
-            )
-            if (errorText.isNotEmpty()) throw NoSuchElementException()
-            val pathToNPM =
-                pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
-            pathToNode to pathToNPM
-        } catch (e: NoSuchElementException) {
-            Messages.showErrorDialog(
-                "Node.js interpreter is not found in IDEA settings.\n" +
-                        "Please set it in Settings > Languages & Frameworks > Node.js",
-                "Requirement Error"
-            )
-            logger.error { "Node.js interpreter was not found in IDEA settings." }
-            null
-        } catch (e: IOException) {
-            Messages.showErrorDialog(
-                "Node.js interpreter path is corrupted in IDEA settings.\n" +
-                        "Please check Settings > Languages & Frameworks > Node.js",
-                "Requirement Error"
-            )
-            logger.error { "Node.js interpreter path is corrupted in IDEA settings." }
-            null
-        }
+    private fun findNodeAndNPM(): Pair<String, String>? = try {
+        val pathToNode =
+            NodeJsLocalInterpreterManager.getInstance().interpreters.first().interpreterSystemIndependentPath
+        val (_, errorText) = JsCmdExec.runCommand(
+            shouldWait = true, cmd = arrayOf("\"${pathToNode}\"", "-v")
+        )
+        if (errorText.isNotEmpty()) throw NoSuchElementException()
+        val pathToNPM =
+            pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
+        pathToNode to pathToNPM
+    } catch (e: NoSuchElementException) {
+        Messages.showErrorDialog(
+            "Node.js interpreter is not found in IDEA settings.\n" + "Please set it in Settings > Languages & Frameworks > Node.js",
+            "Requirement Error"
+        )
+        logger.error { "Node.js interpreter was not found in IDEA settings." }
+        null
+    } catch (e: IOException) {
+        Messages.showErrorDialog(
+            "Node.js interpreter path is corrupted in IDEA settings.\n" + "Please check Settings > Languages & Frameworks > Node.js",
+            "Requirement Error"
+        )
+        logger.error { "Node.js interpreter path is corrupted in IDEA settings." }
+        null
+    }
 
     private fun createJsTestModel(
         project: Project,
@@ -157,10 +153,8 @@ object JsDialogProcessor {
                 val testDir = PsiDirectoryFactory.getInstance(project).createDirectory(
                     model.testSourceRoot!!
                 )
-                val testFileName = normalizedContainingFilePath.substringAfterLast("/")
-                    .replace(Regex(".js"), "Test.js")
-                val testGenerator = JsTestGenerator(
-                    fileText = editor.document.text,
+                val testFileName = normalizedContainingFilePath.substringAfterLast("/").replace(Regex(".js"), "Test.js")
+                val testGenerator = JsTestGenerator(fileText = editor.document.text,
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),
@@ -175,10 +169,7 @@ object JsDialogProcessor {
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace(File.separator, "/"),
                     exportsManager = partialApplication(
-                        JsDialogProcessor::manageExports,
-                        editor,
-                        project,
-                        editor.document.text
+                        JsDialogProcessor::manageExports, editor, project, editor.document.text
                     ),
                     settings = JsDynamicSettings(
                         pathToNode = model.pathToNode,
@@ -187,8 +178,7 @@ object JsDialogProcessor {
                         timeout = model.timeout,
                         coverageMode = model.coverageMode
                     ),
-                    isCancelled = { indicator.isCanceled }
-                )
+                    isCancelled = { indicator.isCanceled })
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
                 indicator.text = "Generate code for tests"
@@ -196,11 +186,9 @@ object JsDialogProcessor {
                 val generatedCode = testGenerator.run()
                 invokeLater {
                     runWriteAction {
-                        val testPsiFile =
-                            testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
-                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
-                        val testFileEditor =
-                            CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
+                        val testPsiFile = testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
+                            .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
                         unblockDocument(project, testFileEditor.document)
                         testFileEditor.document.setText(generatedCode)
                         unblockDocument(project, testFileEditor.document)
@@ -216,11 +204,7 @@ object JsDialogProcessor {
     }
 
     private fun manageExports(
-        editor: Editor,
-        project: Project,
-        fileText: String,
-        exports: List<String>,
-        swappedText: (String?) -> String
+        editor: Editor, project: Project, fileText: String, exports: List<String>, swappedText: (String?) -> String
     ) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
@@ -265,33 +249,47 @@ object JsDialogProcessor {
     }
 }
 
-private fun PackageDataService.checkAndInstallRequirements(project: Project) {
-    val absentPackages = jsPackagesList
-        .filterNot { this.findPackage(it) }
-    if (absentPackages.isEmpty()) return
+private fun PackageDataService.checkAndInstallRequirements(project: Project): Boolean {
+    val missingPackages = jsPackagesList.filterNot { this.findPackage(it) }
+    if (missingPackages.isEmpty()) return true
     val message = """
             Requirements are not installed:
-            ${absentPackages.joinToString { it.packageName }}
+            ${missingPackages.joinToString { it.packageName }}
             Install them?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
-        project,
-        message,
-        "Requirements Missmatch Error",
-        "Install",
-        "Cancel",
-        null
+        project, message, "Requirements Missmatch Error", "Install", "Cancel", null
     )
 
     if (result == Messages.CANCEL)
-        return
+        return false
 
-    val (_, errorText) = this.installAbsentPackages(absentPackages)
-    if (errorText.isNotEmpty()) {
+    try {
+        val (_, errorText) = this.installMissingPackages(missingPackages)
+        if (errorText.isNotEmpty()) {
+            showErrorDialogLater(
+                project,
+                "Requirements installing failed with some reason:\n${errorText}",
+                "Requirement installation error"
+            )
+            return false
+        }
+        return true
+    } catch (_: TimeoutException) {
         showErrorDialogLater(
             project,
-            "Requirements installing failed with some reason:\n${errorText}",
-            "Requirements error"
+            """
+                Requirements installing failed due to the exceeded waiting time for the installation, check your internet connection.
+                
+                Try to install missing npm packages manually:
+            ${
+                missingPackages.joinToString(separator = "\n") {
+                    "> npm install ${it.npmListFlag} ${it.packageName}"
+                }
+            }
+            """.trimIndent(),
+            "Requirement installation error"
         )
+        return false
     }
 }

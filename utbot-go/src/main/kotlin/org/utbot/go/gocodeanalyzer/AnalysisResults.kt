@@ -2,31 +2,13 @@ package org.utbot.go.gocodeanalyzer
 
 import com.beust.klaxon.TypeAdapter
 import com.beust.klaxon.TypeFor
-import org.utbot.go.api.GoArrayTypeId
-import org.utbot.go.api.GoInterfaceTypeId
-import org.utbot.go.api.GoPrimitiveTypeId
-import org.utbot.go.api.GoStructTypeId
+import org.utbot.go.api.*
 import org.utbot.go.api.util.goPrimitives
 import org.utbot.go.framework.api.go.GoFieldId
+import org.utbot.go.framework.api.go.GoImport
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import kotlin.reflect.KClass
-
-data class AnalyzedInterfaceType(
-    override val name: String,
-    val implementsError: Boolean,
-    val packageName: String,
-    val packagePath: String
-) : AnalyzedType(name) {
-    override fun toGoTypeId(): GoTypeId =
-        GoInterfaceTypeId(
-            name = simpleName,
-            implementsError = implementsError,
-            packageName = packageName,
-            packagePath = packagePath
-        )
-
-    private val simpleName: String = name.replaceFirst("interface ", "")
-}
 
 data class AnalyzedPrimitiveType(
     override val name: String
@@ -49,8 +31,7 @@ data class AnalyzedStructType(
 
     override fun toGoTypeId(): GoTypeId = GoStructTypeId(
         name = name,
-        packageName = packageName,
-        packagePath = packagePath,
+        sourcePackage = GoPackage(packageName, packagePath),
         implementsError = implementsError,
         fields = fields.map { field -> GoFieldId(field.type.toGoTypeId(), field.name, field.isExported) }
     )
@@ -68,6 +49,32 @@ data class AnalyzedArrayType(
     )
 }
 
+data class AnalyzedSliceType(
+    override val name: String,
+    val elementType: AnalyzedType,
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId = GoSliceTypeId(
+        name = name,
+        elementTypeId = elementType.toGoTypeId(),
+    )
+}
+
+data class AnalyzedInterfaceType(
+    override val name: String,
+    val implementsError: Boolean,
+    val packageName: String,
+    val packagePath: String
+) : AnalyzedType(name) {
+    override fun toGoTypeId(): GoTypeId =
+        GoInterfaceTypeId(
+            name = simpleName,
+            implementsError = implementsError,
+            sourcePackage = GoPackage(packageName, packagePath)
+        )
+
+    private val simpleName: String = name.replaceFirst("interface ", "")
+}
+
 @TypeFor(field = "name", adapter = AnalyzedTypeAdapter::class)
 abstract class AnalyzedType(open val name: String) {
     abstract fun toGoTypeId(): GoTypeId
@@ -79,7 +86,7 @@ class AnalyzedTypeAdapter : TypeAdapter<AnalyzedType> {
         return when {
             typeName.startsWith("interface ") -> AnalyzedInterfaceType::class
             typeName.startsWith("map[") -> error("Map type not yet supported")
-            typeName.startsWith("[]") -> error("Slice type not yet supported")
+            typeName.startsWith("[]") -> AnalyzedSliceType::class
             typeName.startsWith("[") -> AnalyzedArrayType::class
             goPrimitives.map { it.name }.contains(typeName) -> AnalyzedPrimitiveType::class
             else -> AnalyzedStructType::class
@@ -94,13 +101,15 @@ internal data class AnalyzedFunction(
     val modifiedName: String,
     val parameters: List<AnalyzedFunctionParameter>,
     val resultTypes: List<AnalyzedType>,
+    val requiredImports: List<GoImport>,
+    val constants: Map<String, List<String>>,
     val modifiedFunctionForCollectingTraces: String,
     val numberOfAllStatements: Int
 )
 
 internal data class AnalysisResult(
     val absoluteFilePath: String,
-    val packageName: String,
+    val sourcePackage: GoPackage,
     val analyzedFunctions: List<AnalyzedFunction>,
     val notSupportedFunctionsNames: List<String>,
     val notFoundFunctionsNames: List<String>

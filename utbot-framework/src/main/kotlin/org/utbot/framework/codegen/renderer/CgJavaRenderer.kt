@@ -33,6 +33,7 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
@@ -254,6 +255,15 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         renderExceptions(element)
     }
 
+    override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
+        // framework util methods always have void return type
+        print("public void ")
+        print(element.name)
+        print("()")
+
+        renderExceptions(element)
+    }
+
     override fun visit(element: CgInnerBlock) {
         println("{")
         withIndent {
@@ -304,8 +314,10 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
             for (statement in element.statements) {
                 statement.accept(this)
             }
-            // break statement in the end
-            CgBreakStatement.accept(this)
+
+            if (element.addBreakStatementToEnd) {
+                CgBreakStatement.accept(this)
+            }
         }
     }
 

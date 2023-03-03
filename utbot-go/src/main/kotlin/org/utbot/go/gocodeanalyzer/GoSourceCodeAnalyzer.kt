@@ -2,10 +2,13 @@ package org.utbot.go.gocodeanalyzer
 
 import org.utbot.common.FileUtil.extractDirectoryFromArchive
 import org.utbot.common.scanForResourcesContaining
+import org.utbot.go.api.GoPrimitiveTypeId
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFunctionParameter
-import org.utbot.go.fuzzer.providers.GoPrimitivesValueProvider
+import org.utbot.go.api.util.goSupportedConstantTypes
+import org.utbot.go.api.util.rawValueOfGoPrimitiveTypeToValue
+import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.util.executeCommandByNewProcessOrFail
 import org.utbot.go.util.parseFromJsonOrFail
 import org.utbot.go.util.writeJsonToFileOrFail
@@ -28,7 +31,7 @@ object GoSourceCodeAnalyzer {
     fun analyzeGoSourceFilesForFunctions(
         targetFunctionsNamesBySourceFiles: Map<String, List<String>>,
         goExecutableAbsolutePath: String
-    ): Map<GoUtFile, GoSourceFileAnalysisResult> {
+    ): Pair<Map<GoUtFile, GoSourceFileAnalysisResult>, Int> {
         val analysisTargets = AnalysisTargets(
             targetFunctionsNamesBySourceFiles.map { (absoluteFilePath, targetFunctionsNames) ->
                 AnalysisTarget(absoluteFilePath, targetFunctionsNames)
@@ -63,9 +66,9 @@ object GoSourceCodeAnalyzer {
                 environment
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
-            GoPrimitivesValueProvider.intSize = analysisResults.intSize
+            val intSize = analysisResults.intSize
             return analysisResults.results.map { analysisResult ->
-                GoUtFile(analysisResult.absoluteFilePath, analysisResult.packageName) to analysisResult
+                GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
                     val parameters = analyzedFunction.parameters.map { analyzedFunctionParameter ->
@@ -75,11 +78,24 @@ object GoSourceCodeAnalyzer {
                         )
                     }
                     val resultTypes = analyzedFunction.resultTypes.map { analyzedType -> analyzedType.toGoTypeId() }
+                    val constants = mutableMapOf<GoTypeId, List<Any>>()
+                    analyzedFunction.constants.map { (type, rawValues) ->
+                        val typeId = GoPrimitiveTypeId(type)
+                        if (typeId !in goSupportedConstantTypes) {
+                            error("Constants extraction: $type is a unsupported constant type")
+                        }
+                        val values = rawValues.map { rawValue ->
+                            rawValueOfGoPrimitiveTypeToValue(typeId, rawValue, intSize)
+                        }
+                        constants.compute(typeId) { _, v -> if (v == null) values else v + values }
+                    }
                     GoUtFunction(
                         analyzedFunction.name,
                         analyzedFunction.modifiedName,
                         parameters,
                         resultTypes,
+                        analyzedFunction.requiredImports,
+                        constants,
                         analyzedFunction.modifiedFunctionForCollectingTraces,
                         analyzedFunction.numberOfAllStatements,
                         sourceFile
@@ -90,7 +106,7 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notSupportedFunctionsNames,
                     analysisResult.notFoundFunctionsNames
                 )
-            }
+            } to intSize
         } finally {
             // TODO correctly?
             analysisTargetsFile.delete()
@@ -115,7 +131,15 @@ object GoSourceCodeAnalyzer {
     }
 
     private fun getGoCodeAnalyzerSourceFilesNames(): List<String> {
-        return listOf("main.go", "analyzer_core.go", "analysis_targets.go", "analysis_results.go", "cover.go")
+        return listOf(
+            "main.go",
+            "analyzer_core.go",
+            "analysis_targets.go",
+            "analysis_results.go",
+            "function_modifier.go",
+            "imports_collector.go",
+            "constant_extractor.go"
+        )
     }
 
     private fun createAnalysisTargetsFileName(): String {

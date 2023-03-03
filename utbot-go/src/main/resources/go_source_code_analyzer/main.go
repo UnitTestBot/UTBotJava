@@ -38,23 +38,68 @@ func analyzeTarget(target AnalysisTarget) (*AnalysisResult, error) {
 
 	dir, _ := filepath.Split(target.AbsoluteFilePath)
 	cfg := packages.Config{
-		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps | packages.NeedImports,
-		Dir:  dir,
+		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps |
+			packages.NeedImports | packages.NeedSyntax | packages.NeedFiles | packages.NeedCompiledGoFiles,
+		Dir: dir,
 	}
-	pkgs, err := packages.Load(&cfg, "")
+	pkgs, err := packages.Load(&cfg, fmt.Sprintf("file=%s", target.AbsoluteFilePath))
 	if err != nil {
 		return nil, err
 	}
 
 	for _, pkg := range pkgs {
 		if pkg.Name == packageName {
+			if len(pkg.CompiledGoFiles) != len(pkg.Syntax) {
+				return nil, fmt.Errorf("parsing returned nil for some files")
+			}
+			index := 0
+			for ; index < len(pkg.CompiledGoFiles); index++ {
+				p1, err := filepath.Abs(pkg.CompiledGoFiles[index])
+				checkError(err)
+				p2, err := filepath.Abs(target.AbsoluteFilePath)
+				checkError(err)
+
+				if p1 == p2 {
+					break
+				}
+			}
+			if index == len(pkg.CompiledGoFiles) {
+				return nil, fmt.Errorf("target file not found in compiled go files")
+			}
+
+			allImportsInFile := map[Import]bool{}
+			for _, i := range pkg.Syntax[index].Imports {
+				packagePath := i.Path.Value[1 : len(i.Path.Value)-1]
+				pkgName := pkg.Imports[packagePath].Name
+				p := Package{
+					PackageName: pkgName,
+					PackagePath: packagePath,
+				}
+
+				var alias string
+				if i.Name.String() != "<nil>" {
+					alias = i.Name.String()
+				}
+
+				allImportsInFile[Import{Package: p, Alias: alias}] = true
+			}
+
 			// collect required info about selected functions
 			analyzedFunctions, notSupportedFunctionsNames, notFoundFunctionsNames :=
-				collectTargetAnalyzedFunctions(pkg.Fset, pkg.TypesInfo, target.TargetFunctionsNames)
+				collectTargetAnalyzedFunctions(
+					pkg.Fset,
+					pkg.TypesInfo,
+					target.TargetFunctionsNames,
+					allImportsInFile,
+					Package{
+						PackageName: pkg.Name,
+						PackagePath: pkg.PkgPath,
+					},
+				)
 
 			return &AnalysisResult{
 				AbsoluteFilePath:           target.AbsoluteFilePath,
-				PackageName:                packageName,
+				SourcePackage:              Package{PackageName: packageName, PackagePath: pkg.PkgPath},
 				AnalyzedFunctions:          analyzedFunctions,
 				NotSupportedFunctionsNames: notSupportedFunctionsNames,
 				NotFoundFunctionsNames:     notFoundFunctionsNames,

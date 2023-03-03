@@ -102,6 +102,13 @@ public class ExceptionExamples {
         return new IllegalArgumentException("Here we are: " + Math.sqrt(10));
     }
 
+    public int hangForSeconds(int seconds) throws InterruptedException {
+        for (int i = 0; i < seconds; i++) {
+            Thread.sleep(1000);
+        }
+        return seconds;
+    }
+
     public int dontCatchDeepNestedThrow(int i) {
         return callNestedWithThrow(i);
     }

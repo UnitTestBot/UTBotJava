@@ -8,12 +8,16 @@ on:
           description: "It adds minor release indicator to version."
           required: false
           default: 'none'
-
         version-postfix:
           type: string
           description: "It adds postfix (alpha or beta) to version (optional)."
           required: false
           default: no-postfix
+        upload-artifact:
+          type: string
+          description: "Upload artifacts or not"
+          required: false
+          default: false
 
   workflow_dispatch:
     inputs:
@@ -28,7 +32,6 @@ on:
           - '2'
           - '3'
           - '4'
-
         version-postfix:
           type: choice
           description: "It adds alpha or beta postfix to version."
@@ -39,48 +42,60 @@ on:
           - no-postfix
           - alpha
           - beta
+        upload-artifact:
+          type: choice
+          description: "Upload artifacts or not"
+          required: false
+          default: true
+          options:
+          - true
+          - false
 
 jobs:
     publish_plugin_and_cli:
+      strategy:
+        fail-fast: false  # force to execute all jobs even though some of them have failed
+        matrix:
+          configuration:
+            - plugin_type: IC
+              extra_options: "-PideType=IC"
+            - plugin_type: IU
+              extra_options: "-PideType=IU"
       runs-on: ubuntu-20.04
       container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
-      
       steps:
-      - name: Print environment variables
-        run: printenv
-
       - uses: actions/checkout@v3
 
+      # "You can make an environment variable available to any subsequent steps in a workflow job by
+      # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
       - name: Set environment variables
         run: |
-          # "You can make an environment variable available to any subsequent steps in a workflow job by 
-          # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
           echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
           echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
-
       - name: Set production version
         if: ${{ github.event.inputs.version-postfix == 'no-postfix-prod' || github.event.inputs.version-postfix == 'alpha' || github.event.inputs.version-postfix == 'beta' }}
         run: |
           echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
-
       - name: Set version for minor release
         if: ${{ github.event.inputs.minor-release != 'none' }}
         run: |
           echo "VERSION=${{ env.VERSION }}.${{ github.event.inputs.minor-release }}" >> $GITHUB_ENV
-
       - name: Create version with postfix
         if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
         run:
           echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
+      - name: Print environment variables
+        run: printenv
 
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
-          gradle clean buildPlugin --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
+          gradle clean buildPlugin --no-daemon --build-cache --no-parallel ${{ matrix.configuration.extra_options }} -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
           cd utbot-intellij/build/distributions
           unzip utbot-intellij-${{ env.VERSION }}.zip
           rm utbot-intellij-${{ env.VERSION }}.zip
 
       - name: Archive UTBot IntelliJ IDEA plugin
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-intellij-${{ env.VERSION }}
@@ -90,8 +105,9 @@ jobs:
         run: |
           cd utbot-cli
           gradle clean build --no-daemon --build-cache --no-parallel -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options=-Xmx4g -PsemVer=${{ env.VERSION }}
-          
+
       - name: Archive UTBot CLI
+        if: ${{ inputs.upload-artifact == 'true' && matrix.configuration.plugin_type == 'IC' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-cli-${{ env.VERSION }}

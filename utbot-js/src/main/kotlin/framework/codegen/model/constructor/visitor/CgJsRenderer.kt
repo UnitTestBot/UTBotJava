@@ -22,6 +22,7 @@ import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgFieldAccess
 import org.utbot.framework.codegen.domain.models.CgForLoop
 import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgGetKotlinClass
 import org.utbot.framework.codegen.domain.models.CgGetLength
@@ -39,7 +40,6 @@ import org.utbot.framework.codegen.domain.models.CgStaticsRegion
 import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgTestMethod
-import org.utbot.framework.codegen.domain.models.CgThrowStatement
 import org.utbot.framework.codegen.domain.models.CgTypeCast
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
@@ -282,10 +282,6 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         visit(element as CgMethod)
     }
 
-    override fun visit(element: CgThrowStatement) {
-        // TODO: Should we render throw statement right here?
-    }
-
     override fun visit(element: CgClassBody) {
         // render regions for test methods
         for ((i, region) in (element.methodRegions + element.nestedClassRegions).withIndex()) {
@@ -300,6 +296,10 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
+        throw UnsupportedOperationException()
+    }
+
+    override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
         throw UnsupportedOperationException()
     }
 

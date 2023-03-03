@@ -93,6 +93,19 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 			ElementType: arrayElemType,
 			Length:      length,
 		}
+	case *types.Slice:
+		sliceType := typ.(*types.Slice)
+
+		sliceElemType, err := toAnalyzedType(sliceType.Elem())
+		checkError(err)
+
+		elemTypeName := sliceElemType.GetName()
+		name := fmt.Sprintf("[]%s", elemTypeName)
+
+		result = AnalyzedSliceType{
+			Name:        name,
+			ElementType: sliceElemType,
+		}
 	case *types.Interface:
 		namedType := typ.(*types.Named)
 		name := namedType.Obj().Name()
@@ -134,6 +147,9 @@ func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
 	if arrayType, ok := underlyingType.(*types.Array); ok {
 		return checkTypeIsSupported(arrayType.Elem(), isResultType)
 	}
+	if sliceType, ok := underlyingType.(*types.Slice); ok {
+		return checkTypeIsSupported(sliceType.Elem(), isResultType)
+	}
 	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
 		return interfaceType == errorInterface
 	}
@@ -169,7 +185,17 @@ func checkIsSupported(signature *types.Signature) bool {
 	return true
 }
 
-func collectTargetAnalyzedFunctions(fset *token.FileSet, info *types.Info, targetFunctionsNames []string) (
+func createNewFunctionName(funcName string) string {
+	return "__" + funcName + "__"
+}
+
+func collectTargetAnalyzedFunctions(
+	fset *token.FileSet,
+	info *types.Info,
+	targetFunctionsNames []string,
+	allImportsInFile map[Import]bool,
+	sourcePackage Package,
+) (
 	analyzedFunctions []AnalyzedFunction,
 	notSupportedFunctionsNames []string,
 	notFoundFunctionsNames []string,
@@ -178,29 +204,34 @@ func collectTargetAnalyzedFunctions(fset *token.FileSet, info *types.Info, targe
 	notSupportedFunctionsNames = []string{}
 	notFoundFunctionsNames = []string{}
 
-	selectAll := len(targetFunctionsNames) == 0
 	foundTargetFunctionsNamesMap := map[string]bool{}
 	for _, functionName := range targetFunctionsNames {
 		foundTargetFunctionsNamesMap[functionName] = false
+	}
+
+	var blankImports []Import
+	for i := range allImportsInFile {
+		if i.Alias == "_" {
+			blankImports = append(blankImports, i)
+		}
 	}
 
 	for ident, obj := range info.Defs {
 		switch typedObj := obj.(type) {
 		case *types.Func:
 			analyzedFunction := AnalyzedFunction{
-				Name:         typedObj.Name(),
-				ModifiedName: createNewFunctionName(typedObj.Name()),
-				Parameters:   []AnalyzedFunctionParameter{},
-				ResultTypes:  []AnalyzedType{},
-				position:     typedObj.Pos(),
+				Name:            typedObj.Name(),
+				ModifiedName:    createNewFunctionName(typedObj.Name()),
+				Parameters:      []AnalyzedFunctionParameter{},
+				ResultTypes:     []AnalyzedType{},
+				RequiredImports: []Import{},
+				position:        typedObj.Pos(),
 			}
 
-			if !selectAll {
-				if isFound, ok := foundTargetFunctionsNamesMap[analyzedFunction.Name]; !ok || isFound {
-					continue
-				} else {
-					foundTargetFunctionsNamesMap[analyzedFunction.Name] = true
-				}
+			if isFound, ok := foundTargetFunctionsNamesMap[analyzedFunction.Name]; !ok || isFound {
+				continue
+			} else {
+				foundTargetFunctionsNamesMap[analyzedFunction.Name] = true
 			}
 
 			signature := typedObj.Type().(*types.Signature)
@@ -219,7 +250,8 @@ func collectTargetAnalyzedFunctions(fset *token.FileSet, info *types.Info, targe
 						AnalyzedFunctionParameter{
 							Name: parameter.Name(),
 							Type: parameterType,
-						})
+						},
+					)
 				}
 			}
 			if results := signature.Results(); results != nil {
@@ -236,11 +268,23 @@ func collectTargetAnalyzedFunctions(fset *token.FileSet, info *types.Info, targe
 			funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
 			funcDecl.Name = ast.NewIdent(analyzedFunction.ModifiedName)
 
-			visitor := Visitor{
-				counter:         0,
-				newFunctionName: analyzedFunction.ModifiedName,
+			constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
+			ast.Walk(&constantExtractor, funcDecl)
+			analyzedFunction.Constants = constantExtractor.constants
+
+			functionModifier := FunctionModifier{lineCounter: 0}
+			ast.Walk(&functionModifier, funcDecl)
+
+			importsCollector := ImportsCollector{
+				info:             info,
+				requiredImports:  map[Import]bool{},
+				allImportsInFile: allImportsInFile,
+				sourcePackage:    sourcePackage,
 			}
-			ast.Walk(&visitor, funcDecl)
+			ast.Walk(&importsCollector, funcDecl)
+			for _, i := range blankImports {
+				importsCollector.requiredImports[i] = true
+			}
 
 			var modifiedFunction bytes.Buffer
 			cfg := printer.Config{
@@ -251,8 +295,12 @@ func collectTargetAnalyzedFunctions(fset *token.FileSet, info *types.Info, targe
 			err := cfg.Fprint(&modifiedFunction, fset, funcDecl)
 			checkError(err)
 
+			for i := range importsCollector.requiredImports {
+				analyzedFunction.RequiredImports = append(analyzedFunction.RequiredImports, i)
+			}
 			analyzedFunction.ModifiedFunctionForCollectingTraces = modifiedFunction.String()
-			analyzedFunction.NumberOfAllStatements = visitor.counter
+			analyzedFunction.NumberOfAllStatements = functionModifier.lineCounter
+
 			analyzedFunctions = append(analyzedFunctions, analyzedFunction)
 		}
 	}

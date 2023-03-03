@@ -8,6 +8,7 @@ import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -98,15 +99,17 @@ object PythonTestGenerationProcessor {
                 fileOfMethod = pythonFilePath,
                 isCancelled = isCanceled,
                 timeoutForRun = timeoutForRun,
-                until = startTime + timeout,
                 sourceFileContent = pythonFileContent,
                 mypyStorage = mypyStorage,
                 mypyReportLine = report,
                 mypyConfigFile = mypyConfigFile,
             )
 
-            val tests = pythonMethods.map { method ->
-                testCaseGenerator.generate(method)
+            val until = startTime + timeout
+            val tests = pythonMethods.mapIndexed { index, method ->
+                val methodsLeft = pythonMethods.size - index
+                val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
+                testCaseGenerator.generate(method, localUntil)
             }
 
             val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
@@ -198,9 +201,12 @@ object PythonTestGenerationProcessor {
                 )
                 val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->
+                        val intRange = testSet.executions.indices
+                        val clusterInfo = listOf(Pair(UtClusterInfo("FUZZER"), intRange))
                         CgMethodTestSet(
                             executableId = methodIds[testSet.method] as ExecutableId,
-                            executions = testSet.executions
+                            executions = testSet.executions,
+                            clustersInfo = clusterInfo,
                         )
                     },
                     allImports

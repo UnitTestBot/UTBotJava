@@ -42,6 +42,7 @@ import org.utbot.python.newtyping.pythonAnyType
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.framework.codegen.toPythonRawString
+import org.utbot.python.newtyping.pythonDescription
 
 class PythonCodeGenerator(
     classUnderTest: ClassId,
@@ -113,7 +114,7 @@ class PythonCodeGenerator(
                 val executorModuleName = "utbot_executor.executor"
                 val executorModuleNameAlias = "__utbot_executor"
                 val executorFunctionName = "$executorModuleNameAlias.run_calculate_function_value"
-                val failArgumentsFunctionName = "$executorModuleNameAlias.fail_arguments_initialization"
+                val failArgumentsFunctionName = "$executorModuleNameAlias.fail_argument_initialization"
 
                 val importExecutor = PythonUserImport(executorModuleName, alias_ = executorModuleNameAlias)
                 val importSys = PythonSystemImport("sys")
@@ -133,12 +134,12 @@ class PythonCodeGenerator(
                 val outputPath = CgLiteral(pythonStrClassId, fileForOutputName.toPythonRawString())
                 val databasePath = CgLiteral(pythonStrClassId, coverageDatabasePath.toPythonRawString())
 
-                val containingClass = method.containingPythonClassId
+                val containingClass = method.containingPythonClass
                 var functionTextName =
                     if (containingClass == null)
                         method.name
                     else
-                        "${containingClass.simpleName}.${method.name}"
+                        "${containingClass.pythonDescription().name.name}.${method.name}"
                 if (functionModule.isNotEmpty()) {
                     functionTextName = "$functionModule.$functionTextName"
                 }
@@ -149,32 +150,35 @@ class PythonCodeGenerator(
                     CgVariable(argument.name, argument.annotation?.let { PythonClassId(it) } ?: pythonAnyClassId)
                 }
 
-                var argumentsTryCatch = tryBlock {
-                    methodArguments.zip(arguments).map { (model, argument) ->
-                        if (model is PythonTreeModel) {
-                            val obj =
-                                (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor)
-                                    .getOrCreateVariable(model)
-                            +CgAssignment(
-                                argument,
-                                (obj as CgPythonTree).value
-                            )
-                        } else {
-                            +CgAssignment(argument, CgLiteral(model.classId, model.toString()))
+                if (method.arguments.isNotEmpty()) {
+                    var argumentsTryCatch = tryBlock {
+                        methodArguments.zip(arguments).map { (model, argument) ->
+                            if (model is PythonTreeModel) {
+                                val obj =
+                                    (context.cgLanguageAssistant.getVariableConstructorBy(context) as PythonCgVariableConstructor)
+                                        .getOrCreateVariable(model)
+                                +CgAssignment(
+                                    argument,
+                                    (obj as CgPythonTree).value
+                                )
+                            } else {
+                                +CgAssignment(argument, CgLiteral(model.classId, model.toString()))
+                            }
                         }
                     }
-                }
-                argumentsTryCatch = argumentsTryCatch.catch(PythonClassId("builtins.Exception")) { exception ->
-                    +CgPythonFunctionCall(
-                        pythonNoneClassId,
-                        failArgumentsFunctionName,
-                        listOf(
-                            outputPath,
-                            exception,
+                    argumentsTryCatch = argumentsTryCatch.catch(PythonClassId("builtins.Exception")) { exception ->
+                        +CgPythonFunctionCall(
+                            pythonNoneClassId,
+                            failArgumentsFunctionName,
+                            listOf(
+                                outputPath,
+                                exception,
+                            )
                         )
-                    )
-                    emptyLine()
-                    +CgPythonRepr(pythonAnyClassId, "sys.exit()")
+                        emptyLine()
+                        +CgPythonRepr(pythonAnyClassId, "sys.exit()")
+                    }
+                    argumentsTryCatch.accept(renderer)
                 }
 
                 val args = CgPythonList(emptyList())
@@ -195,7 +199,6 @@ class PythonCodeGenerator(
                     )
                 )
 
-                argumentsTryCatch.accept(renderer)
                 executorCall.accept(renderer)
 
                 renderer.toString()

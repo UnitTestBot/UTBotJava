@@ -26,12 +26,12 @@ func_for_P(S())
 
 
 class R(Protocol):
-    def f(self) -> R:
+    def f(self) -> 'R':
         ...
 
 
 class RImpl:
-    def f(self) -> RImpl:
+    def f(self) -> 'RImpl':
         return self
 
 

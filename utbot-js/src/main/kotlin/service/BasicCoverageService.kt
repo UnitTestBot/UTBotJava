@@ -31,7 +31,7 @@ class BasicCoverageService(
                 val json = JSONObject(rawResult)
                 coverageList.add(index to json.getJSONObject("s"))
                 val resultData = ResultData(
-                    rawString = json.get("result").toString(),
+                    rawString = if (json.has("result")) json.get("result").toString() else "undefined",
                     type = json.get("type").toString(),
                     index = index,
                     isNan = json.getBoolean("is_nan"),

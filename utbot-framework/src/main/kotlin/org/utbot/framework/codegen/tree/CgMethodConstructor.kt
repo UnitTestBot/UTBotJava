@@ -577,6 +577,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val modelWithField = ModelWithField(expectedModel, expectedModelField)
         if (modelWithField in visitedModels) return
 
+        @Suppress("NAME_SHADOWING")
         var expected = expected
         if (expected == null) {
             require(!needExpectedDeclaration(expectedModel))
@@ -640,7 +641,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     val actualObject: CgVariable = when (codegenLanguage) {
                         CodegenLanguage.KOTLIN -> newVar(
                             baseType = objectClassId,
-                            baseName = variableConstructor.constructVarName("actualObject"),
+                            baseName = nameGenerator.variableName("actualObject"),
                             init = { CgTypeCast(objectClassId, actual) }
                         )
                         else -> actual
@@ -754,7 +755,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         return
                     }
 
-                    if (expected.hasNotParametrizedCustomEquals()) {
+                    // We can use overridden equals if we have one, but not for mocks.
+                    if (expected.hasNotParametrizedCustomEquals() && !expectedModel.isMock) {
                         // We rely on already existing equals
                         currentBlock += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
                         currentBlock += assertions[assertEquals](expected, actual).toStatement()
@@ -793,7 +795,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     ): CgDeclaration {
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
-            variableConstructor.constructVarName("${expected.name}Size"),
+            nameGenerator.variableName("${expected.name}Size"),
             expected.length(this@CgMethodConstructor)
         )
         currentBlock += cgGetLengthDeclaration
@@ -847,13 +849,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 statements = block {
                     val expectedNestedElement = newVar(
                         baseType = expected.type.elementClassId!!,
-                        baseName = variableConstructor.constructVarName("${expected.name}NestedElement"),
+                        baseName = nameGenerator.variableName("${expected.name}NestedElement"),
                         init = { CgArrayElementAccess(expected, i) }
                     )
 
                     val actualNestedElement = newVar(
                         baseType = actual.type.elementClassId!!,
-                        baseName = variableConstructor.constructVarName("${actual.name}NestedElement"),
+                        baseName = nameGenerator.variableName("${actual.name}NestedElement"),
                         init = { CgArrayElementAccess(actual, i) }
                     )
 

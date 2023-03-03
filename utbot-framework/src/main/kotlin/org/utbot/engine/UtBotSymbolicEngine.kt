@@ -471,7 +471,7 @@ class UtBotSymbolicEngine(
         val solver = state.solver
         val parameters = state.parameters.map { it.value }
         val symbolicResult = requireNotNull(state.methodResult?.symbolicResult) { "The state must have symbolicResult" }
-        val holder = requireNotNull(solver.lastStatus as? UtSolverStatusSAT) { "The state must be SAT!" }
+        val holder = (solver.lastStatus as? UtSolverStatusSAT) ?: return
 
         val predictedTestName = Predictors.testName.predict(state.path)
         Predictors.testName.provide(state.path, predictedTestName, "")

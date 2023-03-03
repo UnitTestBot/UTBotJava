@@ -23,6 +23,7 @@ import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
@@ -58,9 +59,21 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
+                    if (!(checkAndInstallRequirement(
+                            model.project,
+                            model.pathToNPM,
+                            mochaData
+                        ) && checkAndInstallRequirement(
+                            model.project,
+                            model.pathToNPM,
+                            nycData
+                        ) && checkAndInstallRequirement(
+                            model.project,
+                            model.pathToNPM,
+                            ternData
+                        ))
+                    ) return@invokeLater
+
                     createDialog(model)?.let { dialogWindow ->
                         if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
@@ -271,17 +284,18 @@ fun checkAndInstallRequirement(
     project: Project,
     pathToNPM: String,
     requirement: PackageData,
-) {
+): Boolean {
     if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
-        installMissingRequirement(project, pathToNPM, requirement)
+        return installMissingRequirement(project, pathToNPM, requirement)
     }
+    return true
 }
 
 private fun installMissingRequirement(
     project: Project,
     pathToNPM: String,
     requirement: PackageData,
-) {
+): Boolean {
     val message = """
             Requirement is not installed:
             ${requirement.packageName}
@@ -297,15 +311,25 @@ private fun installMissingRequirement(
     )
 
     if (result == Messages.CANCEL)
-        return
+        return false
 
-    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
-
-    if (errorText.isNotEmpty()) {
+    try {
+        val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
+        if (errorText.isNotEmpty()) {
+            showErrorDialogLater(
+                project,
+                "Requirements installing failed with some reason:\n${errorText}",
+                "Requirement installation error"
+            )
+        }
+        return true
+    } catch (_: TimeoutException) {
         showErrorDialogLater(
             project,
-            "Requirements installing failed with some reason:\n${errorText}",
-            "Requirements error"
+            "Requirements installing failed due to the exceeded waiting time for the installation of the " +
+                    "npm package, check your internet connection.",
+            "Requirement installation error"
         )
+        return false
     }
 }

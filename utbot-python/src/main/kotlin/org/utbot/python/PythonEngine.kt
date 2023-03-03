@@ -173,9 +173,8 @@ class PythonEngine(
             val manager = PythonWorkerManager(
                 serverSocket,
                 pythonPath,
-                until,
-                { constructEvaluationInput(it) }
-            )
+                until
+            ) { constructEvaluationInput(it) }
             logger.info { "Executor manager was created successfully" }
 
             fun fuzzingResultHandler(

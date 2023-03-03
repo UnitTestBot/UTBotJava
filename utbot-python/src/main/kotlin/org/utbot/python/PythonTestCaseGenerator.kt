@@ -2,12 +2,10 @@ package org.utbot.python
 
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.parsers.python.PythonParser
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.python.code.PythonCode
 import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
@@ -48,32 +46,6 @@ class PythonTestCaseGenerator(
 ) {
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
-
-    private fun findMethodByDescription(mypyStorage: MypyAnnotationStorage, method: PythonMethodHeader): PythonMethod {
-        var containingClass: CompositeType? = null
-        val containingClassName = method.containingPythonClassId?.simpleName
-        val functionDef = if (containingClassName == null) {
-            mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
-        } else {
-            containingClass =
-                mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
-            mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
-                it.meta.name == method.name
-            }
-        } as? PythonFunctionDefinition ?: error("Selected method is not a function definition")
-
-        val parsedFile = PythonParser(sourceFileContent).Module()
-        val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
-
-        return PythonMethod(
-            name = method.name,
-            moduleFilename = method.moduleFilename,
-            containingPythonClass = containingClass,
-            codeAsString = funcDef.body.source,
-            definition = functionDef,
-            ast = funcDef.body
-        )
-    }
 
     private fun constructCollectors(
         mypyStorage: MypyAnnotationStorage,
@@ -146,11 +118,10 @@ class PythonTestCaseGenerator(
         }.take(maxSubstitutions)
     }
 
-    fun generate(methodDescription: PythonMethodHeader, until: Long): PythonTestSet {
+    fun generate(method: PythonMethod, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
-        val method = findMethodByDescription(mypyStorage, methodDescription)
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->

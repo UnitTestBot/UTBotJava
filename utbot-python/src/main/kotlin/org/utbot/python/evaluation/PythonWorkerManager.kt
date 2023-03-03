@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.python.FunctionArguments
 import org.utbot.python.utils.TemporaryFileManager
+import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
 import java.net.ServerSocket
 import java.net.Socket
@@ -37,17 +38,16 @@ class PythonWorkerManager(
             "localhost",
             serverSocket.localPort.toString(),
             "--logfile", logfile.absolutePath,
-            "--loglevel", "DEBUG",
+            //"--loglevel", "DEBUG",
         ))
         timeout = until - processStartTime
         workerSocket = try {
             serverSocket.soTimeout = timeout.toInt()
             serverSocket.accept()
         } catch (e: SocketTimeoutException) {
-            val processHasExited = process.waitFor(timeout, TimeUnit.MILLISECONDS)
-            if (!processHasExited) {
-                process.destroy()
-            }
+            val result = getResult(process, 10)
+            logger.info("utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}.")
+            process.destroy()
             throw TimeoutException("Worker not connected")
         }
         logger.debug { "Worker connected successfully" }

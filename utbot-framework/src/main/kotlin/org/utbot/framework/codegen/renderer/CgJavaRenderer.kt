@@ -314,8 +314,10 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
             for (statement in element.statements) {
                 statement.accept(this)
             }
-            // break statement in the end
-            CgBreakStatement.accept(this)
+
+            if (element.addBreakStatementToEnd) {
+                CgBreakStatement.accept(this)
+            }
         }
     }
 

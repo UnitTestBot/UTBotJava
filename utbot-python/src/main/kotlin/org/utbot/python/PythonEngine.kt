@@ -56,7 +56,7 @@ class PythonEngine(
         cache[key] = result
         if (cache.size > MAX_CACHE_SIZE) {
             val elemToDelete = cache.keys.maxBy { (_, args) ->
-                args.fold(0) { acc, arg -> acc + arg.tree.diversity() }
+                args.fold(0) { acc, arg -> arg.commonDiversity(acc) }
             }
             cache.remove(elemToDelete)
         }

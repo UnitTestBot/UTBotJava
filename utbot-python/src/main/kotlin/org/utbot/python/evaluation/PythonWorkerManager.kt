@@ -6,10 +6,10 @@ import org.utbot.python.FunctionArguments
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.getResult
 import org.utbot.python.utils.startProcess
+import java.lang.Long.max
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
-import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
 
@@ -40,12 +40,13 @@ class PythonWorkerManager(
             "--logfile", logfile.absolutePath,
             //"--loglevel", "DEBUG",
         ))
-        timeout = until - processStartTime
+        timeout = max(until - processStartTime, 0)
         workerSocket = try {
             serverSocket.soTimeout = timeout.toInt()
             serverSocket.accept()
         } catch (e: SocketTimeoutException) {
-            val result = getResult(process, 10)
+            timeout = max(until - processStartTime, 0)
+            val result = getResult(process, timeout)
             logger.info("utbot_executor exit value: ${result.exitValue}. stderr: ${result.stderr}.")
             process.destroy()
             throw TimeoutException("Worker not connected")

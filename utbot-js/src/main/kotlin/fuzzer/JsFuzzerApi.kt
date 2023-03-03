@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
@@ -19,7 +20,7 @@ class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecution
 class JsMethodDescription(
     val name: String,
     parameters: List<JsClassId>,
-    val concreteValues: Collection<FuzzedConcreteValue>,
+    val concreteValues: Collection<JsFuzzedConcreteValue>,
     val thisInstance: JsClassId? = null,
     val tracer: Trie<JsStatement, *>
 ) : Description<JsClassId>(parameters) {
@@ -28,7 +29,7 @@ class JsMethodDescription(
         name: String,
         parameters: List<JsClassId>,
         classId: JsClassId,
-        concreteValues: Collection<FuzzedConcreteValue>,
+        concreteValues: Collection<JsFuzzedConcreteValue>,
         tracer: Trie<JsStatement, *>
     ) : this(
         name,
@@ -60,14 +61,36 @@ data class JsStatement(
 
 data class JsFuzzedValue(
     val model: UtModel,
-    val summary: String? = null,
+    var summary: String? = null,
 )
 
 data class JsFuzzedConcreteValue(
     val classId: ClassId,
     val value: Any,
-    val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
+    val fuzzedContext: JsFuzzedContext = JsFuzzedContext.Unknown,
 )
+
+enum class JsFuzzedContext {
+    EQ,
+    NE,
+    GT,
+    GE,
+    LT,
+    LE,
+    Unknown;
+
+    fun reverse(): JsFuzzedContext = when (this) {
+        EQ -> NE
+        NE -> EQ
+        GT -> LE
+        LT -> GE
+        LE -> GT
+        GE -> LT
+        Unknown -> Unknown
+    }
+}
+
+fun UtModel.fuzzed(block: JsFuzzedValue.() -> Unit = {}): JsFuzzedValue = JsFuzzedValue(this).apply(block)
 
 object JsIdProvider {
     private var _id = AtomicInteger(0)

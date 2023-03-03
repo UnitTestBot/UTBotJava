@@ -91,7 +91,7 @@ class JsCgVariableConstructor(ctx: CgContext) : CgVariableConstructor(ctx) {
         }
     }
 
-    internal fun loopInitialization(
+    private fun loopInitialization(
         variableType: ClassId,
         baseVariableName: String,
         initializer: Any?

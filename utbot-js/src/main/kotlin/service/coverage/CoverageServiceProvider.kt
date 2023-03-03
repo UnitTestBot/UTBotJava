@@ -5,6 +5,7 @@ import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isExportable
 import framework.api.js.util.isUndefined
+import fuzzer.JsFuzzedValue
 import fuzzer.JsMethodDescription
 import java.lang.StringBuilder
 import org.utbot.framework.plugin.api.UtAssembleModel
@@ -63,7 +64,7 @@ function check_value(value, json) {
     }
 
     fun get(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<JsFuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         return when (mode) {
@@ -80,7 +81,7 @@ function check_value(value, json) {
     }
 
     private fun runBasicCoverageAnalysis(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<JsFuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -104,7 +105,7 @@ function check_value(value, json) {
     }
 
     private fun runFastCoverageAnalysis(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<JsFuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -139,7 +140,7 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
     }
 
     private fun makeStringForRunJs(
-        fuzzedValue: List<FuzzedValue>,
+        fuzzedValue: List<JsFuzzedValue>,
         method: JsMethodId,
         containingClass: String?,
         covFunName: String,
@@ -171,7 +172,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     }
 
     private fun makeCallFunctionString(
-        fuzzedValue: List<FuzzedValue>,
+        fuzzedValue: List<JsFuzzedValue>,
         method: JsMethodId,
         containingClass: String?,
         index: Int
@@ -192,7 +193,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         return paramsInit + callString
     }
 
-    private fun initParams(fuzzedValue: List<FuzzedValue>): String {
+    private fun initParams(fuzzedValue: List<JsFuzzedValue>): String {
         val actualParams = description.thisInstance?.let { fuzzedValue.drop(1) } ?: fuzzedValue
         return actualParams.mapIndexed { index, param ->
             val varName = "param$index"

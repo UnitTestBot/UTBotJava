@@ -5,6 +5,8 @@ import com.google.javascript.rhino.Node
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsStringClassId
+import fuzzer.JsFuzzedConcreteValue
+import fuzzer.JsFuzzedContext
 
 
 import parser.JsParserUtils.getAnyValue
@@ -14,22 +16,21 @@ import parser.JsParserUtils.toFuzzedContextComparisonOrNull
 
 class JsFuzzerAstVisitor : IAstVisitor {
 
-    private var lastFuzzedOpGlobal: FuzzedContext = FuzzedContext.Unknown
-    val fuzzedConcreteValues = mutableSetOf<FuzzedConcreteValue>()
+    private var lastFuzzedOpGlobal: JsFuzzedContext = JsFuzzedContext.Unknown
+    val fuzzedConcreteValues = mutableSetOf<JsFuzzedConcreteValue>()
 
     override fun accept(rootNode: Node) {
         NodeUtil.visitPreOrder(rootNode) { node ->
             val currentFuzzedOp = node.toFuzzedContextComparisonOrNull()
             when {
-                node.isCase -> validateNode(node.firstChild?.getAnyValue(), FuzzedContext.Comparison.NE)
+                node.isCase -> validateNode(node.firstChild?.getAnyValue(), JsFuzzedContext.NE)
                 node.isCall -> {
-                    validateNode(node.getAnyValue(), FuzzedContext.Comparison.NE)
+                    validateNode(node.getAnyValue(), JsFuzzedContext.NE)
                 }
                 currentFuzzedOp != null -> {
                     lastFuzzedOpGlobal = currentFuzzedOp
                     validateNode(node.getBinaryExprLeftOperand().getAnyValue(), lastFuzzedOpGlobal)
-                    lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison)
-                            (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
+                    lastFuzzedOpGlobal = lastFuzzedOpGlobal.reverse()
                     validateNode(node.getBinaryExprRightOperand().getAnyValue(), lastFuzzedOpGlobal)
                 }
             }
@@ -37,11 +38,11 @@ class JsFuzzerAstVisitor : IAstVisitor {
 
     }
 
-    private fun validateNode(value: Any?, fuzzedOp: FuzzedContext) {
+    private fun validateNode(value: Any?, fuzzedOp: JsFuzzedContext) {
         when (value) {
             is String -> {
                 fuzzedConcreteValues.add(
-                    FuzzedConcreteValue(
+                    JsFuzzedConcreteValue(
                         jsStringClassId,
                         value.toString(),
                         fuzzedOp
@@ -51,7 +52,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
 
             is Boolean -> {
                 fuzzedConcreteValues.add(
-                    FuzzedConcreteValue(
+                    JsFuzzedConcreteValue(
                         jsBooleanClassId,
                         value,
                         fuzzedOp
@@ -60,7 +61,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
             }
 
             is Double -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsDoubleClassId, value, fuzzedOp))
+                fuzzedConcreteValues.add(JsFuzzedConcreteValue(jsDoubleClassId, value, fuzzedOp))
             }
         }
     }

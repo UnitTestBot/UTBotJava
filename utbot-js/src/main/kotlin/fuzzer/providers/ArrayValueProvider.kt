@@ -3,23 +3,23 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.util.defaultJsValueModel
 import framework.api.js.util.isJsArray
+import fuzzer.JsFuzzedValue
 import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
+import fuzzer.fuzzed
 import org.utbot.framework.plugin.api.UtArrayModel
-
-
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 
-class ArrayValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+class ArrayValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean = type.isJsArray
 
     override fun generate(
         description: JsMethodDescription,
         type: JsClassId
-    ) = sequence<Seed<JsClassId, FuzzedValue>> {
+    ) = sequence<Seed<JsClassId, JsFuzzedValue>> {
         yield(
             Seed.Collection(
                 construct = Routine.Collection {

@@ -5,26 +5,26 @@ import framework.api.js.JsMethodId
 import framework.api.js.util.isJsSet
 import framework.api.js.util.jsBasic
 import framework.api.js.util.jsUndefinedClassId
+import fuzzer.JsFuzzedValue
 import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
+import fuzzer.fuzzed
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-
-
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 
-object SetValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+object SetValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean = type.isJsSet
 
     override fun generate(
         description: JsMethodDescription,
         type: JsClassId
-    ) = sequence<Seed<JsClassId, FuzzedValue>> {
-        val modifications = mutableListOf<Routine.Call<JsClassId, FuzzedValue>>()
+    ) = sequence<Seed<JsClassId, JsFuzzedValue>> {
+        val modifications = mutableListOf<Routine.Call<JsClassId, JsFuzzedValue>>()
         jsBasic.forEach { typeParameter ->
             modifications += Routine.Call(listOf(typeParameter)) { instance, arguments ->
                 val model = instance.model as UtAssembleModel

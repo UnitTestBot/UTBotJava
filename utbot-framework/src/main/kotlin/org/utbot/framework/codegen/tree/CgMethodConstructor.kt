@@ -577,6 +577,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val modelWithField = ModelWithField(expectedModel, expectedModelField)
         if (modelWithField in visitedModels) return
 
+        @Suppress("NAME_SHADOWING")
         var expected = expected
         if (expected == null) {
             require(!needExpectedDeclaration(expectedModel))
@@ -754,7 +755,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         return
                     }
 
-                    if (expected.hasNotParametrizedCustomEquals()) {
+                    // We can use overridden equals if we have one, but not for mocks.
+                    if (expected.hasNotParametrizedCustomEquals() && !expectedModel.isMock) {
                         // We rely on already existing equals
                         currentBlock += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
                         currentBlock += assertions[assertEquals](expected, actual).toStatement()

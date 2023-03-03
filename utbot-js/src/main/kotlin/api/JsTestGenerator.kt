@@ -30,8 +30,8 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.UtFuzzedExecution
+
+
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import parser.JsAstScrapper

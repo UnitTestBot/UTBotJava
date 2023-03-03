@@ -10,7 +10,7 @@ import java.lang.StringBuilder
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.fuzzer.FuzzedValue
+
 import service.ContextOwner
 import service.InstrumentationService
 import service.ServiceContext

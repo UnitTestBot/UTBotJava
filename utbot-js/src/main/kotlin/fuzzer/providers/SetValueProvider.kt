@@ -10,8 +10,8 @@ import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
+
+
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider

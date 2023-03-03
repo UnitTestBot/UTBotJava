@@ -8,8 +8,8 @@ import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
+
+
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider

@@ -4,8 +4,8 @@ import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
 import fuzzer.JsMethodDescription
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
+
+
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.Bool

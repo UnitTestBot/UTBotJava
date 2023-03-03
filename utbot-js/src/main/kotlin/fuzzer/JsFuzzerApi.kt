@@ -3,10 +3,9 @@ package fuzzer
 import framework.api.js.JsClassId
 import framework.api.js.util.isClass
 import java.util.concurrent.atomic.AtomicInteger
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
@@ -43,7 +42,7 @@ class JsMethodDescription(
 class JsFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<JsStatement> = Trie.emptyNode()
-) : Feedback<JsClassId, FuzzedValue> {
+) : Feedback<JsClassId, JsFuzzedValue> {
 
     override fun equals(other: Any?): Boolean {
         val castOther = other as? JsFeedback
@@ -57,6 +56,17 @@ class JsFeedback(
 
 data class JsStatement(
     val number: Int
+)
+
+data class JsFuzzedValue(
+    val model: UtModel,
+    val summary: String? = null,
+)
+
+data class JsFuzzedConcreteValue(
+    val classId: ClassId,
+    val value: Any,
+    val fuzzedContext: FuzzedContext = FuzzedContext.Unknown,
 )
 
 object JsIdProvider {

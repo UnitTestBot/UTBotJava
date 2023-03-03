@@ -6,8 +6,8 @@ import framework.api.js.util.isJsArray
 import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
+
+
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider

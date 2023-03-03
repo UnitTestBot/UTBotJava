@@ -10,9 +10,6 @@ object JsTestGenerationSettings {
 
     const val fuzzingTimeout = 30_000L
 
-    // Default timeout for any operations with npm packages
-    const val npmPackageExecutorTimeout = 15L
-
     // Name of file under test when importing it.
     const val fileUnderTestAliases = "fileUnderTest"
 

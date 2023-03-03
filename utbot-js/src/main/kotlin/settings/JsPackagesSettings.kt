@@ -1,6 +1,5 @@
 package settings
 
-import settings.JsTestGenerationSettings.npmPackageExecutorTimeout
 import utils.JsCmdExec
 import utils.OsProvider
 
@@ -18,7 +17,7 @@ data class PackageData(
         val (inputText, _) = JsCmdExec.runCommand(
             dir = projectBasePath,
             shouldWait = true,
-            timeout = npmPackageExecutorTimeout,
+            timeout = 10,
             cmd = arrayOf("\"$pathToNpm\"", "list", npmListFlag)
         )
 
@@ -29,7 +28,7 @@ data class PackageData(
         val (inputText, _) = JsCmdExec.runCommand(
             dir = null,
             shouldWait = true,
-            timeout = npmPackageExecutorTimeout,
+            timeout = 10,
             cmd = arrayOf(OsProvider.getProviderByOs().getAbstractivePathTool(), packageName)
         )
 
@@ -40,7 +39,7 @@ data class PackageData(
         val (inputText, errorText) = JsCmdExec.runCommand(
             dir = projectBasePath,
             shouldWait = true,
-            timeout = npmPackageExecutorTimeout,
+            timeout = 10,
             cmd = arrayOf("\"$pathToNpm\"", "install", npmListFlag, packageName)
         )
 

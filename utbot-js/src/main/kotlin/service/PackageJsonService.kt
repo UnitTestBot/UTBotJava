@@ -1,8 +1,8 @@
 package service
 
+import org.json.JSONObject
 import java.io.File
 import java.io.FilenameFilter
-import org.json.JSONObject
 
 data class PackageJson(
     val isModule: Boolean,
@@ -36,7 +36,7 @@ class PackageJsonService(
         val configAsJson = JSONObject(configFile.readText())
         return PackageJson(
             isModule = configAsJson.optString("type") == "module",
-            deps = configAsJson.optJSONObject("dependencies").keySet() ?: emptySet()
+            deps = configAsJson.optJSONObject("dependencies")?.keySet() ?: emptySet()
         )
     }
 }

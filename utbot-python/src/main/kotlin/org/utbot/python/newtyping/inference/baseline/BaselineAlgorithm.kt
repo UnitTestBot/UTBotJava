@@ -11,6 +11,7 @@ import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
 import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
+import kotlin.random.Random
 
 private val EDGES_TO_LINK = listOf(
     EdgeSource.Identification,
@@ -32,6 +33,8 @@ class BaselineAlgorithm(
     private val initialErrorNumber: Int,
     private val configFile: File
 ) : TypeInferenceAlgorithm() {
+    private val random = Random(0)
+
     override suspend fun run(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
@@ -89,7 +92,7 @@ class BaselineAlgorithm(
 
     private fun chooseState(states: List<BaselineAlgorithmState>): BaselineAlgorithmState {
         val weights = states.map { 1.0 / (it.children * it.children + 1) }
-        return weightedRandom(states, weights)
+        return weightedRandom(states, weights, random)
     }
 
     private fun getInitialState(

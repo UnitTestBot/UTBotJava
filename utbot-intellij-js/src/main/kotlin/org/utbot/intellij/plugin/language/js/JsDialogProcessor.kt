@@ -18,7 +18,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
-import framework.codegen.Mocha
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
@@ -29,8 +28,14 @@ import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
+import settings.JsPackagesSettings.mochaData
+import settings.JsPackagesSettings.nycData
+import settings.JsPackagesSettings.ternData
 import settings.JsTestGenerationSettings.dummyClassName
+import settings.PackageData
 import utils.JsCmdExec
+import utils.OsProvider
+import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
 
@@ -45,28 +50,62 @@ object JsDialogProcessor {
         editor: Editor,
         file: JSFile
     ) {
-        val model = createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file)
+        val model =
+            createJsTestModel(project, srcModule, fileMethods, focusedMethod, containingFilePath, file) ?: return
         (object : Task.Backgroundable(
             project,
             "Check the requirements"
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    getFrameworkLibraryPath(Mocha.displayName.lowercase(), model)
-                    createDialog(model)?.let { dialogProcessor ->
-                        if (!dialogProcessor.showAndGet()) return@invokeLater
+                    checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
+                    checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
+                    checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
+                    createDialog(model)?.let { dialogWindow ->
+                        if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
                         runWriteAction {
                             with(FileDocumentManager.getInstance()) {
                                 saveDocument(editor.document)
                             }
                         }
-                        createTests(dialogProcessor.model, containingFilePath, editor)
+                        createTests(dialogWindow.model, containingFilePath, editor)
                     }
                 }
             }
         }).queue()
     }
+
+    private fun findNodeAndNPM(): Pair<String, String>? =
+        try {
+            val pathToNode = NodeJsLocalInterpreterManager.getInstance()
+                .interpreters.first().interpreterSystemIndependentPath
+            val (_, errorText) = JsCmdExec.runCommand(
+                shouldWait = true,
+                cmd = arrayOf("\"${pathToNode}\"", "-v")
+            )
+            if (errorText.isNotEmpty()) throw NoSuchElementException()
+            val pathToNPM =
+                pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
+            pathToNode to pathToNPM
+        } catch (e: NoSuchElementException) {
+            Messages.showErrorDialog(
+                "Node.js interpreter is not found in IDEA settings.\n" +
+                        "Please set it in Settings > Languages & Frameworks > Node.js",
+                "Requirement Error"
+            )
+            logger.error { "Node.js interpreter was not found in IDEA settings." }
+            null
+        } catch (e: IOException) {
+            Messages.showErrorDialog(
+                "Node.js interpreter path is corrupted in IDEA settings.\n" +
+                        "Please check Settings > Languages & Frameworks > Node.js",
+                "Requirement Error"
+            )
+            logger.error { "Node.js interpreter path is corrupted in IDEA settings." }
+            null
+        }
+
 
     private fun createJsTestModel(
         project: Project,
@@ -86,43 +125,23 @@ object JsDialogProcessor {
             showErrorDialogLater(project, errorMessage, "Test source roots not found")
             return null
         }
+        val (pathToNode, pathToNPM) = findNodeAndNPM() ?: return null
         return JsTestsModel(
             project = project,
             srcModule = srcModule,
             potentialTestModules = testModules,
             fileMethods = fileMethods,
             selectedMethods = if (focusedMethod != null) setOf(focusedMethod) else emptySet(),
-            file = file
+            file = file,
         ).apply {
             containingFilePath = filePath
+            this.pathToNode = pathToNode
+            this.pathToNPM = pathToNPM
         }
 
     }
 
-    private fun createDialog(
-        jsTestsModel: JsTestsModel?
-    ): JsDialogWindow? {
-        try {
-            jsTestsModel?.pathToNode = NodeJsLocalInterpreterManager.getInstance()
-                .interpreters.first().interpreterSystemIndependentPath
-            val (_, error) = JsCmdExec.runCommand(
-                shouldWait = true,
-                cmd = arrayOf("node", "-v")
-            )
-            if (error.readText().isNotEmpty()) throw NoSuchElementException()
-        } catch (e: NoSuchElementException) {
-            Messages.showErrorDialog(
-                "Node.js interpreter is not found in IDEA settings.\n" +
-                        "Please set it in Settings > Languages & Frameworks > Node.js",
-                "Requirement Error"
-            )
-            logger.error { "Node.js interpreter was not found in IDEA settings." }
-            return null
-        }
-        return jsTestsModel?.let {
-            JsDialogWindow(it)
-        }
-    }
+    private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
 
     private fun unblockDocument(project: Project, document: Document) {
         PsiDocumentManager.getInstance(project).apply {
@@ -164,7 +183,8 @@ object JsDialogProcessor {
                         pathToNPM = model.pathToNPM,
                         timeout = model.timeout,
                         coverageMode = model.coverageMode
-                    )
+                    ),
+                    isCancelled = { indicator.isCanceled }
                 )
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
@@ -247,11 +267,24 @@ object JsDialogProcessor {
     }
 }
 
-// TODO(MINOR): Add indicator.text for each installation
-fun installMissingRequirement(project: Project, pathToNPM: String, requirement: String) {
+fun checkAndInstallRequirement(
+    project: Project,
+    pathToNPM: String,
+    requirement: PackageData,
+) {
+    if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
+        installMissingRequirement(project, pathToNPM, requirement)
+    }
+}
+
+private fun installMissingRequirement(
+    project: Project,
+    pathToNPM: String,
+    requirement: PackageData,
+) {
     val message = """
             Requirement is not installed:
-            $requirement
+            ${requirement.packageName}
             Install it?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
@@ -266,9 +299,8 @@ fun installMissingRequirement(project: Project, pathToNPM: String, requirement: 
     if (result == Messages.CANCEL)
         return
 
-    val (_, errorStream) = installRequirement(pathToNPM, requirement, project.basePath)
+    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
 
-    val errorText = errorStream.readText()
     if (errorText.isNotEmpty()) {
         showErrorDialogLater(
             project,

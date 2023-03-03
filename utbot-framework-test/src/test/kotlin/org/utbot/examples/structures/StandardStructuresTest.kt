@@ -1,9 +1,5 @@
 package org.utbot.examples.structures
 
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
 import java.util.LinkedList
 import java.util.TreeMap
 import org.junit.jupiter.api.Disabled
@@ -13,8 +9,6 @@ import org.utbot.testcheckers.eq
 import org.utbot.testing.CodeGeneration
 import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
-import org.utbot.testing.keyContain
-import org.utbot.testing.keyMatch
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,
@@ -54,24 +48,6 @@ internal class StandardStructuresTest : UtValueTestCaseChecker(
 
     @Test
     fun testGetDeque() {
-        val dequeSummary = listOf<DocStatement>(
-            DocPreTagStatement(
-                listOf(
-                    DocRegularStmt("Test "),
-                    DocRegularStmt("executes conditions:\n"),
-                    DocRegularStmt("    "),
-                    DocCodeStmt("(deque instanceof LinkedList): False"),
-                    DocRegularStmt(",\n"),
-                    DocRegularStmt("    "),
-                    DocCodeStmt("(deque == null): True"),
-                    DocRegularStmt("\n"),
-                    DocRegularStmt("returns from: "),
-                    DocCodeStmt("return null;"),
-                    DocRegularStmt("\n")
-                )
-            )
-        )
-
         check(
             StandardStructures::getDeque,
             eq(4),
@@ -81,25 +57,7 @@ internal class StandardStructuresTest : UtValueTestCaseChecker(
             { d, r ->
                 d !is java.util.ArrayDeque<*> && d !is LinkedList && d != null && r !is java.util.ArrayDeque<*> && r !is LinkedList && r != null
             },
-            coverage = DoNotCalculate,
-            summaryTextChecks = listOf(
-                keyContain(DocCodeStmt("(deque instanceof ArrayDeque): True")),
-                keyContain(DocCodeStmt("(deque instanceof LinkedList): True")),
-                keyContain(DocCodeStmt("(deque == null): True")),
-                keyMatch(dequeSummary)
-            ),
-            summaryNameChecks = listOf(
-                keyMatch("testGetDeque_DequeInstanceOfArrayDeque"),
-                keyMatch("testGetDeque_DequeInstanceOfLinkedList"),
-                keyMatch("testGetDeque_DequeEqualsNull"),
-                keyMatch("testGetDeque_DequeNotEqualsNull"),
-            ),
-            summaryDisplayNameChecks = listOf(
-                keyContain("deque", "instance", "ArrayDeque"),
-                keyContain("deque", "instance", "LinkedList"),
-                keyContain("deque == null", "True"),
-                keyContain("deque == null", "False"),
-            )
+            coverage = DoNotCalculate
         )
     }
 }

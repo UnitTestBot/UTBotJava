@@ -22,6 +22,7 @@ import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.context.CgContextOwner
 import org.utbot.framework.codegen.domain.models.CgAnonymousFunction
 import org.utbot.framework.codegen.domain.models.CgAssignment
+import org.utbot.framework.codegen.domain.models.CgBreakStatement
 import org.utbot.framework.codegen.domain.models.CgConstructorCall
 import org.utbot.framework.codegen.domain.models.CgDeclaration
 import org.utbot.framework.codegen.domain.models.CgExecutableCall
@@ -37,11 +38,13 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCase
 import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.services.CgNameGenerator
 import org.utbot.framework.codegen.services.access.CgCallableAccessManager
 import org.utbot.framework.codegen.services.access.CgCallableAccessManagerImpl
+import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.tree.CgStatementConstructor
 import org.utbot.framework.codegen.tree.CgStatementConstructorImpl
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
 import org.utbot.framework.codegen.tree.CgVariableConstructor
 import org.utbot.framework.codegen.tree.hasAmbiguousOverloadsOf
 import org.utbot.framework.codegen.util.isAccessibleFrom
@@ -72,6 +75,7 @@ abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgCallableAccessManager by CgCallableAccessManagerImpl(context),
         CgStatementConstructor by CgStatementConstructorImpl(context) {
 
+    val nameGenerator: CgNameGenerator = getNameGeneratorBy(context)
     val variableConstructor: CgVariableConstructor by lazy { getVariableConstructorBy(context) }
 
     fun mockitoArgumentMatchersFor(executable: ExecutableId): Array<CgMethodCall> =
@@ -220,10 +224,9 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
 
         val mockClassCounter = CgDeclaration(
             atomicIntegerClassId,
-            variableConstructor.constructVarName(MOCK_CLASS_COUNTER_NAME),
+            nameGenerator.variableName(MOCK_CLASS_COUNTER_NAME),
             CgConstructorCall(ConstructorId(atomicIntegerClassId, emptyList()), emptyList())
         )
-        +mockClassCounter
 
         val mocksExecutablesAnswers = mock
             .instances
@@ -239,13 +242,19 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mocksExecutablesAnswers,
             mockClassCounter.variable
         )
+
+        if (mockConstructionInitializer.isMockClassCounterRequired) {
+            // We should insert the counter declaration only if we use this counter, for better readability.
+            +mockClassCounter
+        }
+
         val mockedConstructionDeclaration = CgDeclaration(
             MockitoStaticMocking.mockedConstructionClassId,
-            variableConstructor.constructVarName(MOCKED_CONSTRUCTION_NAME),
-            mockConstructionInitializer
+            nameGenerator.variableName(MOCKED_CONSTRUCTION_NAME),
+            mockConstructionInitializer.mockConstructionCall
         )
         resources += mockedConstructionDeclaration
-        +CgAssignment(mockedConstructionDeclaration.variable, mockConstructionInitializer)
+        +CgAssignment(mockedConstructionDeclaration.variable, mockConstructionInitializer.mockConstructionCall)
         mockedStaticConstructions += classId
     }
 
@@ -300,7 +309,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         mockedStaticForMethods.getOrPut(classId) {
             val modelClass = getClassOf(classId)
             val classMockStaticCall = mockStatic(modelClass)
-            val mockedStaticVariableName = variableConstructor.constructVarName(MOCKED_STATIC_NAME)
+            val mockedStaticVariableName = nameGenerator.variableName(MOCKED_STATIC_NAME)
             CgDeclaration(
                 MockitoStaticMocking.mockedStaticClassId,
                 mockedStaticVariableName,
@@ -314,22 +323,24 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
     private fun mockConstruction(
         clazz: CgExpression,
         classId: ClassId,
-        mocksWhenAnswers: List<MutableMap<ExecutableId, List<UtModel>>>,
+        mocksWhenAnswers: List<Map<ExecutableId, List<UtModel>>>,
         mockClassCounter: CgVariable
-    ): CgMethodCall {
+    ): MockConstructionBlock {
         val mockParameter = variableConstructor.declareParameter(
             classId,
-            variableConstructor.constructVarName(classId.simpleName, isMock = true)
+            nameGenerator.variableName(classId.simpleName, isMock = true)
         )
         val contextParameter = variableConstructor.declareParameter(
             mockedConstructionContextClassId,
-            variableConstructor.constructVarName("context")
+            nameGenerator.variableName("context")
         )
 
         val caseLabels = mutableListOf<CgSwitchCaseLabel>()
         for ((index, mockWhenAnswers) in mocksWhenAnswers.withIndex()) {
             val statements = mutableListOf<CgStatement>()
             for ((executable, values) in mockWhenAnswers) {
+                // For now, all constructors are considered like void methods, but it is proposed to be changed
+                // for better constructors testing.
                 if (executable.returnType == voidClassId) continue
 
                 when (executable) {
@@ -340,7 +351,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                             mocker.`when`(mockParameter[executable](*matchers))[thenReturnMethodId](*results)
                         )
                     }
-                    else -> error("Expected MethodId but got ConstructorId $executable")
+                    is ConstructorId -> error("Expected MethodId but got ConstructorId $executable")
                 }
             }
 
@@ -349,14 +360,35 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
 
         val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
 
+        // If all switch-case labels are empty,
+        // it means we do not need this switch and mock counter itself at all.
+        val mockConstructionBody = if (caseLabels.map { it.statements }.all { it.isEmpty() }) {
+            emptyList()
+        } else {
+            listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
+        }
+
         val answersBlock = CgAnonymousFunction(
             voidClassId,
             listOf(mockParameter, contextParameter).map { CgParameterDeclaration(it, isVararg = false) },
-            listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
+            mockConstructionBody
         )
 
-        return mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock)
+        return MockConstructionBlock(
+            mockitoClassId[MockitoStaticMocking.mockConstructionMethodId](clazz, answersBlock),
+            mockConstructionBody.isNotEmpty()
+        )
     }
+
+    /**
+     * Represents a body for invocation of the [MockitoStaticMocking.mockConstructionMethodId] method and information
+     * whether we need to use a counter for different mocking invocations
+     * (i.e., on each mocking we expect possibly different results).
+     */
+    private data class MockConstructionBlock(
+        val mockConstructionCall: CgMethodCall,
+        val isMockClassCounterRequired: Boolean
+    )
 
     private fun mockStatic(clazz: CgExpression): CgMethodCall =
         mockitoClassId[MockitoStaticMocking.mockStaticMethodId](clazz)

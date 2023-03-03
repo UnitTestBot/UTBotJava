@@ -26,6 +26,7 @@ interface CgPythonElement : CgElement {
                 is CgPythonSet -> visitor.visit(element)
                 is CgPythonDict -> visitor.visit(element)
                 is CgPythonTuple -> visitor.visit(element)
+                is CgPythonTree -> visitor.visit(element)
                 else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
             }
         } else {
@@ -36,7 +37,9 @@ interface CgPythonElement : CgElement {
 
 class CgPythonTree(
     override val type: ClassId,
-    val tree: PythonTree.PythonTreeNode
+    val tree: PythonTree.PythonTreeNode,
+    val value: CgValue,
+    val arguments: List<CgStatement> = emptyList()
 ) : CgValue, CgPythonElement
 
 class CgPythonRepr(

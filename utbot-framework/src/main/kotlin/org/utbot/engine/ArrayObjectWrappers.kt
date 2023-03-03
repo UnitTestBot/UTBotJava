@@ -20,6 +20,7 @@ import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.types.TypeRegistry
+import org.utbot.engine.types.TypeResolver
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtCompositeModel
@@ -201,8 +202,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
             val addr = UtAddrExpression(value)
 
             // Try to retrieve manually set type if present
-            val valueType = typeRegistry
-                .extractSingleTypeParameterForRangeModifiableArray(wrapper.addr)
+            val valueType = extractSingleTypeParameterForRangeModifiableArray(wrapper.addr, memory)
                 ?.leastCommonType
                 ?: OBJECT_TYPE
 
@@ -342,9 +342,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         resolver.addConstructedModel(concreteAddr, resultModel)
 
         // try to retrieve type storage for the single type parameter
-        val typeStorage = resolver
-            .typeRegistry
-            .extractSingleTypeParameterForRangeModifiableArray(wrapper.addr)
+        val typeStorage = extractSingleTypeParameterForRangeModifiableArray(wrapper.addr, resolver.memory)
             ?: TypeRegistry.objectTypeStorage
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
@@ -362,8 +360,14 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         return resultModel
     }
 
-    private fun TypeRegistry.extractSingleTypeParameterForRangeModifiableArray(addr: UtAddrExpression) =
-        extractTypeStorageForObjectWithSingleTypeParameter(addr, "Range modifiable array")
+    private fun extractSingleTypeParameterForRangeModifiableArray(
+        addr: UtAddrExpression,
+        memory: Memory
+    ): TypeStorage? = TypeResolver.extractTypeStorageForObjectWithSingleTypeParameter(
+        addr,
+        objectClassName = "Range modifiable array",
+        memory
+    )
 
     companion object {
         internal val rangeModifiableArrayClass: SootClass

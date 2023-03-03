@@ -106,15 +106,14 @@ abstract class AbstractTextBuilder(
                 return JimpleToASTMap.getSwitchCaseLabel(astNode, case)
             }
         }
-        //needed more tests to cover these cases
         if (stmt is JTableSwitchStmt && astNode is SwitchStmt) {
-            val switchCase = JimpleToASTMap.mapSwitchCase(astNode, step.decision)
+            val switchCase = JimpleToASTMap.mapSwitchCase(astNode, step)
             if (switchCase is SwitchEntry) {
                 val case = switchCase.labels.first
-                if (case.isPresent) {
-                    return "${case.get()}"
+                return if (case.isPresent) {
+                    "${case.get()}"
                 } else {
-                    return "default"
+                    "default"
                 }
             }
         }

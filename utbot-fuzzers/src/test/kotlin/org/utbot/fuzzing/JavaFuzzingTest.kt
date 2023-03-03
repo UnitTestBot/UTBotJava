@@ -1,17 +1,19 @@
 package org.utbot.fuzzing
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TestIdentityPreservingIdGenerator
+import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzing.samples.DeepNested
 import org.utbot.fuzzer.FuzzedType
 import org.utbot.fuzzing.samples.AccessibleObjects
+import org.utbot.fuzzing.samples.FailToGenerateListGeneric
 import org.utbot.fuzzing.samples.Stubs
 import org.utbot.fuzzing.utils.Trie
 import java.lang.reflect.GenericArrayType
@@ -214,10 +216,53 @@ class JavaFuzzingTest {
         assertEquals(0, exec) { "Fuzzer should not create any values of private classes" }
     }
 
+    @Test
+    fun `fuzzing should not generate values of private enums`() {
+        var exec = 0
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = AccessibleObjects::class.java.declaredMethods.first { it.name == "ordinal" }.executableId,
+                constants = emptyList(),
+                names = emptyList(),
+            ) { _, _, _ ->
+                exec += 1
+                BaseFeedback(Trie.emptyNode(), Control.STOP)
+            }
+        }
+        assertEquals(0, exec) { "Fuzzer should not create any values of private classes" }
+    }
+
+    @Test
+    fun `fuzzing generate single test in case of collection with fail-to-generate generic type`() {
+        val size = 100
+        var exec = size
+        val collections = ArrayList<Any?>(exec)
+        runBlockingWithContext {
+            runJavaFuzzing(
+                TestIdentityPreservingIdGenerator,
+                methodUnderTest = FailToGenerateListGeneric::class.java.declaredMethods.first { it.name == "func" }.executableId,
+                constants = emptyList(),
+                names = emptyList()
+            ) { _, _, v ->
+                collections.add(v.first().model as? UtAssembleModel)
+                BaseFeedback(Trie.emptyNode(), if (--exec > 0) Control.CONTINUE else Control.STOP)
+            }
+        }
+        assertEquals(0, exec) { "Total fuzzer run number must be 0" }
+        assertEquals(size, collections.size) { "Total generated values number must be $size" }
+        assertEquals(size, collections.count { it is UtAssembleModel }) { "Total assemble models size must be $size" }
+        collections.filterIsInstance<UtAssembleModel>().forEach {
+            assertEquals(0, it.modificationsChain.size)
+        }
+    }
+
     private fun <T> runBlockingWithContext(block: suspend () -> T) : T {
         return withUtContext(UtContext(this::class.java.classLoader)) {
             runBlocking {
-                block()
+                withTimeout(10000) {
+                    block()
+                }
             }
         }
     }

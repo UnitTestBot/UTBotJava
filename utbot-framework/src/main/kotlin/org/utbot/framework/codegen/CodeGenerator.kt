@@ -8,13 +8,16 @@ import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
-import org.utbot.framework.codegen.domain.models.TestClassModel
 import org.utbot.framework.codegen.domain.context.CgContext
+import org.utbot.framework.codegen.domain.models.CgClassFile
+import org.utbot.framework.codegen.domain.models.builders.SimpleTestClassModelBuilder
+import org.utbot.framework.codegen.domain.models.builders.SpringTestClassModelBuilder
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
 import org.utbot.framework.codegen.reports.TestsGenerationReport
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
 import org.utbot.framework.codegen.tree.ututils.UtilClassKind
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
+import org.utbot.framework.codegen.tree.CgSpringTestClassConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
@@ -73,28 +76,59 @@ open class CodeGenerator(
         val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
         return withCustomContext(testClassCustomName) {
             context.withTestClassFileScope {
-                val astConstructor = CgTestClassConstructor(context)
-                val renderer = CgAbstractRenderer.makeRenderer(context)
-                val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
-
-                fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
-
-                logger.info { "Code generation phase started at ${now()}" }
-                val testClassFile = astConstructor.construct(testClassModel)
-                logger.info { "Code generation phase finished at ${now()}" }
-
-                logger.info { "Rendering phase started at ${now()}" }
-                testClassFile.accept(renderer)
-                logger.info { "Rendering phase finished at ${now()}" }
-
-                CodeGeneratorResult(
-                    generatedCode = renderer.toString(),
-                    utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-                    testsGenerationReport = astConstructor.testsGenerationReport
-                )
+                if (context.isSpringClass) {
+                    generateForSpringClass(cgTestSets)
+                } else {
+                    generateForSimpleClass(cgTestSets)
+                }
             }
         }
     }
+
+    private fun generateForSimpleClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
+        val astConstructor = CgSimpleTestClassConstructor(context)
+        val testClassModel = SimpleTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
+
+        logger.info { "Code generation phase started at ${now()}" }
+        val testClassFile = astConstructor.construct(testClassModel)
+        logger.info { "Code generation phase finished at ${now()}" }
+
+        val generatedCode = renderToString(testClassFile)
+
+        return CodeGeneratorResult(
+            generatedCode = generatedCode,
+            utilClassKind = UtilClassKind.fromCgContextOrNull(context),
+            testsGenerationReport = astConstructor.testsGenerationReport
+        )
+    }
+
+    private fun generateForSpringClass(testSets: List<CgMethodTestSet>): CodeGeneratorResult {
+        val astConstructor = CgSpringTestClassConstructor(context)
+        val testClassModel = SpringTestClassModelBuilder().createTestClassModel(classUnderTest, testSets)
+
+        logger.info { "Code generation phase started at ${now()}" }
+        val testClassFile = astConstructor.construct(testClassModel)
+        logger.info { "Code generation phase finished at ${now()}" }
+
+        val generatedCode = renderToString(testClassFile)
+
+        return CodeGeneratorResult(
+            generatedCode = generatedCode,
+            utilClassKind = UtilClassKind.fromCgContextOrNull(context),
+            testsGenerationReport = astConstructor.testsGenerationReport
+        )
+    }
+
+    private fun renderToString(testClassFile: CgClassFile): String {
+        logger.info { "Rendering phase started at ${now()}" }
+        val renderer = CgAbstractRenderer.makeRenderer(context)
+        testClassFile.accept(renderer)
+        logger.info { "Rendering phase finished at ${now()}" }
+
+        return renderer.toString()
+    }
+
+    private fun now() = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
 
     /**
      * Wrapper function that configures context as needed for utbot-online:

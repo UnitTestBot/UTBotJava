@@ -55,6 +55,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.underlyingType
+import soot.Scene
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -210,13 +211,24 @@ internal fun infiniteInts(): Sequence<Int> =
 
 internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
 
+private val simpleNamesNotRequiringImports by lazy { findSimpleNamesNotRequiringImports() }
+
+/**
+ * Some class names do not require imports, but may lead to simple names clash.
+ * For example, custom class [Compiler] may clash with [java.lang.Compiler].
+ */
+private fun findSimpleNamesNotRequiringImports(): Set<String> =
+    Scene.v().classes
+        .filter { it.packageName == "java.lang" }
+        .mapNotNullTo(mutableSetOf()) { it.shortName }
+
 /**
  * Checks if we have already imported a class with such simple name.
  * If so, we cannot import [type] (because it will be used with simple name and will be clashed with already imported)
  * and should use its fully qualified name instead.
  */
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
-    importedClasses.none { it.simpleName == type.simpleName }
+    importedClasses.none { it.simpleName == type.simpleName } && type.simpleName !in simpleNamesNotRequiringImports
 
 fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change

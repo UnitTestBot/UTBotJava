@@ -3,7 +3,7 @@ package org.utbot.engine.pc
 import org.utbot.analytics.IncrementalData
 import org.utbot.analytics.Predictors
 import org.utbot.analytics.learnOn
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.md5
 import org.utbot.common.trace
 import org.utbot.engine.Eq
@@ -222,7 +222,7 @@ data class UtSolver constructor(
 
         val translatedAssumes = assumption.constraints.translate()
 
-        val statusHolder = logger.trace().bracket("High level check(): ", { it }) {
+        val statusHolder = logger.trace().measureTime({ "High level check(): " }, { it }) {
             Predictors.smtIncremental.learnOn(IncrementalData(constraints.hard, hardConstraintsNotYetAddedToZ3Solver)) {
                 hardConstraintsNotYetAddedToZ3Solver.forEach { z3Solver.add(translator.translate(it) as BoolExpr) }
 
@@ -255,7 +255,7 @@ data class UtSolver constructor(
         val assumptionsInUnsatCore = mutableListOf<UtBoolExpression>()
 
         while (true) {
-            val res = logger.trace().bracket("Low level check(): ", { it }) {
+            val res = logger.trace().measureTime({ "Low level check(): " }, { it }) {
                 val constraintsToCheck = translatedSoft.keys + translatedAssumptions.keys
                 z3Solver.check(*constraintsToCheck.toTypedArray())
             }

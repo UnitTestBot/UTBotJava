@@ -10,7 +10,9 @@ import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.ConcurrentHashMap
+import com.jetbrains.rd.util.ILoggerFactory
 import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.Statics
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
@@ -41,20 +43,24 @@ import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
+import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.time.LocalDateTime
 import kotlin.io.path.pathString
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 
-private val engineProcessLogConfigurations = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations")
+private val engineProcessLogConfigurationsDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogConfigurations")
 private val logger = KotlinLogging.logger {}
 private val engineProcessLogDirectory = utBotTempDirectory.toFile().resolve("rdEngineProcessLogs")
+
+private const val configurationFileDeleteKey = "delete_this_comment_key"
+private const val deleteOpenComment = "<!--$configurationFileDeleteKey"
+private const val deleteCloseComment = "$configurationFileDeleteKey-->"
 
 data class RdTestGenerationResult(val notEmptyCases: Int, val testSetsId: Long)
 
@@ -68,19 +74,20 @@ class EngineProcess private constructor(val project: Project, private val classN
 
         init {
             engineProcessLogDirectory.mkdirs()
-            engineProcessLogConfigurations.mkdirs()
-            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
+            engineProcessLogConfigurationsDirectory.mkdirs()
+            overrideDefaultRdLoggerFactoryWithKLogger(logger)
 
             val customFile = File(UtSettings.engineProcessLogConfigFile)
 
             if (customFile.exists()) {
                 log4j2ConfigFile = customFile
             } else {
-                log4j2ConfigFile = Files.createTempFile(engineProcessLogConfigurations.toPath(), null, ".xml").toFile()
-                log4j2ConfigFile.deleteOnExit()
+                log4j2ConfigFile = Files.createTempFile(engineProcessLogConfigurationsDirectory.toPath(), null, ".xml").toFile()
                 this.javaClass.classLoader.getResourceAsStream("log4j2.xml")?.use { logConfig ->
                     val resultConfig = logConfig.readBytes().toString(Charset.defaultCharset())
+                        .replace(Regex("$deleteOpenComment|$deleteCloseComment"), "")
                         .replace("ref=\"IdeaAppender\"", "ref=\"EngineProcessAppender\"")
+                        .replace("\${env:UTBOT_LOG_DIR}", engineProcessLogDirectory.canonicalPath.trimEnd(File.separatorChar) + File.separatorChar)
                     Files.copy(
                         resultConfig.byteInputStream(),
                         log4j2ConfigFile.toPath(),
@@ -133,16 +140,12 @@ class EngineProcess private constructor(val project: Project, private val classN
                     val cmd = obtainEngineProcessCommandLine(port)
                     val directory = WorkingDirService.provide().toFile()
                     val builder = ProcessBuilder(cmd).directory(directory)
-                    val formatted = dateTimeFormatter.format(LocalDateTime.now())
-                    val logFile = File(engineProcessLogDirectory, "$formatted.log")
-
-                    builder.redirectOutput(logFile)
-                    builder.redirectError(logFile)
-
                     val process = builder.start()
 
                     logger.info { "Engine process started with PID = ${process.getPid}" }
-                    logger.info { "Engine process log file - ${logFile.canonicalPath}" }
+                    logger.info { "Engine process log directory - ${engineProcessLogDirectory.canonicalPath}" }
+                    logger.info { "Engine process log file - ${engineProcessLogDirectory.resolve("utbot-engine-current.log")}" }
+                    logger.info { "Log4j2 configuration file path - ${log4j2ConfigFile.canonicalPath}" }
 
                     if (!process.isAlive) {
                         throw EngineProcessInstantDeathException()
@@ -185,6 +188,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         classPath: String?,
         dependencyPaths: String,
         jdkInfo: JdkInfo,
+        applicationContext: ApplicationContext,
         isCancelled: (Unit) -> Boolean
     ) {
         assertReadAccessNotAllowed()
@@ -196,7 +200,8 @@ class EngineProcess private constructor(val project: Project, private val classN
             buildDir.toTypedArray(),
             classPath,
             dependencyPaths,
-            JdkInfo(jdkInfo.path.pathString, jdkInfo.version)
+            JdkInfo(jdkInfo.path.pathString, jdkInfo.version),
+            kryoHelper.writeObject(applicationContext)
         )
         engineModel.createTestGenerator.startBlocking(params)
     }
@@ -398,7 +403,7 @@ class EngineProcess private constructor(val project: Project, private val classN
 
     init {
         lifetime.onTermination {
-            engineModel.stopProcess.start(Unit)
+            protocol.synchronizationModel.stopProcess.fire(Unit)
         }
         settingsModel.settingFor.set { params ->
             SettingForResult(AbstractSettings.allSettings[params.key]?.let { settings: AbstractSettings ->

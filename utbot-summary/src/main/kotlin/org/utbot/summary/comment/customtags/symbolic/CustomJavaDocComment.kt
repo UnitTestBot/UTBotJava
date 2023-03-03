@@ -18,5 +18,6 @@ data class CustomJavaDocComment(
     var returnsFrom: String = EMPTY_STRING,
     var countedReturn: String = EMPTY_STRING,
     var caughtException: String = EMPTY_STRING,
-    var throwsException: String = EMPTY_STRING
+    var throwsException: String = EMPTY_STRING,
+    var detectsSuspiciousBehavior: String = EMPTY_STRING
 )

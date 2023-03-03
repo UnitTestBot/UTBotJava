@@ -3,7 +3,7 @@ package org.utbot.gradle.plugin
 import mu.KLogger
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.debug
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.util.UtContext
@@ -86,7 +86,7 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
      * Generates tests and a SARIF report for classes in the [sourceSet].
      */
     private fun generateForSourceSet(sourceSet: SourceSetWrapper) {
-        logger.debug().bracket("Generating tests for the '${sourceSet.sourceSet.name}' source set") {
+        logger.debug().measureTime({ "Generating tests for the '${sourceSet.sourceSet.name}' source set" }) {
             withUtContext(UtContext(sourceSet.classLoader)) {
                 val testCaseGenerator =
                     TestCaseGenerator(
@@ -110,7 +110,7 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
         targetClass: TargetClassWrapper,
         testCaseGenerator: TestCaseGenerator,
     ) {
-        logger.debug().bracket("Generating tests for the $targetClass") {
+        logger.debug().measureTime({ "Generating tests for the $targetClass" }) {
             val sourceFindingStrategy = SourceFindingStrategyGradle(sourceSet, targetClass.testsCodeFile.path)
             GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy, testCaseGenerator)
                 .generateForClass(targetClass, sourceSet.workingDirectory)

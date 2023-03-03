@@ -126,11 +126,13 @@ import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.settings.loadStateFromModel
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
+import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
@@ -534,7 +536,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         // firstly save settings
-        settings.loadStateFromModel(model)
+        loadStateFromModel(settings, model)
         // then process force static mocking case
         model.generateWarningsForStaticMocking = model.staticsMocking is NoStaticMocking
         if (model.forceStaticMocking == ForceStaticMocking.FORCE) {
@@ -984,17 +986,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
         testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
-        testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
-            override fun customizeCellRenderer(
-                list: JList<out TestFramework>, value: TestFramework,
-                index: Int, selected: Boolean, hasFocus: Boolean
-            ) {
-                this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (!value.isInstalled) {
-                    this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
-                }
-            }
-        }
+        testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
 
         currentFrameworkItem = testFrameworks.item
     }

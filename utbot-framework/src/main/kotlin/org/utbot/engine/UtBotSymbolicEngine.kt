@@ -8,7 +8,7 @@ import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
 import org.utbot.api.exception.UtMockAssumptionViolatedException
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.debug
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
@@ -48,9 +48,10 @@ import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrument
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
+import kotlin.math.min
 import kotlin.system.measureTimeMillis
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
 
 //in future we should put all timeouts here
@@ -104,6 +105,7 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
+    applicationContext: ApplicationContext?,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
@@ -143,6 +145,7 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
+        applicationContext,
     )
 
     //HACK (long strings)
@@ -229,7 +232,7 @@ class UtBotSymbolicEngine(
                     logger.trace { "executing $state concretely..." }
 
 
-                    logger.debug().bracket("concolicStrategy<$methodUnderTest>: execute concretely") {
+                    logger.debug().measureTime({ "concolicStrategy<$methodUnderTest>: execute concretely"} ) {
                         val resolver = Resolver(
                             hierarchy,
                             state.memory,
@@ -247,11 +250,11 @@ class UtBotSymbolicEngine(
 
                         try {
                             val concreteExecutionResult =
-                                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
+                                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation, UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis)
 
                             if (concreteExecutionResult.violatesUtMockAssumption()) {
                                 logger.debug { "Generated test case violates the UtMock assumption: $concreteExecutionResult" }
-                                return@bracket
+                                return@measureTime
                             }
 
                             val concreteUtExecution = UtSymbolicExecution(
@@ -268,7 +271,7 @@ class UtBotSymbolicEngine(
                             logger.debug { "concolicStrategy<${methodUnderTest}>: returned $concreteUtExecution" }
                         } catch (e: CancellationException) {
                             logger.debug(e) { "Cancellation happened" }
-                        } catch (e: ConcreteExecutionFailureException) {
+                        } catch (e: InstrumentedProcessDeathException) {
                             emitFailedConcreteExecutionResult(stateBefore, e)
                         } catch (e: Throwable) {
                             emit(UtError("Concrete execution failed", e))
@@ -353,7 +356,14 @@ class UtBotSymbolicEngine(
             names,
             listOf(transform(ValueProvider.of(defaultValueProviders(defaultIdGenerator))))
         ) { thisInstance, descr, values ->
-            if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
+            val diff = until - System.currentTimeMillis()
+            val thresholdMillisForFuzzingOperation = 0 // may be better use 10-20 millis as it might not be possible
+            // to concretely execute that values because request to instrumentation process involves
+            // 1. serializing/deserializing it with kryo
+            // 2. sending over rd
+            // 3. concrete execution itself
+            // 4. analyzing concrete result
+            if (controller.job?.isActive == false || diff <= thresholdMillisForFuzzingOperation) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 logger.info { "Test created by fuzzer: $testEmittedByFuzzer" }
                 return@runJavaFuzzing BaseFeedback(result = Trie.emptyNode(), control = Control.STOP)
@@ -362,10 +372,11 @@ class UtBotSymbolicEngine(
             val initialEnvironmentModels = EnvironmentModels(thisInstance?.model, values.map { it.model }, mapOf())
 
             val concreteExecutionResult: UtConcreteExecutionResult? = try {
-                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+                val timeoutMillis = min(UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis, diff)
+                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf(), timeoutMillis)
             } catch (e: CancellationException) {
                 logger.debug { "Cancelled by timeout" }; null
-            } catch (e: ConcreteExecutionFailureException) {
+            } catch (e: InstrumentedProcessDeathException) {
                 emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
             } catch (e: Throwable) {
                 emit(UtError("Default concrete execution failed", e)); null
@@ -418,7 +429,7 @@ class UtBotSymbolicEngine(
 
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,
-        e: ConcreteExecutionFailureException
+        e: InstrumentedProcessDeathException
     ) {
         val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
@@ -502,13 +513,14 @@ class UtBotSymbolicEngine(
         //It's possible that symbolic and concrete stateAfter/results are diverged.
         //So we trust concrete results more.
         try {
-            logger.debug().bracket("processResult<$methodUnderTest>: concrete execution") {
+            logger.debug().measureTime({ "processResult<$methodUnderTest>: concrete execution" } ) {
 
                 //this can throw CancellationException
                 val concreteExecutionResult = concreteExecutor.executeConcretely(
                     methodUnderTest,
                     stateBefore,
-                    instrumentation
+                    instrumentation,
+                    UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis
                 )
 
                 if (concreteExecutionResult.violatesUtMockAssumption()) {
@@ -525,8 +537,12 @@ class UtBotSymbolicEngine(
                 emit(concolicUtExecution)
                 logger.debug { "processResult<${methodUnderTest}>: returned $concolicUtExecution" }
             }
-        } catch (e: ConcreteExecutionFailureException) {
+        } catch (e: InstrumentedProcessDeathException) {
             emitFailedConcreteExecutionResult(stateBefore, e)
+        } catch (e: CancellationException) {
+            logger.debug(e) { "Cancellation happened" }
+        } catch (e: Throwable) {
+            emit(UtError("Default concrete execution failed", e));
         }
     }
 
@@ -559,14 +575,16 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId
 private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
     methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
-    instrumentation: List<UtInstrumentation>
+    instrumentation: List<UtInstrumentation>,
+    timeoutInMillis: Long
 ): UtConcreteExecutionResult = executeAsync(
     methodUnderTest.classId.name,
     methodUnderTest.signature,
     arrayOf(),
     parameters = UtConcreteExecutionData(
         stateBefore,
-        instrumentation
+        instrumentation,
+        timeoutInMillis
     )
 ).convertToAssemble(methodUnderTest.classId.packageName)
 

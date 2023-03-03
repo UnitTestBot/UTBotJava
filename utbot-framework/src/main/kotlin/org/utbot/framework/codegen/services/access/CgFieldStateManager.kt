@@ -8,10 +8,10 @@ import org.utbot.framework.codegen.domain.models.CgExpression
 import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
+import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.CgFieldState
 import org.utbot.framework.codegen.tree.CgStatementConstructor
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
 import org.utbot.framework.codegen.tree.FieldStateCache
 import org.utbot.framework.codegen.tree.classCgClassId
 import org.utbot.framework.codegen.tree.getFieldVariableName
@@ -180,7 +180,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         for ((index, fieldPathElement) in path.withIndex()) {
             when (fieldPathElement) {
                 is FieldAccess -> {
-                    if (!fieldPathElement.field.canBeReadFrom(context)) {
+                    if (!fieldPathElement.field.canBeReadFrom(context, curType)) {
                         lastAccessibleIndex = index - 1
                         break
                     }
@@ -246,7 +246,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
 
     private fun variableForStaticFieldState(owner: ClassId, fieldPath: FieldPath, customName: String?): CgVariable {
         val firstField = (fieldPath.elements.first() as FieldAccess).field
-        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.canBeReadFrom(context)) {
+        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.canBeReadFrom(context, owner)) {
             owner[firstField]
         } else {
             // TODO: there is a function getClassOf() for these purposes, but it is not accessible from here for now

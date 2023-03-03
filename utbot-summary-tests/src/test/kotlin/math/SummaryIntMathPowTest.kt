@@ -11,7 +11,7 @@ class SummaryIntMathPowTest : SummaryTestCaseGeneratorTest(
 ) {
     @Test
     fun testPow() {
-        val summary1 = "Test activates switch case: 2, returns from: return 1;\n"
+        val summary1 = "Test activates switch case: 1, returns from: return 1;\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (k < Integer.SIZE): False\n" +
                 "returns from: return 0;\n"
@@ -69,7 +69,7 @@ class SummaryIntMathPowTest : SummaryTestCaseGeneratorTest(
         val methodName13 = "testPow_KBitwiseAnd1NotEqualsZero_2"
         val methodName14 = "testPow_KBitwiseAnd1EqualsZero_2"
 
-        val displayName1 = "switch(b) case: 2 -> return 1"
+        val displayName1 = "switch(b) case: 1 -> return 1"
         val displayName2 = "k < Integer.SIZE : False -> return 0"
         val displayName3 = "k < Integer.SIZE : False -> return (k < Integer.SIZE) ? (1 << k) : 0"
         val displayName4 = "-> return b * accum" // TODO: weird display name with missed part before ->

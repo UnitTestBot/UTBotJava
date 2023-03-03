@@ -3,7 +3,7 @@ package org.utbot.contest
 import mu.KotlinLogging
 import org.objectweb.asm.Type
 import org.utbot.common.FileUtil
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.filterWhen
 import org.utbot.common.info
 import org.utbot.common.isAbstract
@@ -14,14 +14,6 @@ import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.junitByVersion
 import org.utbot.framework.codegen.CodeGenerator
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -59,13 +51,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
 import org.utbot.framework.SummariesGenerationType
 import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.minimization.minimizeExecutions
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isSynthetic
 import org.utbot.framework.util.jimpleBody
-import org.utbot.summary.summarize
+import org.utbot.summary.summarizeAll
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -126,7 +118,7 @@ fun main(args: Array<String>) {
         // This saves the time budget for real work instead of soot initialization.
         TestCaseGenerator(listOf(classfileDir), classpathString, dependencyPath, JdkInfoService.provide())
 
-        logger.info().bracket("warmup: kotlin reflection :: init") {
+        logger.info().measureTime({ "warmup: kotlin reflection :: init" }) {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
         }
@@ -154,6 +146,7 @@ fun main(args: Array<String>) {
                 fuzzingRatio = 0.1,
                 classpathString,
                 runFromEstimator = false,
+                expectedExceptions = ExpectedExceptionsForClass(),
                 methodNameFilter = null
             )
             println("${ContestMessage.READY}")
@@ -187,6 +180,7 @@ fun runGeneration(
     fuzzingRatio: Double,
     classpathString: String,
     runFromEstimator: Boolean,
+    expectedExceptions: ExpectedExceptionsForClass,
     methodNameFilter: String? = null // For debug purposes you can specify method name
 ): StatsForClass = runBlocking {
     val testsByMethod: MutableMap<ExecutableId, MutableList<UtExecution>> = mutableMapOf()
@@ -204,10 +198,10 @@ fun runGeneration(
     if (runFromEstimator) {
         setOptions()
         //will not be executed in real contest
-        logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
+        logger.info().measureTime({ "warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)" }) {
             TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
         }
-        logger.info().bracket("warmup (first): kotlin reflection :: init") {
+        logger.info().measureTime({ "warmup (first): kotlin reflection :: init" }) {
             prepareClass(ConcreteExecutorPool::class.java, "")
             prepareClass(Warmup::class.java, "")
         }
@@ -234,9 +228,9 @@ fun runGeneration(
             cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
         )
 
-    logger.info().bracket("class ${cut.fqn}", { statsForClass }) {
+    logger.info().measureTime({ "class ${cut.fqn}" }, { statsForClass }) {
 
-        val filteredMethods = logger.info().bracket("preparation class ${cut.clazz}: kotlin reflection :: run") {
+        val filteredMethods = logger.info().measureTime({ "preparation class ${cut.clazz}: kotlin reflection :: run" }) {
             prepareClass(cut.clazz, methodNameFilter)
         }
 
@@ -246,7 +240,7 @@ fun runGeneration(
         if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
         val testCaseGenerator =
-            logger.info().bracket("2nd optional soot initialization") {
+            logger.info().measureTime({ "2nd optional soot initialization" }) {
                 TestCaseGenerator(listOf(cut.classfileDir.toPath()), classpathString, dependencyPath, JdkInfoService.provide(), forceSootReload = false)
             }
 
@@ -266,7 +260,10 @@ fun runGeneration(
                     val methodJob = currentCoroutineContext().job
 
                     logger.debug { " ... " }
-                    val statsForMethod = StatsForMethod("${method.classId.simpleName}#${method.name}")
+                    val statsForMethod = StatsForMethod(
+                        "${method.classId.simpleName}#${method.name}",
+                        expectedExceptions.getForMethod(method.name).exceptionNames
+                    )
                     statsForClass.statsForMethods.add(statsForMethod)
 
 
@@ -316,7 +313,7 @@ fun runGeneration(
 
 
                     var testsCounter = 0
-                    logger.info().bracket("method $method", { statsForMethod }) {
+                    logger.info().measureTime({ "method $method" }, { statsForMethod }) {
                         logger.info {
                             " -- Remaining time budget: $remainingBudget ms, " +
                                     "#remaining_methods: $remainingMethodsCount, " +
@@ -337,6 +334,9 @@ fun runGeneration(
                                             val className = Type.getInternalName(method.classId.jClass)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }
                                             statsForMethod.testsGeneratedCount++
+                                            result.result.exceptionOrNull()?.let { exception ->
+                                                statsForMethod.detectedExceptionFqns += exception::class.java.name
+                                            }
                                             result.coverage?.let {
                                                 statsForClass.updateCoverage(
                                                     newCoverage = it,
@@ -403,10 +403,9 @@ fun runGeneration(
 
         val testSets = testsByMethod.map { (method, executions) ->
             UtMethodTestSet(method, minimizeExecutions(executions), jimpleBody(method))
-                .summarize(cut.classfileDir.toPath())
-        }
+        }.summarizeAll(cut.classfileDir.toPath(), sourceFile = null)
 
-        logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
+        logger.info().measureTime({ "Flushing tests for [${cut.simpleName}] on disk" }) {
             writeTestClass(cut, codeGenerator.generateAsString(testSets))
         }
         //write classes

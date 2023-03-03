@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 class UtRdConsoleLogger(
     private val loggersLevel: LogLevel,
     private val streamToWrite: PrintStream,
-    private val category: String = ""
+    private val category: String
 ) : Logger {
     override fun isEnabled(level: LogLevel): Boolean {
         return level >= loggersLevel
@@ -16,7 +16,8 @@ class UtRdConsoleLogger(
 
     private fun format(category: String, level: LogLevel, message: Any?, throwable: Throwable?) : String {
         val throwableToPrint = if (level < LogLevel.Error) throwable  else throwable ?: Exception() //to print stacktrace
-        return "${LocalDateTime.now().format(timeFormatter)} | ${level.toString().uppercase().padEnd(5)} | ${category.substringAfterLast('.').padEnd(25)} | ${message?.toString()?:""} ${throwableToPrint?.getThrowableText()?.let { "| $it" }?:""}"
+        val rdCategory = if (category.isNotEmpty()) "RdCategory: ${category.substringAfterLast('.').padEnd(25)} | " else ""
+        return "${LocalDateTime.now().format(timeFormatter)} | ${level.toString().uppercase().padEnd(5)} | $rdCategory${message?.toString()?:""} ${throwableToPrint?.getThrowableText()?.let { "| $it" }?:""}"
     }
 
     override fun log(level: LogLevel, message: Any?, throwable: Throwable?) {

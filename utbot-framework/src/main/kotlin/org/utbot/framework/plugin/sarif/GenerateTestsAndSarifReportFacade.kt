@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategy
-import org.utbot.summary.summarize
+import org.utbot.summary.summarizeAll
 import java.io.File
 import java.nio.file.Path
 
@@ -59,9 +59,7 @@ class GenerateTestsAndSarifReportFacade(
                 sarifProperties.mockStrategy,
                 sarifProperties.classesToMockAlways,
                 sarifProperties.generationTimeout
-            ).map {
-                it.summarize(targetClass.sourceCodeFile, workingDirectory)
-            }
+            ).summarizeAll(workingDirectory, targetClass.sourceCodeFile)
 
     private fun generateTestCode(targetClass: TargetClassWrapper, testSets: List<UtMethodTestSet>): String =
         initializeCodeGenerator(targetClass)

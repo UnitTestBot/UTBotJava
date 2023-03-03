@@ -21,8 +21,8 @@ class PythonTestsModel(
     val currentPythonModule: String,
     var timeout: Long,
     var timeoutForRun: Long,
-    var visitOnlySpecifiedSource: Boolean,
     val cgLanguageAssistant: CgLanguageAssistant,
+    val pythonPath: String,
 ) : BaseTestsModel(
     project,
     srcModule,

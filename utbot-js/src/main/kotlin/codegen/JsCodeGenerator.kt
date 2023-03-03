@@ -1,11 +1,8 @@
 package codegen
 
+import framework.api.js.JsClassId
 import framework.codegen.JsCgLanguageAssistant
 import framework.codegen.Mocha
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockFramework
-import framework.api.js.JsClassId
 import org.utbot.framework.codegen.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
@@ -17,9 +14,12 @@ import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
-import org.utbot.framework.codegen.domain.models.TestClassModel
+import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.codegen.renderer.CgAbstractRenderer
-import org.utbot.framework.codegen.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MockFramework
 import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 class JsCodeGenerator(
@@ -60,8 +60,8 @@ class JsCodeGenerator(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
     ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
-        val testClassModel = TestClassModel(classUnderTest, cgTestSets)
-        val astConstructor = CgTestClassConstructor(context)
+        val testClassModel = SimpleTestClassModel(classUnderTest, cgTestSets)
+        val astConstructor = CgSimpleTestClassConstructor(context)
         val testClassFile = astConstructor.construct(testClassModel)
         CodeGeneratorResult(renderClassFile(testClassFile), astConstructor.testsGenerationReport)
     }

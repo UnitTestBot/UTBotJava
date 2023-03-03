@@ -4,6 +4,7 @@ package org.utbot.fuzzing
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.fuzzing.seeds.KnownValue
+import org.utbot.fuzzing.utils.MissedSeed
 import org.utbot.fuzzing.utils.chooseOne
 import org.utbot.fuzzing.utils.flipCoin
 import org.utbot.fuzzing.utils.transformIfNotEmpty
@@ -36,18 +37,30 @@ interface Fuzzing<TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feed
      *
      * Fuzzing combines, randomize and mutates values using the seeds.
      * Then it generates values and runs them with this method. This method should provide some feedback,
-     * which is the most important part for good fuzzing result. [emptyFeedback] can be provided only for test
-     * or infinite loops. Consider to implement own implementation of [Feedback] to provide more correct data or
+     * which is the most important part for a good fuzzing result. [emptyFeedback] can be provided only for test
+     * or infinite loops. Consider implementing own implementation of [Feedback] to provide more correct data or
      * use [BaseFeedback] to generate key based feedback. In this case, the key is used to analyse what value should be next.
      *
      * @param description contains user-defined information about current run. Can be used as a state of the run.
      * @param values current values to process.
      */
     suspend fun handle(description: DESCRIPTION, values: List<RESULT>): FEEDBACK
+
+    /**
+     * This method is called before every fuzzing attempt.
+     *
+     * Usually, is used to update configuration or manipulate some data in the statistics
+     * (for example, clear some [Statistic.missedTypes] types).
+     *
+     * @param description contains user-defined information about current run. Can be used as a state of the run.
+     * @param statistic statistic about fuzzing generation like elapsed time or number of the runs.
+     * @param configuration current used configuration; it can be changes for tuning fuzzing.
+     */
+    suspend fun update(description: DESCRIPTION, statistic: Statistic<TYPE, RESULT>, configuration: Configuration) {}
 }
 
 /**
- * Some description of current fuzzing run. Usually, contains name of the target method and its parameter list.
+ * Some description of current fuzzing run. Usually, it contains the name of the target method and its parameter list.
  */
 open class Description<TYPE>(
     val parameters: List<TYPE>
@@ -235,6 +248,11 @@ private object EmptyFeedback : Feedback<Nothing, Nothing> {
     }
 }
 
+private class NoSeedValueException(
+    // this type cannot be generalized because Java forbids types for [Throwable].
+    val type: Any?
+) : Exception("No seed candidates generated for type: $type")
+
 /**
  * Starts fuzzing for this [Fuzzing] object.
  *
@@ -245,6 +263,15 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
     random: Random = Random(0),
     configuration: Configuration = Configuration()
 ) {
+    class StatImpl(
+        override var totalRuns: Long = 0,
+        val startTime: Long = System.nanoTime(),
+        override var missedTypes: MissedSeed<T, R> = MissedSeed(),
+    ) : Statistic<T, R> {
+        override val elapsedTime: Long
+            get() = System.nanoTime() - startTime
+    }
+    val userStatistic = StatImpl()
     val fuzzing = this
     val typeCache = hashMapOf<T, List<Seed<T, R>>>()
     fun fuzzOne(): Node<T, R> = fuzz(
@@ -254,7 +281,7 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
         random = random,
         configuration = configuration,
         builder = PassRoutine("Main Routine"),
-        state = State(1, typeCache),
+        state = State(1, typeCache, userStatistic.missedTypes),
     )
     val dynamicallyGenerated = mutableListOf<Node<T, R>>()
     val seeds = Statistics<T, R, F>()
@@ -275,13 +302,16 @@ suspend fun <T, R, D : Description<T>, F : Feedback<T, R>> Fuzzing<T, R, D, F>.f
                             fuzzing,
                             random,
                             configuration,
-                            State(1, typeCache)
+                            State(1, typeCache, userStatistic.missedTypes)
                         )
                     }
                 }
             }
         }.forEach execution@ { values ->
             yield()
+            fuzzing.update(description, userStatistic.apply {
+                totalRuns++
+            }, configuration)
             check(values.parameters.size == values.result.size) { "Cannot create value for ${values.parameters}" }
             val valuesCache = mutableMapOf<Result<T, R>, R>()
             val result = values.result.map { valuesCache.computeIfAbsent(it) { r -> create(r) } }
@@ -318,6 +348,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
     val result = parameters.map { type ->
         val results = typeCache.computeIfAbsent(type) { mutableListOf() }
         if (results.isNotEmpty() && random.flipCoin(configuration.probReuseGeneratedValueForSameType)) {
+            // we need to check cases when one value is passed for different arguments
             results.random(random)
         } else {
             produce(type, fuzzing, description, random, configuration, state).also {
@@ -347,7 +378,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         }
     }
     if (candidates.isEmpty()) {
-        error("No seed candidates generated for type: $type")
+        throw NoSeedValueException(type)
     }
     return candidates.random(random)
 }
@@ -366,11 +397,10 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 ): Result<TYPE, RESULT> {
     return if (state.recursionTreeDepth > configuration.recursionTreeDepth) {
         Result.Empty { task.construct.builder(0) }
-    } else {
-        val iterations = if (state.iterations >= 0 && random.flipCoin(configuration.probCreateRectangleCollectionInsteadSawLike)) {
-            state.iterations
-        } else {
-            random.nextInt(0, configuration.collectionIterations + 1)
+    } else try {
+        val iterations = when {
+            state.iterations >= 0 && random.flipCoin(configuration.probCreateRectangleCollectionInsteadSawLike) -> state.iterations
+            else -> random.nextInt(0, configuration.collectionIterations + 1)
         }
         Result.Collection(
             construct = fuzz(
@@ -380,10 +410,10 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 random,
                 configuration,
                 task.construct,
-                State(state.recursionTreeDepth + 1, state.cache, iterations)
+                State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations)
             ),
             modify = if (random.flipCoin(configuration.probCollectionMutationInsteadCreateNew)) {
-                val result = fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, iterations))
+                val result = fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations))
                 arrayListOf(result).apply {
                     (1 until iterations).forEach { _ ->
                         add(mutate(result, fuzzing, random, configuration, state))
@@ -391,11 +421,19 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 }
             } else {
                 (0 until iterations).map {
-                    fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, iterations))
+                    fuzz(task.modify.types, fuzzing, description, random, configuration, task.modify, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes, iterations))
                 }
             },
             iterations = iterations
         )
+    } catch (nsv: NoSeedValueException) {
+        @Suppress("UNCHECKED_CAST")
+        state.missedTypes[nsv.type as TYPE] = task
+        if (configuration.generateEmptyCollectionsForMissedTypes) {
+            Result.Empty { task.construct.builder(0) }
+        } else {
+            throw nsv
+        }
     }
 }
 
@@ -413,7 +451,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
 ): Result<TYPE, RESULT> {
     return if (state.recursionTreeDepth > configuration.recursionTreeDepth) {
         Result.Empty { task.empty.builder() }
-    } else {
+    } else try {
         Result.Recursive(
             construct = fuzz(
                 task.construct.types,
@@ -422,7 +460,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 random,
                 configuration,
                 task.construct,
-                State(state.recursionTreeDepth + 1, state.cache)
+                State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
             ),
             modify = task.modify
                 .shuffled(random)
@@ -434,12 +472,20 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                         random,
                         configuration,
                         routine,
-                        State(state.recursionTreeDepth + 1, state.cache)
+                        State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)
                     )
                 }.transformIfNotEmpty {
                     take(random.nextInt(size + 1).coerceAtLeast(1))
                 }
         )
+    } catch (nsv: NoSeedValueException) {
+        @Suppress("UNCHECKED_CAST")
+        state.missedTypes[nsv.type as TYPE] = task
+        if (configuration.generateEmptyRecursiveForMissedTypes) {
+            Result.Empty { task.empty() }
+        } else {
+            throw nsv
+        }
     }
 }
 
@@ -472,7 +518,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
         is Result.Recursive<TYPE, RESULT> -> {
             if (resultToMutate.modify.isEmpty() || random.flipCoin(configuration.probConstructorMutationInsteadModificationMutation)) {
                 Result.Recursive(
-                    construct = mutate(resultToMutate.construct, fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache)),
+                    construct = mutate(resultToMutate.construct, fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)),
                     modify = resultToMutate.modify
                 )
             } else if (random.flipCoin(configuration.probShuffleAndCutRecursiveObjectModificationMutation)) {
@@ -485,7 +531,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                     construct = resultToMutate.construct,
                     modify = resultToMutate.modify.toMutableList().apply {
                         val i = random.nextInt(0, resultToMutate.modify.size)
-                        set(i, mutate(resultToMutate.modify[i], fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache)))
+                        set(i, mutate(resultToMutate.modify[i], fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)))
                     }
                 )
             }
@@ -496,7 +542,7 @@ private fun <TYPE, RESULT, DESCRIPTION : Description<TYPE>, FEEDBACK : Feedback<
                 if (isNotEmpty()) {
                     if (random.flipCoin(100 - configuration.probCollectionShuffleInsteadResultMutation)) {
                         val i = random.nextInt(0, resultToMutate.modify.size)
-                        set(i, mutate(resultToMutate.modify[i], fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache)))
+                        set(i, mutate(resultToMutate.modify[i], fuzzing, random, configuration, State(state.recursionTreeDepth + 1, state.cache, state.missedTypes)))
                     } else {
                         shuffle(random)
                     }
@@ -578,7 +624,8 @@ private data class PassRoutine<T, R>(val description: String) : Routine<T, R>(em
 private class State<TYPE, RESULT>(
     val recursionTreeDepth: Int = 1,
     val cache: MutableMap<TYPE, List<Seed<TYPE, RESULT>>>,
-    val iterations: Int = -1
+    val missedTypes: MissedSeed<TYPE, RESULT>,
+    val iterations: Int = -1,
 )
 
 /**

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using JetBrains.Annotations;
 using JetBrains.Application.Threading;
 using JetBrains.Collections.Viewable;
 using JetBrains.Lifetimes;
@@ -11,6 +12,7 @@ using JetBrains.Rd.Impl;
 using JetBrains.Threading;
 using JetBrains.Util;
 using JetBrains.Util.Logging;
+using UtBot.Rd;
 using UtBot.Rd.Generated;
 
 namespace UtBot;
@@ -20,14 +22,14 @@ public class ProcessWithRdServer
 {
     public Lifetime Lifetime => _ldef.Lifetime;
     public Protocol Protocol;
-    public VSharpModel VSharpModel { get; private set; }
-    
-    private readonly LifetimeDefinition _ldef;
-    private Process _process;
-    private ILogger _logger = Logger.GetLogger<ProcessWithRdServer>();
+    [CanBeNull] public VSharpModel VSharpModel { get; private set; }
 
-    public ProcessWithRdServer(string name, int port, string exePath, IShellLocks shellLocks, Lifetime? parent = null)
+    private readonly LifetimeDefinition _ldef;
+    [CanBeNull] private Process _process;
+
+    public ProcessWithRdServer(string name, string workingDir, int port, string exePath, IShellLocks shellLocks, Lifetime? parent = null, [CanBeNull] ILogger logger = null)
     {
+        logger ??= Logger.GetLogger<ProcessWithRdServer>();
         using var blockingCollection = new BlockingCollection<String>(2);
         shellLocks.AssertNonMainThread();
         _ldef = (parent ?? Lifetime.Eternal).CreateNested();
@@ -41,7 +43,11 @@ public class ProcessWithRdServer
                 var wire = new SocketWire.Server(Lifetime, scheduler, socket);
                 var serializers = new Serializers();
                 var identities = new Identities(IdKind.Server);
-                var startInfo = new ProcessStartInfo("dotnet", $"{exePath} {port}");
+                var startInfo = new ProcessStartInfo("dotnet", $"\"{exePath}\" {port}")
+                {
+                    WorkingDirectory = workingDir
+                };
+
                 Protocol = new Protocol(name, serializers, identities, scheduler, wire, Lifetime);
                 scheduler.Queue(() =>
                 {
@@ -53,6 +59,7 @@ public class ProcessWithRdServer
                             blockingCollection.TryAdd(s);
                         }
                     });
+                    VSharpModel.Log.Advise(Lifetime, s => logger.Info($"V#: {s}"));
                 });
                 _process = new Process();
                 _process.StartInfo = startInfo;
@@ -62,15 +69,21 @@ public class ProcessWithRdServer
                 else
                     _ldef.Terminate();
             });
-            if (_process?.HasExited == false)
+
+            if (_process?.HasExited == true) return;
+
+            SpinWaitEx.SpinUntil(pingLdef.Lifetime, () =>
             {
-                SpinWaitEx.SpinUntil(pingLdef.Lifetime, () =>
+                if (_process?.HasExited == true)
                 {
-                    VSharpModel?.Ping.Fire("UtBot");
-                    return blockingCollection.TryTake(out _);
-                });
-                pingLdef.Terminate();
-            }
+                    VSharpModel = null;
+                    _ldef.Terminate();
+                }
+
+                VSharpModel?.Ping.Fire(RdUtil.MainProcessName);
+                return blockingCollection.TryTake(out _);
+            });
+            pingLdef.Terminate();
         }
         catch (Exception)
         {

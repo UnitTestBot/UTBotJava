@@ -1,10 +1,8 @@
 package org.utbot.intellij.plugin.language.python
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.*
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.Panel
@@ -17,17 +15,18 @@ import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.intellij.plugin.settings.Settings
 import java.awt.BorderLayout
 import java.util.concurrent.TimeUnit
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JCheckBox
-import javax.swing.JComponent
-import javax.swing.JPanel
 import org.utbot.intellij.plugin.ui.components.TestSourceDirectoryChooser
+import org.utbot.intellij.plugin.ui.utils.createTestFrameworksRenderer
+import java.awt.event.ActionEvent
+import javax.swing.*
 
 
+private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
+private const val ACTION_GENERATE = "Generate Tests"
 
 class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.project) {
 
@@ -40,36 +39,31 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
         )
-    private val timeoutSpinnerForOneRun =
-        JBIntSpinner(
-            TimeUnit.MILLISECONDS.toSeconds(DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS).toInt(),
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
-            Int.MAX_VALUE,
-            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
-        )
     private val testFrameworks =
         ComboBox(DefaultComboBoxModel(model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.toTypedArray()))
-
-    private val visitOnlySpecifiedSource = JCheckBox("Visit only specified source")
 
     private lateinit var panel: DialogPanel
 
     init {
-        title = "Generate Tests With UtBot"
+        title = "Generate Tests with UnitTestBot"
         isResizable = false
+
+        model.cgLanguageAssistant.getLanguageTestFrameworkManager().testFrameworks.forEach {
+            it.isInstalled = it.isInstalled || checkModuleIsInstalled(model.pythonPath, it.mainPackage)
+        }
+
         init()
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun createCenterPanel(): JComponent {
 
         panel = panel {
-            row("Test source root:") {
+            row("Test sources root:") {
                 component(testSourceFolderField)
             }
             row("Test framework:") {
                 makePanelWithHelpTooltip(
-                    testFrameworks as ComboBox<CodeGenerationSettingItem>,
+                    testFrameworks,
                     null
                 )
             }
@@ -80,27 +74,19 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
                     component(ContextHelpLabel.create("Set the timeout for all test generation processes."))
                 }
             }
-            row("Timeout for one function run:") {
-                cell {
-                    component(timeoutSpinnerForOneRun)
-                    label("seconds")
-                    component(ContextHelpLabel.create("Set the timeout for one function execution."))
-                }
-            }
             row("Generate test methods for:") {}
             row {
                 scrollPane(functionsTable)
             }
-            row {
-                cell {
-                    component(visitOnlySpecifiedSource)
-                    component(ContextHelpLabel.create("Find argument types only in this file."))
-                }
-            }
         }
 
         updateFunctionsTable()
+        updateTestFrameworksList()
         return panel
+    }
+
+    private fun updateTestFrameworksList() {
+        testFrameworks.renderer = createTestFrameworksRenderer(WILL_BE_INSTALLED_LABEL)
     }
 
     private fun globalPyFunctionsToPyMemberInfo(
@@ -130,7 +116,7 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             return globalPyFunctionsToPyMemberInfo(project, functions)
         }
         return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass)
-            .filter { it.member is PyFunction }
+            .filter { it.member is PyFunction && fineFunction(it.member as PyFunction) }
     }
 
     private fun updateFunctionsTable() {
@@ -166,14 +152,30 @@ class PythonDialogWindow(val model: PythonTestsModel) : DialogWrapper(model.proj
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
 
+    class OKOptionAction(private val okAction: Action) : AbstractAction(ACTION_GENERATE) {
+        init {
+            putValue(DEFAULT_ACTION, java.lang.Boolean.TRUE)
+            putValue(FOCUSED_ACTION, java.lang.Boolean.TRUE)
+        }
+        override fun actionPerformed(e: ActionEvent?) {
+            okAction.actionPerformed(e)
+        }
+    }
+
+    private val okOptionAction: OKOptionAction get() = OKOptionAction(super.getOKAction())
+    override fun getOKAction() = okOptionAction
+
     override fun doOKAction() {
         val selectedMembers = functionsTable.selectedMemberInfos
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.testFramework = testFrameworks.item
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
-        model.timeoutForRun = TimeUnit.SECONDS.toMillis(timeoutSpinnerForOneRun.number.toLong())
-        model.visitOnlySpecifiedSource = visitOnlySpecifiedSource.isSelected
         model.testSourceRootPath = testSourceFolderField.text
+
+        val settings = model.project.service<Settings>()
+        with(settings) {
+            model.timeoutForRun = hangingTestsTimeout.timeoutMs
+        }
 
         super.doOKAction()
     }

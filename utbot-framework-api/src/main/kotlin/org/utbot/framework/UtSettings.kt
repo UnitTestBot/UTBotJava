@@ -1,6 +1,5 @@
 package org.utbot.framework
 
-import com.jetbrains.rd.util.LogLevel
 import java.io.File
 import mu.KotlinLogging
 import org.utbot.common.AbstractSettings
@@ -115,21 +114,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">UtBot Expression Optimizations</a>
      */
     var useExpressionSimplification by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on comments
-    */
-    var testSummary by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on names
-    */
-    var testName by getBooleanProperty(true)
-
-    /**
-    * Activate or deactivate tests on displayNames
-    */
-    var testDisplayName by getBooleanProperty(true)
 
     /**
      * Enable the Summarization module to generate summaries for methods under test.
@@ -277,7 +261,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInInstrumentedProcess: Long by getLongProperty(
+    var concreteExecutionDefaultTimeoutInInstrumentedProcessMillis: Long by getLongProperty(
         DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
@@ -339,11 +323,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * @see [org.utbot.instrumentation.process.InstrumentedProcessRunner.cmds]
      */
     var runInstrumentedProcessWithDebug by getBooleanProperty(false)
-
-    /**
-     * Log level for instrumented process.
-     */
-    var instrumentedProcessLogLevel by getEnumProperty(LogLevel.Info)
 // endregion
 
     /**
@@ -520,6 +499,19 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
      * Note that values processed concretely won't be replaced with unbounded symbolic variables.
      */
     var processAllClinitSectionsConcretely by getBooleanProperty(false)
+
+    /**
+     * In cases where we don't have a body for a method, we can either throw an exception
+     * or treat this a method as a source of an unbounded symbolic variable returned as a result.
+     *
+     * If this option is set in true, instead of analysis we will return an unbounded symbolic
+     * variable with a corresponding type. Otherwise, an exception will be thrown.
+     *
+     * Default value is false since it is not a common situation when you cannot retrieve a body
+     * from a regular method. Setting this option in true might be suitable in situations when
+     * it is more important not to fall at all rather than work precisely.
+     */
+    var treatAbsentMethodsAsUnboundedValue by getBooleanProperty(false)
 }
 
 /**

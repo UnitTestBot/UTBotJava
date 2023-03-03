@@ -107,14 +107,10 @@ class MapValueProvider(
 
 class ListSetValueProvider(
     idGenerator: IdGenerator<Int>
-) : CollectionValueProvider(idGenerator, java.lang.Iterable::class.id) {
+) : CollectionValueProvider(idGenerator, java.util.Collection::class.id) {
     override fun resolveType(description: FuzzedDescription, type: FuzzedType) = sequence {
         val generic = type.generics.firstOrNull() ?: FuzzedType(objectClassId)
         when (type.classId) {
-            java.lang.Iterable::class.id -> {
-                yield(FuzzedType(java.util.ArrayList::class.id, listOf(generic)))
-                yield(FuzzedType(java.util.HashSet::class.id, listOf(generic)))
-            }
             java.util.Queue::class.id,
             java.util.Deque::class.id-> {
                 yield(FuzzedType(java.util.ArrayDeque::class.id, listOf(generic)))

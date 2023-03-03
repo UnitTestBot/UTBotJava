@@ -39,6 +39,7 @@ import org.utbot.framework.codegen.domain.models.CgSwitchCaseLabel
 import org.utbot.framework.codegen.domain.models.CgClass
 import org.utbot.framework.codegen.domain.models.CgClassBody
 import org.utbot.framework.codegen.domain.models.CgFormattedString
+import org.utbot.framework.codegen.domain.models.CgFrameworkUtilMethod
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgTestMethod
 import org.utbot.framework.codegen.domain.models.CgTypeCast
@@ -413,6 +414,14 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
         val returnType = getKotlinClassString(element.returnType)
         println("fun ${element.name}(): $returnType")
+    }
+
+    override fun renderMethodSignature(element: CgFrameworkUtilMethod) {
+        print("fun ")
+        // TODO: resolve $ in name as in [CgTestMethod]
+        print(element.name)
+        print("()")
+        renderMethodReturnType(element)
     }
 
     private fun renderMethodReturnType(method: CgMethod) {

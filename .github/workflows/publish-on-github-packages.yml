@@ -7,10 +7,6 @@ on:
         type: string
         required: true
         description: "commit SHA: e.g. cab4799c"
-        
-env:
-  # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
 
 jobs:
   build-and-run-tests:

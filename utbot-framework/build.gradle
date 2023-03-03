@@ -27,6 +27,7 @@ dependencies {
     // this is necessary for serialization of some collections
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryoSerializersVersion
 
+    implementation group: 'com.charleskorn.kaml', name: 'kaml', version: kamlVersion
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion

@@ -4,17 +4,12 @@ import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.*
 import org.utbot.instrumentation.instrumentation.execution.constructors.ConstructOnlyUserClassesOrCachedObjectsStrategy
 import org.utbot.instrumentation.instrumentation.execution.constructors.UtModelConstructor
 import org.utbot.instrumentation.instrumentation.execution.mock.InstrumentationContext
 import org.utbot.instrumentation.instrumentation.execution.phases.PhasesController
 import org.utbot.instrumentation.instrumentation.execution.phases.start
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -29,12 +24,12 @@ import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
  * @property [stateBefore] is necessary for construction of parameters of a concrete call.
  * @property [instrumentation] is necessary for mocking static methods and new instances.
  * @property [timeout] is timeout for specific concrete execution (in milliseconds).
- * By default is initialized from [UtSettings.concreteExecutionTimeoutInInstrumentedProcess]
+ * By default is initialized from [UtSettings.concreteExecutionDefaultTimeoutInInstrumentedProcessMillis]
  */
 data class UtConcreteExecutionData(
     val stateBefore: EnvironmentModels,
     val instrumentation: List<UtInstrumentation>,
-    val timeout: Long = UtSettings.concreteExecutionTimeoutInInstrumentedProcess
+    val timeout: Long
 )
 
 class UtConcreteExecutionResult(
@@ -86,41 +81,47 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         return PhasesController(
             instrumentationContext,
             traceHandler,
-            delegateInstrumentation
+            delegateInstrumentation,
+            timeout
         ).computeConcreteExecutionResult {
-            // construction
-            val (params, statics, cache) = valueConstructionContext.start {
-                val params = constructParameters(stateBefore)
-                val statics = constructStatics(stateBefore)
-
-                mock(instrumentations)
-
-                Triple(params, statics, getCache())
-            }
-
-            // preparation
-            val savedStatics = preparationContext.start {
-                val savedStatics = setStaticFields(statics)
-                resetTrace()
-                savedStatics
-            }
-
             try {
+                val (params, statics, cache) = this.executePhaseInTimeout(valueConstructionPhase) {
+                    val params = constructParameters(stateBefore)
+                    val statics = constructStatics(stateBefore)
+
+                    // here static methods and instances are mocked
+                    mock(instrumentations)
+
+                    Triple(params, statics, getCache())
+                }
+
+                // invariants:
+                // 1. phase must always complete if started as static reset relies on it
+                // 2. phase must be fast as there are no incremental changes
+                postprocessingPhase.setStaticFields(preparationPhase.start {
+                    val result = setStaticFields(statics)
+                    resetTrace()
+                    result
+                })
+
                 // invocation
-                val concreteResult = invocationContext.start {
-                    invoke(clazz, methodSignature, params.map { it.value }, timeout)
+                val concreteResult = executePhaseInTimeout(invocationPhase) {
+                    invoke(clazz, methodSignature, params.map { it.value })
                 }
 
                 // statistics collection
-                val coverage = statisticsCollectionContext.start {
+                val coverage = executePhaseInTimeout(statisticsCollectionPhase) {
                     getCoverage(clazz)
                 }
 
                 // model construction
-                val (executionResult, stateAfter) = modelConstructionContext.start {
+                val (executionResult, stateAfter) = executePhaseInTimeout(modelConstructionPhase) {
                     configureConstructor {
                         this.cache = cache
-                        strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(pathsToUserClasses, cache)
+                        strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
+                            pathsToUserClasses,
+                            cache
+                        )
                     }
 
                     val executionResult = convertToExecutionResult(concreteResult, returnClassId)
@@ -143,9 +144,9 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     coverage
                 )
             } finally {
-                // postprocessing
-                postprocessingContext.start {
-                    resetStaticFields(savedStatics)
+                postprocessingPhase.start {
+                    resetStaticFields()
+                    valueConstructionPhase.resetMockMethods()
                 }
             }
         }

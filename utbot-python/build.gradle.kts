@@ -26,14 +26,13 @@ tasks {
 }
 
 dependencies {
-    api(project(":utbot-fuzzers"))
+    api(project(":utbot-fuzzing"))
     api(project(":utbot-framework"))
+    api(project(":utbot-python-parser"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation(group = "org.apache.commons", name = "commons-lang3", version = "3.12.0")
-    implementation(group = "io.github.danielnaczo", name = "python3parser", version = "1.0.4")
     implementation(group = "commons-io", name = "commons-io", version = "2.11.0")
-    implementation("com.beust:klaxon:5.5")
     implementation("com.squareup.moshi:moshi:1.11.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
     implementation("com.squareup.moshi:moshi-adapters:1.11.0")

@@ -1,22 +1,25 @@
 package framework.api.js
 
-import java.lang.reflect.Modifier
+import framework.api.js.util.toJsClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
-import framework.api.js.util.toJsClassId
 import org.utbot.framework.plugin.api.primitiveModelValueToClassId
+import java.lang.reflect.Modifier
 
 open class JsClassId(
     private val jsName: String,
     private val methods: Sequence<JsMethodId> = emptySequence(),
-    private val constructor: JsConstructorId? = null,
+    val constructor: JsConstructorId? = null,
     private val classPackagePath: String = "",
     private val classFilePath: String = "",
     elementClassId: JsClassId? = null
 ) : ClassId(jsName, elementClassId) {
     override val simpleName: String
+        get() = jsName
+
+    override val simpleNameWithEnclosingClasses: String
         get() = jsName
 
     override val allMethods: Sequence<JsMethodId>

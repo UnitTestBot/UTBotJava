@@ -1,8 +1,11 @@
 val ideType: String by settings
+val buildType: String by settings
 
 val pythonIde: String by settings
 val jsIde: String by settings
+val jsBuild: String by settings
 val includeRiderInBuild: String by settings
+val goIde: String by settings
 
 pluginManagement {
     resolutionStrategy {
@@ -52,10 +55,17 @@ if (pythonIde.split(",").contains(ideType)) {
     include("utbot-python")
     include("utbot-cli-python")
     include("utbot-intellij-python")
+    include("utbot-python-parser")
 }
 
-if (jsIde.split(",").contains(ideType)) {
+if (jsBuild == buildType || jsIde.split(",").contains(ideType)) {
     include("utbot-js")
     include("utbot-cli-js")
     include("utbot-intellij-js")
+}
+
+if (goIde.split(",").contains(ideType)) {
+    include("utbot-go")
+    include("utbot-cli-go")
+    include("utbot-intellij-go")
 }

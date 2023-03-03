@@ -1,15 +1,14 @@
 package org.utbot.framework.codegen.tree
 
-import org.utbot.common.PathUtil
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
-import org.utbot.engine.ArtificialError
+import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour.PASS
-import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.builtin.closeMethodIdOrNull
 import org.utbot.framework.codegen.domain.builtin.forName
 import org.utbot.framework.codegen.domain.builtin.getClass
@@ -22,8 +21,6 @@ import org.utbot.framework.codegen.domain.models.CgAllocateArray
 import org.utbot.framework.codegen.domain.models.CgArrayElementAccess
 import org.utbot.framework.codegen.domain.models.CgClassId
 import org.utbot.framework.codegen.domain.models.CgDeclaration
-import org.utbot.framework.codegen.domain.models.CgDocPreTagStatement
-import org.utbot.framework.codegen.domain.models.CgDocRegularStmt
 import org.utbot.framework.codegen.domain.models.CgDocumentationComment
 import org.utbot.framework.codegen.domain.models.CgEqualTo
 import org.utbot.framework.codegen.domain.models.CgErrorTestMethod
@@ -34,6 +31,7 @@ import org.utbot.framework.codegen.domain.models.CgGetJavaClass
 import org.utbot.framework.codegen.domain.models.CgLiteral
 import org.utbot.framework.codegen.domain.models.CgMethod
 import org.utbot.framework.codegen.domain.models.CgMethodCall
+import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.codegen.domain.models.CgMultilineComment
 import org.utbot.framework.codegen.domain.models.CgNotNullAssertion
 import org.utbot.framework.codegen.domain.models.CgParameterDeclaration
@@ -53,10 +51,19 @@ import org.utbot.framework.codegen.domain.models.CgValue
 import org.utbot.framework.codegen.domain.models.CgVariable
 import org.utbot.framework.codegen.domain.models.convertDocToCg
 import org.utbot.framework.codegen.domain.models.toStatement
+import org.utbot.framework.codegen.services.access.CgCallableAccessManager
+import org.utbot.framework.codegen.services.access.CgFieldStateManagerImpl
+import org.utbot.framework.codegen.services.framework.TestFrameworkManager
+import org.utbot.framework.codegen.tree.CgComponents.getCallableAccessManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getMockFrameworkManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getNameGeneratorBy
+import org.utbot.framework.codegen.tree.CgComponents.getStatementConstructorBy
+import org.utbot.framework.codegen.tree.CgComponents.getTestFrameworkManagerBy
+import org.utbot.framework.codegen.tree.CgComponents.getVariableConstructorBy
+import org.utbot.framework.codegen.util.canBeReadFrom
 import org.utbot.framework.codegen.util.canBeSetFrom
 import org.utbot.framework.codegen.util.equalTo
 import org.utbot.framework.codegen.util.inc
-import org.utbot.framework.codegen.util.canBeReadFrom
 import org.utbot.framework.codegen.util.length
 import org.utbot.framework.codegen.util.lessThan
 import org.utbot.framework.codegen.util.nullLiteral
@@ -67,10 +74,10 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.TypeParameters
@@ -83,16 +90,19 @@ import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
+import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -100,63 +110,49 @@ import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.util.allSuperTypes
+import org.utbot.framework.plugin.api.util.baseStreamClassId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.doubleStreamClassId
+import org.utbot.framework.plugin.api.util.doubleStreamToArrayMethodId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
 import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.floatArrayClassId
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.floatWrapperClassId
 import org.utbot.framework.plugin.api.util.hasField
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.intStreamClassId
+import org.utbot.framework.plugin.api.util.intStreamToArrayMethodId
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.framework.plugin.api.util.isInnerClassEnclosingClassReference
 import org.utbot.framework.plugin.api.util.isIterableOrMap
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.kClass
+import org.utbot.framework.plugin.api.util.longStreamClassId
+import org.utbot.framework.plugin.api.util.longStreamToArrayMethodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.streamClassId
+import org.utbot.framework.plugin.api.util.streamToArrayMethodId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
-import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
-import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
-import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.services.access.CgCallableAccessManager
-import org.utbot.framework.codegen.services.access.CgFieldStateManagerImpl
-import org.utbot.framework.codegen.services.framework.TestFrameworkManager
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getCallableAccessManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getMockFrameworkManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getNameGeneratorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getStatementConstructorBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getTestFrameworkManagerBy
-import org.utbot.framework.codegen.tree.CgTestClassConstructor.CgComponents.getVariableConstructorBy
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtStreamConsumingFailure
-import org.utbot.framework.plugin.api.util.allSuperTypes
-import org.utbot.framework.plugin.api.util.baseStreamClassId
-import org.utbot.framework.plugin.api.util.doubleStreamClassId
-import org.utbot.framework.plugin.api.util.doubleStreamToArrayMethodId
-import org.utbot.framework.plugin.api.util.intStreamClassId
-import org.utbot.framework.plugin.api.util.intStreamToArrayMethodId
-import org.utbot.framework.plugin.api.util.isPackagePrivate
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.longStreamClassId
-import org.utbot.framework.plugin.api.util.longStreamToArrayMethodId
-import org.utbot.framework.plugin.api.util.streamClassId
-import org.utbot.framework.plugin.api.util.streamToArrayMethodId
-import org.utbot.framework.plugin.api.util.isStatic
+import java.security.AccessControlException
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -236,7 +232,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeReadFrom(context)
+            val fieldAccessible = field.canBeReadFrom(context, declaringClass)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
             val prevValue = newVar(
@@ -261,7 +257,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeSetFrom(context)
+            val fieldAccessible = field.canBeSetFrom(context, declaringClass)
 
             val fieldValue = if (isParametrized) {
                 currentMethodParameters[CgParameterKind.Statics(model)]
@@ -282,7 +278,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
 
     protected fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
-            if (field.canBeSetFrom(context)) {
+            if (field.canBeSetFrom(context, field.declaringClass)) {
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
@@ -343,7 +339,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 }
             }
             CRASH -> when (expectedException) {
-                is ConcreteExecutionFailureException -> {
+                is InstrumentedProcessDeathException -> {
                     writeWarningAboutCrash()
                     methodInvocationBlock()
                 }
@@ -425,7 +421,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     protected fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
         if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
-        if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
+        if (exception is TimeoutException || exception is InstrumentedProcessDeathException) return false
         if (exception is ArtificialError) return false
         if (UtSettings.treatAssertAsErrorSuite && exception is AssertionError) return false
 
@@ -581,6 +577,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val modelWithField = ModelWithField(expectedModel, expectedModelField)
         if (modelWithField in visitedModels) return
 
+        @Suppress("NAME_SHADOWING")
         var expected = expected
         if (expected == null) {
             require(!needExpectedDeclaration(expectedModel))
@@ -644,7 +641,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     val actualObject: CgVariable = when (codegenLanguage) {
                         CodegenLanguage.KOTLIN -> newVar(
                             baseType = objectClassId,
-                            baseName = variableConstructor.constructVarName("actualObject"),
+                            baseName = nameGenerator.variableName("actualObject"),
                             init = { CgTypeCast(objectClassId, actual) }
                         )
                         else -> actual
@@ -758,7 +755,8 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                         return
                     }
 
-                    if (expected.hasNotParametrizedCustomEquals()) {
+                    // We can use overridden equals if we have one, but not for mocks.
+                    if (expected.hasNotParametrizedCustomEquals() && !expectedModel.isMock) {
                         // We rely on already existing equals
                         currentBlock += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
                         currentBlock += assertions[assertEquals](expected, actual).toStatement()
@@ -797,7 +795,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     ): CgDeclaration {
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
-            variableConstructor.constructVarName("${expected.name}Size"),
+            nameGenerator.variableName("${expected.name}Size"),
             expected.length(this@CgMethodConstructor)
         )
         currentBlock += cgGetLengthDeclaration
@@ -851,13 +849,13 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                 statements = block {
                     val expectedNestedElement = newVar(
                         baseType = expected.type.elementClassId!!,
-                        baseName = variableConstructor.constructVarName("${expected.name}NestedElement"),
+                        baseName = nameGenerator.variableName("${expected.name}NestedElement"),
                         init = { CgArrayElementAccess(expected, i) }
                     )
 
                     val actualNestedElement = newVar(
                         baseType = actual.type.elementClassId!!,
-                        baseName = variableConstructor.constructVarName("${actual.name}NestedElement"),
+                        baseName = nameGenerator.variableName("${actual.name}NestedElement"),
                         init = { CgArrayElementAccess(actual, i) }
                     )
 
@@ -1125,11 +1123,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(this)
-            //TODO: think about moving variable type checks into [isAccessibleFrom] after contest
-            && (!isPackagePrivate || variable.type.packageName == context.testClassPackageName)
-            && canBeReadFrom(context)
-        ) {
+        if (variable.type.hasField(this) && canBeReadFrom(context, variable.type)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
@@ -1844,7 +1838,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
                     shouldTestPassWithTimeoutException(currentExecution, exception) -> TIMEOUT
                     else -> when (exception) {
                         is ArtificialError -> ARTIFICIAL
-                        is ConcreteExecutionFailureException -> CRASH
+                        is InstrumentedProcessDeathException -> CRASH
                         is AccessControlException -> CRASH // exception from sandbox
                         else -> FAILING
                     }
@@ -1904,22 +1898,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             methodType = this@CgMethodConstructor.methodType
             val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
 
-            // add JVM crash report path if exists
-            if (result is UtConcreteExecutionFailure) {
-                result.extractJvmReportPathOrNull()?.let {
-                    val jvmReportDocumentation = CgDocRegularStmt(getJvmReportDocumentation(it))
-                    val lastTag = docComment.lastOrNull()
-                    // if the last statement is a <pre> tag, put the path inside it
-                    if (lastTag == null || lastTag !is CgDocPreTagStatement) {
-                        docComment += jvmReportDocumentation
-                    } else {
-                        val tagContent = lastTag.content
-                        docComment.removeLast()
-                        docComment += CgDocPreTagStatement(tagContent + jvmReportDocumentation)
-                    }
-                }
-            }
-
             documentation = CgDocumentationComment(docComment)
             documentation = if (parameterized) {
                 CgDocumentationComment(text = null)
@@ -1974,18 +1952,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
         val errorTestMethod = CgErrorTestMethod(name, body)
         return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
     }
-
-    private fun getJvmReportDocumentation(jvmReportPath: String): String {
-        val pureJvmReportPath = jvmReportPath.substringAfter("# ")
-
-        // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
-    }
-
-    private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =
-        exception.processStdout.singleOrNull {
-            "hs_err_pid" in it
-        }
 
     private fun CgExecutableCall.wrapReflectiveCall() {
         +tryBlock {

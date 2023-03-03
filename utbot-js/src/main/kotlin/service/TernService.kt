@@ -4,8 +4,6 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMultipleClassId
 import framework.api.js.util.jsUndefinedClassId
-import java.io.File
-import java.util.Locale
 import org.json.JSONException
 import org.json.JSONObject
 import parser.JsParserUtils
@@ -16,6 +14,8 @@ import parser.JsParserUtils.getConstructor
 import utils.JsCmdExec
 import utils.MethodTypes
 import utils.constructClass
+import java.io.File
+import java.util.Locale
 
 /*
     NOTE: this approach is quite bad, but we failed to implement alternatives.
@@ -26,7 +26,7 @@ import utils.constructClass
 /**
  * Installs and sets up scripts for running Tern.js type guesser.
  */
-class TernService(val context: ServiceContext) {
+class TernService(context: ServiceContext) : ContextOwner by context {
 
 
     private fun ternScriptCode() = """
@@ -64,7 +64,7 @@ function test(options) {
     runTest(options);
 }
 
-test("${context.filePathToInference}")
+test("$filePathToInference")
     """
 
     init {
@@ -80,7 +80,8 @@ test("${context.filePathToInference}")
     private fun installDeps(path: String) {
         JsCmdExec.runCommand(
             dir = path,
-            cmd = arrayOf(context.settings.pathToNPM, "i", "tern", "-l")
+            shouldWait = true,
+            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l"),
         )
     }
 
@@ -91,19 +92,16 @@ test("${context.filePathToInference}")
     }
 
     private fun runTypeInferencer() {
-        with(context) {
-            val (reader, _) = JsCmdExec.runCommand(
-                dir = "$projectPath/$utbotDir/",
-                shouldWait = true,
-                timeout = 20,
-                cmd = arrayOf(settings.pathToNode, "${projectPath}/$utbotDir/ternScript.js"),
-            )
-            val text = reader.readText().replaceAfterLast("}", "")
-            json = try {
-                JSONObject(text)
-            } catch (_: Throwable) {
-                JSONObject()
-            }
+        val (inputText, _) = JsCmdExec.runCommand(
+            dir = "$projectPath/$utbotDir/",
+            shouldWait = true,
+            timeout = 20,
+            cmd = arrayOf("\"${settings.pathToNode}\"", "\"${projectPath}/$utbotDir/ternScript.js\""),
+        )
+        json = try {
+            JSONObject(inputText.replaceAfterLast("}", ""))
+        } catch (_: Throwable) {
+            JSONObject()
         }
     }
 
@@ -195,7 +193,7 @@ test("${context.filePathToInference}")
         return try {
             val classNode = JsParserUtils.searchForClassDecl(
                 className = name,
-                parsedFile = context.parsedFile,
+                parsedFile = parsedFile,
                 strict = true,
             )
             classNode?.let {

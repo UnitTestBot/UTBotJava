@@ -90,6 +90,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.plugin.api.OverflowDetectionError
 import org.utbot.engine.types.CLASS_REF_CLASSNAME
 import org.utbot.engine.types.CLASS_REF_CLASS_ID
 import org.utbot.engine.types.CLASS_REF_NUM_DIMENSIONS_DESCRIPTOR
@@ -127,7 +128,7 @@ typealias Address = Int
  */
 class Resolver(
     val hierarchy: Hierarchy,
-    private val memory: Memory,
+    val memory: Memory,
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
@@ -558,9 +559,23 @@ class Resolver(
         }
 
         val clazz = classLoader.loadClass(sootClass.name)
-
+        // If we have an actual type as an Enum instance (a direct inheritor of java.lang.Enum),
+        // we should construct it using information about corresponding ordinal.
+        // The right enum constant will be constructed due to constraints added to the solver.
         if (clazz.isEnum) {
             return constructEnum(concreteAddr, actualType, clazz)
+        }
+
+        // But, if we have the actualType that is not a direct inheritor of java.lang.Enum,
+        // we have to check its ancestor instead, because we might be in a situation when
+        // we worked with an enum constant as a parameter, and now we have correctly calculated actual type.
+        // Since actualType for enums represents its instances and enum constants are not actually
+        // enum instances (in accordance to java.lang.Class#isEnum), we have to check
+        // the defaultType below instead on the actual one whether is it an Enum or not.
+        val defaultClazz = classLoader.loadClass(defaultType.sootClass.name)
+
+        if (defaultClazz.isEnum) {
+            return constructEnum(concreteAddr, actualType, defaultClazz)
         }
 
         // check if we have mock with this address
@@ -1235,7 +1250,14 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
 
                 val createdElement = if (elementType is RefType) {
                     val className = value[it]!!.javaClass.id.name
-                    createObject(addr, Scene.v().getRefType(className), useConcreteType = true)
+                    // Try to take an instance of class we find in Runtime
+                    // If it is impossible, take the default `elementType` without a concrete type instead.
+                    val (type, useConcreteType) =
+                        Scene.v().getRefTypeUnsafe(className)
+                            ?.let { type -> type to true }
+                            ?: (elementType to false)
+
+                    createObject(addr, type, useConcreteType)
                 } else {
                     require(elementType is ArrayType)
                     // We cannot use concrete types since we do not receive
@@ -1262,7 +1284,14 @@ fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
 
                 return asMethodResult {
                     val addr = UtAddrExpression(mkBVConst("staticVariable${value.hashCode()}", UtInt32Sort))
-                    createObject(addr, Scene.v().getRefType(refTypeName), useConcreteType = true)
+                    // Try to take a type from an object from the Runtime.
+                    // If it is impossible, create an instance of a default `sootType` without a concrete type.
+                    val (type, useConcreteType) = Scene.v()
+                        .getRefTypeUnsafe(refTypeName)
+                        ?.let { type -> type to true }
+                        ?: (sootType as RefType to false)
+
+                    createObject(addr, type, useConcreteType)
                 }
             }
         }

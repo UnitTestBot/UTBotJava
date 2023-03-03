@@ -2,16 +2,30 @@ import collections
 import heapq
 import typing
 from socket import socket
-from typing import *
+from typing import List, Dict, Set, Optional
 from dataclasses import dataclass
 import logging
 import datetime
+import sample_classes
 
 
 class Dummy:
     def propagate(self):
         return [self, self]
 
+    @staticmethod
+    def abs(x):
+        return abs(x)
+
+
+def dict_f(x, a, b, c):
+    y = {1: 2}
+    if x == y:
+        return 1
+    x = a
+    x = b
+    x = c
+    return 2
 
 
 class A:
@@ -170,7 +184,7 @@ def get_data_labels(dates):
     else:
         return [x.strftime('%H:%M') for x in dates]
 
-
+"""
 # bad function
 def m(x):
     x = frozenset()
@@ -187,6 +201,7 @@ def n(x, y):
     if y == len([1]):
         y += print()
     return x.description
+"""
 
 
 def list_of_list(x: List[List[InventoryItem]]):

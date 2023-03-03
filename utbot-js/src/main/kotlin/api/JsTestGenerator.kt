@@ -1,33 +1,35 @@
 package api
 
 import codegen.JsCodeGenerator
-import com.google.javascript.jscomp.Compiler
-import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
-import framework.api.js.JsMultipleClassId
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
-import fuzzer.JsFuzzer
-import fuzzer.providers.JsObjectModelProvider
-import java.io.File
+import framework.api.js.util.jsUndefinedClassId
+import fuzzer.JsFeedback
+import fuzzer.JsFuzzingExecutionFeedback
+import fuzzer.JsMethodDescription
+import fuzzer.JsStatement
+import fuzzer.JsTimeoutExecution
+import fuzzer.JsValidExecution
+import fuzzer.runFuzzing
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import mu.KotlinLogging
+import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzing.Control
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -37,16 +39,26 @@ import parser.JsParserUtils.getAbstractFunctionParams
 import parser.JsParserUtils.getClassMethods
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
+import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
+import service.CoverageMode
 import service.CoverageServiceProvider
+import service.InstrumentationService
 import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
 import settings.JsTestGenerationSettings.dummyClassName
+import settings.JsTestGenerationSettings.fuzzingThreshold
+import settings.JsTestGenerationSettings.fuzzingTimeout
 import utils.PathResolver
+import utils.ResultData
 import utils.constructClass
 import utils.toJsAny
+import java.io.File
+import java.util.concurrent.CancellationException
+import org.utbot.fuzzing.utils.Trie
 
+private val logger = KotlinLogging.logger {}
 
 class JsTestGenerator(
     private val fileText: String,
@@ -57,6 +69,7 @@ class JsTestGenerator(
     private var outputFilePath: String?,
     private val exportsManager: (List<String>) -> Unit,
     private val settings: JsDynamicSettings,
+    private val isCancelled: () -> Boolean = { false }
 ) {
 
     private val exports = mutableSetOf<String>()
@@ -124,42 +137,30 @@ class JsTestGenerator(
             it.name == funcNode.getAbstractFunctionName()
         } ?: throw IllegalStateException()
         manageExports(classNode, funcNode, execId)
-        val (concreteValues, fuzzedValues) = runFuzzer(funcNode, execId)
-        val (allCoveredStatements, executionResults) =
-            CoverageServiceProvider(context).get(
-                settings.coverageMode,
-                fuzzedValues,
-                execId,
-                classNode
-            )
+        val executionResults = mutableListOf<JsFuzzingExecutionFeedback>()
+        try {
+            runBlockingWithCancellationPredicate(isCancelled) {
+                runFuzzingFlow(funcNode, execId, context).collect {
+                    executionResults += it
+                }
+            }
+        } catch (e: CancellationException) {
+            logger.info { "Fuzzing was stopped due to test generation cancellation" }
+        }
+        if (executionResults.isEmpty()) {
+            if (isCancelled()) return
+            throw UnsupportedOperationException("No test cases were generated for ${funcNode.getAbstractFunctionName()}")
+        }
+        logger.info { "${executionResults.size} test cases were suggested after fuzzing" }
         val testsForGenerator = mutableListOf<UtExecution>()
         val errorsForGenerator = mutableMapOf<String, Int>()
-        executionResults.forEachIndexed { index, value ->
-            if (value == "Error:Timeout") {
-                errorsForGenerator["Timeout in generating test for ${
-                    fuzzedValues[index]
-                        .joinToString { f -> f.model.toString() }
-                } parameters"] = 1
+        executionResults.forEach { value ->
+            when (value) {
+                is JsTimeoutExecution -> errorsForGenerator[value.utTimeout.exception.message!!] = 1
+                is JsValidExecution -> testsForGenerator.add(value.utFuzzedExecution)
             }
         }
 
-        analyzeCoverage(allCoveredStatements).forEach { paramIndex ->
-            val param = fuzzedValues[paramIndex]
-            val result =
-                getUtModelResult(
-                    execId = execId,
-                    returnText = executionResults[paramIndex]
-                )
-            val thisInstance = makeThisInstance(execId, classId, concreteValues)
-            val initEnv = EnvironmentModels(thisInstance, param.map { it.model }, mapOf())
-            testsForGenerator.add(
-                UtFuzzedExecution(
-                    stateBefore = initEnv,
-                    stateAfter = initEnv,
-                    result = result,
-                )
-            )
-        }
         val testSet = CgMethodTestSet(
             executableId = execId,
             errors = errorsForGenerator,
@@ -178,49 +179,25 @@ class JsTestGenerator(
         } ?: ""
     }
 
-    private fun makeThisInstance(
-        execId: JsMethodId,
-        classId: JsClassId,
-        concreteValues: Set<FuzzedConcreteValue>
-    ): UtModel? {
-        val thisInstance = when {
-            execId.isStatic -> null
-            classId.allConstructors.first().parameters.isEmpty() -> {
-                val id = JsObjectModelProvider.idGenerator.asInt
-                val constructor = classId.allConstructors.first()
-                val instantiationCall = UtExecutableCallModel(
-                    instance = null,
-                    executable = constructor,
-                    params = emptyList(),
-                )
-                UtAssembleModel(
-                    id = id,
-                    classId = constructor.classId,
-                    modelName = "${constructor.classId.name}${constructor.parameters}#" + id.toString(16),
-                    instantiationCall = instantiationCall,
-                )
-            }
-
-            else -> {
-                JsObjectModelProvider.generate(
-                    FuzzedMethodDescription(
-                        name = "thisInstance",
-                        returnType = voidClassId,
-                        parameters = listOf(classId),
-                        concreteValues = concreteValues
-                    )
-                ).take(10).toList()
-                    .shuffled().map { it.value.model }.first()
-            }
-        }
-        return thisInstance
-    }
-
     private fun getUtModelResult(
         execId: JsMethodId,
-        returnText: String
+        resultData: ResultData,
+        fuzzedValues: List<FuzzedValue>
     ): UtExecutionResult {
-        val (returnValue, valueClassId) = returnText.toJsAny(execId.returnType)
+        if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
+            TimeoutException("  Timeout in generating test for ${
+                execId.parameters
+                    .zip(fuzzedValues)
+                    .joinToString(
+                        prefix = "${execId.name}(",
+                        separator = ", ",
+                        postfix = ")"
+                    ) { (_, value) -> value.model.toString() }
+            }")
+        )
+        val (returnValue, valueClassId) = resultData.toJsAny(
+            if (execId.returnType.isJsBasic) JsClassId(resultData.type) else execId.returnType
+        )
         val result = JsUtModelConstructor().construct(returnValue, valueClassId)
         val utExecResult = when (result.classId) {
             jsErrorClassId -> UtExplicitlyThrownException(Throwable(returnValue.toString()), false)
@@ -229,21 +206,95 @@ class JsTestGenerator(
         return utExecResult
     }
 
-    private fun runFuzzer(
+    private fun runFuzzingFlow(
         funcNode: Node,
-        execId: JsMethodId
-    ): Pair<Set<FuzzedConcreteValue>, List<List<FuzzedValue>>> {
+        execId: JsMethodId,
+        context: ServiceContext,
+    ): Flow<JsFuzzingExecutionFeedback> = flow {
         val fuzzerVisitor = JsFuzzerAstVisitor()
         fuzzerVisitor.accept(funcNode)
-        val methodUnderTestDescription =
-            FuzzedMethodDescription(execId, fuzzerVisitor.fuzzedConcreteValues).apply {
-                compilableName = funcNode.getAbstractFunctionName()
-                val names = funcNode.getAbstractFunctionParams().map { it.getParamName() }
-                parameterNameMap = { index -> names.getOrNull(index) }
+        val jsDescription = JsMethodDescription(
+            name = funcNode.getAbstractFunctionName(),
+            parameters = execId.parameters,
+            execId.classId,
+            concreteValues = fuzzerVisitor.fuzzedConcreteValues,
+            tracer = Trie(JsStatement::number)
+        )
+        val collectedValues = mutableListOf<List<FuzzedValue>>()
+        // .location field gets us "jsFile:A:B", then we get A and B as ints
+        val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
+            .split(":").map { it.toInt() }
+        logger.info { "Function under test location according to parser is [${funcLocation[0]}, ${funcLocation[1]}]" }
+        val instrService = InstrumentationService(context, funcLocation[0] to funcLocation[1])
+        instrService.instrument()
+        val coverageProvider = CoverageServiceProvider(
+            context,
+            instrService,
+            context.settings.coverageMode,
+            jsDescription
+        )
+        val allStmts = instrService.allStatements
+        logger.info { "Statements to cover: (${allStmts.joinToString { toString() }})" }
+        val currentlyCoveredStmts = mutableSetOf<Int>()
+        val startTime = System.currentTimeMillis()
+        runFuzzing(jsDescription) { description, values ->
+            if (isCancelled() || System.currentTimeMillis() - startTime > fuzzingTimeout)
+                return@runFuzzing JsFeedback(Control.STOP)
+            collectedValues += values
+            if (collectedValues.size >= if (context.settings.coverageMode == CoverageMode.FAST) fuzzingThreshold else 1) {
+                try {
+                    val (coveredStmts, executionResults) = coverageProvider.get(
+                        collectedValues,
+                        execId
+                    )
+                    coveredStmts.zip(executionResults).forEach { (covData, resultData) ->
+                        val params = collectedValues[resultData.index]
+                        val result =
+                            getUtModelResult(
+                                execId = execId,
+                                resultData = resultData,
+                                params
+                            )
+                        if (result is UtTimeoutException) {
+                            emit(JsTimeoutExecution(result))
+                            return@runFuzzing JsFeedback(Control.PASS)
+                        } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
+                            val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
+                                null to params.map { it.model }
+                            } else params[0].model to params.drop(1).map { it.model }
+                            val initEnv =
+                                EnvironmentModels(thisObject, modelList, mapOf())
+                            emit(
+                                JsValidExecution(
+                                    UtFuzzedExecution(
+                                        stateBefore = initEnv,
+                                        stateAfter = initEnv,
+                                        result = result,
+                                    )
+                                )
+                            )
+                            currentlyCoveredStmts += covData.additionalCoverage
+                            val trieNode = description.tracer.add(covData.additionalCoverage.map { JsStatement(it) })
+                            return@runFuzzing JsFeedback(control = Control.CONTINUE, result = trieNode)
+                        }
+                        if (currentlyCoveredStmts.containsAll(allStmts)) return@runFuzzing JsFeedback(Control.STOP)
+                    }
+                } catch (e: TimeoutException) {
+                    emit(
+                        JsTimeoutExecution(
+                            UtTimeoutException(
+                                TimeoutException("Timeout on unknown test case. Consider using \"Basic\" coverage mode")
+                            )
+                        )
+                    )
+                    return@runFuzzing JsFeedback(Control.STOP)
+                } finally {
+                    collectedValues.clear()
+                }
             }
-        val fuzzedValues =
-            JsFuzzer.jsFuzzing(methodUnderTestDescription = methodUnderTestDescription).toList()
-        return fuzzerVisitor.fuzzedConcreteValues.toSet() to fuzzedValues
+            return@runFuzzing JsFeedback(Control.PASS)
+        }
+        instrService.removeTempFiles()
     }
 
     private fun manageExports(
@@ -272,14 +323,11 @@ class JsTestGenerator(
     ): JsClassId {
         return classNode?.let {
             JsClassId(parentClassName!!).constructClass(ternService, classNode)
-        } ?: JsClassId("undefined").constructClass(
+        } ?: jsUndefinedClassId.constructClass(
             ternService = ternService,
             functions = extractToplevelFunctions()
         )
     }
-
-    private fun runParser(fileText: String): Node =
-        Compiler().parse(SourceFile.fromCode("jsFile", fileText))
 
     private fun extractToplevelFunctions(): List<Node> {
         val visitor = JsToplevelFunctionAstVisitor()
@@ -290,24 +338,12 @@ class JsTestGenerator(
     private fun collectExports(methodId: JsMethodId): List<String> {
         val res = mutableListOf<String>()
         methodId.parameters.forEach {
-            if (!(it.isJsBasic || it is JsMultipleClassId)) {
+            if (!it.isJsBasic) {
                 res += it.name
             }
         }
-        if (!(methodId.returnType.isJsBasic || methodId.returnType is JsMultipleClassId)) res += methodId.returnType.name
+        if (!methodId.returnType.isJsBasic) res += methodId.returnType.name
         return res
-    }
-
-    private fun analyzeCoverage(coverageList: List<Set<Int>>): List<Int> {
-        val allCoveredBranches = mutableSetOf<Int>()
-        val resultList = mutableListOf<Int>()
-        coverageList.forEachIndexed { index, it ->
-            if (!allCoveredBranches.containsAll(it)) {
-                resultList += index
-                allCoveredBranches.addAll(it)
-            }
-        }
-        return resultList
     }
 
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {

@@ -44,6 +44,7 @@ interface CgElement {
             is CgMethodsCluster -> visit(element)
             is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
+            is CgFrameworkUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
             is CgParameterizedTestDataProviderMethod -> visit(element)
@@ -154,7 +155,9 @@ class CgClassBody(
     val classId: ClassId,
     val methodRegions: List<CgMethodsCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
-    val nestedClassRegions: List<CgNestedClassesRegion<*>>
+    val nestedClassRegions: List<CgNestedClassesRegion<*>>,
+    //TODO: use [CgFieldDeclaration] after PR-1788 merge
+    val fields: List<CgDeclaration> = emptyList(),
 ) : CgElement
 
 /**
@@ -280,13 +283,25 @@ class CgTestMethod(
     val type: CgTestMethodType,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
     override val requiredFields: List<CgParameterDeclaration> = emptyList(),
-) : CgMethod(false)
+) : CgMethod(isStatic = false)
+
+class CgFrameworkUtilMethod(
+    override val name: String,
+    override val statements: List<CgStatement>,
+    override val exceptions: Set<ClassId>,
+    override val annotations: List<CgAnnotation>,
+) : CgMethod(isStatic = false) {
+    override val returnType: ClassId = voidClassId
+    override val parameters: List<CgParameterDeclaration> = emptyList()
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override val requiredFields: List<CgParameterDeclaration> = emptyList()
+}
 
 class CgErrorTestMethod(
     override val name: String,
     override val statements: List<CgStatement>,
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
-) : CgMethod(false) {
+) : CgMethod(isStatic = false) {
     override val exceptions: Set<ClassId> = emptySet()
     override val returnType: ClassId = voidClassId
     override val parameters: List<CgParameterDeclaration> = emptyList()
@@ -873,7 +888,8 @@ class CgIfStatement(
 
 data class CgSwitchCaseLabel(
     val label: CgLiteral? = null, // have to be compile time constant (null for default label)
-    val statements: MutableList<CgStatement>
+    val statements: List<CgStatement>,
+    val addBreakStatementToEnd: Boolean = true // do not set this field to "true" value if you manually added "break" to statements
 ) : CgStatement
 
 data class CgSwitchCase(

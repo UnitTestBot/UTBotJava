@@ -1,7 +1,9 @@
 package org.utbot.summary.comment.customtags.symbolic
 
+import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocStatement
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
@@ -54,8 +56,13 @@ class CustomJavaDocCommentBuilder(
         if (thrownException != null) {
             val exceptionName = thrownException.javaClass.name
             val reason = findExceptionReason(currentMethod, thrownException)
+                .replace(CARRIAGE_RETURN, "")
 
-            comment.throwsException = "{@link $exceptionName} $reason".replace(CARRIAGE_RETURN, "")
+            when (thrownException) {
+                is TimeoutException,
+                is ArtificialError -> comment.detectsSuspiciousBehavior = reason
+                else -> comment.throwsException = "{@link $exceptionName} $reason"
+            }
         }
 
         if (rootSentenceBlock.recursion != null) {

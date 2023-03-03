@@ -25,6 +25,7 @@ import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.stmt.SwitchEntry
 import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.WhileStmt
+import org.utbot.framework.plugin.api.Step
 import org.utbot.summary.comment.isLoopStatement
 import java.util.LinkedList
 import java.util.Queue
@@ -188,9 +189,9 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
         val stmts = stmtToASTNode.keys.toTypedArray()
         for (nonAlignedReturn in nonAlignedReturns) {
             val index = stmts.indexOf(nonAlignedReturn)
-            if (index - 1 >= 0 && stmts[index - 1] is JIfStmt) {
-                stmtToASTNode[nonAlignedReturn] = stmtToASTNode[stmts[index - 1]]
-            }
+            val ternaryIfStmtIndex = stmts.indexOfLast { it is JIfStmt && stmts.indexOf(it) <= index }
+
+            stmtToASTNode[nonAlignedReturn] = stmtToASTNode[stmts[ternaryIfStmtIndex]]
         }
     }
 
@@ -339,12 +340,14 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
         }
 
         /**
-         * @return SwitchEntry №decision
+         * @return SwitchEntry
          */
-        fun mapSwitchCase(switchStmt: SwitchStmt, decision: Int): SwitchEntry? {
-            val switchStmts = switchStmt.childNodes.filterIsInstance<SwitchEntry>()
-            return if (decision < switchStmts.size) switchStmts[decision]
-            else null
+        fun mapSwitchCase(switchStmt: SwitchStmt, step: Step): SwitchEntry? {
+            val neededLine = step.stmt.unitBoxes[step.decision].unit.javaSourceStartLineNumber
+            return switchStmt
+                .childNodes
+                .filterIsInstance<SwitchEntry>()
+                .find { neededLine in (it.range.get().begin.line..it.range.get().end.line) }
         }
 
         /**

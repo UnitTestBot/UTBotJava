@@ -3,7 +3,7 @@ package org.utbot.summary.name
 import com.github.javaparser.ast.stmt.CatchClause
 import com.github.javaparser.ast.stmt.ForStmt
 import com.github.javaparser.ast.stmt.ThrowStmt
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.isFailure
@@ -146,7 +146,10 @@ class SimpleNameBuilder(
     }
 
     private fun fromNameDescriptionToCandidateSimpleName(nameDescription: TestNameDescription): DisplayNameCandidate? {
-        if (nameDescription.nameType == NameType.ThrowsException) {
+        if (nameDescription.nameType == NameType.ArtificialError ||
+            nameDescription.nameType == NameType.TimeoutError ||
+            nameDescription.nameType == NameType.ThrowsException
+        ) {
             return DisplayNameCandidate(
                 nameDescription.name,
                 nameDescription.uniquenessTag,
@@ -265,17 +268,21 @@ class SimpleNameBuilder(
 
     /**
      * [TraceTagWithoutExecution.path] could be empty in case exception is thrown not in source code but in engine
-     * (for example, [ConcreteExecutionFailureException]).
+     * (for example, [InstrumentedProcessDeathException]).
      */
     private fun exceptionThrow(testNames: MutableList<TestNameDescription>) {
-        val throwsException = traceTag.result.exceptionOrNull()?.let { it::class.simpleName }
-        if (!(throwsException.isNullOrEmpty() || traceTag.path.isEmpty())) {
+        val exception = traceTag.result.exceptionOrNull() ?: return
+        val name = buildNameFromThrowable(exception)
+
+        if (name != null && traceTag.path.isNotEmpty()) {
+            val nameType = getThrowableNameType(exception)
+
             testNames.add(TestNameDescription(
-                "Throw$throwsException",
+                name,
                 testNames.maxOfOrNull { it.depth } ?: 0,
                 testNames.maxOfOrNull { it.line } ?: 0,
                 UniquenessTag.Unique,
-                NameType.ThrowsException,
+                nameType,
                 testNames.maxOfOrNull { it.index } ?: 0,
                 traceTag.path.last(),
                 methodUnderTest

@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
-import org.utbot.common.bracket
+import org.utbot.common.measureTime
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
@@ -61,6 +61,7 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
+    val applicationContext: ApplicationContext? = null,
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -79,7 +80,7 @@ open class TestCaseGenerator(
                 System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
             }
 
-            timeoutLogger.trace().bracket("Soot initialization") {
+            timeoutLogger.trace().measureTime({ "Soot initialization"} ) {
                 SootUtils.runSoot(buildDirs, classpath, forceSootReload, jdkInfo)
             }
 
@@ -112,7 +113,14 @@ open class TestCaseGenerator(
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
         try {
-            val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
+            val engine = createSymbolicEngine(
+                controller,
+                method,
+                mockStrategy,
+                chosenClassesToMockAlways,
+                applicationContext = null,
+                executionTimeEstimator,
+            )
             engineActions.map { engine.apply(it) }
             engineActions.clear()
             return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
@@ -159,6 +167,7 @@ open class TestCaseGenerator(
                                 method,
                                 mockStrategy,
                                 chosenClassesToMockAlways,
+                                applicationContext,
                                 executionTimeEstimator
                             )
 
@@ -180,7 +189,10 @@ open class TestCaseGenerator(
                                             }
                                             method2executions.getValue(method) += it
                                         }
-                                        is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                        is UtError -> {
+                                            method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                            logger.error(it.error) { "UtError occurred" }
+                                        }
                                     }
                                 }
                         } catch (e: Exception) {
@@ -245,6 +257,7 @@ open class TestCaseGenerator(
         method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
+        applicationContext: ApplicationContext?,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
@@ -255,6 +268,7 @@ open class TestCaseGenerator(
             dependencyPaths = dependencyPaths,
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
+            applicationContext = applicationContext,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
     }

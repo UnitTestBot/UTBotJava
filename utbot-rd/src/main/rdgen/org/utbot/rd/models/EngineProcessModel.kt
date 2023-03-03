@@ -39,6 +39,7 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         field("classpath", PredefinedType.string.nullable)
         field("dependencyPaths", PredefinedType.string)
         field("jdkInfo", jdkInfo)
+        field("applicationContext", array(PredefinedType.byte))
     }
     val generateParams = structdef {
         // mocks
@@ -130,7 +131,6 @@ object EngineProcessModel : Ext(EngineProcessRoot) {
         call("isCancelled", PredefinedType.void, PredefinedType.bool).async
         call("generate", generateParams, generateResult).async
         call("render", renderParams, renderResult).async
-        call("stopProcess", PredefinedType.void, PredefinedType.void).async
         call("obtainClassId", PredefinedType.string, array(PredefinedType.byte)).async
         call("findMethodsInClassMatchingSelected", findMethodsInClassMatchingSelectedArguments, findMethodsInClassMatchingSelectedResult).async
         call("findMethodParamNames", findMethodParamNamesArguments, findMethodParamNamesResult).async

@@ -29,7 +29,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     api(project(":utbot-framework"))
-    implementation(project(":utbot-fuzzers"))
+    api(project(":utbot-fuzzers"))
     // https://mvnrepository.com/artifact/com.google.javascript/closure-compiler
     implementation("com.google.javascript:closure-compiler:v20221102")
 
@@ -39,6 +39,7 @@ dependencies {
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation(group = "commons-io", name = "commons-io", version = "2.11.0")
 
+    implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)
     implementation("org.functionaljava:functionaljava:5.0")
     implementation("org.functionaljava:functionaljava-quickcheck:5.0")
     implementation("org.functionaljava:functionaljava-java-core:5.0")

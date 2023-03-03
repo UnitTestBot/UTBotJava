@@ -1,6 +1,8 @@
 package org.utbot.instrumentation
 
+import com.jetbrains.rd.util.ILoggerFactory
 import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.Statics
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
@@ -19,7 +21,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
+import org.utbot.common.logException
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -29,7 +32,9 @@ import org.utbot.instrumentation.process.generated.ComputeStaticFieldParams
 import org.utbot.instrumentation.process.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.rd.InstrumentedProcess
 import org.utbot.instrumentation.util.InstrumentedProcessError
+import org.utbot.rd.generated.synchronizationModel
 import org.utbot.rd.loggers.UtRdKLoggerFactory
+import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
 
 private val logger = KotlinLogging.logger {}
 
@@ -120,7 +125,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         val defaultPool = ConcreteExecutorPool()
 
         init {
-            Logger.set(Lifetime.Eternal, UtRdKLoggerFactory(logger))
+            overrideDefaultRdLoggerFactoryWithKLogger(logger)
         }
 
         /**
@@ -178,14 +183,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     suspend fun <T> withProcess(exclusively: Boolean = false, block: suspend InstrumentedProcess.() -> T): T {
         fun throwConcreteIfDead(e: Throwable, proc: InstrumentedProcess?) {
             if (proc?.lifetime?.isAlive != true) {
-                throw ConcreteExecutionFailureException(e,
-                    instrumentedProcessRunner.errorLogFile,
-                    try {
-                        proc?.run { process.inputStream.bufferedReader().lines().toList() } ?: emptyList()
-                    } catch (e: Exception) {
-                        emptyList()
-                    }
-                )
+                throw InstrumentedProcessDeathException(e)
             }
         }
 
@@ -229,18 +227,15 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         signature: String,
         arguments: Array<Any?>,
         parameters: Any?
-    ): TIResult = try {
+    ): TIResult = logger.logException("executeAsync, response(ERROR)") {
         withProcess {
             val argumentsByteArray = kryoHelper.writeObject(arguments.asList())
             val parametersByteArray = kryoHelper.writeObject(parameters)
             val params = InvokeMethodCommandParams(className, signature, argumentsByteArray, parametersByteArray)
 
-            val ba = instrumentedProcessModel.invokeMethodCommand.startSuspending(lifetime, params).result
-            kryoHelper.readObject(ba)
+            val result = instrumentedProcessModel.invokeMethodCommand.startSuspending(lifetime, params).result
+            kryoHelper.readObject(result)
         }
-    } catch (e: Throwable) {
-        logger.trace { "executeAsync, response(ERROR): $e" }
-        throw e
     }
 
     /**
@@ -275,7 +270,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 if (alive) {
                     try {
                         processInstance?.run {
-                            instrumentedProcessModel.stopProcess.start(lifetime, Unit)
+                            protocol.synchronizationModel.stopProcess.fire(Unit)
                         }
                     } catch (_: Exception) {}
                     processInstance = null

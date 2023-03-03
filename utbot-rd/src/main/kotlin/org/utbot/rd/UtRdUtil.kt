@@ -1,9 +1,9 @@
 package org.utbot.rd
 
 import com.jetbrains.rd.framework.*
-import com.jetbrains.rd.framework.impl.RdCall
 import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.framework.util.synchronizeWith
+import com.jetbrains.rd.util.*
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
@@ -13,6 +13,7 @@ import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
+import org.utbot.common.LoggerWithLogMethod
 
 suspend fun <T> ProcessWithRdServer.onScheduler(block: () -> T): T {
     val deffered = CompletableDeferred<T>()

@@ -187,8 +187,8 @@ class AssembleModelGenerator(private val basePackageName: String) {
                     is UtPrimitiveModel,
                     is UtClassRefModel,
                     is UtVoidModel,
-                    is UtEnumConstantModel,
-                    is UtLambdaModel -> utModel
+                    is UtEnumConstantModel -> utModel
+                    is UtLambdaModel -> assembleLambdaModel(utModel)
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)
@@ -202,6 +202,18 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
         callChain = collectedCallChain
         return assembledModel
+    }
+
+    private fun assembleLambdaModel(lambdaModel: UtLambdaModel): UtModel {
+        instantiatedModels[lambdaModel]?.let { return it }
+
+        return UtLambdaModel(
+            lambdaModel.id,
+            lambdaModel.samType,
+            lambdaModel.declaringClass,
+            lambdaModel.lambdaName,
+            capturedValues = lambdaModel.capturedValues.map { assembleModel(it) }.toMutableList(),
+        )
     }
 
     /**
@@ -218,10 +230,13 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
             instantiatedModels[this] = assembleModel
 
-            assembleModel.constModel = assembleModel(constModel)
             assembleModel.stores += stores
                 .mapValues { assembleModel(it.value) }
                 .toMutableMap()
+
+            if (arrayModel.stores.count() < arrayModel.length) {
+                assembleModel.constModel = assembleModel(constModel)
+            }
 
             assembleModel
         }
@@ -343,23 +358,23 @@ class AssembleModelGenerator(private val basePackageName: String) {
     private fun assembleMockCompositeModel(compositeModel: UtCompositeModel): UtCompositeModel {
         // We have to create a model before the construction of the fields to avoid
         // infinite recursion when some mock contains itself as a field.
-        val assembledModel = UtCompositeModel(
+        val assembledCompositeModel = UtCompositeModel(
             compositeModel.id,
             compositeModel.classId,
             isMock = true,
         )
 
-        instantiatedModels[compositeModel] = assembledModel
+        instantiatedModels[compositeModel] = assembledCompositeModel
 
         val fields = compositeModel.fields.mapValues { assembleModel(it.value) }.toMutableMap()
         val mockBehaviour = compositeModel.mocks
             .mapValues { models -> models.value.map { assembleModel(it) } }
             .toMutableMap()
 
-        assembledModel.fields += fields
-        assembledModel.mocks += mockBehaviour
+        assembledCompositeModel.fields += fields
+        assembledCompositeModel.mocks += mockBehaviour
 
-        return assembledModel
+        return assembledCompositeModel
     }
 
     /**
@@ -463,7 +478,7 @@ class AssembleModelGenerator(private val basePackageName: String) {
 
         return allModificatorsOfClass
             .mapNotNull { (fieldId, possibleModificators) ->
-                chooseModificator(fieldId, possibleModificators)?.let { fieldId to it }
+                chooseModificator(classId, fieldId, possibleModificators)?.let { fieldId to it }
             }
             .toMap()
     }
@@ -474,12 +489,13 @@ class AssembleModelGenerator(private val basePackageName: String) {
      * Note: direct accessor is more preferred than setter.
      */
     private fun chooseModificator(
+        callerClassId: ClassId,
         fieldId: FieldId,
         settersAndDirectAccessors: Set<StatementId>,
     ): StatementId? {
         val directAccessors = settersAndDirectAccessors
             .filterIsInstance<DirectFieldAccessId>()
-            .filter {it.fieldId.isAccessibleFrom(basePackageName) }
+            .filter {it.fieldId.isAccessibleFrom(basePackageName, callerClassId) }
 
         if (directAccessors.any()) {
             return directAccessors.singleOrNull()

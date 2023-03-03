@@ -7,11 +7,13 @@ import com.github.javaparser.ast.stmt.IfStmt
 import com.github.javaparser.ast.stmt.Statement
 import com.github.javaparser.ast.stmt.SwitchStmt
 import com.github.javaparser.ast.stmt.ThrowStmt
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
+import org.utbot.framework.plugin.api.ArtificialError
+import org.utbot.framework.plugin.api.InstrumentedProcessDeathException
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.Step
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.AbstractTextBuilder
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
@@ -67,7 +69,12 @@ open class SimpleCommentBuilder(
         traceTag.result.exceptionOrNull()?.let {
             val exceptionName = it.javaClass.simpleName
             val reason = findExceptionReason(currentMethod, it)
-            root.exceptionThrow = "$exceptionName $reason"
+
+            when (it) {
+                is TimeoutException,
+                is ArtificialError -> root.detectedError = reason
+                else -> root.exceptionThrow = "$exceptionName $reason"
+            }
         }
     }
 
@@ -122,7 +129,7 @@ open class SimpleCommentBuilder(
     protected fun findExceptionReason(currentMethod: SootMethod, thrownException: Throwable): String {
         val path = traceTag.path
         if (path.isEmpty()) {
-            if (thrownException is ConcreteExecutionFailureException) {
+            if (thrownException is InstrumentedProcessDeathException) {
                 return JVM_CRASH_REASON
             }
 

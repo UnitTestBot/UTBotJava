@@ -1,13 +1,16 @@
 package parser
 
+import com.google.javascript.jscomp.Compiler
+import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
-import java.lang.IllegalStateException
 import org.utbot.fuzzer.FuzzedContext
-import parser.JsParserUtils.getMethodName
 
 // Used for .children() calls.
 @Suppress("DEPRECATION")
 object JsParserUtils {
+
+    fun runParser(fileText: String): Node =
+        Compiler().parse(SourceFile.fromCode("jsFile", fileText))
 
     // TODO SEVERE: function only works in the same file scope. Add search in exports.
     fun searchForClassDecl(className: String?, parsedFile: Node, strict: Boolean = false): Node? {
@@ -57,12 +60,12 @@ object JsParserUtils {
     /**
      * Called upon node with any kind of literal value token.
      */
-    fun Node.getAnyValue(): Any = when {
+    fun Node.getAnyValue(): Any? = when {
         this.isNumber -> this.double
-        this.isString || this.isName -> this.string
+        this.isString -> this.string
         this.isTrue -> true
         this.isFalse -> false
-        else -> throw UnsupportedOperationException("Not yet implemented!")
+        else -> null
     }
 
     // For some reason Closure Compiler doesn't contain a built-in method

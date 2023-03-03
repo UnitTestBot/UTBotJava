@@ -2,22 +2,30 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import mu.KotlinLogging
+import org.parsers.python.PythonParser
 import org.utbot.python.framework.codegen.model.PythonSysPathImport
 import org.utbot.python.framework.codegen.model.PythonSystemImport
 import org.utbot.python.framework.codegen.model.PythonUserImport
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.python.code.PythonCode
 import org.utbot.python.framework.api.python.PythonClassId
 import org.utbot.python.framework.api.python.PythonMethodId
 import org.utbot.python.framework.api.python.PythonModel
 import org.utbot.python.framework.api.python.RawPythonAnnotation
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.framework.codegen.model.PythonCodeGenerator
+import org.utbot.python.newtyping.PythonFunctionDefinition
+import org.utbot.python.newtyping.general.CompositeType
+import org.utbot.python.newtyping.getPythonAttributes
+import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
 import org.utbot.python.newtyping.mypy.readMypyAnnotationStorageAndInitialErrors
 import org.utbot.python.newtyping.mypy.setConfigFile
 import org.utbot.python.typing.MypyAnnotations
@@ -28,6 +36,8 @@ import org.utbot.python.utils.getLineOfFunction
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
+
+private val logger = KotlinLogging.logger {}
 
 object PythonTestGenerationProcessor {
     fun processTestGeneration(
@@ -106,9 +116,10 @@ object PythonTestGenerationProcessor {
             )
 
             val until = startTime + timeout
-            val tests = pythonMethods.mapIndexed { index, method ->
+            val tests = pythonMethods.mapIndexed { index, methodHeader ->
                 val methodsLeft = pythonMethods.size - index
                 val localUntil = (until - System.currentTimeMillis()) / methodsLeft + System.currentTimeMillis()
+                val method = findMethodByHeader(mypyStorage, methodHeader, currentPythonModule, pythonFileContent)
                 testCaseGenerator.generate(method, localUntil)
             }
 
@@ -227,6 +238,37 @@ object PythonTestGenerationProcessor {
             startedCleaningAction()
             Cleaner.doCleaning()
         }
+    }
+
+    private fun findMethodByHeader(
+        mypyStorage: MypyAnnotationStorage,
+        method: PythonMethodHeader,
+        curModule: String,
+        sourceFileContent: String
+    ): PythonMethod {
+        var containingClass: CompositeType? = null
+        val containingClassName = method.containingPythonClassId?.simpleName
+        val functionDef = if (containingClassName == null) {
+            mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
+        } else {
+            containingClass =
+                mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
+            mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
+                it.meta.name == method.name
+            }
+        } as? PythonFunctionDefinition ?: error("Selected method is not a function definition")
+
+        val parsedFile = PythonParser(sourceFileContent).Module()
+        val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
+
+        return PythonMethod(
+            name = method.name,
+            moduleFilename = method.moduleFilename,
+            containingPythonClass = containingClass,
+            codeAsString = funcDef.body.source,
+            definition = functionDef,
+            ast = funcDef.body
+        )
     }
 
     enum class MissingRequirementsActionResult {

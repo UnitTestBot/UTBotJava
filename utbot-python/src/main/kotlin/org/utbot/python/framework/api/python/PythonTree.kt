@@ -5,17 +5,39 @@ import org.utbot.python.framework.api.python.util.pythonFloatClassId
 import org.utbot.python.framework.api.python.util.pythonIntClassId
 import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.api.python.util.pythonStrClassId
+import org.utbot.python.framework.api.python.util.toPythonRepr
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeName
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
+
 
 object PythonTree {
+    fun isRecursiveObject(tree: PythonTreeNode): Boolean {
+        return isRecursiveObjectDFS(tree, mutableSetOf())
+    }
+
+    private fun isRecursiveObjectDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+        if (visited.contains(tree))
+            return true
+        visited.add(tree)
+        return tree.children.any { isRecursiveObjectDFS(it, visited) }
+    }
+
     open class PythonTreeNode(
+        val id: Long,
         val type: PythonClassId,
-        var comparable: Boolean = true
+        var comparable: Boolean = true,
     ) {
+        constructor(type: PythonClassId, comparable: Boolean = true) : this(PythonIdGenerator.createId(), type, comparable)
+
         open val children: List<PythonTreeNode> = emptyList()
+
+        override fun toString(): String {
+            return type.name + children.toString()
+        }
 
         open fun typeEquals(other: Any?): Boolean {
             return if (other is PythonTreeNode)
@@ -28,38 +50,65 @@ object PythonTree {
             if (other !is PythonTreeNode) {
                 return false
             }
-            return type == other.type
+            return id == other.id
         }
 
         override fun hashCode(): Int {
-            var result = type.hashCode()
-            result = 31 * result + comparable.hashCode()
-            result = 31 * result + children.hashCode()
-            return result
+            return id.hashCode()
         }
+
+        open fun softEquals(other: PythonTreeNode): Boolean {  // must be called only from PythonTreeWrapper!
+            return type == other.type && children == other.children
+        }
+
+        open fun softHashCode(): Int {  // must be called only from PythonTreeWrapper!
+            return type.hashCode() * 31 + children.hashCode()
+        }
+
+        open fun diversity(): Int = // must be called only from PythonTreeWrapper!
+            1 + children.fold(0) { acc, child -> acc + child.diversity() }
     }
 
     class PrimitiveNode(
+        id: Long,
         type: PythonClassId,
         val repr: String,
-    ) : PythonTreeNode(type) {
+    ) : PythonTreeNode(id, type) {
+        constructor(type: PythonClassId, repr: String) : this(PythonIdGenerator.getOrCreateIdForValue(repr), type, repr)
+
+        override fun toString(): String {
+            return repr
+        }
+
         override fun equals(other: Any?): Boolean {
-            if (other !is PrimitiveNode) {
+            if (other !is PrimitiveNode)
                 return false
-            }
-            return repr == other.repr && type == other.type
+            return repr == other.repr
         }
 
         override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + repr.hashCode()
-            return result
+            return repr.hashCode()
         }
+
+        override fun softEquals(other: PythonTreeNode): Boolean {
+            if (other !is PrimitiveNode)
+                return false
+            return repr == other.repr
+        }
+
+        override fun softHashCode(): Int {
+            return repr.hashCode()
+        }
+
+        override fun diversity(): Int = 2
     }
 
     class ListNode(
+        id: Long,
         val items: MutableMap<Int, PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.list")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.list")) {
+        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.values.toList()
 
@@ -70,24 +119,14 @@ object PythonTree {
                 }
             else false
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is ListNode) {
-                return false
-            }
-            return children == other.children
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
-        }
     }
 
     class DictNode(
+        id: Long,
         val items: MutableMap<PythonTreeNode, PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.dict")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.dict")) {
+        constructor(items: MutableMap<PythonTreeNode, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.values + items.keys
 
@@ -100,24 +139,14 @@ object PythonTree {
             } else false
         }
 
-        override fun equals(other: Any?): Boolean {
-            if (other !is DictNode) {
-                return false
-            }
-            return children == other.children
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
-        }
-
     }
 
     class SetNode(
+        id: Long,
         val items: MutableSet<PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.set")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.set")) {
+        constructor(items: MutableSet<PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.toList()
 
@@ -133,25 +162,14 @@ object PythonTree {
                 false
             }
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is SetNode) {
-                return false
-            }
-            return items == other.items
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
-        }
-
     }
 
     class TupleNode(
+        id: Long,
         val items: MutableMap<Int, PythonTreeNode>
-    ) : PythonTreeNode(PythonClassId("builtins.tuple")) {
+    ) : PythonTreeNode(id, PythonClassId("builtins.tuple")) {
+        constructor(items: MutableMap<Int, PythonTreeNode>) : this(PythonIdGenerator.createId(), items)
+
         override val children: List<PythonTreeNode>
             get() = items.values.toList()
 
@@ -164,36 +182,22 @@ object PythonTree {
                 false
             }
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (other !is TupleNode) {
-                return false
-            }
-            return items == other.items
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + items.hashCode()
-            return result
-        }
     }
 
     class ReduceNode(
-        val id: Long,
+        id: Long,
         type: PythonClassId,
         val constructor: PythonClassId,
         val args: List<PythonTreeNode>,
         var state: MutableMap<String, PythonTreeNode>,
         var listitems: List<PythonTreeNode>,
         var dictitems: Map<PythonTreeNode, PythonTreeNode>,
-    ) : PythonTreeNode(type) {
+    ) : PythonTreeNode(id, type) {
         constructor(
-            id: Long,
             type: PythonClassId,
             constructor: PythonClassId,
             args: List<PythonTreeNode>,
-        ) : this(id, type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
+        ) : this(PythonIdGenerator.createId(), type, constructor, args, emptyMap<String, PythonTreeNode>().toMutableMap(), emptyList(), emptyMap())
 
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys + PythonTreeNode(constructor)
@@ -210,23 +214,15 @@ object PythonTree {
             } else false
         }
 
-        override fun equals(other: Any?): Boolean {
-            if (other !is ReduceNode) {
+        override fun softEquals(other: PythonTreeNode): Boolean {
+            if (other !is ReduceNode)
                 return false
-            }
-            return type == other.type &&
-                    id == other.id &&
-                    constructor == other.constructor &&
-                    args == other.args &&
-                    state == other.state &&
-                    listitems == other.listitems &&
-                    dictitems == other.dictitems
+            return type == other.type && constructor == other.constructor && args == other.args &&
+                    state == other.state && listitems == other.listitems && dictitems == other.dictitems
         }
 
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + id.hashCode()
-            result = 31 * result + constructor.hashCode()
+        override fun softHashCode(): Int {
+            var result = constructor.hashCode()
             result = 31 * result + args.hashCode()
             result = 31 * result + state.hashCode()
             result = 31 * result + listitems.hashCode()
@@ -268,12 +264,9 @@ object PythonTree {
     }
 
     fun fromString(value: String): PrimitiveNode {
-        val repr = value
-            .replace("\"", "\\\"")
-            .replace("\\\\\"", "\\\"")
         return PrimitiveNode(
             pythonStrClassId,
-            "\"$repr\""
+            value.toPythonRepr()
         )
     }
 
@@ -309,5 +302,49 @@ object PythonTree {
             }
             else -> null
         }
+    }
+}
+
+object PythonIdGenerator {
+    private const val lower_bound: Long = 1500_000_000
+
+    private val lastId: AtomicLong = AtomicLong(lower_bound)
+    private val cache: IdentityHashMap<Any?, Long> = IdentityHashMap()
+
+    fun getOrCreateIdForValue(value: Any): Long {
+        return cache.getOrPut(value) { createId() }
+    }
+
+    fun createId(): Long {
+        return lastId.incrementAndGet()
+    }
+
+}
+
+class PythonTreeWrapper(val tree: PythonTree.PythonTreeNode) {
+    override fun equals(other: Any?): Boolean {
+        if (other !is PythonTreeWrapper)
+            return false
+        if (PythonTree.isRecursiveObject(tree) || PythonTree.isRecursiveObject(other.tree))
+            return tree == other.tree
+        return tree.softEquals(other.tree)
+    }
+
+    override fun hashCode(): Int {
+        if (PythonTree.isRecursiveObject(tree))
+            return tree.hashCode()
+        return tree.softHashCode()
+    }
+
+    private val INF = 1000_000_000
+
+    private fun diversity(): Int {
+        if (PythonTree.isRecursiveObject(tree))
+            return INF
+        return tree.diversity()
+    }
+
+    fun commonDiversity(other: Int): Int {
+        return listOf(diversity() + other, INF).min()
     }
 }

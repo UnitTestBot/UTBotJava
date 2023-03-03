@@ -10,7 +10,7 @@ XXX = TypeVar("XXX", "A", int)
 class A(Generic[XXX]):
     self_: XXX
 
-    def f(self, a, b: A[int]):
+    def f(self, a, b: 'A'[int]):
         self.y = b
         self.self_.x = b
         pass

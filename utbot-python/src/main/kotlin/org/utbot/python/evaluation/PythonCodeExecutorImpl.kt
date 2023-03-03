@@ -2,10 +2,13 @@ package org.utbot.python.evaluation
 
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
-import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator
+import org.utbot.python.evaluation.serialiation.ExecutionResultDeserializer
+import org.utbot.python.evaluation.serialiation.FailExecution
+import org.utbot.python.evaluation.serialiation.SuccessExecution
+import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.TemporaryFileManager
@@ -20,20 +23,29 @@ data class EvaluationFiles(
 
 class PythonCodeExecutorImpl(
     override val method: PythonMethod,
-    override val methodArguments: FunctionArguments,
-    override val fuzzedValues: List<FuzzedValue>,
     override val moduleToImport: String,
-    override val additionalModulesToImport: Set<String>,
     override val pythonPath: String,
     override val syspathDirectories: Set<String>,
     override val executionTimeout: Long,
 ) : PythonCodeExecutor {
-    override fun run(): PythonEvaluationResult {
-        val evaluationFiles = generateExecutionCode()
+
+    override fun run(
+        fuzzedValues: FunctionArguments,
+        additionalModulesToImport: Set<String>,
+    ): PythonEvaluationResult {
+        val evaluationFiles = generateExecutionCode(
+            additionalModulesToImport,
+            fuzzedValues.allArguments,
+        )
         return getEvaluationResult(evaluationFiles)
     }
 
-    private fun generateExecutionCode(): EvaluationFiles {
+    override fun stop() {}
+
+    private fun generateExecutionCode(
+        additionalModulesToImport: Set<String>,
+        methodArguments: List<PythonTreeModel>,
+    ): EvaluationFiles {
         val fileForOutput = TemporaryFileManager.assignTemporaryFile(
             tag = "out_" + method.name + ".py",
             addToCleaner = false
@@ -44,7 +56,7 @@ class PythonCodeExecutorImpl(
         )
         val runCode = PythonCodeGenerator.generateRunFunctionCode(
             method,
-            methodArguments.allArguments,
+            methodArguments,
             syspathDirectories,
             moduleToImport,
             additionalModulesToImport,

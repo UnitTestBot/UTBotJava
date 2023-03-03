@@ -58,7 +58,7 @@ class Graph:
         component_size = []
         mst_weight = 0
 
-        minimum_weight_edge: list[Any] = [-1] * self.m_num_of_nodes
+        minimum_weight_edge: list = [-1] * self.m_num_of_nodes
 
         # A list of components (initialized to all of the nodes)
         for node in range(self.m_num_of_nodes):

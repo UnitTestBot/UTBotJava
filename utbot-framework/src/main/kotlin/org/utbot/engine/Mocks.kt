@@ -151,7 +151,10 @@ class Mocker(
      * Creates mocked instance of the [type] using mock info. Unlike to [mock], it does not
      * check anything and always returns the constructed mock.
      */
-    fun forceMock(type: RefType, mockInfo: UtMockInfo): ObjectValue = createMockObject(type, mockInfo)
+    fun forceMock(type: RefType, mockInfo: UtMockInfo): ObjectValue {
+        mockListenerController?.onShouldMock(strategy, mockInfo)
+        return createMockObject(type, mockInfo)
+    }
 
     /**
      * Checks if Engine should mock objects of particular type with current mock strategy and mock type.

@@ -6,6 +6,7 @@ import fuzzer.providers.BoolValueProvider
 import fuzzer.providers.MapValueProvider
 import fuzzer.providers.NumberValueProvider
 import fuzzer.providers.ObjectValueProvider
+import fuzzer.providers.SetValueProvider
 import fuzzer.providers.StringValueProvider
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzing.Fuzzing
@@ -17,6 +18,7 @@ fun defaultValueProviders() = listOf(
     NumberValueProvider,
     StringValueProvider,
     MapValueProvider,
+    SetValueProvider,
     ObjectValueProvider(),
     ArrayValueProvider()
 )

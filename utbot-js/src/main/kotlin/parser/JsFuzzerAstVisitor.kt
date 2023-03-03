@@ -21,27 +21,30 @@ class JsFuzzerAstVisitor : IAstVisitor {
         NodeUtil.visitPreOrder(rootNode) { node ->
             val currentFuzzedOp = node.toFuzzedContextComparisonOrNull()
             when {
-                node.isCase -> validateNode(node.firstChild?.getAnyValue())
+                node.isCase -> validateNode(node.firstChild?.getAnyValue(), FuzzedContext.Comparison.NE)
+                node.isCall -> {
+                    validateNode(node.getAnyValue(), FuzzedContext.Comparison.NE)
+                }
                 currentFuzzedOp != null -> {
                     lastFuzzedOpGlobal = currentFuzzedOp
-                    validateNode(node.getBinaryExprLeftOperand().getAnyValue())
+                    validateNode(node.getBinaryExprLeftOperand().getAnyValue(), lastFuzzedOpGlobal)
                     lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison)
                             (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
-                    validateNode(node.getBinaryExprRightOperand().getAnyValue())
+                    validateNode(node.getBinaryExprRightOperand().getAnyValue(), lastFuzzedOpGlobal)
                 }
             }
         }
 
     }
 
-    private fun validateNode(value: Any?) {
+    private fun validateNode(value: Any?, fuzzedOp: FuzzedContext) {
         when (value) {
             is String -> {
                 fuzzedConcreteValues.add(
                     FuzzedConcreteValue(
                         jsStringClassId,
                         value.toString(),
-                        lastFuzzedOpGlobal
+                        fuzzedOp
                     )
                 )
             }
@@ -51,13 +54,13 @@ class JsFuzzerAstVisitor : IAstVisitor {
                     FuzzedConcreteValue(
                         jsBooleanClassId,
                         value,
-                        lastFuzzedOpGlobal
+                        fuzzedOp
                     )
                 )
             }
 
             is Double -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsDoubleClassId, value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(FuzzedConcreteValue(jsDoubleClassId, value, fuzzedOp))
             }
         }
     }

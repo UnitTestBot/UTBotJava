@@ -9,7 +9,6 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.isMap
 
 val jsUndefinedClassId = JsClassId("undefined")
 val jsNumberClassId = JsClassId("number")
@@ -48,7 +47,7 @@ val JsClassId.isJsBasic: Boolean
     get() = this in jsBasic || this is JsMultipleClassId
 
 val JsClassId.isExportable: Boolean
-    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsArray || this.isJsMap)
+    get() = !(this.isJsBasic || this == jsErrorClassId || this.isJsArray || this.isJsMap || this.isJsSet)
 
 val JsClassId.isClass: Boolean
     get() = !(this.isJsBasic || this == jsErrorClassId)
@@ -61,3 +60,6 @@ val JsClassId.isJsArray: Boolean
 
 val JsClassId.isJsMap: Boolean
     get() = this.name == "Map"
+
+val JsClassId.isJsSet: Boolean
+    get() = this.name == "Set"

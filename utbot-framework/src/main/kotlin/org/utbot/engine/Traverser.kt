@@ -1383,7 +1383,13 @@ class Traverser(
 
             queuedSymbolicStateUpdates += MemoryUpdate(addrToMockInfo = persistentHashMapOf(addr to mockInfo))
 
-            val mockedObject = mocker.mock(type, mockInfo)
+            val mockedObjectInfo = mocker.mock(type, mockInfo)
+
+            val mockedObject = mockedObjectInfo.value
+            if (mockedObjectInfo is UnexpectedMock) {
+                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+            }
+
 
             if (mockedObject != null) {
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
@@ -1470,7 +1476,12 @@ class Traverser(
             }
 
             val mockInfo = mockInfoGenerator.generate(addr)
-            val mockedObject = mocker.forceMock(type, mockInfoGenerator.generate(addr))
+            val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
+
+            val mockedObject = mockedObjectInfo.value ?: error("Mocked value cannot be null after force mock")
+            if (mockedObjectInfo is UnexpectedMock) {
+                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+            }
 
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
@@ -2684,7 +2695,9 @@ class Traverser(
                     } else {
                         it.copyWithClassId(classId = implementationClass.id)
                     }
-                    mocker.mock(implementationClass, updatedMockInfo)
+
+                    val mockedObjectInfo = mocker.mock(implementationClass, updatedMockInfo)
+                    mockedObjectInfo.value
                 }
 
                 if (mockedObject == null) {

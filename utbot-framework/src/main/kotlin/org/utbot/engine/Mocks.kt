@@ -129,6 +129,23 @@ data class UtStaticMethodMockInfo(
 ) : UtMockInfo(methodId.classId, addr)
 
 /**
+ * A wrapper for [ObjectValue] to store additional onfo.
+ */
+sealed class MockedObjectInfo(val value: ObjectValue?)
+
+object NoMock: MockedObjectInfo(value = null)
+class ExpectedMock(value: ObjectValue): MockedObjectInfo(value)
+
+/**
+ * Represents a mock that occurs when it is not recommended
+ * E.g. mock strategy recommends do not mock
+ */
+class UnexpectedMock(value: ObjectValue): MockedObjectInfo(value)
+
+fun ObjectValue?.construct(mockDesired: Boolean): MockedObjectInfo =
+    this?.let { if (mockDesired) ExpectedMock(it) else UnexpectedMock(it) } ?: NoMock
+
+/**
  * Service to mock things. Knows mock strategy, class under test and class hierarchy.
  */
 class Mocker(
@@ -138,22 +155,28 @@ class Mocker(
     chosenClassesToMockAlways: Set<ClassId>,
     internal val mockListenerController: MockListenerController? = null,
 ) {
+    private val mocksDesired: Boolean = strategy != MockStrategy.NO_MOCKS
+
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
      * otherwise returns null.
      *
      * @see shouldMock
      */
-    fun mock(type: RefType, mockInfo: UtMockInfo): ObjectValue? =
-        if (shouldMock(type, mockInfo)) createMockObject(type, mockInfo) else null
+    fun mock(type: RefType, mockInfo: UtMockInfo): MockedObjectInfo {
+        val objectValue = if (shouldMock(type, mockInfo)) createMockObject(type, mockInfo) else null
+        return objectValue.construct(mocksDesired)
+    }
 
     /**
      * Creates mocked instance of the [type] using mock info. Unlike to [mock], it does not
      * check anything and always returns the constructed mock.
      */
-    fun forceMock(type: RefType, mockInfo: UtMockInfo): ObjectValue {
+    fun forceMock(type: RefType, mockInfo: UtMockInfo): MockedObjectInfo {
         mockListenerController?.onShouldMock(strategy, mockInfo)
-        return createMockObject(type, mockInfo)
+
+        val objectValue = createMockObject(type, mockInfo)
+        return objectValue.construct(mocksDesired)
     }
 
     /**
@@ -179,6 +202,8 @@ class Mocker(
             mockListenerController?.onShouldMock(strategy, mockInfo)
         }
     }
+
+    val areMocksAllowed: Boolean = strategy == MockStrategy.NO_MOCKS
 
     private fun checkIfShouldMock(
         type: RefType,

@@ -61,7 +61,6 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
     init {
         with(context) {
             setupTernEnv("$projectPath/$utbotDir")
-            installDeps("$projectPath/$utbotDir")
             runTypeInferencer()
         }
     }
@@ -69,14 +68,6 @@ test(["${filePathToInference.joinToString(separator = "\", \"")}"])
     private lateinit var json: JSONObject
 
     private fun generateImportsSection(): String = importProvider.ternScriptImports
-
-    private fun installDeps(path: String) {
-        JsCmdExec.runCommand(
-            dir = path,
-            shouldWait = true,
-            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l"),
-        )
-    }
 
     private fun setupTernEnv(path: String) {
         File(path).mkdirs()

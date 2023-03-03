@@ -4,7 +4,7 @@ import org.parsers.python.ast.Block
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.python.framework.api.python.PythonClassId
-import org.utbot.python.framework.api.python.PythonModel
+import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.CompositeType
@@ -61,10 +61,10 @@ data class PythonTestSet(
 )
 
 data class FunctionArguments(
-    val thisObject: PythonModel?,
+    val thisObject: PythonTreeModel?,
     val thisObjectName: String?,
-    val arguments: List<PythonModel>,
+    val arguments: List<PythonTreeModel>,
     val names: List<String?>,
 ) {
-    val allArguments: List<PythonModel> = (listOf(thisObject) + arguments).filterNotNull()
+    val allArguments: List<PythonTreeModel> = (listOf(thisObject) + arguments).filterNotNull()
 }

@@ -355,17 +355,14 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 }
             }
 
-            // Always add "break" statement to prevent fall-through.
-            statements += CgBreakStatement
-
             caseLabels += CgSwitchCaseLabel(CgLiteral(intClassId, index), statements)
         }
 
         val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
 
-        // If all switch-case labels contain only break statements,
+        // If all switch-case labels are empty,
         // it means we do not need this switch and mock counter itself at all.
-        val mockConstructionBody = if (caseLabels.map { it.statements }.all { it.singleOrNull() is CgBreakStatement }) {
+        val mockConstructionBody = if (caseLabels.map { it.statements }.all { it.isEmpty() }) {
             emptyList()
         } else {
             listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))

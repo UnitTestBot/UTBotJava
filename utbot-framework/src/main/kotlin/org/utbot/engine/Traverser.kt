@@ -2683,10 +2683,10 @@ class Traverser(
         } ?: findMethodInvocationTargets(types, methodSubSignature)
 
         return methodInvocationTargets
-            .map { (method, implementationClass, possibleTypes) ->
+            .mapNotNull { (method, implementationClass, possibleTypes) ->
                 val typeStorage = typeResolver.constructTypeStorage(implementationClass, possibleTypes)
                 val mockInfo = memory.mockInfoByAddr(instance.addr)
-                val mockedObject = mockInfo?.let {
+                val mockedObjectInfo = mockInfo?.let {
                     // TODO rewrite to fix JIRA:1611
                     val type = Scene.v().getSootClass(mockInfo.classId.name).type
                     val ancestorTypes = typeResolver.findOrConstructAncestorsIncludingTypes(type)
@@ -2696,29 +2696,32 @@ class Traverser(
                         it.copyWithClassId(classId = implementationClass.id)
                     }
 
-                    val mockedObjectInfo = mocker.mock(implementationClass, updatedMockInfo)
-                    mockedObjectInfo.value
-                }
+                    mocker.mock(implementationClass, updatedMockInfo)
+                } ?: NoMock
 
-                if (mockedObject == null) {
-                    // Above we might get implementationClass that has to be substituted.
-                    // For example, for a call "Collection.size()" such classes will be produced.
-                    val wrapperOrInstance = wrapper(implementationClass, instance.addr)
-                        ?: instance.copy(typeStorage = typeStorage)
+                when (mockedObjectInfo) {
+                    is NoMock -> {
+                        // Above we might get implementationClass that has to be substituted.
+                        // For example, for a call "Collection.size()" such classes will be produced.
+                        val wrapperOrInstance = wrapper(implementationClass, instance.addr)
+                            ?: instance.copy(typeStorage = typeStorage)
 
-                    val typeConstraint = typeRegistry.typeConstraint(instance.addr, wrapperOrInstance.typeStorage)
-                    val constraints = setOf(typeConstraint.isOrNullConstraint())
+                        val typeConstraint = typeRegistry.typeConstraint(instance.addr, wrapperOrInstance.typeStorage)
+                        val constraints = setOf(typeConstraint.isOrNullConstraint())
 
-                    // TODO add memory updated for types JIRA:1523
+                        // TODO add memory updated for types JIRA:1523
+                        InvocationTarget(wrapperOrInstance, method, constraints)
+                    }
+                    is ExpectedMock -> {
+                        val mockedObject = mockedObjectInfo.value!!
+                        val typeConstraint = typeRegistry.typeConstraint(mockedObject.addr, mockedObject.typeStorage)
+                        val constraints = setOf(typeConstraint.isOrNullConstraint())
 
-                    InvocationTarget(wrapperOrInstance, method, constraints)
-                } else {
-                    val typeConstraint = typeRegistry.typeConstraint(mockedObject.addr, mockedObject.typeStorage)
-                    val constraints = setOf(typeConstraint.isOrNullConstraint())
-
-                    // TODO add memory updated for types JIRA:1523
-                    // TODO isMock????
-                    InvocationTarget(mockedObject, method, constraints)
+                        // TODO add memory updated for types JIRA:1523
+                        // TODO isMock????
+                        InvocationTarget(mockedObject, method, constraints)
+                    }
+                    is UnexpectedMock -> null
                 }
             }
     }

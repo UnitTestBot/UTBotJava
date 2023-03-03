@@ -203,8 +203,6 @@ class Mocker(
         }
     }
 
-    val areMocksAllowed: Boolean = strategy == MockStrategy.NO_MOCKS
-
     private fun checkIfShouldMock(
         type: RefType,
         mockInfo: UtMockInfo

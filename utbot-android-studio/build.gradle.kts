@@ -33,7 +33,7 @@ project.tasks.asMap["runIde"]?.enabled = false
 tasks {
     compileKotlin {
         kotlinOptions {
-            jvmTarget = "17"
+            jvmTarget = "11"
             freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
             allWarningsAsErrors = false
         }
@@ -41,6 +41,6 @@ tasks {
 
     java {
         sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_11
     }
 }

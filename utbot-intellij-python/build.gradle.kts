@@ -8,7 +8,7 @@ val pythonCommunityPluginVersion: String? by rootProject
 val pythonUltimatePluginVersion: String? by rootProject
 
 plugins {
-    id("org.jetbrains.intellij") version "1.11.0"
+    id("org.jetbrains.intellij") version "1.13.1"
 }
 project.tasks.asMap["runIde"]?.enabled = false
 

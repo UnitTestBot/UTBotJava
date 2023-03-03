@@ -21,7 +21,7 @@ val androidStudioPath: String? by rootProject
 val ideTypeOrAndroidStudio = if (androidStudioPath == null) ideType else "IC"
 
 plugins {
-    id("org.jetbrains.intellij") version "1.11.0"
+    id("org.jetbrains.intellij") version "1.13.1"
 }
 
 intellij {

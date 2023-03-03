@@ -8,13 +8,7 @@ import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.fuzz
 import org.utbot.fuzzing.utils.Trie
-import org.utbot.python.evaluation.PythonCodeExecutor
-import org.utbot.python.evaluation.PythonCodeSocketExecutor
-import org.utbot.python.evaluation.PythonEvaluationError
-import org.utbot.python.evaluation.PythonEvaluationSuccess
-import org.utbot.python.evaluation.PythonEvaluationTimeout
-import org.utbot.python.evaluation.PythonWorker
-import org.utbot.python.evaluation.PythonWorkerManager
+import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
@@ -24,13 +18,11 @@ import org.utbot.python.newtyping.PythonTypeStorage
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
-import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
 
 private val logger = KotlinLogging.logger {}
-private const val MAX_CACHE_SIZE = 200
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -43,17 +35,7 @@ class PythonEngine(
     private val pythonTypeStorage: PythonTypeStorage,
 ) {
 
-    private val cache = mutableMapOf<Pair<PythonMethodDescription, List<PythonTreeWrapper>>, PythonExecutionResult>()
-
-    private fun addExecutionToCache(key: Pair<PythonMethodDescription, List<PythonTreeWrapper>>, result: PythonExecutionResult) {
-        cache[key] = result
-        if (cache.size > MAX_CACHE_SIZE) {
-            val elemToDelete = cache.keys.maxBy { (_, args) ->
-                args.fold(0) { acc, arg -> arg.commonDiversity(acc) }
-            }
-            cache.remove(elemToDelete)
-        }
-    }
+    private val cache = EvaluationCache()
 
     private fun suggestExecutionName(
         description: PythonMethodDescription,
@@ -146,7 +128,7 @@ class PythonEngine(
         return ValidExecution(utFuzzedExecution)
     }
 
-    fun constructEvaluationInput(pythonWorker: PythonWorker): PythonCodeExecutor {
+    private fun constructEvaluationInput(pythonWorker: PythonWorker): PythonCodeExecutor {
         return PythonCodeSocketExecutor(
             methodUnderTest,
             moduleToImport,
@@ -274,7 +256,7 @@ class PythonEngine(
                     }
 
                     val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
-                    val mem = cache[pair]
+                    val mem = cache.get(pair)
                     if (mem != null) {
                         logger.debug("Repeat in fuzzing")
                         emit(mem.fuzzingExecutionFeedback)
@@ -287,7 +269,7 @@ class PythonEngine(
                         return@PythonFuzzing PythonFeedback(control = Control.STOP)
                     }
 
-                    addExecutionToCache(pair, result)
+                    cache.add(pair, result)
                     emit(result.fuzzingExecutionFeedback)
                     return@PythonFuzzing result.fuzzingPlatformFeedback
 

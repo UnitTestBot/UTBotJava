@@ -8,8 +8,10 @@ import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.inference.*
 import org.utbot.python.newtyping.mypy.checkSuggestedSignatureWithDMypy
+import org.utbot.python.newtyping.utils.weightedRandom
 import org.utbot.python.utils.TemporaryFileManager
 import java.io.File
+import kotlin.random.Random
 
 private val EDGES_TO_LINK = listOf(
     EdgeSource.Identification,
@@ -31,6 +33,8 @@ class BaselineAlgorithm(
     private val initialErrorNumber: Int,
     private val configFile: File
 ) : TypeInferenceAlgorithm() {
+    private val random = Random(0)
+
     override suspend fun run(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
@@ -38,7 +42,7 @@ class BaselineAlgorithm(
     ) {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
-        val states: MutableSet<BaselineAlgorithmState> = mutableSetOf(initialState)
+        val states: MutableList<BaselineAlgorithmState> = mutableListOf(initialState)
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
 
         run breaking@ {
@@ -52,16 +56,15 @@ class BaselineAlgorithm(
                     logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
                     if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
                         logger.debug("Found new state!")
-                        annotationHandler(newState.signature)
-                        states.add(newState)
-                        /*
+//                        annotationHandler(newState.signature)
+//                        states.add(newState)
                         when (annotationHandler(newState.signature)) {
                             SuccessFeedback -> {
                                 states.add(newState)
+                                state.children += 1
                             }
                             InvalidTypeFeedback -> {}
                         }
-                        */
                     }
                 } else {
                     states.remove(state)
@@ -87,9 +90,9 @@ class BaselineAlgorithm(
         )
     }
 
-    // TODO: something smarter?
-    private fun chooseState(states: Set<BaselineAlgorithmState>): BaselineAlgorithmState {
-        return states.random()
+    private fun chooseState(states: List<BaselineAlgorithmState>): BaselineAlgorithmState {
+        val weights = states.map { 1.0 / (it.children * it.children + 1) }
+        return weightedRandom(states, weights, random)
     }
 
     private fun getInitialState(

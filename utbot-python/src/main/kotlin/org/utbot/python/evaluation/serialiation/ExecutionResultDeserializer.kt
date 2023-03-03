@@ -1,14 +1,9 @@
-package org.utbot.python.evaluation
+package org.utbot.python.evaluation.serialiation
 
+import com.squareup.moshi.JsonEncodingException
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.python.code.DictMemoryObject
-import org.utbot.python.code.ListMemoryObject
-import org.utbot.python.code.MemoryDump
-import org.utbot.python.code.MemoryObject
-import org.utbot.python.code.ReduceMemoryObject
-import org.utbot.python.code.ReprMemoryObject
 
 object ExecutionResultDeserializer {
     private val moshi = Moshi.Builder()
@@ -31,7 +26,12 @@ object ExecutionResultDeserializer {
     private val jsonAdapterMemoryDump = moshi.adapter(MemoryDump::class.java)
 
     fun parseExecutionResult(content: String): PythonExecutionResult? {
-        return jsonAdapter.fromJson(content)
+        try {
+            return jsonAdapter.fromJson(content) ?: error("Parsing error with: $content")
+        } catch (_: JsonEncodingException) {
+            println(content)
+        }
+        return null
     }
 
     fun parseMemoryDump(content: String): MemoryDump? {

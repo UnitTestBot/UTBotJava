@@ -28,8 +28,10 @@ object StrValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodDes
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
         val strConstants = getStrConstants(description.concreteValues) + listOf(
-            StringValue("test"),
-            StringValue("abc"),
+            StringValue("pythön"),
+            StringValue("abcdefghijklmnopqrst"),
+            StringValue("foo"),
+            StringValue("€"),
         )
         strConstants.forEach { yieldStrings(it) { value } }
     }

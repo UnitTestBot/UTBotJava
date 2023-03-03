@@ -2,13 +2,11 @@ package org.utbot.python
 
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.parsers.python.PythonParser
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.python.code.PythonCode
-import org.utbot.python.fuzzing.PythonFuzzedConcreteValue
+import org.utbot.python.fuzzing.*
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.ast.visitor.Visitor
 import org.utbot.python.newtyping.ast.visitor.constants.ConstantCollector
@@ -29,7 +27,9 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
-private const val COVERAGE_LIMIT = 100
+private const val COVERAGE_LIMIT = 150
+private const val ADDITIONAL_LIMIT = 5
+private const val INVALID_EXECUTION_LIMIT = 10
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -46,32 +46,6 @@ class PythonTestCaseGenerator(
 ) {
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
-
-    private fun findMethodByDescription(mypyStorage: MypyAnnotationStorage, method: PythonMethodHeader): PythonMethod {
-        var containingClass: CompositeType? = null
-        val containingClassName = method.containingPythonClassId?.simpleName
-        val functionDef = if (containingClassName == null) {
-            mypyStorage.definitions[curModule]!![method.name]!!.getUtBotDefinition()!!
-        } else {
-            containingClass =
-                mypyStorage.definitions[curModule]!![containingClassName]!!.getUtBotType() as CompositeType
-            mypyStorage.definitions[curModule]!![containingClassName]!!.type.asUtBotType.getPythonAttributes().first {
-                it.meta.name == method.name
-            }
-        } as? PythonFunctionDefinition ?: error("Selected method is not a function definition")
-
-        val parsedFile = PythonParser(sourceFileContent).Module()
-        val funcDef = PythonCode.findFunctionDefinition(parsedFile, method)
-
-        return PythonMethod(
-            name = method.name,
-            moduleFilename = method.moduleFilename,
-            containingPythonClass = containingClass,
-            codeAsString = funcDef.body.source,
-            definition = functionDef,
-            ast = funcDef.body
-        )
-    }
 
     private fun constructCollectors(
         mypyStorage: MypyAnnotationStorage,
@@ -144,11 +118,10 @@ class PythonTestCaseGenerator(
         }.take(maxSubstitutions)
     }
 
-    fun generate(methodDescription: PythonMethodHeader, until: Long): PythonTestSet {
+    fun generate(method: PythonMethod, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
-        val method = findMethodByDescription(mypyStorage, methodDescription)
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->
@@ -161,8 +134,10 @@ class PythonTestCaseGenerator(
         var missingLines: Set<Int>? = null
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
+
+        var additionalLimit = ADDITIONAL_LIMIT
         val typeInferenceCancellation =
-            { isCancelled() || System.currentTimeMillis() >= until || missingLines?.size == 0 }
+            { isCancelled() || System.currentTimeMillis() >= until || additionalLimit <= 0 }
 
         logger.info("Start test generation for ${method.name}")
         substituteTypeParameters(method, typeStorage).forEach { newMethod ->
@@ -190,13 +165,19 @@ class PythonTestCaseGenerator(
                     PythonTypeStorage.get(mypyStorage)
                 )
 
+                var invalidExecutionLimit = INVALID_EXECUTION_LIMIT
                 var coverageLimit = COVERAGE_LIMIT
                 var coveredBefore = coveredLines.size
 
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation =
-                    { typeInferenceCancellation() || coverageLimit == 0 } // || feedback is InvalidTypeFeedback }
+                val fuzzerCancellation = {
+                        typeInferenceCancellation()
+                                || coverageLimit == 0
+                                || additionalLimit == 0
+                                || invalidExecutionLimit == 0
+                }
+                val startTime = System.currentTimeMillis()
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
                     generated += 1
@@ -211,16 +192,22 @@ class PythonTestCaseGenerator(
                             feedback = SuccessFeedback
                         }
                         is ArgumentsTypeErrorFeedback -> {
+                            invalidExecutionLimit--
                             feedback = InvalidTypeFeedback
                         }
                         is TypeErrorFeedback -> {
+                            invalidExecutionLimit--
                             feedback = InvalidTypeFeedback
                         }
                     }
+                    if (missingLines?.size == 0) {
+                        additionalLimit--
+                    }
                     val coveredAfter = coveredLines.size
                     if (coveredAfter == coveredBefore) {
-                        coverageLimit -= 1
+                        coverageLimit--
                     }
+                    logger.info { "Time ${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
                     coveredBefore = coveredAfter
                 }
                 feedback
@@ -294,12 +281,12 @@ class PythonTestCaseGenerator(
                 return@breaking
             }
 
+            algo.run(hintCollector.result, isCancelled, annotationHandler)
+
             val existsAnnotation = method.definition.type
             if (existsAnnotation.arguments.all { it.pythonTypeName() != "typing.Any" }) {
                 annotationHandler(existsAnnotation)
             }
-
-            algo.run(hintCollector.result, isCancelled, annotationHandler)
         }
     }
 }

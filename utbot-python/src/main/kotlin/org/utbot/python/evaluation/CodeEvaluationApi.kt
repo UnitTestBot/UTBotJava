@@ -1,22 +1,23 @@
 package org.utbot.python.evaluation
 
 import org.utbot.framework.plugin.api.Coverage
-import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.FunctionArguments
 import org.utbot.python.PythonMethod
-import org.utbot.python.code.MemoryDump
+import org.utbot.python.evaluation.serialiation.MemoryDump
 
 interface PythonCodeExecutor {
     val method: PythonMethod
-    val methodArguments: FunctionArguments
-    val fuzzedValues: List<FuzzedValue>
     val moduleToImport: String
-    val additionalModulesToImport: Set<String>
     val pythonPath: String
     val syspathDirectories: Set<String>
     val executionTimeout: Long
 
-    fun run(): PythonEvaluationResult
+    fun run(
+        fuzzedValues: FunctionArguments,
+        additionalModulesToImport: Set<String>
+    ): PythonEvaluationResult
+
+    fun stop()
 }
 
 sealed class PythonEvaluationResult

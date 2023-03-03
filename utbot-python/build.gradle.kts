@@ -21,7 +21,7 @@ tasks {
 }
 
 dependencies {
-    api(project(":utbot-fuzzers"))
+    api(project(":utbot-fuzzing"))
     api(project(":utbot-framework"))
     api(project(":utbot-python-parser"))
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")

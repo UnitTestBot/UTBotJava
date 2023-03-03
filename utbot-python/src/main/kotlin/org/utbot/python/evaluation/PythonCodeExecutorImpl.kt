@@ -40,6 +40,8 @@ class PythonCodeExecutorImpl(
         return getEvaluationResult(evaluationFiles)
     }
 
+    override fun stop() {}
+
     private fun generateExecutionCode(
         additionalModulesToImport: Set<String>,
         methodArguments: List<PythonTreeModel>,

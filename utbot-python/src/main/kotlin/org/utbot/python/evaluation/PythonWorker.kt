@@ -28,8 +28,12 @@ class PythonWorker(
         outStream.flush()
     }
 
-    fun receiveMessage(): String {
-        val length = inStream.readLine().toInt()
+    fun receiveMessage(): String? {
+        val lengthLine = inStream.readLine()
+        if (lengthLine == null) {
+            return null
+        }
+        val length = lengthLine.toInt()
         val buffer = CharArray(length)
         inStream.read(buffer)
         return String(buffer)

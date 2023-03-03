@@ -6,7 +6,6 @@ import mu.KotlinLogging
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -22,6 +21,7 @@ import org.utbot.python.evaluation.PythonEvaluationError
 import org.utbot.python.evaluation.PythonEvaluationSuccess
 import org.utbot.python.evaluation.PythonEvaluationTimeout
 import org.utbot.python.evaluation.PythonWorker
+import org.utbot.python.evaluation.PythonWorkerManager
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
@@ -33,11 +33,8 @@ import org.utbot.python.newtyping.pythonModules
 import org.utbot.python.newtyping.pythonTypeRepresentation
 import org.utbot.python.utils.TemporaryFileManager
 import org.utbot.python.utils.camelToSnakeCase
-import org.utbot.python.utils.startProcess
 import org.utbot.summary.fuzzer.names.TestSuggestedInfo
 import java.net.ServerSocket
-import java.net.SocketTimeoutException
-import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
 private const val MAX_CACHE_SIZE = 200
@@ -156,7 +153,7 @@ class PythonEngine(
         return ValidExecution(utFuzzedExecution)
     }
 
-    private fun constructEvaluationInput(pythonWorker: PythonWorker): PythonCodeExecutor {
+    fun constructEvaluationInput(pythonWorker: PythonWorker): PythonCodeExecutor {
         return PythonCodeSocketExecutor(
             methodUnderTest,
             moduleToImport,
@@ -167,39 +164,19 @@ class PythonEngine(
         )
     }
 
-
-
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
         val coveredLines = initialCoveredLines.toMutableSet()
-        val logfile = TemporaryFileManager.createTemporaryFile("","utbot_executor.log", "log", true)
 
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
-            val processStartTime = System.currentTimeMillis()
-            val process = startProcess(listOf(
+            val manager = PythonWorkerManager(
+                serverSocket,
                 pythonPath,
-                "-m", "utbot_executor",
-                "localhost",
-                serverSocket.localPort.toString(),
-                "--logfile", logfile.absolutePath,
-                "--loglevel", "DEBUG",
-                ))
-            val timeout = until - processStartTime
-            val workerSocket = try {
-                serverSocket.soTimeout = timeout.toInt()
-                serverSocket.accept()
-            } catch (e: SocketTimeoutException) {
-                val processHasExited = process.waitFor(timeout, TimeUnit.MILLISECONDS)
-                if (!processHasExited) {
-                    process.destroy()
-                }
-                throw TimeoutException("Worker not connected")
-            }
-            logger.info { "Worker connected successfully" }
-            val pythonWorker = PythonWorker(workerSocket)
-            val codeExecutor = constructEvaluationInput(pythonWorker)
-            logger.info { "Executor was created successfully" }
+                until,
+                { constructEvaluationInput(it) }
+            )
+            logger.info { "Executor manager was created successfully" }
 
             fun fuzzingResultHandler(
                 description: PythonMethodDescription,
@@ -224,8 +201,8 @@ class PythonEngine(
                     modelList,
                     methodUnderTest.argumentsNames
                 )
-
-                return when (val evaluationResult = codeExecutor.run(functionArguments, localAdditionalModules)) {
+                val evaluationResult = manager.run(functionArguments, localAdditionalModules)
+                return when (evaluationResult) {
                     is PythonEvaluationError -> {
                         val utError = UtError(
                             "Error evaluation: ${evaluationResult.status}, ${evaluationResult.message}",
@@ -248,7 +225,7 @@ class PythonEngine(
                             .zip(methodUnderTest.arguments)
                             .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
 
-                        val hasThisObject = codeExecutor.method.hasThisArgument
+                        val hasThisObject = methodUnderTest.hasThisArgument
 
                         when (val result = handleSuccessResult(
                             parameters,
@@ -259,11 +236,16 @@ class PythonEngine(
                         )) {
                             is ValidExecution -> {
                                 val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
-                                PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE, result = trieNode))
+                                PythonExecutionResult(
+                                    result,
+                                    PythonFeedback(control = Control.CONTINUE, result = trieNode)
+                                )
                             }
+
                             is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
                                 PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
                             }
+
                             is InvalidExecution -> {
                                 PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
                             }
@@ -282,14 +264,17 @@ class PythonEngine(
 
             if (parameters.isEmpty()) {
                 fuzzingResultHandler(pmd, emptyList())
+                manager.disconnect()
             } else {
                 PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
                     if (isCancelled()) {
                         logger.info { "Fuzzing process was interrupted" }
+                        manager.disconnect()
                         return@PythonFuzzing PythonFeedback(control = Control.STOP)
                     }
                     if (System.currentTimeMillis() >= until) {
                         logger.info { "Fuzzing process was interrupted by timeout" }
+                        manager.disconnect()
                         return@PythonFuzzing PythonFeedback(control = Control.STOP)
                     }
 
@@ -302,13 +287,10 @@ class PythonEngine(
                     }
                     val result = fuzzingResultHandler(description, arguments)
                     addExecutionToCache(pair, result)
-
                     emit(result.fuzzingExecutionFeedback)
                     return@PythonFuzzing result.fuzzingPlatformFeedback
+
                 }.fuzz(pmd)
-                if (codeExecutor is PythonCodeSocketExecutor) {
-                    codeExecutor.stop()
-                }
             }
         }
     }

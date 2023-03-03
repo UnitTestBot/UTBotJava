@@ -236,7 +236,7 @@ class PythonTestCaseGenerator(
                     if (coveredAfter == coveredBefore) {
                         coverageLimit--
                     }
-                    logger.info { "${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
+                    logger.info { "Time ${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
                     coveredBefore = coveredAfter
                 }
                 feedback
@@ -310,12 +310,12 @@ class PythonTestCaseGenerator(
                 return@breaking
             }
 
+            algo.run(hintCollector.result, isCancelled, annotationHandler)
+
             val existsAnnotation = method.definition.type
             if (existsAnnotation.arguments.all { it.pythonTypeName() != "typing.Any" }) {
                 annotationHandler(existsAnnotation)
             }
-
-            algo.run(hintCollector.result, isCancelled, annotationHandler)
         }
     }
 }

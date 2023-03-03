@@ -16,6 +16,8 @@ interface PythonCodeExecutor {
         fuzzedValues: FunctionArguments,
         additionalModulesToImport: Set<String>
     ): PythonEvaluationResult
+
+    fun stop()
 }
 
 sealed class PythonEvaluationResult

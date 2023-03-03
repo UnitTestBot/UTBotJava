@@ -1,5 +1,6 @@
 package org.utbot.python.evaluation
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.python.FunctionArguments
@@ -14,7 +15,9 @@ import org.utbot.python.evaluation.serialiation.serializeObjects
 import org.utbot.python.framework.api.python.util.pythonAnyClassId
 import org.utbot.python.newtyping.pythonTypeName
 import org.utbot.python.newtyping.pythonTypeRepresentation
+import java.net.SocketException
 
+private val logger = KotlinLogging.logger {}
 
 class PythonCodeSocketExecutor(
     override val method: PythonMethod,
@@ -67,9 +70,20 @@ class PythonCodeSocketExecutor(
             method.moduleFilename,
         )
         val message = ExecutionRequestSerializer.serializeRequest(request) ?: error("Cannot serialize request to python executor")
-        pythonWorker.sendData(message)
+        try {
+            pythonWorker.sendData(message)
+        } catch (_: SocketException) {
+            logger.info { "Send data error" }
+            return parseExecutionResult(FailExecution("Send data error"))
+        }
         val response = pythonWorker.receiveMessage()
-        val executionResult = ExecutionResultDeserializer.parseExecutionResult(response) ?: error("Cannot parse execution result: $response")
+        val executionResult = if (response == null) {
+            logger.info { "Response error" }
+            FailExecution("Execution result error")
+        } else {
+            ExecutionResultDeserializer.parseExecutionResult(response)
+                ?: error("Cannot parse execution result: $response")
+        }
         return parseExecutionResult(executionResult)
     }
 
@@ -123,7 +137,7 @@ class PythonCodeSocketExecutor(
         )
     }
 
-    fun stop() {
+    override fun stop() {
         pythonWorker.stopServer()
     }
 }

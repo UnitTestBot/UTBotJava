@@ -31,7 +31,6 @@ class PythonEngine(
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
-    private val initialCoveredLines: Set<Int>,
     private val pythonTypeStorage: PythonTypeStorage,
 ) {
 
@@ -141,17 +140,20 @@ class PythonEngine(
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
-        val coveredLines = initialCoveredLines.toMutableSet()
 
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
-            val manager = PythonWorkerManager(
-                serverSocket,
-                pythonPath,
-                until,
-                { constructEvaluationInput(it) },
-                timeoutForRun.toInt()
-            )
+            val manager = try {
+                PythonWorkerManager(
+                    serverSocket,
+                    pythonPath,
+                    until,
+                    { constructEvaluationInput(it) },
+                    timeoutForRun.toInt()
+                )
+            } catch (_: TimeoutException) {
+                return@flow
+            }
             logger.info { "Executor manager was created successfully" }
 
             fun fuzzingResultHandler(
@@ -195,7 +197,6 @@ class PythonEngine(
 
                         is PythonEvaluationSuccess -> {
                             val coveredInstructions = evaluationResult.coverage.coveredInstructions
-                            coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
 
                             val summary = arguments
                                 .zip(methodUnderTest.arguments)
@@ -274,7 +275,6 @@ class PythonEngine(
                     cache.add(pair, result)
                     emit(result.fuzzingExecutionFeedback)
                     return@PythonFuzzing result.fuzzingPlatformFeedback
-
                 }.fuzz(pmd)
             }
         }

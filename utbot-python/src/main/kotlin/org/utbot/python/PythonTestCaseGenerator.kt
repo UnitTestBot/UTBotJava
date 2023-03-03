@@ -22,14 +22,13 @@ import org.utbot.python.newtyping.mypy.MypyReportLine
 import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.utils.ExecutionWithTimeoutMode
+import org.utbot.python.utils.GenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
+import org.utbot.python.utils.TimeoutMode
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
-
-private const val COVERAGE_LIMIT = 150
-private const val ADDITIONAL_LIMIT = 5
-private const val INVALID_EXECUTION_LIMIT = 10
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -120,6 +119,10 @@ class PythonTestCaseGenerator(
 
     fun generate(method: PythonMethod, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
+        val limitManager = GenerationLimitManager(
+            ExecutionWithTimeoutMode,
+            until,
+        )
 
         val typeStorage = PythonTypeStorage.get(mypyStorage)
 
@@ -135,10 +138,6 @@ class PythonTestCaseGenerator(
         val coveredLines = mutableSetOf<Int>()
         var generated = 0
 
-        var additionalLimit = ADDITIONAL_LIMIT
-        val typeInferenceCancellation =
-            { isCancelled() || System.currentTimeMillis() >= until || additionalLimit <= 0 }
-
         logger.info("Start test generation for ${method.name}")
         substituteTypeParameters(method, typeStorage).forEach { newMethod ->
             inferAnnotations(
@@ -148,7 +147,7 @@ class PythonTestCaseGenerator(
                 hintCollector,
                 mypyReportLine,
                 mypyConfigFile,
-                typeInferenceCancellation
+                limitManager,
             ) { functionType ->
                 val args = (functionType as FunctionType).arguments
 
@@ -161,22 +160,12 @@ class PythonTestCaseGenerator(
                     pythonPath,
                     constants,
                     timeoutForRun,
-                    coveredLines,
                     PythonTypeStorage.get(mypyStorage)
                 )
 
-                var invalidExecutionLimit = INVALID_EXECUTION_LIMIT
-                var coverageLimit = COVERAGE_LIMIT
-                var coveredBefore = coveredLines.size
-
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation = {
-                        typeInferenceCancellation()
-                                || coverageLimit == 0
-                                || additionalLimit == 0
-                                || invalidExecutionLimit == 0
-                }
+                val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
                 val startTime = System.currentTimeMillis()
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
@@ -186,30 +175,26 @@ class PythonTestCaseGenerator(
                             executions += it.utFuzzedExecution
                             missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
                             feedback = SuccessFeedback
+                            limitManager.addSuccessExecution()
                         }
                         is InvalidExecution -> {
                             errors += it.utError
                             feedback = SuccessFeedback
                         }
                         is ArgumentsTypeErrorFeedback -> {
-                            invalidExecutionLimit--
                             feedback = InvalidTypeFeedback
+                            limitManager.addInvalidExecution()
                         }
                         is TypeErrorFeedback -> {
-                            invalidExecutionLimit--
                             feedback = InvalidTypeFeedback
+                            limitManager.addInvalidExecution()
                         }
                     }
-                    if (missingLines?.size == 0) {
-                        additionalLimit--
-                    }
-                    val coveredAfter = coveredLines.size
-                    if (coveredAfter == coveredBefore) {
-                        coverageLimit--
-                    }
+                    limitManager.missedLines = missingLines?.size
+
                     logger.info { "Time ${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
-                    coveredBefore = coveredAfter
                 }
+                limitManager.restart()
                 feedback
             }
         }
@@ -250,7 +235,7 @@ class PythonTestCaseGenerator(
         hintCollector: HintCollector,
         report: List<MypyReportLine>,
         mypyConfigFile: File,
-        isCancelled: () -> Boolean,
+        limitManager: GenerationLimitManager,
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
     ) {
         val namesInModule = mypyStorage.names
@@ -259,6 +244,7 @@ class PythonTestCaseGenerator(
             .filter {
                 it.length < 4 || !it.startsWith("__") || !it.endsWith("__")
             }
+        val typeInferenceCancellation = { isCancelled() || limitManager.isCancelled() }
 
         val algo = BaselineAlgorithm(
             typeStorage,
@@ -277,14 +263,15 @@ class PythonTestCaseGenerator(
         )
 
         runBlocking breaking@{
-            if (isCancelled()) {
+            if (typeInferenceCancellation()) {
                 return@breaking
             }
 
-            algo.run(hintCollector.result, isCancelled, annotationHandler)
+            algo.run(hintCollector.result, typeInferenceCancellation, annotationHandler)
 
             val existsAnnotation = method.definition.type
             if (existsAnnotation.arguments.all { it.pythonTypeName() != "typing.Any" }) {
+                limitManager.mode = TimeoutMode
                 annotationHandler(existsAnnotation)
             }
         }

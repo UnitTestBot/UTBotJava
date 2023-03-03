@@ -126,6 +126,7 @@ import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.testNgNewLibraryDescriptor
 import org.utbot.intellij.plugin.models.testNgOldLibraryDescriptor
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.settings.loadStateFromModel
 import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
@@ -535,7 +536,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         // firstly save settings
-        settings.loadStateFromModel(model)
+        loadStateFromModel(settings, model)
         // then process force static mocking case
         model.generateWarningsForStaticMocking = model.staticsMocking is NoStaticMocking
         if (model.forceStaticMocking == ForceStaticMocking.FORCE) {

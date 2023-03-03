@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.utils.Trie
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -44,6 +45,7 @@ import parser.JsToplevelFunctionAstVisitor
 import service.CoverageMode
 import service.CoverageServiceProvider
 import service.InstrumentationService
+import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
@@ -56,7 +58,6 @@ import utils.constructClass
 import utils.toJsAny
 import java.io.File
 import java.util.concurrent.CancellationException
-import org.utbot.fuzzing.utils.Trie
 
 private val logger = KotlinLogging.logger {}
 

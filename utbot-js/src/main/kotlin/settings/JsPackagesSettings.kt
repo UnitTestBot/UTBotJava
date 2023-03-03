@@ -86,26 +86,41 @@ class PackageDataService(
         }
     }
 
-    fun installAbsentPackages(packages: List<PackageData>): Pair<String, String> {
-        if (packages.isEmpty()) return "" to ""
+    fun installMissingPackages(packages: List<PackageData>): Pair<String, String> {
+        var inputTextAllPackages = ""
+        var errorTextAllPackages = ""
+        if (packages.isEmpty()) return inputTextAllPackages to errorTextAllPackages
+
         val localPackageNames = packages.filter { it.npmListFlag == NpmListFlag.L }
             .map { it.packageName }.toTypedArray()
         val globalPackageNames = packages.filter { it.npmListFlag == NpmListFlag.G }
             .map { it.packageName }.toTypedArray()
+
         // Local packages installation
-        val (inputTextL, errorTextL) = JsCmdExec.runCommand(
-            dir = projectPath,
-            shouldWait = true,
-            timeout = 10,
-            cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.L.toString(), *localPackageNames)
-        )
+        if (localPackageNames.isNotEmpty()) {
+            val (inputText, errorText) = JsCmdExec.runCommand(
+                dir = projectPath,
+                shouldWait = true,
+                timeout = 10,
+                cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.L.toString(), *localPackageNames)
+            )
+            inputTextAllPackages += inputText
+            errorTextAllPackages += errorText
+        }
         // Global packages installation
-        val (inputTextG, errorTextG) = JsCmdExec.runCommand(
-            dir = projectPath,
-            shouldWait = true,
-            timeout = 10,
-            cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.G.toString(), *globalPackageNames)
-        )
-        return Pair(inputTextL + inputTextG, errorTextL + errorTextG)
+        if (globalPackageNames.isNotEmpty()) {
+            val (inputText, errorText) = JsCmdExec.runCommand(
+                dir = projectPath,
+                shouldWait = true,
+                timeout = 10,
+                cmd = arrayOf("\"$pathToNpm\"", "install", NpmListFlag.G.toString(), *globalPackageNames)
+            )
+            inputTextAllPackages += inputText
+            errorTextAllPackages += errorText
+        }
+        // Find path to nyc execution file after installation
+        if (packages.contains(nycData)) findPackage(nycData)
+
+        return Pair(inputTextAllPackages, errorTextAllPackages)
     }
 }

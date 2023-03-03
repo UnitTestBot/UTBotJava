@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
@@ -19,7 +20,7 @@ class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecution
 class JsMethodDescription(
     val name: String,
     parameters: List<JsClassId>,
-    val concreteValues: Collection<FuzzedConcreteValue>,
+    val concreteValues: Collection<JsFuzzedConcreteValue>,
     val thisInstance: JsClassId? = null,
     val tracer: Trie<JsStatement, *>
 ) : Description<JsClassId>(parameters) {
@@ -28,7 +29,7 @@ class JsMethodDescription(
         name: String,
         parameters: List<JsClassId>,
         classId: JsClassId,
-        concreteValues: Collection<FuzzedConcreteValue>,
+        concreteValues: Collection<JsFuzzedConcreteValue>,
         tracer: Trie<JsStatement, *>
     ) : this(
         name,
@@ -42,7 +43,7 @@ class JsMethodDescription(
 class JsFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<JsStatement> = Trie.emptyNode()
-) : Feedback<JsClassId, FuzzedValue> {
+) : Feedback<JsClassId, JsFuzzedValue> {
 
     override fun equals(other: Any?): Boolean {
         val castOther = other as? JsFeedback
@@ -57,3 +58,42 @@ class JsFeedback(
 data class JsStatement(
     val number: Int
 )
+
+data class JsFuzzedValue(
+    val model: UtModel,
+    var summary: String? = null,
+)
+
+data class JsFuzzedConcreteValue(
+    val classId: ClassId,
+    val value: Any,
+    val fuzzedContext: JsFuzzedContext = JsFuzzedContext.Unknown,
+)
+
+enum class JsFuzzedContext {
+    EQ,
+    NE,
+    GT,
+    GE,
+    LT,
+    LE,
+    Unknown;
+
+    fun reverse(): JsFuzzedContext = when (this) {
+        EQ -> NE
+        NE -> EQ
+        GT -> LE
+        LT -> GE
+        LE -> GT
+        GE -> LT
+        Unknown -> Unknown
+    }
+}
+
+fun UtModel.fuzzed(block: JsFuzzedValue.() -> Unit = {}): JsFuzzedValue = JsFuzzedValue(this).apply(block)
+
+object JsIdProvider {
+    private var _id = AtomicInteger(0)
+
+    fun get() = _id.incrementAndGet()
+}

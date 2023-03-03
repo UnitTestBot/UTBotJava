@@ -3,6 +3,7 @@ package service
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isUndefined
+import fuzzer.JsFuzzedValue
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
@@ -13,8 +14,11 @@ import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
 import utils.ResultData
 import java.util.regex.Pattern
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtNullModel
+import providers.imports.IImportsProvider
 
-// TODO: Add "error" field in result json to not collide with "result" field upon error.
 class CoverageServiceProvider(
     private val context: ServiceContext,
     private val instrumentationService: InstrumentationService,
@@ -58,7 +62,7 @@ function check_value(value, json) {
     }
 
     fun get(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<JsFuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         return when (mode) {
@@ -75,7 +79,7 @@ function check_value(value, json) {
     }
 
     private fun runBasicCoverageAnalysis(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<JsFuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -99,7 +103,7 @@ function check_value(value, json) {
     }
 
     private fun runFastCoverageAnalysis(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<JsFuzzedValue>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -134,7 +138,7 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
     }
 
     private fun makeStringForRunJs(
-        fuzzedValue: List<FuzzedValue>,
+        fuzzedValue: List<JsFuzzedValue>,
         method: JsMethodId,
         containingClass: String?,
         covFunName: String,
@@ -166,7 +170,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     }
 
     private fun makeCallFunctionString(
-        fuzzedValue: List<FuzzedValue>,
+        fuzzedValue: List<JsFuzzedValue>,
         method: JsMethodId,
         containingClass: String?
     ): String {

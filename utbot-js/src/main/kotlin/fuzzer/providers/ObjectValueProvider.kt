@@ -3,7 +3,10 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.JsConstructorId
 import framework.api.js.util.isClass
+import fuzzer.JsFuzzedValue
+import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
+import fuzzer.fuzzed
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtNullModel
@@ -15,7 +18,7 @@ import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.utils.hex
 
-class ObjectValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDescription> {
 
     private val idGenerator = ReferencePreservingIntIdGenerator()
 
@@ -31,7 +34,7 @@ class ObjectValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescri
         yield(createValue(type, constructor))
     }
 
-    private fun createValue(classId: JsClassId, constructorId: JsConstructorId): Seed.Recursive<JsClassId, FuzzedValue> {
+    private fun createValue(classId: JsClassId, constructorId: JsConstructorId): Seed.Recursive<JsClassId, JsFuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.parameters) { values ->
                 val id = idGenerator.createId()

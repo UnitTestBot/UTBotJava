@@ -4,14 +4,18 @@ import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsStringClassId
+import fuzzer.JsFuzzedValue
 import fuzzer.JsMethodDescription
+import fuzzer.fuzzed
+
+
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.StringValue
 
-object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+object StringValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean {
         return type.isJsBasic
@@ -20,7 +24,7 @@ object StringValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
     override fun generate(
         description: JsMethodDescription,
         type: JsClassId
-    ): Sequence<Seed<JsClassId, FuzzedValue>> = sequence {
+    ): Sequence<Seed<JsClassId, JsFuzzedValue>> = sequence {
         val constants = description.concreteValues.asSequence()
             .filter { it.classId == jsStringClassId }
         val values = constants

@@ -166,6 +166,10 @@ object PythonDialogProcessor {
                 }
                 try {
                     val methods = findSelectedPythonMethods(model)
+                    val requirementsList = requirements.toMutableList()
+                    if (!model.testFramework.isInstalled) {
+                        requirementsList += model.testFramework.mainPackage
+                    }
 
                     processTestGeneration(
                         pythonPath = model.pythonPath,
@@ -185,9 +189,8 @@ object PythonDialogProcessor {
                         isCanceled = { indicator.isCanceled },
                         checkingRequirementsAction = { indicator.text = "Checking requirements" },
                         installingRequirementsAction = { indicator.text = "Installing requirements..." },
-                        testFrameworkInstallationAction = { indicator.text = "Test framework installation" },
                         requirementsAreNotInstalledAction = {
-                            askAndInstallRequirementsLater(model.project, model.pythonPath)
+                            askAndInstallRequirementsLater(model.project, model.pythonPath, requirementsList)
                             PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                         },
                         startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
@@ -245,11 +248,11 @@ object PythonDialogProcessor {
         }
     }
 
-    private fun askAndInstallRequirementsLater(project: Project, pythonPath: String) {
+    private fun askAndInstallRequirementsLater(project: Project, pythonPath: String, requirementsList: List<String>) {
         val message = """
             Some requirements are not installed.
             Requirements: <br>
-            ${requirements.joinToString("<br>")}
+            ${requirementsList.joinToString("<br>")}
             <br>
             Install them?
         """.trimIndent()
@@ -267,7 +270,7 @@ object PythonDialogProcessor {
 
             ProgressManager.getInstance().run(object : Backgroundable(project, "Installing requirements") {
                 override fun run(indicator: ProgressIndicator) {
-                    val installResult = installRequirements(pythonPath)
+                    val installResult = installRequirements(pythonPath, requirementsList)
 
                     if (installResult.exitValue != 0) {
                         showErrorDialogLater(
@@ -275,7 +278,7 @@ object PythonDialogProcessor {
                             "Requirements installing failed.<br>" +
                                     "${installResult.stderr}<br><br>" +
                                     "Try to install with pip:<br>" +
-                                    " ${requirements.joinToString("<br>")}",
+                                    " ${requirementsList.joinToString("<br>")}",
                             "Requirements error"
                         )
                     }

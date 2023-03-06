@@ -112,7 +112,7 @@ sequenceDiagram
 The plugin provides
 * a UI for the IntelliJ-based IDEs to use UnitTestBot directly from source code,
 * the linkage between IntelliJ Platform API and UnitTestBot API,
-* support for the most popular programming languages and frameworks for end users (the plugin and its optional dependencies are described in [plugin.xml](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/resources/META-INF/plugin.xml) and nearby, in the [`META-INF`](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-intellij/src/main/resources/META-INF) folder.
+* support for the most popular programming languages and frameworks for end users (the plugin and its optional dependencies are described in [plugin.xml](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/resources/META-INF/plugin.xml) and nearby, in the [`META-INF`](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-intellij/src/main/resources/META-INF) folder).
 
 The main plugin module is [utbot-intellij](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-intellij), providing support for Java and Kotlin.  
 Also, there is an auxiliary [utbot-ui-commons](https://github.com/UnitTestBot/UTBotJava/tree/main/utbot-ui-commons) module to support providers for other languages.
@@ -124,7 +124,7 @@ As for the UI, there are two entry points:
 The main plugin-specific features are:
 * A common action for generating tests right from the editor or a project tree — with a generation scope from a single method up to the whole source root. See [GenerateTestAction](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/kotlin/org/utbot/intellij/plugin/ui/actions/GenerateTestsAction.kt) — the same for all supported languages.
 * Auto-installation of the user-chosen testing framework as a project library dependency (JUnit 4, JUnit 5, and TestNG are supported). See [UtIdeaProjectModelModifier](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/kotlin/org/utbot/intellij/plugin/util/UtIdeaProjectModelModifier.kt) and the Maven-specific version: [UtMavenProjectModelModifier](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/kotlin/org/utbot/intellij/plugin/util/UtMavenProjectModelModifier.kt).
-* Suggesting the location for a test source root and auto-generating the `utbot_tests` folder there, providing users with a sandbox in their codespace.
+* Suggesting the location for a test source root and auto-generating the `utbot_tests` folder there, providing users with a sandbox in their code space.
 * Optimizing generated code with IDE-provided intentions (experimental). See [IntentionHelper](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/kotlin/org/utbot/intellij/plugin/generator/IntentionHelper.kt) for details.
 * An option for distributing generation time between symbolic execution and fuzzing explicitly.
 * Running generated tests while showing coverage with the IDE-provided measurement tools. See [RunConfigurationHelper](https://github.com/UnitTestBot/UTBotJava/blob/main/utbot-intellij/src/main/kotlin/org/utbot/intellij/plugin/util/RunConfigurationHelper.kt) for implementation.
@@ -241,7 +241,10 @@ The main instrumentation of UnitTestBot is [UtExecutionInstrumentation](https://
 ### Code generator
 
 Code generation and rendering are a part of the test generation process in UnitTestBot.
-UnitTestBot gets the synthetic representation of generated test cases from the fuzzer or the symbolic engine. This representation, or model, is implemented in the `UtExecution` class. The `codegen` module generates the real test code based on this `UtExecution` model and renders it in a human-readable form.
+UnitTestBot gets the synthetic representation of generated test cases from the fuzzer or the symbolic engine.
+This representation (or model) is implemented in the `UtExecution` class.
+The `codegen` module generates the real test code based on this `UtExecution` model
+and renders it in a human-readable form.
 
 The `codegen` module
 - converts `UtExecution` test information into an Abstract Syntax Tree (AST) representation using `CodeGenerator`,
@@ -287,7 +290,7 @@ To minimize the number of executions in a group, we use a simple greedy algorith
 2. Add this execution to the final suite and mark new lines as covered.
 3. Repeat the first step and continue till there are executions containing uncovered lines.
 
-The whole minimization procedure is located in the [org.utbopt.framework.minimization](utbot-framework/src/main/kotlin/org/utbot/framework/minimization) package inside the [utbot-framework](../utbot-framework) module.
+The whole minimization procedure is located in the [org.utbot.framework.minimization](../utbot-framework/src/main/kotlin/org/utbot/framework/minimization) package inside the [utbot-framework](../utbot-framework) module.
 
 ### Summarization module
 
@@ -309,7 +312,7 @@ For detailed information, please refer to the Summarization architecture design 
 
 ### SARIF report generator
 
-SARIF (Static Analysis Results Interchange Format) is a JSON–based format for displaying static analysis results.
+SARIF (Static Analysis Results Interchange Format) is a JSON-based format for displaying static analysis results.
 
 All the necessary information about the format and its usage can be found
 in the [official documentation](https://github.com/microsoft/sarif-tutorials/blob/main/README.md)
@@ -346,7 +349,8 @@ UnitTestBot consists of three processes (according to the execution order):
 
 These processes are built on top of the [Reactive distributed communication framework (Rd)](https://github.com/JetBrains/rd) developed by JetBrains.
 
-One of the main Rd concepts is _Lifetime_ — it helps to release shared resources upon the object's termination. You can find the Rd basic ideas and UnitTestBot implementation details in the [Multiprocess architecture](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/RD%20for%20UnitTestBot.md) design doc.
+One of the main Rd concepts is a _Lifetime_ — it helps to release shared resources upon the object's termination.
+You can find the Rd basic ideas and UnitTestBot implementation details in the [Multiprocess architecture](https://github.com/UnitTestBot/UTBotJava/blob/main/docs/RD%20for%20UnitTestBot.md) design doc.
 
 ### Settings
 
@@ -362,4 +366,15 @@ The end user has three places to change UnitTestBot behavior:
 3. Controls in the **Generate Tests with UnitTestBot window** dialog — for per-generation settings.
 
 ### Logging
-TODO
+
+The UnitTestBot Java logging system is implemented across the IDE process, the Engine process, and the Instrumented process.
+
+UnitTestBot Java logging relies on `log4j2` library.
+The custom Rd logging system is recommended as the default one for the Instrumented process.
+
+In the [Logging](../docs/contributing/InterProcessLogging.md) document,
+you can find how to configure the logging system when UnitTestBot Java is used
+* as an IntelliJ IDEA plugin,
+* as Contest estimator or the Gradle/Maven plugins, via CLI or during the CI test runs.
+
+Implementation details, log level and performance questions are also addressed [here](../docs/contributing/InterProcessLogging.md).

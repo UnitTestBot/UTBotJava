@@ -56,6 +56,9 @@ class BaselineAlgorithm(
                 val state = chooseState(states)
                 val newState = expandState(state, storage)
                 if (newState != null) {
+                    if (iterationCounter == 1) {
+                        annotationHandler(initialState.signature)
+                    }
                     logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
                     if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
                         logger.debug("Found new state!")

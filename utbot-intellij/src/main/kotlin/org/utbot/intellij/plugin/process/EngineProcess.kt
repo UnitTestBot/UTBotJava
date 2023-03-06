@@ -10,10 +10,6 @@ import com.intellij.psi.impl.file.impl.JavaFileManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.jetbrains.rd.util.ILoggerFactory
-import com.jetbrains.rd.util.Logger
-import com.jetbrains.rd.util.Statics
-import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -42,7 +38,6 @@ import org.utbot.rd.generated.SettingForResult
 import org.utbot.rd.generated.SettingsModel
 import org.utbot.rd.generated.settingsModel
 import org.utbot.rd.generated.synchronizationModel
-import org.utbot.rd.loggers.UtRdKLoggerFactory
 import org.utbot.rd.loggers.overrideDefaultRdLoggerFactoryWithKLogger
 import org.utbot.sarif.SourceFindingStrategy
 import java.io.File
@@ -188,7 +183,7 @@ class EngineProcess private constructor(val project: Project, private val classN
         classPath: String?,
         dependencyPaths: String,
         jdkInfo: JdkInfo,
-        applicationContext: ApplicationContext,
+        applicationContext: StandardApplicationContext,
         isCancelled: (Unit) -> Boolean
     ) {
         assertReadAccessNotAllowed()

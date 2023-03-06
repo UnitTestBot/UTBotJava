@@ -1150,6 +1150,9 @@ class WildcardTypeParameter : TypeParameters(emptyList())
 
 /**
  * A context to use when no specific data is required.
+ *
+ * @param mockFrameworkInstalled shows if we have installed framework dependencies
+ * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
 open class StandardApplicationContext(
     val mockFrameworkInstalled: Boolean = true,

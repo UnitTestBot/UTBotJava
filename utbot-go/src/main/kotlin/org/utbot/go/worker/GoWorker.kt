@@ -14,14 +14,24 @@ import java.net.Socket
 
 class GoWorker(
     socket: Socket,
-    val function: GoUtFunction
+    private val goPackage: GoPackage
 ) {
     private val reader: BufferedReader = BufferedReader(InputStreamReader(socket.getInputStream()))
     private val writer: BufferedWriter = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
 
-    fun sendFuzzedParametersValues(parameters: List<GoUtModel>, aliases: Map<GoPackage, String?>) {
-        val rawValues = parameters.map { it.convertToRawValue(function.sourcePackage, aliases) }
-        val json = convertObjectToJsonString(rawValues)
+    data class TestInput(
+        val functionName: String,
+        val arguments: List<RawValue>
+    )
+
+    fun sendFuzzedParametersValues(
+        function: GoUtFunction,
+        arguments: List<GoUtModel>,
+        aliases: Map<GoPackage, String?>
+    ) {
+        val rawValues = arguments.map { it.convertToRawValue(goPackage, aliases) }
+        val testCase = TestInput(function.modifiedName, rawValues)
+        val json = convertObjectToJsonString(testCase)
         writer.write(json)
         writer.flush()
     }

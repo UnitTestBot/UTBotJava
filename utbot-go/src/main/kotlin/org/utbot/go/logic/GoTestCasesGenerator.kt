@@ -3,10 +3,21 @@ package org.utbot.go.logic
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.go.GoEngine
 import org.utbot.go.api.GoUtFile
 import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.GoUtFuzzedFunctionTestCase
+import org.utbot.go.imports.GoImportsResolver
+import org.utbot.go.util.executeCommandByNewProcessOrFailWithoutWaiting
+import org.utbot.go.worker.GoWorker
+import org.utbot.go.worker.GoWorkerCodeGenerationHelper
+import java.io.File
+import java.io.InputStreamReader
+import java.net.ServerSocket
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
 
 val logger = KotlinLogging.logger {}
@@ -18,30 +29,126 @@ object GoTestCasesGenerator {
         functions: List<GoUtFunction>,
         intSize: Int,
         goExecutableAbsolutePath: String,
-        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
-        timeoutExceededOrIsCanceled: (index: Int) -> Boolean
+        eachExecutionTimeoutMillis: Long,
+        connectionTimeoutMillis: Long = 10000,
+        endOfWorkerExecutionTimeout: Long = 5000,
+        timeoutExceededOrIsCanceled: (index: Int) -> Boolean = { false },
     ): List<GoUtFuzzedFunctionTestCase> = runBlocking {
-        return@runBlocking functions.flatMapIndexed { index, function ->
-            val testCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
-            if (timeoutExceededOrIsCanceled(index)) return@flatMapIndexed testCases
-            val engine = GoEngine(
-                function,
-                sourceFile,
-                intSize,
-                goExecutableAbsolutePath,
-                eachExecutionTimeoutsMillisConfig,
-                { timeoutExceededOrIsCanceled(index) }
-            )
-            logger.info { "Fuzzing for function [${function.name}] - started" }
-            val totalFuzzingTime = measureTimeMillis {
-                engine.fuzzing().catch {
-                    logger.error { "Error in flow: ${it.message}" }
-                }.collect { (fuzzedFunction, executionResult) ->
-                    testCases.add(GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult))
+        ServerSocket(0).use { serverSocket ->
+            val allTestCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
+            var fileToExecute: File? = null
+            var fileWithModifiedFunctions: File? = null
+            try {
+                // creating files for worker
+                val types = functions.flatMap { it.parameters }.map { it.type }
+                val imports = GoImportsResolver.resolveImportsBasedOnTypes(
+                    types,
+                    sourceFile.sourcePackage,
+                    GoWorkerCodeGenerationHelper.alwaysRequiredImports
+                )
+                val aliases = imports.filter { it.alias != null }.associate { it.goPackage to it.alias }
+                fileToExecute = GoWorkerCodeGenerationHelper.createFileToExecute(
+                    sourceFile,
+                    functions,
+                    eachExecutionTimeoutMillis,
+                    serverSocket.localPort,
+                    imports
+                )
+                fileWithModifiedFunctions = GoWorkerCodeGenerationHelper.createFileWithModifiedFunctions(
+                    sourceFile, functions
+                )
+
+                // starting worker process
+                val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
+                val command = listOf(
+                    goExecutableAbsolutePath, "test", "-run", testFunctionName
+                )
+                val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
+                val processStartTime = System.currentTimeMillis()
+                val process = executeCommandByNewProcessOrFailWithoutWaiting(command, sourceFileDir)
+
+                try {
+                    // connecting to worker
+                    logger.debug { "Trying to connect to worker" }
+                    val workerSocket = try {
+                        serverSocket.soTimeout = connectionTimeoutMillis.toInt()
+                        serverSocket.accept()
+                    } catch (e: SocketTimeoutException) {
+                        val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
+                        if (processHasExited) {
+                            val processOutput = InputStreamReader(process.inputStream).readText()
+                            throw TimeoutException("Timeout exceeded: Worker not connected. Process output: $processOutput")
+                        } else {
+                            process.destroy()
+                        }
+                        throw TimeoutException("Timeout exceeded: Worker not connected")
+                    }
+                    val worker = GoWorker(workerSocket, sourceFile.sourcePackage)
+                    logger.debug { "Worker connected - completed in ${System.currentTimeMillis() - processStartTime} ms" }
+                    functions.forEachIndexed { index, function ->
+                        if (timeoutExceededOrIsCanceled(index)) return@forEachIndexed
+                        val testCases = mutableListOf<GoUtFuzzedFunctionTestCase>()
+                        val engine = GoEngine(
+                            worker,
+                            function,
+                            aliases,
+                            intSize,
+                            eachExecutionTimeoutMillis
+                        ) { timeoutExceededOrIsCanceled(index) }
+                        logger.info { "Fuzzing for function [${function.name}] - started" }
+                        val totalFuzzingTime = measureTimeMillis {
+                            engine.fuzzing().catch {
+                                logger.error { "Error in flow: ${it.message}" }
+                            }.collect { (fuzzedFunction, executionResult) ->
+                                testCases.add(GoUtFuzzedFunctionTestCase(fuzzedFunction, executionResult))
+                            }
+                        }
+                        logger.info { "Fuzzing for function [${function.name}] - completed in $totalFuzzingTime ms. Generated ${testCases.size} test cases" }
+                        allTestCases += testCases
+                    }
+                    workerSocket.close()
+                    val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
+                    if (!processHasExited) {
+                        process.destroy()
+                        throw TimeoutException("Timeout exceeded: Worker didn't finish")
+                    }
+                    val exitCode = process.exitValue()
+                    if (exitCode != 0) {
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        throw RuntimeException(
+                            StringBuilder()
+                                .append("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
+                                .appendLine()
+                                .append(processOutput).toString()
+                        )
+                    }
+                } catch (e: TimeoutException) {
+                    logger.error { e.message }
+                } catch (e: RuntimeException) {
+                    logger.error { e.message }
+                } catch (e: SocketException) {
+                    val processHasExited = process.waitFor(endOfWorkerExecutionTimeout, TimeUnit.MILLISECONDS)
+                    if (!processHasExited) {
+                        process.destroy()
+                        logger.error { "Timeout exceeded: Worker didn't finish" }
+                    }
+                    val exitCode = process.exitValue()
+                    if (exitCode != 0) {
+                        val processOutput = InputStreamReader(process.inputStream).readText()
+                        logger.error {
+                            StringBuilder()
+                                .append("Execution of functions from $sourceFile in child process failed with non-zero exit code = $exitCode: ")
+                                .appendLine()
+                                .append(processOutput).toString()
+                        }
+                    }
+
                 }
+            } finally {
+                fileToExecute?.delete()
+                fileWithModifiedFunctions?.delete()
             }
-            logger.info { "Fuzzing for function [${function.name}] - completed in $totalFuzzingTime ms. Generated ${testCases.size} test cases" }
-            testCases
+            return@runBlocking allTestCases
         }
     }
 }

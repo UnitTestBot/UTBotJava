@@ -45,6 +45,7 @@ import parser.JsToplevelFunctionAstVisitor
 import service.CoverageMode
 import service.CoverageServiceProvider
 import service.InstrumentationService
+import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
 import settings.JsDynamicSettings
@@ -100,6 +101,10 @@ class JsTestGenerator(
             parsedFile = parsedFile,
             settings = settings,
         )
+        context.packageJson = PackageJsonService(
+            sourceFilePath,
+            projectPath,
+        ).findClosestConfig()
         val ternService = TernService(context)
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()

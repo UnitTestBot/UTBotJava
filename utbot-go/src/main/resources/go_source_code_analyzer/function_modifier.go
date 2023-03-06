@@ -12,6 +12,8 @@ type FunctionModifier struct {
 
 func (v *FunctionModifier) Visit(node ast.Node) ast.Visitor {
 	switch n := node.(type) {
+	case *ast.FuncDecl:
+		n.Doc = nil
 	case *ast.BlockStmt:
 		if n == nil {
 			n = &ast.BlockStmt{}

@@ -242,7 +242,10 @@ class PythonEngine(
             )
 
             if (parameters.isEmpty()) {
-                fuzzingResultHandler(pmd, emptyList())
+                val result = fuzzingResultHandler(pmd, emptyList())
+                result?.let {
+                    emit(it.fuzzingExecutionFeedback)
+                }
                 manager.disconnect()
             } else {
                 PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->

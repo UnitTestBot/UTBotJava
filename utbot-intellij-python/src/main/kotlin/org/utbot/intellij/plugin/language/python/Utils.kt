@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyDecorator
@@ -56,3 +57,11 @@ fun fineFunction(function: PyFunction): Boolean =
 fun fineClass(pyClass: PyClass): Boolean =
     getAncestors(pyClass).dropLast(1).all { it !is PyClass && it !is PyFunction } &&
             pyClass.methods.any { fineFunction(it) }
+
+fun PsiDirectory.topParent(level: Int): PsiDirectory? {
+    var directory: PsiDirectory? = this
+    repeat(level) {
+        directory = directory?.parent
+    }
+    return directory
+}

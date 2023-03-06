@@ -77,7 +77,7 @@ executing all the callbacks because some other thread executes them.
 Rd is a lightweight reactive one-to-one RPC protocol, which is cross-language as well as cross-platform. It can 
 work on the same or different machines via the Internet.
 
-These are some of Rd entities:
+These are some Rd entities:
 - `Protocol` encapsulates the logic of all Rd communications. All the entities should be bound to `Protocol` before 
   being used. `Protocol` contains `IScheduler`, which executes a _runnable_ instance on a different thread.
 - `RdSignal` is an entity allowing one to **fire and forget**. You can add a callback for every received message 
@@ -228,7 +228,7 @@ Sometimes the _Instrumented process_ may unexpectedly die due to concrete execut
 	- **Important**: do not add [`Rdgen`](https://mvnrepository.com/artifact/com.jetbrains.rd/rd-gen) as 
 	  an implementation dependency — it breaks some JAR files as it contains `kotlin-compiler-embeddable`.
 5. Logging & debugging:
-	- [Interprocess logging](./InterProcessLogging.md)
+	- [Interprocess logging](contributing/InterProcessLogging.md)
     - [Interprocess debugging](./contributing/InterProcessDebugging.md)
 6. Custom protocol marshaling types: do not spend time on it until `UtModels` get simpler, e.g. compatible with 
    `kotlinx.serialization`.

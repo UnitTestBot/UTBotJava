@@ -289,7 +289,7 @@ private fun PackageDataService.checkAndInstallRequirements(project: Project): Bo
             showErrorDialogLater(
                 project,
                 "Requirements installing failed with some reason:\n${errorText}",
-                "Requirement installation error"
+                "Failed to install requirements"
             )
             return false
         }
@@ -307,7 +307,7 @@ private fun PackageDataService.checkAndInstallRequirements(project: Project): Bo
                 }
             }
             """.trimIndent(),
-            "Requirement installation error"
+            "Failed to install requirements"
         )
         return false
     }

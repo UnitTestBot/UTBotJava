@@ -144,13 +144,6 @@ object JsDialogProcessor {
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
 
-    private fun unblockDocument(project: Project, document: Document) {
-        PsiDocumentManager.getInstance(project).apply {
-            commitDocument(document)
-            doPostponedOperationsAndUnblockDocument(document)
-        }
-    }
-
     private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor?, contents: String) {
         val normalizedContainingFilePath = containingFilePath.replace(File.separator, "/")
         (object : Task.Backgroundable(model.project, "Generate tests") {
@@ -233,20 +226,7 @@ object JsDialogProcessor {
                             val resultSet = existingExportsSet + exports.toSet()
                             val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
                             val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-                            editor?.let {
-                                runWriteAction {
-                                    with(editor.document) {
-                                        unblockDocument(project, this)
-                                        setText(swappedText)
-                                        unblockDocument(project, this)
-                                    }
-                                    with(FileDocumentManager.getInstance()) {
-                                        saveDocument(editor.document)
-                                    }
-                                }
-                            } ?: run {
-                                File(model.containingFilePath).writeText(swappedText)
-                            }
+                            project.setNewText(editor, model.containingFilePath, swappedText)
                         }
                     }
 
@@ -256,23 +236,34 @@ object JsDialogProcessor {
                             append(exportSection)
                             append("\n$endComment")
                         }
-                        editor?.let {
-                            runWriteAction {
-                                with(editor.document) {
-                                    unblockDocument(project, this)
-                                    setText(fileText + line)
-                                    unblockDocument(project, this)
-                                }
-                                with(FileDocumentManager.getInstance()) {
-                                    saveDocument(editor.document)
-                                }
-                            }
-                        } ?: run {
-                            File(model.containingFilePath).writeText(fileText + line)
-                        }
+                        project.setNewText(editor, model.containingFilePath, fileText + line)
                     }
                 }
             }
+        }
+    }
+
+    private fun Project.setNewText(editor: Editor?, filePath: String, text: String) {
+        editor?.let {
+            runWriteAction {
+                with(editor.document) {
+                    unblockDocument(this@setNewText, this@with)
+                    setText(text)
+                    unblockDocument(this@setNewText, this@with)
+                }
+                with(FileDocumentManager.getInstance()) {
+                    saveDocument(editor.document)
+                }
+            }
+        } ?: run {
+            File(filePath).writeText(text)
+        }
+    }
+
+    private fun unblockDocument(project: Project, document: Document) {
+        PsiDocumentManager.getInstance(project).apply {
+            commitDocument(document)
+            doPostponedOperationsAndUnblockDocument(document)
         }
     }
 }

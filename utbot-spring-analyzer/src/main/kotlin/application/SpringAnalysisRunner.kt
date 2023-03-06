@@ -45,7 +45,6 @@ open class SpringAnalysisRunner {
     }
 }
 
-
 fun main(args: Array<String>) {
     val name = SpringAnalysisRunner()
     name.main(args)

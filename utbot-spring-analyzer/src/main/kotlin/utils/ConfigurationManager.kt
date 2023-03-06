@@ -8,20 +8,15 @@ import kotlin.reflect.KClass
 
 class ConfigurationManager(private val classLoader: ClassLoader, private val userConfigurationClass: Class<*>) {
 
-    @Throws(Exception::class)
-    fun patchPropertySourceAnnotation() {
+    fun patchPropertySourceAnnotation() =
         patchAnnotation(PropertySource::class, String.format("classpath:%s", ResourceNames.fakePropertiesFileName))
-    }
 
-    @Throws(Exception::class)
-    fun patchImportResourceAnnotation() {
+    fun patchImportResourceAnnotation() =
         patchAnnotation(
             ImportResource::class,
             String.format("classpath:%s", ResourceNames.fakeApplicationXmlFileName)
         )
-    }
 
-    @Throws(Exception::class)
     private fun patchAnnotation(annotationClass: KClass<*>, newValue: String) {
         val proxyClass = classLoader.loadClass("java.lang.reflect.Proxy")
         val hField = proxyClass.getDeclaredField("h")

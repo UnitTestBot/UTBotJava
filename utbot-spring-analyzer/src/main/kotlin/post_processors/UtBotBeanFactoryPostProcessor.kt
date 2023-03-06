@@ -13,9 +13,7 @@ import java.util.Arrays
 
 class UtBotBeanFactoryPostProcessor : BeanFactoryPostProcessor, PriorityOrdered {
 
-    @Throws(BeansException::class)
     override fun postProcessBeanFactory(beanFactory: ConfigurableListableBeanFactory) {
-
         println("Started post-processing bean factory in UtBot")
 
         val beanClassNames = ArrayList<String>()

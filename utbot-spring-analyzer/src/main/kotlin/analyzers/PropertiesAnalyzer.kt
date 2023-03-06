@@ -5,8 +5,6 @@ import java.io.FileReader
 import java.io.IOException
 
 class PropertiesAnalyzer(private val propertiesFilePath: String) {
-
-    @Throws(IOException::class)
     fun readProperties(): ArrayList<String> {
         val props = ArrayList<String>()
 

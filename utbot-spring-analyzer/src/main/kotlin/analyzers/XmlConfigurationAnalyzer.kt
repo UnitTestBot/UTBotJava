@@ -4,9 +4,6 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import utils.ResourceNames
 import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.transform.Result
-import javax.xml.transform.Source
-import javax.xml.transform.TransformerException
 import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
@@ -15,7 +12,6 @@ class XmlConfigurationAnalyzer(private val userXmlFilePath: String) {
     private val fakeXmlFilePath = this.javaClass.classLoader.getResource(ResourceNames.fakeApplicationXmlFileName)?.path
         ?: error("The path must exist")
 
-    @Throws(Exception::class)
     fun fillFakeApplicationXml() {
         val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
         val doc = builder.parse(userXmlFilePath)
@@ -40,12 +36,11 @@ class XmlConfigurationAnalyzer(private val userXmlFilePath: String) {
         doc.normalize()
     }
 
-    @Throws(TransformerException::class)
     private fun writeXmlFile(doc: Document) {
         val tFormer = TransformerFactory.newInstance().newTransformer()
-        val source: Source = DOMSource(doc)
-        val dest: Result = StreamResult(fakeXmlFilePath)
+        val source = DOMSource(doc)
+        val destination = StreamResult(fakeXmlFilePath)
 
-        tFormer.transform(source, dest)
+        tFormer.transform(source, destination)
     }
 }

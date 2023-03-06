@@ -34,6 +34,7 @@ import settings.PackageDataService
 import settings.jsPackagesList
 import utils.JsCmdExec
 import utils.OsProvider
+import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
 

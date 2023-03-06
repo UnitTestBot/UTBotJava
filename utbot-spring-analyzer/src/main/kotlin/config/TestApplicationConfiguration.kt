@@ -1,4 +1,4 @@
-package application
+package config
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.context.annotation.Bean

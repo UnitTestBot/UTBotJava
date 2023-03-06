@@ -5,7 +5,6 @@ import org.utbot.go.api.GoUtFunction
 import org.utbot.go.api.util.getAllStructTypes
 import org.utbot.go.framework.api.go.GoImport
 import org.utbot.go.framework.api.go.GoPackage
-import org.utbot.go.logic.EachExecutionTimeoutsMillisConfig
 import org.utbot.go.simplecodegeneration.GoFileCodeBuilder
 import java.io.File
 
@@ -32,8 +31,8 @@ internal object GoWorkerCodeGenerationHelper {
 
     fun createFileToExecute(
         sourceFile: GoUtFile,
-        function: GoUtFunction,
-        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
+        functions: List<GoUtFunction>,
+        eachExecutionTimeoutMillis: Long,
         port: Int,
         imports: Set<GoImport>
     ): File {
@@ -42,44 +41,45 @@ internal object GoWorkerCodeGenerationHelper {
         val fileToExecute = sourceFileDir.resolve(fileToExecuteName)
 
         val fileToExecuteGoCode =
-            generateWorkerTestFileGoCode(function, eachExecutionTimeoutsMillisConfig, port, imports)
+            generateWorkerTestFileGoCode(sourceFile, functions, eachExecutionTimeoutMillis, port, imports)
         fileToExecute.writeText(fileToExecuteGoCode)
         return fileToExecute
     }
 
-    fun createFileWithModifiedFunction(
+    fun createFileWithModifiedFunctions(
         sourceFile: GoUtFile,
-        function: GoUtFunction
+        functions: List<GoUtFunction>
     ): File {
-        val fileWithModifiedFunctionName = createFileWithModifiedFunctionName()
+        val fileWithModifiedFunctionsName = createFileWithModifiedFunctionsName()
         val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
-        val fileWithModifiedFunction = sourceFileDir.resolve(fileWithModifiedFunctionName)
+        val fileWithModifiedFunctions = sourceFileDir.resolve(fileWithModifiedFunctionsName)
 
-        val fileWithModifiedFunctionGoCode = generateFileWithModifiedFunctionGoCode(function)
-        fileWithModifiedFunction.writeText(fileWithModifiedFunctionGoCode)
-        return fileWithModifiedFunction
+        val fileWithModifiedFunctionsGoCode = generateFileWithModifiedFunctionsGoCode(sourceFile, functions)
+        fileWithModifiedFunctions.writeText(fileWithModifiedFunctionsGoCode)
+        return fileWithModifiedFunctions
     }
 
     private fun createFileToExecuteName(sourceFile: GoUtFile): String {
         return "utbot_go_worker_${sourceFile.fileNameWithoutExtension}_test.go"
     }
 
-    private fun createFileWithModifiedFunctionName(): String {
-        return "utbot_go_modified_function.go"
+    private fun createFileWithModifiedFunctionsName(): String {
+        return "utbot_go_modified_functions.go"
     }
 
     private fun generateWorkerTestFileGoCode(
-        function: GoUtFunction,
-        eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig,
+        sourceFile: GoUtFile,
+        functions: List<GoUtFunction>,
+        eachExecutionTimeoutMillis: Long,
         port: Int,
         imports: Set<GoImport>
     ): String {
-        val destinationPackage = function.sourcePackage
+        val destinationPackage = sourceFile.sourcePackage
         val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
 
-        val workerTestFunctionCode = generateWorkerTestFunctionCode(function, eachExecutionTimeoutsMillisConfig, port)
+        val workerTestFunctionCode = generateWorkerTestFunctionCode(functions, eachExecutionTimeoutMillis, port)
 
-        val types = function.parameters.map { it.type }
+        val types = functions.flatMap { it.parameters }.map { it.type }
         val structTypes = types.getAllStructTypes()
         val aliases = imports.associate { it.goPackage to it.alias }
 
@@ -94,20 +94,21 @@ internal object GoWorkerCodeGenerationHelper {
         return fileCodeBuilder.buildCodeString()
     }
 
-    private fun generateFileWithModifiedFunctionGoCode(function: GoUtFunction): String {
-        val destinationPackage = function.sourcePackage
-        val imports = function.requiredImports.toSet()
+    private fun generateFileWithModifiedFunctionsGoCode(sourceFile: GoUtFile, functions: List<GoUtFunction>): String {
+        val destinationPackage = sourceFile.sourcePackage
+        val imports = functions.fold(emptySet<GoImport>()) { acc, function ->
+            acc + function.requiredImports
+        }
         val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
         fileCodeBuilder.addTopLevelElements(
-            listOf(GoCodeTemplates.traces) + function.modifiedFunctionForCollectingTraces
+            listOf(GoCodeTemplates.traces) + functions.map { it.modifiedFunctionForCollectingTraces }
         )
         return fileCodeBuilder.buildCodeString()
     }
 
     private fun generateWorkerTestFunctionCode(
-        function: GoUtFunction, eachExecutionTimeoutsMillisConfig: EachExecutionTimeoutsMillisConfig, port: Int
+        functions: List<GoUtFunction>, eachExecutionTimeoutMillis: Long, port: Int
     ): String {
-        val timeoutMillis = eachExecutionTimeoutsMillisConfig[function]
         return """
             func $workerTestFunctionName(t *testing.T) {
             	con, err := net.Dial("tcp", ":$port")
@@ -122,18 +123,28 @@ internal object GoWorkerCodeGenerationHelper {
 
             	jsonDecoder := json.NewDecoder(con)
             	for {
-            		rawValues, err := __parseJsonToRawValues__(jsonDecoder)
+            		funcName, rawValues, err := __parseJsonToFunctionNameAndRawValues__(jsonDecoder)
             		if err == io.EOF {
             			break
             		}
             		__checkErrorAndExit__(err)
 
-            		parameters := __convertRawValuesToReflectValues__(rawValues)
-            		function := reflect.ValueOf(${function.modifiedName})
+            		arguments := __convertRawValuesToReflectValues__(rawValues)
 
-            		executionResult := __executeFunction__($timeoutMillis*time.Millisecond, func() []__RawValue__ {
-            			__traces__ = make([]int, 0, 1000)
-            			return __wrapResultValuesForUtBotGoWorker__(function.Call(parameters))
+            		var function reflect.Value
+            		switch funcName {
+            ${
+            functions.joinToString(separator = "\n") { function ->
+                "case \"${function.modifiedName}\": function = reflect.ValueOf(${function.modifiedName})"
+            }
+        }
+            		default:
+            			panic(fmt.Sprintf("no function with that name: %s", funcName))
+            		}
+
+            		executionResult := __executeFunction__($eachExecutionTimeoutMillis*time.Millisecond, func() []__RawValue__ {
+            			__traces__ = make([]int, 0, 100)
+            			return __wrapResultValuesForUtBotGoWorker__(function.Call(arguments))
             		})
 
             		jsonBytes, toJsonErr := json.MarshalIndent(executionResult, "", "  ")

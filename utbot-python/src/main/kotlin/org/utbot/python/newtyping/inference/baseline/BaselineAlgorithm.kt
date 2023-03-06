@@ -39,17 +39,20 @@ class BaselineAlgorithm(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
-    ) {
+    ): Int {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
         val states: MutableList<BaselineAlgorithmState> = mutableListOf(initialState)
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
+        var iterationCounter = 0
 
         run breaking@ {
             while (states.isNotEmpty()) {
                 if (isCancelled())
                     return@breaking
                 logger.debug("State number: ${states.size}")
+                iterationCounter++
+
                 val state = chooseState(states)
                 val newState = expandState(state, storage)
                 if (newState != null) {
@@ -71,6 +74,7 @@ class BaselineAlgorithm(
                 }
             }
         }
+        return iterationCounter
     }
 
     private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {

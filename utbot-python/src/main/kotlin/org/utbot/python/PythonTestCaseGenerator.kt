@@ -267,11 +267,11 @@ class PythonTestCaseGenerator(
                 return@breaking
             }
 
-            algo.run(hintCollector.result, typeInferenceCancellation, annotationHandler)
+            val iterationNumber = algo.run(hintCollector.result, typeInferenceCancellation, annotationHandler)
 
-            val existsAnnotation = method.definition.type
-            if (existsAnnotation.arguments.all { it.pythonTypeName() != "typing.Any" }) {
+            if (iterationNumber == 1) {
                 limitManager.mode = TimeoutMode
+                val existsAnnotation = method.definition.type
                 annotationHandler(existsAnnotation)
             }
         }

@@ -4,6 +4,7 @@ import codegen.JsCodeGenerator
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
+import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isExportable
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
@@ -31,7 +32,6 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import parser.JsAstScrapper
@@ -224,7 +224,7 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
-            execId.classId,
+            classId = execId.classId,
             concreteValues = fuzzerVisitor.fuzzedConcreteValues,
             tracer = Trie(JsStatement::number)
         )
@@ -274,7 +274,7 @@ class JsTestGenerator(
                                 EnvironmentModels(thisObject, modelList, mapOf())
                             emit(
                                 JsValidExecution(
-                                    UtFuzzedExecution(
+                                    JsUtFuzzedExecution(
                                         stateBefore = initEnv,
                                         stateAfter = initEnv,
                                         result = result,

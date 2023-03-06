@@ -93,7 +93,7 @@ enum class JsFuzzedContext {
 fun UtModel.fuzzed(block: JsFuzzedValue.() -> Unit = {}): JsFuzzedValue = JsFuzzedValue(this).apply(block)
 
 object JsIdProvider {
-    private var _id = AtomicInteger(0)
+    private var id = AtomicInteger(0)
 
-    fun get() = _id.incrementAndGet()
+    fun get() = id.incrementAndGet()
 }

@@ -46,7 +46,7 @@ object JsDialogProcessor {
         fileMethods: Set<JSMemberInfo>,
         focusedMethod: JSMemberInfo?,
         containingFilePath: String,
-        editor: Editor,
+        editor: Editor?,
         file: JSFile
     ) {
         val model =
@@ -64,12 +64,19 @@ object JsDialogProcessor {
                     createDialog(model)?.let { dialogWindow ->
                         if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
-                        runWriteAction {
-                            with(FileDocumentManager.getInstance()) {
-                                saveDocument(editor.document)
+                        editor?.let {
+                            runWriteAction {
+                                with(FileDocumentManager.getInstance()) {
+                                    saveDocument(editor.document)
+                                }
                             }
                         }
-                        createTests(dialogWindow.model, containingFilePath, editor)
+                        createTests(
+                            dialogWindow.model,
+                            containingFilePath,
+                            editor,
+                            dialogWindow.model.file.getContent()
+                        )
                     }
                 }
             }
@@ -144,7 +151,7 @@ object JsDialogProcessor {
         }
     }
 
-    private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor) {
+    private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor?, contents: String) {
         val normalizedContainingFilePath = containingFilePath.replace(File.separator, "/")
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {
@@ -154,7 +161,8 @@ object JsDialogProcessor {
                     model.testSourceRoot!!
                 )
                 val testFileName = normalizedContainingFilePath.substringAfterLast("/").replace(Regex(".js"), "Test.js")
-                val testGenerator = JsTestGenerator(fileText = editor.document.text,
+                val testGenerator = JsTestGenerator(
+                    fileText = contents,
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),
@@ -169,7 +177,7 @@ object JsDialogProcessor {
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace(File.separator, "/"),
                     exportsManager = partialApplication(
-                        JsDialogProcessor::manageExports, editor, project, editor.document.text
+                        JsDialogProcessor::manageExports, editor, project, model
                     ),
                     settings = JsDynamicSettings(
                         pathToNode = model.pathToNode,
@@ -203,25 +211,32 @@ object JsDialogProcessor {
         return { d: D, e: E -> f(a, b, c, d, e) }
     }
 
+    private fun JSFile.getContent(): String = this.viewProvider.contents.toString()
+
     private fun manageExports(
-        editor: Editor, project: Project, fileText: String, exports: List<String>, swappedText: (String?) -> String
+        editor: Editor?, project: Project, model: JsTestsModel, exports: List<String>, swappedText: (String?) -> String
     ) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
+                val fileText = model.file.getContent()
                 when {
                     fileText.contains(startComment) -> {
                         val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                         regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
                             val newText = swappedText(existingSection)
-                            runWriteAction {
-                                with(editor.document) {
-                                    unblockDocument(project, this)
-                                    setText(newText)
-                                    unblockDocument(project, this)
+                            editor?.let {
+                                runWriteAction {
+                                    with(editor.document) {
+                                        unblockDocument(project, this)
+                                        setText(newText)
+                                        unblockDocument(project, this)
+                                    }
+                                    with(FileDocumentManager.getInstance()) {
+                                        saveDocument(editor.document)
+                                    }
                                 }
-                                with(FileDocumentManager.getInstance()) {
-                                    saveDocument(editor.document)
-                                }
+                            } ?: run {
+                                File(model.containingFilePath).writeText(newText)
                             }
                         }
                     }
@@ -232,15 +247,19 @@ object JsDialogProcessor {
                             append(swappedText(null))
                             append(endComment)
                         }
-                        runWriteAction {
-                            with(editor.document) {
-                                unblockDocument(project, this)
-                                setText(fileText + line)
-                                unblockDocument(project, this)
+                        editor?.let {
+                            runWriteAction {
+                                with(editor.document) {
+                                    unblockDocument(project, this)
+                                    setText(fileText + line)
+                                    unblockDocument(project, this)
+                                }
+                                with(FileDocumentManager.getInstance()) {
+                                    saveDocument(editor.document)
+                                }
                             }
-                            with(FileDocumentManager.getInstance()) {
-                                saveDocument(editor.document)
-                            }
+                        } ?: run {
+                            File(model.containingFilePath).writeText(fileText + line)
                         }
                     }
                 }

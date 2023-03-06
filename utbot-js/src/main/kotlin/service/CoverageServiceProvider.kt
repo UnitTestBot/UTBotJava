@@ -8,16 +8,11 @@ import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.fuzzer.FuzzedValue
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
 import utils.ResultData
 import java.util.regex.Pattern
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtNullModel
-import providers.imports.IImportsProvider
 
 class CoverageServiceProvider(
     private val context: ServiceContext,
@@ -174,11 +169,11 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         method: JsMethodId,
         containingClass: String?
     ): String {
-        val actualParams = description.thisInstance?.let{ fuzzedValue.drop(1) } ?: fuzzedValue
+        val actualParams = description.thisInstance?.let { fuzzedValue.drop(1) } ?: fuzzedValue
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                description.thisInstance?.let { fuzzedValue[0].model.toCallString() } ?:
-                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
+                description.thisInstance?.let { fuzzedValue[0].model.toCallString() }
+                    ?: "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
             } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it"
         } ?: JsTestGenerationSettings.fileUnderTestAliases
         var callString = "$initClass.${method.name}"

@@ -5,7 +5,6 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.JsUtFuzzedExecution
-import framework.api.js.util.isExportable
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
@@ -30,10 +29,8 @@ import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzer.UtFuzzedExecution
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
+import org.utbot.fuzzing.utils.Trie
 import parser.JsClassAstVisitor
 import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
@@ -60,7 +57,6 @@ import utils.constructClass
 import utils.toJsAny
 import java.io.File
 import java.util.concurrent.CancellationException
-import org.utbot.fuzzing.utils.Trie
 
 private val logger = KotlinLogging.logger {}
 

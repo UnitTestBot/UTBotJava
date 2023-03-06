@@ -7,10 +7,6 @@ import framework.api.js.util.jsStringClassId
 import fuzzer.JsFuzzedValue
 import fuzzer.JsMethodDescription
 import fuzzer.fuzzed
-
-
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.StringValue

@@ -10,17 +10,12 @@ import fuzzer.fuzzed
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
-import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.utils.hex
 
 class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDescription> {
-
-    private val idGenerator = ReferencePreservingIntIdGenerator()
 
     override fun accept(type: JsClassId): Boolean {
         return type.isClass
@@ -34,10 +29,13 @@ class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDesc
         yield(createValue(type, constructor))
     }
 
-    private fun createValue(classId: JsClassId, constructorId: JsConstructorId): Seed.Recursive<JsClassId, JsFuzzedValue> {
+    private fun createValue(
+        classId: JsClassId,
+        constructorId: JsConstructorId
+    ): Seed.Recursive<JsClassId, JsFuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.parameters) { values ->
-                val id = idGenerator.createId()
+                val id = JsIdProvider.get()
                 UtAssembleModel(
                     id = id,
                     classId = classId,
@@ -48,7 +46,8 @@ class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDesc
                         values.map { it.model }),
                     modificationsChainProvider = { mutableListOf() }
                 ).fuzzed {
-                    summary = "%var% = ${classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
+                    summary =
+                        "%var% = ${classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
                 }
             },
             modify = emptySequence(),

@@ -34,20 +34,20 @@ allprojects {
     tasks {
         withType<JavaCompile> {
             sourceCompatibility = "1.8"
-            targetCompatibility = "1.8"
+            targetCompatibility = "17"
             options.encoding = "UTF-8"
             options.compilerArgs = options.compilerArgs + "-Xlint:all"
         }
         withType<KotlinCompile> {
             kotlinOptions {
-                jvmTarget = "1.8"
+                jvmTarget = "17"
                 freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
         }
         compileTestKotlin {
             kotlinOptions {
-                jvmTarget = "1.8"
+                jvmTarget = "17"
                 freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }

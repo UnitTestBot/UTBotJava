@@ -17,7 +17,7 @@ project.tasks.asMap["runIde"]?.enabled = false
 tasks {
     compileKotlin {
         kotlinOptions {
-            jvmTarget = "11"
+            jvmTarget = "17"
             freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class")
             allWarningsAsErrors = false
         }

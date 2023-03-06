@@ -23,7 +23,7 @@ abstract class AbstractGoUtTestsGenerationController {
         val numOfFunctions = analysisResults.values
             .map { it.functions.size }
             .reduce { acc, numOfFunctions -> acc + numOfFunctions }
-        val functionTimeoutStepMillis = testsGenerationConfig.allExecutionTimeoutsMillisConfig / numOfFunctions
+        val functionTimeoutStepMillis = testsGenerationConfig.allFunctionExecutionTimeoutMillis / numOfFunctions
         var startTimeMillis = System.currentTimeMillis()
         val testCasesBySourceFiles = analysisResults.mapValues { (sourceFile, analysisResult) ->
             val functions = analysisResult.functions
@@ -33,7 +33,7 @@ abstract class AbstractGoUtTestsGenerationController {
                 functions,
                 intSize,
                 testsGenerationConfig.goExecutableAbsolutePath,
-                testsGenerationConfig.eachExecutionTimeoutsMillisConfig
+                testsGenerationConfig.eachFunctionExecutionTimeoutMillis
             ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }
                 .also {
                     startTimeMillis += functionTimeoutStepMillis * functions.size

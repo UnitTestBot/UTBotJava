@@ -18,22 +18,20 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
-import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
-import settings.JsPackagesSettings.mochaData
-import settings.JsPackagesSettings.nycData
-import settings.JsPackagesSettings.ternData
 import settings.JsTestGenerationSettings.dummyClassName
-import settings.PackageData
+import settings.PackageDataService
+import settings.jsPackagesList
 import utils.JsCmdExec
 import utils.OsProvider
 
@@ -58,9 +56,10 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
+                    if (!PackageDataService(
+                            model.containingFilePath, model.project.basePath!!, model.pathToNPM
+                        ).checkAndInstallRequirements(project)
+                    ) return@invokeLater
                     createDialog(model)?.let { dialogWindow ->
                         if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
@@ -161,8 +160,7 @@ object JsDialogProcessor {
                     model.testSourceRoot!!
                 )
                 val testFileName = normalizedContainingFilePath.substringAfterLast("/").replace(Regex(".js"), "Test.js")
-                val testGenerator = JsTestGenerator(
-                    fileText = contents,
+                val testGenerator = JsTestGenerator(fileText = contents,
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),
@@ -278,45 +276,47 @@ object JsDialogProcessor {
     }
 }
 
-fun checkAndInstallRequirement(
-    project: Project,
-    pathToNPM: String,
-    requirement: PackageData,
-) {
-    if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
-        installMissingRequirement(project, pathToNPM, requirement)
-    }
-}
-
-private fun installMissingRequirement(
-    project: Project,
-    pathToNPM: String,
-    requirement: PackageData,
-) {
+private fun PackageDataService.checkAndInstallRequirements(project: Project): Boolean {
+    val missingPackages = jsPackagesList.filterNot { this.findPackage(it) }
+    if (missingPackages.isEmpty()) return true
     val message = """
-            Requirement is not installed:
-            ${requirement.packageName}
-            Install it?
+            Requirements are not installed:
+            ${missingPackages.joinToString { it.packageName }}
+            Install them?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
-        project,
-        message,
-        "Requirement Missmatch Error",
-        "Install",
-        "Cancel",
-        null
+        project, message, "Requirements Missmatch Error", "Install", "Cancel", null
     )
 
     if (result == Messages.CANCEL)
-        return
+        return false
 
-    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
-
-    if (errorText.isNotEmpty()) {
+    try {
+        val (_, errorText) = this.installMissingPackages(missingPackages)
+        if (errorText.isNotEmpty()) {
+            showErrorDialogLater(
+                project,
+                "Requirements installing failed with some reason:\n${errorText}",
+                "Failed to install requirements"
+            )
+            return false
+        }
+        return true
+    } catch (_: TimeoutException) {
         showErrorDialogLater(
             project,
-            "Requirements installing failed with some reason:\n${errorText}",
-            "Requirements error"
+            """
+                Requirements installing failed due to the exceeded waiting time for the installation, check your internet connection.
+                
+                Try to install missing npm packages manually:
+            ${
+                missingPackages.joinToString(separator = "\n") {
+                    "> npm install ${it.npmListFlag} ${it.packageName}"
+                }
+            }
+            """.trimIndent(),
+            "Failed to install requirements"
         )
+        return false
     }
 }

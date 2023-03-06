@@ -201,7 +201,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
                 appendLine("let $varName = ${param.model.initModelAsString()}")
                 (param.model as? UtAssembleModel)?.initModificationsAsString(this, varName)
             }
-        }.joinToString()
+        }.joinToString(separator = "\n")
     }
 
     private fun Any.quoteWrapIfNecessary(): String =

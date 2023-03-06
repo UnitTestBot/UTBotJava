@@ -5,7 +5,7 @@ object JsTestGenerationSettings {
     // Used for toplevel functions in IDEA plugin.
     const val dummyClassName = "toplevelHack"
 
-    // Default timeout for Node.js to try run a single testcase.
+    // Default timeout for Node.js try to run a single testcase.
     const val defaultTimeout = 10L
 
     const val fuzzingTimeout = 30_000L

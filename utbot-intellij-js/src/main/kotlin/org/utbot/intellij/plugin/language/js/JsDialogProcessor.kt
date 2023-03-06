@@ -18,23 +18,24 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.impl.file.PsiDirectoryFactory
 import com.intellij.util.concurrency.AppExecutorUtil
+import java.io.IOException
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
-import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
+import settings.JsPackagesSettings.mochaData
+import settings.JsPackagesSettings.nycData
+import settings.JsPackagesSettings.ternData
 import settings.JsTestGenerationSettings.dummyClassName
-import settings.PackageDataService
-import settings.jsPackagesList
+import settings.PackageData
 import utils.JsCmdExec
 import utils.OsProvider
-import java.io.IOException
 
 private val logger = KotlinLogging.logger {}
 
@@ -206,28 +207,38 @@ object JsDialogProcessor {
         }).queue()
     }
 
-    private fun <A, B, C, D, E> partialApplication(f: (A, B, C, D, E) -> Unit, a: A, b: B, c: C): (D, E) -> Unit {
-        return { d: D, e: E -> f(a, b, c, d, e) }
+    private fun <A, B, C, D> partialApplication(f: (A, B, C, D) -> Unit, a: A, b: B, c: C): (D) -> Unit {
+        return { d: D -> f(a, b, c, d) }
     }
 
     private fun JSFile.getContent(): String = this.viewProvider.contents.toString()
 
     private fun manageExports(
-        editor: Editor?, project: Project, model: JsTestsModel, exports: List<String>, swappedText: (String?) -> String
+        editor: Editor?, project: Project, model: JsTestsModel, exports: List<String>
     ) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
+                val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
                 val fileText = model.file.getContent()
                 when {
-                    fileText.contains(startComment) -> {
+                    fileText.contains(exportSection) -> {}
+
+                    fileText.contains(startComment) && !fileText.contains(exportSection) -> {
                         val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
                         regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                            val newText = swappedText(existingSection)
+                            val exportRegex = Regex("exports[.](.*) =")
+                            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
+                            val existingExportsSet = existingExports.map { rawLine ->
+                                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                            }.toSet()
+                            val resultSet = existingExportsSet + exports.toSet()
+                            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
+                            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
                             editor?.let {
                                 runWriteAction {
                                     with(editor.document) {
                                         unblockDocument(project, this)
-                                        setText(newText)
+                                        setText(swappedText)
                                         unblockDocument(project, this)
                                     }
                                     with(FileDocumentManager.getInstance()) {
@@ -235,16 +246,16 @@ object JsDialogProcessor {
                                     }
                                 }
                             } ?: run {
-                                File(model.containingFilePath).writeText(newText)
+                                File(model.containingFilePath).writeText(swappedText)
                             }
                         }
                     }
 
                     else -> {
                         val line = buildString {
-                            append("\n$startComment")
-                            append(swappedText(null))
-                            append(endComment)
+                            append("\n$startComment\n")
+                            append(exportSection)
+                            append("\n$endComment")
                         }
                         editor?.let {
                             runWriteAction {
@@ -267,47 +278,45 @@ object JsDialogProcessor {
     }
 }
 
-private fun PackageDataService.checkAndInstallRequirements(project: Project): Boolean {
-    val missingPackages = jsPackagesList.filterNot { this.findPackage(it) }
-    if (missingPackages.isEmpty()) return true
+fun checkAndInstallRequirement(
+    project: Project,
+    pathToNPM: String,
+    requirement: PackageData,
+) {
+    if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
+        installMissingRequirement(project, pathToNPM, requirement)
+    }
+}
+
+private fun installMissingRequirement(
+    project: Project,
+    pathToNPM: String,
+    requirement: PackageData,
+) {
     val message = """
-            Requirements are not installed:
-            ${missingPackages.joinToString { it.packageName }}
-            Install them?
+            Requirement is not installed:
+            ${requirement.packageName}
+            Install it?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
-        project, message, "Requirements Missmatch Error", "Install", "Cancel", null
+        project,
+        message,
+        "Requirement Missmatch Error",
+        "Install",
+        "Cancel",
+        null
     )
 
     if (result == Messages.CANCEL)
-        return false
+        return
 
-    try {
-        val (_, errorText) = this.installMissingPackages(missingPackages)
-        if (errorText.isNotEmpty()) {
-            showErrorDialogLater(
-                project,
-                "Requirements installing failed with some reason:\n${errorText}",
-                "Requirement installation error"
-            )
-            return false
-        }
-        return true
-    } catch (_: TimeoutException) {
+    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
+
+    if (errorText.isNotEmpty()) {
         showErrorDialogLater(
             project,
-            """
-                Requirements installing failed due to the exceeded waiting time for the installation, check your internet connection.
-                
-                Try to install missing npm packages manually:
-            ${
-                missingPackages.joinToString(separator = "\n") {
-                    "> npm install ${it.npmListFlag} ${it.packageName}"
-                }
-            }
-            """.trimIndent(),
-            "Requirement installation error"
+            "Requirements installing failed with some reason:\n${errorText}",
+            "Requirements error"
         )
-        return false
     }
 }

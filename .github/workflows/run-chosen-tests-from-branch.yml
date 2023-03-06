@@ -14,7 +14,7 @@ on:
           - utbot-core
           - utbot-framework-api
           - utbot-framework
-          - utbot-fuzzers
+          - utbot-java-fuzzing
           - utbot-gradle
           - utbot-instrumentation-tests
           - utbot-instrumentation

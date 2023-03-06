@@ -1,6 +1,7 @@
 package fuzzer
 
 import framework.api.js.JsClassId
+import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedConcreteValue
@@ -13,7 +14,7 @@ import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.utils.Trie
 
 sealed interface JsFuzzingExecutionFeedback
-class JsValidExecution(val utFuzzedExecution: UtFuzzedExecution) : JsFuzzingExecutionFeedback
+class JsValidExecution(val utFuzzedExecution: JsUtFuzzedExecution) : JsFuzzingExecutionFeedback
 
 class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecutionFeedback
 

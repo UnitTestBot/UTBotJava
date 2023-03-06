@@ -4,6 +4,8 @@ import codegen.JsCodeGenerator
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
+import framework.api.js.JsUtFuzzedExecution
+import framework.api.js.util.isExportable
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
@@ -218,7 +220,7 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
-            execId.classId,
+            classId = execId.classId,
             concreteValues = fuzzerVisitor.fuzzedConcreteValues,
             tracer = Trie(JsStatement::number)
         )
@@ -268,7 +270,7 @@ class JsTestGenerator(
                                 EnvironmentModels(thisObject, modelList, mapOf())
                             emit(
                                 JsValidExecution(
-                                    UtFuzzedExecution(
+                                    JsUtFuzzedExecution(
                                         stateBefore = initEnv,
                                         stateAfter = initEnv,
                                         result = result,

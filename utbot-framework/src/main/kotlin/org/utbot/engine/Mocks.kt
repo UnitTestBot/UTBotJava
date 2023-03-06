@@ -19,7 +19,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.StandardApplicationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
@@ -157,10 +157,14 @@ class Mocker(
     private val hierarchy: Hierarchy,
     chosenClassesToMockAlways: Set<ClassId>,
     internal val mockListenerController: MockListenerController? = null,
-    private val applicationContext: ApplicationContext,
+    private val applicationContext: StandardApplicationContext,
 ) {
     private val mocksAreDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 
+    /**
+     * Constructs [MockedObjectInfo]: enriches given value with
+     * an information if this mock is expected or not.
+     */
     fun construct(value: ObjectValue?, mockInfo: UtMockInfo): MockedObjectInfo {
         return value
             ?.let {
@@ -183,8 +187,8 @@ class Mocker(
     }
 
     /**
-     * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
-     * otherwise returns null.
+     * Creates mocked instance (if it should be mocked by the mocker) of the [type] using [mockInfo]
+     * otherwise returns [NoMock].
      *
      * @see shouldMock
      */
@@ -194,8 +198,8 @@ class Mocker(
     }
 
     /**
-     * Creates mocked instance of the [type] using mock info. Unlike to [mock], it does not
-     * check anything and always returns the constructed mock.
+     * Creates mocked instance of the [type] using [mockInfo]
+     * it does not check anything and always returns the constructed mock.
      */
     fun forceMock(type: RefType, mockInfo: UtMockInfo): MockedObjectInfo {
         mockListenerController?.onShouldMock(strategy, mockInfo)

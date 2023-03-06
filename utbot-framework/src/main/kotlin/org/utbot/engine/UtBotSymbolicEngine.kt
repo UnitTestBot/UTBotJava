@@ -105,7 +105,7 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
-    applicationContext: ApplicationContext,
+    applicationContext: StandardApplicationContext,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {

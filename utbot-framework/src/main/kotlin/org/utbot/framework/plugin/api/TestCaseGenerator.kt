@@ -61,7 +61,7 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
-    val applicationContext: ApplicationContext = ApplicationContext(),
+    val applicationContext: StandardApplicationContext = StandardApplicationContext(),
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -257,7 +257,7 @@ open class TestCaseGenerator(
         method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
-        applicationContext: ApplicationContext,
+        applicationContext: StandardApplicationContext,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")

@@ -26,7 +26,7 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.StandardApplicationContext
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
@@ -170,7 +170,7 @@ object UtTestsDialogProcessor {
                             }.toMap()
                         }
 
-                        val applicationContext = ApplicationContext(
+                        val applicationContext = StandardApplicationContext(
                             model.mockFramework.isInstalled,
                             model.staticsMocking.isConfigured,
                         )

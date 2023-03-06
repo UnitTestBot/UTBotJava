@@ -105,7 +105,7 @@ class UtBotSymbolicEngine(
     dependencyPaths: String,
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
-    applicationContext: ApplicationContext?,
+    applicationContext: ApplicationContext,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
@@ -129,7 +129,8 @@ class UtBotSymbolicEngine(
         classUnderTest,
         hierarchy,
         chosenClassesToMockAlways,
-        MockListenerController(controller)
+        MockListenerController(controller),
+        applicationContext = applicationContext,
     )
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)

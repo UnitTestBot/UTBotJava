@@ -26,7 +26,7 @@ import org.utbot.framework.CancellationStrategyType.NONE
 import org.utbot.framework.CancellationStrategyType.SAVE_PROCESSED_RESULTS
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.EmptyApplicationContext
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.util.LockFile
 import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
@@ -170,7 +170,10 @@ object UtTestsDialogProcessor {
                             }.toMap()
                         }
 
-                        val applicationContext = EmptyApplicationContext
+                        val applicationContext = ApplicationContext(
+                            model.mockFramework.isInstalled,
+                            model.staticsMocking.isConfigured,
+                        )
                         // TODO: obtain bean definitions and other info from `utbot-spring-analyzer`
                         //SpringApplicationContext(beanQualifiedNames = emptyList())
 
@@ -249,8 +252,6 @@ object UtTestsDialogProcessor {
                                     .executeSynchronously()
 
                                 withStaticsSubstitutionRequired(true) {
-                                    val mockFrameworkInstalled = model.mockFramework.isInstalled
-
                                     val startTime = System.currentTimeMillis()
                                     val timerHandler =
                                         AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
@@ -266,8 +267,6 @@ object UtTestsDialogProcessor {
                                         }, 0, 500, TimeUnit.MILLISECONDS)
                                     try {
                                         val rdGenerateResult = process.generate(
-                                            mockFrameworkInstalled,
-                                            model.staticsMocking.isConfigured,
                                             model.conflictTriggers,
                                             methods,
                                             model.mockStrategy,

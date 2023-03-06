@@ -1385,9 +1385,8 @@ class Traverser(
 
             val mockedObject = mockedObjectInfo.value
             if (mockedObjectInfo is UnexpectedMock) {
-                error("Wrong mocker configuration, it decided to mock $type object, although it is unexpected")
+                queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
             }
-
 
             if (mockedObject != null) {
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))

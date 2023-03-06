@@ -19,6 +19,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
@@ -156,13 +157,30 @@ class Mocker(
     private val hierarchy: Hierarchy,
     chosenClassesToMockAlways: Set<ClassId>,
     internal val mockListenerController: MockListenerController? = null,
+    private val applicationContext: ApplicationContext,
 ) {
-    private val mocksDesired: Boolean = strategy != MockStrategy.NO_MOCKS
+    private val mocksAreDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 
-    fun construct(value: ObjectValue?): MockedObjectInfo =
-        value
-            ?.let { if (mocksDesired || mockAlways(it.type)) ExpectedMock(it) else UnexpectedMock(it) }
+    fun construct(value: ObjectValue?, mockInfo: UtMockInfo): MockedObjectInfo {
+        return value
+            ?.let {
+                val mockingIsPossible = when (mockInfo) {
+                    is UtFieldMockInfo,
+                    is UtObjectMockInfo -> applicationContext.mockFrameworkInstalled
+                    is UtNewInstanceMockInfo,
+                    is UtStaticMethodMockInfo,
+                    is UtStaticObjectMockInfo -> applicationContext.staticsMockingIsConfigured
+                }
+                val mockingIsForcedAndPossible = mockAlways(it.type) && mockingIsPossible
+
+                if (mocksAreDesired || mockingIsForcedAndPossible) {
+                    ExpectedMock(it)
+                } else {
+                    UnexpectedMock(it)
+                }
+            }
             ?: NoMock
+    }
 
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
@@ -172,7 +190,7 @@ class Mocker(
      */
     fun mock(type: RefType, mockInfo: UtMockInfo): MockedObjectInfo {
         val objectValue = if (shouldMock(type, mockInfo)) createMockObject(type, mockInfo) else null
-        return construct(objectValue)
+        return construct(objectValue, mockInfo)
     }
 
     /**
@@ -183,7 +201,7 @@ class Mocker(
         mockListenerController?.onShouldMock(strategy, mockInfo)
 
         val objectValue = createMockObject(type, mockInfo)
-        return construct(objectValue)
+        return construct(objectValue, mockInfo)
     }
 
     /**

@@ -1149,14 +1149,12 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 class WildcardTypeParameter : TypeParameters(emptyList())
 
 /**
- * Additional data describing user project.
+ * A context to use when no specific data is required.
  */
-interface ApplicationContext
-
-/**
- * A context to use when no additional data is required.
- */
-object EmptyApplicationContext: ApplicationContext
+open class ApplicationContext(
+    val mockFrameworkInstalled: Boolean = true,
+    val staticsMockingIsConfigured: Boolean = true,
+)
 
 /**
  * Data we get from Spring application context
@@ -1164,9 +1162,11 @@ object EmptyApplicationContext: ApplicationContext
  *
  * @param beanQualifiedNames describes fqn of injected classes
  */
-data class SpringApplicationContext(
+class SpringApplicationContext(
+    mockInstalled: Boolean,
+    staticsMockingIsConfigured: Boolean,
     val beanQualifiedNames: List<String> = emptyList(),
-): ApplicationContext {
+): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
     private val springInjectedClasses: List<ClassId> by lazy {
         beanQualifiedNames.map { fqn -> utContext.classLoader.loadClass(fqn).id }
     }

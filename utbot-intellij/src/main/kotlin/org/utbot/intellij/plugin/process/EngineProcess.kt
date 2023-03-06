@@ -252,8 +252,6 @@ class EngineProcess private constructor(val project: Project, private val classN
     }
 
     fun generate(
-        mockInstalled: Boolean,
-        staticsMockingIsConfigured: Boolean,
         conflictTriggers: ConflictTriggers,
         methods: List<ExecutableId>,
         mockStrategyApi: MockStrategyApi,
@@ -267,9 +265,6 @@ class EngineProcess private constructor(val project: Project, private val classN
     ): RdTestGenerationResult {
         assertReadAccessNotAllowed()
         val params = GenerateParams(
-            mockInstalled,
-            staticsMockingIsConfigured,
-            kryoHelper.writeObject(conflictTriggers.toMutableMap()),
             kryoHelper.writeObject(methods),
             mockStrategyApi.name,
             kryoHelper.writeObject(chosenClassesToMockAlways),

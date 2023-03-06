@@ -57,8 +57,8 @@ class TestSpecificTestCaseGenerator(
         val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
         val defaultTimeEstimator = ExecutionTimeEstimator(UtSettings.utBotGenerationTimeoutInMillis, 1)
 
-        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
-        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
 
         runBlocking {
             val controller = EngineController()

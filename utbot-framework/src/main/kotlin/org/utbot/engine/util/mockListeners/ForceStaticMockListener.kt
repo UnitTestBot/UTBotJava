@@ -16,21 +16,25 @@ import org.utbot.framework.util.ConflictTriggers
  *
  * Supposed to be created only if Mockito inline is not installed.
  */
-class ForceStaticMockListener private constructor(triggers: ConflictTriggers, private val cancelJob: Boolean): MockListener(triggers) {
+class ForceStaticMockListener private constructor(triggers: ConflictTriggers, private val shouldCancelJob: Boolean): MockListener(triggers) {
     override fun onShouldMock(controller: EngineController, strategy: MockStrategy, mockInfo: UtMockInfo) {
         if (mockInfo is UtNewInstanceMockInfo
             || mockInfo is UtStaticMethodMockInfo
             || mockInfo is UtStaticObjectMockInfo) {
             // If force static mocking happened -- сancel engine job
-            if (cancelJob) controller.job?.cancel(ForceStaticMockCancellationException())
+            if (shouldCancelJob) controller.job?.cancel(ForceStaticMockCancellationException())
 
             triggers[Conflict.ForceStaticMockHappened] = true
         }
     }
 
     companion object {
-        fun create(testCaseGenerator: TestCaseGenerator, conflictTriggers: ConflictTriggers, cancelJob: Boolean = true) : ForceStaticMockListener {
-            val listener = ForceStaticMockListener(conflictTriggers, cancelJob)
+        fun create(
+            testCaseGenerator: TestCaseGenerator,
+            conflictTriggers: ConflictTriggers,
+            shouldCancelJob: Boolean = false,
+        ) : ForceStaticMockListener {
+            val listener = ForceStaticMockListener(conflictTriggers, shouldCancelJob)
             testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(listener) }
 
             return listener

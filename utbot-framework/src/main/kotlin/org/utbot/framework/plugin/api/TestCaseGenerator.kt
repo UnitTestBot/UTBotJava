@@ -149,8 +149,8 @@ open class TestCaseGenerator(
         val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
         val conflictTriggers = ConflictTriggers()
-        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
-        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {

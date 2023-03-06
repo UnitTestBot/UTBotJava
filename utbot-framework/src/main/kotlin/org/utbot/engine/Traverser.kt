@@ -277,8 +277,6 @@ class Traverser(
 
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
 
-
-
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.createNewAddr()
         // return negative address for objects created inside static initializer
@@ -1387,7 +1385,7 @@ class Traverser(
 
             val mockedObject = mockedObjectInfo.value
             if (mockedObjectInfo is UnexpectedMock) {
-                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+                error("Wrong mocker configuration, it has NO_MOCK stategy, but decided to mock $type object")
             }
 
 
@@ -1480,7 +1478,8 @@ class Traverser(
 
             val mockedObject = mockedObjectInfo.value ?: error("Mocked value cannot be null after force mock")
             if (mockedObjectInfo is UnexpectedMock) {
-                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+                queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+                return mockedObject
             }
 
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
@@ -2721,7 +2720,7 @@ class Traverser(
                         // TODO isMock????
                         InvocationTarget(mockedObject, method, constraints)
                     }
-                    is UnexpectedMock -> null
+                    is UnexpectedMock -> unreachableBranch("If it ever happens, it should be investigated")
                 }
             }
     }

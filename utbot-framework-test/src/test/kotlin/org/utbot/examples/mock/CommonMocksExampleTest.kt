@@ -7,14 +7,27 @@ import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
 
 internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = CommonMocksExample::class) {
+
     @Test
-    fun testMockInterfaceWithoutImplementors() {
+    fun testMockInterfaceWithoutImplementorsWithNoMocksStrategy() {
+        checkMocks(
+            CommonMocksExample::mockInterfaceWithoutImplementors,
+            eq(1),
+            { v, mocks, _ -> v == null && mocks.isEmpty() },
+            coverage = DoNotCalculate,
+            mockStrategy = MockStrategyApi.NO_MOCKS,
+        )
+    }
+
+    @Test
+    fun testMockInterfaceWithoutImplementorsWithMockingStrategy() {
         checkMocks(
             CommonMocksExample::mockInterfaceWithoutImplementors,
             eq(2),
             { v, mocks, _ -> v == null && mocks.isEmpty() },
             { _, mocks, _ -> mocks.singleOrNull() != null },
-            coverage = DoNotCalculate
+            coverage = DoNotCalculate,
+            mockStrategy = MockStrategyApi.OTHER_CLASSES,
         )
     }
 

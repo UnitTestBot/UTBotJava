@@ -17,8 +17,6 @@ import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
-import java.io.File
-import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -35,9 +33,6 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import parser.JsAstScrapper
-import org.utbot.fuzzing.utils.Trie
-import parser.JsClassAstVisitor
-import parser.JsFunctionAstVisitor
 import parser.JsFuzzerAstVisitor
 import parser.JsParserUtils
 import parser.JsParserUtils.getAbstractFunctionName
@@ -47,7 +42,10 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
+import providers.exports.IExportsProvider
 import service.InstrumentationService
+import service.PackageJson
+import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
 import service.coverage.CoverageMode
@@ -59,6 +57,9 @@ import utils.PathResolver
 import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
+import java.io.File
+import java.util.concurrent.CancellationException
+
 private val logger = KotlinLogging.logger {}
 
 class JsTestGenerator(

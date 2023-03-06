@@ -1385,7 +1385,7 @@ class Traverser(
 
             val mockedObject = mockedObjectInfo.value
             if (mockedObjectInfo is UnexpectedMock) {
-                error("Wrong mocker configuration, it has NO_MOCK stategy, but decided to mock $type object")
+                error("Wrong mocker configuration, it decided to mock $type object, although it is unexpected")
             }
 
 

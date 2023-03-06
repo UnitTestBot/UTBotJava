@@ -134,6 +134,11 @@ data class UtStaticMethodMockInfo(
 sealed class MockedObjectInfo(val value: ObjectValue?)
 
 object NoMock: MockedObjectInfo(value = null)
+
+/**
+ * Represents a mock that occurs when mock strategy allows it
+ * or when an object type is in a set that requires force mocking.
+ */
 class ExpectedMock(value: ObjectValue): MockedObjectInfo(value)
 
 /**
@@ -141,9 +146,6 @@ class ExpectedMock(value: ObjectValue): MockedObjectInfo(value)
  * E.g. mock strategy recommends do not mock
  */
 class UnexpectedMock(value: ObjectValue): MockedObjectInfo(value)
-
-fun ObjectValue?.construct(mockDesired: Boolean): MockedObjectInfo =
-    this?.let { if (mockDesired) ExpectedMock(it) else UnexpectedMock(it) } ?: NoMock
 
 /**
  * Service to mock things. Knows mock strategy, class under test and class hierarchy.
@@ -157,6 +159,9 @@ class Mocker(
 ) {
     private val mocksDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 
+    fun construct(value: ObjectValue?): MockedObjectInfo =
+        value?.let { if (mocksDesired || mockAlways(it.type) ) ExpectedMock(it) else UnexpectedMock(it) } ?: NoMock
+
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
      * otherwise returns null.
@@ -165,7 +170,7 @@ class Mocker(
      */
     fun mock(type: RefType, mockInfo: UtMockInfo): MockedObjectInfo {
         val objectValue = if (shouldMock(type, mockInfo)) createMockObject(type, mockInfo) else null
-        return objectValue.construct(mocksDesired)
+        return construct(objectValue)
     }
 
     /**
@@ -176,7 +181,7 @@ class Mocker(
         mockListenerController?.onShouldMock(strategy, mockInfo)
 
         val objectValue = createMockObject(type, mockInfo)
-        return objectValue.construct(mocksDesired)
+        return construct(objectValue)
     }
 
     /**

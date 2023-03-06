@@ -249,7 +249,7 @@ object UtTestsDialogProcessor {
                                     .executeSynchronously()
 
                                 withStaticsSubstitutionRequired(true) {
-                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
+                                    val mockFrameworkInstalled = model.mockFramework.isInstalled
 
                                     val startTime = System.currentTimeMillis()
                                     val timerHandler =

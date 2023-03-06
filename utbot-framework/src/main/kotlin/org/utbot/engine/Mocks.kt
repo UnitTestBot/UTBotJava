@@ -160,7 +160,9 @@ class Mocker(
     private val mocksDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 
     fun construct(value: ObjectValue?): MockedObjectInfo =
-        value?.let { if (mocksDesired || mockAlways(it.type) ) ExpectedMock(it) else UnexpectedMock(it) } ?: NoMock
+        value
+            ?.let { if (mocksDesired || mockAlways(it.type)) ExpectedMock(it) else UnexpectedMock(it) }
+            ?: NoMock
 
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,

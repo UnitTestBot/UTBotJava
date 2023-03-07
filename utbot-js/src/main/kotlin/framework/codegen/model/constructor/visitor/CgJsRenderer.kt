@@ -267,7 +267,7 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
 
     private fun renderImport(import: JsImport) = with(import) {
         when (type) {
-            ModuleType.PLAIN -> println("const $aliases = require(\"$path\")")
+            ModuleType.COMMONJS -> println("const $aliases = require(\"$path\")")
             ModuleType.MODULE -> println("import $name as $aliases from \"$path\"")
         }
     }

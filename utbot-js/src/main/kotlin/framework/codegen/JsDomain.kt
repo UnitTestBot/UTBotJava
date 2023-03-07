@@ -79,15 +79,13 @@ internal val jsAssertThrows by lazy {
 
 enum class ModuleType {
     MODULE,
-    PLAIN;
-    // TODO: review commonjs
-    //COMMONJS
+    COMMONJS;
 
     companion object {
         fun fromPackageJson(packageJson: PackageJson): ModuleType {
             return when (packageJson.isModule) {
                 true -> MODULE
-                else -> PLAIN
+                else -> COMMONJS
             }
         }
     }

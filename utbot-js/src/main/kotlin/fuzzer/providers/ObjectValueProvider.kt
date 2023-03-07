@@ -42,7 +42,8 @@ class ObjectValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescriptio
                     instantiationCall = UtExecutableCallModel(
                         null,
                         constructorId,
-                        values.map { it }),
+                        values
+                    ),
                     modificationsChainProvider = { mutableListOf() }
                 )
             },

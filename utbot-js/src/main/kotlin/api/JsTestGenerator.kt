@@ -265,8 +265,8 @@ class JsTestGenerator(
                             return@runFuzzing JsFeedback(Control.PASS)
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
-                                null to params.map { it }
-                            } else params[0] to params.drop(1).map { it }
+                                null to params
+                            } else params[0] to params.drop(1)
                             val initEnv =
                                 EnvironmentModels(thisObject, modelList, mapOf())
                             emit(

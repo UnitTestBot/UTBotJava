@@ -3,7 +3,6 @@ package service
 import framework.api.js.JsMethodId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isUndefined
-import fuzzer.JsFuzzedValue
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
@@ -57,7 +56,7 @@ function check_value(value, json) {
     }
 
     fun get(
-        fuzzedValues: List<List<JsFuzzedValue>>,
+        fuzzedValues: List<List<UtModel>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         return when (mode) {
@@ -74,7 +73,7 @@ function check_value(value, json) {
     }
 
     private fun runBasicCoverageAnalysis(
-        fuzzedValues: List<List<JsFuzzedValue>>,
+        fuzzedValues: List<List<UtModel>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -98,7 +97,7 @@ function check_value(value, json) {
     }
 
     private fun runFastCoverageAnalysis(
-        fuzzedValues: List<List<JsFuzzedValue>>,
+        fuzzedValues: List<List<UtModel>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -133,7 +132,7 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
     }
 
     private fun makeStringForRunJs(
-        fuzzedValue: List<JsFuzzedValue>,
+        fuzzedValue: List<UtModel>,
         method: JsMethodId,
         containingClass: String?,
         covFunName: String,
@@ -165,14 +164,14 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     }
 
     private fun makeCallFunctionString(
-        fuzzedValue: List<JsFuzzedValue>,
+        fuzzedValue: List<UtModel>,
         method: JsMethodId,
         containingClass: String?
     ): String {
         val actualParams = description.thisInstance?.let { fuzzedValue.drop(1) } ?: fuzzedValue
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                description.thisInstance?.let { fuzzedValue[0].model.toCallString() }
+                description.thisInstance?.let { fuzzedValue[0].toCallString() }
                     ?: "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
             } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it"
         } ?: JsTestGenerationSettings.fileUnderTestAliases
@@ -180,7 +179,7 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         callString += actualParams.joinToString(
             prefix = "(",
             postfix = ")",
-        ) { value -> value.model.toCallString() }
+        ) { value -> value.toCallString() }
         return callString
     }
 

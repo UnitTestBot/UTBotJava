@@ -3,19 +3,18 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.JsConstructorId
 import framework.api.js.util.isClass
-import fuzzer.JsFuzzedValue
 import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
-import fuzzer.fuzzed
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.fuzzing.Routine
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.utils.hex
 
-class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDescription> {
+class ObjectValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean {
         return type.isClass
@@ -32,7 +31,7 @@ class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDesc
     private fun createValue(
         classId: JsClassId,
         constructorId: JsConstructorId
-    ): Seed.Recursive<JsClassId, JsFuzzedValue> {
+    ): Seed.Recursive<JsClassId, UtModel> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.parameters) { values ->
                 val id = JsIdProvider.createId()
@@ -43,18 +42,13 @@ class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDesc
                     instantiationCall = UtExecutableCallModel(
                         null,
                         constructorId,
-                        values.map { it.model }),
+                        values.map { it }),
                     modificationsChainProvider = { mutableListOf() }
-                ).fuzzed {
-                    summary =
-                        "%var% = ${classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
-                }
+                )
             },
             modify = emptySequence(),
             empty = Routine.Empty {
-                UtNullModel(classId).fuzzed {
-                    summary = "%var% = null"
-                }
+                UtNullModel(classId)
             }
         )
     }

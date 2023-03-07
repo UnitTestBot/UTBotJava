@@ -40,28 +40,13 @@ class JsMethodDescription(
     )
 }
 
-class JsFeedback(
+data class JsFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<JsStatement> = Trie.emptyNode()
-) : Feedback<JsClassId, JsFuzzedValue> {
-
-    override fun equals(other: Any?): Boolean {
-        val castOther = other as? JsFeedback
-        return control == castOther?.control
-    }
-
-    override fun hashCode(): Int {
-        return control.hashCode()
-    }
-}
+) : Feedback<JsClassId, UtModel>
 
 data class JsStatement(
     val number: Int
-)
-
-data class JsFuzzedValue(
-    val model: UtModel,
-    var summary: String? = null,
 )
 
 data class JsFuzzedConcreteValue(
@@ -89,8 +74,6 @@ enum class JsFuzzedContext {
         Unknown -> Unknown
     }
 }
-
-fun UtModel.fuzzed(block: JsFuzzedValue.() -> Unit = {}): JsFuzzedValue = JsFuzzedValue(this).apply(block)
 
 object JsIdProvider {
     private var id = AtomicInteger(0)

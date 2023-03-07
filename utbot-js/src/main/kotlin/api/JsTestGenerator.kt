@@ -9,7 +9,6 @@ import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsFeedback
-import fuzzer.JsFuzzedValue
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
 import fuzzer.JsStatement
@@ -28,6 +27,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
@@ -187,7 +187,7 @@ class JsTestGenerator(
     private fun getUtModelResult(
         execId: JsMethodId,
         resultData: ResultData,
-        fuzzedValues: List<JsFuzzedValue>
+        fuzzedValues: List<UtModel>
     ): UtExecutionResult {
         if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
             TimeoutException("  Timeout in generating test for ${
@@ -197,7 +197,7 @@ class JsTestGenerator(
                         prefix = "${execId.name}(",
                         separator = ", ",
                         postfix = ")"
-                    ) { (_, value) -> value.model.toString() }
+                    ) { (_, value) -> value.toString() }
             }")
         )
         val (returnValue, valueClassId) = resultData.toJsAny(
@@ -225,7 +225,7 @@ class JsTestGenerator(
             concreteValues = fuzzerVisitor.fuzzedConcreteValues,
             tracer = Trie(JsStatement::number)
         )
-        val collectedValues = mutableListOf<List<JsFuzzedValue>>()
+        val collectedValues = mutableListOf<List<UtModel>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
         val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
             .split(":").map { it.toInt() }
@@ -265,8 +265,8 @@ class JsTestGenerator(
                             return@runFuzzing JsFeedback(Control.PASS)
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
-                                null to params.map { it.model }
-                            } else params[0].model to params.drop(1).map { it.model }
+                                null to params.map { it }
+                            } else params[0] to params.drop(1).map { it }
                             val initEnv =
                                 EnvironmentModels(thisObject, modelList, mapOf())
                             emit(

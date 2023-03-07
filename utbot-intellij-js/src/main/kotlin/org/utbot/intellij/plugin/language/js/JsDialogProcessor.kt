@@ -186,13 +186,16 @@ object JsDialogProcessor {
                 val generatedCode = testGenerator.run()
                 invokeLater {
                     runWriteAction {
-                        val testPsiFile = testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
-                            .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                        val testPsiFile = testDir.findFile(testFileName) ?: run {
+                            val temp = PsiFileFactory.getInstance(project)
+                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                            testDir.add(temp)
+                            testDir.findFile(testFileName)!!
+                        }
                         val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
                         unblockDocument(project, testFileEditor.document)
                         testFileEditor.document.setText(generatedCode)
                         unblockDocument(project, testFileEditor.document)
-                        testDir.findFile(testFileName) ?: testDir.add(testPsiFile)
                     }
                 }
             }

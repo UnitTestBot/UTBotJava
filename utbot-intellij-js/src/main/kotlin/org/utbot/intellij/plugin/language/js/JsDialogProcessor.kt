@@ -197,7 +197,7 @@ object JsDialogProcessor {
                     runWriteAction {
                         val testPsiFile = testDir.findFile(testFileName) ?: run {
                             val temp = PsiFileFactory.getInstance(project)
-                            .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
                             testDir.add(temp)
                             testDir.findFile(testFileName)!!
                         }

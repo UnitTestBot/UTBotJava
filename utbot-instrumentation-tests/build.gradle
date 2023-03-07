@@ -8,7 +8,6 @@ dependencies {
 
     testImplementation configurations.fetchInstrumentationJar
     testImplementation project(':utbot-sample')
-    testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 }

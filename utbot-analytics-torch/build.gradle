@@ -15,7 +15,6 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: junit4Version
 
     implementation group: 'org.bytedeco', name: 'javacpp', version: javaCppVersion, classifier: "$classifier"
-    implementation group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
 
     implementation "ai.djl:api:$djlApiVersion"
     implementation "ai.djl.pytorch:pytorch-engine:$djlApiVersion"

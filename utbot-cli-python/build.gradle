@@ -29,7 +29,6 @@ dependencies {
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5Version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2Version
-    implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
     //noinspection GroovyAssignabilityCheck
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 }

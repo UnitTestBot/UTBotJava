@@ -32,7 +32,6 @@ dependencies {
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
-    implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
     implementation group: 'org.apache.commons', name: 'commons-text', version: apacheCommonsTextVersion
     // we need this for construction mocks from composite models
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'

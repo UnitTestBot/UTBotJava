@@ -29,7 +29,7 @@ object JsLanguageAssistant : LanguageAssistant() {
         val focusedMethod: JSMemberInfo?,
         val module: Module,
         val containingFilePath: String,
-        val editor: Editor,
+        val editor: Editor?,
         val file: JSFile
     )
 
@@ -53,11 +53,15 @@ object JsLanguageAssistant : LanguageAssistant() {
 
     private fun getPsiTargets(e: AnActionEvent): PsiTargets? {
         e.project ?: return null
-        val virtualFile = (e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return null).path
-        val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
+        val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.PSI_FILE) as? JSFile ?: return null
-        val element = findPsiElement(file, editor) ?: return null
+        val element = if (editor != null) {
+            findPsiElement(file, editor) ?: return null
+        } else {
+            e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+        }
         val module = element.module ?: return null
+        val virtualFile = (e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return null).path
         val focusedMethod = getContainingMethod(element)
         containingClass(element)?.let {
             val methods = it.functions

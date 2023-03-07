@@ -23,16 +23,15 @@ import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.konan.file.File
+import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModules
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
-import settings.JsPackagesSettings.mochaData
-import settings.JsPackagesSettings.nycData
-import settings.JsPackagesSettings.ternData
 import settings.JsTestGenerationSettings.dummyClassName
-import settings.PackageData
+import settings.PackageDataService
+import settings.jsPackagesList
 import utils.JsCmdExec
 import utils.OsProvider
 import java.io.IOException
@@ -47,7 +46,7 @@ object JsDialogProcessor {
         fileMethods: Set<JSMemberInfo>,
         focusedMethod: JSMemberInfo?,
         containingFilePath: String,
-        editor: Editor,
+        editor: Editor?,
         file: JSFile
     ) {
         val model =
@@ -58,54 +57,57 @@ object JsDialogProcessor {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 invokeLater {
-                    checkAndInstallRequirement(model.project, model.pathToNPM, mochaData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, nycData)
-                    checkAndInstallRequirement(model.project, model.pathToNPM, ternData)
+                    if (!PackageDataService(
+                            model.containingFilePath, model.project.basePath!!, model.pathToNPM
+                        ).checkAndInstallRequirements(project)
+                    ) return@invokeLater
                     createDialog(model)?.let { dialogWindow ->
                         if (!dialogWindow.showAndGet()) return@invokeLater
                         // Since Tern.js accesses containing file, sync with file system required before test generation.
-                        runWriteAction {
-                            with(FileDocumentManager.getInstance()) {
-                                saveDocument(editor.document)
+                        editor?.let {
+                            runWriteAction {
+                                with(FileDocumentManager.getInstance()) {
+                                    saveDocument(editor.document)
+                                }
                             }
                         }
-                        createTests(dialogWindow.model, containingFilePath, editor)
+                        createTests(
+                            dialogWindow.model,
+                            containingFilePath,
+                            editor,
+                            dialogWindow.model.file.getContent()
+                        )
                     }
                 }
             }
         }).queue()
     }
 
-    private fun findNodeAndNPM(): Pair<String, String>? =
-        try {
-            val pathToNode = NodeJsLocalInterpreterManager.getInstance()
-                .interpreters.first().interpreterSystemIndependentPath
-            val (_, errorText) = JsCmdExec.runCommand(
-                shouldWait = true,
-                cmd = arrayOf("\"${pathToNode}\"", "-v")
-            )
-            if (errorText.isNotEmpty()) throw NoSuchElementException()
-            val pathToNPM =
-                pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
-            pathToNode to pathToNPM
-        } catch (e: NoSuchElementException) {
-            Messages.showErrorDialog(
-                "Node.js interpreter is not found in IDEA settings.\n" +
-                        "Please set it in Settings > Languages & Frameworks > Node.js",
-                "Requirement Error"
-            )
-            logger.error { "Node.js interpreter was not found in IDEA settings." }
-            null
-        } catch (e: IOException) {
-            Messages.showErrorDialog(
-                "Node.js interpreter path is corrupted in IDEA settings.\n" +
-                        "Please check Settings > Languages & Frameworks > Node.js",
-                "Requirement Error"
-            )
-            logger.error { "Node.js interpreter path is corrupted in IDEA settings." }
-            null
-        }
-
+    private fun findNodeAndNPM(): Pair<String, String>? = try {
+        val pathToNode =
+            NodeJsLocalInterpreterManager.getInstance().interpreters.first().interpreterSystemIndependentPath
+        val (_, errorText) = JsCmdExec.runCommand(
+            shouldWait = true, cmd = arrayOf("\"${pathToNode}\"", "-v")
+        )
+        if (errorText.isNotEmpty()) throw NoSuchElementException()
+        val pathToNPM =
+            pathToNode.substringBeforeLast("/") + "/" + "npm" + OsProvider.getProviderByOs().npmPackagePostfix
+        pathToNode to pathToNPM
+    } catch (e: NoSuchElementException) {
+        Messages.showErrorDialog(
+            "Node.js interpreter is not found in IDEA settings.\n" + "Please set it in Settings > Languages & Frameworks > Node.js",
+            "Requirement Error"
+        )
+        logger.error { "Node.js interpreter was not found in IDEA settings." }
+        null
+    } catch (e: IOException) {
+        Messages.showErrorDialog(
+            "Node.js interpreter path is corrupted in IDEA settings.\n" + "Please check Settings > Languages & Frameworks > Node.js",
+            "Requirement Error"
+        )
+        logger.error { "Node.js interpreter path is corrupted in IDEA settings." }
+        null
+    }
 
     private fun createJsTestModel(
         project: Project,
@@ -138,19 +140,11 @@ object JsDialogProcessor {
             this.pathToNode = pathToNode
             this.pathToNPM = pathToNPM
         }
-
     }
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
 
-    private fun unblockDocument(project: Project, document: Document) {
-        PsiDocumentManager.getInstance(project).apply {
-            commitDocument(document)
-            doPostponedOperationsAndUnblockDocument(document)
-        }
-    }
-
-    private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor) {
+    private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor?, contents: String) {
         val normalizedContainingFilePath = containingFilePath.replace(File.separator, "/")
         (object : Task.Backgroundable(model.project, "Generate tests") {
             override fun run(indicator: ProgressIndicator) {
@@ -159,10 +153,8 @@ object JsDialogProcessor {
                 val testDir = PsiDirectoryFactory.getInstance(project).createDirectory(
                     model.testSourceRoot!!
                 )
-                val testFileName = normalizedContainingFilePath.substringAfterLast("/")
-                    .replace(Regex(".js"), "Test.js")
-                val testGenerator = JsTestGenerator(
-                    fileText = editor.document.text,
+                val testFileName = normalizedContainingFilePath.substringAfterLast("/").replace(Regex(".js"), "Test.js")
+                val testGenerator = JsTestGenerator(fileText = contents,
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),
@@ -176,7 +168,9 @@ object JsDialogProcessor {
                         if (name == dummyClassName) null else name
                     },
                     outputFilePath = "${testDir.virtualFile.path}/$testFileName".replace(File.separator, "/"),
-                    exportsManager = partialApplication(JsDialogProcessor::manageExports, editor, project),
+                    exportsManager = partialApplication(
+                        JsDialogProcessor::manageExports, editor, project, model
+                    ),
                     settings = JsDynamicSettings(
                         pathToNode = model.pathToNode,
                         pathToNYC = model.pathToNYC,
@@ -184,8 +178,7 @@ object JsDialogProcessor {
                         timeout = model.timeout,
                         coverageMode = model.coverageMode
                     ),
-                    isCancelled = { indicator.isCanceled }
-                )
+                    isCancelled = { indicator.isCanceled })
 
                 indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
                 indicator.text = "Generate code for tests"
@@ -193,11 +186,9 @@ object JsDialogProcessor {
                 val generatedCode = testGenerator.run()
                 invokeLater {
                     runWriteAction {
-                        val testPsiFile =
-                            testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
-                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
-                        val testFileEditor =
-                            CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
+                        val testPsiFile = testDir.findFile(testFileName) ?: PsiFileFactory.getInstance(project)
+                            .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                        val testFileEditor = CodeInsightUtil.positionCursor(project, testPsiFile, testPsiFile)
                         unblockDocument(project, testFileEditor.document)
                         testFileEditor.document.setText(generatedCode)
                         unblockDocument(project, testFileEditor.document)
@@ -208,15 +199,19 @@ object JsDialogProcessor {
         }).queue()
     }
 
-    private fun <A, B, C> partialApplication(f: (A, B, C) -> Unit, a: A, b: B): (C) -> Unit {
-        return { c: C -> f(a, b, c) }
+    private fun <A, B, C, D> partialApplication(f: (A, B, C, D) -> Unit, a: A, b: B, c: C): (D) -> Unit {
+        return { d: D -> f(a, b, c, d) }
     }
 
-    private fun manageExports(editor: Editor, project: Project, exports: List<String>) {
+    private fun JSFile.getContent(): String = this.viewProvider.contents.toString()
+
+    private fun manageExports(
+        editor: Editor?, project: Project, model: JsTestsModel, exports: List<String>
+    ) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
                 val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
-                val fileText = editor.document.text
+                val fileText = model.file.getContent()
                 when {
                     fileText.contains(exportSection) -> {}
 
@@ -231,16 +226,7 @@ object JsDialogProcessor {
                             val resultSet = existingExportsSet + exports.toSet()
                             val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
                             val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-                            runWriteAction {
-                                with(editor.document) {
-                                    unblockDocument(project, this)
-                                    setText(swappedText)
-                                    unblockDocument(project, this)
-                                }
-                                with(FileDocumentManager.getInstance()) {
-                                    saveDocument(editor.document)
-                                }
-                            }
+                            project.setNewText(editor, model.containingFilePath, swappedText)
                         }
                     }
 
@@ -250,62 +236,79 @@ object JsDialogProcessor {
                             append(exportSection)
                             append("\n$endComment")
                         }
-                        runWriteAction {
-                            with(editor.document) {
-                                unblockDocument(project, this)
-                                setText(fileText + line)
-                                unblockDocument(project, this)
-                            }
-                            with(FileDocumentManager.getInstance()) {
-                                saveDocument(editor.document)
-                            }
-                        }
+                        project.setNewText(editor, model.containingFilePath, fileText + line)
                     }
                 }
             }
         }
     }
-}
 
-fun checkAndInstallRequirement(
-    project: Project,
-    pathToNPM: String,
-    requirement: PackageData,
-) {
-    if (!requirement.findPackageByNpm(project.basePath!!, pathToNPM)) {
-        installMissingRequirement(project, pathToNPM, requirement)
+    private fun Project.setNewText(editor: Editor?, filePath: String, text: String) {
+        editor?.let {
+            runWriteAction {
+                with(editor.document) {
+                    unblockDocument(this@setNewText, this@with)
+                    setText(text)
+                    unblockDocument(this@setNewText, this@with)
+                }
+                with(FileDocumentManager.getInstance()) {
+                    saveDocument(editor.document)
+                }
+            }
+        } ?: run {
+            File(filePath).writeText(text)
+        }
+    }
+
+    private fun unblockDocument(project: Project, document: Document) {
+        PsiDocumentManager.getInstance(project).apply {
+            commitDocument(document)
+            doPostponedOperationsAndUnblockDocument(document)
+        }
     }
 }
 
-private fun installMissingRequirement(
-    project: Project,
-    pathToNPM: String,
-    requirement: PackageData,
-) {
+private fun PackageDataService.checkAndInstallRequirements(project: Project): Boolean {
+    val missingPackages = jsPackagesList.filterNot { this.findPackage(it) }
+    if (missingPackages.isEmpty()) return true
     val message = """
-            Requirement is not installed:
-            ${requirement.packageName}
-            Install it?
+            Requirements are not installed:
+            ${missingPackages.joinToString { it.packageName }}
+            Install them?
         """.trimIndent()
     val result = Messages.showOkCancelDialog(
-        project,
-        message,
-        "Requirement Missmatch Error",
-        "Install",
-        "Cancel",
-        null
+        project, message, "Requirements Missmatch Error", "Install", "Cancel", null
     )
 
     if (result == Messages.CANCEL)
-        return
+        return false
 
-    val (_, errorText) = requirement.installPackage(project.basePath!!, pathToNPM)
-
-    if (errorText.isNotEmpty()) {
+    try {
+        val (_, errorText) = this.installMissingPackages(missingPackages)
+        if (errorText.isNotEmpty()) {
+            showErrorDialogLater(
+                project,
+                "Requirements installing failed with some reason:\n${errorText}",
+                "Failed to install requirements"
+            )
+            return false
+        }
+        return true
+    } catch (_: TimeoutException) {
         showErrorDialogLater(
             project,
-            "Requirements installing failed with some reason:\n${errorText}",
-            "Requirements error"
+            """
+                Requirements installing failed due to the exceeded waiting time for the installation, check your internet connection.
+                
+                Try to install missing npm packages manually:
+            ${
+                missingPackages.joinToString(separator = "\n") {
+                    "> npm install ${it.npmListFlag} ${it.packageName}"
+                }
+            }
+            """.trimIndent(),
+            "Failed to install requirements"
         )
+        return false
     }
 }

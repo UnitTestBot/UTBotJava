@@ -5,7 +5,7 @@ import com.intellij.openapi.ui.TextBrowseFolderListener
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import org.utbot.common.PathUtil.replaceSeparator
-import settings.JsPackagesSettings.nycData
+import settings.PackageDataService
 import utils.OsProvider
 
 
@@ -24,8 +24,7 @@ class NycSourceFileChooser(val model: JsTestsModel) : TextFieldWithBrowseButton(
         addBrowseFolderListener(
             TextBrowseFolderListener(descriptor, model.project)
         )
-        text = (replaceSeparator(nycData.findPackagePath() ?: "Nyc was not found")
-                + OsProvider.getProviderByOs().npmPackagePostfix)
+        text = PackageDataService.nycPath
     }
 
     fun validateNyc(): ValidationInfo? {

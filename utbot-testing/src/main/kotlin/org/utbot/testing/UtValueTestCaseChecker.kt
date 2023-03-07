@@ -47,6 +47,8 @@ import org.utbot.testcheckers.ExecutionsNumberMatcher
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.stream.Collectors
+import java.util.stream.Stream
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction0
@@ -2041,3 +2043,8 @@ inline fun <reified T> withSettingsFromTestFrameworkConfiguration(
         TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = previousConfig
     }
 }
+
+/**
+ * Avoid conflict with java.util.stream.Stream.toList (available since Java 16 only)
+ */
+fun <T> Stream<T>.asList(): List<T> = collect(Collectors.toList<T>())

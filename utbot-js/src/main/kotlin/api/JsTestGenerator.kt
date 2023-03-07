@@ -9,6 +9,8 @@ import framework.api.js.util.isExportable
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
+import framework.codegen.JsImport
+import framework.codegen.ModuleType
 import fuzzer.JsFeedback
 import fuzzer.JsFuzzedValue
 import fuzzer.JsFuzzingExecutionFeedback
@@ -59,6 +61,7 @@ import utils.data.ResultData
 import utils.toJsAny
 import java.io.File
 import java.util.concurrent.CancellationException
+import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 private val logger = KotlinLogging.logger {}
 
@@ -125,10 +128,25 @@ class JsTestGenerator(
             makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
         }
         val importPrefix = makeImportPrefix()
+        val moduleType = ModuleType.fromPackageJson(context.packageJson)
+        val imports = listOf(
+            JsImport(
+                "*",
+                fileUnderTestAliases,
+                "./$importPrefix/${sourceFilePath.substringAfterLast("/")}",
+                moduleType
+            ),
+            JsImport(
+                "*",
+                "assert",
+                "assert",
+                moduleType
+            )
+        )
         val codeGen = JsCodeGenerator(
             classUnderTest = classId,
             paramNames = paramNames,
-            importPrefix = importPrefix
+            imports = imports
         )
         return codeGen.generateAsStringWithTestReport(testSets).generatedCode
     }

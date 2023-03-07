@@ -139,10 +139,11 @@ class JsAstScrapper(
         val importNodes: List<Node>
             get() = _importNodes.toList()
 
+        // TODO: commented for release since features are incomplete
         override fun accept(rootNode: Node) {
-            NodeUtil.visitPreOrder(rootNode) { node ->
-                if (node.isImport || node.isRequireImport()) _importNodes += node
-            }
+//            NodeUtil.visitPreOrder(rootNode) { node ->
+//                if (node.isImport || node.isRequireImport()) _importNodes += node
+//            }
         }
     }
 }

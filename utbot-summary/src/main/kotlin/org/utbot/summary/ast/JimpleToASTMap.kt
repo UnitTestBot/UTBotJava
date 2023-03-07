@@ -29,9 +29,10 @@ import org.utbot.framework.plugin.api.Step
 import org.utbot.summary.comment.isLoopStatement
 import java.util.LinkedList
 import java.util.Queue
+import java.util.stream.Collectors
+import java.util.stream.Stream
 import kotlin.Int.Companion.MAX_VALUE
 import kotlin.math.abs
-import kotlin.streams.toList
 import soot.Unit
 import soot.Value
 import soot.jimple.internal.JCaughtExceptionRef
@@ -77,10 +78,15 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
     }
 
     /**
+     * Avoid conflict with java.util.stream.Stream.toList (available since Java 16 only)
+     */
+    private fun <T> Stream<T>.asList(): List<T> = collect(Collectors.toList<T>())
+
+    /**
      * Function that maps statements inside of ternary conditions to correct AST nodes
      */
     private fun mapTernaryConditional(methodDeclaration: MethodDeclaration, stmts: Iterable<Unit>) {
-        for (condExpr in methodDeclaration.stream().toList().filterIsInstance<ConditionalExpr>()) {
+        for (condExpr in methodDeclaration.stream().asList().filterIsInstance<ConditionalExpr>()) {
             val begin = condExpr.begin.orElse(null)
             val end = condExpr.end.orElse(null)
             if (begin == null || end == null) continue
@@ -123,7 +129,7 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
      * Node is valid if there is only one return statement inside of it
      */
     private fun validateReturnASTNode(returnNode: Node): Node {
-        val returns = returnNode.stream().filter { it is ReturnStmt }.toList()
+        val returns = returnNode.stream().filter { it is ReturnStmt }.asList()
         if (returns.size == 1) return returns[0]
         return returnNode
     }
@@ -147,17 +153,17 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
             val loopList = mutableListOf<Node>()
             when (loop) {
                 is ForStmt -> {
-                    loopList.addAll(loop.initialization.stream().toList())
-                    val compare = loop.compare.orElse(null)?.stream()?.toList()
+                    loopList.addAll(loop.initialization.stream().asList())
+                    val compare = loop.compare.orElse(null)?.stream()?.asList()
                     if (compare != null) loopList.addAll(compare)
-                    loopList.addAll(loop.update.flatMap { it.stream().toList() })
+                    loopList.addAll(loop.update.flatMap { it.stream().asList() })
                 }
                 is WhileStmt -> {
-                    loopList.addAll(loop.condition.stream().toList())
+                    loopList.addAll(loop.condition.stream().asList())
                 }
                 is ForEachStmt -> {
-                    loopList.addAll(loop.iterable.stream().toList())
-                    loopList.addAll(loop.variable.stream().toList())
+                    loopList.addAll(loop.iterable.stream().asList())
+                    loopList.addAll(loop.variable.stream().asList())
                 }
             }
             for (stmt in stmtToASTNode.filter { it.value in loopList }.map { it.key }) stmtToASTNode[stmt] = loop

@@ -144,13 +144,6 @@ object JsDialogProcessor {
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
 
-    private fun unblockDocument(project: Project, document: Document) {
-        PsiDocumentManager.getInstance(project).apply {
-            commitDocument(document)
-            doPostponedOperationsAndUnblockDocument(document)
-        }
-    }
-
     private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor?, contents: String) {
         val normalizedContainingFilePath = containingFilePath.replace(File.separator, "/")
         (object : Task.Backgroundable(model.project, "Generate tests") {
@@ -197,7 +190,7 @@ object JsDialogProcessor {
                     runWriteAction {
                         val testPsiFile = testDir.findFile(testFileName) ?: run {
                             val temp = PsiFileFactory.getInstance(project)
-                                .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
+                            .createFileFromText(testFileName, JsLanguageAssistant.jsLanguage, generatedCode)
                             testDir.add(temp)
                             testDir.findFile(testFileName)!!
                         }
@@ -211,8 +204,8 @@ object JsDialogProcessor {
         }).queue()
     }
 
-    private fun <A, B, C, D> partialApplication(f: (A, B, C, D) -> Unit, a: A, b: B, c: C): (D) -> Unit {
-        return { d: D -> f(a, b, c, d) }
+    private fun <A, B, C> partialApplication(f: (A, B, C) -> Unit, a: A, b: B): (C) -> Unit {
+        return { c: C -> f(a, b, c) }
     }
 
     private fun JSFile.getContent(): String = this.viewProvider.contents.toString()
@@ -228,6 +221,7 @@ object JsDialogProcessor {
     ) {
         AppExecutorUtil.getAppExecutorService().submit {
             invokeLater {
+                val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
                 when {
                     currentFileText.contains(startComment) -> {
                         val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")

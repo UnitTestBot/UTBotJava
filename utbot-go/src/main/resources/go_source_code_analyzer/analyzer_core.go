@@ -5,53 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/importer"
-	"go/parser"
 	"go/printer"
 	"go/token"
 	"go/types"
 	"sort"
+	"sync"
 )
 
 var errorInterface = func() *types.Interface {
-	// TODO not sure if it's best way
-	src := `package src
-
-import "errors"
-
-var x = errors.New("")
-`
-	fset := token.NewFileSet()
-	fileAst, astErr := parser.ParseFile(fset, "", src, 0)
-	checkError(astErr)
-	typesConfig := types.Config{Importer: importer.Default()}
-	info := &types.Info{
-		Defs:  make(map[*ast.Ident]types.Object),
-		Uses:  make(map[*ast.Ident]types.Object),
-		Types: make(map[ast.Expr]types.TypeAndValue),
-	}
-	_, typesCheckErr := typesConfig.Check("", fset, []*ast.File{fileAst}, info)
-	checkError(typesCheckErr)
-	for _, obj := range info.Defs {
-		if obj != nil {
-			return obj.Type().Underlying().(*types.Interface)
-		}
-	}
-	return nil
+	variable := types.NewVar(token.NoPos, nil, "", types.Typ[types.String])
+	results := types.NewTuple(variable)
+	signature := types.NewSignatureType(nil, nil, nil, nil, results, false)
+	method := types.NewFunc(token.NoPos, nil, "Error", signature)
+	return types.NewInterfaceType([]*types.Func{method}, nil)
 }()
 
-func implementsError(typ *types.Named) bool {
+func implementsError(typ types.Type) bool {
 	return types.Implements(typ, errorInterface)
 }
 
 //goland:noinspection GoPreferNilSlice
 func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 	var result AnalyzedType
-	underlyingType := typ.Underlying()
-	switch underlyingType.(type) {
+	switch underlyingType := typ.Underlying().(type) {
 	case *types.Basic:
-		basicType := underlyingType.(*types.Basic)
-		name := basicType.Name()
+		name := underlyingType.Name()
 		result = AnalyzedPrimitiveType{Name: name}
 	case *types.Struct:
 		namedType := typ.(*types.Named)
@@ -59,10 +37,9 @@ func toAnalyzedType(typ types.Type) (AnalyzedType, error) {
 		pkg := namedType.Obj().Pkg()
 		isError := implementsError(namedType)
 
-		structType := underlyingType.(*types.Struct)
 		fields := []AnalyzedField{}
-		for i := 0; i < structType.NumFields(); i++ {
-			field := structType.Field(i)
+		for i := 0; i < underlyingType.NumFields(); i++ {
+			field := underlyingType.Field(i)
 
 			fieldType, err := toAnalyzedType(field.Type())
 			checkError(err)
@@ -151,7 +128,7 @@ func checkTypeIsSupported(typ types.Type, isResultType bool) bool {
 		return checkTypeIsSupported(sliceType.Elem(), isResultType)
 	}
 	if interfaceType, ok := underlyingType.(*types.Interface); ok && isResultType {
-		return interfaceType == errorInterface
+		return implementsError(interfaceType)
 	}
 	return false
 }
@@ -216,94 +193,111 @@ func collectTargetAnalyzedFunctions(
 		}
 	}
 
+	var wg sync.WaitGroup
+	var mutex sync.Mutex
+
 	for ident, obj := range info.Defs {
 		switch typedObj := obj.(type) {
 		case *types.Func:
-			analyzedFunction := AnalyzedFunction{
-				Name:            typedObj.Name(),
-				ModifiedName:    createNewFunctionName(typedObj.Name()),
-				Parameters:      []AnalyzedFunctionParameter{},
-				ResultTypes:     []AnalyzedType{},
-				RequiredImports: []Import{},
-				position:        typedObj.Pos(),
-			}
+			wg.Add(1)
+			go func(ident *ast.Ident, typeObj *types.Func) {
+				defer wg.Done()
 
-			if isFound, ok := foundTargetFunctionsNamesMap[analyzedFunction.Name]; !ok || isFound {
-				continue
-			} else {
-				foundTargetFunctionsNamesMap[analyzedFunction.Name] = true
-			}
-
-			signature := typedObj.Type().(*types.Signature)
-			if !checkIsSupported(signature) {
-				notSupportedFunctionsNames = append(notSupportedFunctionsNames, analyzedFunction.Name)
-				continue
-			}
-			if parameters := signature.Params(); parameters != nil {
-				for i := 0; i < parameters.Len(); i++ {
-					parameter := parameters.At(i)
-
-					parameterType, err := toAnalyzedType(parameter.Type())
-					checkError(err)
-
-					analyzedFunction.Parameters = append(analyzedFunction.Parameters,
-						AnalyzedFunctionParameter{
-							Name: parameter.Name(),
-							Type: parameterType,
-						},
-					)
+				analyzedFunction := AnalyzedFunction{
+					Name:            typedObj.Name(),
+					ModifiedName:    createNewFunctionName(typedObj.Name()),
+					Parameters:      []AnalyzedFunctionParameter{},
+					ResultTypes:     []AnalyzedType{},
+					RequiredImports: []Import{},
+					position:        typedObj.Pos(),
 				}
-			}
-			if results := signature.Results(); results != nil {
-				for i := 0; i < results.Len(); i++ {
-					result := results.At(i)
 
-					resultType, err := toAnalyzedType(result.Type())
-					checkError(err)
-
-					analyzedFunction.ResultTypes = append(analyzedFunction.ResultTypes, resultType)
+				mutex.Lock()
+				if isFound, ok := foundTargetFunctionsNamesMap[analyzedFunction.Name]; !ok || isFound {
+					mutex.Unlock()
+					return
+				} else {
+					foundTargetFunctionsNamesMap[analyzedFunction.Name] = true
+					mutex.Unlock()
 				}
-			}
 
-			funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
-			funcDecl.Name = ast.NewIdent(analyzedFunction.ModifiedName)
+				signature := typedObj.Type().(*types.Signature)
+				if !checkIsSupported(signature) {
+					mutex.Lock()
+					notSupportedFunctionsNames = append(notSupportedFunctionsNames, analyzedFunction.Name)
+					mutex.Unlock()
+					return
+				}
+				if parameters := signature.Params(); parameters != nil {
+					for i := 0; i < parameters.Len(); i++ {
+						parameter := parameters.At(i)
 
-			constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
-			ast.Walk(&constantExtractor, funcDecl)
-			analyzedFunction.Constants = constantExtractor.constants
+						parameterType, err := toAnalyzedType(parameter.Type())
+						checkError(err)
 
-			functionModifier := FunctionModifier{lineCounter: 0}
-			ast.Walk(&functionModifier, funcDecl)
+						analyzedFunction.Parameters = append(analyzedFunction.Parameters,
+							AnalyzedFunctionParameter{
+								Name: parameter.Name(),
+								Type: parameterType,
+							},
+						)
+					}
+				}
+				if results := signature.Results(); results != nil {
+					for i := 0; i < results.Len(); i++ {
+						result := results.At(i)
 
-			importsCollector := ImportsCollector{
-				info:             info,
-				requiredImports:  map[Import]bool{},
-				allImportsInFile: allImportsInFile,
-				sourcePackage:    sourcePackage,
-			}
-			ast.Walk(&importsCollector, funcDecl)
-			for _, i := range blankImports {
-				importsCollector.requiredImports[i] = true
-			}
+						resultType, err := toAnalyzedType(result.Type())
+						checkError(err)
 
-			var modifiedFunction bytes.Buffer
-			cfg := printer.Config{
-				Mode:     printer.TabIndent,
-				Tabwidth: 4,
-				Indent:   0,
-			}
-			err := cfg.Fprint(&modifiedFunction, fset, funcDecl)
-			checkError(err)
+						analyzedFunction.ResultTypes = append(analyzedFunction.ResultTypes, resultType)
+					}
+				}
 
-			for i := range importsCollector.requiredImports {
-				analyzedFunction.RequiredImports = append(analyzedFunction.RequiredImports, i)
-			}
-			analyzedFunction.ModifiedFunctionForCollectingTraces = modifiedFunction.String()
-			analyzedFunction.NumberOfAllStatements = functionModifier.lineCounter
+				funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
+				funcDecl.Name = ast.NewIdent(analyzedFunction.ModifiedName)
 
-			analyzedFunctions = append(analyzedFunctions, analyzedFunction)
+				constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
+				ast.Walk(&constantExtractor, funcDecl)
+				analyzedFunction.Constants = constantExtractor.constants
+
+				functionModifier := FunctionModifier{lineCounter: 0}
+				ast.Walk(&functionModifier, funcDecl)
+
+				importsCollector := ImportsCollector{
+					info:             info,
+					requiredImports:  map[Import]bool{},
+					allImportsInFile: allImportsInFile,
+					sourcePackage:    sourcePackage,
+				}
+				ast.Walk(&importsCollector, funcDecl)
+				for _, i := range blankImports {
+					importsCollector.requiredImports[i] = true
+				}
+
+				var modifiedFunction bytes.Buffer
+				cfg := printer.Config{
+					Mode:     printer.TabIndent,
+					Tabwidth: 4,
+					Indent:   0,
+				}
+				err := cfg.Fprint(&modifiedFunction, fset, funcDecl)
+				checkError(err)
+
+				for i := range importsCollector.requiredImports {
+					analyzedFunction.RequiredImports = append(analyzedFunction.RequiredImports, i)
+				}
+				analyzedFunction.ModifiedFunctionForCollectingTraces = modifiedFunction.String()
+				analyzedFunction.NumberOfAllStatements = functionModifier.lineCounter
+
+				mutex.Lock()
+				analyzedFunctions = append(analyzedFunctions, analyzedFunction)
+				mutex.Unlock()
+			}(ident, typedObj)
 		}
 	}
+
+	wg.Wait()
 
 	for functionName, isFound := range foundTargetFunctionsNamesMap {
 		if !isFound {
@@ -313,8 +307,8 @@ func collectTargetAnalyzedFunctions(
 	sort.Slice(analyzedFunctions, func(i, j int) bool {
 		return analyzedFunctions[i].position < analyzedFunctions[j].position
 	})
-	sort.Sort(sort.StringSlice(notSupportedFunctionsNames))
-	sort.Sort(sort.StringSlice(notFoundFunctionsNames))
+	sort.Strings(notSupportedFunctionsNames)
+	sort.Strings(notFoundFunctionsNames)
 
 	return analyzedFunctions, notSupportedFunctionsNames, notFoundFunctionsNames
 }

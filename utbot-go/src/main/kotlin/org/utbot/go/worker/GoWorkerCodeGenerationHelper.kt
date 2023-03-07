@@ -114,12 +114,12 @@ internal object GoWorkerCodeGenerationHelper {
             	con, err := net.Dial("tcp", ":$port")
             	__checkErrorAndExit__(err)
 
-            	defer func(con net.Conn) {
+            	defer func() {
             		err := con.Close()
             		if err != nil {
             			__checkErrorAndExit__(err)
             		}
-            	}(con)
+            	}()
 
             	jsonDecoder := json.NewDecoder(con)
             	for {

@@ -603,9 +603,7 @@ object GoCodeTemplates {
 
     private val convertParsedJsonToRawValueFunction = """
         //goland:noinspection GoPreferNilSlice
-        func __convertParsedJsonToRawValue__(p map[string]interface{}) (__RawValue__, error) {
-        	rawValue := p
-
+        func __convertParsedJsonToRawValue__(rawValue map[string]interface{}) (__RawValue__, error) {
         	typeName, ok := rawValue["type"]
         	if !ok {
         		return nil, fmt.Errorf("every rawValue must contain field 'type'")

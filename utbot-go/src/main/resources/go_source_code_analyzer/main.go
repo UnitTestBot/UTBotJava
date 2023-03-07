@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -124,15 +125,26 @@ func main() {
 	checkError(fromJsonErr)
 
 	// parse each requested Go source file
+	var wg sync.WaitGroup
+
+	results := make([]AnalysisResult, len(analysisTargets.Targets))
+	for i, target := range analysisTargets.Targets {
+		wg.Add(1)
+		go func(i int, target AnalysisTarget) {
+			defer wg.Done()
+
+			result, err := analyzeTarget(target)
+			checkError(err)
+
+			results[i] = *result
+		}(i, target)
+	}
+	
+	wg.Wait()
+
 	analysisResults := AnalysisResults{
 		IntSize: strconv.IntSize,
-		Results: []AnalysisResult{},
-	}
-	for _, target := range analysisTargets.Targets {
-		result, err := analyzeTarget(target)
-		checkError(err)
-
-		analysisResults.Results = append(analysisResults.Results, *result)
+		Results: results,
 	}
 
 	// serialize and write results

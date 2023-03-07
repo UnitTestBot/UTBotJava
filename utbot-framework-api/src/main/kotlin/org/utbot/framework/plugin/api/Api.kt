@@ -55,6 +55,8 @@ import java.io.File
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import org.utbot.common.isAbstract
+import org.utbot.common.isStatic
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.process.OpenModulesContainer
 
@@ -1177,6 +1179,12 @@ open class StandardApplicationContext(
             this.staticsMockingIsConfigured = false
         }
     }
+
+    /**
+     * Finds a type to replace the original during symbolic
+     * analysis if it is guided with some additional information.
+     */
+    open fun replaceTypeIfNeeded(type: RefType): ClassId? = null
 }
 
 /**
@@ -1191,8 +1199,22 @@ class SpringApplicationContext(
     val beanQualifiedNames: List<String> = emptyList(),
 ): StandardApplicationContext(mockInstalled, staticsMockingIsConfigured) {
     private val springInjectedClasses: List<ClassId> by lazy {
-        beanQualifiedNames.map { fqn -> utContext.classLoader.loadClass(fqn).id }
+        beanQualifiedNames
+            .map { fqn -> utContext.classLoader.loadClass(fqn) }
+            .filterNot { it.isAbstract || it.isInterface || it.isLocalClass || it.isMemberClass && !it.isStatic }
+            .map { it.id }
     }
+
+    /**
+     * Replaces an interface type with its implementor type
+     * if there is the unique implementor in bean definitions.
+     */
+    override fun replaceTypeIfNeeded(type: RefType): ClassId? =
+        if (type.sootClass.isInterface) {
+            springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
+        } else {
+            null
+        }
 }
 
 interface CodeGenerationSettingItem {

@@ -1373,6 +1373,18 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
+        //TODO: remove !! after PR-1889 merge, context cannot be null any more
+        val concreteClassId = applicationContext!!.replaceTypeIfNeeded(type)
+        concreteClassId?.let {
+            val sootType = typeResolver.classOrDefault(it.canonicalName)
+            val typeStorage = typeResolver.constructTypeStorage(sootType, useConcreteType = false)
+
+            val typeHardConstraint = typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
+            queuedSymbolicStateUpdates += typeHardConstraint
+
+            return ObjectValue(typeStorage, addr)
+        }
+
         val nullEqualityConstraint = mkEq(addr, nullObjectAddr)
 
         if (mockInfoGenerator != null) {

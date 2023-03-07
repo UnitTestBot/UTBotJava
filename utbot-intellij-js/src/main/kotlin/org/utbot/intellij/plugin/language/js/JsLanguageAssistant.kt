@@ -78,9 +78,19 @@ object JsLanguageAssistant : LanguageAssistant() {
                 file = file,
             )
         }
-        val memberInfos = generateMemberInfo(e.project!!, file.statements.filterIsInstance<JSFunction>())
-        val focusedMethodMI = memberInfos.find { member ->
+        var memberInfos = generateMemberInfo(e.project!!, file.statements.filterIsInstance<JSFunction>())
+        var focusedMethodMI = memberInfos.find { member ->
             member.member?.name == focusedMethod?.name
+        }
+        // TODO: generate tests for all classes, not only the first one
+        //  (currently not possible since breaks JsTestGenerator routine)
+        if (memberInfos.isEmpty()) {
+            memberInfos = generateMemberInfo(
+                e.project!!,
+                emptyList(),
+                file.statements.filterIsInstance<ES6Class>().first()
+            )
+            focusedMethodMI = memberInfos.first()
         }
         return PsiTargets(
             methods = memberInfos,

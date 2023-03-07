@@ -9,6 +9,7 @@ import org.utbot.testing.FullWithAssumptions
 import org.utbot.testing.UtValueTestCaseChecker
 import org.utbot.testing.isException
 import kotlin.streams.toList
+import org.utbot.testing.asList
 
 // TODO 1 instruction is always uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
 // TODO failed Kotlin compilation (generics) JIRA:1332
@@ -25,8 +26,8 @@ class StreamsAsMethodResultExampleTest : UtValueTestCaseChecker(
         check(
             StreamsAsMethodResultExample::returningStreamExample,
             eq(2),
-            { c, r -> c.isEmpty() && c == r!!.toList() },
-            { c, r -> c.isNotEmpty() && c == r!!.toList() },
+            { c, r -> c.isEmpty() && c == r!!.asList() },
+            { c, r -> c.isNotEmpty() && c == r!!.asList() },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }

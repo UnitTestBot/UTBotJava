@@ -1157,7 +1157,13 @@ class WildcardTypeParameter : TypeParameters(emptyList())
 open class StandardApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     val staticsMockingIsConfigured: Boolean = true,
-)
+) {
+    init {
+        if (!mockFrameworkInstalled) {
+            require(!staticsMockingIsConfigured) { "Static mocking cannot be used without mock framework" }
+        }
+    }
+}
 
 /**
  * Data we get from Spring application context

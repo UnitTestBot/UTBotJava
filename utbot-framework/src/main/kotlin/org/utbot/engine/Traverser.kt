@@ -1384,6 +1384,9 @@ class Traverser(
 
             val mockedObject = mockedObjectInfo.value
             if (mockedObjectInfo is UnexpectedMock) {
+                // if mock occurs, but it is unexpected due to some reasons
+                // (e.g. we do not have mock framework installed),
+                // we can only generate a test that uses null value for mocked object
                 queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
             }
 
@@ -1474,10 +1477,17 @@ class Traverser(
             val mockInfo = mockInfoGenerator.generate(addr)
             val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
 
-            val mockedObject = mockedObjectInfo.value ?: error("Mocked value cannot be null after force mock")
-            if (mockedObjectInfo is UnexpectedMock) {
-                queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
-                return mockedObject
+            val mockedObject: ObjectValue = when (mockedObjectInfo) {
+                is NoMock -> error("Value must be mocked after the fore mock")
+                is ExpectedMock -> mockedObjectInfo.value
+                is UnexpectedMock -> {
+                    // if mock occurs, but it is unexpected due to some reasons
+                    // (e.g. we do not have mock framework installed),
+                    // we can only generate a test that uses null value for mocked object
+                    queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+
+                    mockedObjectInfo.value
+                }
             }
 
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
@@ -2680,7 +2690,7 @@ class Traverser(
         } ?: findMethodInvocationTargets(types, methodSubSignature)
 
         return methodInvocationTargets
-            .mapNotNull { (method, implementationClass, possibleTypes) ->
+            .map { (method, implementationClass, possibleTypes) ->
                 val typeStorage = typeResolver.constructTypeStorage(implementationClass, possibleTypes)
                 val mockInfo = memory.mockInfoByAddr(instance.addr)
                 val mockedObjectInfo = mockInfo?.let {
@@ -2710,7 +2720,7 @@ class Traverser(
                         InvocationTarget(wrapperOrInstance, method, constraints)
                     }
                     is ExpectedMock -> {
-                        val mockedObject = mockedObjectInfo.value!!
+                        val mockedObject = mockedObjectInfo.value
                         val typeConstraint = typeRegistry.typeConstraint(mockedObject.addr, mockedObject.typeStorage)
                         val constraints = setOf(typeConstraint.isOrNullConstraint())
 

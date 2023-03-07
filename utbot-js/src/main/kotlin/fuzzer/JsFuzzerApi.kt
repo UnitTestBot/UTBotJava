@@ -95,5 +95,5 @@ fun UtModel.fuzzed(block: JsFuzzedValue.() -> Unit = {}): JsFuzzedValue = JsFuzz
 object JsIdProvider {
     private var id = AtomicInteger(0)
 
-    fun get() = id.incrementAndGet()
+    fun createId() = id.incrementAndGet()
 }

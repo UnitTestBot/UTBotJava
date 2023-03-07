@@ -35,7 +35,7 @@ class ObjectValueProvider : ValueProvider<JsClassId, JsFuzzedValue, JsMethodDesc
     ): Seed.Recursive<JsClassId, JsFuzzedValue> {
         return Seed.Recursive(
             construct = Routine.Create(constructorId.parameters) { values ->
-                val id = JsIdProvider.get()
+                val id = JsIdProvider.createId()
                 UtAssembleModel(
                     id = id,
                     classId = classId,

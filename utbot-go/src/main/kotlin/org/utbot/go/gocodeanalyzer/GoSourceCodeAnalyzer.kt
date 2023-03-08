@@ -31,7 +31,7 @@ object GoSourceCodeAnalyzer {
     fun analyzeGoSourceFilesForFunctions(
         targetFunctionsNamesBySourceFiles: Map<String, List<String>>,
         goExecutableAbsolutePath: String
-    ): Pair<Map<GoUtFile, GoSourceFileAnalysisResult>, Int> {
+    ): Triple<Map<GoUtFile, GoSourceFileAnalysisResult>, Int, Int> {
         val analysisTargets = AnalysisTargets(
             targetFunctionsNamesBySourceFiles.map { (absoluteFilePath, targetFunctionsNames) ->
                 AnalysisTarget(absoluteFilePath, targetFunctionsNames)
@@ -67,7 +67,8 @@ object GoSourceCodeAnalyzer {
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
             val intSize = analysisResults.intSize
-            return analysisResults.results.map { analysisResult ->
+            val maxTraceLength = analysisResults.maxTraceLength
+            return Triple(analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
@@ -106,7 +107,7 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notSupportedFunctionsNames,
                     analysisResult.notFoundFunctionsNames
                 )
-            } to intSize
+            }, intSize, maxTraceLength)
         } finally {
             // TODO correctly?
             analysisTargetsFile.delete()

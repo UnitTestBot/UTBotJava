@@ -8,6 +8,38 @@ import (
 
 type FunctionModifier struct {
 	lineCounter int
+	maxTraceLen int
+}
+
+func createNewFunctionName(funcDecl *ast.FuncDecl) *ast.Ident {
+	funcName := funcDecl.Name.String()
+	return ast.NewIdent("__" + funcName + "__")
+}
+
+func (v *FunctionModifier) ModifyFunctionDeclaration(funcDecl *ast.FuncDecl) {
+	funcDecl.Name = createNewFunctionName(funcDecl)
+
+	traceName := ast.NewIdent("__trace__")
+	obj := ast.Object{
+		Kind: ast.Var,
+		Name: "__trace__",
+		Decl: &traceName,
+	}
+	traceName.Obj = &obj
+
+	traceParam := ast.Field{
+		Names: []*ast.Ident{
+			traceName,
+		},
+		Type: &ast.StarExpr{
+			X: &ast.ArrayType{
+				Elt: ast.NewIdent("uint16"),
+			},
+		},
+	}
+
+	params := &funcDecl.Type.Params.List
+	*params = append(*params, &traceParam)
 }
 
 func (v *FunctionModifier) Visit(node ast.Node) ast.Visitor {
@@ -124,14 +156,39 @@ func (v *FunctionModifier) addLinesWithLoggingInTraceBeforeFirstReturnStatement(
 func (v *FunctionModifier) newLineWithLoggingInTrace() ast.Stmt {
 	v.lineCounter++
 
-	traces := ast.NewIdent("__traces__")
-	return &ast.AssignStmt{
-		Lhs: []ast.Expr{traces},
-		Tok: token.ASSIGN,
-		Rhs: []ast.Expr{
-			&ast.CallExpr{
-				Fun:  ast.NewIdent("append"),
-				Args: []ast.Expr{traces, ast.NewIdent(strconv.Itoa(v.lineCounter))},
+	trace := ast.StarExpr{
+		X: ast.NewIdent("__trace__"),
+	}
+	return &ast.IfStmt{
+		Cond: &ast.BinaryExpr{
+			X: &ast.CallExpr{
+				Fun:  ast.NewIdent("len"),
+				Args: []ast.Expr{&trace},
+			},
+			Op: token.LSS,
+			Y: &ast.BasicLit{
+				Kind:  token.INT,
+				Value: strconv.Itoa(v.maxTraceLen),
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{&trace},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{
+						&ast.CallExpr{
+							Fun: ast.NewIdent("append"),
+							Args: []ast.Expr{
+								&trace,
+								&ast.BasicLit{
+									Kind:  token.INT,
+									Value: strconv.Itoa(v.lineCounter),
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}

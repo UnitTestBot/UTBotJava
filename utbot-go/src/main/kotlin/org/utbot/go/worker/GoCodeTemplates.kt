@@ -5,10 +5,6 @@ import org.utbot.go.framework.api.go.GoPackage
 
 object GoCodeTemplates {
 
-    val traces = """
-        var __traces__ []int
-    """.trimIndent()
-
     private val testInputStruct = """
         type __TestInput__ struct {
         	FunctionName string                   `json:"functionName"`
@@ -354,7 +350,7 @@ object GoCodeTemplates {
         	TimeoutExceeded bool                 `json:"timeoutExceeded"`
         	RawResultValues []__RawValue__       `json:"rawResultValues"`
         	PanicMessage    *__RawPanicMessage__ `json:"panicMessage"`
-        	Trace           []int                `json:"trace"`
+        	Trace           []uint16             `json:"trace"`
         }
     """.trimIndent()
 
@@ -491,12 +487,14 @@ object GoCodeTemplates {
         }
     """.trimIndent()
 
-    private val executeFunctionFunction = """
+    private fun executeFunctionFunction(maxTraceLength: Int) = """
         func __executeFunction__(
-        	timeoutMillis time.Duration, wrappedFunction func() []__RawValue__,
+        	timeout time.Duration, arguments []reflect.Value, wrappedFunction func([]reflect.Value) []__RawValue__,
         ) __RawExecutionResult__ {
-        	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeoutMillis)
+        	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
         	defer cancel()
+
+        	trace := make([]uint16, 0, $maxTraceLength)
 
         	done := make(chan __RawExecutionResult__, 1)
         	go func() {
@@ -504,7 +502,9 @@ object GoCodeTemplates {
         			TimeoutExceeded: false,
         			RawResultValues: []__RawValue__{},
         			PanicMessage:    nil,
+        			Trace:           []uint16{},
         		}
+
         		panicked := true
         		defer func() {
         			panicMessage := recover()
@@ -526,11 +526,12 @@ object GoCodeTemplates {
         					ImplementsError: implementsError,
         				}
         			}
-        			executionResult.Trace = __traces__
+        			executionResult.Trace = trace
         			done <- executionResult
         		}()
 
-        		resultValues := wrappedFunction()
+        		argumentsWithTrace := append(arguments, reflect.ValueOf(&trace))
+        		resultValues := wrappedFunction(argumentsWithTrace)
         		executionResult.RawResultValues = resultValues
         		panicked = false
         	}()
@@ -543,7 +544,7 @@ object GoCodeTemplates {
         			TimeoutExceeded: true,
         			RawResultValues: []__RawValue__{},
         			PanicMessage:    nil,
-        			Trace:           __traces__,
+        			Trace:           trace,
         		}
         	}
         }
@@ -767,7 +768,8 @@ object GoCodeTemplates {
     fun getTopLevelHelperStructsAndFunctionsForWorker(
         structTypes: Set<GoStructTypeId>,
         destinationPackage: GoPackage,
-        aliases: Map<GoPackage, String?>
+        aliases: Map<GoPackage, String?>,
+        maxTraceLength: Int,
     ) = listOf(
         testInputStruct,
         rawValueInterface,
@@ -786,7 +788,7 @@ object GoCodeTemplates {
         checkErrorFunction,
         convertFloat64ValueToStringFunction,
         convertReflectValueToRawValueFunction,
-        executeFunctionFunction,
+        executeFunctionFunction(maxTraceLength),
         wrapResultValuesForWorkerFunction,
         convertRawValuesToReflectValuesFunction,
         parseJsonToFunctionNameAndRawValuesFunction,

@@ -88,6 +88,7 @@ type AnalysisResult struct {
 }
 
 type AnalysisResults struct {
-	IntSize int              `json:"intSize"`
-	Results []AnalysisResult `json:"results"`
+	Results        []AnalysisResult `json:"results"`
+	IntSize        int              `json:"intSize"`
+	MaxTraceLength int              `json:"maxTraceLength"`
 }

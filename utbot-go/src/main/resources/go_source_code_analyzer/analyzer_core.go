@@ -162,10 +162,6 @@ func checkIsSupported(signature *types.Signature) bool {
 	return true
 }
 
-func createNewFunctionName(funcName string) string {
-	return "__" + funcName + "__"
-}
-
 func collectTargetAnalyzedFunctions(
 	fset *token.FileSet,
 	info *types.Info,
@@ -205,7 +201,6 @@ func collectTargetAnalyzedFunctions(
 
 				analyzedFunction := AnalyzedFunction{
 					Name:            typedObj.Name(),
-					ModifiedName:    createNewFunctionName(typedObj.Name()),
 					Parameters:      []AnalyzedFunctionParameter{},
 					ResultTypes:     []AnalyzedType{},
 					RequiredImports: []Import{},
@@ -255,13 +250,13 @@ func collectTargetAnalyzedFunctions(
 				}
 
 				funcDecl := ident.Obj.Decl.(*ast.FuncDecl)
-				funcDecl.Name = ast.NewIdent(analyzedFunction.ModifiedName)
 
 				constantExtractor := ConstantExtractor{info: info, constants: map[string][]string{}}
 				ast.Walk(&constantExtractor, funcDecl)
 				analyzedFunction.Constants = constantExtractor.constants
 
-				functionModifier := FunctionModifier{lineCounter: 0}
+				functionModifier := FunctionModifier{maxTraceLen: MaxTraceLength}
+				functionModifier.ModifyFunctionDeclaration(funcDecl)
 				ast.Walk(&functionModifier, funcDecl)
 
 				importsCollector := ImportsCollector{
@@ -284,6 +279,7 @@ func collectTargetAnalyzedFunctions(
 				err := cfg.Fprint(&modifiedFunction, fset, funcDecl)
 				checkError(err)
 
+				analyzedFunction.ModifiedName = funcDecl.Name.String()
 				for i := range importsCollector.requiredImports {
 					analyzedFunction.RequiredImports = append(analyzedFunction.RequiredImports, i)
 				}

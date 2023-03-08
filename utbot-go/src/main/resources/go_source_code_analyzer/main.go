@@ -15,6 +15,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+const MaxTraceLength = 1024
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err.Error())
@@ -139,12 +141,13 @@ func main() {
 			results[i] = *result
 		}(i, target)
 	}
-	
+
 	wg.Wait()
 
 	analysisResults := AnalysisResults{
-		IntSize: strconv.IntSize,
-		Results: results,
+		Results:        results,
+		IntSize:        strconv.IntSize,
+		MaxTraceLength: MaxTraceLength,
 	}
 
 	// serialize and write results

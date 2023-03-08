@@ -23,7 +23,7 @@ import org.utbot.python.newtyping.mypy.getErrorNumber
 import org.utbot.python.newtyping.utils.getOffsetLine
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.ExecutionWithTimeoutMode
-import org.utbot.python.utils.GenerationLimitManager
+import org.utbot.python.utils.TestGenerationLimitManager
 import org.utbot.python.utils.PriorityCartesianProduct
 import org.utbot.python.utils.TimeoutMode
 import java.io.File
@@ -119,7 +119,7 @@ class PythonTestCaseGenerator(
 
     fun generate(method: PythonMethod, until: Long): PythonTestSet {
         storageForMypyMessages.clear()
-        val limitManager = GenerationLimitManager(
+        val limitManager = TestGenerationLimitManager(
             ExecutionWithTimeoutMode,
             until,
         )
@@ -166,16 +166,14 @@ class PythonTestCaseGenerator(
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
                 val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
-                val startTime = System.currentTimeMillis()
 
-                engine.fuzzing(args, fuzzerCancellation, until).collect {
+                engine.fuzzing(args, fuzzerCancellation, limitManager).collect {
                     generated += 1
                     when (it) {
                         is ValidExecution -> {
                             executions += it.utFuzzedExecution
                             missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
                             feedback = SuccessFeedback
-                            limitManager.addSuccessExecution()
                         }
                         is InvalidExecution -> {
                             errors += it.utError
@@ -183,16 +181,12 @@ class PythonTestCaseGenerator(
                         }
                         is ArgumentsTypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
-                            limitManager.addInvalidExecution()
                         }
                         is TypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
-                            limitManager.addInvalidExecution()
                         }
                     }
                     limitManager.missedLines = missingLines?.size
-
-                    logger.info { "Time ${System.currentTimeMillis() - startTime}: $generated, $missingLines" }
                 }
                 limitManager.restart()
                 feedback
@@ -235,7 +229,7 @@ class PythonTestCaseGenerator(
         hintCollector: HintCollector,
         report: List<MypyReportLine>,
         mypyConfigFile: File,
-        limitManager: GenerationLimitManager,
+        limitManager: TestGenerationLimitManager,
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
     ) {
         val namesInModule = mypyStorage.names

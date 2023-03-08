@@ -2,7 +2,7 @@ package org.utbot.python.utils
 
 import kotlin.math.min
 
-class GenerationLimitManager(
+class TestGenerationLimitManager(
     // global settings
     var mode: LimitManagerMode,
     val until: Long,
@@ -28,6 +28,7 @@ class GenerationLimitManager(
     fun addSuccessExecution() {
         executions -= 1
     }
+
     fun addInvalidExecution() {
         invalidExecutions -= 1
     }
@@ -38,23 +39,23 @@ class GenerationLimitManager(
 }
 
 interface LimitManagerMode {
-    fun isCancelled(manager: GenerationLimitManager): Boolean
+    fun isCancelled(manager: TestGenerationLimitManager): Boolean
 }
 
 object MaxCoverageMode : LimitManagerMode {
-    override fun isCancelled(manager: GenerationLimitManager): Boolean {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         return manager.missedLines?.equals(0) == true
     }
 }
 
 object TimeoutMode : LimitManagerMode {
-    override fun isCancelled(manager: GenerationLimitManager): Boolean {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         return System.currentTimeMillis() >= manager.until
     }
 }
 
 object ExecutionMode : LimitManagerMode {
-    override fun isCancelled(manager: GenerationLimitManager): Boolean {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         if (manager.invalidExecutions <= 0 || manager.executions <= 0) {
             return min(manager.invalidExecutions, 0) + min(manager.executions, 0) <= manager.additionalExecutions
         }
@@ -63,13 +64,13 @@ object ExecutionMode : LimitManagerMode {
 }
 
 object MaxCoverageWithTimeoutMode : LimitManagerMode {
-    override fun isCancelled(manager: GenerationLimitManager): Boolean {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         return MaxCoverageMode.isCancelled(manager) || TimeoutMode.isCancelled(manager)
     }
 }
 
 object ExecutionWithTimeoutMode : LimitManagerMode {
-    override fun isCancelled(manager: GenerationLimitManager): Boolean {
+    override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         return ExecutionMode.isCancelled(manager) || TimeoutMode.isCancelled(manager)
     }
 }

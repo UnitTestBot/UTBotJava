@@ -14,7 +14,6 @@ import utils.data.ResultData
 abstract class CoverageService(
     context: ServiceContext,
     private val scriptTexts: List<String>,
-    private val baseCoverage: List<Int>,
 ): ContextOwner by context {
 
     private val _utbotDirPath = lazy { "${projectPath}/${utbotDir}" }
@@ -50,11 +49,11 @@ abstract class CoverageService(
                     timeout = settings.timeout,
                 )
                 return JSONObject(File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.json").readText())
-                    .getJSONObject("s").let {
-                        it.keySet().flatMap { key ->
-                            val count = it.getInt(key)
-                            Collections.nCopies(count, key.toInt())
-                        }
+                    .getJSONObject("s").let { obj ->
+                        obj.keys().asSequence().mapNotNull {
+                            val count = obj.getInt(it)
+                            if (count == 0) null else it.toInt()
+                        }.toList()
                     }
             }
         }
@@ -79,17 +78,11 @@ abstract class CoverageService(
             // TODO: sort by coverage size desc
             return coverageList
                 .map { (_, obj) ->
-                    val dirtyCoverage = obj
-                        .let {
-                            it.keySet().flatMap { key ->
-                                val count = it.getInt(key)
-                                Collections.nCopies(count, key.toInt())
-                            }.toMutableList()
-                        }
-                    baseCoverage.forEach {
-                        dirtyCoverage.remove(it)
-                    }
-                    CoverageData(dirtyCoverage.toSet())
+                    val res = obj.keys().asSequence().mapNotNull {
+                        val count = obj.getInt(it)
+                        if (count == 0) null else it.toInt()
+                    }.toSet()
+                    CoverageData(res)
                 }
         } catch (e: JSONException) {
             throw Exception("Could not get coverage of test cases!")

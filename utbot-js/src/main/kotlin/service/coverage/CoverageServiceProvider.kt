@@ -95,7 +95,6 @@ function check_value(value, json) {
         val coverageService = BasicCoverageService(
             context = context,
             scriptTexts = tempScriptTexts,
-            baseCoverage = baseCoverage
         )
         coverageService.generateCoverageReport()
         return coverageService.getCoveredLines() to coverageService.resultList
@@ -120,7 +119,6 @@ function check_value(value, json) {
             context = context,
             scriptTexts = listOf(tempScriptTexts),
             testCaseIndices = fuzzedValues.indices,
-            baseCoverage = baseCoverage,
         )
         coverageService.generateCoverageReport()
         return coverageService.getCoveredLines() to coverageService.resultList

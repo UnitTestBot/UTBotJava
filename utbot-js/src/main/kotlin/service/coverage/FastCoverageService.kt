@@ -15,8 +15,7 @@ class FastCoverageService(
     context: ServiceContext,
     scriptTexts: List<String>,
     private val testCaseIndices: IntRange,
-    baseCoverage: List<Int>,
-) : CoverageService(context, scriptTexts, baseCoverage) {
+) : CoverageService(context, scriptTexts) {
 
     override fun generateCoverageReport() {
         val (_, errorText) = JsCmdExec.runCommand(

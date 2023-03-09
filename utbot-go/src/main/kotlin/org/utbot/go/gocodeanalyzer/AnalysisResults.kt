@@ -115,4 +115,4 @@ internal data class AnalysisResult(
     val notFoundFunctionsNames: List<String>
 )
 
-internal data class AnalysisResults(val intSize: Int, val results: List<AnalysisResult>)
+internal data class AnalysisResults(val results: List<AnalysisResult>, val intSize: Int, val maxTraceLength: Int)

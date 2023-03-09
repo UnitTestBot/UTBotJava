@@ -28,6 +28,7 @@ object GoTestCasesGenerator {
         sourceFile: GoUtFile,
         functions: List<GoUtFunction>,
         intSize: Int,
+        maxTraceLength: Int,
         goExecutableAbsolutePath: String,
         eachExecutionTimeoutMillis: Long,
         connectionTimeoutMillis: Long = 10000,
@@ -52,6 +53,7 @@ object GoTestCasesGenerator {
                     functions,
                     eachExecutionTimeoutMillis,
                     serverSocket.localPort,
+                    maxTraceLength,
                     imports
                 )
                 fileWithModifiedFunctions = GoWorkerCodeGenerationHelper.createFileWithModifiedFunctions(

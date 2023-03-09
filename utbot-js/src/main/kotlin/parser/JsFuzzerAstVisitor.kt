@@ -7,6 +7,8 @@ import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsStringClassId
 import fuzzer.JsFuzzedConcreteValue
 import fuzzer.JsFuzzedContext
+import fuzzer.JsFuzzedConcreteValue
+import fuzzer.JsFuzzedContext
 
 
 import parser.JsParserUtils.getAnyValue

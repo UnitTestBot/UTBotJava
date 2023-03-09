@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.language.go.ui
 
 import com.goide.psi.GoFunctionOrMethodDeclaration
 import com.goide.refactor.ui.GoDeclarationInfo
+import com.intellij.openapi.components.service
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
@@ -12,12 +13,10 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import org.utbot.go.logic.GoUtTestsGenerationConfig
 import org.utbot.intellij.plugin.language.go.models.GenerateGoTestsModel
+import org.utbot.intellij.plugin.settings.Settings
 import java.text.ParseException
 import java.util.concurrent.TimeUnit
 import javax.swing.JComponent
-
-private const val MINIMUM_EACH_EXECUTION_TIMEOUT_MILLIS = 1
-private const val EACH_EXECUTION_TIMEOUT_MILLIS_SPINNER_STEP = 10
 
 private const val MINIMUM_ALL_EXECUTION_TIMEOUT_SECONDS = 1
 private const val ALL_EXECUTION_TIMEOUT_SECONDS_SPINNER_STEP = 10
@@ -37,13 +36,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
             MINIMUM_ALL_EXECUTION_TIMEOUT_SECONDS,
             Int.MAX_VALUE,
             ALL_EXECUTION_TIMEOUT_SECONDS_SPINNER_STEP
-        )
-    private val eachFunctionExecutionTimeoutMillisSpinner =
-        JBIntSpinner(
-            GoUtTestsGenerationConfig.DEFAULT_EACH_EXECUTION_TIMEOUT_MILLIS.toInt(),
-            MINIMUM_EACH_EXECUTION_TIMEOUT_MILLIS,
-            Int.MAX_VALUE,
-            EACH_EXECUTION_TIMEOUT_MILLIS_SPINNER_STEP
         )
 
     private lateinit var panel: DialogPanel
@@ -65,10 +57,6 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
                 component(allFunctionExecutionTimeoutSecondsSpinner)
                 component(JBLabel("seconds"))
             }
-            row("Timeout for each function execution:") {
-                component(eachFunctionExecutionTimeoutMillisSpinner)
-                component(JBLabel("ms"))
-            }
         }
         updateFunctionsOrMethodsTable()
         return panel
@@ -77,11 +65,13 @@ class GenerateGoTestsDialogWindow(val model: GenerateGoTestsModel) : DialogWrapp
     override fun doOKAction() {
         model.selectedFunctions = targetFunctionsTable.selectedMemberInfos.fromInfos()
         try {
-            eachFunctionExecutionTimeoutMillisSpinner.commitEdit()
             allFunctionExecutionTimeoutSecondsSpinner.commitEdit()
         } catch (_: ParseException) {
         }
-        model.eachFunctionExecutionTimeoutMillis = eachFunctionExecutionTimeoutMillisSpinner.number.toLong()
+        val settings = model.project.service<Settings>()
+        with(settings) {
+            model.eachFunctionExecutionTimeoutMillis = hangingTestsTimeout.timeoutMs
+        }
         model.allFunctionExecutionTimeoutMillis =
             TimeUnit.SECONDS.toMillis(allFunctionExecutionTimeoutSecondsSpinner.number.toLong())
         super.doOKAction()

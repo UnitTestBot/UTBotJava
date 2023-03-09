@@ -10,9 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 
 	"golang.org/x/tools/go/packages"
 )
+
+const MaxTraceLength = 1024
 
 func checkError(err error) {
 	if err != nil {
@@ -124,15 +127,27 @@ func main() {
 	checkError(fromJsonErr)
 
 	// parse each requested Go source file
-	analysisResults := AnalysisResults{
-		IntSize: strconv.IntSize,
-		Results: []AnalysisResult{},
-	}
-	for _, target := range analysisTargets.Targets {
-		result, err := analyzeTarget(target)
-		checkError(err)
+	var wg sync.WaitGroup
 
-		analysisResults.Results = append(analysisResults.Results, *result)
+	results := make([]AnalysisResult, len(analysisTargets.Targets))
+	for i, target := range analysisTargets.Targets {
+		wg.Add(1)
+		go func(i int, target AnalysisTarget) {
+			defer wg.Done()
+
+			result, err := analyzeTarget(target)
+			checkError(err)
+
+			results[i] = *result
+		}(i, target)
+	}
+
+	wg.Wait()
+
+	analysisResults := AnalysisResults{
+		Results:        results,
+		IntSize:        strconv.IntSize,
+		MaxTraceLength: MaxTraceLength,
 	}
 
 	// serialize and write results

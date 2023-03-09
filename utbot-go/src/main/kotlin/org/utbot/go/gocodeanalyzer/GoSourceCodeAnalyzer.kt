@@ -23,6 +23,12 @@ object GoSourceCodeAnalyzer {
         val notFoundFunctionsNames: List<String>
     )
 
+    data class GoSourceCodeAnalyzerResult(
+        val analysisResults: Map<GoUtFile, GoSourceFileAnalysisResult>,
+        val intSize: Int,
+        val maxTraceLength: Int,
+    )
+
     /**
      * Takes map from absolute paths of Go source files to names of their selected functions.
      *
@@ -31,7 +37,7 @@ object GoSourceCodeAnalyzer {
     fun analyzeGoSourceFilesForFunctions(
         targetFunctionsNamesBySourceFiles: Map<String, List<String>>,
         goExecutableAbsolutePath: String
-    ): Pair<Map<GoUtFile, GoSourceFileAnalysisResult>, Int> {
+    ): GoSourceCodeAnalyzerResult {
         val analysisTargets = AnalysisTargets(
             targetFunctionsNamesBySourceFiles.map { (absoluteFilePath, targetFunctionsNames) ->
                 AnalysisTarget(absoluteFilePath, targetFunctionsNames)
@@ -67,7 +73,8 @@ object GoSourceCodeAnalyzer {
             )
             val analysisResults = parseFromJsonOrFail<AnalysisResults>(analysisResultsFile)
             val intSize = analysisResults.intSize
-            return analysisResults.results.map { analysisResult ->
+            val maxTraceLength = analysisResults.maxTraceLength
+            return GoSourceCodeAnalyzerResult(analysisResults.results.map { analysisResult ->
                 GoUtFile(analysisResult.absoluteFilePath, analysisResult.sourcePackage) to analysisResult
             }.associateBy({ (sourceFile, _) -> sourceFile }) { (sourceFile, analysisResult) ->
                 val functions = analysisResult.analyzedFunctions.map { analyzedFunction ->
@@ -106,7 +113,7 @@ object GoSourceCodeAnalyzer {
                     analysisResult.notSupportedFunctionsNames,
                     analysisResult.notFoundFunctionsNames
                 )
-            } to intSize
+            }, intSize, maxTraceLength)
         } finally {
             // TODO correctly?
             analysisTargetsFile.delete()

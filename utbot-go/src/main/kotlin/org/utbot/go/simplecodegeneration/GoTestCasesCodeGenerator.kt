@@ -18,28 +18,29 @@ object GoTestCasesCodeGenerator {
 
     fun generateTestCasesFileCode(sourceFile: GoUtFile, testCases: List<GoUtFuzzedFunctionTestCase>): String {
         val destinationPackage = sourceFile.sourcePackage
-        if (testCases.isEmpty() || testCases.all { it.executionResult is GoUtTimeoutExceeded }) {
-            return GoFileCodeBuilder(destinationPackage, emptySet()).buildCodeString()
-        }
-        val requiredPackages = mutableSetOf<GoPackage>()
-        testCases.forEach { testCase ->
-            testCase.parametersValues.forEach {
-                requiredPackages += it.getRequiredPackages(destinationPackage)
-            }
-            when (val executionResult = testCase.executionResult) {
-                is GoUtExecutionCompleted -> executionResult.models.forEach {
+        val imports = if (testCases.isEmpty() || testCases.all { it.executionResult is GoUtTimeoutExceeded }) {
+            emptySet()
+        } else {
+            val requiredPackages = mutableSetOf<GoPackage>()
+            testCases.forEach { testCase ->
+                testCase.parametersValues.forEach {
                     requiredPackages += it.getRequiredPackages(destinationPackage)
                 }
+                when (val executionResult = testCase.executionResult) {
+                    is GoUtExecutionCompleted -> executionResult.models.forEach {
+                        requiredPackages += it.getRequiredPackages(destinationPackage)
+                    }
 
-                is GoUtPanicFailure -> requiredPackages += executionResult.panicValue.getRequiredPackages(
-                    destinationPackage
-                )
+                    is GoUtPanicFailure -> requiredPackages += executionResult.panicValue.getRequiredPackages(
+                        destinationPackage
+                    )
+                }
             }
-        }
 
-        val imports = GoImportsResolver.resolveImportsBasedOnRequiredPackages(
-            requiredPackages, destinationPackage, alwaysRequiredImports
-        )
+            GoImportsResolver.resolveImportsBasedOnRequiredPackages(
+                requiredPackages, destinationPackage, alwaysRequiredImports
+            )
+        }
         val fileBuilder = GoFileCodeBuilder(destinationPackage, imports)
         val aliases = imports.associate { (goPackage, alias) -> goPackage to alias }
         val goUtModelToCodeConverter = GoUtModelToCodeConverter(destinationPackage, aliases)

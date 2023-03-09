@@ -50,7 +50,7 @@ class JsUtModelConstructor : UtModelConstructorInterface {
         val values = (value as Map<String, Any>).values.map {
             construct(it, JsEmptyClassId())
         }
-        val id = JsIdProvider.get()
+        val id = JsIdProvider.createId()
         val instantiationCall = UtExecutableCallModel(null, constructor, values)
         return UtAssembleModel(
             id = id,

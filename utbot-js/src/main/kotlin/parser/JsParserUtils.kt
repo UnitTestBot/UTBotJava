@@ -7,6 +7,8 @@ import com.google.javascript.rhino.Node
 import fuzzer.JsFuzzedContext
 import java.lang.IllegalStateException
 import parser.JsParserUtils.getMethodName
+import fuzzer.JsFuzzedContext
+import parser.JsParserUtils.getMethodName
 
 // TODO: make methods more safe by checking the Node method is called on.
 // Used for .children() calls.

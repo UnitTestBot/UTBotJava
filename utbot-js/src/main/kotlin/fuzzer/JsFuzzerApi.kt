@@ -3,6 +3,8 @@ package fuzzer
 import framework.api.js.JsClassId
 import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtModel
 import java.util.concurrent.atomic.AtomicInteger
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
@@ -11,6 +13,7 @@ import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.utils.Trie
+import java.util.concurrent.atomic.AtomicInteger
 
 sealed interface JsFuzzingExecutionFeedback
 class JsValidExecution(val utFuzzedExecution: JsUtFuzzedExecution) : JsFuzzingExecutionFeedback
@@ -40,28 +43,13 @@ class JsMethodDescription(
     )
 }
 
-class JsFeedback(
+data class JsFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<JsStatement> = Trie.emptyNode()
-) : Feedback<JsClassId, JsFuzzedValue> {
-
-    override fun equals(other: Any?): Boolean {
-        val castOther = other as? JsFeedback
-        return control == castOther?.control
-    }
-
-    override fun hashCode(): Int {
-        return control.hashCode()
-    }
-}
+) : Feedback<JsClassId, UtModel>
 
 data class JsStatement(
     val number: Int
-)
-
-data class JsFuzzedValue(
-    val model: UtModel,
-    var summary: String? = null,
 )
 
 data class JsFuzzedConcreteValue(
@@ -90,10 +78,8 @@ enum class JsFuzzedContext {
     }
 }
 
-fun UtModel.fuzzed(block: JsFuzzedValue.() -> Unit = {}): JsFuzzedValue = JsFuzzedValue(this).apply(block)
-
 object JsIdProvider {
-    private var _id = AtomicInteger(0)
+    private var id = AtomicInteger(0)
 
-    fun get() = _id.incrementAndGet()
+    fun createId() = id.incrementAndGet()
 }

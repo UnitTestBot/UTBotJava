@@ -17,20 +17,26 @@ import org.utbot.python.framework.api.python.util.pythonNoneClassId
 import org.utbot.python.framework.codegen.PythonCgLanguageAssistant
 import org.utbot.python.framework.codegen.model.tree.*
 
-class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(context_) {
+class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(cgContext) {
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return valueByModel.getOrPut(model) {
             when (model) {
-                is PythonBoolModel -> CgLiteral(model.classId, model.value)
-                is PythonPrimitiveModel -> CgLiteral(model.classId, model.value)
+                is PythonBoolModel -> {
+                    CgLiteral(model.classId, model.value)
+                }
+                is PythonPrimitiveModel -> {
+                    CgLiteral(model.classId, model.value)
+                }
                 is PythonTreeModel -> {
                     val (value, arguments) = pythonBuildObject(model.tree)
                     CgPythonTree(model.classId, model.tree, value, arguments)
                 }
-                is PythonInitObjectModel -> constructInitObjectModel(model, baseName)
+                is PythonInitObjectModel -> {
+                    constructInitObjectModel(model, baseName)
+                }
                 is PythonDictModel -> CgPythonDict(model.stores.map {
                     getOrCreateVariable(it.key) to getOrCreateVariable(
                         it.value

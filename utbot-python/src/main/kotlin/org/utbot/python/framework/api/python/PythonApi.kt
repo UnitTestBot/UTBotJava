@@ -17,17 +17,18 @@ import org.utbot.python.framework.api.python.util.moduleOfType
 const val pythonBuiltinsModuleName = "builtins"
 
 class PythonClassId(
-    name: String  // includes module (like "_ast.Assign")
+    val moduleName: String,
+    name: String,
 ) : ClassId(name) {
-    override fun toString(): String = name
-    val rootModuleName: String = this.toString().split(".")[0]
-    override val simpleName: String = name.split(".").last()
-    val moduleName: String
-        get() {
-            return moduleOfType(name) ?: pythonBuiltinsModuleName
-        }
+    constructor(fullName: String) : this(
+        moduleOfType(fullName) ?: pythonBuiltinsModuleName,
+        fullName.removePrefix(moduleOfType(fullName) ?: pythonBuiltinsModuleName).removePrefix(".")
+    )
+    override fun toString(): String = canonicalName
+    val rootModuleName: String = moduleName.split(".").first()
+    override val simpleName: String = name
+    override val canonicalName = "$moduleName.$name"
     override val packageName = moduleName
-    override val canonicalName = name
 }
 
 open class RawPythonAnnotation(

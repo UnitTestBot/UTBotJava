@@ -1,6 +1,7 @@
 package org.utbot.go.api.util
 
 import org.utbot.go.api.*
+import org.utbot.go.framework.api.go.GoPackage
 import org.utbot.go.framework.api.go.GoTypeId
 import org.utbot.go.framework.api.go.GoUtModel
 import kotlin.reflect.KClass
@@ -156,15 +157,20 @@ fun GoTypeId.goDefaultValueModel(): GoUtModel = when (this) {
     else -> GoUtNilModel(this)
 }
 
-fun GoTypeId.getAllStructTypes(): Set<GoStructTypeId> = when (this) {
-    is GoStructTypeId -> fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
-        acc + (field.declaringType).getAllStructTypes()
+fun GoTypeId.getAllVisibleStructTypes(goPackage: GoPackage): Set<GoStructTypeId> = when (this) {
+    is GoStructTypeId -> if (this.sourcePackage == goPackage || this.exported()) {
+        fields.fold(setOf(this)) { acc: Set<GoStructTypeId>, field ->
+            acc + (field.declaringType).getAllVisibleStructTypes(goPackage)
+        }
+    } else {
+        emptySet()
     }
 
-    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllStructTypes()
+    is GoArrayTypeId, is GoSliceTypeId -> elementTypeId!!.getAllVisibleStructTypes(goPackage)
     else -> emptySet()
 }
 
-fun List<GoTypeId>.getAllStructTypes(): Set<GoStructTypeId> = this.fold(emptySet()) { acc, type ->
-    acc + type.getAllStructTypes()
-}
+fun List<GoTypeId>.getAllVisibleStructTypes(goPackage: GoPackage): Set<GoStructTypeId> =
+    this.fold(emptySet()) { acc, type ->
+        acc + type.getAllVisibleStructTypes(goPackage)
+    }

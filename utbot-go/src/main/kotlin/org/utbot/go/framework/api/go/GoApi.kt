@@ -18,6 +18,14 @@ abstract class GoTypeId(
     override fun toString(): String = canonicalName
 }
 
+abstract class GoNamedTypeId(
+    name: String,
+    elementTypeId: GoTypeId? = null,
+    implementsError: Boolean = false
+) : GoTypeId(name, elementTypeId, implementsError) {
+    fun exported(): Boolean = name.first().isUpperCase()
+}
+
 /**
  * Parent class for all Go models.
  *

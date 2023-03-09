@@ -8,11 +8,11 @@ import org.utbot.taint.parser.constants.*
 import org.utbot.taint.parser.model.*
 import org.utbot.taint.parser.yaml.TaintParseError
 
-class TaintAnalysisConfigurationParserTest {
+class TaintYamlParserTest {
 
     @Test
     fun `parse should parse correct yaml`() {
-        val actualConfiguration = TaintAnalysisConfigurationParser.parse(yamlInput)
+        val actualConfiguration = TaintYamlParser.parse(yamlInput)
         assertEquals(expectedConfiguration, actualConfiguration)
     }
 
@@ -20,7 +20,7 @@ class TaintAnalysisConfigurationParserTest {
     fun `parse should throw exception on malformed yaml`() {
         val malformedYamlInput = yamlInput.replace("{", "")
         assertThrows<YamlException> {
-            TaintAnalysisConfigurationParser.parse(malformedYamlInput)
+            TaintYamlParser.parse(malformedYamlInput)
         }
     }
 
@@ -28,7 +28,7 @@ class TaintAnalysisConfigurationParserTest {
     fun `parse should throw exception on incorrect yaml`() {
         val incorrectYamlInput = yamlInput.replace(k_not, "net")
         assertThrows<TaintParseError> {
-            TaintAnalysisConfigurationParser.parse(incorrectYamlInput)
+            TaintYamlParser.parse(incorrectYamlInput)
         }
     }
 

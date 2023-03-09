@@ -427,7 +427,8 @@ data class GenerateParams (
     val isSymbolicEngineEnabled: Boolean,
     val isFuzzingEnabled: Boolean,
     val fuzzingValue: Double,
-    val searchDirectory: String
+    val searchDirectory: String,
+    val taintConfigPath: String?
 ) : IPrintable {
     //companion
     
@@ -448,7 +449,8 @@ data class GenerateParams (
             val isFuzzingEnabled = buffer.readBool()
             val fuzzingValue = buffer.readDouble()
             val searchDirectory = buffer.readString()
-            return GenerateParams(mockInstalled, staticsMockingIsConfigureda, conflictTriggers, methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory)
+            val taintConfigPath = buffer.readNullable { buffer.readString() }
+            return GenerateParams(mockInstalled, staticsMockingIsConfigureda, conflictTriggers, methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory, taintConfigPath)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateParams)  {
@@ -464,6 +466,7 @@ data class GenerateParams (
             buffer.writeBool(value.isFuzzingEnabled)
             buffer.writeDouble(value.fuzzingValue)
             buffer.writeString(value.searchDirectory)
+            buffer.writeNullable(value.taintConfigPath) { buffer.writeString(it) }
         }
         
         
@@ -491,7 +494,8 @@ data class GenerateParams (
         if (isFuzzingEnabled != other.isFuzzingEnabled) return false
         if (fuzzingValue != other.fuzzingValue) return false
         if (searchDirectory != other.searchDirectory) return false
-        
+        if (taintConfigPath != other.taintConfigPath) return false
+
         return true
     }
     //hash code trait
@@ -509,6 +513,7 @@ data class GenerateParams (
         __r = __r*31 + isFuzzingEnabled.hashCode()
         __r = __r*31 + fuzzingValue.hashCode()
         __r = __r*31 + searchDirectory.hashCode()
+        __r = __r*31 + if (taintConfigPath != null) taintConfigPath.hashCode() else 0
         return __r
     }
     //pretty print
@@ -527,6 +532,7 @@ data class GenerateParams (
             print("isFuzzingEnabled = "); isFuzzingEnabled.print(printer); println()
             print("fuzzingValue = "); fuzzingValue.print(printer); println()
             print("searchDirectory = "); searchDirectory.print(printer); println()
+            print("taintConfigPath = "); taintConfigPath.print(printer); println()
         }
         printer.print(")")
     }

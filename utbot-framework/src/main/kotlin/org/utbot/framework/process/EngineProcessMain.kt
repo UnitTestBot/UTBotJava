@@ -125,6 +125,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                 MockStrategyApi.valueOf(params.mockStrategy),
                 kryoHelper.readObject(params.chosenClassesToMockAlways),
                 params.timeout,
+                params.taintConfigPath,
                 generate = generateFlow,
             )
                 .summarizeAll(Paths.get(params.searchDirectory), null)

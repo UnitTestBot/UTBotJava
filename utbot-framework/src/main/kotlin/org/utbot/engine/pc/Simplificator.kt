@@ -628,6 +628,8 @@ open class Simplificator(
             }
         }
 
+    override fun visit(expr: UtBvNotExpression): UtExpression = expr
+
     override fun visit(expr: UtCastExpression): UtExpression =
         applySimplification(expr) {
             val newExpr = expr.variable.expr.accept(this)

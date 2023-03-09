@@ -8,6 +8,10 @@ configurations {
     z3native
 }
 
+plugins {
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.7.20'
+}
+
 dependencies {
 
     api project(':utbot-fuzzers')
@@ -30,6 +34,7 @@ dependencies {
     implementation group: 'com.charleskorn.kaml', name: 'kaml', version: kamlVersion
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
+    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-serialization-cbor', version: kotlinxSerializationVersion
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion

@@ -1,0 +1,11 @@
+sources:
+  - java.util.Scanner.next:
+      add-to: return
+      marks: user-input
+
+sinks:
+  - java.lang.RuntimeException.<init>:
+      check: arg1
+      marks: []
+      conditions:
+        arg1: { not: "" }

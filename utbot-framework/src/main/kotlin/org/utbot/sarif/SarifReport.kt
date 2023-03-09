@@ -156,10 +156,14 @@ class SarifReport(
         val methodArguments = utExecution.stateBefore.parameters
             .joinToString(prefix = "", separator = ", ", postfix = "") { it.preview() }
 
-        val errorMessage = if (executionFailure is UtTimeoutException)
-            "Unexpected behavior: ${executionFailure.exception.message}"
-        else
-            "Unexpected exception: ${executionFailure.exception}"
+        val errorMessage = when (executionFailure) {
+            is UtTimeoutException ->
+                "Unexpected behavior: ${executionFailure.exception.message}"
+            is UtTaintAnalysisFailure ->
+                executionFailure.exception.message
+            else ->
+                "Unexpected exception: ${executionFailure.exception}"
+        }
 
         val sarifResult = SarifResult(
             ruleId,
@@ -474,9 +478,10 @@ class SarifReport(
     private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
         val implicitlyThrown = result is UtImplicitlyThrownException
         val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
+        val taintAnalysisFailure = result is UtTaintAnalysisFailure && UtSettings.useTaintAnalysis
         val assertionError = result is UtExplicitlyThrownException && result.exception is AssertionError
         val sandboxFailure = result is UtSandboxFailure
         val timeoutException = result is UtTimeoutException
-        return implicitlyThrown || overflowFailure || assertionError || sandboxFailure || timeoutException
+        return implicitlyThrown || overflowFailure || taintAnalysisFailure || assertionError || sandboxFailure || timeoutException
     }
 }

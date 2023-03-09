@@ -45,11 +45,6 @@ import soot.SootField
 import soot.SootMethod
 import soot.Type
 import soot.Value
-import soot.jimple.Expr
-import soot.jimple.InvokeExpr
-import soot.jimple.JimpleBody
-import soot.jimple.StaticFieldRef
-import soot.jimple.Stmt
 import soot.jimple.internal.JDynamicInvokeExpr
 import soot.jimple.internal.JIdentityStmt
 import soot.jimple.internal.JInterfaceInvokeExpr
@@ -69,6 +64,7 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.framework.plugin.api.util.enumConstants
+import soot.jimple.*
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -84,6 +80,15 @@ fun Expr.isInvokeExpr() = this is JDynamicInvokeExpr
         || this is JInterfaceInvokeExpr
         || this is JVirtualInvokeExpr
         || this is JSpecialInvokeExpr
+
+fun InvokeExpr.baseOrNull(): Value? =
+    when (this) {
+        is StaticInvokeExpr -> null
+        is SpecialInvokeExpr -> base
+        is VirtualInvokeExpr -> base
+        is InterfaceInvokeExpr -> base
+        else -> null
+    }
 
 val SootMethod.pureJavaSignature
     get() = bytecodeSignature.substringAfter(' ').dropLast(1)

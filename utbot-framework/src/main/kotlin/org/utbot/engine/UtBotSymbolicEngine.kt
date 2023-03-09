@@ -45,6 +45,8 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.taint.*
+import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -106,7 +108,8 @@ class UtBotSymbolicEngine(
     val mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     applicationContext: ApplicationContext?,
-    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
+    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
+    taintUserConfigPath: String? = null,
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
@@ -138,6 +141,16 @@ class UtBotSymbolicEngine(
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
+    private val taintMarkRegistry: TaintMarkRegistry = TaintMarkRegistry()
+    private val taintMarkManager: TaintMarkManager = TaintMarkManager(taintMarkRegistry)
+
+    private val taintConfiguration: TaintConfiguration = if (UtSettings.useTaintAnalysis)
+        constructDefaultProvider(taintUserConfigPath).getConfiguration()
+    else
+        TaintConfiguration() // empty
+
+    private val taintContext: TaintContext = TaintContext(taintMarkManager, taintConfiguration)
+
     private val traverser = Traverser(
         methodUnderTest,
         typeRegistry,
@@ -146,6 +159,7 @@ class UtBotSymbolicEngine(
         globalGraph,
         mocker,
         applicationContext,
+        taintContext,
     )
 
     //HACK (long strings)
@@ -489,7 +503,9 @@ class UtBotSymbolicEngine(
         if (!UtSettings.useConcreteExecution ||
             // Can't execute concretely because overflows do not cause actual exceptions.
             // Still, we need overflows to act as implicit exceptions.
-            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
+            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure) ||
+            // the same for taint analysis errors
+            (UtSettings.useTaintAnalysis && symbolicExecutionResult is UtTaintAnalysisFailure)
         ) {
             logger.debug {
                 "processResult<${methodUnderTest}>: no concrete execution allowed, " +

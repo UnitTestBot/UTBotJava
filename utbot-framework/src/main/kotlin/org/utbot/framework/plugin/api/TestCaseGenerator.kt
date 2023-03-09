@@ -135,6 +135,7 @@ open class TestCaseGenerator(
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
+        taintConfigPath: String? = null,
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
     ): List<UtMethodTestSet> {
         if (isCanceled()) return methods.map { UtMethodTestSet(it) }
@@ -168,7 +169,8 @@ open class TestCaseGenerator(
                                 mockStrategy,
                                 chosenClassesToMockAlways,
                                 applicationContext,
-                                executionTimeEstimator
+                                executionTimeEstimator,
+                                taintConfigPath
                             )
 
                             engineActions.map { engine.apply(it) }
@@ -258,7 +260,8 @@ open class TestCaseGenerator(
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         applicationContext: ApplicationContext?,
-        executionTimeEstimator: ExecutionTimeEstimator
+        executionTimeEstimator: ExecutionTimeEstimator,
+        taintConfigPath: String? = null,
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
         return UtBotSymbolicEngine(
@@ -269,7 +272,8 @@ open class TestCaseGenerator(
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
-            solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
+            solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
+            taintUserConfigPath = taintConfigPath,
         )
     }
 

@@ -16,3 +16,13 @@ sealed class ArtificialError(message: String): Error(message)
  * See [TraversalContext.intOverflowCheck] for more details.
  */
 class OverflowDetectionError(message: String): ArtificialError(message)
+
+/**
+ * An artificial error that could be implicitly thrown by the symbolic engine during taint sink processing.
+ */
+class TaintAnalysisError(
+    sinkFqn: String,
+    taintedVar: String,
+    taintMark: String,
+    message: String = "'$taintedVar' marked '$taintMark' was passed into '$sinkFqn' method"
+) : ArtificialError(message)

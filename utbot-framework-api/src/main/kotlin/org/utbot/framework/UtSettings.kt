@@ -265,6 +265,21 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
         DEFAULT_EXECUTION_TIMEOUT_IN_INSTRUMENTED_PROCESS_MS
     )
 
+    /**
+     * Enable taint analysis or not.
+     */
+    var useTaintAnalysis by getBooleanProperty(false)
+
+    /**
+     * How deep we should analyze the exceptions.
+     */
+    val exploreExceptionsDepth: ExploreExceptionsDepth
+        get() =
+            if (useTaintAnalysis)
+                ExploreExceptionsDepth.EXPLORE_ALL_STATEMENTS
+            else
+                ExploreExceptionsDepth.SKIP_ALL_STATEMENTS
+
 // region engine process debug
 
     /**
@@ -644,4 +659,25 @@ enum class SummariesGenerationType {
      * No summaries are generated
      */
     NONE,
+}
+
+/**
+ * Enum to describe how deep we should analyze the exceptions.
+ */
+enum class ExploreExceptionsDepth {
+
+    /**
+     * Skip all statements between exception's `new` and `<init>` statements.
+     */
+    SKIP_ALL_STATEMENTS,
+
+    /**
+     * Skip only exception's <init> statement.
+     */
+    SKIP_INIT_STATEMENT,
+
+    /**
+     * Do not skip statements.
+     */
+    EXPLORE_ALL_STATEMENTS
 }

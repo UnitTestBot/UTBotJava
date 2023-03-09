@@ -826,6 +826,27 @@ data class UtNegExpression(val variable: PrimitiveValue) : UtExpression(alignSor
     override fun hashCode() = hashCode
 }
 
+data class UtBvNotExpression(val variable: PrimitiveValue) : UtExpression(alignSort(variable.type.toSort())) {
+    override val hashCode = variable.hashCode
+
+    override fun <TResult> accept(visitor: UtExpressionVisitor<TResult>): TResult = visitor.visit(this)
+
+    override fun toString() = "(bvNot ${variable.expr})"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtBvNotExpression
+
+        if (variable != other.variable) return false
+
+        return true
+    }
+
+    override fun hashCode() = hashCode
+}
+
 /**
  * Implements Unary Numeric Promotion.
  * Converts byte, short and char sort to int sort.

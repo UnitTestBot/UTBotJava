@@ -12,6 +12,8 @@ import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.project.stateStore
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
@@ -248,6 +250,8 @@ object UtTestsDialogProcessor {
                                     }
                                     .executeSynchronously()
 
+                                val taintConfigPath = getTaintConfigPath(project)
+
                                 withStaticsSubstitutionRequired(true) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
@@ -277,7 +281,8 @@ object UtTestsDialogProcessor {
                                             true,
                                             UtSettings.useFuzzing,
                                             project.service<Settings>().fuzzingValue,
-                                            searchDirectory.pathString
+                                            searchDirectory.pathString,
+                                            taintConfigPath?.pathString
                                         )
 
                                         if (rdGenerateResult.notEmptyCases == 0) {
@@ -329,6 +334,14 @@ object UtTestsDialogProcessor {
                 }
             }).queue()
         }
+    }
+
+    /**
+     * Returns "{project}/.idea/utbot-taint-config.yaml" or null if it does not exists
+     */
+    private fun getTaintConfigPath(project: Project): Path? {
+        val path = project.stateStore.directoryStorePath?.resolve("utbot-taint-config.yaml")
+        return if (path != null && path.toFile().exists()) path else null
     }
 
     private val PsiClass.canonicalName: String

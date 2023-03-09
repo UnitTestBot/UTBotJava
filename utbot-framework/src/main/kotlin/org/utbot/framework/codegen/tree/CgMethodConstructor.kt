@@ -104,6 +104,7 @@ import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtStreamConsumingFailure
 import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.UtTaintAnalysisFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isNotNull
@@ -370,6 +371,9 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
             is UtOverflowFailure -> {
                 val failureMessage = "Overflow detected in \'${currentExecutable!!.name}\' call"
                 return CgLiteral(stringClassId, failureMessage)
+            }
+            is UtTaintAnalysisFailure -> {
+                return CgLiteral(stringClassId, executionResult.exception.message)
             }
             else -> error("$executionResult is not supported in artificial errors")
         }

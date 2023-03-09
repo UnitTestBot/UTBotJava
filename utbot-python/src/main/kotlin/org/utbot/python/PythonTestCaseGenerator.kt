@@ -15,6 +15,7 @@ import org.utbot.python.newtyping.general.*
 import org.utbot.python.newtyping.inference.InferredTypeFeedback
 import org.utbot.python.newtyping.inference.InvalidTypeFeedback
 import org.utbot.python.newtyping.inference.SuccessFeedback
+import org.utbot.python.newtyping.inference.TypeAnnotation
 import org.utbot.python.newtyping.inference.baseline.BaselineAlgorithm
 import org.utbot.python.newtyping.mypy.GlobalNamesStorage
 import org.utbot.python.newtyping.mypy.MypyAnnotationStorage
@@ -149,7 +150,7 @@ class PythonTestCaseGenerator(
                 mypyConfigFile,
                 limitManager,
             ) { functionType ->
-                val args = (functionType as FunctionType).arguments
+                val args = (functionType.type as FunctionType).arguments
 
                 logger.info { "Inferred annotations: ${args.joinToString { it.pythonTypeRepresentation() }}" }
 
@@ -163,9 +164,12 @@ class PythonTestCaseGenerator(
                     PythonTypeStorage.get(mypyStorage)
                 )
 
-                var feedback: InferredTypeFeedback = SuccessFeedback
+                var feedback: InferredTypeFeedback = InvalidTypeFeedback  // successTypeFeedback if we have at least one successful run
 
                 val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
+
+                if (functionType.isRandom)
+                    limitManager.invalidExecutions *= 3
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
                     generated += 1
@@ -178,22 +182,26 @@ class PythonTestCaseGenerator(
                         }
                         is InvalidExecution -> {
                             errors += it.utError
-                            feedback = SuccessFeedback
-                            limitManager.addSuccessExecution()
+                            limitManager.addInvalidExecution()
                         }
                         is ArgumentsTypeErrorFeedback -> {
-                            feedback = InvalidTypeFeedback
                             limitManager.addInvalidExecution()
                         }
                         is TypeErrorFeedback -> {
-                            feedback = InvalidTypeFeedback
                             limitManager.addInvalidExecution()
+                        }
+                        is RepeatedExecution -> {
+                            limitManager.addRepeatedExecution()
                         }
                     }
                     limitManager.missedLines = missingLines?.size
                 }
                 limitManager.restart()
-                feedback
+
+                if (generated == 0)
+                    SuccessFeedback
+                else
+                    feedback
             }
         }
 
@@ -234,7 +242,7 @@ class PythonTestCaseGenerator(
         report: List<MypyReportLine>,
         mypyConfigFile: File,
         limitManager: TestGenerationLimitManager,
-        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+        annotationHandler: suspend (TypeAnnotation) -> InferredTypeFeedback,
     ) {
         val namesInModule = mypyStorage.names
             .getOrDefault(curModule, emptyList())
@@ -257,7 +265,8 @@ class PythonTestCaseGenerator(
                 getOffsetLine(sourceFileContent, method.ast.beginOffset),
                 getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
-            mypyConfigFile
+            mypyConfigFile,
+            randomTypeFrequency = 6
         )
 
         runBlocking breaking@{
@@ -270,7 +279,7 @@ class PythonTestCaseGenerator(
             if (iterationNumber == 1) {
                 limitManager.mode = TimeoutMode
                 val existsAnnotation = method.definition.type
-                annotationHandler(existsAnnotation)
+                annotationHandler(TypeAnnotation(existsAnnotation))
             }
         }
     }

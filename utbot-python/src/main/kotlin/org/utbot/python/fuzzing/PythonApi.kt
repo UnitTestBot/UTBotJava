@@ -16,9 +16,7 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.PythonProtocolDescription
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.Type
 import org.utbot.python.newtyping.pythonTypeRepresentation
 
@@ -43,6 +41,7 @@ class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecution
 class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
 class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+object RepeatedExecution: FuzzingExecutionFeedback
 
 data class PythonExecutionResult(
     val fuzzingExecutionFeedback: FuzzingExecutionFeedback,
@@ -97,7 +96,7 @@ class PythonFuzzing(
 
     private fun generateSubtype(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
         var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
-        if (type.meta is PythonProtocolDescription) {
+        if (type.meta is PythonProtocolDescription || ((type.meta as? PythonConcreteCompositeTypeDescription)?.isAbstract == true)) {
             val subtypes = pythonTypeStorage.allTypes.filter {
                 PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it, pythonTypeStorage)
             }

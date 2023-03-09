@@ -108,8 +108,8 @@ class TypeInferenceProcessor(
             val annotations = emptyList<Type>().toMutableList()
             runBlocking {
                 algo.run(collector.result, cancel) {
-                    annotations.add(it)
-                    processSignature(it)
+                    annotations.add(it.type)
+                    processSignature(it.type)
                     SuccessFeedback
                 }
             }

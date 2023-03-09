@@ -144,7 +144,7 @@ class PythonProtocolDescription(
 
 class PythonCallableTypeDescription(
     val argumentKinds: List<ArgKind>,
-    val argumentNames: List<String?>  // like in mypy's CallableType: https://github.com/python/mypy/blob/master/mypy/types.py#L1672
+    val argumentNames: List<String?>  // like in mypy's CallableType: https://github.com/python/mypy/blob/master/mypy/types.py#L1686
 ): PythonTypeDescription(pythonCallableName) {
     val numberOfArguments = argumentKinds.size
     override fun castToCompatibleTypeApi(type: Type): FunctionType {

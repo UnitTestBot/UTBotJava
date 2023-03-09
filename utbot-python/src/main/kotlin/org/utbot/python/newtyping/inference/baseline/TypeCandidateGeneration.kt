@@ -158,6 +158,16 @@ fun createTypeRating(
     return TypeRating(scores)
 }
 
+fun simplestTypes(storage: PythonTypeStorage): List<Type> {
+    val int = storage.pythonInt
+    val listOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonList, listOf(pythonAnyType))
+    val str = storage.pythonStr
+    val bool = storage.pythonBool
+    val float = storage.pythonFloat
+    val dictOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonDict, listOf(pythonAnyType, pythonAnyType))
+    return listOf(int, listOfAny, str, bool, float, dictOfAny)
+}
+
 fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: PythonTypeStorage): List<Type> {
     val allLowerBounds: MutableList<Type> = mutableListOf()
     val allUpperBounds: MutableList<Type> = mutableListOf()
@@ -170,13 +180,7 @@ fun createGeneralTypeRating(hintCollectorResult: HintCollectorResult, storage: P
             !typesAreEqual(it, pythonAnyType)
         })
     }
-    val int = storage.pythonInt
-    val listOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonList, listOf(pythonAnyType))
-    val str = storage.pythonStr
-    val bool = storage.pythonBool
-    val float = storage.pythonFloat
-    val dictOfAny = DefaultSubstitutionProvider.substituteAll(storage.pythonDict, listOf(pythonAnyType, pythonAnyType))
-    val prefix = listOf(int, listOfAny, str, bool, float, dictOfAny)
+    val prefix = simplestTypes(storage)
     val rating = createTypeRating(
         storage.simpleTypes.filter { !prefix.any { type -> typesAreEqual(type.getOrigin(), it) } },
         allLowerBounds,

@@ -11,6 +11,7 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
+import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
 import org.utbot.python.fuzzing.*
@@ -223,6 +224,9 @@ class PythonEngine(
                                 is InvalidExecution -> {
                                     PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
                                 }
+
+                                is RepeatedExecution ->
+                                    error("handleSuccessResult returned something strange")  // not reachable
                             }
                         }
                     }
@@ -259,6 +263,12 @@ class PythonEngine(
                             return@PythonFuzzing PythonFeedback(control = Control.STOP)
                         }
 
+                        if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
+                            // logger.debug("FakeNode in Python model")
+                            emit(InvalidExecution(UtError("Bad input object", Throwable())))
+                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                        }
+
                         val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
                         val mem = cache.get(pair)
                         if (mem != null) {
@@ -278,7 +288,7 @@ class PythonEngine(
                         return@PythonFuzzing result.fuzzingPlatformFeedback
                     }.fuzz(pmd)
                 } catch (_: Exception) { // e.g. NoSeedValueException
-                    logger.info { "Cannot fuzz values for types: $parameters" }
+                    logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
                 }
             }
             manager.disconnect()

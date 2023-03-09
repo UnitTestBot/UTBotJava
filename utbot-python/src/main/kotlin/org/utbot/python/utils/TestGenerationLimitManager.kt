@@ -12,25 +12,34 @@ class TestGenerationLimitManager(
     var invalidExecutions: Int = 10,
     var additionalExecutions: Int = 5,
     var missedLines: Int? = null,
+    var withRepeatedExecutions: Int = 2000
 ) {
     private val initExecution = executions
     private val initInvalidExecutions = invalidExecutions
     private val initAdditionalExecutions = additionalExecutions
     private val initMissedLines = missedLines
+    private val initWithRepeatedExecutions = withRepeatedExecutions
 
     fun restart() {
         executions = initExecution
         invalidExecutions = initInvalidExecutions
         additionalExecutions = initAdditionalExecutions
         missedLines = initMissedLines
+        withRepeatedExecutions = initWithRepeatedExecutions
     }
 
     fun addSuccessExecution() {
         executions -= 1
+        withRepeatedExecutions -= 1
     }
 
     fun addInvalidExecution() {
         invalidExecutions -= 1
+        withRepeatedExecutions -= 1
+    }
+
+    fun addRepeatedExecution() {
+        withRepeatedExecutions -= 1
     }
 
     fun isCancelled(): Boolean {
@@ -56,8 +65,9 @@ object TimeoutMode : LimitManagerMode {
 
 object ExecutionMode : LimitManagerMode {
     override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
-        if (manager.invalidExecutions <= 0 || manager.executions <= 0) {
-            return min(manager.invalidExecutions, 0) + min(manager.executions, 0) + manager.additionalExecutions <= 0
+        if (manager.invalidExecutions <= 0 || manager.executions <= 0 || manager.withRepeatedExecutions <= 0) {
+            return (manager.withRepeatedExecutions <= 0) ||
+                    min(manager.invalidExecutions, 0) + min(manager.executions, 0) + manager.additionalExecutions <= 0
         }
         return false
     }

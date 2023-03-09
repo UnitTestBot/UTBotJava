@@ -7,9 +7,11 @@ abstract class TypeInferenceAlgorithm {
     abstract suspend fun run(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
-        annotationHandler: suspend (Type) -> InferredTypeFeedback,
+        annotationHandler: suspend (TypeAnnotation) -> InferredTypeFeedback,
     ): Int
 }
+
+class TypeAnnotation(val type: Type, val isRandom: Boolean = false)
 
 sealed interface InferredTypeFeedback
 

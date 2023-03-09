@@ -57,6 +57,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
         @OptionTag(converter = HangingTestsTimeoutConverter::class)
         var hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
+        var useTaintAnalysis: Boolean = false,
         var runInspectionAfterTestGeneration: Boolean = true,
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
@@ -85,6 +86,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (staticsMocking != other.staticsMocking) return false
             if (runtimeExceptionTestsBehaviour != other.runtimeExceptionTestsBehaviour) return false
             if (hangingTestsTimeout != other.hangingTestsTimeout) return false
+            if (useTaintAnalysis != other.useTaintAnalysis) return false
             if (runInspectionAfterTestGeneration != other.runInspectionAfterTestGeneration) return false
             if (forceStaticMocking != other.forceStaticMocking) return false
             if (treatOverflowAsError != other.treatOverflowAsError) return false
@@ -108,6 +110,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + staticsMocking.hashCode()
             result = 31 * result + runtimeExceptionTestsBehaviour.hashCode()
             result = 31 * result + hangingTestsTimeout.hashCode()
+            result = 31 * result + useTaintAnalysis.hashCode()
             result = 31 * result + runInspectionAfterTestGeneration.hashCode()
             result = 31 * result + forceStaticMocking.hashCode()
             result = 31 * result + treatOverflowAsError.hashCode()
@@ -147,6 +150,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         }
 
     val staticsMocking: StaticsMocking get() = state.staticsMocking
+
+    val useTaintAnalysis: Boolean get() = state.useTaintAnalysis
 
     val runInspectionAfterTestGeneration: Boolean get() = state.runInspectionAfterTestGeneration
 

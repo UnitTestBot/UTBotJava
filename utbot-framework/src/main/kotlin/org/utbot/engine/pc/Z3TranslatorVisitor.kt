@@ -117,6 +117,10 @@ open class Z3TranslatorVisitor(
         negate(z3Context, translate(variable.expr).z3Variable(variable.type))
     }
 
+    override fun visit(expr: UtBvNotExpression): Expr<*> = expr.run {
+        z3Context.mkBVNot(translate(variable.expr) as BitVecExpr)
+    }
+
     override fun visit(expr: UtCastExpression): Expr<*> = expr.run {
         val z3var = translate(variable.expr).z3Variable(variable.type)
         z3Context.convertVar(z3var, type).expr

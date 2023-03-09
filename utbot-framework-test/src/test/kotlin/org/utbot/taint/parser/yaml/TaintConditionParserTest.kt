@@ -6,8 +6,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 
 class TaintConditionParserTest {
 
@@ -17,7 +15,7 @@ class TaintConditionParserTest {
         @Test
         fun `should parse yaml null as ValueCondition`() {
             val yamlNull = Yaml.default.parseToYamlNode("null")
-            val expectedCondition = DtoTaintConditionEqualValue(DtoArgumentValueNull)
+            val expectedCondition = YamlTaintConditionEqualValue(YamlArgumentValueNull)
 
             val actualCondition = TaintConditionParser.parseCondition(yamlNull)
             assertEquals(expectedCondition, actualCondition)
@@ -26,7 +24,7 @@ class TaintConditionParserTest {
         @Test
         fun `should parse yaml scalar with argument value as ValueCondition`() {
             val yamlScalar = Yaml.default.parseToYamlNode("some-string")
-            val expectedCondition = DtoTaintConditionEqualValue(DtoArgumentValueString("some-string"))
+            val expectedCondition = YamlTaintConditionEqualValue(YamlArgumentValueString("some-string"))
 
             val actualCondition = TaintConditionParser.parseCondition(yamlScalar)
             assertEquals(expectedCondition, actualCondition)
@@ -34,8 +32,8 @@ class TaintConditionParserTest {
 
         @Test
         fun `should parse yaml scalar with argument type as TypeCondition`() {
-            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}java.lang.Integer${k_gt}")
-            val expectedCondition = DtoTaintConditionIsType(DtoArgumentTypeString("java.lang.Integer"))
+            val yamlScalar = Yaml.default.parseToYamlNode("${k_lt}java.lang.Integer$k_gt")
+            val expectedCondition = YamlTaintConditionIsType(YamlArgumentTypeString("java.lang.Integer"))
 
             val actualCondition = TaintConditionParser.parseCondition(yamlScalar)
             assertEquals(expectedCondition, actualCondition)
@@ -43,12 +41,14 @@ class TaintConditionParserTest {
 
         @Test
         fun `should parse yaml list as OrCondition`() {
-            val yamlList = Yaml.default.parseToYamlNode("[ 1, true, ${k_lt}java.lang.Integer${k_gt} ]")
-            val expectedCondition = DtoTaintConditionOr(listOf(
-                DtoTaintConditionEqualValue(DtoArgumentValueLong(1L)),
-                DtoTaintConditionEqualValue(DtoArgumentValueBoolean(true)),
-                DtoTaintConditionIsType(DtoArgumentTypeString("java.lang.Integer")),
-            ))
+            val yamlList = Yaml.default.parseToYamlNode("[ 1, true, ${k_lt}java.lang.Integer$k_gt ]")
+            val expectedCondition = YamlTaintConditionOr(
+                listOf(
+                    YamlTaintConditionEqualValue(YamlArgumentValueLong(1L)),
+                    YamlTaintConditionEqualValue(YamlArgumentValueBoolean(true)),
+                    YamlTaintConditionIsType(YamlArgumentTypeString("java.lang.Integer")),
+                )
+            )
 
             val actualCondition = TaintConditionParser.parseCondition(yamlList)
             assertEquals(expectedCondition, actualCondition)
@@ -56,8 +56,8 @@ class TaintConditionParserTest {
 
         @Test
         fun `should parse yaml map with a key 'not' as NotCondition`() {
-            val yamlMap = Yaml.default.parseToYamlNode("$k_not: ${k_lt}int${k_gt}")
-            val expectedCondition = DtoTaintConditionNot(DtoTaintConditionIsType(DtoArgumentTypeString("int")))
+            val yamlMap = Yaml.default.parseToYamlNode("$k_not: ${k_lt}int$k_gt")
+            val expectedCondition = YamlTaintConditionNot(YamlTaintConditionIsType(YamlArgumentTypeString("int")))
 
             val actualCondition = TaintConditionParser.parseCondition(yamlMap)
             assertEquals(expectedCondition, actualCondition)
@@ -65,7 +65,7 @@ class TaintConditionParserTest {
 
         @Test
         fun `should fail on yaml map without a key 'not'`() {
-            val yamlMap = Yaml.default.parseToYamlNode("net: ${k_lt}int${k_gt}")
+            val yamlMap = Yaml.default.parseToYamlNode("net: ${k_lt}int$k_gt")
 
             assertThrows<TaintParseError> {
                 TaintConditionParser.parseCondition(yamlMap)
@@ -74,7 +74,7 @@ class TaintConditionParserTest {
 
         @Test
         fun `should fail on yaml map with unknown keys`() {
-            val yamlMap = Yaml.default.parseToYamlNode("{ $k_not: ${k_lt}int${k_gt}, unknown-key: 0 }")
+            val yamlMap = Yaml.default.parseToYamlNode("{ $k_not: ${k_lt}int$k_gt, unknown-key: 0 }")
 
             assertThrows<TaintParseError> {
                 TaintConditionParser.parseCondition(yamlMap)
@@ -83,12 +83,16 @@ class TaintConditionParserTest {
 
         @Test
         fun `should parse complicated yaml node`() {
-            val yamlMap = Yaml.default.parseToYamlNode("$k_not: [ { $k_not: 0 }, ${k_lt}int${k_gt}, { $k_not: null } ]")
-            val expectedCondition = DtoTaintConditionNot(DtoTaintConditionOr(listOf(
-                DtoTaintConditionNot(DtoTaintConditionEqualValue(DtoArgumentValueLong(0L))),
-                DtoTaintConditionIsType(DtoArgumentTypeString("int")),
-                DtoTaintConditionNot(DtoTaintConditionEqualValue(DtoArgumentValueNull))
-            )))
+            val yamlMap = Yaml.default.parseToYamlNode("$k_not: [ { $k_not: 0 }, ${k_lt}int$k_gt, { $k_not: null } ]")
+            val expectedCondition = YamlTaintConditionNot(
+                YamlTaintConditionOr(
+                    listOf(
+                        YamlTaintConditionNot(YamlTaintConditionEqualValue(YamlArgumentValueLong(0L))),
+                        YamlTaintConditionIsType(YamlArgumentTypeString("int")),
+                        YamlTaintConditionNot(YamlTaintConditionEqualValue(YamlArgumentValueNull))
+                    )
+                )
+            )
 
             val actualCondition = TaintConditionParser.parseCondition(yamlMap)
             assertEquals(expectedCondition, actualCondition)
@@ -109,12 +113,27 @@ class TaintConditionParserTest {
     inner class ParseConditionsTest {
         @Test
         fun `should parse correct yaml map as Conditions`() {
-            val yamlMap = Yaml.default.parseToYamlNode("{ $k_this: \"\", ${k_arg}2: { $k_not: ${k_lt}int${k_gt} }, $k_return: [ 0, 1 ] }")
-            val expectedConditions = DtoTaintConditionsMap(mapOf(
-                DtoTaintEntityThis to DtoTaintConditionEqualValue(DtoArgumentValueString("")),
-                DtoTaintEntityArgument(2u) to DtoTaintConditionNot(DtoTaintConditionIsType(DtoArgumentTypeString("int"))),
-                DtoTaintEntityReturn to DtoTaintConditionOr(listOf(DtoTaintConditionEqualValue(DtoArgumentValueLong(0L)), DtoTaintConditionEqualValue(DtoArgumentValueLong(1L))))
-            ))
+            val yamlMap =
+                Yaml.default.parseToYamlNode("{ $k_this: \"\", ${k_arg}2: { $k_not: ${k_lt}int$k_gt }, $k_return: [ 0, 1 ] }")
+            val expectedConditions = YamlTaintConditionsMap(
+                mapOf(
+                    YamlTaintEntityThis to YamlTaintConditionEqualValue(YamlArgumentValueString("")),
+                    YamlTaintEntityArgument(2u) to YamlTaintConditionNot(
+                        YamlTaintConditionIsType(
+                            YamlArgumentTypeString(
+                                "int"
+                            )
+                        )
+                    ),
+                    YamlTaintEntityReturn to YamlTaintConditionOr(
+                        listOf(
+                            YamlTaintConditionEqualValue(YamlArgumentValueLong(0L)), YamlTaintConditionEqualValue(
+                                YamlArgumentValueLong(1L)
+                            )
+                        )
+                    )
+                )
+            )
 
             val actualConditions = TaintConditionParser.parseConditions(yamlMap)
             assertEquals(expectedConditions, actualConditions)
@@ -123,7 +142,7 @@ class TaintConditionParserTest {
         @Test
         fun `should parse empty yaml map as NoConditions`() {
             val yamlMap = Yaml.default.parseToYamlNode("{}")
-            val expectedConditions = DtoNoTaintConditions
+            val expectedConditions = YamlNoTaintConditions
 
             val actualConditions = TaintConditionParser.parseConditions(yamlMap)
             assertEquals(expectedConditions, actualConditions)
@@ -145,7 +164,13 @@ class TaintConditionParserTest {
         @Test
         fun `should parse yaml map with a key 'conditions'`() {
             val yamlMap = Yaml.default.parseToYamlNode("$k_conditions: { $k_return: null }").yamlMap
-            val expectedConditions = DtoTaintConditionsMap(mapOf(DtoTaintEntityReturn to DtoTaintConditionEqualValue(DtoArgumentValueNull)))
+            val expectedConditions = YamlTaintConditionsMap(
+                mapOf(
+                    YamlTaintEntityReturn to YamlTaintConditionEqualValue(
+                        YamlArgumentValueNull
+                    )
+                )
+            )
 
             val actualConditions = TaintConditionParser.parseConditionsKey(yamlMap)
             assertEquals(expectedConditions, actualConditions)
@@ -154,7 +179,7 @@ class TaintConditionParserTest {
         @Test
         fun `should parse yaml map without a key 'conditions' as NoConditions`() {
             val yamlMap = Yaml.default.parseToYamlNode("$k_marks: []").yamlMap
-            val expectedConditions = DtoNoTaintConditions
+            val expectedConditions = YamlNoTaintConditions
 
             val actualConditions = TaintConditionParser.parseConditionsKey(yamlMap)
             assertEquals(expectedConditions, actualConditions)

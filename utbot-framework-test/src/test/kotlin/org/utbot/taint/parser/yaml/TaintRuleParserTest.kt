@@ -3,8 +3,6 @@ package org.utbot.taint.parser.yaml
 import com.charleskorn.kaml.Yaml
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.utbot.taint.parser.constants.*
-import org.utbot.taint.parser.model.*
 
 class TaintRuleParserTest {
 
@@ -76,15 +74,16 @@ class TaintRuleParserTest {
         }
 
         @TestFactory
-        fun `should parse yaml map with optional keys that satisfies isRule`() = parseRuleData.map { (ruleData, parseRule) ->
-            DynamicTest.dynamicTest(parseRule.name) {
-                val yamlMap = Yaml.default.parseToYamlNode(ruleData.yamlInputAdvanced)
-                val expectedRule = ruleData.yamlInputAdvancedParsed(defaultMethodFqn)
+        fun `should parse yaml map with optional keys that satisfies isRule`() =
+            parseRuleData.map { (ruleData, parseRule) ->
+                DynamicTest.dynamicTest(parseRule.name) {
+                    val yamlMap = Yaml.default.parseToYamlNode(ruleData.yamlInputAdvanced)
+                    val expectedRule = ruleData.yamlInputAdvancedParsed(defaultMethodFqn)
 
-                val actualRule = parseRule(yamlMap, defaultMethodNameParts)
-                assertEquals(expectedRule, actualRule)
+                    val actualRule = parseRule(yamlMap, defaultMethodNameParts)
+                    assertEquals(expectedRule, actualRule)
+                }
             }
-        }
 
         @TestFactory
         fun `should fail on yaml map with unknown keys`() = parseRuleData.map { (ruleData, parseRule) ->
@@ -121,15 +120,16 @@ class TaintRuleParserTest {
         }
 
         @TestFactory
-        fun `should parse yaml list with rules specified using nested names`() = parseRulesData.map { (rulesData, parseRules) ->
-            DynamicTest.dynamicTest(parseRules.name) {
-                val yamlMap = Yaml.default.parseToYamlNode(rulesData.yamlInputNestedNames)
-                val expectedRules = rulesData.yamlInputNestedNamesParsed
+        fun `should parse yaml list with rules specified using nested names`() =
+            parseRulesData.map { (rulesData, parseRules) ->
+                DynamicTest.dynamicTest(parseRules.name) {
+                    val yamlMap = Yaml.default.parseToYamlNode(rulesData.yamlInputNestedNames)
+                    val expectedRules = rulesData.yamlInputNestedNamesParsed
 
-                val actualRules = parseRules(yamlMap)
-                assertEquals(expectedRules, actualRules)
+                    val actualRules = parseRules(yamlMap)
+                    assertEquals(expectedRules, actualRules)
+                }
             }
-        }
 
         @TestFactory
         fun `should fail on invalid yaml structure`() = parseRulesData.map { (rulesData, parseRules) ->
@@ -146,7 +146,7 @@ class TaintRuleParserTest {
     // test data
 
     private val defaultMethodNameParts = listOf("org.example.Server.start")
-    private val defaultMethodFqn = DtoMethodFqn(listOf("org", "example"), "Server", "start")
+    private val defaultMethodFqn = YamlMethodFqn(listOf("org", "example"), "Server", "start")
 
     // one rule
 
@@ -156,68 +156,99 @@ class TaintRuleParserTest {
         val yamlInputInvalid: String
         val yamlInputUnknownKey: String
 
-        fun yamlInputParsed(methodFqn: DtoMethodFqn): Rule
-        fun yamlInputAdvancedParsed(methodFqn: DtoMethodFqn): Rule
+        fun yamlInputParsed(methodFqn: YamlMethodFqn): Rule
+        fun yamlInputAdvancedParsed(methodFqn: YamlMethodFqn): Rule
     }
 
-    private object SourceData : RuleData<DtoTaintSource> {
+    private object SourceData : RuleData<YamlTaintSource> {
         override val yamlInput = "{ $k_addTo: $k_return, $k_marks: [] }"
         override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_addTo: $k_return, $k_marks: [] }"
         override val yamlInputInvalid = "{ invalid-key: $k_return, $k_marks: [] }"
         override val yamlInputUnknownKey = "{ $k_addTo: $k_return, $k_marks: [], unknown-key: [] }"
 
-        override fun yamlInputParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintSource(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)), DtoTaintMarksAll)
+        override fun yamlInputParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintSource(methodFqn, YamlTaintEntitiesSet(setOf(YamlTaintEntityReturn)), YamlTaintMarksAll)
 
-        override fun yamlInputAdvancedParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintSource(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)), DtoTaintMarksAll, DtoTaintSignatureList(listOf()), DtoNoTaintConditions)
+        override fun yamlInputAdvancedParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintSource(
+                methodFqn,
+                YamlTaintEntitiesSet(setOf(YamlTaintEntityReturn)),
+                YamlTaintMarksAll,
+                YamlTaintSignatureList(listOf()),
+                YamlNoTaintConditions
+            )
     }
 
-    private object PassData : RuleData<DtoTaintPass> {
+    private object PassData : RuleData<YamlTaintPass> {
         override val yamlInput = "{ $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [] }"
-        override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [] }"
+        override val yamlInputAdvanced =
+            "{ $k_signature: [], $k_conditions: {}, $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [] }"
         override val yamlInputInvalid = "{ $k_getFrom: $k_this, $k_addTo: $k_return, invalid-key: [] }"
         override val yamlInputUnknownKey = "{ $k_getFrom: $k_this, $k_addTo: $k_return, $k_marks: [], unknown-key: [] }"
 
-        override fun yamlInputParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintPass(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)), DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)), DtoTaintMarksAll)
+        override fun yamlInputParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintPass(
+                methodFqn, YamlTaintEntitiesSet(setOf(YamlTaintEntityThis)), YamlTaintEntitiesSet(
+                    setOf(
+                        YamlTaintEntityReturn
+                    )
+                ), YamlTaintMarksAll
+            )
 
-        override fun yamlInputAdvancedParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintPass(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)), DtoTaintEntitiesSet(setOf(DtoTaintEntityReturn)), DtoTaintMarksAll, DtoTaintSignatureList(listOf()), DtoNoTaintConditions)
+        override fun yamlInputAdvancedParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintPass(
+                methodFqn, YamlTaintEntitiesSet(setOf(YamlTaintEntityThis)), YamlTaintEntitiesSet(
+                    setOf(
+                        YamlTaintEntityReturn
+                    )
+                ), YamlTaintMarksAll, YamlTaintSignatureList(listOf()), YamlNoTaintConditions
+            )
     }
 
-    private object CleanerData : RuleData<DtoTaintCleaner> {
+    private object CleanerData : RuleData<YamlTaintCleaner> {
         override val yamlInput = "{ $k_removeFrom: $k_this, $k_marks: [] }"
         override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_removeFrom: $k_this, $k_marks: [] }"
         override val yamlInputInvalid = "{ $k_removeFrom: $k_this, invalid-key: [] }"
         override val yamlInputUnknownKey = "{ $k_removeFrom: $k_this, $k_marks: [], unknown-key: [] }"
 
-        override fun yamlInputParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintCleaner(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)), DtoTaintMarksAll)
+        override fun yamlInputParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintCleaner(methodFqn, YamlTaintEntitiesSet(setOf(YamlTaintEntityThis)), YamlTaintMarksAll)
 
-        override fun yamlInputAdvancedParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintCleaner(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)), DtoTaintMarksAll, DtoTaintSignatureList(listOf()), DtoNoTaintConditions)
+        override fun yamlInputAdvancedParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintCleaner(
+                methodFqn,
+                YamlTaintEntitiesSet(setOf(YamlTaintEntityThis)),
+                YamlTaintMarksAll,
+                YamlTaintSignatureList(listOf()),
+                YamlNoTaintConditions
+            )
     }
 
-    private object SinkData : RuleData<DtoTaintSink> {
+    private object SinkData : RuleData<YamlTaintSink> {
         override val yamlInput = "{ $k_check: $k_this, $k_marks: [] }"
         override val yamlInputAdvanced = "{ $k_signature: [], $k_conditions: {}, $k_check: $k_this, $k_marks: [] }"
         override val yamlInputInvalid = "{ $k_check: $k_this, invalid-key: [] }"
         override val yamlInputUnknownKey = "{ $k_check: $k_this, $k_marks: [], unknown-key: [] }"
 
-        override fun yamlInputParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintSink(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)), DtoTaintMarksAll)
+        override fun yamlInputParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintSink(methodFqn, YamlTaintEntitiesSet(setOf(YamlTaintEntityThis)), YamlTaintMarksAll)
 
-        override fun yamlInputAdvancedParsed(methodFqn: DtoMethodFqn) =
-            DtoTaintSink(methodFqn, DtoTaintEntitiesSet(setOf(DtoTaintEntityThis)), DtoTaintMarksAll, DtoTaintSignatureList(listOf()), DtoNoTaintConditions)
+        override fun yamlInputAdvancedParsed(methodFqn: YamlMethodFqn) =
+            YamlTaintSink(
+                methodFqn,
+                YamlTaintEntitiesSet(setOf(YamlTaintEntityThis)),
+                YamlTaintMarksAll,
+                YamlTaintSignatureList(listOf()),
+                YamlNoTaintConditions
+            )
     }
 
     // combined rules
 
-    private object SourcesData : RulesData<DtoTaintSource>(SourceData)
-    private object PassesData : RulesData<DtoTaintPass>(PassData)
-    private object CleanersData : RulesData<DtoTaintCleaner>(CleanerData)
-    private object SinksData : RulesData<DtoTaintSink>(SinkData)
+    private object SourcesData : RulesData<YamlTaintSource>(SourceData)
+    private object PassesData : RulesData<YamlTaintPass>(PassData)
+    private object CleanersData : RulesData<YamlTaintCleaner>(CleanerData)
+    private object SinksData : RulesData<YamlTaintSink>(SinkData)
 
     private open class RulesData<Rule>(ruleData: RuleData<Rule>) {
         val yamlInput = """
@@ -242,15 +273,15 @@ class TaintRuleParserTest {
         """.trimIndent()
 
         val yamlInputParsed = listOf(
-            ruleData.yamlInputParsed(DtoMethodFqn(listOf("a", "b"), "c", "m")),
-            ruleData.yamlInputAdvancedParsed(DtoMethodFqn(listOf("d", "e"), "f", "m"))
+            ruleData.yamlInputParsed(YamlMethodFqn(listOf("a", "b"), "c", "m")),
+            ruleData.yamlInputAdvancedParsed(YamlMethodFqn(listOf("d", "e"), "f", "m"))
         )
 
         val yamlInputNestedNamesParsed = listOf(
-            ruleData.yamlInputParsed(DtoMethodFqn(listOf("a", "b"), "c", "m")),
-            ruleData.yamlInputAdvancedParsed(DtoMethodFqn(listOf("a", "b"), "c", "m")),
-            ruleData.yamlInputParsed(DtoMethodFqn(listOf("a", "d"), "e", "m1")),
-            ruleData.yamlInputAdvancedParsed(DtoMethodFqn(listOf("a", "d"), "e", "m2"))
+            ruleData.yamlInputParsed(YamlMethodFqn(listOf("a", "b"), "c", "m")),
+            ruleData.yamlInputAdvancedParsed(YamlMethodFqn(listOf("a", "b"), "c", "m")),
+            ruleData.yamlInputParsed(YamlMethodFqn(listOf("a", "d"), "e", "m1")),
+            ruleData.yamlInputAdvancedParsed(YamlMethodFqn(listOf("a", "d"), "e", "m2"))
         )
     }
 }

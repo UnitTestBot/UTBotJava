@@ -216,6 +216,12 @@ class Z3EvaluatorVisitor(private val model: Model, private val translator: Z3Tra
         }
     }
 
+    override fun visit(expr: UtBvNotExpression): Expr<*> = expr.run {
+        translator.withContext {
+            mkBVNot(eval(variable.expr) as BitVecExpr)
+        }
+    }
+
     override fun visit(expr: UtCastExpression): Expr<*> = expr.run {
         val z3var = eval(variable.expr).z3Variable(variable.type)
         translator.withContext { convertVar(z3var, type).expr }

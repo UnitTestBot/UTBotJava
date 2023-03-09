@@ -2069,7 +2069,7 @@ abstract class UtValueTestCaseChecker(
         return MethodResult(testSet, methodCoverage)
     }
 
-    fun executions(
+    open fun executions(
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String,
@@ -2078,15 +2078,17 @@ abstract class UtValueTestCaseChecker(
         val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
 
         val testCaseGenerator = testCaseGeneratorCache
-            .getOrPut(buildInfo) {
-                TestSpecificTestCaseGenerator(
-                    buildDir,
-                    additionalDependenciesClassPath,
-                    System.getProperty("java.class.path")
-                )
-            }
+            .getOrPut(buildInfo) { createTestCaseGenerator(buildInfo) }
         return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
     }
+
+    // factory method
+    open fun createTestCaseGenerator(buildInfo: CodeGenerationIntegrationTest.Companion.BuildInfo) =
+        TestSpecificTestCaseGenerator(
+            buildInfo.buildDir,
+            buildInfo.dependencyPath,
+            System.getProperty("java.class.path")
+        )
 
     fun executionsModel(
         method: ExecutableId,
@@ -2099,13 +2101,7 @@ abstract class UtValueTestCaseChecker(
         withUtContext(UtContext(method.classId.jClass.classLoader)) {
             val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
             val testCaseGenerator = testCaseGeneratorCache
-                .getOrPut(buildInfo) {
-                    TestSpecificTestCaseGenerator(
-                        buildDir,
-                        additionalDependenciesClassPath,
-                        System.getProperty("java.class.path")
-                    )
-                }
+                .getOrPut(buildInfo) { createTestCaseGenerator(buildInfo) }
             return testCaseGenerator.generate(method, mockStrategy, additionalMockAlwaysClasses)
         }
     }

@@ -39,6 +39,7 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.execution.SpringUtExecutionInstrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.instrumentation.warmup
+import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
@@ -124,7 +125,8 @@ open class TestCaseGenerator(
         method: ExecutableId,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
-        executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
+        executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
+        userTaintConfigurationProvider: TaintConfigurationProvider? = null,
     ): Flow<UtResult> {
         try {
             val engine = createSymbolicEngine(
@@ -134,6 +136,7 @@ open class TestCaseGenerator(
                 chosenClassesToMockAlways,
                 applicationContext,
                 executionTimeEstimator,
+                userTaintConfigurationProvider,
             )
             engineActions.map { engine.apply(it) }
             engineActions.clear()
@@ -149,6 +152,7 @@ open class TestCaseGenerator(
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
+        userTaintConfigurationProvider: TaintConfigurationProvider? = null,
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
     ): List<UtMethodTestSet> {
         if (isCanceled()) return methods.map { UtMethodTestSet(it) }
@@ -182,7 +186,8 @@ open class TestCaseGenerator(
                                 mockStrategy,
                                 chosenClassesToMockAlways,
                                 applicationContext,
-                                executionTimeEstimator
+                                executionTimeEstimator,
+                                userTaintConfigurationProvider,
                             )
 
                             engineActions.map { engine.apply(it) }
@@ -272,7 +277,8 @@ open class TestCaseGenerator(
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         applicationContext: ApplicationContext,
-        executionTimeEstimator: ExecutionTimeEstimator
+        executionTimeEstimator: ExecutionTimeEstimator,
+        userTaintConfigurationProvider: TaintConfigurationProvider? = null,
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
         return UtBotSymbolicEngine(
@@ -284,7 +290,8 @@ open class TestCaseGenerator(
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
             executionInstrumentation = executionInstrumentation,
-            solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
+            solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
+            userTaintConfigurationProvider = userTaintConfigurationProvider,
         )
     }
 

@@ -48,6 +48,9 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionData
 import org.utbot.instrumentation.instrumentation.execution.UtConcreteExecutionResult
+import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+import org.utbot.taint.*
+import org.utbot.taint.model.TaintConfiguration
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -110,7 +113,8 @@ class UtBotSymbolicEngine(
     chosenClassesToMockAlways: Set<ClassId>,
     val applicationContext: ApplicationContext,
     executionInstrumentation: Instrumentation<UtConcreteExecutionResult>,
-    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
+    userTaintConfigurationProvider: TaintConfigurationProvider? = null,
+    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
 ) : UtContextInitializer() {
     private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
@@ -143,6 +147,22 @@ class UtBotSymbolicEngine(
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
+    private val taintConfigurationProvider = if (UtSettings.useTaintAnalysis) {
+        TaintConfigurationProviderCombiner(
+            listOf(
+                userTaintConfigurationProvider ?: TaintConfigurationProviderEmpty(),
+                TaintConfigurationProviderCached("resources", TaintConfigurationProviderResources())
+            )
+        )
+    } else {
+        TaintConfigurationProviderEmpty()
+    }
+    private val taintConfiguration: TaintConfiguration = taintConfigurationProvider.getConfiguration()
+
+    private val taintMarkRegistry: TaintMarkRegistry = TaintMarkRegistry()
+    private val taintMarkManager: TaintMarkManager = TaintMarkManager(taintMarkRegistry)
+    private val taintContext: TaintContext = TaintContext(taintMarkManager, taintConfiguration)
+
     private val traverser = Traverser(
         methodUnderTest,
         typeRegistry,
@@ -151,6 +171,7 @@ class UtBotSymbolicEngine(
         globalGraph,
         mocker,
         applicationContext,
+        taintContext,
     )
 
     //HACK (long strings)
@@ -515,7 +536,8 @@ class UtBotSymbolicEngine(
             result = symbolicExecutionResult,
             instrumentation = instrumentation,
             path = entryMethodPath(state),
-            fullPath = state.fullPath()
+            fullPath = state.fullPath(),
+            symbolicSteps = getSymbolicPath(state, symbolicResult)
         )
 
         globalGraph.traversed(state)
@@ -523,7 +545,9 @@ class UtBotSymbolicEngine(
         if (!UtSettings.useConcreteExecution ||
             // Can't execute concretely because overflows do not cause actual exceptions.
             // Still, we need overflows to act as implicit exceptions.
-            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
+            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure) ||
+            // the same for taint analysis errors
+            (UtSettings.useTaintAnalysis && symbolicExecutionResult is UtTaintAnalysisFailure)
         ) {
             logger.debug {
                 "processResult<${methodUnderTest}>: no concrete execution allowed, " +
@@ -609,6 +633,29 @@ class UtBotSymbolicEngine(
             }
         }
         return entryPath
+    }
+
+    private fun getSymbolicPath(state: ExecutionState, symbolicResult: SymbolicResult): List<SymbolicStep> {
+        val pathWithLines = state.fullPath().filter { step ->
+            step.stmt.javaSourceStartLineNumber != -1
+        }
+
+        val symbolicSteps = pathWithLines.map { step ->
+            val method = globalGraph.method(step.stmt)
+            SymbolicStep(method, step.stmt.javaSourceStartLineNumber, step.depth)
+        }.filter { step ->
+            step.method.declaringClass.packageName == methodUnderTest.classId.packageName
+        }
+
+        return if (symbolicResult is SymbolicFailure && symbolicSteps.last().callDepth != 0) {
+            // for exceptions
+            symbolicSteps
+                .zipWithNext()
+                .dropLastWhile { (cur, next) -> cur.callDepth != next.callDepth }
+                .map { (cur, _) -> cur }
+        } else {
+            symbolicSteps
+        }
     }
 }
 

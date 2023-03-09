@@ -157,10 +157,23 @@ class SarifReport(
         val methodArguments = utExecution.stateBefore.parameters
             .joinToString(prefix = "", separator = ", ", postfix = "") { it.preview() }
 
-        val errorMessage = if (executionFailure is UtTimeoutException)
-            "Unexpected behavior: ${executionFailure.exception.message}"
-        else
-            "Unexpected exception: ${executionFailure.exception}"
+        val errorMessage = when (executionFailure) {
+            is UtTimeoutException -> {
+                "Unexpected behavior: ${executionFailure.exception.message}"
+            }
+            is UtTaintAnalysisFailure -> {
+                executionFailure.exception.message
+            }
+            else -> {
+                val exceptionSimpleName = executionFailure.exception::class.java.simpleName
+                val exceptionMessage = executionFailure.exception.message
+                if (exceptionMessage == null) {
+                    "Unexpected $exceptionSimpleName"
+                } else {
+                    "Unexpected $exceptionSimpleName: $exceptionMessage"
+                }
+            }
+        }
 
         val sarifResult = SarifResult(
             ruleId,
@@ -239,8 +252,12 @@ class SarifReport(
             .mapNotNull { findStackTraceElementLocation(it) }
             .toMutableList()
 
-        if (stackTraceResolved.isEmpty()) {
-            stackTraceResolved += stackTraceFromCoverage(utExecution) // fallback logic
+        if (stackTraceResolved.isEmpty() && utExecution is UtSymbolicExecution) {
+            stackTraceResolved += stackTraceFromSymbolicSteps(utExecution) // fallback logic
+        }
+
+        if (stackTraceResolved.isEmpty()) { // still empty
+            stackTraceResolved += stackTraceFromCoverage(utExecution) // fallback logic (2)
         }
 
         // prepending stack trace by `method` call in generated tests
@@ -309,6 +326,33 @@ class SarifReport(
     }
 
     /**
+     * Constructs the stack trace from the symbolic path.
+     */
+    private fun stackTraceFromSymbolicSteps(utExecution: UtSymbolicExecution): List<SarifFlowLocationWrapper> {
+        val depth2LastStep = mutableListOf<SymbolicStep>()
+        for (step in utExecution.symbolicSteps) {
+            if (step.callDepth >= depth2LastStep.size) {
+                depth2LastStep.add(step)
+            } else if (step.callDepth >= 0) {
+                depth2LastStep[step.callDepth] = step
+                while (step.callDepth != depth2LastStep.size - 1) {
+                    depth2LastStep.removeLast()
+                }
+            }
+        }
+
+        val sarifExecutionTrace = depth2LastStep.map { step ->
+            resolveStackTraceElementByNames(
+                classFqn = step.method.declaringClass.name,
+                methodName = step.method.name,
+                lineNumber = step.lineNumber,
+            )
+        }
+
+        return sarifExecutionTrace.reversed() // to stack trace
+    }
+
+    /**
      * Constructs the stack trace from the list of covered instructions.
      */
     private fun stackTraceFromCoverage(utExecution: UtExecution): List<SarifFlowLocationWrapper> {
@@ -322,23 +366,33 @@ class SarifReport(
         }
 
         val sarifExecutionTrace = executionTrace.map { instruction ->
-            val classFqn = instruction.className.replace('/', '.')
-            val methodName = instruction.methodSignature.substringBefore('(')
-            val lineNumber = instruction.lineNumber
+            resolveStackTraceElementByNames(
+                classFqn = instruction.className.replace('/', '.'),
+                methodName = instruction.methodSignature.substringBefore('('),
+                lineNumber = instruction.lineNumber
+            )
+        }
 
-            val sourceFilePath = sourceFinding.getSourceRelativePath(classFqn)
-            val sourceFileName = sourceFilePath.substringAfterLast('/')
+        return sarifExecutionTrace.reversed() // to stack trace
+    }
 
-            SarifFlowLocationWrapper(SarifFlowLocation(
+    private fun resolveStackTraceElementByNames(
+        classFqn: String,
+        methodName: String,
+        lineNumber: Int
+    ): SarifFlowLocationWrapper {
+        val sourceFilePath = sourceFinding.getSourceRelativePath(classFqn)
+        val sourceFileName = sourceFilePath.substringAfterLast('/')
+
+        return SarifFlowLocationWrapper(
+            SarifFlowLocation(
                 message = Message("$classFqn.$methodName($sourceFileName:$lineNumber)"),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(uri = sourceFilePath),
                     SarifRegion(startLine = lineNumber) // lineNumber is one-based
                 )
-            ))
-        }
-
-        return sarifExecutionTrace.reversed() // to stack trace
+            )
+        )
     }
 
     private fun findStackTraceElementLocation(stackTraceElement: StackTraceElement): SarifFlowLocationWrapper? {
@@ -441,13 +495,22 @@ class SarifReport(
         utExecution: UtExecution,
         defaultClassFqn: String
     ): Pair<Int, String> {
+        val lastSymbolicStep = (utExecution as? UtSymbolicExecution)?.symbolicSteps?.lastOrNull()
+        if (lastSymbolicStep != null) {
+            return Pair(
+                lastSymbolicStep.lineNumber,
+                lastSymbolicStep.method.declaringClass.name
+            )
+        }
+
         val coveredInstructions = utExecution.coverage?.coveredInstructions
         val lastCoveredInstruction = coveredInstructions?.lastOrNull()
-        if (lastCoveredInstruction != null)
+        if (lastCoveredInstruction != null) {
             return Pair(
                 lastCoveredInstruction.lineNumber, // .lineNumber is one-based
                 lastCoveredInstruction.className.replace('/', '.')
             )
+        }
 
         // if for some reason we can't extract the last line from the coverage
         val lastPathElementLineNumber = try {
@@ -476,9 +539,10 @@ class SarifReport(
     private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
         val implicitlyThrown = result is UtImplicitlyThrownException
         val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
+        val taintAnalysisFailure = result is UtTaintAnalysisFailure && UtSettings.useTaintAnalysis
         val assertionError = result is UtExplicitlyThrownException && result.exception is AssertionError
         val sandboxFailure = result is UtSandboxFailure
         val timeoutException = result is UtTimeoutException
-        return implicitlyThrown || overflowFailure || assertionError || sandboxFailure || timeoutException
+        return implicitlyThrown || overflowFailure || taintAnalysisFailure || assertionError || sandboxFailure || timeoutException
     }
 }

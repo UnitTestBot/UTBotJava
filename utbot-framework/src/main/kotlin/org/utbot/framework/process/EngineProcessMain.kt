@@ -40,6 +40,7 @@ import org.utbot.sarif.RdSourceFindingStrategyFacade
 import org.utbot.sarif.SarifReport
 import org.utbot.spring.process.SpringAnalyzerProcess
 import org.utbot.summary.summarizeAll
+import org.utbot.taint.TaintConfigurationProviderUserRules
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
@@ -127,11 +128,16 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                     fuzzingValue = params.fuzzingValue
                 }
 
+                val userTaintConfigurationProvider = params.taintConfigPath?.let { taintConfigPath ->
+                    TaintConfigurationProviderUserRules(taintConfigPath)
+                }
+
                 val result = testGenerator.generate(
                     methods,
                     MockStrategyApi.valueOf(params.mockStrategy),
                     kryoHelper.readObject(params.chosenClassesToMockAlways),
                     params.timeout,
+                    userTaintConfigurationProvider,
                     generate = generateFlow,
                 )
                     .summarizeAll(Paths.get(params.searchDirectory), null)

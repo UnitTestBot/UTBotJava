@@ -20,6 +20,11 @@ fun validate(condition: Boolean, reason: String, node: YamlNode? = null) {
     }
 }
 
+/**
+ * Validates that the [node] contains keys only from [allowedKeys].
+ *
+ * Does not require the presence of all [allowedKeys] in the [node].
+ */
 fun validateYamlMapKeys(node: YamlMap, allowedKeys: Set<String>) {
     val actualKeys = node.entries.keys.map { it.content }.toSet()
     val unknownKeys = actualKeys - allowedKeys

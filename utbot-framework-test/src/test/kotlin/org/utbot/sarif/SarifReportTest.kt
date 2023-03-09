@@ -69,9 +69,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution.result).thenReturn(
             UtImplicitlyThrownException(NullPointerException(), false)
         )
+        mockCoverage(mockUtExecution, 1337, "Main")
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
-        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1337)
-        Mockito.`when`(mockUtExecution.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
         val report = sarifReportMain.createReport()
@@ -144,7 +143,7 @@ class SarifReportTest {
     fun testProcessSandboxFailure() {
         mockUtMethodNames()
 
-        val uncheckedException = Mockito.mock(java.security.AccessControlException::class.java)
+        val uncheckedException = Mockito.mock(java.security.NoSuchAlgorithmException::class.java)
         Mockito.`when`(uncheckedException.stackTrace).thenReturn(arrayOf())
         Mockito.`when`(mockUtExecution.result).thenReturn(UtSandboxFailure(uncheckedException))
 
@@ -152,7 +151,7 @@ class SarifReportTest {
 
         val report = sarifReportMain.createReport()
         val result = report.runs.first().results.first()
-        assert(result.message.text.contains("AccessControlException"))
+        assert(result.message.text.contains("NoSuchAlgorithmException"))
     }
 
     @Test
@@ -179,6 +178,7 @@ class SarifReportTest {
 
         val classMainPath = "com/abc/Main"
         val classUtilPath = "com/cba/Util"
+        Mockito.`when`(mockUtExecution.symbolicSteps).thenReturn(listOf())
         Mockito.`when`(mockUtExecution.coverage?.coveredInstructions).thenReturn(listOf(
             Instruction(classMainPath, "main(l)l", 3, 1),
             Instruction(classMainPath, "main(l)l", 4, 2),
@@ -313,10 +313,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
         // different locations
-        Mockito.`when`(mockUtExecution1.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(11)
-        Mockito.`when`(mockUtExecution1.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
-        Mockito.`when`(mockUtExecution2.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(22)
-        Mockito.`when`(mockUtExecution2.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
+        mockCoverage(mockUtExecution1, 11, "Main")
+        mockCoverage(mockUtExecution2, 22, "Main")
 
         val testSets = listOf(
             UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
@@ -383,9 +381,19 @@ class SarifReportTest {
         Mockito.`when`(mockExecutableId.classId.name).thenReturn("Main")
     }
 
-    private fun defaultMockCoverage(mockExecution: UtExecution) {
+    private fun mockCoverage(mockExecution: UtExecution, lineNumber: Int, className: String) {
         Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber).thenReturn(1)
         Mockito.`when`(mockExecution.coverage?.coveredInstructions?.lastOrNull()?.className).thenReturn("Main")
+        (mockExecution as? UtSymbolicExecution)?.let { mockSymbolicSteps(it, lineNumber, className) }
+    }
+
+    private fun mockSymbolicSteps(mockExecution: UtSymbolicExecution, lineNumber: Int, className: String) {
+        Mockito.`when`(mockExecution.symbolicSteps.lastOrNull()?.lineNumber).thenReturn(lineNumber)
+        Mockito.`when`(mockExecution.symbolicSteps.lastOrNull()?.method?.declaringClass?.name).thenReturn(className)
+    }
+
+    private fun defaultMockCoverage(mockExecution: UtExecution) {
+        mockCoverage(mockExecution, 1, "Main")
     }
 
     // constants

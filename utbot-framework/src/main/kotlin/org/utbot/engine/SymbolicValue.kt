@@ -166,6 +166,12 @@ val SymbolicValue.addr
         is PrimitiveValue -> error("PrimitiveValue $this doesn't have an address")
     }
 
+val SymbolicValue.addrOrNull
+    get() = when (this) {
+        is ReferenceValue -> addr
+        is PrimitiveValue -> null
+    }
+
 val SymbolicValue.isConcrete: Boolean
     get() = when (this) {
         is PrimitiveValue -> this.expr.isConcrete

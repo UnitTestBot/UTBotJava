@@ -14,6 +14,7 @@ import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.UtFalse
 import org.utbot.engine.pc.UtInt32Sort
 import org.utbot.engine.pc.UtIntSort
+import org.utbot.engine.pc.UtLongSort
 import org.utbot.engine.pc.UtMkArrayExpression
 import org.utbot.engine.pc.UtMkTermArrayExpression
 import org.utbot.engine.pc.UtSeqSort
@@ -21,6 +22,7 @@ import org.utbot.engine.pc.UtSort
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkArrayConst
 import org.utbot.engine.pc.mkInt
+import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
 import org.utbot.engine.pc.toSort
@@ -110,6 +112,12 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         UtFalse,
         UtArraySort(UtAddrSort, UtBoolSort)
     ),
+    // const array here is because even in the situation when MUT is marked as a `PassThrough` we will
+    // process this information in a current state, not initial one
+    private var taintArray: UtArrayExpressionBase = UtConstArrayExpression(
+        mkLong(value = 0L),
+        UtArraySort(indexSort = UtAddrSort, itemSort = UtLongSort)
+    ),
     private val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     val chunkIds: Set<ChunkId>
@@ -163,6 +171,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      * Returns symbolic information about whether [addr] corresponds to a final field known to be not null.
      */
     fun isSpeculativelyNotNull(addr: UtAddrExpression): UtArraySelectExpression = speculativelyNotNullAddresses.select(addr)
+
+    fun taintVector(addr: UtAddrExpression): UtArraySelectExpression = taintArray.select(addr)
 
     /**
      * @return ImmutableCollection of the initial values for all the arrays we touched during the execution
@@ -269,6 +279,17 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
+        val updTaintArray = update.taintArrayUpdate
+            .groupBy { (addr, _) ->
+                addr
+            }.map { (addr, listUpdates) ->
+                addr to listUpdates.fold(mkLong(0).toLongValue()) { acc, (_, taintVector) ->
+                    Or(acc, taintVector.toLongValue()).toLongValue()
+                }
+            }.fold(taintArray) { acc, (addr, taintVector) ->
+                acc.store(addr, taintVector.expr)
+            }
+
         // We have a list with updates for generic type info, and we want to apply
         // them in such way that only updates with more precise type information
         // should be applied.
@@ -305,6 +326,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             touchedAddresses = updTouchedAddresses,
             instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads),
             speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses,
+            taintArray = updTaintArray,
             symbolicEnumValues = symbolicEnumValues.addAll(update.symbolicEnumValues)
         )
     }
@@ -407,6 +429,7 @@ data class MemoryUpdate(
     val classIdToClearStatics: ClassId? = null,
     val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
     val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
+    val taintArrayUpdate: PersistentList<Pair<UtAddrExpression, UtExpression>> = persistentListOf(),
     val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =
@@ -428,6 +451,7 @@ data class MemoryUpdate(
             classIdToClearStatics = other.classIdToClearStatics,
             instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads),
             speculativelyNotNullAddresses = speculativelyNotNullAddresses.addAll(other.speculativelyNotNullAddresses),
+            taintArrayUpdate = taintArrayUpdate.addAll(other.taintArrayUpdate),
             symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
 

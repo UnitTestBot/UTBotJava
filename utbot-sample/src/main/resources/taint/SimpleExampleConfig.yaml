@@ -1,0 +1,9 @@
+sources:
+  - org.utbot.examples.taint.SimpleTaintExample.source:
+      add-to: return
+      marks: bad
+
+sinks:
+  - org.utbot.examples.taint.SimpleTaintExample.sink:
+      check: arg1
+      marks: bad

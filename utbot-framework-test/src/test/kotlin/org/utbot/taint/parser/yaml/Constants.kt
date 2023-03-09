@@ -1,6 +1,4 @@
-package org.utbot.taint.parser.constants
-
-import org.utbot.taint.parser.yaml.Constants
+package org.utbot.taint.parser.yaml
 
 internal const val k_sources = Constants.KEY_SOURCES
 internal const val k_passes = Constants.KEY_PASSES

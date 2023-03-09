@@ -190,10 +190,10 @@ data class BeanAdditionalData (
     val configClassFqn: String
 ) : IPrintable {
     //companion
-    
+
     companion object : IMarshaller<BeanAdditionalData> {
         override val _type: KClass<BeanAdditionalData> = BeanAdditionalData::class
-        
+
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanAdditionalData  {
             val factoryMethodName = buffer.readString()
@@ -201,14 +201,14 @@ data class BeanAdditionalData (
             val configClassFqn = buffer.readString()
             return BeanAdditionalData(factoryMethodName, parameterTypes, configClassFqn)
         }
-        
+
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanAdditionalData)  {
             buffer.writeString(value.factoryMethodName)
             buffer.writeList(value.parameterTypes) { v -> buffer.writeString(v) }
             buffer.writeString(value.configClassFqn)
         }
-        
-        
+
+
     }
     //fields
     //methods
@@ -218,13 +218,13 @@ data class BeanAdditionalData (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-        
+
         other as BeanAdditionalData
-        
+
         if (factoryMethodName != other.factoryMethodName) return false
         if (parameterTypes != other.parameterTypes) return false
         if (configClassFqn != other.configClassFqn) return false
-        
+
         return true
     }
     //hash code trait
@@ -259,10 +259,10 @@ data class BeanDefinitionData (
     val additionalData: BeanAdditionalData?
 ) : IPrintable {
     //companion
-    
+
     companion object : IMarshaller<BeanDefinitionData> {
         override val _type: KClass<BeanDefinitionData> = BeanDefinitionData::class
-        
+
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): BeanDefinitionData  {
             val beanName = buffer.readString()
@@ -270,14 +270,14 @@ data class BeanDefinitionData (
             val additionalData = buffer.readNullable { BeanAdditionalData.read(ctx, buffer) }
             return BeanDefinitionData(beanName, beanTypeFqn, additionalData)
         }
-        
+
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: BeanDefinitionData)  {
             buffer.writeString(value.beanName)
             buffer.writeString(value.beanTypeFqn)
             buffer.writeNullable(value.additionalData) { BeanAdditionalData.write(ctx, buffer, it) }
         }
-        
-        
+
+
     }
     //fields
     //methods
@@ -287,13 +287,13 @@ data class BeanDefinitionData (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-        
+
         other as BeanDefinitionData
-        
+
         if (beanName != other.beanName) return false
         if (beanTypeFqn != other.beanTypeFqn) return false
         if (additionalData != other.additionalData) return false
-        
+
         return true
     }
     //hash code trait
@@ -571,7 +571,8 @@ data class GenerateParams (
     val isSymbolicEngineEnabled: Boolean,
     val isFuzzingEnabled: Boolean,
     val fuzzingValue: Double,
-    val searchDirectory: String
+    val searchDirectory: String,
+    val taintConfigPath: String?
 ) : IPrintable {
     //companion
     
@@ -589,7 +590,8 @@ data class GenerateParams (
             val isFuzzingEnabled = buffer.readBool()
             val fuzzingValue = buffer.readDouble()
             val searchDirectory = buffer.readString()
-            return GenerateParams(methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory)
+            val taintConfigPath = buffer.readNullable { buffer.readString() }
+            return GenerateParams(methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory, taintConfigPath)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateParams)  {
@@ -602,6 +604,7 @@ data class GenerateParams (
             buffer.writeBool(value.isFuzzingEnabled)
             buffer.writeDouble(value.fuzzingValue)
             buffer.writeString(value.searchDirectory)
+            buffer.writeNullable(value.taintConfigPath) { buffer.writeString(it) }
         }
         
         
@@ -626,7 +629,8 @@ data class GenerateParams (
         if (isFuzzingEnabled != other.isFuzzingEnabled) return false
         if (fuzzingValue != other.fuzzingValue) return false
         if (searchDirectory != other.searchDirectory) return false
-        
+        if (taintConfigPath != other.taintConfigPath) return false
+
         return true
     }
     //hash code trait
@@ -641,6 +645,7 @@ data class GenerateParams (
         __r = __r*31 + isFuzzingEnabled.hashCode()
         __r = __r*31 + fuzzingValue.hashCode()
         __r = __r*31 + searchDirectory.hashCode()
+        __r = __r*31 + if (taintConfigPath != null) taintConfigPath.hashCode() else 0
         return __r
     }
     //pretty print
@@ -656,6 +661,7 @@ data class GenerateParams (
             print("isFuzzingEnabled = "); isFuzzingEnabled.print(printer); println()
             print("fuzzingValue = "); fuzzingValue.print(printer); println()
             print("searchDirectory = "); searchDirectory.print(printer); println()
+            print("taintConfigPath = "); taintConfigPath.print(printer); println()
         }
         printer.print(")")
     }
@@ -665,7 +671,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:58]
+ * #### Generated from [EngineProcessModel.kt:60]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -899,10 +905,10 @@ data class GetSpringBeanDefinitions (
     val profileExpression: String?
 ) : IPrintable {
     //companion
-    
+
     companion object : IMarshaller<GetSpringBeanDefinitions> {
         override val _type: KClass<GetSpringBeanDefinitions> = GetSpringBeanDefinitions::class
-        
+
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GetSpringBeanDefinitions  {
             val classpath = buffer.readArray {buffer.readString()}
@@ -911,15 +917,15 @@ data class GetSpringBeanDefinitions (
             val profileExpression = buffer.readNullable { buffer.readString() }
             return GetSpringBeanDefinitions(classpath, config, fileStorage, profileExpression)
         }
-        
+
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GetSpringBeanDefinitions)  {
             buffer.writeArray(value.classpath) { buffer.writeString(it) }
             buffer.writeString(value.config)
             buffer.writeArray(value.fileStorage) { buffer.writeString(it) }
             buffer.writeNullable(value.profileExpression) { buffer.writeString(it) }
         }
-        
-        
+
+
     }
     //fields
     //methods
@@ -929,14 +935,14 @@ data class GetSpringBeanDefinitions (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-        
+
         other as GetSpringBeanDefinitions
-        
+
         if (!(classpath contentDeepEquals other.classpath)) return false
         if (config != other.config) return false
         if (!(fileStorage contentDeepEquals other.fileStorage)) return false
         if (profileExpression != other.profileExpression) return false
-        
+
         return true
     }
     //hash code trait
@@ -1097,7 +1103,7 @@ data class MethodDescription (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:62]
+ * #### Generated from [EngineProcessModel.kt:64]
  */
 data class RenderParams (
     val springTestsType: String,
@@ -1376,21 +1382,21 @@ data class SpringAnalyzerResult (
     val beanDefinitions: Array<BeanDefinitionData>
 ) : IPrintable {
     //companion
-    
+
     companion object : IMarshaller<SpringAnalyzerResult> {
         override val _type: KClass<SpringAnalyzerResult> = SpringAnalyzerResult::class
-        
+
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SpringAnalyzerResult  {
             val beanDefinitions = buffer.readArray {BeanDefinitionData.read(ctx, buffer)}
             return SpringAnalyzerResult(beanDefinitions)
         }
-        
+
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SpringAnalyzerResult)  {
             buffer.writeArray(value.beanDefinitions) { BeanDefinitionData.write(ctx, buffer, it) }
         }
-        
-        
+
+
     }
     //fields
     //methods
@@ -1400,11 +1406,11 @@ data class SpringAnalyzerResult (
     override fun equals(other: Any?): Boolean  {
         if (this === other) return true
         if (other == null || other::class != this::class) return false
-        
+
         other as SpringAnalyzerResult
-        
+
         if (!(beanDefinitions contentDeepEquals other.beanDefinitions)) return false
-        
+
         return true
     }
     //hash code trait

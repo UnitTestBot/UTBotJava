@@ -2,7 +2,6 @@ package org.utbot.taint.parser.yaml
 
 import com.charleskorn.kaml.YamlMap
 import com.charleskorn.kaml.YamlNode
-import org.utbot.taint.parser.model.DtoTaintConfiguration
 import org.utbot.taint.parser.yaml.Constants.KEY_CLEANERS
 import org.utbot.taint.parser.yaml.Constants.KEY_PASSES
 import org.utbot.taint.parser.yaml.Constants.KEY_SINKS
@@ -24,7 +23,7 @@ object TaintConfigurationParser {
      * sinks: [ ... ]
      * ```
      */
-    fun parseConfiguration(node: YamlNode): DtoTaintConfiguration {
+    fun parseConfiguration(node: YamlNode): YamlTaintConfiguration {
         validate(node is YamlMap, "The root node should be a map", node)
         validateYamlMapKeys(node, setOf(KEY_SOURCES, KEY_PASSES, KEY_CLEANERS, KEY_SINKS))
 
@@ -38,6 +37,6 @@ object TaintConfigurationParser {
         val cleaners = cleanersNode?.let(TaintRuleParser::parseCleaners) ?: listOf()
         val sinks = sinksNode?.let(TaintRuleParser::parseSinks) ?: listOf()
 
-        return DtoTaintConfiguration(sources, passes, cleaners, sinks)
+        return YamlTaintConfiguration(sources, passes, cleaners, sinks)
     }
 }

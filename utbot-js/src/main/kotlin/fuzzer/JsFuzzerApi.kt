@@ -5,9 +5,6 @@ import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
-import java.util.concurrent.atomic.AtomicInteger
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description

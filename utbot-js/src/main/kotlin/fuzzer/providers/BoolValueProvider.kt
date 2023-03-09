@@ -3,7 +3,6 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
-import fuzzer.JsFuzzedValue
 import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzing.Seed

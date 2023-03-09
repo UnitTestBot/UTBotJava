@@ -5,9 +5,6 @@ import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import fuzzer.JsFuzzedContext
-import java.lang.IllegalStateException
-import parser.JsParserUtils.getMethodName
-import fuzzer.JsFuzzedContext
 import parser.JsParserUtils.getMethodName
 
 // TODO: make methods more safe by checking the Node method is called on.
@@ -76,6 +73,7 @@ object JsParserUtils {
                 this.firstChild?.next?.getAnyValue()
             } else null
         }
+
         else -> null
     }
 
@@ -183,7 +181,7 @@ object JsParserUtils {
      * Returns imported objects as [List].
      */
     fun Node.getModuleImportSpecsAsList(): List<Node> {
-        val importSpecsNode = NodeUtil.findPreorder(this, {it.isImportSpecs}, {true})
+        val importSpecsNode = NodeUtil.findPreorder(this, { it.isImportSpecs }, { true })
             ?: throw UnsupportedOperationException("Module import doesn't contain \"import_specs\" token as an AST child")
         var currNode: Node? = importSpecsNode.firstChild!!
         val importSpecsList = mutableListOf<Node>()

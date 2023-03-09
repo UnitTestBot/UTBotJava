@@ -5,7 +5,6 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.JsUtFuzzedExecution
-import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
 import framework.api.js.util.isJsArray
 import framework.api.js.util.isJsBasic
@@ -14,15 +13,12 @@ import framework.api.js.util.jsUndefinedClassId
 import framework.codegen.JsImport
 import framework.codegen.ModuleType
 import fuzzer.JsFeedback
-import fuzzer.JsFuzzedValue
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
 import fuzzer.JsStatement
 import fuzzer.JsTimeoutExecution
 import fuzzer.JsValidExecution
 import fuzzer.runFuzzing
-import java.io.File
-import java.util.concurrent.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import mu.KotlinLogging
@@ -65,6 +61,8 @@ import utils.PathResolver
 import utils.constructClass
 import utils.data.ResultData
 import utils.toJsAny
+import java.io.File
+import java.util.concurrent.CancellationException
 
 private val logger = KotlinLogging.logger {}
 
@@ -394,6 +392,7 @@ class JsTestGenerator(
         return when {
             this.isClass -> listOf(this.name) + (this.constructor?.parameters ?: emptyList())
                 .flatMap { it.collectExportsRecursively() }
+
             this.isJsArray -> (this.elementClassId as? JsClassId)?.collectExportsRecursively() ?: emptyList()
             else -> emptyList()
         }

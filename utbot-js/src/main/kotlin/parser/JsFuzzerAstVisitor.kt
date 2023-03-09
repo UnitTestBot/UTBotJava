@@ -1,5 +1,6 @@
 package parser
 
+
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
 import framework.api.js.util.jsBooleanClassId
@@ -7,10 +8,6 @@ import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsStringClassId
 import fuzzer.JsFuzzedConcreteValue
 import fuzzer.JsFuzzedContext
-import fuzzer.JsFuzzedConcreteValue
-import fuzzer.JsFuzzedContext
-
-
 import parser.JsParserUtils.getAnyValue
 import parser.JsParserUtils.getBinaryExprLeftOperand
 import parser.JsParserUtils.getBinaryExprRightOperand
@@ -29,6 +26,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
                 node.isCall -> {
                     validateNode(node.getAnyValue(), JsFuzzedContext.NE)
                 }
+
                 currentFuzzedOp != null -> {
                     lastFuzzedOpGlobal = currentFuzzedOp
                     validateNode(node.getBinaryExprLeftOperand().getAnyValue(), lastFuzzedOpGlobal)

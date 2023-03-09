@@ -6,11 +6,13 @@ import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isExportable
 import framework.api.js.util.isUndefined
 import fuzzer.JsMethodDescription
-import java.lang.StringBuilder
+import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.isStatic
-
+import providers.imports.IImportsProvider
 import service.ContextOwner
 import service.InstrumentationService
 import service.ServiceContext
@@ -19,10 +21,6 @@ import settings.JsTestGenerationSettings.tempFileName
 import utils.data.CoverageData
 import utils.data.ResultData
 import java.util.regex.Pattern
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtNullModel
-import providers.imports.IImportsProvider
 
 class CoverageServiceProvider(
     private val context: ServiceContext,
@@ -240,8 +238,6 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
         }
         return paramsString
     }
-
-
 
     private fun UtModel.initModelAsString(): String =
         when (this) {

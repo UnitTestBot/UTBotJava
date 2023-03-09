@@ -93,11 +93,7 @@ class JsConstructorId(
         get() = 0
 }
 
-class JsMultipleClassId(private val jsJoinedName: String) : JsClassId(jsJoinedName) {
-
-    val types: Sequence<JsClassId>
-        get() = jsJoinedName.split('|').map { JsClassId(it) }.asSequence()
-}
+class JsMultipleClassId(jsJoinedName: String) : JsClassId(jsJoinedName)
 
 open class JsUtModel(
     override val classId: JsClassId

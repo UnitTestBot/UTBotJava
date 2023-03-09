@@ -3,26 +3,25 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic
+import fuzzer.JsFuzzedContext.EQ
+import fuzzer.JsFuzzedContext.GE
+import fuzzer.JsFuzzedContext.GT
+import fuzzer.JsFuzzedContext.LE
+import fuzzer.JsFuzzedContext.LT
 import fuzzer.JsMethodDescription
-import org.utbot.fuzzer.FuzzedContext.Comparison.EQ
-import org.utbot.fuzzer.FuzzedContext.Comparison.GE
-import org.utbot.fuzzer.FuzzedContext.Comparison.GT
-import org.utbot.fuzzer.FuzzedContext.Comparison.LE
-import org.utbot.fuzzer.FuzzedContext.Comparison.LT
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.providers.PrimitivesModelProvider.fuzzed
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzing.Seed
 import org.utbot.fuzzing.ValueProvider
 import org.utbot.fuzzing.seeds.DefaultFloatBound
 import org.utbot.fuzzing.seeds.IEEE754Value
 
-object NumberValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescription> {
+object NumberValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescription> {
 
     override fun accept(type: JsClassId): Boolean {
         return type.isJsBasic
     }
 
-    override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, FuzzedValue>> =
+    override fun generate(description: JsMethodDescription, type: JsClassId): Sequence<Seed<JsClassId, UtModel>> =
         sequence {
             description.concreteValues.forEach { (_, v, c) ->
                 if (v is Double) {
@@ -33,18 +32,14 @@ object NumberValueProvider : ValueProvider<JsClassId, FuzzedValue, JsMethodDescr
                     }
 
                     yield(Seed.Known(IEEE754Value.fromValue(v)) { known ->
-                        JsPrimitiveModel(known.toDouble() + balance).fuzzed {
-                            summary = "%var% = ${known.toDouble() + balance}"
-                        }
+                        JsPrimitiveModel(known.toDouble() + balance)
                     })
                 }
             }
             DefaultFloatBound.values().forEach { bound ->
                 // All numbers in JavaScript are like Double in Java/Kotlin
                 yield(Seed.Known(bound(52, 11)) { known ->
-                    JsPrimitiveModel(known.toDouble()).fuzzed {
-                        summary = "%var% = ${known.toDouble()}"
-                    }
+                    JsPrimitiveModel(known.toDouble())
                 })
             }
         }

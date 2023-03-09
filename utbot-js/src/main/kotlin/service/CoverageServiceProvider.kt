@@ -7,14 +7,12 @@ import fuzzer.JsMethodDescription
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.fuzzer.FuzzedValue
 import settings.JsTestGenerationSettings
 import settings.JsTestGenerationSettings.tempFileName
 import utils.CoverageData
 import utils.ResultData
 import java.util.regex.Pattern
 
-// TODO: Add "error" field in result json to not collide with "result" field upon error.
 class CoverageServiceProvider(
     private val context: ServiceContext,
     private val instrumentationService: InstrumentationService,
@@ -58,7 +56,7 @@ function check_value(value, json) {
     }
 
     fun get(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<UtModel>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         return when (mode) {
@@ -75,7 +73,7 @@ function check_value(value, json) {
     }
 
     private fun runBasicCoverageAnalysis(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<UtModel>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -99,7 +97,7 @@ function check_value(value, json) {
     }
 
     private fun runFastCoverageAnalysis(
-        fuzzedValues: List<List<FuzzedValue>>,
+        fuzzedValues: List<List<UtModel>>,
         execId: JsMethodId,
     ): Pair<List<CoverageData>, List<ResultData>> {
         val covFunName = instrumentationService.covFunName
@@ -134,7 +132,7 @@ fs.writeFileSync("$resFilePath", JSON.stringify(json))
     }
 
     private fun makeStringForRunJs(
-        fuzzedValue: List<FuzzedValue>,
+        fuzzedValue: List<UtModel>,
         method: JsMethodId,
         containingClass: String?,
         covFunName: String,
@@ -166,22 +164,22 @@ fs.writeFileSync("$resFilePath$index.json", JSON.stringify(json$index))
     }
 
     private fun makeCallFunctionString(
-        fuzzedValue: List<FuzzedValue>,
+        fuzzedValue: List<UtModel>,
         method: JsMethodId,
         containingClass: String?
     ): String {
-        val actualParams = description.thisInstance?.let{ fuzzedValue.drop(1) } ?: fuzzedValue
+        val actualParams = description.thisInstance?.let { fuzzedValue.drop(1) } ?: fuzzedValue
         val initClass = containingClass?.let {
             if (!method.isStatic) {
-                description.thisInstance?.let { fuzzedValue[0].model.toCallString() } ?:
-                "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
+                description.thisInstance?.let { fuzzedValue[0].toCallString() }
+                    ?: "new ${JsTestGenerationSettings.fileUnderTestAliases}.${it}()"
             } else "${JsTestGenerationSettings.fileUnderTestAliases}.$it"
         } ?: JsTestGenerationSettings.fileUnderTestAliases
         var callString = "$initClass.${method.name}"
         callString += actualParams.joinToString(
             prefix = "(",
             postfix = ")",
-        ) { value -> value.model.toCallString() }
+        ) { value -> value.toCallString() }
         return callString
     }
 

@@ -1,12 +1,13 @@
 package parser
 
+
 import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.rhino.Node
 import framework.api.js.util.jsBooleanClassId
 import framework.api.js.util.jsDoubleClassId
 import framework.api.js.util.jsStringClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedContext
+import fuzzer.JsFuzzedConcreteValue
+import fuzzer.JsFuzzedContext
 import parser.JsParserUtils.getAnyValue
 import parser.JsParserUtils.getBinaryExprLeftOperand
 import parser.JsParserUtils.getBinaryExprRightOperand
@@ -14,8 +15,8 @@ import parser.JsParserUtils.toFuzzedContextComparisonOrNull
 
 class JsFuzzerAstVisitor : IAstVisitor {
 
-    private var lastFuzzedOpGlobal: FuzzedContext = FuzzedContext.Unknown
-    val fuzzedConcreteValues = mutableSetOf<FuzzedConcreteValue>()
+    private var lastFuzzedOpGlobal: JsFuzzedContext = JsFuzzedContext.Unknown
+    val fuzzedConcreteValues = mutableSetOf<JsFuzzedConcreteValue>()
 
     override fun accept(rootNode: Node) {
         NodeUtil.visitPreOrder(rootNode) { node ->
@@ -25,8 +26,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
                 currentFuzzedOp != null -> {
                     lastFuzzedOpGlobal = currentFuzzedOp
                     validateNode(node.getBinaryExprLeftOperand().getAnyValue())
-                    lastFuzzedOpGlobal = if (lastFuzzedOpGlobal is FuzzedContext.Comparison)
-                            (lastFuzzedOpGlobal as FuzzedContext.Comparison).reverse() else FuzzedContext.Unknown
+                    lastFuzzedOpGlobal = lastFuzzedOpGlobal.reverse()
                     validateNode(node.getBinaryExprRightOperand().getAnyValue())
                 }
             }
@@ -38,7 +38,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
         when (value) {
             is String -> {
                 fuzzedConcreteValues.add(
-                    FuzzedConcreteValue(
+                    JsFuzzedConcreteValue(
                         jsStringClassId,
                         value.toString(),
                         lastFuzzedOpGlobal
@@ -48,7 +48,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
 
             is Boolean -> {
                 fuzzedConcreteValues.add(
-                    FuzzedConcreteValue(
+                    JsFuzzedConcreteValue(
                         jsBooleanClassId,
                         value,
                         lastFuzzedOpGlobal
@@ -57,7 +57,7 @@ class JsFuzzerAstVisitor : IAstVisitor {
             }
 
             is Double -> {
-                fuzzedConcreteValues.add(FuzzedConcreteValue(jsDoubleClassId, value, lastFuzzedOpGlobal))
+                fuzzedConcreteValues.add(JsFuzzedConcreteValue(jsDoubleClassId, value, lastFuzzedOpGlobal))
             }
         }
     }

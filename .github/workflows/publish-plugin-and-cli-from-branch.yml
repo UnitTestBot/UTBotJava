@@ -95,8 +95,7 @@ jobs:
           rm utbot-intellij-${{ env.VERSION }}.zip
 
       - name: Archive UTBot IntelliJ IDEA plugin
-        # temporary commented to check artifact publishing
-#        if: ${{ inputs.upload-artifact == 'true' }}
+        if: ${{ inputs.upload-artifact == 'true' }}
         uses: actions/upload-artifact@v3
         with:
           name: utbot-intellij-${{ matrix.configuration.plugin_type }}-${{ env.VERSION }}

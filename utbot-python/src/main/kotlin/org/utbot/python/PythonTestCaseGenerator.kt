@@ -167,23 +167,27 @@ class PythonTestCaseGenerator(
 
                 val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
 
-                engine.fuzzing(args, fuzzerCancellation, limitManager).collect {
+                engine.fuzzing(args, fuzzerCancellation, until).collect {
                     generated += 1
                     when (it) {
                         is ValidExecution -> {
                             executions += it.utFuzzedExecution
                             missingLines = updateCoverage(it.utFuzzedExecution, coveredLines, missingLines)
                             feedback = SuccessFeedback
+                            limitManager.addSuccessExecution()
                         }
                         is InvalidExecution -> {
                             errors += it.utError
                             feedback = SuccessFeedback
+                            limitManager.addSuccessExecution()
                         }
                         is ArgumentsTypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
+                            limitManager.addInvalidExecution()
                         }
                         is TypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
+                            limitManager.addInvalidExecution()
                         }
                     }
                     limitManager.missedLines = missingLines?.size

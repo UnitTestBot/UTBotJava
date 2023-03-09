@@ -57,7 +57,7 @@ object TimeoutMode : LimitManagerMode {
 object ExecutionMode : LimitManagerMode {
     override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
         if (manager.invalidExecutions <= 0 || manager.executions <= 0) {
-            return min(manager.invalidExecutions, 0) + min(manager.executions, 0) <= manager.additionalExecutions
+            return min(manager.invalidExecutions, 0) + min(manager.executions, 0) + manager.additionalExecutions <= 0
         }
         return false
     }

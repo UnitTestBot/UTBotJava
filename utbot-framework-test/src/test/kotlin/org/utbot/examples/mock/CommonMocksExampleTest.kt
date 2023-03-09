@@ -3,10 +3,12 @@ package org.utbot.examples.mock
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.testing.DoNotCalculate
 import org.utbot.testing.UtValueTestCaseChecker
+import org.utbot.testing.atLeast
 
 internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = CommonMocksExample::class) {
+
+    //TODO: coverage values here require further investigation by experts
 
     @Test
     fun testMockInterfaceWithoutImplementorsWithNoMocksStrategy() {
@@ -14,8 +16,8 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             CommonMocksExample::mockInterfaceWithoutImplementors,
             eq(1),
             { v, mocks, _ -> v == null && mocks.isEmpty() },
-            coverage = DoNotCalculate,
             mockStrategy = MockStrategyApi.NO_MOCKS,
+            coverage = atLeast(75),
         )
     }
 
@@ -26,8 +28,8 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             eq(2),
             { v, mocks, _ -> v == null && mocks.isEmpty() },
             { _, mocks, _ -> mocks.singleOrNull() != null },
-            coverage = DoNotCalculate,
             mockStrategy = MockStrategyApi.OTHER_CLASSES,
+            coverage = atLeast(75),
         )
     }
 
@@ -40,7 +42,7 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             { fst, _, mocks, _ -> fst == null && mocks.isEmpty() },
             { _, _, mocks, _ -> mocks.isEmpty() }, // should be changed to not null fst when 1449 will be finished
             mockStrategy = MockStrategyApi.OTHER_PACKAGES,
-            coverage = DoNotCalculate
+            coverage = atLeast(75)
         )
     }
 
@@ -55,7 +57,7 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             // node == node.next
             // node.next.value == node.value + 1
             mockStrategy = MockStrategyApi.OTHER_CLASSES,
-            coverage = DoNotCalculate
+            coverage = atLeast(13)
         )
     }
 
@@ -66,7 +68,7 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             eq(1),
             { r -> r == -420 },
             mockStrategy = MockStrategyApi.OTHER_CLASSES,
-            coverage = DoNotCalculate
+            coverage = atLeast(70),
         )
     }
 
@@ -76,7 +78,7 @@ internal class CommonMocksExampleTest: UtValueTestCaseChecker(testClass = Common
             CommonMocksExample::mocksForNullOfDifferentTypes,
             eq(1),
             mockStrategy = MockStrategyApi.OTHER_PACKAGES,
-            coverage = DoNotCalculate
+            coverage = atLeast(75)
         )
     }
 }

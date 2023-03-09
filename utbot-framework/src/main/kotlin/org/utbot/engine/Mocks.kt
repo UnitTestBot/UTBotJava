@@ -130,7 +130,7 @@ data class UtStaticMethodMockInfo(
 ) : UtMockInfo(methodId.classId, addr)
 
 /**
- * A wrapper for [ObjectValue] to store additional onfo.
+ * A wrapper for [ObjectValue] to store additional info.
  */
 sealed class MockedObjectInfo {
     abstract val value: ObjectValue?
@@ -142,16 +142,18 @@ object NoMock: MockedObjectInfo() {
 
 /**
  * Represents a mock that occurs when mock strategy allows it
- * or when an object type is in a set that requires force mocking.
+ * or when an object type requires always requires mocking.
+ *
+ * See [Mocker.mockAlways] for more details.
  */
 class ExpectedMock(objectValue: ObjectValue): MockedObjectInfo() {
     override val value: ObjectValue = objectValue
 }
 
 /**
- * Represents a mock that occurs when it is not recommended
+ * Represents a mock that occurs when it is not allowed.
  * E.g. mock framework is not installed or
- * mock startegy is DO_NOT_MOCK and class is not in mockAlways set.
+ * mock strategy is [MockStrategy.NO_MOCKS] and class is not in [Mocker.mockAlways] set.
  */
 class UnexpectedMock(objectValue: ObjectValue): MockedObjectInfo() {
     override val value: ObjectValue = objectValue
@@ -171,31 +173,6 @@ class Mocker(
     private val mocksAreDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 
     /**
-     * Constructs [MockedObjectInfo]: enriches given value with
-     * an information if this mock is expected or not.
-     */
-    fun construct(value: ObjectValue?, mockInfo: UtMockInfo): MockedObjectInfo {
-        if (value == null) {
-            return NoMock
-        }
-
-        val mockingIsPossible = when (mockInfo) {
-            is UtFieldMockInfo,
-            is UtObjectMockInfo -> applicationContext.mockFrameworkInstalled
-            is UtNewInstanceMockInfo,
-            is UtStaticMethodMockInfo,
-            is UtStaticObjectMockInfo -> applicationContext.staticsMockingIsConfigured
-        }
-        val mockingIsForcedAndPossible = mockAlways(value.type) && mockingIsPossible
-
-        return if (mocksAreDesired || mockingIsForcedAndPossible) {
-            ExpectedMock(value)
-        } else {
-            UnexpectedMock(value)
-        }
-    }
-
-    /**
      * Creates mocked instance (if it should be mocked by the mocker) of the [type] using [mockInfo]
      * otherwise returns [NoMock].
      *
@@ -207,8 +184,7 @@ class Mocker(
     }
 
     /**
-     * Creates mocked instance of the [type] using [mockInfo]
-     * it does not check anything and always returns the constructed mock.
+     * Unlike to [mock], unconditionally creates a mocked instance of the [type] using [mockInfo].
      */
     fun forceMock(type: RefType, mockInfo: UtMockInfo): MockedObjectInfo {
         mockListenerController?.onShouldMock(strategy, mockInfo)
@@ -238,6 +214,30 @@ class Mocker(
         //we shouldn't listen events that such mocks happened
         if (it && type.id !in utbotSuperClasses.map { it.id }) {
             mockListenerController?.onShouldMock(strategy, mockInfo)
+        }
+    }
+
+    /**
+     * Constructs [MockedObjectInfo]: enriches given [mockedValue] with an information if mocking is expected or not.
+     */
+    private fun construct(mockedValue: ObjectValue?, mockInfo: UtMockInfo): MockedObjectInfo {
+        if (mockedValue == null) {
+            return NoMock
+        }
+
+        val mockingIsPossible = when (mockInfo) {
+            is UtFieldMockInfo,
+            is UtObjectMockInfo -> applicationContext.mockFrameworkInstalled
+            is UtNewInstanceMockInfo,
+            is UtStaticMethodMockInfo,
+            is UtStaticObjectMockInfo -> applicationContext.staticsMockingIsConfigured
+        }
+        val mockingIsForcedAndPossible = mockAlways(mockedValue.type) && mockingIsPossible
+
+        return if (mocksAreDesired || mockingIsForcedAndPossible) {
+            ExpectedMock(mockedValue)
+        } else {
+            UnexpectedMock(mockedValue)
         }
     }
 

@@ -1382,14 +1382,15 @@ class Traverser(
 
             val mockedObjectInfo = mocker.mock(type, mockInfo)
 
-            val mockedObject = mockedObjectInfo.value
             if (mockedObjectInfo is UnexpectedMock) {
                 // if mock occurs, but it is unexpected due to some reasons
                 // (e.g. we do not have mock framework installed),
                 // we can only generate a test that uses null value for mocked object
                 queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+                return mockedObjectInfo.value
             }
 
+            val mockedObject = mockedObjectInfo.value
             if (mockedObject != null) {
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
@@ -1478,7 +1479,7 @@ class Traverser(
             val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
 
             val mockedObject: ObjectValue = when (mockedObjectInfo) {
-                is NoMock -> error("Value must be mocked after the fore mock")
+                is NoMock -> error("Value must be mocked after the force mock")
                 is ExpectedMock -> mockedObjectInfo.value
                 is UnexpectedMock -> {
                     // if mock occurs, but it is unexpected due to some reasons
@@ -1488,6 +1489,10 @@ class Traverser(
 
                     mockedObjectInfo.value
                 }
+            }
+
+            if (mockedObjectInfo is UnexpectedMock) {
+                return mockedObject
             }
 
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
@@ -2728,6 +2733,15 @@ class Traverser(
                         // TODO isMock????
                         InvocationTarget(mockedObject, method, constraints)
                     }
+                    /*
+                    Currently, it is unclear how this could happen.
+                    Perhaps, the answer is somewhere in the following situation:
+                    you have an interface with an abstract method `foo`, and it has an abstract inheritor with the implementation of the method,
+                    but this inheritor doesn't have any concrete inheritors. It looks like in this case we would mock this instance
+                    (because it doesn't have any possible concrete type), but it is impossible since either this class cannot present
+                    in possible types of the object on which we call `foo` (since they contain only concrete types),
+                    or this class would be already mocked (since it doesn't contain any concrete implementors).
+                     */
                     is UnexpectedMock -> unreachableBranch("If it ever happens, it should be investigated")
                 }
             }

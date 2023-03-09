@@ -24,8 +24,8 @@ class PythonWorkerManager(
 
     var timeout: Long = 0
     lateinit var process: Process
-    lateinit var workerSocket: Socket
-    lateinit var codeExecutor: PythonCodeExecutor
+    private lateinit var workerSocket: Socket
+    private lateinit var codeExecutor: PythonCodeExecutor
 
     init {
         connect()
@@ -39,7 +39,7 @@ class PythonWorkerManager(
             "localhost",
             serverSocket.localPort.toString(),
             "--logfile", logfile.absolutePath,
-            //"--loglevel", "DEBUG",
+            "--loglevel", "INFO",  // "DEBUG", "INFO", "ERROR"
         ))
         timeout = max(until - processStartTime, 0)
         workerSocket = try {

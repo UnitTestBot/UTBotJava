@@ -8,7 +8,7 @@ abstract class TypeInferenceAlgorithm {
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
-    )
+    ): Int
 }
 
 sealed interface InferredTypeFeedback

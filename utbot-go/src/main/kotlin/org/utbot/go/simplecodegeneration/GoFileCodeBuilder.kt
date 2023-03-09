@@ -24,6 +24,9 @@ class GoFileCodeBuilder(
     }
 
     fun buildCodeString(): String {
+        if (importLines.isEmpty()) {
+            return "$packageLine\n\n${topLevelElements.joinToString(separator = "\n\n")}"
+        }
         return "$packageLine\n\n$importLines\n\n${topLevelElements.joinToString(separator = "\n\n")}"
     }
 

@@ -34,6 +34,7 @@ internal object GoWorkerCodeGenerationHelper {
         functions: List<GoUtFunction>,
         eachExecutionTimeoutMillis: Long,
         port: Int,
+        maxTraceLength: Int,
         imports: Set<GoImport>
     ): File {
         val fileToExecuteName = createFileToExecuteName(sourceFile)
@@ -41,7 +42,14 @@ internal object GoWorkerCodeGenerationHelper {
         val fileToExecute = sourceFileDir.resolve(fileToExecuteName)
 
         val fileToExecuteGoCode =
-            generateWorkerTestFileGoCode(sourceFile, functions, eachExecutionTimeoutMillis, port, imports)
+            generateWorkerTestFileGoCode(
+                sourceFile,
+                functions,
+                eachExecutionTimeoutMillis,
+                port,
+                maxTraceLength,
+                imports
+            )
         fileToExecute.writeText(fileToExecuteGoCode)
         return fileToExecute
     }
@@ -72,6 +80,7 @@ internal object GoWorkerCodeGenerationHelper {
         functions: List<GoUtFunction>,
         eachExecutionTimeoutMillis: Long,
         port: Int,
+        maxTraceLength: Int,
         imports: Set<GoImport>
     ): String {
         val destinationPackage = sourceFile.sourcePackage
@@ -87,7 +96,8 @@ internal object GoWorkerCodeGenerationHelper {
             GoCodeTemplates.getTopLevelHelperStructsAndFunctionsForWorker(
                 structTypes,
                 destinationPackage,
-                aliases
+                aliases,
+                maxTraceLength,
             ) + workerTestFunctionCode
         )
 
@@ -101,7 +111,7 @@ internal object GoWorkerCodeGenerationHelper {
         }
         val fileCodeBuilder = GoFileCodeBuilder(destinationPackage, imports)
         fileCodeBuilder.addTopLevelElements(
-            listOf(GoCodeTemplates.traces) + functions.map { it.modifiedFunctionForCollectingTraces }
+            functions.map { it.modifiedFunctionForCollectingTraces }
         )
         return fileCodeBuilder.buildCodeString()
     }
@@ -114,12 +124,12 @@ internal object GoWorkerCodeGenerationHelper {
             	con, err := net.Dial("tcp", ":$port")
             	__checkErrorAndExit__(err)
 
-            	defer func(con net.Conn) {
+            	defer func() {
             		err := con.Close()
             		if err != nil {
             			__checkErrorAndExit__(err)
             		}
-            	}(con)
+            	}()
 
             	jsonDecoder := json.NewDecoder(con)
             	for {
@@ -142,8 +152,7 @@ internal object GoWorkerCodeGenerationHelper {
             			panic(fmt.Sprintf("no function with that name: %s", funcName))
             		}
 
-            		executionResult := __executeFunction__($eachExecutionTimeoutMillis*time.Millisecond, func() []__RawValue__ {
-            			__traces__ = make([]int, 0, 100)
+            		executionResult := __executeFunction__($eachExecutionTimeoutMillis*time.Millisecond, arguments, func(arguments []reflect.Value) []__RawValue__ {
             			return __wrapResultValuesForUtBotGoWorker__(function.Call(arguments))
             		})
 

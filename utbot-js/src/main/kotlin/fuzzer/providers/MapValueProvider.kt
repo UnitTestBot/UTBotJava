@@ -4,7 +4,6 @@ package fuzzer.providers
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.util.isJsMap
-import framework.api.js.util.jsBasic
 import framework.api.js.util.jsUndefinedClassId
 import fuzzer.JsIdProvider
 import fuzzer.JsMethodDescription
@@ -24,26 +23,9 @@ object MapValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescription>
         description: JsMethodDescription,
         type: JsClassId
     ) = sequence<Seed<JsClassId, UtModel>> {
-        val modifications = mutableListOf<Routine.Call<JsClassId, UtModel>>()
-        jsBasic.zip(jsBasic).map { (a, b) -> listOf(a, b) }.forEach { typeParameters ->
-            modifications += Routine.Call(typeParameters) { instance, arguments ->
-                val model = instance as UtAssembleModel
-                (model).modificationsChain as MutableList +=
-                    UtExecutableCallModel(
-                        model,
-                        JsMethodId(
-                            classId = type,
-                            name = "set",
-                            returnTypeNotLazy = jsUndefinedClassId,
-                            parametersNotLazy = listOf(jsUndefinedClassId, jsUndefinedClassId)
-                        ),
-                        arguments
-                    )
-            }
-        }
         yield(
-            Seed.Recursive(
-                construct = Routine.Create(listOf(jsUndefinedClassId, jsUndefinedClassId)) {
+            Seed.Collection(
+                construct = Routine.Collection {
                     UtAssembleModel(
                         id = JsIdProvider.createId(),
                         classId = type,
@@ -56,19 +38,20 @@ object MapValueProvider : ValueProvider<JsClassId, UtModel, JsMethodDescription>
                         modificationsChainProvider = { mutableListOf() }
                     )
                 },
-                empty = Routine.Empty {
-                    UtAssembleModel(
-                        id = JsIdProvider.createId(),
-                        classId = type,
-                        modelName = "",
-                        instantiationCall = UtExecutableCallModel(
-                            null,
-                            ConstructorId(type, emptyList()),
-                            emptyList()
+                modify = Routine.ForEach(listOf(jsUndefinedClassId, jsUndefinedClassId)) { self, _, values ->
+                    val model = self as UtAssembleModel
+                    model.modificationsChain as MutableList +=
+                        UtExecutableCallModel(
+                            model,
+                            JsMethodId(
+                                classId = type,
+                                name = "set",
+                                returnTypeNotLazy = jsUndefinedClassId,
+                                parametersNotLazy = listOf(jsUndefinedClassId, jsUndefinedClassId)
+                            ),
+                            values
                         )
-                    )
-                },
-                modify = modifications.asSequence()
+                }
             )
         )
     }

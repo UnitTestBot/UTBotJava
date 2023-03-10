@@ -29,7 +29,7 @@ Do the following steps to run tests in docker container:
 
 1. Pull docker image
 ```
-docker pull unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+docker pull unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
 ```
 2. Run docker container
 ```bash

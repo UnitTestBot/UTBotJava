@@ -199,10 +199,10 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static Object getFieldValue(Object obj, String fieldClassName, String fieldName) throws ClassNotFoundException, NoSuchMethodException, java.lang.reflect.InvocationTargetException, IllegalAccessException, NoSuchFieldException {
+            ${visibility by language}static Object getFieldValue(Object obj, String fieldClassName, String fieldName) throws ClassNotFoundException, java.lang.reflect.InvocationTargetException, IllegalAccessException, NoSuchFieldException {
                 Class<?> clazz = Class.forName(fieldClassName);
                 java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
-                
+                try {
                 field.setAccessible(true);
                 
                 java.lang.reflect.Field modifiersField;
@@ -213,7 +213,10 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
                         
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-                
+                }
+                catch(NoSuchMethodException e1) {
+                    e1.printStackTrace();
+                }
                 return field.get(obj);
             }
         """

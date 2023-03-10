@@ -164,7 +164,8 @@ class CgClassBody(
  * A class representing the IntelliJ IDEA's regions.
  * A region is a part of code between the special starting and ending comments.
  *
- * [header] The header of the region.
+ * @property header The header of the region,
+ * no ///region and ///endregion comments are generated if [header] is `null`
  */
 sealed class CgRegion<out T : CgElement> : CgElement {
     abstract val header: String?

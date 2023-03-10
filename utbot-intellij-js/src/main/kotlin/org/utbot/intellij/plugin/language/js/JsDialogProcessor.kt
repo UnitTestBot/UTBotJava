@@ -257,9 +257,8 @@ object JsDialogProcessor {
 
                     else -> {
                         val line = buildString {
-                            append("\n$startComment")
-                            append(swappedText(null, currentFileText))
-                            append(endComment)
+                            append("\n")
+                            appendLine(swappedText(null, currentFileText))
                         }
                         project.setNewText(editor, model.containingFilePath, currentFileText + line)
                     }

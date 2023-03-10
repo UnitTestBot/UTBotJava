@@ -132,7 +132,7 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws IllegalAccessException, NoSuchMethodException, java.lang.reflect.InvocationTargetException, NoSuchFieldException {
+            ${visibility by language}static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws IllegalAccessException, NoSuchFieldException {
                 java.lang.reflect.Field field;
                 Class<?> originClass = clazz;
                 do {
@@ -152,6 +152,10 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
                         return field.get(null);
                     } catch (NoSuchFieldException e) {
                         clazz = clazz.getSuperclass();
+                    } catch (NoSuchMethodException e2) {
+                        e2.printStackTrace();
+                    } catch (java.lang.reflect.InvocationTargetException e3) {
+                        e3.printStackTrace();
                     }
                 } while (clazz != null);
         
@@ -242,7 +246,7 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException {
+            ${visibility by language}static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
                 java.lang.reflect.Field field;
     
                 try {
@@ -269,6 +273,9 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                 }
                 catch(java.lang.reflect.InvocationTargetException e){
                     e.printStackTrace();
+                }
+                catch(NoSuchMethodException e2) {
+                    e2.printStackTrace();
                 }
             }
         """

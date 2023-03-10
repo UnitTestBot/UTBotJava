@@ -10,7 +10,7 @@ val pythonUltimatePluginVersion: String? by rootProject
 val goPluginVersion: String? by rootProject
 
 plugins {
-    id("org.jetbrains.intellij") version "1.7.0"
+    id("org.jetbrains.intellij") version "1.13.1"
 }
 project.tasks.asMap["runIde"]?.enabled = false
 
@@ -24,8 +24,8 @@ tasks {
     }
 
     java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     test {
@@ -47,8 +47,7 @@ intellij {
     val androidPlugins = listOf("org.jetbrains.android")
 
     val jvmPlugins = listOf(
-        "java",
-        "org.jetbrains.kotlin:222-1.7.20-release-201-IJ4167.29"
+        "java"
     )
 
     val pythonCommunityPlugins = listOf(

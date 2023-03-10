@@ -24,17 +24,6 @@ dependencies {
     testImplementation project(':utbot-framework').sourceSets.test.output
 }
 
-test {
-    minHeapSize = "128m"
-    maxHeapSize = "3072m"
-
-    jvmArgs '-XX:MaxHeapSize=3072m'
-
-    useJUnitPlatform() {
-        excludeTags 'slow', 'IntegrationTest'
-    }
-}
-
 processResources {
     configurations.torchmodels.resolvedConfiguration.resolvedArtifacts.each { artifact ->
         from(zipTree(artifact.getFile())) {

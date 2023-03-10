@@ -1,8 +1,18 @@
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+compileKotlin {
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
+        jvmTarget = JavaVersion.VERSION_1_8
     }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 dependencies {

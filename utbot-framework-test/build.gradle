@@ -73,17 +73,6 @@ dependencies {
 
 
 test {
-
-    minHeapSize = "128m"
-    maxHeapSize = "2048m"
-
-    jvmArgs '-XX:MaxHeapSize=2048m'
-
-    // To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
-    //useJUnit()
-    useJUnitPlatform() {
-        excludeTags 'slow', 'IntegrationTest'
-    }
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }

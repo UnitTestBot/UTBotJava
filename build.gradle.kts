@@ -1,5 +1,5 @@
 import java.text.SimpleDateFormat
-import org.gradle.api.JavaVersion.VERSION_11
+import org.gradle.api.JavaVersion.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "org.utbot"
@@ -21,7 +21,7 @@ plugins {
 
 configure<JavaPluginExtension> {
     sourceCompatibility = VERSION_11
-    targetCompatibility = VERSION_11
+    targetCompatibility = VERSION_17
 }
 
 allprojects {
@@ -34,20 +34,20 @@ allprojects {
     tasks {
         withType<JavaCompile> {
             sourceCompatibility = "1.8"
-            targetCompatibility = "17"
+            targetCompatibility = "1.8"
             options.encoding = "UTF-8"
             options.compilerArgs = options.compilerArgs + "-Xlint:all"
         }
         withType<KotlinCompile> {
             kotlinOptions {
-                jvmTarget = "17"
+                jvmTarget = "1.8"
                 freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
         }
         compileTestKotlin {
             kotlinOptions {
-                jvmTarget = "17"
+                jvmTarget = "1.8"
                 freeCompilerArgs = freeCompilerArgs + listOf("-Xallow-result-return-type", "-Xsam-conversions=class", "-Xcontext-receivers")
                 allWarningsAsErrors = false
             }
@@ -62,7 +62,7 @@ allprojects {
             minHeapSize = "128m"
             maxHeapSize = "3072m"
 
-            jvmArgs = listOf("-XX:MaxHeapSize=3072m")
+            jvmArgs = listOf("-XX:MaxHeapSize=3072m", "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",  "--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED", "--add-opens", "java.base/sun.security.provider=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.event=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.jimage=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.jimage.decompressor=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.jmod=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.jtrfs=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.loader=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.logger=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.math=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.module=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.objectweb.asm.commons=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.objectweb.asm.signature=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.objectweb.asm.tree.analysis=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.objectweb.asm.util=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.xml.sax=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.org.xml.sax.helpers=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.perf=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.platform=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.ref=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.reflect=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.util=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.util.jar=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.util.xml=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.util.xml.impl=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.vm=ALL-UNNAMED", "--add-opens", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
 
             useJUnitPlatform {
                 excludeTags = setOf("slow", "IntegrationTest")

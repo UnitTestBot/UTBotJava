@@ -200,6 +200,26 @@ class PythonCallableTypeDescription(
             functionType.arguments.joinToString(separator = ", ") { it.pythonTypeRepresentation() }
         }], ${functionType.returnValue.pythonTypeRepresentation()}]"
     }
+
+    fun removeNonPositionalArgs(type: Type): FunctionType {
+        val functionType = castToCompatibleTypeApi(type)
+        val argsCount = argumentKinds.count { it == ArgKind.ARG_POS }
+        return createPythonCallableType(
+            functionType.parameters.size,
+            argumentKinds.take(argsCount),
+            argumentNames.take(argsCount)
+        ) { self ->
+            val substitution = (functionType.parameters zip self.parameters).associate {
+                Pair(it.first as TypeParameter, it.second)
+            }
+            FunctionTypeCreator.InitializationData(
+                functionType.arguments.take(argsCount).map {
+                    DefaultSubstitutionProvider.substitute(it, substitution)
+                },
+                DefaultSubstitutionProvider.substitute(functionType.returnValue, substitution)
+            )
+        }
+    }
 }
 
 // Special Python annotations

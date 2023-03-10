@@ -211,7 +211,8 @@ class PythonCodeGenerator(
         methodAnnotations: Map<String, Type>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
-        namesInModule: Collection<String>
+        namesInModule: Collection<String>,
+        additionalVars: String
     ): String {
         val cgRendererContext = CgRendererContext.fromCgContext(context)
         val printer = CgPrinterImpl()
@@ -242,6 +243,8 @@ class PythonCodeGenerator(
 
         val mypyCheckCode = listOf(
             renderer.toString(),
+            "",
+            additionalVars,
             "",
             functionName,
         ) + method.codeAsString.split("\n").map { "    $it" }

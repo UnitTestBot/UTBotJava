@@ -100,13 +100,14 @@ fun checkSuggestedSignatureWithDMypy(
     fileForMypyCode: File,
     pythonPath: String,
     configFile: File,
-    initialErrorNumber: Int
+    initialErrorNumber: Int,
+    additionalVars: String
 ): Boolean {
     val annotationMap =
         (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
             Pair(it.first, it.second)
         }
-    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
+    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule, additionalVars)
     // logger.debug(mypyCode)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)

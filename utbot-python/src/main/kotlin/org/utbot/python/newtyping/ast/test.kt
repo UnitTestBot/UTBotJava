@@ -8,7 +8,7 @@ fun main() {
     val content = """
     class A:
         @decorator
-        def func(x):
+        def func(x, y = 1, *args, **kwargs):
             return 1
     """.trimIndent()
 

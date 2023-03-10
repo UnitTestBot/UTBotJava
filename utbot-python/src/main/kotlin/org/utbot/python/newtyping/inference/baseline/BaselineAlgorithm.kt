@@ -31,7 +31,8 @@ class BaselineAlgorithm(
     private val moduleToImport: String,
     private val namesInModule: Collection<String>,
     private val initialErrorNumber: Int,
-    private val configFile: File
+    private val configFile: File,
+    private val additionalVars: String
 ) : TypeInferenceAlgorithm() {
     private val random = Random(0)
 
@@ -93,7 +94,8 @@ class BaselineAlgorithm(
             fileForMypyRuns,
             pythonPath,
             configFile,
-            initialErrorNumber
+            initialErrorNumber,
+            additionalVars
         )
     }
 

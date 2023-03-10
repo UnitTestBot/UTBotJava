@@ -117,14 +117,21 @@ class PythonTestCaseGenerator(
         }.take(maxSubstitutions)
     }
 
-    fun generate(method: PythonMethod, until: Long): PythonTestSet {
-        storageForMypyMessages.clear()
+    private fun methodHandler(
+        method: PythonMethod,
+        typeStorage: PythonTypeStorage,
+        coveredLines: MutableSet<Int>,
+        errors: MutableList<UtError>,
+        executions: MutableList<UtExecution>,
+        initMissingLines: Set<Int>?,
+        until: Long,
+        additionalVars: String = ""
+    ): Set<Int>? {  // returns missing lines
         val limitManager = TestGenerationLimitManager(
             ExecutionWithTimeoutMode,
             until,
         )
-
-        val typeStorage = PythonTypeStorage.get(mypyStorage)
+        var missingLines = initMissingLines
 
         val (hintCollector, constantCollector) = constructCollectors(mypyStorage, typeStorage, method)
         val constants = constantCollector.result.map { (type, value) ->
@@ -132,13 +139,6 @@ class PythonTestCaseGenerator(
             PythonFuzzedConcreteValue(type, value)
         }
 
-        val executions = mutableListOf<UtExecution>()
-        val errors = mutableListOf<UtError>()
-        var missingLines: Set<Int>? = null
-        val coveredLines = mutableSetOf<Int>()
-        var generated = 0
-
-        logger.info("Start test generation for ${method.name}")
         substituteTypeParameters(method, typeStorage).forEach { newMethod ->
             inferAnnotations(
                 newMethod,
@@ -148,6 +148,7 @@ class PythonTestCaseGenerator(
                 mypyReportLine,
                 mypyConfigFile,
                 limitManager,
+                additionalVars
             ) { functionType ->
                 val args = (functionType as FunctionType).arguments
 
@@ -168,7 +169,6 @@ class PythonTestCaseGenerator(
                 val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
-                    generated += 1
                     when (it) {
                         is ValidExecution -> {
                             executions += it.utFuzzedExecution
@@ -195,6 +195,40 @@ class PythonTestCaseGenerator(
                 limitManager.restart()
                 feedback
             }
+        }
+        return missingLines
+    }
+
+    fun generate(method: PythonMethod, until: Long): PythonTestSet {
+        storageForMypyMessages.clear()
+
+        val typeStorage = PythonTypeStorage.get(mypyStorage)
+
+        val executions = mutableListOf<UtExecution>()
+        val errors = mutableListOf<UtError>()
+        val coveredLines = mutableSetOf<Int>()
+
+        logger.info("Start test generation for ${method.name}")
+        val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
+        val argKinds = meta.argumentKinds
+        if (argKinds.any { it != PythonCallableTypeDescription.ArgKind.ARG_POS }) {
+            val now = System.currentTimeMillis()
+            val firstUntil = (until - now) / 2 + now
+            val originalDef = method.definition
+            val shortType = meta.removeNonPositionalArgs(originalDef.type)
+            val shortMeta = PythonFuncItemDescription(
+                originalDef.meta.name,
+                originalDef.meta.args.take(shortType.arguments.size)
+            )
+            val additionalVars = originalDef.meta.args.drop(shortType.arguments.size).fold("") { acc, arg ->
+                acc + "\n" + "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
+            }
+            method.definition = PythonFunctionDefinition(shortMeta, shortType)
+            val missingLines = methodHandler(method, typeStorage, coveredLines, errors, executions, null, firstUntil, additionalVars)
+            method.definition = originalDef
+            methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
+        } else {
+            methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)
         }
 
         logger.info("Collect all test executions for ${method.name}")
@@ -234,6 +268,7 @@ class PythonTestCaseGenerator(
         report: List<MypyReportLine>,
         mypyConfigFile: File,
         limitManager: TestGenerationLimitManager,
+        additionalVars: String,
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
     ) {
         val namesInModule = mypyStorage.names
@@ -257,7 +292,8 @@ class PythonTestCaseGenerator(
                 getOffsetLine(sourceFileContent, method.ast.beginOffset),
                 getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
-            mypyConfigFile
+            mypyConfigFile,
+            additionalVars
         )
 
         runBlocking breaking@{

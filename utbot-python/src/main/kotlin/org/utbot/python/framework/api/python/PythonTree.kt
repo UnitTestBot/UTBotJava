@@ -26,6 +26,19 @@ object PythonTree {
         return tree.children.any { isRecursiveObjectDFS(it, visited) }
     }
 
+    fun containsFakeNode(tree: PythonTreeNode): Boolean {
+        return containsFakeNodeDFS(tree, mutableSetOf())
+    }
+
+    private fun containsFakeNodeDFS(tree: PythonTreeNode, visited: MutableSet<PythonTreeNode>): Boolean {
+        if (visited.contains(tree))
+            return false
+        if (tree is FakeNode)
+            return true
+        visited.add(tree)
+        return tree.children.any { containsFakeNodeDFS(it, visited) }
+    }
+
     open class PythonTreeNode(
         val id: Long,
         val type: PythonClassId,
@@ -68,6 +81,8 @@ object PythonTree {
         open fun diversity(): Int = // must be called only from PythonTreeWrapper!
             1 + children.fold(0) { acc, child -> acc + child.diversity() }
     }
+
+    object FakeNode: PythonTreeNode(0L, PythonClassId(""))
 
     class PrimitiveNode(
         id: Long,

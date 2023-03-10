@@ -31,7 +31,9 @@ class BaselineAlgorithm(
     private val moduleToImport: String,
     private val namesInModule: Collection<String>,
     private val initialErrorNumber: Int,
-    private val configFile: File
+    private val configFile: File,
+    private val additionalVars: String,
+    private val randomTypeFrequency: Int = 0
 ) : TypeInferenceAlgorithm() {
     private val random = Random(0)
 
@@ -39,20 +41,39 @@ class BaselineAlgorithm(
         hintCollectorResult: HintCollectorResult,
         isCancelled: () -> Boolean,
         annotationHandler: suspend (Type) -> InferredTypeFeedback,
-    ) {
+    ): Int {
         val generalRating = createGeneralTypeRating(hintCollectorResult, storage)
         val initialState = getInitialState(hintCollectorResult, generalRating)
         val states: MutableList<BaselineAlgorithmState> = mutableListOf(initialState)
         val fileForMypyRuns = TemporaryFileManager.assignTemporaryFile(tag = "mypy.py")
+        var iterationCounter = 0
+
+        val simpleTypes = simplestTypes(storage)
+        val mixtureType = createPythonUnionType(simpleTypes)
 
         run breaking@ {
             while (states.isNotEmpty()) {
                 if (isCancelled())
                     return@breaking
                 logger.debug("State number: ${states.size}")
+                iterationCounter++
+
+                if (randomTypeFrequency > 0 && iterationCounter % randomTypeFrequency == 0) {
+                    val weights = states.map { 1.0 / (it.anyNodes.size * it.anyNodes.size + 1) }
+                    val state = weightedRandom(states, weights, random)
+                    val newState = expandState(state, storage, state.anyNodes.map { mixtureType })
+                    if (newState != null) {
+                        logger.info("Random type: ${newState.signature.pythonTypeRepresentation()}")
+                        annotationHandler(newState.signature)
+                    }
+                }
+
                 val state = chooseState(states)
                 val newState = expandState(state, storage)
                 if (newState != null) {
+                    if (iterationCounter == 1) {
+                        annotationHandler(initialState.signature)
+                    }
                     logger.info("Checking ${newState.signature.pythonTypeRepresentation()}")
                     if (checkSignature(newState.signature as FunctionType, fileForMypyRuns, configFile)) {
                         logger.debug("Found new state!")
@@ -71,6 +92,7 @@ class BaselineAlgorithm(
                 }
             }
         }
+        return iterationCounter
     }
 
     private fun checkSignature(signature: FunctionType, fileForMypyRuns: File, configFile: File): Boolean {
@@ -86,7 +108,8 @@ class BaselineAlgorithm(
             fileForMypyRuns,
             pythonPath,
             configFile,
-            initialErrorNumber
+            initialErrorNumber,
+            additionalVars
         )
     }
 

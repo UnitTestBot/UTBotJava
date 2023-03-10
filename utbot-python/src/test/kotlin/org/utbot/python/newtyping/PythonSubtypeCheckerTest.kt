@@ -116,4 +116,16 @@ internal class PythonSubtypeCheckerTest {
         assertTrue(checkIfRightIsSubtypeOfLeft(tupleOfAny, tupleOfIntAndFloat, pythonTypeStorage))
         assertFalse(checkIfRightIsSubtypeOfLeft(tupleOfInt, tupleOfIntAndFloat, pythonTypeStorage))
     }
+
+    @Test
+    fun testAbstractSet() {
+        val abstractSet = storage.definitions["typing"]!!["AbstractSet"]!!.getUtBotType()
+        assertTrue((abstractSet.pythonDescription() as PythonConcreteCompositeTypeDescription).isAbstract)
+        val set = storage.definitions["builtins"]!!["set"]!!.getUtBotType()
+
+        val abstractSetOfAny = DefaultSubstitutionProvider.substituteByIndex(abstractSet, 0, pythonAnyType)
+        val setOfAny = DefaultSubstitutionProvider.substituteByIndex(set, 0, pythonAnyType)
+
+        assertTrue(checkIfRightIsSubtypeOfLeft(abstractSetOfAny, setOfAny, pythonTypeStorage))
+    }
 }

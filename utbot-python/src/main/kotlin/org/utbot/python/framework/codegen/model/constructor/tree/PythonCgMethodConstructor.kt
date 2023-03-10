@@ -62,7 +62,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
                     val afterThisInstance = execution.stateAfter.thisInstance
                     val assertThisObject = emptyList<Pair<CgVariable, UtModel>>().toMutableList()
                     if (beforeThisInstance is PythonTreeModel && afterThisInstance is PythonTreeModel) {
-                        if (beforeThisInstance != afterThisInstance) {
+                        if (PythonTreeWrapper(beforeThisInstance.tree) != PythonTreeWrapper(afterThisInstance.tree)) {
                             thisInstance = thisInstance?.let {
                                 val newValue =
                                     if (it is CgPythonTree) {
@@ -91,7 +91,7 @@ class PythonCgMethodConstructor(context: CgContext) : CgMethodConstructor(contex
 
                         val afterValue = execution.stateAfter.parameters[index]
                         if (afterValue is PythonTreeModel && param is PythonTreeModel) {
-                            if (afterValue != param) {
+                            if (PythonTreeWrapper(afterValue.tree) != PythonTreeWrapper(param.tree)) {
                                 if (argument !is CgVariable) {
                                     argument = newVar(argument.type, name) {argument}
                                 }

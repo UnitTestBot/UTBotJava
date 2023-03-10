@@ -11,6 +11,7 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.evaluation.*
 import org.utbot.python.evaluation.serialiation.MemoryDump
 import org.utbot.python.evaluation.serialiation.toPythonTree
+import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.PythonTreeModel
 import org.utbot.python.framework.api.python.PythonTreeWrapper
 import org.utbot.python.fuzzing.*
@@ -31,7 +32,6 @@ class PythonEngine(
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<PythonFuzzedConcreteValue>,
     private val timeoutForRun: Long,
-    private val initialCoveredLines: Set<Int>,
     private val pythonTypeStorage: PythonTypeStorage,
 ) {
 
@@ -81,16 +81,20 @@ class PythonEngine(
     }
 
     private fun handleSuccessResult(
+        arguments: List<PythonFuzzedValue>,
         types: List<Type>,
         evaluationResult: PythonEvaluationSuccess,
         methodUnderTestDescription: PythonMethodDescription,
-        hasThisObject: Boolean,
-        summary: List<String>,
     ): FuzzingExecutionFeedback {
         val prohibitedExceptions = listOf(
             "builtins.AttributeError",
             "builtins.TypeError"
         )
+
+        val summary = arguments
+            .zip(methodUnderTest.arguments)
+            .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
+        val hasThisObject = methodUnderTest.hasThisArgument
 
         val resultModel = evaluationResult.stateAfter.getById(evaluationResult.resultId).toPythonTree(evaluationResult.stateAfter)
 
@@ -141,17 +145,20 @@ class PythonEngine(
 
     fun fuzzing(parameters: List<Type>, isCancelled: () -> Boolean, until: Long): Flow<FuzzingExecutionFeedback> = flow {
         val additionalModules = parameters.flatMap { it.pythonModules() }
-        val coveredLines = initialCoveredLines.toMutableSet()
 
         ServerSocket(0).use { serverSocket ->
             logger.info { "Server port: ${serverSocket.localPort}" }
-            val manager = PythonWorkerManager(
-                serverSocket,
-                pythonPath,
-                until,
-                { constructEvaluationInput(it) },
-                timeoutForRun.toInt()
-            )
+            val manager = try {
+                PythonWorkerManager(
+                    serverSocket,
+                    pythonPath,
+                    until,
+                    { constructEvaluationInput(it) },
+                    timeoutForRun.toInt()
+                )
+            } catch (_: TimeoutException) {
+                return@flow
+            }
             logger.info { "Executor manager was created successfully" }
 
             fun fuzzingResultHandler(
@@ -195,20 +202,12 @@ class PythonEngine(
 
                         is PythonEvaluationSuccess -> {
                             val coveredInstructions = evaluationResult.coverage.coveredInstructions
-                            coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
-
-                            val summary = arguments
-                                .zip(methodUnderTest.arguments)
-                                .mapNotNull { it.first.summary?.replace("%var%", it.second.name) }
-
-                            val hasThisObject = methodUnderTest.hasThisArgument
 
                             when (val result = handleSuccessResult(
+                                arguments,
                                 parameters,
                                 evaluationResult,
                                 description,
-                                hasThisObject,
-                                summary
                             )) {
                                 is ValidExecution -> {
                                     val trieNode: Trie.Node<Instruction> = description.tracer.add(coveredInstructions)
@@ -229,6 +228,7 @@ class PythonEngine(
                         }
                     }
                 } catch (_: TimeoutException) {
+                    logger.info { "Fuzzing process was interrupted by timeout" }
                     return null
                 }
             }
@@ -246,40 +246,49 @@ class PythonEngine(
                 result?.let {
                     emit(it.fuzzingExecutionFeedback)
                 }
-                manager.disconnect()
             } else {
-                PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
-                    if (isCancelled()) {
-                        logger.info { "Fuzzing process was interrupted" }
-                        manager.disconnect()
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                    }
-                    if (System.currentTimeMillis() >= until) {
-                        logger.info { "Fuzzing process was interrupted by timeout" }
-                        manager.disconnect()
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                    }
+                try {
+                    PythonFuzzing(pmd.pythonTypeStorage) { description, arguments ->
+                        if (isCancelled()) {
+                            logger.info { "Fuzzing process was interrupted" }
+                            manager.disconnect()
+                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        }
+                        if (System.currentTimeMillis() >= until) {
+                            logger.info { "Fuzzing process was interrupted by timeout" }
+                            manager.disconnect()
+                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        }
 
-                    val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
-                    val mem = cache.get(pair)
-                    if (mem != null) {
-                        logger.debug("Repeat in fuzzing")
-                        emit(mem.fuzzingExecutionFeedback)
-                        return@PythonFuzzing mem.fuzzingPlatformFeedback
-                    }
-                    val result = fuzzingResultHandler(description, arguments)
-                    if (result == null) {  // timeout
-                        logger.info { "Fuzzing process was interrupted by timeout" }
-                        manager.disconnect()
-                        return@PythonFuzzing PythonFeedback(control = Control.STOP)
-                    }
+                        if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
+                            logger.debug("FakeNode in Python model")
+                            emit(InvalidExecution(UtError("Bad input object", Throwable())))
+                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
+                        }
 
-                    cache.add(pair, result)
-                    emit(result.fuzzingExecutionFeedback)
-                    return@PythonFuzzing result.fuzzingPlatformFeedback
+                        val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })
+                        val mem = cache.get(pair)
+                        if (mem != null) {
+                            logger.debug("Repeat in fuzzing")
+                            emit(mem.fuzzingExecutionFeedback)
+                            return@PythonFuzzing mem.fuzzingPlatformFeedback
+                        }
+                        val result = fuzzingResultHandler(description, arguments)
+                        if (result == null) {  // timeout
+                            logger.info { "Fuzzing process was interrupted by timeout" }
+                            manager.disconnect()
+                            return@PythonFuzzing PythonFeedback(control = Control.STOP)
+                        }
 
-                }.fuzz(pmd)
+                        cache.add(pair, result)
+                        emit(result.fuzzingExecutionFeedback)
+                        return@PythonFuzzing result.fuzzingPlatformFeedback
+                    }.fuzz(pmd)
+                } catch (_: Exception) { // e.g. NoSeedValueException
+                    logger.info { "Cannot fuzz values for types: ${parameters.map { it.pythonTypeRepresentation() }}" }
+                }
             }
+            manager.disconnect()
         }
     }
 }

@@ -8,6 +8,7 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.framework.api.python.util.toPythonRepr
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
+import org.utbot.python.fuzzing.provider.utils.isConcreteType
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.Type
@@ -30,7 +31,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
     override fun accept(type: Type): Boolean {
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
-        return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription // && (hasInit || hasNew)
+        return hasSupportedType && isConcreteType(type) // && (hasInit || hasNew)
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -100,12 +101,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
                 )
             },
             modify = modifications,
-            empty = Routine.Empty {
-                PythonFuzzedValue(
-                    PythonTree.fromObject(),
-                    "%var% = ${type.pythonTypeRepresentation()}"
-                )
-            }
+            empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
         )
     }
 

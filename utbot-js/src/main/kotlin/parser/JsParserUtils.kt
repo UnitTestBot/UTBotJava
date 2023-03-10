@@ -3,8 +3,10 @@ package parser
 import com.google.javascript.jscomp.Compiler
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
-import org.utbot.fuzzer.FuzzedContext
+import fuzzer.JsFuzzedContext
+import parser.JsParserUtils.getMethodName
 
+// TODO: make methods more safe by checking the Node method is called on.
 // Used for .children() calls.
 @Suppress("DEPRECATION")
 object JsParserUtils {
@@ -73,14 +75,14 @@ object JsParserUtils {
     /**
      * Called upon node with any kind of binary comparison token.
      */
-    fun Node.toFuzzedContextComparisonOrNull(): FuzzedContext.Comparison? = when {
-        this.isEQ -> FuzzedContext.Comparison.EQ
-        this.isNE -> FuzzedContext.Comparison.NE
-        this.token.name == "LT" -> FuzzedContext.Comparison.LT
-        this.token.name == "GT" -> FuzzedContext.Comparison.GT
-        this.token.name == "LE" -> FuzzedContext.Comparison.LE
-        this.token.name == "GE" -> FuzzedContext.Comparison.GE
-        this.token.name == "SHEQ" -> FuzzedContext.Comparison.EQ
+    fun Node.toFuzzedContextComparisonOrNull(): JsFuzzedContext? = when {
+        this.isEQ -> JsFuzzedContext.EQ
+        this.isNE -> JsFuzzedContext.NE
+        this.token.name == "LT" -> JsFuzzedContext.LT
+        this.token.name == "GT" -> JsFuzzedContext.GT
+        this.token.name == "LE" -> JsFuzzedContext.LE
+        this.token.name == "GE" -> JsFuzzedContext.GE
+        this.token.name == "SHEQ" -> JsFuzzedContext.EQ
         else -> null
     }
 

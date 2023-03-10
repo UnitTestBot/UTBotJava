@@ -252,9 +252,6 @@ class PythonGenerateTestsCommand : CliktCommand(
             installingRequirementsAction = {
                 logger.info("Installing requirements...")
             },
-            testFrameworkInstallationAction = {
-                logger.info("Test framework installation...")
-            },
             requirementsAreNotInstalledAction = ::processMissingRequirements,
             startedLoadingPythonTypesAction = {
                 logger.info("Loading information about Python types...")

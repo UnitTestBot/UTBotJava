@@ -17,6 +17,7 @@ import org.utbot.framework.codegen.domain.ParametrizedTestSource
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.testFrameworkByName
 import org.utbot.framework.codegen.reports.TestsGenerationReport
+import org.utbot.framework.codegen.services.language.CgLanguageAssistant
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MethodDescription
 import org.utbot.framework.plugin.api.util.UtContext
@@ -152,6 +153,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             testFramework = testFramework,
             mockFramework = MockFramework.valueOf(params.mockFramework),
             codegenLanguage = CodegenLanguage.valueOf(params.codegenLanguage),
+            cgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.valueOf(params.codegenLanguage)),
             parameterizedTestSource = ParametrizedTestSource.valueOf(params.parameterizedTestSource),
             staticsMocking = staticMocking,
             forceStaticMocking = kryoHelper.readObject(params.forceStaticMocking),

@@ -4,6 +4,7 @@ import codegen.JsCodeGenerator
 import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
+import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
@@ -26,9 +27,8 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
 import parser.JsClassAstVisitor
@@ -187,7 +187,7 @@ class JsTestGenerator(
     private fun getUtModelResult(
         execId: JsMethodId,
         resultData: ResultData,
-        fuzzedValues: List<FuzzedValue>
+        fuzzedValues: List<UtModel>
     ): UtExecutionResult {
         if (resultData.isError && resultData.rawString == "Timeout") return UtTimeoutException(
             TimeoutException("  Timeout in generating test for ${
@@ -197,7 +197,7 @@ class JsTestGenerator(
                         prefix = "${execId.name}(",
                         separator = ", ",
                         postfix = ")"
-                    ) { (_, value) -> value.model.toString() }
+                    ) { (_, value) -> value.toString() }
             }")
         )
         val (returnValue, valueClassId) = resultData.toJsAny(
@@ -221,11 +221,11 @@ class JsTestGenerator(
         val jsDescription = JsMethodDescription(
             name = funcNode.getAbstractFunctionName(),
             parameters = execId.parameters,
-            execId.classId,
+            classId = execId.classId,
             concreteValues = fuzzerVisitor.fuzzedConcreteValues,
             tracer = Trie(JsStatement::number)
         )
-        val collectedValues = mutableListOf<List<FuzzedValue>>()
+        val collectedValues = mutableListOf<List<UtModel>>()
         // .location field gets us "jsFile:A:B", then we get A and B as ints
         val funcLocation = funcNode.firstChild!!.location.substringAfter("jsFile:")
             .split(":").map { it.toInt() }
@@ -265,13 +265,13 @@ class JsTestGenerator(
                             return@runFuzzing JsFeedback(Control.PASS)
                         } else if (!currentlyCoveredStmts.containsAll(covData.additionalCoverage)) {
                             val (thisObject, modelList) = if (!funcNode.parent!!.isClassMembers) {
-                                null to params.map { it.model }
-                            } else params[0].model to params.drop(1).map { it.model }
+                                null to params
+                            } else params[0] to params.drop(1)
                             val initEnv =
                                 EnvironmentModels(thisObject, modelList, mapOf())
                             emit(
                                 JsValidExecution(
-                                    UtFuzzedExecution(
+                                    JsUtFuzzedExecution(
                                         stateBefore = initEnv,
                                         stateAfter = initEnv,
                                         result = result,

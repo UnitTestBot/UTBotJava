@@ -14,7 +14,7 @@ abstract class AbstractGoUtTestsGenerationController {
         isCanceled: () -> Boolean = { false }
     ) {
         if (!onSourceCodeAnalysisStart(selectedFunctionsNamesBySourceFiles)) return
-        val (analysisResults, intSize) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
+        val (analysisResults, intSize, maxTraceLength) = GoSourceCodeAnalyzer.analyzeGoSourceFilesForFunctions(
             selectedFunctionsNamesBySourceFiles,
             testsGenerationConfig.goExecutableAbsolutePath
         )
@@ -32,6 +32,7 @@ abstract class AbstractGoUtTestsGenerationController {
                 sourceFile,
                 functions,
                 intSize,
+                maxTraceLength,
                 testsGenerationConfig.goExecutableAbsolutePath,
                 testsGenerationConfig.eachFunctionExecutionTimeoutMillis
             ) { index -> isCanceled() || System.currentTimeMillis() - (startTimeMillis + (index + 1) * functionTimeoutStepMillis) > 0 }

@@ -101,7 +101,8 @@ class TypeInferenceProcessor(
                     getOffsetLine(sourceFileContent, pythonMethod.ast.beginOffset),
                     getOffsetLine(sourceFileContent, pythonMethod.ast.endOffset)
                 ),
-                configFile
+                configFile,
+                ""
             )
 
             startingTypeInferenceAction()

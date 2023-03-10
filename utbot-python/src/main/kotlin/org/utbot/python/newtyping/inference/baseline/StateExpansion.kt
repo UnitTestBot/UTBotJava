@@ -12,6 +12,12 @@ fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage): 
     if (state.anyNodes.isEmpty())
         return null
     val types = state.candidateGraph.getNext() ?: return null
+    return expandState(state, typeStorage, types)
+}
+
+fun expandState(state: BaselineAlgorithmState, typeStorage: PythonTypeStorage, types: List<Type>): BaselineAlgorithmState? {
+    if (types.isEmpty())
+        return null
     val substitution = (state.anyNodes zip types).associate { it }
     return expandNodes(state, substitution, state.generalRating, typeStorage)
 }

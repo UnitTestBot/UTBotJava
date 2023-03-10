@@ -1,25 +1,26 @@
 package fuzzer
 
 import framework.api.js.JsClassId
+import framework.api.js.JsUtFuzzedExecution
 import framework.api.js.util.isClass
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.Description
 import org.utbot.fuzzing.Feedback
 import org.utbot.fuzzing.utils.Trie
+import java.util.concurrent.atomic.AtomicInteger
 
 sealed interface JsFuzzingExecutionFeedback
-class JsValidExecution(val utFuzzedExecution: UtFuzzedExecution) : JsFuzzingExecutionFeedback
+class JsValidExecution(val utFuzzedExecution: JsUtFuzzedExecution) : JsFuzzingExecutionFeedback
 
 class JsTimeoutExecution(val utTimeout: UtTimeoutException) : JsFuzzingExecutionFeedback
 
 class JsMethodDescription(
     val name: String,
     parameters: List<JsClassId>,
-    val concreteValues: Collection<FuzzedConcreteValue>,
+    val concreteValues: Collection<JsFuzzedConcreteValue>,
     val thisInstance: JsClassId? = null,
     val tracer: Trie<JsStatement, *>
 ) : Description<JsClassId>(parameters) {
@@ -28,7 +29,7 @@ class JsMethodDescription(
         name: String,
         parameters: List<JsClassId>,
         classId: JsClassId,
-        concreteValues: Collection<FuzzedConcreteValue>,
+        concreteValues: Collection<JsFuzzedConcreteValue>,
         tracer: Trie<JsStatement, *>
     ) : this(
         name,
@@ -39,21 +40,43 @@ class JsMethodDescription(
     )
 }
 
-class JsFeedback(
+data class JsFeedback(
     override val control: Control = Control.CONTINUE,
     val result: Trie.Node<JsStatement> = Trie.emptyNode()
-) : Feedback<JsClassId, FuzzedValue> {
-
-    override fun equals(other: Any?): Boolean {
-        val castOther = other as? JsFeedback
-        return control == castOther?.control
-    }
-
-    override fun hashCode(): Int {
-        return control.hashCode()
-    }
-}
+) : Feedback<JsClassId, UtModel>
 
 data class JsStatement(
     val number: Int
 )
+
+data class JsFuzzedConcreteValue(
+    val classId: ClassId,
+    val value: Any,
+    val fuzzedContext: JsFuzzedContext = JsFuzzedContext.Unknown,
+)
+
+enum class JsFuzzedContext {
+    EQ,
+    NE,
+    GT,
+    GE,
+    LT,
+    LE,
+    Unknown;
+
+    fun reverse(): JsFuzzedContext = when (this) {
+        EQ -> NE
+        NE -> EQ
+        GT -> LE
+        LT -> GE
+        LE -> GT
+        GE -> LT
+        Unknown -> Unknown
+    }
+}
+
+object JsIdProvider {
+    private var id = AtomicInteger(0)
+
+    fun createId() = id.incrementAndGet()
+}

@@ -21,10 +21,7 @@ object UnionValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethodD
         params.forEach { unionParam ->
             yield(Seed.Recursive(
                 construct = Routine.Create(listOf(unionParam)) { v -> v.first() },
-                empty = Routine.Empty { PythonFuzzedValue(
-                    PythonTree.fromObject(),
-                    "%var% = ${unionParam.meta} from ${type.pythonTypeRepresentation()}",
-                )}
+                empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
             ))
         }
     }

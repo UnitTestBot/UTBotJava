@@ -2,7 +2,7 @@ import collections
 import heapq
 import typing
 from socket import socket
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Set, Optional, AbstractSet
 from dataclasses import dataclass
 import logging
 import datetime
@@ -94,7 +94,7 @@ def empty():
     return 1
 
 
-def id_(x):
+def id_(x: AbstractSet[int]):
     return x
 
 

@@ -5,6 +5,7 @@ import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.PythonFuzzedValue
 import org.utbot.python.fuzzing.PythonMethodDescription
 import org.utbot.python.newtyping.PythonAnyTypeDescription
+import org.utbot.python.newtyping.PythonConcreteCompositeTypeDescription
 import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.general.Type
 
@@ -20,4 +21,8 @@ fun getSuitableConstantsFromCode(description: PythonMethodDescription, type: Typ
             Seed.Simple(PythonFuzzedValue(it))
         }
     }
+}
+
+fun isConcreteType(type: Type): Boolean {
+    return (type.meta as? PythonConcreteCompositeTypeDescription)?.isAbstract == false
 }

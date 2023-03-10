@@ -263,7 +263,7 @@ class PythonEngine(
                         if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
                             logger.debug("FakeNode in Python model")
                             emit(InvalidExecution(UtError("Bad input object", Throwable())))
-                            return@PythonFuzzing PythonFeedback(control = Control.PASS)
+                            return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                         }
 
                         val pair = Pair(description, arguments.map { PythonTreeWrapper(it.tree) })

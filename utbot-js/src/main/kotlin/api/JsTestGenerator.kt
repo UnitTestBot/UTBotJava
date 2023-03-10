@@ -63,6 +63,8 @@ import utils.data.ResultData
 import utils.toJsAny
 import java.io.File
 import java.util.concurrent.CancellationException
+import settings.JsExportsSettings.endComment
+import settings.JsExportsSettings.startComment
 
 private val logger = KotlinLogging.logger {}
 
@@ -348,12 +350,12 @@ class JsTestGenerator(
             val resultSet = existingExportsSet + exports.toSet()
             val resSection = resultSet.joinToString(
                 separator = exportsProvider.exportsDelimiter,
-                prefix = exportsProvider.exportsPrefix,
-                postfix = exportsProvider.exportsPostfix,
+                prefix = startComment + exportsProvider.exportsPrefix,
+                postfix = exportsProvider.exportsPostfix + endComment,
             ) {
                 exportsProvider.getExportsFrame(it)
             }
-            existingSection?.let { currentFileText.replace(existingSection, resSection) } ?: resSection
+            existingSection?.let { currentFileText.replace(startComment + existingSection + endComment, resSection) } ?: resSection
         }
     }
 

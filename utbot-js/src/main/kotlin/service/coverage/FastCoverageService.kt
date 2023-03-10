@@ -13,9 +13,10 @@ private val logger = KotlinLogging.logger {}
 
 class FastCoverageService(
     context: ServiceContext,
+    baseCoverage: Map<Int, Int>,
     scriptTexts: List<String>,
     private val testCaseIndices: IntRange,
-) : CoverageService(context, scriptTexts) {
+) : CoverageService(context, baseCoverage, scriptTexts) {
 
     override fun generateCoverageReport() {
         val (_, errorText) = JsCmdExec.runCommand(

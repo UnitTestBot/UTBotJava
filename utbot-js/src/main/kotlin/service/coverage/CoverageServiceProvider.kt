@@ -47,7 +47,7 @@ function check_value(value, json) {
 }
     """
 
-    private val baseCoverage: List<Int>
+    private val baseCoverage: Map<Int, Int>
 
     init {
         val temp = makeScriptForBaseCoverage(
@@ -94,6 +94,7 @@ function check_value(value, json) {
         }
         val coverageService = BasicCoverageService(
             context = context,
+            baseCoverage = baseCoverage,
             scriptTexts = tempScriptTexts,
         )
         coverageService.generateCoverageReport()
@@ -117,6 +118,7 @@ function check_value(value, json) {
         }
         val coverageService = FastCoverageService(
             context = context,
+            baseCoverage = baseCoverage,
             scriptTexts = listOf(tempScriptTexts),
             testCaseIndices = fuzzedValues.indices,
         )

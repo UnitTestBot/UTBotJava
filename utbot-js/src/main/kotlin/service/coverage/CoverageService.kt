@@ -1,7 +1,6 @@
 package service.coverage
 
 import java.io.File
-import java.util.Collections
 import org.json.JSONException
 import org.json.JSONObject
 import service.ContextOwner
@@ -13,8 +12,9 @@ import utils.data.ResultData
 
 abstract class CoverageService(
     context: ServiceContext,
+    private val baseCoverage: Map<Int, Int>,
     private val scriptTexts: List<String>,
-): ContextOwner by context {
+) : ContextOwner by context {
 
     private val _utbotDirPath = lazy { "${projectPath}/${utbotDir}" }
     protected val utbotDirPath: String
@@ -32,7 +32,7 @@ abstract class CoverageService(
             file.createNewFile()
         }
 
-        fun getBaseCoverage(context: ServiceContext, baseCoverageScriptText: String): List<Int> {
+        fun getBaseCoverage(context: ServiceContext, baseCoverageScriptText: String): Map<Int, Int> {
             with(context) {
                 val utbotDirPath = "${projectPath}/${utbotDir}"
                 createTempScript(
@@ -50,10 +50,9 @@ abstract class CoverageService(
                 )
                 return JSONObject(File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.json").readText())
                     .getJSONObject("s").let { obj ->
-                        obj.keys().asSequence().mapNotNull {
-                            val count = obj.getInt(it)
-                            if (count == 0) null else it.toInt()
-                        }.toList()
+                        obj.keySet().associate { key ->
+                            key.toInt() to obj.getInt(key)
+                        }
                     }
             }
         }
@@ -78,11 +77,13 @@ abstract class CoverageService(
             // TODO: sort by coverage size desc
             return coverageList
                 .map { (_, obj) ->
-                    val res = obj.keys().asSequence().mapNotNull {
-                        val count = obj.getInt(it)
-                        if (count == 0) null else it.toInt()
-                    }.toSet()
-                    CoverageData(res)
+                    val map = obj.keySet().associate { key ->
+                        val intKey = key.toInt()
+                        intKey to (obj.getInt(key) - baseCoverage.getOrDefault(intKey, 0))
+                    }
+                    CoverageData(map.mapNotNull { entry ->
+                        entry.key.takeIf { entry.value > 0 }
+                    }.toSet())
                 }
         } catch (e: JSONException) {
             throw Exception("Could not get coverage of test cases!")
@@ -92,7 +93,6 @@ abstract class CoverageService(
     }
 
     abstract fun generateCoverageReport()
-
 
     private fun createTempScript(path: String, scriptText: String) {
         val file = File(path)

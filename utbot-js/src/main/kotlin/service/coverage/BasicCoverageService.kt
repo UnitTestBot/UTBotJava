@@ -13,8 +13,9 @@ private val logger = KotlinLogging.logger {}
 
 class BasicCoverageService(
     context: ServiceContext,
+    baseCoverage: Map<Int, Int>,
     private val scriptTexts: List<String>,
-) : CoverageService(context, scriptTexts) {
+) : CoverageService(context, baseCoverage, scriptTexts) {
 
     override fun generateCoverageReport() {
         scriptTexts.indices.forEach { index ->

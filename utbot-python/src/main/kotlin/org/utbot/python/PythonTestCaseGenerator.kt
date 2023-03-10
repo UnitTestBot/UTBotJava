@@ -30,6 +30,7 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
+private const val MAX_EXECUTIONS = 50000
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -167,7 +168,9 @@ class PythonTestCaseGenerator(
 
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
+                val fuzzerCancellation = {
+                    isCancelled() || limitManager.isCancelled() || (errors.size + executions.size) >= MAX_EXECUTIONS
+                }
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
                     when (it) {

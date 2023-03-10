@@ -242,9 +242,10 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, java.lang.reflect.InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+            ${visibility by language}static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, NoSuchMethodException, IllegalAccessException {
                 java.lang.reflect.Field field;
     
+                try {
                 do {
                     try {
                         field = clazz.getDeclaredField(fieldName);
@@ -265,6 +266,10 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
     
                 field.setAccessible(true);
                 field.set(null, fieldValue);
+                }
+                catch(java.lang.reflect.InvocationTargetException e){
+                    e.printStackTrace();
+                }
             }
         """
         }

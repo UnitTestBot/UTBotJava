@@ -36,7 +36,7 @@ open class CodeGenerator(
     forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
     generateWarningsForStaticMocking: Boolean = true,
     codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    cgLanguageAssistant: CgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(CodegenLanguage.defaultItem),
+    cgLanguageAssistant: CgLanguageAssistant = CgLanguageAssistant.getByCodegenLanguage(codegenLanguage),
     parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
     runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
     hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),

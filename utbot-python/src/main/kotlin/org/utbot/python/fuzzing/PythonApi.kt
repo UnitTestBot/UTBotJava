@@ -16,11 +16,10 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.newtyping.PythonProtocolDescription
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.PythonTypeStorage
+import org.utbot.python.fuzzing.provider.utils.isConcreteType
+import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.Type
-import org.utbot.python.newtyping.pythonTypeRepresentation
 
 private val logger = KotlinLogging.logger {}
 
@@ -59,7 +58,7 @@ class PythonFuzzedValue(
     val summary: String? = null,
 )
 
-fun pythonDefaultValueProviders() = listOf(
+fun pythonDefaultValueProviders(typeStorage: PythonTypeStorage) = listOf(
     NoneValueProvider,
     BoolValueProvider,
     IntValueProvider,
@@ -76,7 +75,8 @@ fun pythonDefaultValueProviders() = listOf(
     BytearrayValueProvider,
     ReduceValueProvider,
     ConstantValueProvider,
-    TypeAliasValueProvider
+    TypeAliasValueProvider,
+    SubtypeValueProvider(typeStorage)
 )
 
 class PythonFuzzing(
@@ -84,28 +84,13 @@ class PythonFuzzing(
     val execute: suspend (description: PythonMethodDescription, values: List<PythonFuzzedValue>) -> PythonFeedback,
 ) : Fuzzing<Type, PythonFuzzedValue, PythonMethodDescription, PythonFeedback> {
 
-    private fun generateDefault(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
-        pythonDefaultValueProviders().asSequence().forEach { provider ->
+    private fun generateDefault(description: PythonMethodDescription, type: Type)= sequence<Seed<Type, PythonFuzzedValue>> {
+        pythonDefaultValueProviders(pythonTypeStorage).asSequence().forEach { provider ->
             if (provider.accept(type)) {
                 logger.debug { "Provider ${provider.javaClass.simpleName} accepts type ${type.pythonTypeRepresentation()}" }
-                providers += provider.generate(description, type)
+                yieldAll(provider.generate(description, type))
             }
         }
-        return providers
-    }
-
-    private fun generateSubtype(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
-        var providers = emptyList<Seed<Type, PythonFuzzedValue>>().asSequence()
-        if (type.meta is PythonProtocolDescription) {
-            val subtypes = pythonTypeStorage.allTypes.filter {
-                PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(type, it, pythonTypeStorage)
-            }
-            subtypes.forEach {
-                providers += generateDefault(description, it)
-            }
-        }
-        return providers
     }
 
     override fun generate(description: PythonMethodDescription, type: Type): Sequence<Seed<Type, PythonFuzzedValue>> {
@@ -115,7 +100,6 @@ class PythonFuzzing(
             logger.debug("Any does not have provider")
         } else {
             providers += generateDefault(description, type)
-            providers += generateSubtype(description, type)
         }
 
         return providers

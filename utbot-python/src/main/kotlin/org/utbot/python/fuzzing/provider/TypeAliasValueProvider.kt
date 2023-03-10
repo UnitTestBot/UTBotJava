@@ -21,12 +21,7 @@ object TypeAliasValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMet
         return sequenceOf(
             Seed.Recursive(
                 construct = Routine.Create(listOf(compositeType.members[0])) { v -> v.first() },
-                empty = Routine.Empty {
-                    PythonFuzzedValue(
-                        PythonTree.fromObject(),
-                        "%var% = ${type.pythonTypeRepresentation()}"
-                    )
-                }
+                empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
             )
         )
     }

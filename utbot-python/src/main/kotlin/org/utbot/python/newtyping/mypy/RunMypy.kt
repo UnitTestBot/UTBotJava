@@ -83,9 +83,11 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
             show_absolute_path = True
             cache_fine_grained = True
             check_untyped_defs = True
-            strict_optional = False
             disable_error_code = assignment,union-attr
             implicit_optional = True
+            strict_optional = False
+            allow_redefinition = True
+            local_partial_types = True
             """.trimIndent()
     TemporaryFileManager.writeToAssignedFile(file, configContent)
     return file
@@ -99,13 +101,14 @@ fun checkSuggestedSignatureWithDMypy(
     fileForMypyCode: File,
     pythonPath: String,
     configFile: File,
-    initialErrorNumber: Int
+    initialErrorNumber: Int,
+    additionalVars: String
 ): Boolean {
     val annotationMap =
         (method.definition.meta.args.map { it.name } zip method.definition.type.arguments).associate {
             Pair(it.first, it.second)
         }
-    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule)
+    val mypyCode = generateMypyCheckCode(method, annotationMap, directoriesForSysPath, moduleToImport, namesInModule, additionalVars)
     // logger.debug(mypyCode)
     TemporaryFileManager.writeToAssignedFile(fileForMypyCode, mypyCode)
     val mypyOutput = checkWithDMypy(pythonPath, fileForMypyCode.canonicalPath, configFile)

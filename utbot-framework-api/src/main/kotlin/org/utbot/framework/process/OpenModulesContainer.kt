@@ -11,6 +11,7 @@ object OpenModulesContainer {
     init {
         modulesContainer = buildList {
             openPackage("java.base", "jdk.internal.misc")
+            openPackage("java.base", "sun.reflect.generics.repository")
             openPackage("java.base", "java.lang")
             openPackage("java.base", "java.security")
             openPackage("java.base", "java.util")

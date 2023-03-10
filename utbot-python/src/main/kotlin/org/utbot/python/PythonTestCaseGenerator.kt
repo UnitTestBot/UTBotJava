@@ -293,7 +293,8 @@ class PythonTestCaseGenerator(
                 getOffsetLine(sourceFileContent, method.ast.endOffset)
             ),
             mypyConfigFile,
-            additionalVars
+            additionalVars,
+            randomTypeFrequency = 6
         )
 
         runBlocking breaking@{

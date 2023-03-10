@@ -175,4 +175,9 @@ dependencies {
 
     // Video Recording
     implementation("com.automation-remarks:video-recorder-junit5:2.0")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.7.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.7.2")
 }

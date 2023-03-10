@@ -15,6 +15,7 @@ object OpenModulesContainer {
             openPackage("java.base", "java.security")
             openPackage("java.base", "java.util")
             openPackage("java.base", "java.util.stream")
+            openPackage("java.base", "java.math")
             openPackage("java.base", "java.lang.reflect")
             openPackage("java.base", "sun.security.provider")
             openPackage("java.base", "jdk.internal.event")

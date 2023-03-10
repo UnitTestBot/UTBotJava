@@ -86,6 +86,7 @@ fun setConfigFile(directoriesForSysPath: Set<String>): File {
             strict_optional = False
             disable_error_code = assignment,union-attr
             implicit_optional = True
+            allow_redefinition = True
             """.trimIndent()
     TemporaryFileManager.writeToAssignedFile(file, configContent)
     return file

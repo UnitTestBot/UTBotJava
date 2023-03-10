@@ -30,7 +30,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
     override fun accept(type: Type): Boolean {
         val hasSupportedType =
             !unsupportedTypes.contains(type.pythonTypeName())
-        return hasSupportedType && type.meta is PythonConcreteCompositeTypeDescription // && (hasInit || hasNew)
+        return hasSupportedType && (type.meta as? PythonConcreteCompositeTypeDescription)?.isAbstract == false // && (hasInit || hasNew)
     }
 
     override fun generate(description: PythonMethodDescription, type: Type) = sequence {
@@ -100,12 +100,7 @@ object ReduceValueProvider : ValueProvider<Type, PythonFuzzedValue, PythonMethod
                 )
             },
             modify = modifications,
-            empty = Routine.Empty {
-                PythonFuzzedValue(
-                    PythonTree.fromObject(),
-                    "%var% = ${type.pythonTypeRepresentation()}"
-                )
-            }
+            empty = Routine.Empty { PythonFuzzedValue(PythonTree.FakeNode) }
         )
     }
 

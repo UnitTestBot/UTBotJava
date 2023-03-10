@@ -29,6 +29,7 @@ import org.utbot.python.utils.TimeoutMode
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
+private const val RANDOM_TYPE_FREQUENCY = 6
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -220,9 +221,11 @@ class PythonTestCaseGenerator(
                 originalDef.meta.name,
                 originalDef.meta.args.take(shortType.arguments.size)
             )
-            val additionalVars = originalDef.meta.args.drop(shortType.arguments.size).fold("") { acc, arg ->
-                acc + "\n" + "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-            }
+            val additionalVars = originalDef.meta.args
+                .drop(shortType.arguments.size)
+                .joinToString(separator="\n", prefix="\n") { arg ->
+                    "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
+                }
             method.definition = PythonFunctionDefinition(shortMeta, shortType)
             val missingLines = methodHandler(method, typeStorage, coveredLines, errors, executions, null, firstUntil, additionalVars)
             method.definition = originalDef
@@ -294,7 +297,7 @@ class PythonTestCaseGenerator(
             ),
             mypyConfigFile,
             additionalVars,
-            randomTypeFrequency = 6
+            randomTypeFrequency = RANDOM_TYPE_FREQUENCY
         )
 
         runBlocking breaking@{

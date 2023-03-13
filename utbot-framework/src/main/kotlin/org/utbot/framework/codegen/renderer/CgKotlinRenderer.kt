@@ -366,6 +366,12 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         print(")")
     }
 
+    override fun visit(element: CgParameterizedTestDataProviderMethod) {
+        println()
+        println("@JvmStatic")
+        super.visit(element)
+    }
+
     override fun renderRegularImport(regularImport: RegularImport) {
         val escapedImport = getEscapedImportRendering(regularImport)
         println("import $escapedImport$statementEnding")
@@ -396,8 +402,6 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
         val returnType = getKotlinClassString(element.returnType)
-        println()
-        println("@JvmStatic")
         println("fun ${element.name}(): $returnType")
     }
 

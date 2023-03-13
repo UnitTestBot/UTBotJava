@@ -11,9 +11,9 @@ description: Setting up docker for UTBot Java building/debugging
 It's available to download docker image with the environment for UTBot. The environment is also used in the crucial CI scripts focused on building project and running tests.
 
 The docker image pre-installed environment includes:
-1. *Java 11* + *JDK* package
-3. *Gradle 7.4.2*
-3. *Kotlin compiler 1.7.10*
+1. *Java 17* + *JDK* package
+3. *Gradle 7.6.1*
+3. *Kotlin compiler 1.8.0*
 
 It's based on Ubuntu [SOME VERSION].
 
@@ -29,14 +29,14 @@ Do the following steps to run tests in docker container:
 
 1. Pull docker image
 ```
-docker pull unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+docker pull unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
 ```
 2. Run docker container
 ```bash
 # -v <utbot-repository-root>:/usr/utbot-debug - mounts the host directory into the container directory
 # -it - make the container look like a terminal connection session
 # -w /usr/utbot-tests - sets up working directory inside the container
-docker run -it -v <utbot-repository-root>:/usr/utbot-tests --name utbot-tests -w /usr/utbot-tests unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+docker run -it -v <utbot-repository-root>:/usr/utbot-tests --name utbot-tests -w /usr/utbot-tests unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
 ```
 3. Do whatever you want
 
@@ -67,7 +67,7 @@ Do the following steps to debug UTBot in docker container:
 
 2. Pull docker image
 ```
-docker pull unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+docker pull unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
 ```
 3. Run docker container
 ```bash
@@ -75,7 +75,7 @@ docker pull unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
 # -it - make the container look like a terminal connection session
 # -w /usr/utbot-tests - sets up working directory inside the container
 # -p 5005:5005 - mounts the host port into the container port (debugging port)
-docker run -it -p 5005:5005 -v <utbot-repository-root>:/usr/utbot-debug --name utbot-debug -w /usr/utbot-tests unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+docker run -it -p 5005:5005 -v <utbot-repository-root>:/usr/utbot-debug --name utbot-debug -w /usr/utbot-tests unittestbot/java-env:java17-zulu-jdk-gradle7.6.1-kotlinc1.8.0
 ```
 4. Set up gradle options for remote debug:
 ```

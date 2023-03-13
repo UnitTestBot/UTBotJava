@@ -239,7 +239,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
-    private val applicationContext: StandardApplicationContext?,
+    private val applicationContext: StandardApplicationContext,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -1373,8 +1373,7 @@ class Traverser(
     ): ObjectValue {
         touchAddress(addr)
 
-        //TODO: remove !! after PR-1889 merge, context cannot be null any more
-        val concreteClassId = applicationContext!!.replaceTypeIfNeeded(type)
+        val concreteClassId = applicationContext.replaceTypeIfNeeded(type)
         concreteClassId?.let {
             val sootType = typeResolver.classOrDefault(it.canonicalName)
             val typeStorage = typeResolver.constructTypeStorage(sootType, useConcreteType = false)

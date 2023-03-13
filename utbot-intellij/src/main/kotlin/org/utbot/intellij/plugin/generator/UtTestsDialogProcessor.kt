@@ -165,9 +165,9 @@ object UtTestsDialogProcessor {
                         var processedClasses = 0
                         val totalClasses = model.srcClasses.size
                         val classNameToPath = runReadAction {
-                            model.srcClasses.map { psiClass ->
+                            model.srcClasses.associate { psiClass ->
                                 psiClass.canonicalName to psiClass.containingFile.virtualFile.canonicalPath
-                            }.toMap()
+                            }
                         }
 
                         val applicationContext = StandardApplicationContext(

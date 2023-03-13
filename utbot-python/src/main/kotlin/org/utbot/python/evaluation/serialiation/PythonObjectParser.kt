@@ -47,7 +47,9 @@ sealed class MemoryObject(
     val kind: String,
     val module: String,
     val comparable: Boolean,
-)
+) {
+    val qualname: String = if (module.isEmpty()) kind else "$module.$kind"
+}
 
 class ReprMemoryObject(
     id: String,
@@ -159,7 +161,7 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
             val elementsMap = items.withIndex().associate {
                     it.index to memoryDump.getById(it.value).toPythonTree(memoryDump)
                 }.toMutableMap()
-            when (this.kind) {
+            when (this.qualname) {
                 "builtins.tuple" -> {
                     PythonTree.TupleNode(this.id.toLong(), elementsMap)
                 }
@@ -178,7 +180,7 @@ fun MemoryObject.toPythonTree(memoryDump: MemoryDump): PythonTree.PythonTreeNode
             val dictitemsObjs = memoryDump.getById(dictitems) as DictMemoryObject
             PythonTree.ReduceNode(
                 this.id.toLong(),
-                PythonClassId(this.kind),
+                PythonClassId(this.kind, this.module),
                 PythonClassId(this.constructor),
                 arguments.items.map { memoryDump.getById(it).toPythonTree(memoryDump) },
                 stateObjs.items.entries.associate {

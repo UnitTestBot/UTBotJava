@@ -21,46 +21,15 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
 
     override fun getOrCreateVariable(model: UtModel, name: String?): CgValue {
-        val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return valueByModel.getOrPut(model) {
             when (model) {
-                is PythonBoolModel -> {
-                    CgLiteral(model.classId, model.value)
-                }
-                is PythonPrimitiveModel -> {
-                    CgLiteral(model.classId, model.value)
-                }
                 is PythonTreeModel -> {
                     val (value, arguments) = pythonBuildObject(model.tree)
                     CgPythonTree(model.classId, model.tree, value, arguments)
                 }
-                is PythonInitObjectModel -> {
-                    constructInitObjectModel(model, baseName)
-                }
-                is PythonDictModel -> CgPythonDict(model.stores.map {
-                    getOrCreateVariable(it.key) to getOrCreateVariable(
-                        it.value
-                    )
-                }.toMap())
-
-                is PythonListModel -> CgPythonList(model.stores.map { getOrCreateVariable(it) })
-                is PythonSetModel -> CgPythonSet(model.stores.map { getOrCreateVariable(it) }.toSet())
-                is PythonTupleModel -> CgPythonTuple(model.stores.map { getOrCreateVariable(it) })
-                is PythonDefaultModel -> CgPythonRepr(model.classId, model.repr)
                 is PythonModel -> error("Unexpected PythonModel: ${model::class}")
                 else -> super.getOrCreateVariable(model, name)
             }
-        }
-    }
-
-    private fun declareOrGet(model: UtModel): CgValue = valueByModel[model] ?: getOrCreateVariable(model)
-
-    private fun constructInitObjectModel(model: PythonInitObjectModel, baseName: String): CgVariable {
-        return newVar(model.classId, baseName) {
-            CgConstructorCall(
-                ConstructorId(model.classId, model.initValues.map { it.classId }),
-                model.initValues.map { getOrCreateVariable(it) }
-            )
         }
     }
 
@@ -120,7 +89,6 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 val obj = newVar(objectNode.type) {
                     constructorCall
                 }
-//                obj `=` constructorCall
 
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjects[id] = obj
                 (context.cgLanguageAssistant as PythonCgLanguageAssistant).memoryObjectsModels[id] = objectNode
@@ -138,7 +106,6 @@ class PythonCgVariableConstructor(cgContext: CgContext) : CgVariableConstructor(
                 }
 
                 state.forEach { (key, value) ->
-//                    val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
                     obj[FieldId(objectNode.type, key)] `=` value
                 }
                 listitems.forEach {

@@ -41,6 +41,14 @@ fun Type.pythonTypeName(): String {
     return pythonDescription().getTypeName()
 }
 
+fun Type.pythonModuleName(): String {
+    return pythonDescription().getModuleName()
+}
+
+fun Type.pythonName(): String {
+    return pythonDescription().getName()
+}
+
 val pythonAnyName = Name(listOf("typing"), "Any")
 val pythonUnionName = Name(listOf("typing"), "Union")
 val pythonNoneName = Name(emptyList(), "None")

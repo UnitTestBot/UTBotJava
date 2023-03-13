@@ -32,8 +32,8 @@ infix fun ArithExpr<*>.gt(other: Int): BoolExpr = context.mkGt(this, context.mkI
 
 infix fun ArithExpr<*>.`=`(other: Int): BoolExpr = context.mkEq(this, context.mkInt(other))
 
-operator fun ArrayExpr<*, *>.get(index: IntExpr): Expr<*> = context.mkSelect(this, index.cast())
-operator fun ArrayExpr<*, *>.get(index: Int): Expr<*> = this[context.mkInt(index)]
+operator fun  ArrayExpr<*, *>.get(index: IntExpr): Expr<*> = context.mkSelect(this, index.cast())
+operator fun  ArrayExpr<*, *>.get(index: Int): Expr<*> = this[context.mkInt(index)]
 fun  ArrayExpr<*, *>.set(index: IntExpr, value: Expr<*>):  ArrayExpr<*, *> = context.mkStore(this, index.cast(), value.cast())
 fun  ArrayExpr<*, *>.set(index: Int, value: Expr<*>):  ArrayExpr<*, *> = set(context.mkInt(index), value)
 

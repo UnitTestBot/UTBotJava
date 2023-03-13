@@ -7,8 +7,6 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.utbot.analytics.AnalyticsConfigureUtil
 import org.utbot.common.*
-import org.utbot.engine.util.mockListeners.ForceMockListener
-import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
@@ -27,7 +25,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.util.ConflictTriggers
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.rd.IdleWatchdog
@@ -84,7 +81,7 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
         Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
-        val applicationContext: ApplicationContext = kryoHelper.readObject(params.applicationContext)
+        val applicationContext: StandardApplicationContext = kryoHelper.readObject(params.applicationContext)
 
         testGenerator = TestCaseGenerator(buildDirs = params.buildDir.map { Paths.get(it) },
             classpath = params.classpath,
@@ -100,19 +97,9 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
     watchdog.measureTimeForActiveCall(generate, "Generating tests") { params ->
         val methods: List<ExecutableId> = kryoHelper.readObject(params.methods)
         logger.debug().measureTime({ "starting generation for ${methods.size} methods, starting with ${methods.first()}" }) {
-            val mockFrameworkInstalled = params.mockInstalled
-            val conflictTriggers = ConflictTriggers(kryoHelper.readObject(params.conflictTriggers))
-            if (!mockFrameworkInstalled) {
-                ForceMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
-            }
-            val staticsMockingConfigured = params.staticsMockingIsConfigureda
-            if (!staticsMockingConfigured) {
-                ForceStaticMockListener.create(testGenerator, conflictTriggers, cancelJob = true)
-            }
-
             val generateFlow = when (testGenerator.applicationContext) {
                 is SpringApplicationContext -> defaultSpringFlow(params.generationTimeout)
-                is EmptyApplicationContext -> testFlow {
+                is StandardApplicationContext -> testFlow {
                     generationTimeout = params.generationTimeout
                     isSymbolicEngineEnabled = params.isSymbolicEngineEnabled
                     isFuzzingEnabled = params.isFuzzingEnabled

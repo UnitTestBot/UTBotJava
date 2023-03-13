@@ -72,7 +72,7 @@ class EngineProcessModel private constructor(
         }
         
         
-        const val serializationHash = -4839464828913070560L
+        const val serializationHash = -120710112541549600L
         
     }
     override val serializersOwner: ISerializersOwner get() = EngineProcessModel
@@ -173,7 +173,7 @@ val IProtocol.engineProcessModel get() = getOrCreateExtension(EngineProcessModel
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:102]
+ * #### Generated from [EngineProcessModel.kt:98]
  */
 data class FindMethodParamNamesArguments (
     val classId: ByteArray,
@@ -236,7 +236,7 @@ data class FindMethodParamNamesArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:106]
+ * #### Generated from [EngineProcessModel.kt:102]
  */
 data class FindMethodParamNamesResult (
     val paramNames: ByteArray
@@ -293,7 +293,7 @@ data class FindMethodParamNamesResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:95]
+ * #### Generated from [EngineProcessModel.kt:91]
  */
 data class FindMethodsInClassMatchingSelectedArguments (
     val classId: ByteArray,
@@ -356,7 +356,7 @@ data class FindMethodsInClassMatchingSelectedArguments (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:99]
+ * #### Generated from [EngineProcessModel.kt:95]
  */
 data class FindMethodsInClassMatchingSelectedResult (
     val executableIds: ByteArray
@@ -416,9 +416,6 @@ data class FindMethodsInClassMatchingSelectedResult (
  * #### Generated from [EngineProcessModel.kt:44]
  */
 data class GenerateParams (
-    val mockInstalled: Boolean,
-    val staticsMockingIsConfigureda: Boolean,
-    val conflictTriggers: ByteArray,
     val methods: ByteArray,
     val mockStrategy: String,
     val chosenClassesToMockAlways: ByteArray,
@@ -436,9 +433,6 @@ data class GenerateParams (
         
         @Suppress("UNCHECKED_CAST")
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): GenerateParams  {
-            val mockInstalled = buffer.readBool()
-            val staticsMockingIsConfigureda = buffer.readBool()
-            val conflictTriggers = buffer.readByteArray()
             val methods = buffer.readByteArray()
             val mockStrategy = buffer.readString()
             val chosenClassesToMockAlways = buffer.readByteArray()
@@ -448,13 +442,10 @@ data class GenerateParams (
             val isFuzzingEnabled = buffer.readBool()
             val fuzzingValue = buffer.readDouble()
             val searchDirectory = buffer.readString()
-            return GenerateParams(mockInstalled, staticsMockingIsConfigureda, conflictTriggers, methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory)
+            return GenerateParams(methods, mockStrategy, chosenClassesToMockAlways, timeout, generationTimeout, isSymbolicEngineEnabled, isFuzzingEnabled, fuzzingValue, searchDirectory)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: GenerateParams)  {
-            buffer.writeBool(value.mockInstalled)
-            buffer.writeBool(value.staticsMockingIsConfigureda)
-            buffer.writeByteArray(value.conflictTriggers)
             buffer.writeByteArray(value.methods)
             buffer.writeString(value.mockStrategy)
             buffer.writeByteArray(value.chosenClassesToMockAlways)
@@ -479,9 +470,6 @@ data class GenerateParams (
         
         other as GenerateParams
         
-        if (mockInstalled != other.mockInstalled) return false
-        if (staticsMockingIsConfigureda != other.staticsMockingIsConfigureda) return false
-        if (!(conflictTriggers contentEquals other.conflictTriggers)) return false
         if (!(methods contentEquals other.methods)) return false
         if (mockStrategy != other.mockStrategy) return false
         if (!(chosenClassesToMockAlways contentEquals other.chosenClassesToMockAlways)) return false
@@ -497,9 +485,6 @@ data class GenerateParams (
     //hash code trait
     override fun hashCode(): Int  {
         var __r = 0
-        __r = __r*31 + mockInstalled.hashCode()
-        __r = __r*31 + staticsMockingIsConfigureda.hashCode()
-        __r = __r*31 + conflictTriggers.contentHashCode()
         __r = __r*31 + methods.contentHashCode()
         __r = __r*31 + mockStrategy.hashCode()
         __r = __r*31 + chosenClassesToMockAlways.contentHashCode()
@@ -515,9 +500,6 @@ data class GenerateParams (
     override fun print(printer: PrettyPrinter)  {
         printer.println("GenerateParams (")
         printer.indent {
-            print("mockInstalled = "); mockInstalled.print(printer); println()
-            print("staticsMockingIsConfigureda = "); staticsMockingIsConfigureda.print(printer); println()
-            print("conflictTriggers = "); conflictTriggers.print(printer); println()
             print("methods = "); methods.print(printer); println()
             print("mockStrategy = "); mockStrategy.print(printer); println()
             print("chosenClassesToMockAlways = "); chosenClassesToMockAlways.print(printer); println()
@@ -536,7 +518,7 @@ data class GenerateParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:62]
+ * #### Generated from [EngineProcessModel.kt:58]
  */
 data class GenerateResult (
     val notEmptyCases: Int,
@@ -599,7 +581,7 @@ data class GenerateResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:114]
+ * #### Generated from [EngineProcessModel.kt:110]
  */
 data class GenerateTestReportArgs (
     val eventLogMessage: String?,
@@ -692,7 +674,7 @@ data class GenerateTestReportArgs (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:123]
+ * #### Generated from [EngineProcessModel.kt:119]
  */
 data class GenerateTestReportResult (
     val notifyMessage: String,
@@ -824,7 +806,7 @@ data class JdkInfo (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:90]
+ * #### Generated from [EngineProcessModel.kt:86]
  */
 data class MethodDescription (
     val name: String,
@@ -893,7 +875,7 @@ data class MethodDescription (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:66]
+ * #### Generated from [EngineProcessModel.kt:62]
  */
 data class RenderParams (
     val testSetsId: Long,
@@ -1034,7 +1016,7 @@ data class RenderParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:83]
+ * #### Generated from [EngineProcessModel.kt:79]
  */
 data class RenderResult (
     val generatedCode: String,
@@ -1097,7 +1079,7 @@ data class RenderResult (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:87]
+ * #### Generated from [EngineProcessModel.kt:83]
  */
 data class SetupContextParams (
     val classpathForUrlsClassloader: List<String>
@@ -1235,7 +1217,7 @@ data class TestGeneratorParams (
 
 
 /**
- * #### Generated from [EngineProcessModel.kt:109]
+ * #### Generated from [EngineProcessModel.kt:105]
  */
 data class WriteSarifReportArguments (
     val testSetsId: Long,

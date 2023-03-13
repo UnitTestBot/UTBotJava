@@ -61,7 +61,7 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true,
-    val applicationContext: ApplicationContext? = null,
+    val applicationContext: StandardApplicationContext = StandardApplicationContext(),
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -118,7 +118,7 @@ open class TestCaseGenerator(
                 method,
                 mockStrategy,
                 chosenClassesToMockAlways,
-                applicationContext = null,
+                applicationContext,
                 executionTimeEstimator,
             )
             engineActions.map { engine.apply(it) }
@@ -149,8 +149,8 @@ open class TestCaseGenerator(
         val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
         val conflictTriggers = ConflictTriggers()
-        val forceMockListener = ForceMockListener.create(this, conflictTriggers, cancelJob = false)
-        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers, cancelJob = false)
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
@@ -257,7 +257,7 @@ open class TestCaseGenerator(
         method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
-        applicationContext: ApplicationContext?,
+        applicationContext: StandardApplicationContext,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")

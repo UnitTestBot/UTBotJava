@@ -72,6 +72,21 @@ open class BaseTestsModel(
         codegenLanguage
     )
 
+    /**
+     * Searches for classes marked with `@Configuration` and `@TestConfiguration` annotations
+     * in source module and its test modules.
+     *
+     * Classes are sorted in the following order:
+     *   - Classes marked with `@TestConfiguration` annotation
+     *   - Classes marked with `@Configuration` annotation
+     *
+     * Inside one group classes are sorted by their roots in the following order:
+     *   - Classes from test roots
+     *   - Classes from source roots
+     *
+     * Classes from the test roots are additionally sorted by their roots
+     * in the order provided by [getSortedTestRoots]
+     */
     fun getSortedSpringConfigurationClasses(): List<PsiClass> {
         val psiFacade = JavaPsiFacade.getInstance(project)
         val testRootToIndex = getSortedTestRoots().withIndex().associate { (i, root) -> root.dir to i }

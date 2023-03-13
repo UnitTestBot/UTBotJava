@@ -144,9 +144,8 @@ private fun getFieldRetrievingBlock(language : CodegenLanguage, fullClassName : 
             """
                     val $methodName = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
                     $methodName.isAccessible = true
-                    val $fieldsName = $methodName.invoke($fullClassName::class.java, false) as Array<java.lang.reflect.Field>
-                    $resultName = java.util.Arrays.stream($fieldsName).filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }
-                        .findFirst().get()
+                    val $fieldsName = $methodName.invoke($fullClassName::class.java, false) as kotlin.Array<java.lang.reflect.Field>
+                    $resultName = $fieldsName.filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }.first()
     """
     }
 }

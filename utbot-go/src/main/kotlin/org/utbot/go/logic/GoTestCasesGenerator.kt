@@ -63,7 +63,7 @@ object GoTestCasesGenerator {
                 // starting worker process
                 val testFunctionName = GoWorkerCodeGenerationHelper.workerTestFunctionName
                 val command = listOf(
-                    goExecutableAbsolutePath, "test", "-run", testFunctionName
+                    goExecutableAbsolutePath, "test", "-run", testFunctionName, "-timeout", "0"
                 )
                 val sourceFileDir = File(sourceFile.absoluteDirectoryPath)
                 val processStartTime = System.currentTimeMillis()

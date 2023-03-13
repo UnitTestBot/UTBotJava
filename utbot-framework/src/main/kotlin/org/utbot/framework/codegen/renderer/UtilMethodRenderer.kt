@@ -218,9 +218,6 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
                 field.setAccessible(true);
                 
                 java.lang.reflect.Field modifiersField;
-                java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-                methodForGetDeclaredFields0.setAccessible(true);
-
                 ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
@@ -238,9 +235,6 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
                 field.isAccessible = true
                 
                 val modifiersField: java.lang.reflect.Field
-                val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
-                methodForGetDeclaredFields0.isAccessible = true
-
                 ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
@@ -269,9 +263,6 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                 } while (field == null);
                 
                 java.lang.reflect.Field modifiersField;
-                java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-                methodForGetDeclaredFields0.setAccessible(true);
-
                 ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
@@ -304,9 +295,6 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                 } while (field == null)
         
                 val modifiersField: java.lang.reflect.Field
-                val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
-                methodForGetDeclaredFields0.isAccessible = true
-
                 ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())

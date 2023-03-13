@@ -11,30 +11,21 @@ import parser.JsParserUtils.getAbstractFunctionName
 import parser.JsParserUtils.getAbstractFunctionParams
 import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getConstructor
+import providers.imports.IImportsProvider
 import utils.JsCmdExec
-import utils.MethodTypes
 import utils.constructClass
+import utils.data.MethodTypes
 import java.io.File
-import java.util.Locale
-
-/*
-    NOTE: this approach is quite bad, but we failed to implement alternatives.
-    TODO: 1. MINOR: Find a better solution after the first stable version.
-          2. SEVERE: Load all necessary .js files in Tern.js since functions can be exported and used in other files.
- */
 
 /**
  * Installs and sets up scripts for running Tern.js type guesser.
  */
 class TernService(context: ServiceContext) : ContextOwner by context {
 
+    private val importProvider = IImportsProvider.providerByPackageJson(packageJson, context)
 
     private fun ternScriptCode() = """
-const tern = require("tern/lib/tern")
-const condense = require("tern/lib/condense.js")
-const util = require("tern/test/util.js")
-const fs = require("fs")
-const path = require("path")
+${generateImportsSection()}
 
 var condenseDir = "";
 
@@ -60,30 +51,23 @@ function runTest(options) {
 }
 
 function test(options) {
-    if (typeof options == "string") options = {load: [options]};
+    options = {load: options};
     runTest(options);
 }
 
-test("$filePathToInference")
+test(["${filePathToInference.joinToString(separator = "\", \"")}"])
     """
 
     init {
         with(context) {
             setupTernEnv("$projectPath/$utbotDir")
-            installDeps("$projectPath/$utbotDir")
             runTypeInferencer()
         }
     }
 
     private lateinit var json: JSONObject
 
-    private fun installDeps(path: String) {
-        JsCmdExec.runCommand(
-            dir = path,
-            shouldWait = true,
-            cmd = arrayOf("\"${settings.pathToNPM}\"", "i", "tern", "-l"),
-        )
-    }
+    private fun generateImportsSection(): String = importProvider.ternScriptImports
 
     private fun setupTernEnv(path: String) {
         File(path).mkdirs()
@@ -109,7 +93,7 @@ test("$filePathToInference")
         return try {
             val classJson = json.getJSONObject(classNode.getClassName())
             val constructorFunc = classJson.getString("!type")
-                .filterNot { setOf(' ', '+', '!').contains(it) }
+                .filterNot { setOf(' ', '+').contains(it) }
             extractParameters(constructorFunc)
         } catch (e: JSONException) {
             classNode.getConstructor()?.getAbstractFunctionParams()?.map { jsUndefinedClassId } ?: emptyList()
@@ -120,10 +104,11 @@ test("$filePathToInference")
         val parametersRegex = Regex("fn[(](.+)[)]")
         return parametersRegex.find(line)?.groups?.get(1)?.let { matchResult ->
             val value = matchResult.value
-            val paramList = value.split(',')
-            paramList.map { param ->
-                val paramReg = Regex(":(.*)")
+            val paramGroupList = Regex("(\\w+:\\[\\w+(,\\w+)*]|\\w+:\\w+)|\\w+:\\?").findAll(value).toList()
+            paramGroupList.map { paramGroup ->
+                val paramReg = Regex("\\w*:(.*)")
                 try {
+                    val param = paramGroup.groups[0]!!.value
                     makeClassId(
                         paramReg.find(param)?.groups?.get(1)?.value
                             ?: throw IllegalStateException()
@@ -160,7 +145,7 @@ test("$filePathToInference")
             }
             val methodJson = scope.getJSONObject(funcNode.getAbstractFunctionName())
             val typesString = methodJson.getString("!type")
-                .filterNot { setOf(' ', '+', '!').contains(it) }
+                .filterNot { setOf(' ', '+').contains(it) }
             val parametersList = lazy { extractParameters(typesString) }
             val returnType = lazy { extractReturnType(typesString) }
 
@@ -173,21 +158,20 @@ test("$filePathToInference")
         }
     }
 
-    //TODO MINOR: move to appropriate place (JsIdUtil or JsClassId constructor)
     private fun makeClassId(name: String): JsClassId {
         val classId = when {
-            // TODO SEVERE: I don't know why Tern sometimes says that type is "0"
-            name == "?" || name.toIntOrNull() != null -> jsUndefinedClassId
+            name == "?" || name.toIntOrNull() != null || name.contains('!') -> jsUndefinedClassId
             Regex("\\[(.*)]").matches(name) -> {
-                val arrType = Regex("\\[(.*)]").find(name)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                val arrType = Regex("\\[(.*)]").find(name)?.groups?.get(1)?.value?.substringBefore(",")
+                    ?: throw IllegalStateException()
                 JsClassId(
                     jsName = "array",
                     elementClassId = makeClassId(arrType)
                 )
             }
 
-            name.contains('|') -> JsMultipleClassId(name.lowercase(Locale.getDefault()))
-            else -> JsClassId(name.lowercase(Locale.getDefault()))
+            name.contains('|') -> JsMultipleClassId(name)
+            else -> JsClassId(name)
         }
 
         return try {

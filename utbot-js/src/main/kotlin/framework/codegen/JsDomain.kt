@@ -6,7 +6,9 @@ import org.utbot.framework.plugin.api.ClassId
 import framework.api.js.JsClassId
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
+import org.utbot.framework.codegen.domain.Import
 import org.utbot.framework.codegen.domain.TestFramework
+import service.PackageJson
 
 
 object Mocha : TestFramework(id = "Mocha", displayName = "Mocha") {
@@ -73,4 +75,28 @@ internal val jsAssertThrows by lazy {
             jsUndefinedClassId, jsUndefinedClassId, jsUndefinedClassId
         )
     )
+}
+
+enum class ModuleType {
+    MODULE,
+    COMMONJS;
+
+    companion object {
+        fun fromPackageJson(packageJson: PackageJson): ModuleType {
+            return when (packageJson.isModule) {
+                true -> MODULE
+                else -> COMMONJS
+            }
+        }
+    }
+}
+
+data class JsImport(
+    val name: String,
+    val aliases: String,
+    val path: String,
+    val type: ModuleType
+): Import(2) {
+
+    override val qualifiedName: String = "$name as $aliases from $path"
 }

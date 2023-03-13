@@ -6,7 +6,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.intellij.plugin.models.BaseTestsModel
-import service.CoverageMode
+import service.coverage.CoverageMode
 import settings.JsTestGenerationSettings.defaultTimeout
 
 class JsTestsModel(

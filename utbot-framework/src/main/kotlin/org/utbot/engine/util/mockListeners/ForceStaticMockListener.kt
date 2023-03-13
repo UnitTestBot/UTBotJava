@@ -12,25 +12,17 @@ import org.utbot.framework.util.ConflictTriggers
 
 /**
  * Listener for mocker events in [org.utbot.engine.UtBotSymbolicEngine].
- * If forced static mock happened, cancels the engine job.
  *
  * Supposed to be created only if Mockito inline is not installed.
  */
-class ForceStaticMockListener private constructor(triggers: ConflictTriggers, private val cancelJob: Boolean): MockListener(triggers) {
+class ForceStaticMockListener private constructor(triggers: ConflictTriggers): MockListener(triggers) {
     override fun onShouldMock(controller: EngineController, strategy: MockStrategy, mockInfo: UtMockInfo) {
-        if (mockInfo is UtNewInstanceMockInfo
-            || mockInfo is UtStaticMethodMockInfo
-            || mockInfo is UtStaticObjectMockInfo) {
-            // If force static mocking happened -- сancel engine job
-            if (cancelJob) controller.job?.cancel(ForceStaticMockCancellationException())
-
             triggers[Conflict.ForceStaticMockHappened] = true
         }
-    }
 
     companion object {
-        fun create(testCaseGenerator: TestCaseGenerator, conflictTriggers: ConflictTriggers, cancelJob: Boolean = true) : ForceStaticMockListener {
-            val listener = ForceStaticMockListener(conflictTriggers, cancelJob)
+        fun create(testCaseGenerator: TestCaseGenerator, conflictTriggers: ConflictTriggers) : ForceStaticMockListener {
+            val listener = ForceStaticMockListener(conflictTriggers)
             testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(listener) }
 
             return listener

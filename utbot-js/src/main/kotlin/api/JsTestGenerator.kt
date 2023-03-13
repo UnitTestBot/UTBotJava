@@ -5,9 +5,13 @@ import com.google.javascript.rhino.Node
 import framework.api.js.JsClassId
 import framework.api.js.JsMethodId
 import framework.api.js.JsUtFuzzedExecution
+import framework.api.js.util.isClass
+import framework.api.js.util.isJsArray
 import framework.api.js.util.isJsBasic
 import framework.api.js.util.jsErrorClassId
 import framework.api.js.util.jsUndefinedClassId
+import framework.codegen.JsImport
+import framework.codegen.ModuleType
 import fuzzer.JsFeedback
 import fuzzer.JsFuzzingExecutionFeedback
 import fuzzer.JsMethodDescription
@@ -31,8 +35,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzing.Control
 import org.utbot.fuzzing.utils.Trie
-import parser.JsClassAstVisitor
-import parser.JsFunctionAstVisitor
+import parser.JsAstScrapper
 import parser.JsFuzzerAstVisitor
 import parser.JsParserUtils
 import parser.JsParserUtils.getAbstractFunctionName
@@ -42,22 +45,26 @@ import parser.JsParserUtils.getClassName
 import parser.JsParserUtils.getParamName
 import parser.JsParserUtils.runParser
 import parser.JsToplevelFunctionAstVisitor
-import service.CoverageMode
-import service.CoverageServiceProvider
+import providers.exports.IExportsProvider
 import service.InstrumentationService
+import service.PackageJson
 import service.PackageJsonService
 import service.ServiceContext
 import service.TernService
+import service.coverage.CoverageMode
+import service.coverage.CoverageServiceProvider
 import settings.JsDynamicSettings
-import settings.JsTestGenerationSettings.dummyClassName
+import settings.JsTestGenerationSettings.fileUnderTestAliases
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.fuzzingTimeout
 import utils.PathResolver
-import utils.ResultData
 import utils.constructClass
+import utils.data.ResultData
 import utils.toJsAny
 import java.io.File
 import java.util.concurrent.CancellationException
+import settings.JsExportsSettings.endComment
+import settings.JsExportsSettings.startComment
 
 private val logger = KotlinLogging.logger {}
 
@@ -68,7 +75,7 @@ class JsTestGenerator(
     private val selectedMethods: List<String>? = null,
     private var parentClassName: String? = null,
     private var outputFilePath: String?,
-    private val exportsManager: (List<String>) -> Unit,
+    private val exportsManager: ((String?, String) -> String) -> Unit,
     private val settings: JsDynamicSettings,
     private val isCancelled: () -> Boolean = { false }
 ) {
@@ -76,6 +83,8 @@ class JsTestGenerator(
     private val exports = mutableSetOf<String>()
 
     private lateinit var parsedFile: Node
+
+    private lateinit var astScrapper: JsAstScrapper
 
     private val utbotDir = "utbotJs"
 
@@ -94,10 +103,11 @@ class JsTestGenerator(
      */
     fun run(): String {
         parsedFile = runParser(fileText)
+        astScrapper = JsAstScrapper(parsedFile, sourceFilePath)
         val context = ServiceContext(
             utbotDir = utbotDir,
             projectPath = projectPath,
-            filePathToInference = sourceFilePath,
+            filePathToInference = astScrapper.filesToInfer,
             parsedFile = parsedFile,
             settings = settings,
         )
@@ -105,7 +115,6 @@ class JsTestGenerator(
             sourceFilePath,
             projectPath,
         ).findClosestConfig()
-        val ternService = TernService(context)
         val paramNames = mutableMapOf<ExecutableId, List<String>>()
         val testSets = mutableListOf<CgMethodTestSet>()
         val classNode =
@@ -115,17 +124,32 @@ class JsTestGenerator(
                 strict = selectedMethods?.isNotEmpty() ?: false
             )
         parentClassName = classNode?.getClassName()
-        val classId = makeJsClassId(classNode, ternService)
+        val classId = makeJsClassId(classNode, TernService(context))
         val methods = makeMethodsToTest()
         if (methods.isEmpty()) throw IllegalArgumentException("No methods to test were found!")
         methods.forEach { funcNode ->
             makeTestsForMethod(classId, funcNode, classNode, context, testSets, paramNames)
         }
         val importPrefix = makeImportPrefix()
+        val moduleType = ModuleType.fromPackageJson(context.packageJson)
+        val imports = listOf(
+            JsImport(
+                "*",
+                fileUnderTestAliases,
+                "./$importPrefix/${sourceFilePath.substringAfterLast("/")}",
+                moduleType
+            ),
+            JsImport(
+                "*",
+                "assert",
+                "assert",
+                moduleType
+            )
+        )
         val codeGen = JsCodeGenerator(
             classUnderTest = classId,
             paramNames = paramNames,
-            importPrefix = importPrefix
+            imports = imports
         )
         return codeGen.generateAsStringWithTestReport(testSets).generatedCode
     }
@@ -141,7 +165,7 @@ class JsTestGenerator(
         val execId = classId.allMethods.find {
             it.name == funcNode.getAbstractFunctionName()
         } ?: throw IllegalStateException()
-        manageExports(classNode, funcNode, execId)
+        manageExports(classNode, funcNode, execId, context.packageJson)
         val executionResults = mutableListOf<JsFuzzingExecutionFeedback>()
         try {
             runBlockingWithCancellationPredicate(isCancelled) {
@@ -258,7 +282,7 @@ class JsTestGenerator(
                             getUtModelResult(
                                 execId = execId,
                                 resultData = resultData,
-                                params
+                                jsDescription.thisInstance?.let { params.drop(1) } ?: params
                             )
                         if (result is UtTimeoutException) {
                             emit(JsTimeoutExecution(result))
@@ -305,12 +329,34 @@ class JsTestGenerator(
     private fun manageExports(
         classNode: Node?,
         funcNode: Node,
-        execId: JsMethodId
+        execId: JsMethodId,
+        packageJson: PackageJson
     ) {
         val obligatoryExport = (classNode?.getClassName() ?: funcNode.getAbstractFunctionName()).toString()
         val collectedExports = collectExports(execId)
+        val exportsProvider = IExportsProvider.providerByPackageJson(packageJson)
         exports += (collectedExports + obligatoryExport)
-        exportsManager(exports.toList())
+        exportsManager { existingSection, currentFileText ->
+            val existingExportsSet = existingSection?.let { section ->
+                val trimmedSection = section.substringAfter(exportsProvider.exportsPrefix)
+                    .substringBeforeLast(exportsProvider.exportsPostfix)
+                val exportRegex = exportsProvider.exportsRegex
+                val existingExports = trimmedSection.split(exportsProvider.exportsDelimiter)
+                    .filter { it.contains(exportRegex) && it.isNotBlank() }
+                existingExports.map { rawLine ->
+                    exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
+                }.toSet()
+            } ?: emptySet()
+            val resultSet = existingExportsSet + exports.toSet()
+            val resSection = resultSet.joinToString(
+                separator = exportsProvider.exportsDelimiter,
+                prefix = startComment + exportsProvider.exportsPrefix,
+                postfix = exportsProvider.exportsPostfix + endComment,
+            ) {
+                exportsProvider.getExportsFrame(it)
+            }
+            existingSection?.let { currentFileText.replace(startComment + existingSection + endComment, resSection) } ?: resSection
+        }
     }
 
     private fun makeMethodsToTest(): List<Node> {
@@ -341,23 +387,25 @@ class JsTestGenerator(
     }
 
     private fun collectExports(methodId: JsMethodId): List<String> {
-        val res = mutableListOf<String>()
-        methodId.parameters.forEach {
-            if (!it.isJsBasic) {
-                res += it.name
-            }
+        return (listOf(methodId.returnType) + methodId.parameters).flatMap { it.collectExportsRecursively() }
+    }
+
+    private fun JsClassId.collectExportsRecursively(): List<String> {
+        return when {
+            this.isClass -> listOf(this.name) + (this.constructor?.parameters ?: emptyList())
+                .flatMap { it.collectExportsRecursively() }
+
+            this.isJsArray -> (this.elementClassId as? JsClassId)?.collectExportsRecursively() ?: emptyList()
+            else -> emptyList()
         }
-        if (!methodId.returnType.isJsBasic) res += methodId.returnType.name
-        return res
     }
 
     private fun getFunctionNode(focusedMethodName: String, parentClassName: String?): Node {
-        val visitor = JsFunctionAstVisitor(
-            focusedMethodName,
-            if (parentClassName != dummyClassName) parentClassName else null
-        )
-        visitor.accept(parsedFile)
-        return visitor.targetFunctionNode
+        return parentClassName?.let { astScrapper.findMethod(parentClassName, focusedMethodName, parsedFile) }
+            ?: astScrapper.findFunction(focusedMethodName, parsedFile)
+            ?: throw IllegalStateException(
+                "Couldn't locate function \"$focusedMethodName\" with class ${parentClassName ?: ""}"
+            )
     }
 
     private fun getMethodsToTest() =
@@ -368,9 +416,7 @@ class JsTestGenerator(
         }
 
     private fun getClassMethods(className: String): List<Node> {
-        val visitor = JsClassAstVisitor(className)
-        visitor.accept(parsedFile)
-        val classNode = JsParserUtils.searchForClassDecl(className, parsedFile)
+        val classNode = astScrapper.findClass(className, parsedFile)
         return classNode?.getClassMethods() ?: throw IllegalStateException("Can't extract methods of class $className")
     }
 }

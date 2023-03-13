@@ -1,4 +1,4 @@
-package utils
+package utils.data
 
 import framework.api.js.JsClassId
 

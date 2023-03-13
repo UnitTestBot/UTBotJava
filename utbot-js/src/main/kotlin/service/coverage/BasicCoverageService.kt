@@ -1,20 +1,21 @@
-package service
+package service.coverage
 
 import mu.KotlinLogging
 import org.json.JSONObject
 import org.utbot.framework.plugin.api.TimeoutException
+import service.ServiceContext
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
-import utils.ResultData
+import utils.data.ResultData
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
 class BasicCoverageService(
     context: ServiceContext,
+    baseCoverage: Map<Int, Int>,
     private val scriptTexts: List<String>,
-    baseCoverage: List<Int>,
-) : CoverageService(context, scriptTexts, baseCoverage) {
+) : CoverageService(context, baseCoverage, scriptTexts) {
 
     override fun generateCoverageReport() {
         scriptTexts.indices.forEach { index ->

@@ -1,19 +1,20 @@
-package service
+package service.coverage
 
 import java.io.File
-import java.util.Collections
 import org.json.JSONException
 import org.json.JSONObject
+import service.ContextOwner
+import service.ServiceContext
 import settings.JsTestGenerationSettings
-import utils.CoverageData
 import utils.JsCmdExec
-import utils.ResultData
+import utils.data.CoverageData
+import utils.data.ResultData
 
 abstract class CoverageService(
     context: ServiceContext,
+    private val baseCoverage: Map<Int, Int>,
     private val scriptTexts: List<String>,
-    private val baseCoverage: List<Int>,
-): ContextOwner by context {
+) : ContextOwner by context {
 
     private val _utbotDirPath = lazy { "${projectPath}/${utbotDir}" }
     protected val utbotDirPath: String
@@ -31,7 +32,7 @@ abstract class CoverageService(
             file.createNewFile()
         }
 
-        fun getBaseCoverage(context: ServiceContext, baseCoverageScriptText: String): List<Int> {
+        fun getBaseCoverage(context: ServiceContext, baseCoverageScriptText: String): Map<Int, Int> {
             with(context) {
                 val utbotDirPath = "${projectPath}/${utbotDir}"
                 createTempScript(
@@ -39,16 +40,18 @@ abstract class CoverageService(
                     scriptText = baseCoverageScriptText
                 )
                 JsCmdExec.runCommand(
-                    cmd = arrayOf("\"${settings.pathToNode}\"", "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js\""),
+                    cmd = arrayOf(
+                        "\"${settings.pathToNode}\"",
+                        "\"$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.js\""
+                    ),
                     dir = projectPath,
                     shouldWait = true,
                     timeout = settings.timeout,
                 )
                 return JSONObject(File("$utbotDirPath/${JsTestGenerationSettings.tempFileName}Base.json").readText())
-                    .getJSONObject("s").let {
-                        it.keySet().flatMap { key ->
-                            val count = it.getInt(key)
-                            Collections.nCopies(count, key.toInt())
+                    .getJSONObject("s").let { obj ->
+                        obj.keySet().associate { key ->
+                            key.toInt() to obj.getInt(key)
                         }
                     }
             }
@@ -74,17 +77,13 @@ abstract class CoverageService(
             // TODO: sort by coverage size desc
             return coverageList
                 .map { (_, obj) ->
-                    val dirtyCoverage = obj
-                        .let {
-                            it.keySet().flatMap { key ->
-                                val count = it.getInt(key)
-                                Collections.nCopies(count, key.toInt())
-                            }.toMutableList()
-                        }
-                    baseCoverage.forEach {
-                        dirtyCoverage.remove(it)
+                    val map = obj.keySet().associate { key ->
+                        val intKey = key.toInt()
+                        intKey to (obj.getInt(key) - baseCoverage.getOrDefault(intKey, 0))
                     }
-                    CoverageData(dirtyCoverage.toSet())
+                    CoverageData(map.mapNotNull { entry ->
+                        entry.key.takeIf { entry.value > 0 }
+                    }.toSet())
                 }
         } catch (e: JSONException) {
             throw Exception("Could not get coverage of test cases!")
@@ -94,7 +93,6 @@ abstract class CoverageService(
     }
 
     abstract fun generateCoverageReport()
-
 
     private fun createTempScript(path: String, scriptText: String) {
         val file = File(path)

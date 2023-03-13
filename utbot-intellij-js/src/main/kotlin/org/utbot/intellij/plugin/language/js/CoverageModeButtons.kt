@@ -1,8 +1,8 @@
 package org.utbot.intellij.plugin.language.js
 
-import service.CoverageMode
 import javax.swing.ButtonGroup
 import javax.swing.JRadioButton
+import service.coverage.CoverageMode
 
 object CoverageModeButtons {
 

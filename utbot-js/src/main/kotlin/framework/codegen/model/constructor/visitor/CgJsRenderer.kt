@@ -1,5 +1,9 @@
 package framework.codegen.model.constructor.visitor
 
+import framework.api.js.JsClassId
+import framework.api.js.util.isExportable
+import framework.codegen.JsImport
+import framework.codegen.ModuleType
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.StaticImport
@@ -109,6 +113,10 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
         else -> "$this"
     }
 
+    override fun renderRegularImport(regularImport: RegularImport) {
+        println("const ${regularImport.packageName} = require(\"${regularImport.className}\")")
+    }
+
     override fun visit(element: CgStaticsRegion) {
         if (element.content.isEmpty()) return
 
@@ -196,13 +204,14 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     override fun visit(element: CgArrayInitializer) {
         val elementType = element.elementType
         val elementsInLine = arrayElementsInLine(elementType)
-
+        print("[")
         element.values.renderElements(elementsInLine)
+        print("]")
     }
 
     override fun visit(element: CgClassFile) {
-        element.imports.filterIsInstance<RegularImport>().forEach {
-            renderRegularImport(it)
+        element.imports.filterIsInstance<JsImport>().forEach {
+            renderImport(it)
         }
         println()
         element.declaredClass.accept(this)
@@ -247,14 +256,20 @@ internal class CgJsRenderer(context: CgRendererContext, printer: CgPrinter = CgP
     }
 
     override fun visit(element: CgConstructorCall) {
-        print("new $fileUnderTestAliases.${element.executableId.classId.name}")
+        val importPrefix = "$fileUnderTestAliases.".takeIf {
+            (element.executableId.classId as JsClassId).isExportable
+        } ?: ""
+        print("new $importPrefix${element.executableId.classId.name}")
         print("(")
         element.arguments.renderSeparated()
         print(")")
     }
 
-    override fun renderRegularImport(regularImport: RegularImport) {
-        println("const ${regularImport.packageName} = require(\"${regularImport.className}\")")
+    private fun renderImport(import: JsImport) = with(import) {
+        when (type) {
+            ModuleType.COMMONJS -> println("const $aliases = require(\"$path\")")
+            ModuleType.MODULE -> println("import $name as $aliases from \"$path\"")
+        }
     }
 
     override fun renderStaticImport(staticImport: StaticImport) {

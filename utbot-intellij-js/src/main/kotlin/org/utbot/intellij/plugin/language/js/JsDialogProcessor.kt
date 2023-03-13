@@ -144,6 +144,13 @@ object JsDialogProcessor {
 
     private fun createDialog(jsTestsModel: JsTestsModel?) = jsTestsModel?.let { JsDialogWindow(it) }
 
+    private fun unblockDocument(project: Project, document: Document) {
+        PsiDocumentManager.getInstance(project).apply {
+            commitDocument(document)
+            doPostponedOperationsAndUnblockDocument(document)
+        }
+    }
+
     private fun createTests(model: JsTestsModel, containingFilePath: String, editor: Editor?, contents: String) {
         val normalizedContainingFilePath = containingFilePath.replace(File.separator, "/")
         (object : Task.Backgroundable(model.project, "Generate tests") {
@@ -154,7 +161,9 @@ object JsDialogProcessor {
                     model.testSourceRoot!!
                 )
                 val testFileName = normalizedContainingFilePath.substringAfterLast("/").replace(Regex(".js"), "Test.js")
-                val testGenerator = JsTestGenerator(fileText = contents,
+                currentFileText = model.file.getContent()
+                val testGenerator = JsTestGenerator(
+                    fileText = contents,
                     sourceFilePath = normalizedContainingFilePath,
                     projectPath = model.project.basePath?.replace(File.separator, "/")
                         ?: throw IllegalStateException("Can't access project path."),
@@ -208,44 +217,6 @@ object JsDialogProcessor {
 
     private fun JSFile.getContent(): String = this.viewProvider.contents.toString()
 
-    private fun manageExports(
-        editor: Editor?, project: Project, model: JsTestsModel, exports: List<String>
-    ) {
-        AppExecutorUtil.getAppExecutorService().submit {
-            invokeLater {
-                val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
-                val fileText = model.file.getContent()
-                when {
-                    fileText.contains(exportSection) -> {}
-
-                    fileText.contains(startComment) && !fileText.contains(exportSection) -> {
-                        val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
-                        regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                            val exportRegex = Regex("exports[.](.*) =")
-                            val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
-                            val existingExportsSet = existingExports.map { rawLine ->
-                                exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
-                            }.toSet()
-                            val resultSet = existingExportsSet + exports.toSet()
-                            val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                            val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-                            project.setNewText(editor, model.containingFilePath, swappedText)
-                        }
-                    }
-
-                    else -> {
-                        val line = buildString {
-                            append("\n$startComment\n")
-                            append(exportSection)
-                            append("\n$endComment")
-                        }
-                        project.setNewText(editor, model.containingFilePath, fileText + line)
-                    }
-                }
-            }
-        }
-    }
-
     private fun Project.setNewText(editor: Editor?, filePath: String, text: String) {
         editor?.let {
             runWriteAction {
@@ -261,12 +232,38 @@ object JsDialogProcessor {
         } ?: run {
             File(filePath).writeText(text)
         }
+        currentFileText = text
     }
 
-    private fun unblockDocument(project: Project, document: Document) {
-        PsiDocumentManager.getInstance(project).apply {
-            commitDocument(document)
-            doPostponedOperationsAndUnblockDocument(document)
+    // Needed for continuous exports managing
+    private var currentFileText = ""
+
+    private fun manageExports(
+        editor: Editor?,
+        project: Project,
+        model: JsTestsModel,
+        swappedText: (String?, String) -> String
+    ) {
+        AppExecutorUtil.getAppExecutorService().submit {
+            invokeLater {
+                when {
+                    currentFileText.contains(startComment) -> {
+                        val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
+                        regex.find(currentFileText)?.groups?.get(1)?.value?.let { existingSection ->
+                            val newText = swappedText(existingSection, currentFileText)
+                            project.setNewText(editor, model.containingFilePath, newText)
+                        }
+                    }
+
+                    else -> {
+                        val line = buildString {
+                            append("\n")
+                            appendLine(swappedText(null, currentFileText))
+                        }
+                        project.setNewText(editor, model.containingFilePath, currentFileText + line)
+                    }
+                }
+            }
         }
     }
 }

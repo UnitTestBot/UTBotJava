@@ -2,12 +2,12 @@ package codegen
 
 import framework.api.js.JsClassId
 import framework.codegen.JsCgLanguageAssistant
+import framework.codegen.JsImport
 import framework.codegen.Mocha
 import org.utbot.framework.codegen.CodeGeneratorResult
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.HangingTestsTimeout
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
-import org.utbot.framework.codegen.domain.RegularImport
 import org.utbot.framework.codegen.domain.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
@@ -20,7 +20,6 @@ import org.utbot.framework.codegen.tree.CgSimpleTestClassConstructor
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
-import settings.JsTestGenerationSettings.fileUnderTestAliases
 
 class JsCodeGenerator(
     private val classUnderTest: JsClassId,
@@ -30,7 +29,7 @@ class JsCodeGenerator(
     hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName,
-    importPrefix: String,
+    imports: List<JsImport>,
 ) {
     private var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
@@ -47,13 +46,7 @@ class JsCodeGenerator(
         hangingTestsTimeout = hangingTestsTimeout,
         enableTestsTimeout = enableTestsTimeout,
         testClassPackageName = testClassPackageName,
-        collectedImports = mutableSetOf(
-            RegularImport("assert", "assert"),
-            RegularImport(
-                fileUnderTestAliases,
-                "./$importPrefix/${classUnderTest.filePath.substringAfterLast("/")}"
-            )
-        )
+        collectedImports = imports.toMutableSet()
     )
 
     fun generateAsStringWithTestReport(

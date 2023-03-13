@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import mu.KotlinLogging
 import org.utbot.cli.js.JsUtils.makeAbsolutePath
-import service.CoverageMode
+import service.coverage.CoverageMode
 import settings.JsDynamicSettings
 import settings.JsExportsSettings.endComment
 import settings.JsExportsSettings.startComment
@@ -82,6 +82,7 @@ class JsGenerateTestsCommand :
             val sourceFileAbsolutePath = makeAbsolutePath(sourceCodeFile)
             logger.info { "Generating tests for [$sourceFileAbsolutePath] - started" }
             val fileText = File(sourceCodeFile).readText()
+            currentFileText = fileText
             val outputAbsolutePath = output?.let { makeAbsolutePath(it) }
             val testGenerator = JsTestGenerator(
                 fileText = fileText,
@@ -118,35 +119,30 @@ class JsGenerateTestsCommand :
         }
     }
 
-    private fun manageExports(exports: List<String>) {
-        val exportSection = exports.joinToString("\n") { "exports.$it = $it" }
-        val file = File(sourceCodeFile)
-        val fileText = file.readText()
-        when {
-            fileText.contains(exportSection) -> {}
+    // Needed for continuous exports managing
+    private var currentFileText = ""
 
-            fileText.contains(startComment) && !fileText.contains(exportSection) -> {
+    private fun manageExports(swappedText: (String?, String) -> String) {
+        val file = File(sourceCodeFile)
+        when {
+
+            currentFileText.contains(startComment) -> {
                 val regex = Regex("$startComment((\\r\\n|\\n|\\r|.)*)$endComment")
-                regex.find(fileText)?.groups?.get(1)?.value?.let { existingSection ->
-                    val exportRegex = Regex("exports[.](.*) =")
-                    val existingExports = existingSection.split("\n").filter { it.contains(exportRegex) }
-                    val existingExportsSet = existingExports.map { rawLine ->
-                        exportRegex.find(rawLine)?.groups?.get(1)?.value ?: throw IllegalStateException()
-                    }.toSet()
-                    val resultSet = existingExportsSet + exports.toSet()
-                    val resSection = resultSet.joinToString("\n") { "exports.$it = $it" }
-                    val swappedText = fileText.replace(existingSection, "\n$resSection\n")
-                    file.writeText(swappedText)
+                regex.find(currentFileText)?.groups?.get(1)?.value?.let { existingSection ->
+                    val newText = swappedText(existingSection, currentFileText)
+                    file.writeText(newText)
+                    currentFileText = newText
                 }
             }
 
             else -> {
                 val line = buildString {
-                    append("\n$startComment\n")
-                    append(exportSection)
-                    append("\n$endComment")
+                    append("\n$startComment")
+                    append(swappedText(null, currentFileText))
+                    append(endComment)
                 }
                 file.appendText(line)
+                currentFileText = file.readText()
             }
         }
     }

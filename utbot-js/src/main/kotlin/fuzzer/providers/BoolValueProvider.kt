@@ -1,6 +1,5 @@
 package fuzzer.providers
 
-
 import framework.api.js.JsClassId
 import framework.api.js.JsPrimitiveModel
 import framework.api.js.util.isJsBasic

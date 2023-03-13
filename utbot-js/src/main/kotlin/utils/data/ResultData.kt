@@ -1,4 +1,4 @@
-package utils
+package utils.data
 
 /**
  * Represents results after running function with arguments using Node.js

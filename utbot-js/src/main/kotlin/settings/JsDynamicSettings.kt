@@ -1,6 +1,6 @@
 package settings
 
-import service.CoverageMode
+import service.coverage.CoverageMode
 
 data class JsDynamicSettings(
     val pathToNode: String = "node",

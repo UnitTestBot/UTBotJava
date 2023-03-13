@@ -1,6 +1,7 @@
 package parser
 
 import com.google.javascript.jscomp.Compiler
+import com.google.javascript.jscomp.NodeUtil
 import com.google.javascript.jscomp.SourceFile
 import com.google.javascript.rhino.Node
 import fuzzer.JsFuzzedContext
@@ -67,6 +68,12 @@ object JsParserUtils {
         this.isString -> this.string
         this.isTrue -> true
         this.isFalse -> false
+        this.isCall -> {
+            if (this.firstChild?.isGetProp == true) {
+                this.firstChild?.next?.getAnyValue()
+            } else null
+        }
+
         else -> null
     }
 
@@ -144,4 +151,59 @@ object JsParserUtils {
      * Called upon node with Method token.
      */
     fun Node.isStatic(): Boolean = this.isStaticMember
+
+    /**
+     * Checks if node is "require" JavaScript import.
+     */
+    fun Node.isRequireImport(): Boolean = try {
+        this.isCall && this.firstChild?.string == "require"
+    } catch (e: ClassCastException) {
+        false
+    }
+
+    /**
+     * Called upon "require" JavaScript import.
+     *
+     * Returns path to imported file as [String].
+     */
+    fun Node.getRequireImportText(): String = this.firstChild!!.next!!.string
+
+    /**
+     * Called upon "import" JavaScript import.
+     *
+     * Returns path to imported file as [String].
+     */
+    fun Node.getModuleImportText(): String = this.firstChild!!.next!!.next!!.string
+
+    /**
+     * Called upon "import" JavaScript import.
+     *
+     * Returns imported objects as [List].
+     */
+    fun Node.getModuleImportSpecsAsList(): List<Node> {
+        val importSpecsNode = NodeUtil.findPreorder(this, { it.isImportSpecs }, { true })
+            ?: throw UnsupportedOperationException("Module import doesn't contain \"import_specs\" token as an AST child")
+        var currNode: Node? = importSpecsNode.firstChild!!
+        val importSpecsList = mutableListOf<Node>()
+        do {
+            importSpecsList += currNode!!
+            currNode = currNode?.next
+        } while (currNode?.isImportSpec == true)
+        return importSpecsList
+    }
+
+    /**
+     * Called upon IMPORT_SPEC Node.
+     *
+     * Returns name of imported object as [String].
+     */
+    fun Node.getImportSpecName(): String = this.firstChild!!.string
+
+    /**
+     * Called upon IMPORT_SPEC Node.
+     *
+     * Returns import alias as [String].
+     */
+    fun Node.getImportSpecAliases(): String = this.firstChild!!.next!!.string
+
 }

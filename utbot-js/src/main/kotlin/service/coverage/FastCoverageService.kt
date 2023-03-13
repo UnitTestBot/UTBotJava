@@ -1,21 +1,22 @@
-package service
+package service.coverage
 
 import mu.KotlinLogging
 import org.json.JSONObject
+import service.ServiceContext
 import settings.JsTestGenerationSettings.fuzzingThreshold
 import settings.JsTestGenerationSettings.tempFileName
 import utils.JsCmdExec
-import utils.ResultData
+import utils.data.ResultData
 import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
 class FastCoverageService(
     context: ServiceContext,
+    baseCoverage: Map<Int, Int>,
     scriptTexts: List<String>,
     private val testCaseIndices: IntRange,
-    baseCoverage: List<Int>,
-) : CoverageService(context, scriptTexts, baseCoverage) {
+) : CoverageService(context, baseCoverage, scriptTexts) {
 
     override fun generateCoverageReport() {
         val (_, errorText) = JsCmdExec.runCommand(

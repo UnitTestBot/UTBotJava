@@ -1,9 +1,12 @@
 package fuzzer
 
 import framework.api.js.JsClassId
+import fuzzer.providers.ArrayValueProvider
 import fuzzer.providers.BoolValueProvider
+import fuzzer.providers.MapValueProvider
 import fuzzer.providers.NumberValueProvider
 import fuzzer.providers.ObjectValueProvider
+import fuzzer.providers.SetValueProvider
 import fuzzer.providers.StringValueProvider
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzing.Fuzzing
@@ -14,7 +17,10 @@ fun defaultValueProviders() = listOf(
     BoolValueProvider,
     NumberValueProvider,
     StringValueProvider,
-    ObjectValueProvider()
+    MapValueProvider,
+    SetValueProvider,
+    ObjectValueProvider(),
+    ArrayValueProvider()
 )
 
 class JsFuzzing(

@@ -65,8 +65,8 @@ jobs:
         run: |
           FRAMEWORK_TESTS=$(echo $(cat .github/workflows/framework-tests-matrix.json))
           COMBINED_PROJECTS=$(echo $(cat .github/workflows/combined-projects-matrix.json))
-          echo "::set-output name=framework-tests-matrix::$FRAMEWORK_TESTS"
-          echo "::set-output name=combined-projects-matrix::$COMBINED_PROJECTS"
+          echo "framework-tests-matrix=$FRAMEWORK_TESTS" >> $GITHUB_OUTPUT
+          echo "combined-projects-matrix=$COMBINED_PROJECTS" >> $GITHUB_OUTPUT
           echo $FRAMEWORK_TESTS
           echo $COMBINED_PROJECTS
   framework-tests:

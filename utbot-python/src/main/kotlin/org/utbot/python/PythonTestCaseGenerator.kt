@@ -220,28 +220,41 @@ class PythonTestCaseGenerator(
         val coveredLines = mutableSetOf<Int>()
 
         logger.info("Start test generation for ${method.name}")
-        val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
-        val argKinds = meta.argumentKinds
-        if (argKinds.any { it != PythonCallableTypeDescription.ArgKind.ARG_POS }) {
-            val now = System.currentTimeMillis()
-            val firstUntil = (until - now) / 2 + now
-            val originalDef = method.definition
-            val shortType = meta.removeNonPositionalArgs(originalDef.type)
-            val shortMeta = PythonFuncItemDescription(
-                originalDef.meta.name,
-                originalDef.meta.args.take(shortType.arguments.size)
-            )
-            val additionalVars = originalDef.meta.args
-                .drop(shortType.arguments.size)
-                .joinToString(separator="\n", prefix="\n") { arg ->
-                    "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-                }
-            method.definition = PythonFunctionDefinition(shortMeta, shortType)
-            val missingLines = methodHandler(method, typeStorage, coveredLines, errors, executions, null, firstUntil, additionalVars)
-            method.definition = originalDef
-            methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
-        } else {
-            methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)
+        try {
+            val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
+            val argKinds = meta.argumentKinds
+            if (argKinds.any { it != PythonCallableTypeDescription.ArgKind.ARG_POS }) {
+                val now = System.currentTimeMillis()
+                val firstUntil = (until - now) / 2 + now
+                val originalDef = method.definition
+                val shortType = meta.removeNonPositionalArgs(originalDef.type)
+                val shortMeta = PythonFuncItemDescription(
+                    originalDef.meta.name,
+                    originalDef.meta.args.take(shortType.arguments.size)
+                )
+                val additionalVars = originalDef.meta.args
+                    .drop(shortType.arguments.size)
+                    .joinToString(separator = "\n", prefix = "\n") { arg ->
+                        "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
+                    }
+                method.definition = PythonFunctionDefinition(shortMeta, shortType)
+                val missingLines = methodHandler(
+                    method,
+                    typeStorage,
+                    coveredLines,
+                    errors,
+                    executions,
+                    null,
+                    firstUntil,
+                    additionalVars
+                )
+                method.definition = originalDef
+                methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
+            } else {
+                methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)
+            }
+        } catch (_: OutOfMemoryError) {
+            logger.info { "Out of memory error. Stop test generation process" }
         }
 
         logger.info("Collect all test executions for ${method.name}")

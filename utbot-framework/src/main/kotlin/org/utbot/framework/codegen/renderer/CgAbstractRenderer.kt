@@ -190,9 +190,10 @@ abstract class CgAbstractRenderer(
     private fun CgRegion<*>.render(printLineAfterContentEnd: Boolean = false) {
         if (content.isEmpty() || isInterrupted) return
 
-        print(regionStart)
-        header?.let { print(" $it") }
-        println()
+        header?.let {
+            print(regionStart)
+            println(" $it")
+        }
 
         if (this is CgTestMethodCluster) description?.accept(this@CgAbstractRenderer)
 
@@ -208,7 +209,9 @@ abstract class CgAbstractRenderer(
 
         if (printLineAfterContentEnd) println()
 
-        println(regionEnd)
+        header?.let {
+            println(regionEnd)
+        }
 
         if (isLimitExceeded && !isInterrupted) {
             visit(CgSingleLineComment("Abrupt generation termination: file size exceeds configured limit (${FileUtil.byteCountToDisplaySize(UtSettings.maxTestFileSize.toLong())})"))

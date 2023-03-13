@@ -642,7 +642,12 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 getSingleAbstractMethodMethodId -> emptySet()
                 buildStaticLambdaMethodId,
                 buildLambdaMethodId -> setOf(Throwable::class.id)
-                getLookupInMethodId ->setOf(IllegalAccessException::class.id, NoSuchFieldException::class.id)
+                getLookupInMethodId -> setOf(
+                    IllegalAccessException::class.id,
+                    NoSuchFieldException::class.id,
+                    java.lang.NoSuchMethodException::class.id,
+                    java.lang.reflect.InvocationTargetException::class.id
+                )
                 else -> error("Unknown util method ${this@findExceptionTypes}")
             }
         }

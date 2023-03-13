@@ -1144,7 +1144,7 @@ private fun getLookupIn(language: CodegenLanguage) =
              * @return {@link java.lang.invoke.MethodHandles.Lookup} instance for the given {@code clazz}.
              * It can be used, for example, to search methods of this {@code clazz}, even the {@code private} ones.
              */
-            private static java.lang.invoke.MethodHandles.Lookup getLookupIn(Class<?> clazz) throws IllegalAccessException, NoSuchFieldException {
+            private static java.lang.invoke.MethodHandles.Lookup getLookupIn(Class<?> clazz) throws IllegalAccessException, NoSuchFieldException, java.lang.NoSuchMethodException, java.lang.reflect.InvocationTargetException {
                 java.lang.invoke.MethodHandles.Lookup lookup = java.lang.invoke.MethodHandles.lookup().in(clazz);
         
                 // Allow lookup to access all members of declaringClass, including the private ones.

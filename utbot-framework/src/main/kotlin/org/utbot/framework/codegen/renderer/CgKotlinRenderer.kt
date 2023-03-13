@@ -183,23 +183,6 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         println("}")
     }
 
-    override fun visit(element: CgStaticsRegion) {
-        if (element.content.isEmpty()) return
-
-        print(regionStart)
-        element.header?.let { print(" $it") }
-        println()
-
-        for (item in element.content) {
-            println()
-            println("@JvmStatic")
-            item.accept(this)
-        }
-
-        println(regionEnd)
-    }
-
-
     // Property access
 
     override fun visit(element: CgFieldAccess) {
@@ -381,6 +364,12 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         print("(")
         element.arguments.renderSeparated()
         print(")")
+    }
+
+    override fun visit(element: CgParameterizedTestDataProviderMethod) {
+        println()
+        println("@JvmStatic")
+        super.visit(element)
     }
 
     override fun renderRegularImport(regularImport: RegularImport) {

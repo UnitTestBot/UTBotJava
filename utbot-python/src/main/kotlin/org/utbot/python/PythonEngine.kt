@@ -216,13 +216,11 @@ class PythonEngine(
                                         PythonFeedback(control = Control.CONTINUE, result = trieNode)
                                     )
                                 }
-
-                                is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
-                                    PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
-                                }
-
                                 is InvalidExecution -> {
                                     PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
+                                }
+                                else -> {
+                                    PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
                                 }
                             }
                         }
@@ -262,7 +260,7 @@ class PythonEngine(
 
                         if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
                             logger.debug("FakeNode in Python model")
-                            emit(InvalidExecution(UtError("Bad input object", Throwable())))
+                            emit(FakeNodeFeedback)
                             return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                         }
 
@@ -270,12 +268,11 @@ class PythonEngine(
                         val mem = cache.get(pair)
                         if (mem != null) {
                             logger.debug("Repeat in fuzzing")
-                            emit(mem.fuzzingExecutionFeedback)
+                            emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
                             return@PythonFuzzing mem.fuzzingPlatformFeedback
                         }
                         val result = fuzzingResultHandler(description, arguments)
                         if (result == null) {  // timeout
-                            logger.info { "Fuzzing process was interrupted by timeout" }
                             manager.disconnect()
                             return@PythonFuzzing PythonFeedback(control = Control.STOP)
                         }

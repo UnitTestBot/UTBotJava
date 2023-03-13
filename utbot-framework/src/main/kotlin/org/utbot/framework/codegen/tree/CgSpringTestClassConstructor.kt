@@ -123,8 +123,8 @@ class CgSpringTestClassConstructor(context: CgContext): CgAbstractTestClassConst
         )
 
         val methodCluster = CgMethodsCluster(
-            "Test run utility methods",
-            listOf(CgSimpleRegion("Mocking utils", listOf(beforeMethod, afterMethod)))
+            header = null,
+            listOf(CgSimpleRegion(header = null, listOf(beforeMethod, afterMethod)))
         )
 
         return mockitoCloseableField to methodCluster

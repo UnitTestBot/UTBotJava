@@ -16,9 +16,7 @@ import org.utbot.fuzzing.utils.Trie
 import org.utbot.python.framework.api.python.PythonTree
 import org.utbot.python.fuzzing.provider.*
 import org.utbot.python.fuzzing.provider.utils.isAny
-import org.utbot.python.fuzzing.provider.utils.isConcreteType
 import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.Type
 
 private val logger = KotlinLogging.logger {}
@@ -42,6 +40,8 @@ class ValidExecution(val utFuzzedExecution: UtFuzzedExecution): FuzzingExecution
 class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
 class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
+class CachedExecutionFeedback(val cachedFeedback: FuzzingExecutionFeedback) : FuzzingExecutionFeedback
+object FakeNodeFeedback : FuzzingExecutionFeedback
 
 data class PythonExecutionResult(
     val fuzzingExecutionFeedback: FuzzingExecutionFeedback,

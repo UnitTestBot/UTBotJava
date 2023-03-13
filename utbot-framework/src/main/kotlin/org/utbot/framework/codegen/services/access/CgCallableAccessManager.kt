@@ -617,7 +617,13 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 getStaticFieldValueMethodId,
                 setStaticFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
                 getFieldValueMethodId,
-                setFieldMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
+                setFieldMethodId -> setOf(
+                    java.lang.ClassNotFoundException::class.id,
+                    java.lang.IllegalAccessException::class.id,
+                    java.lang.NoSuchFieldException::class.id,
+                    java.lang.reflect.InvocationTargetException::class.id,
+                    java.lang.NoSuchMethodException::class.id
+                )
                 createInstanceMethodId -> setOf(Exception::class.id)
                 getUnsafeInstanceMethodId -> setOf(ClassNotFoundException::class.id, NoSuchFieldException::class.id, IllegalAccessException::class.id)
                 createArrayMethodId -> setOf(ClassNotFoundException::class.id)

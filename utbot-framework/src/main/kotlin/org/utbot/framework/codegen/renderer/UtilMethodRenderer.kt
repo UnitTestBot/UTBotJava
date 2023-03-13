@@ -128,6 +128,24 @@ private fun getEnumConstantByName(visibility: Visibility, language: CodegenLangu
         }
     }.trimIndent()
 
+private fun getFieldRetrievingBlock(language : CodegenLanguage, fullClassName : String, fieldName : String, resultName : String) = when (language) {
+    CodegenLanguage.JAVA ->
+        """
+                        java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+                        methodForGetDeclaredFields0.setAccessible(true);
+                        java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke($fullClassName.class, false);
+                        $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("$fieldName")).findFirst().get();
+
+    """
+
+    CodegenLanguage.KOTLIN ->
+        """
+                        val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke($fullClassName::class.java, false) as Array<java.lang.reflect.Field>
+                        $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }
+                            .findFirst().get()
+
+    """
+}
 private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
@@ -141,11 +159,7 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
                         field.setAccessible(true);
                         
                         java.lang.reflect.Field modifiersField;
-                        java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-                        methodForGetDeclaredFields0.setAccessible(true);
-                        java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke(java.lang.reflect.Field.class, false);
-                        modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("modifiers")).findFirst().get();
-                        
+                        ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                         modifiersField.setAccessible(true);
                         modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
                         
@@ -176,9 +190,7 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
                         val modifiersField: java.lang.reflect.Field
                         val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
                         methodForGetDeclaredFields0.isAccessible = true
-                        val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke(java.lang.reflect.Field::class.java, false) as Array<java.lang.reflect.Field>
-                        modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "modifiers" }
-                            .findFirst().get()
+                        ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
 
                         modifiersField.isAccessible = true
                         modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
@@ -208,9 +220,8 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
                 java.lang.reflect.Field modifiersField;
                 java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
                 methodForGetDeclaredFields0.setAccessible(true);
-                java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke(java.lang.reflect.Field.class, false);
-                modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("modifiers")).findFirst().get();
-                        
+
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
                 
@@ -229,10 +240,8 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
                 val modifiersField: java.lang.reflect.Field
                 val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
                 methodForGetDeclaredFields0.isAccessible = true
-                val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke(java.lang.reflect.Field::class.java, false) as Array<java.lang.reflect.Field>
-                modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "modifiers" }
-                    .findFirst().get()
-                
+
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
                 
@@ -262,9 +271,8 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                 java.lang.reflect.Field modifiersField;
                 java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
                 methodForGetDeclaredFields0.setAccessible(true);
-                java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke(java.lang.reflect.Field.class, false);
-                modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("modifiers")).findFirst().get();
-                
+
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
     
@@ -298,10 +306,8 @@ private fun setStaticField(visibility: Visibility, language: CodegenLanguage): S
                 val modifiersField: java.lang.reflect.Field
                 val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
                 methodForGetDeclaredFields0.isAccessible = true
-                val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke(java.lang.reflect.Field::class.java, false) as Array<java.lang.reflect.Field>
-                modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "modifiers" }
-                    .findFirst().get()
-                
+
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
         
@@ -321,11 +327,7 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
             java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
     
             java.lang.reflect.Field modifiersField;
-            java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-            methodForGetDeclaredFields0.setAccessible(true);
-            java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke(java.lang.reflect.Field.class, false);
-            modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("modifiers")).findFirst().get();
-    
+            ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
             modifiersField.setAccessible(true);
             modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
     
@@ -341,12 +343,7 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
                 val field: java.lang.reflect.Field = clazz.getDeclaredField(fieldName)
         
                 val modifiersField: java.lang.reflect.Field
-                val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
-                methodForGetDeclaredFields0.isAccessible = true
-                val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke(java.lang.reflect.Field::class.java, false) as Array<java.lang.reflect.Field>
-                modifiersField = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "modifiers" }
-                    .findFirst().get()
-
+                ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
                 modifiersField.isAccessible = true
                 modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
         
@@ -1164,7 +1161,9 @@ private fun getLookupIn(language: CodegenLanguage) =
         
                 // Allow lookup to access all members of declaringClass, including the private ones.
                 // For example, it is useful to access private synthetic methods representing lambdas.
-                java.lang.reflect.Field allowedModes = java.lang.invoke.MethodHandles.Lookup.class.getDeclaredField("allowedModes");
+                
+                java.lang.reflect.Field allowedModes;
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
                 allowedModes.setAccessible(true);
                 allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC | java.lang.reflect.Modifier.PROTECTED | java.lang.reflect.Modifier.PRIVATE | java.lang.reflect.Modifier.STATIC);
         
@@ -1183,7 +1182,8 @@ private fun getLookupIn(language: CodegenLanguage) =
     
                 // Allow lookup to access all members of declaringClass, including the private ones.
                 // For example, it is useful to access private synthetic methods representing lambdas.
-                val allowedModes = java.lang.invoke.MethodHandles.Lookup::class.java.getDeclaredField("allowedModes")
+                val allowedModes java.lang.reflect.Field
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
                 allowedModes.isAccessible = true
                 allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC or java.lang.reflect.Modifier.PROTECTED or java.lang.reflect.Modifier.PRIVATE or java.lang.reflect.Modifier.STATIC)
     

@@ -1,11 +1,13 @@
-package org.utbot.framework.plugin.api.util
+package org.utbot.framework.plugin.api.util.constructor
 
 import java.lang.invoke.LambdaMetafactory
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodHandles.Lookup
 import java.lang.invoke.MethodType
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import org.utbot.common.Reflection
 
 /**
  * This class represents the `type` and `value` of a value captured by lambda.
@@ -19,18 +21,20 @@ data class CapturedArgument(val type: Class<*>, val value: Any?)
  * @return [MethodHandles.Lookup] instance for the given [clazz].
  * It can be used, for example, to search methods of this [clazz], even the `private` ones.
  */
+@Suppress("UNCHECKED_CAST")
 private fun getLookupIn(clazz: Class<*>): Lookup {
-    val lookupConstructor = Lookup::class.java.declaredConstructors.single { constructor ->
-        val parameters = constructor.parameters.map { it.type }
-        parameters.size == 3 && parameters[0] == Class::class.java && parameters[1] == Class::class.java && parameters[2] == Int::class.java
-    }
-    lookupConstructor.isAccessible = true
+    val lookup = MethodHandles.lookup().`in`(clazz)
 
-    val fullModesField = Lookup::class.java.getDeclaredField("FULL_POWER_MODES")
-    fullModesField.isAccessible = true
-    val fullModesValue = fullModesField.get(null) as Int // Static field
+    // Allow lookup to access all members of declaringClass, including the private ones.
+    // For example, it is useful to access private synthetic methods representing lambdas.
+    val fields = Reflection.getDeclaredFields0Method.invoke(Lookup::class.java, false) as Array<Field>
+    val allowedModes = fields.single { it.name == "allowedModes" }
+    val allModesField = fields.single { it.name == "ALL_MODES" }
+    allowedModes.isAccessible = true
+    allModesField.isAccessible = true
+    allowedModes.setInt(lookup, allModesField.get(null) as Int)
 
-    return lookupConstructor.newInstance(clazz, null, fullModesValue) as Lookup
+    return lookup
 }
 
 /**

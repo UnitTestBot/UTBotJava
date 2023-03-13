@@ -30,7 +30,6 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
-private const val MAX_EXECUTIONS = 50000
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -168,9 +167,7 @@ class PythonTestCaseGenerator(
 
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation = {
-                    isCancelled() || limitManager.isCancelled() || (errors.size + executions.size) >= MAX_EXECUTIONS
-                }
+                val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
                     when (it) {
@@ -182,8 +179,8 @@ class PythonTestCaseGenerator(
                         }
                         is InvalidExecution -> {
                             errors += it.utError
-                            feedback = SuccessFeedback
-                            limitManager.addSuccessExecution()
+                            feedback = InvalidTypeFeedback
+                            limitManager.addInvalidExecution()
                         }
                         is ArgumentsTypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
@@ -192,6 +189,16 @@ class PythonTestCaseGenerator(
                         is TypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
                             limitManager.addInvalidExecution()
+                        }
+                        is CachedExecutionFeedback -> {
+                            when (it.cachedFeedback) {
+                                is ValidExecution -> {
+                                    limitManager.addSuccessExecution()
+                                }
+                                else -> {
+                                    limitManager.addInvalidExecution()
+                                }
+                            }
                         }
                     }
                     limitManager.missedLines = missingLines?.size

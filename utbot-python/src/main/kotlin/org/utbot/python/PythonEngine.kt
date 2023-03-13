@@ -224,6 +224,9 @@ class PythonEngine(
                                 is InvalidExecution -> {
                                     PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
                                 }
+                                is CachedExecutionFeedback -> {
+                                    PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
+                                }
                             }
                         }
                     }
@@ -270,12 +273,11 @@ class PythonEngine(
                         val mem = cache.get(pair)
                         if (mem != null) {
                             logger.debug("Repeat in fuzzing")
-                            emit(mem.fuzzingExecutionFeedback)
+                            emit(CachedExecutionFeedback(mem.fuzzingExecutionFeedback))
                             return@PythonFuzzing mem.fuzzingPlatformFeedback
                         }
                         val result = fuzzingResultHandler(description, arguments)
                         if (result == null) {  // timeout
-                            logger.info { "Fuzzing process was interrupted by timeout" }
                             manager.disconnect()
                             return@PythonFuzzing PythonFeedback(control = Control.STOP)
                         }

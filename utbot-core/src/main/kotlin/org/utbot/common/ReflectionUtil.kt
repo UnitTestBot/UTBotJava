@@ -17,18 +17,18 @@ object Reflection {
         unsafe = f.get(null) as Unsafe
     }
 
-    private val getDeclaredFields0Method: Method =
+    val getDeclaredFields0Method: Method =
         Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java).apply {
             isAccessible = true
         }
 
 
     @Suppress("UNCHECKED_CAST")
-    private val fields: Array<Field> =
+    val fields: Array<Field> =
         getDeclaredFields0Method.invoke(Field::class.java, false) as Array<Field>
 
     // TODO: works on JDK 8-17. Doesn't work on JDK 18
-    private val modifiersField: Field =
+    val modifiersField: Field =
         fields.first { it.name == "modifiers" }
 
     init {

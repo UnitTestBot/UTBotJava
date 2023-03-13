@@ -200,6 +200,9 @@ class PythonTestCaseGenerator(
                                 }
                             }
                         }
+                        is FakeNodeFeedback -> {
+                           limitManager.addFakeNodeExecutions()
+                        }
                     }
                     limitManager.missedLines = missingLines?.size
                 }

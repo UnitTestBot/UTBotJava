@@ -8,15 +8,18 @@ class TestGenerationLimitManager(
     // local settings: one type inference iteration
     var executions: Int = 150,
     var invalidExecutions: Int = 10,
+    var fakeNodeExecutions: Int = 20,
     var missedLines: Int? = null,
 ) {
     private val initExecution = executions
     private val initInvalidExecutions = invalidExecutions
+    private val initFakeNodeExecutions = fakeNodeExecutions
     private val initMissedLines = missedLines
 
     fun restart() {
         executions = initExecution
         invalidExecutions = initInvalidExecutions
+        fakeNodeExecutions = initFakeNodeExecutions
         missedLines = initMissedLines
     }
 
@@ -26,6 +29,10 @@ class TestGenerationLimitManager(
 
     fun addInvalidExecution() {
         invalidExecutions -= 1
+    }
+
+    fun addFakeNodeExecutions() {
+        fakeNodeExecutions -= 1
     }
 
     fun isCancelled(): Boolean {
@@ -51,7 +58,7 @@ object TimeoutMode : LimitManagerMode {
 
 object ExecutionMode : LimitManagerMode {
     override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
-        return manager.invalidExecutions <= 0 || manager.executions <= 0
+        return manager.invalidExecutions <= 0 || manager.executions <= 0 || manager.fakeNodeExecutions <= 0
     }
 }
 

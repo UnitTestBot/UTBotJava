@@ -216,15 +216,10 @@ class PythonEngine(
                                         PythonFeedback(control = Control.CONTINUE, result = trieNode)
                                     )
                                 }
-
-                                is ArgumentsTypeErrorFeedback, is TypeErrorFeedback -> {
-                                    PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
-                                }
-
                                 is InvalidExecution -> {
                                     PythonExecutionResult(result, PythonFeedback(control = Control.CONTINUE))
                                 }
-                                is CachedExecutionFeedback -> {
+                                else -> {
                                     PythonExecutionResult(result, PythonFeedback(control = Control.PASS))
                                 }
                             }
@@ -265,7 +260,7 @@ class PythonEngine(
 
                         if (arguments.any { PythonTree.containsFakeNode(it.tree) }) {
                             logger.debug("FakeNode in Python model")
-                            emit(InvalidExecution(UtError("Bad input object", Throwable())))
+                            emit(FakeNodeFeedback)
                             return@PythonFuzzing PythonFeedback(control = Control.CONTINUE)
                         }
 

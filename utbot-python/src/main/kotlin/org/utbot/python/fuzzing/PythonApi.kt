@@ -41,6 +41,7 @@ class InvalidExecution(val utError: UtError): FuzzingExecutionFeedback
 class TypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 class ArgumentsTypeErrorFeedback(val message: String) : FuzzingExecutionFeedback
 class CachedExecutionFeedback(val cachedFeedback: FuzzingExecutionFeedback) : FuzzingExecutionFeedback
+object FakeNodeFeedback : FuzzingExecutionFeedback
 
 data class PythonExecutionResult(
     val fuzzingExecutionFeedback: FuzzingExecutionFeedback,

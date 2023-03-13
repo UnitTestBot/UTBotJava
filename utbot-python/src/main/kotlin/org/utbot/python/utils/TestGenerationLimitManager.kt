@@ -1,7 +1,5 @@
 package org.utbot.python.utils
 
-import kotlin.math.min
-
 class TestGenerationLimitManager(
     // global settings
     var mode: LimitManagerMode,
@@ -10,18 +8,15 @@ class TestGenerationLimitManager(
     // local settings: one type inference iteration
     var executions: Int = 150,
     var invalidExecutions: Int = 10,
-    var additionalExecutions: Int = 5,
     var missedLines: Int? = null,
 ) {
     private val initExecution = executions
     private val initInvalidExecutions = invalidExecutions
-    private val initAdditionalExecutions = additionalExecutions
     private val initMissedLines = missedLines
 
     fun restart() {
         executions = initExecution
         invalidExecutions = initInvalidExecutions
-        additionalExecutions = initAdditionalExecutions
         missedLines = initMissedLines
     }
 
@@ -56,10 +51,7 @@ object TimeoutMode : LimitManagerMode {
 
 object ExecutionMode : LimitManagerMode {
     override fun isCancelled(manager: TestGenerationLimitManager): Boolean {
-        if (manager.invalidExecutions <= 0 || manager.executions <= 0) {
-            return min(manager.invalidExecutions, 0) + min(manager.executions, 0) + manager.additionalExecutions <= 0
-        }
-        return false
+        return manager.invalidExecutions <= 0 || manager.executions <= 0
     }
 }
 

@@ -1157,7 +1157,7 @@ class WildcardTypeParameter : TypeParameters(emptyList())
  * @param mockFrameworkInstalled shows if we have installed framework dependencies
  * @param staticsMockingIsConfigured shows if we have installed static mocking tools
  */
-open class StandardApplicationContext(
+open class ApplicationContext(
     val mockFrameworkInstalled: Boolean = true,
     staticsMockingIsConfigured: Boolean = true,
 ) {
@@ -1191,13 +1191,15 @@ open class StandardApplicationContext(
  * Data we get from Spring application context
  * to manage engine and code generator behaviour.
  *
- * @param beanQualifiedNames describes fqn of injected classes
+ * @param beanQualifiedNames describes fqn of types from bean definitions
+ * @param shouldUseImplementors describes it we want to replace interfaces with injected types or not
  */
 class SpringApplicationContext(
     mockInstalled: Boolean,
     staticsMockingIsConfigured: Boolean,
     val beanQualifiedNames: List<String> = emptyList(),
-): StandardApplicationContext(mockInstalled, staticsMockingIsConfigured) {
+    val shouldUseImplementors: Boolean,
+): ApplicationContext(mockInstalled, staticsMockingIsConfigured) {
     private val springInjectedClasses: List<ClassId> by lazy {
         beanQualifiedNames
             .map { fqn -> utContext.classLoader.loadClass(fqn) }
@@ -1210,7 +1212,8 @@ class SpringApplicationContext(
      * if there is the unique implementor in bean definitions.
      */
     override fun replaceTypeIfNeeded(type: RefType): ClassId? =
-        if (type.sootClass.isInterface) {
+        if (shouldUseImplementors &&
+            (type.sootClass.isInterface || type.sootClass.isAbstract)) {
             springInjectedClasses.singleOrNull { it.isSubtypeOf(type.id) }
         } else {
             null

@@ -97,12 +97,14 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.domain.ApplicationType
 import org.utbot.framework.codegen.domain.ForceStaticMocking
 import org.utbot.framework.codegen.domain.Junit4
 import org.utbot.framework.codegen.domain.Junit5
 import org.utbot.framework.codegen.domain.MockitoStaticMocking
 import org.utbot.framework.codegen.domain.NoStaticMocking
 import org.utbot.framework.codegen.domain.ParametrizedTestSource
+import org.utbot.framework.codegen.domain.TypeReplacementApproach
 import org.utbot.framework.codegen.domain.StaticsMocking
 import org.utbot.framework.codegen.domain.TestFramework
 import org.utbot.framework.codegen.domain.TestNg
@@ -514,6 +516,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
         model.testSourceRoot?.apply { model.updateSourceRootHistory(this.toNioPath().toString()) }
+
+        //TODO: obtain this values from UI controls https://github.com/UnitTestBot/UTBotJava/issues/1929
+        model.applicationType = ApplicationType.PURE_JVM
+        model.typeReplacementApproach = TypeReplacementApproach.DO_NOT_REPLACE
 
         val settings = model.project.service<Settings>()
         with(settings) {

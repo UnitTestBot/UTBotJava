@@ -19,7 +19,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.utbot.common.nameOfPackage
 import org.utbot.engine.types.OBJECT_TYPE
 import org.utbot.engine.util.mockListeners.MockListenerController
-import org.utbot.framework.plugin.api.StandardApplicationContext
+import org.utbot.framework.plugin.api.ApplicationContext
 import org.utbot.framework.plugin.api.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
@@ -168,7 +168,7 @@ class Mocker(
     private val hierarchy: Hierarchy,
     chosenClassesToMockAlways: Set<ClassId>,
     internal val mockListenerController: MockListenerController? = null,
-    private val applicationContext: StandardApplicationContext,
+    private val applicationContext: ApplicationContext,
 ) {
     private val mocksAreDesired: Boolean = strategy != MockStrategy.NO_MOCKS
 

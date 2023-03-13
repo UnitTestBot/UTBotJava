@@ -2,6 +2,7 @@ package org.utbot.framework.plugin.api.util
 
 import java.lang.invoke.LambdaMetafactory
 import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodHandles.Lookup
 import java.lang.invoke.MethodType
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -18,19 +19,18 @@ data class CapturedArgument(val type: Class<*>, val value: Any?)
  * @return [MethodHandles.Lookup] instance for the given [clazz].
  * It can be used, for example, to search methods of this [clazz], even the `private` ones.
  */
-private fun getLookupIn(clazz: Class<*>): MethodHandles.Lookup {
-    val lookup = MethodHandles.lookup().`in`(clazz)
+private fun getLookupIn(clazz: Class<*>): Lookup {
+    val lookupConstructor = Lookup::class.java.declaredConstructors.single { constructor ->
+        val parameters = constructor.parameters.map { it.type }
+        parameters.size == 3 && parameters[0] == Class::class.java && parameters[1] == Class::class.java && parameters[2] == Int::class.java
+    }
+    lookupConstructor.isAccessible = true
 
-    // Allow lookup to access all members of declaringClass, including the private ones.
-    // For example, it is useful to access private synthetic methods representing lambdas.
-    val allowedModes = MethodHandles.Lookup::class.java.getDeclaredField("allowedModes")
-    allowedModes.isAccessible = true
-    allowedModes.setInt(
-        lookup,
-        Modifier.PUBLIC or Modifier.PROTECTED or Modifier.PRIVATE or Modifier.STATIC
-    )
+    val fullModesField = Lookup::class.java.getDeclaredField("FULL_POWER_MODES")
+    fullModesField.isAccessible = true
+    val fullModesValue = fullModesField.get(null) as Int // Static field
 
-    return lookup
+    return lookupConstructor.newInstance(clazz, null, fullModesValue) as Lookup
 }
 
 /**
@@ -66,7 +66,7 @@ private fun getLambdaMethod(declaringClass: Class<*>, lambdaName: String): Metho
  * We obtain this info in [prepareLambdaInfo] to avoid duplicated code in [constructLambda] and [constructStaticLambda].
  */
 private data class LambdaMetafactoryInfo(
-    val caller: MethodHandles.Lookup,
+    val caller: Lookup,
     val invokedName: String,
     val samMethodType: MethodType,
     val lambdaMethod: Method,

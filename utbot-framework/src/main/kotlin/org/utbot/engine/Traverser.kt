@@ -116,12 +116,11 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
-import org.utbot.framework.plugin.api.ApplicationContext
+import org.utbot.framework.plugin.api.StandardApplicationContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.SpringApplicationContext
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.executable
@@ -240,7 +239,7 @@ class Traverser(
     internal val typeResolver: TypeResolver,
     private val globalGraph: InterProceduralUnitGraph,
     private val mocker: Mocker,
-    private val applicationContext: ApplicationContext?,
+    private val applicationContext: StandardApplicationContext?,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -276,8 +275,6 @@ class Traverser(
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     internal val objectCounter = ObjectCounter(TypeRegistry.objectCounterInitialValue)
-
-
 
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.createNewAddr()
@@ -1383,8 +1380,17 @@ class Traverser(
 
             queuedSymbolicStateUpdates += MemoryUpdate(addrToMockInfo = persistentHashMapOf(addr to mockInfo))
 
-            val mockedObject = mocker.mock(type, mockInfo)
+            val mockedObjectInfo = mocker.mock(type, mockInfo)
 
+            if (mockedObjectInfo is UnexpectedMock) {
+                // if mock occurs, but it is unexpected due to some reasons
+                // (e.g. we do not have mock framework installed),
+                // we can only generate a test that uses null value for mocked object
+                queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+                return mockedObjectInfo.value
+            }
+
+            val mockedObject = mockedObjectInfo.value
             if (mockedObject != null) {
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
@@ -1470,7 +1476,24 @@ class Traverser(
             }
 
             val mockInfo = mockInfoGenerator.generate(addr)
-            val mockedObject = mocker.forceMock(type, mockInfoGenerator.generate(addr))
+            val mockedObjectInfo = mocker.forceMock(type, mockInfoGenerator.generate(addr))
+
+            val mockedObject: ObjectValue = when (mockedObjectInfo) {
+                is NoMock -> error("Value must be mocked after the force mock")
+                is ExpectedMock -> mockedObjectInfo.value
+                is UnexpectedMock -> {
+                    // if mock occurs, but it is unexpected due to some reasons
+                    // (e.g. we do not have mock framework installed),
+                    // we can only generate a test that uses null value for mocked object
+                    queuedSymbolicStateUpdates += nullEqualityConstraint.asHardConstraint()
+
+                    mockedObjectInfo.value
+                }
+            }
+
+            if (mockedObjectInfo is UnexpectedMock) {
+                return mockedObject
+            }
 
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
@@ -2675,7 +2698,7 @@ class Traverser(
             .map { (method, implementationClass, possibleTypes) ->
                 val typeStorage = typeResolver.constructTypeStorage(implementationClass, possibleTypes)
                 val mockInfo = memory.mockInfoByAddr(instance.addr)
-                val mockedObject = mockInfo?.let {
+                val mockedObjectInfo = mockInfo?.let {
                     // TODO rewrite to fix JIRA:1611
                     val type = Scene.v().getSootClass(mockInfo.classId.name).type
                     val ancestorTypes = typeResolver.findOrConstructAncestorsIncludingTypes(type)
@@ -2684,28 +2707,42 @@ class Traverser(
                     } else {
                         it.copyWithClassId(classId = implementationClass.id)
                     }
+
                     mocker.mock(implementationClass, updatedMockInfo)
-                }
+                } ?: NoMock
 
-                if (mockedObject == null) {
-                    // Above we might get implementationClass that has to be substituted.
-                    // For example, for a call "Collection.size()" such classes will be produced.
-                    val wrapperOrInstance = wrapper(implementationClass, instance.addr)
-                        ?: instance.copy(typeStorage = typeStorage)
+                when (mockedObjectInfo) {
+                    is NoMock -> {
+                        // Above we might get implementationClass that has to be substituted.
+                        // For example, for a call "Collection.size()" such classes will be produced.
+                        val wrapperOrInstance = wrapper(implementationClass, instance.addr)
+                            ?: instance.copy(typeStorage = typeStorage)
 
-                    val typeConstraint = typeRegistry.typeConstraint(instance.addr, wrapperOrInstance.typeStorage)
-                    val constraints = setOf(typeConstraint.isOrNullConstraint())
+                        val typeConstraint = typeRegistry.typeConstraint(instance.addr, wrapperOrInstance.typeStorage)
+                        val constraints = setOf(typeConstraint.isOrNullConstraint())
 
-                    // TODO add memory updated for types JIRA:1523
+                        // TODO add memory updated for types JIRA:1523
+                        InvocationTarget(wrapperOrInstance, method, constraints)
+                    }
+                    is ExpectedMock -> {
+                        val mockedObject = mockedObjectInfo.value
+                        val typeConstraint = typeRegistry.typeConstraint(mockedObject.addr, mockedObject.typeStorage)
+                        val constraints = setOf(typeConstraint.isOrNullConstraint())
 
-                    InvocationTarget(wrapperOrInstance, method, constraints)
-                } else {
-                    val typeConstraint = typeRegistry.typeConstraint(mockedObject.addr, mockedObject.typeStorage)
-                    val constraints = setOf(typeConstraint.isOrNullConstraint())
-
-                    // TODO add memory updated for types JIRA:1523
-                    // TODO isMock????
-                    InvocationTarget(mockedObject, method, constraints)
+                        // TODO add memory updated for types JIRA:1523
+                        // TODO isMock????
+                        InvocationTarget(mockedObject, method, constraints)
+                    }
+                    /*
+                    Currently, it is unclear how this could happen.
+                    Perhaps, the answer is somewhere in the following situation:
+                    you have an interface with an abstract method `foo`, and it has an abstract inheritor with the implementation of the method,
+                    but this inheritor doesn't have any concrete inheritors. It looks like in this case we would mock this instance
+                    (because it doesn't have any possible concrete type), but it is impossible since either this class cannot present
+                    in possible types of the object on which we call `foo` (since they contain only concrete types),
+                    or this class would be already mocked (since it doesn't contain any concrete implementors).
+                     */
+                    is UnexpectedMock -> unreachableBranch("If it ever happens, it should be investigated")
                 }
             }
     }

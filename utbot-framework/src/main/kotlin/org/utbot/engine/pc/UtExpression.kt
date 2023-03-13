@@ -932,7 +932,7 @@ data class UtMkTermArrayExpression(val array: UtArrayExpressionBase, val default
     override fun hashCode() = hashCode
 }
 
-data class Z3Variable(val type: Type, val expr: Expr) {
+data class Z3Variable(val type: Type, val expr: Expr<*>) {
     private val hashCode = Objects.hash(type, expr)
 
     override fun equals(other: Any?): Boolean {
@@ -950,6 +950,6 @@ data class Z3Variable(val type: Type, val expr: Expr) {
     override fun hashCode() = hashCode
 }
 
-fun Expr.z3Variable(type: Type) = Z3Variable(type, this)
+fun Expr<*>.z3Variable(type: Type) = Z3Variable(type, this)
 
 fun UtExpression.isInteger() = this.sort is UtBvSort

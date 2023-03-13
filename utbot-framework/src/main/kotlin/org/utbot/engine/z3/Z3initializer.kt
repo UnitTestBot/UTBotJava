@@ -21,7 +21,7 @@ abstract class Z3Initializer : AutoCloseable {
     companion object {
         private val libraries = listOf("libz3", "libz3java")
         private val vcWinLibrariesToLoadBefore = listOf("vcruntime140", "vcruntime140_1")
-        private val supportedArchs = setOf("amd64", "x86_64")
+        private val supportedArchs = setOf("amd64", "x86_64", "aarch64")
         private val initializeCallback by lazy {
             System.setProperty("z3.skipLibraryLoad", "true")
             val arch = System.getProperty("os.arch")

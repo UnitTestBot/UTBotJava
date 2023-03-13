@@ -30,7 +30,6 @@ import java.io.File
 
 private val logger = KotlinLogging.logger {}
 private const val RANDOM_TYPE_FREQUENCY = 6
-private const val MAX_EXECUTIONS = 50000
 
 class PythonTestCaseGenerator(
     private val withMinimization: Boolean = true,
@@ -168,9 +167,7 @@ class PythonTestCaseGenerator(
 
                 var feedback: InferredTypeFeedback = SuccessFeedback
 
-                val fuzzerCancellation = {
-                    isCancelled() || limitManager.isCancelled() || (errors.size + executions.size) >= MAX_EXECUTIONS
-                }
+                val fuzzerCancellation = { isCancelled() || limitManager.isCancelled() }
 
                 engine.fuzzing(args, fuzzerCancellation, until).collect {
                     when (it) {
@@ -182,8 +179,8 @@ class PythonTestCaseGenerator(
                         }
                         is InvalidExecution -> {
                             errors += it.utError
-                            feedback = SuccessFeedback
-                            limitManager.addSuccessExecution()
+                            feedback = InvalidTypeFeedback
+                            limitManager.addInvalidExecution()
                         }
                         is ArgumentsTypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
@@ -192,6 +189,19 @@ class PythonTestCaseGenerator(
                         is TypeErrorFeedback -> {
                             feedback = InvalidTypeFeedback
                             limitManager.addInvalidExecution()
+                        }
+                        is CachedExecutionFeedback -> {
+                            when (it.cachedFeedback) {
+                                is ValidExecution -> {
+                                    limitManager.addSuccessExecution()
+                                }
+                                else -> {
+                                    limitManager.addInvalidExecution()
+                                }
+                            }
+                        }
+                        is FakeNodeFeedback -> {
+                           limitManager.addFakeNodeExecutions()
                         }
                     }
                     limitManager.missedLines = missingLines?.size
@@ -213,28 +223,41 @@ class PythonTestCaseGenerator(
         val coveredLines = mutableSetOf<Int>()
 
         logger.info("Start test generation for ${method.name}")
-        val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
-        val argKinds = meta.argumentKinds
-        if (argKinds.any { it != PythonCallableTypeDescription.ArgKind.ARG_POS }) {
-            val now = System.currentTimeMillis()
-            val firstUntil = (until - now) / 2 + now
-            val originalDef = method.definition
-            val shortType = meta.removeNonPositionalArgs(originalDef.type)
-            val shortMeta = PythonFuncItemDescription(
-                originalDef.meta.name,
-                originalDef.meta.args.take(shortType.arguments.size)
-            )
-            val additionalVars = originalDef.meta.args
-                .drop(shortType.arguments.size)
-                .joinToString(separator="\n", prefix="\n") { arg ->
-                    "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
-                }
-            method.definition = PythonFunctionDefinition(shortMeta, shortType)
-            val missingLines = methodHandler(method, typeStorage, coveredLines, errors, executions, null, firstUntil, additionalVars)
-            method.definition = originalDef
-            methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
-        } else {
-            methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)
+        try {
+            val meta = method.definition.type.pythonDescription() as PythonCallableTypeDescription
+            val argKinds = meta.argumentKinds
+            if (argKinds.any { it != PythonCallableTypeDescription.ArgKind.ARG_POS }) {
+                val now = System.currentTimeMillis()
+                val firstUntil = (until - now) / 2 + now
+                val originalDef = method.definition
+                val shortType = meta.removeNonPositionalArgs(originalDef.type)
+                val shortMeta = PythonFuncItemDescription(
+                    originalDef.meta.name,
+                    originalDef.meta.args.take(shortType.arguments.size)
+                )
+                val additionalVars = originalDef.meta.args
+                    .drop(shortType.arguments.size)
+                    .joinToString(separator = "\n", prefix = "\n") { arg ->
+                        "${arg.name}: ${pythonAnyType.pythonTypeRepresentation()}"  // TODO: better types
+                    }
+                method.definition = PythonFunctionDefinition(shortMeta, shortType)
+                val missingLines = methodHandler(
+                    method,
+                    typeStorage,
+                    coveredLines,
+                    errors,
+                    executions,
+                    null,
+                    firstUntil,
+                    additionalVars
+                )
+                method.definition = originalDef
+                methodHandler(method, typeStorage, coveredLines, errors, executions, missingLines, until)
+            } else {
+                methodHandler(method, typeStorage, coveredLines, errors, executions, null, until)
+            }
+        } catch (_: OutOfMemoryError) {
+            logger.info { "Out of memory error. Stop test generation process" }
         }
 
         logger.info("Collect all test executions for ${method.name}")

@@ -1170,7 +1170,7 @@ private fun getLookupIn(language: CodegenLanguage) =
     
                 // Allow lookup to access all members of declaringClass, including the private ones.
                 // For example, it is useful to access private synthetic methods representing lambdas.
-                val allowedModes java.lang.reflect.Field
+                val allowedModes: java.lang.reflect.Field
                 ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
                 allowedModes.isAccessible = true
                 allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC or java.lang.reflect.Modifier.PROTECTED or java.lang.reflect.Modifier.PRIVATE or java.lang.reflect.Modifier.STATIC)

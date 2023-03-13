@@ -131,18 +131,20 @@ private fun getEnumConstantByName(visibility: Visibility, language: CodegenLangu
 private fun getFieldRetrievingBlock(language : CodegenLanguage, fullClassName : String, fieldName : String, resultName : String) = when (language) {
     CodegenLanguage.JAVA ->
         """
-                        java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-                        methodForGetDeclaredFields0.setAccessible(true);
-                        java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke($fullClassName.class, false);
-                        $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("$fieldName")).findFirst().get();
+                    java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+                    methodForGetDeclaredFields0.setAccessible(true);
+                    java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke($fullClassName.class, false);
+                    $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("$fieldName")).findFirst().get();
 
     """
 
     CodegenLanguage.KOTLIN ->
         """
-                        val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke($fullClassName::class.java, false) as Array<java.lang.reflect.Field>
-                        $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }
-                            .findFirst().get()
+                    val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
+                    methodForGetDeclaredFields0.isAccessible = true
+                    val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke($fullClassName::class.java, false) as Array<java.lang.reflect.Field>
+                    $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }
+                        .findFirst().get()
 
     """
 }
@@ -188,8 +190,6 @@ private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguag
                         field.isAccessible = true
 
                         val modifiersField: java.lang.reflect.Field
-                        val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
-                        methodForGetDeclaredFields0.isAccessible = true
                         ${getFieldRetrievingBlock(language, "java.lang.reflect.Field", "modifiers", "modifiersField")}
 
                         modifiersField.isAccessible = true

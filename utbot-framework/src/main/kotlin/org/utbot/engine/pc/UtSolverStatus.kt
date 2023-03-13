@@ -47,7 +47,7 @@ class UtSolverStatusSAT(
 
     private val evaluator: Z3EvaluatorVisitor = translator.evaluator(model)
 
-    fun eval(expression: UtExpression): Expr = evaluator.eval(expression)
+    fun eval(expression: UtExpression): Expr<*> = evaluator.eval(expression)
 
     fun concreteAddr(expression: UtAddrExpression): Address = eval(expression).intValue()
 
@@ -65,7 +65,7 @@ class UtSolverStatusSAT(
      * - val arrayInterpretationFuncDecl: FuncDecl = mfd.parameters[[0]].funcDecl
      * - val interpretation: FuncInterp = z3Solver.model.getFuncInterp(arrayInterpretationFuncDecl)
      */
-    internal fun evalArrayDescriptor(mval: Expr, unsigned: Boolean, filter: (Int) -> Boolean): ArrayDescriptor {
+    internal fun evalArrayDescriptor(mval: Expr<*>, unsigned: Boolean, filter: (Int) -> Boolean): ArrayDescriptor {
         var next = mval
         val stores = mutableMapOf<Int, Any>()
         var const: Any? = null
@@ -79,7 +79,7 @@ class UtSolverStatusSAT(
                     next = next.args[0]
                 }
                 Z3_OP_UNINTERPRETED -> next = model.eval(next)
-                Z3_OP_CONST_ARRAY -> const = if (next.args[0] is ArrayExpr) {
+                Z3_OP_CONST_ARRAY -> const = if (next.args[0] is ArrayExpr<*, *>) {
                     // if we have an array as const value, create a corresponding descriptor for it
                     evalArrayDescriptor(next.args[0], unsigned, filter)
                 } else {

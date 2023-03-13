@@ -32,7 +32,6 @@ dependencies {
     }
 
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
-    implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgenVersion
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2Version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
@@ -58,4 +57,7 @@ dependencies {
 
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockitoInlineVersion
     testImplementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2Version
+
+    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
+    implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
 }

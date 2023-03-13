@@ -128,25 +128,27 @@ private fun getEnumConstantByName(visibility: Visibility, language: CodegenLangu
         }
     }.trimIndent()
 
-private fun getFieldRetrievingBlock(language : CodegenLanguage, fullClassName : String, fieldName : String, resultName : String) = when (language) {
-    CodegenLanguage.JAVA ->
-        """
-                    java.lang.reflect.Method methodForGetDeclaredFields0 = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-                    methodForGetDeclaredFields0.setAccessible(true);
-                    java.lang.reflect.Field[] allFieldsFromFieldClass = (java.lang.reflect.Field[]) methodForGetDeclaredFields0.invoke($fullClassName.class, false);
-                    $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter(field1 -> field1.getName().equals("$fieldName")).findFirst().get();
-
+private fun getFieldRetrievingBlock(language : CodegenLanguage, fullClassName : String, fieldName : String, resultName : String): String {
+    val methodName = "methodForGetDeclaredFields${System.nanoTime()}"
+    val fieldsName = "allFieldsFromFieldClass${System.nanoTime()}"
+    return when (language) {
+        CodegenLanguage.JAVA ->
+            """
+                    java.lang.reflect.Method $methodName = java.lang.Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+                    $methodName.setAccessible(true);
+                    java.lang.reflect.Field[] $fieldsName = (java.lang.reflect.Field[]) $methodName.invoke($fullClassName.class, false);
+                    $resultName = java.util.Arrays.stream($fieldsName).filter(field1 -> field1.getName().equals("$fieldName")).findFirst().get();
     """
 
-    CodegenLanguage.KOTLIN ->
-        """
-                    val methodForGetDeclaredFields0 = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
-                    methodForGetDeclaredFields0.isAccessible = true
-                    val allFieldsFromFieldClass = methodForGetDeclaredFields0.invoke($fullClassName::class.java, false) as Array<java.lang.reflect.Field>
-                    $resultName = java.util.Arrays.stream(allFieldsFromFieldClass).filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }
+        CodegenLanguage.KOTLIN ->
+            """
+                    val $methodName = Class::class.java.getDeclaredMethod("getDeclaredFields0", Boolean::class.java)
+                    $methodName.isAccessible = true
+                    val $fieldsName = $methodName.invoke($fullClassName::class.java, false) as Array<java.lang.reflect.Field>
+                    $resultName = java.util.Arrays.stream($fieldsName).filter { field1: java.lang.reflect.Field -> field1.name == "$fieldName" }
                         .findFirst().get()
-
     """
+    }
 }
 private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
@@ -1151,9 +1153,12 @@ private fun getLookupIn(language: CodegenLanguage) =
                 // For example, it is useful to access private synthetic methods representing lambdas.
                 
                 java.lang.reflect.Field allowedModes;
+                java.lang.reflect.Field allModesField;
                 ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "ALL_MODES", "allModesField")}
+                allModesField.setAccessible(true);
                 allowedModes.setAccessible(true);
-                allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC | java.lang.reflect.Modifier.PROTECTED | java.lang.reflect.Modifier.PRIVATE | java.lang.reflect.Modifier.STATIC);
+                allowedModes.setInt(lookup, (Integer) allModesField.get(null));
         
                 return lookup;
             }
@@ -1171,9 +1176,12 @@ private fun getLookupIn(language: CodegenLanguage) =
                 // Allow lookup to access all members of declaringClass, including the private ones.
                 // For example, it is useful to access private synthetic methods representing lambdas.
                 val allowedModes: java.lang.reflect.Field
+                val allModesField: java.lang.reflect.Field
                 ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "allowedModes", "allowedModes")}
+                ${getFieldRetrievingBlock(language, "java.lang.invoke.MethodHandles.Lookup", "ALL_MODES", "allModesField")}
                 allowedModes.isAccessible = true
-                allowedModes.setInt(lookup, java.lang.reflect.Modifier.PUBLIC or java.lang.reflect.Modifier.PROTECTED or java.lang.reflect.Modifier.PRIVATE or java.lang.reflect.Modifier.STATIC)
+                allModesField.isAccessible = true
+                allowedModes.setInt(lookup, allModesField.get(null) as Int)
     
                 return lookup
             }

@@ -17,12 +17,10 @@ import com.intellij.util.ui.UIUtil
 import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
-import org.jetbrains.kotlin.idea.util.rootManager
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.ITestSourceRoot
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
-import org.utbot.intellij.plugin.ui.utils.getSortedTestRoots
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 
 private const val SET_TEST_FOLDER = "set test folder"
@@ -58,12 +56,7 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) :
             }
         }
 
-        val testRoots = getSortedTestRoots(
-            model.getAllTestSourceRoots(),
-            model.sourceRootHistory,
-            model.srcModule.rootManager.sourceRoots.map { file: VirtualFile -> file.toNioPath().toString() },
-            model.codegenLanguage
-        )
+        val testRoots = model.getSortedTestRoots()
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots, model.codegenLanguage)

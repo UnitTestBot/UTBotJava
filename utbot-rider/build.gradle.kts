@@ -9,7 +9,7 @@ plugins {
 
 intellij {
     type.set("RD")
-    version.set("2022.2")
+    version.set("2023.1-SNAPSHOT")
 }
 
 dependencies {
@@ -38,8 +38,7 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("222")
-        untilBuild.set("223.*")
+        sinceBuild.set("231")
         version.set(semVer)
     }
 
